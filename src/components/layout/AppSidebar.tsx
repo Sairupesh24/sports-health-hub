@@ -1,0 +1,128 @@
+import { Link, useLocation } from "react-router-dom";
+import {
+  LayoutDashboard,
+  Users,
+  Calendar,
+  ClipboardList,
+  Dumbbell,
+  Activity,
+  CreditCard,
+  Settings,
+  LogOut,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
+import { useState } from "react";
+import { cn } from "@/lib/utils";
+
+interface NavItem {
+  label: string;
+  icon: React.ElementType;
+  href: string;
+}
+
+const adminNav: NavItem[] = [
+  { label: "Dashboard", icon: LayoutDashboard, href: "/admin" },
+  { label: "Clients", icon: Users, href: "/admin/clients" },
+  { label: "Appointments", icon: Calendar, href: "/admin/appointments" },
+  { label: "Sessions", icon: ClipboardList, href: "/admin/sessions" },
+  { label: "Programs", icon: Dumbbell, href: "/admin/programs" },
+  { label: "Performance", icon: Activity, href: "/admin/performance" },
+  { label: "Billing", icon: CreditCard, href: "/admin/billing" },
+  { label: "Settings", icon: Settings, href: "/admin/settings" },
+];
+
+const consultantNav: NavItem[] = [
+  { label: "Dashboard", icon: LayoutDashboard, href: "/consultant" },
+  { label: "My Clients", icon: Users, href: "/consultant/clients" },
+  { label: "Schedule", icon: Calendar, href: "/consultant/schedule" },
+  { label: "Sessions", icon: ClipboardList, href: "/consultant/sessions" },
+  { label: "Programs", icon: Dumbbell, href: "/consultant/programs" },
+];
+
+const clientNav: NavItem[] = [
+  { label: "Dashboard", icon: LayoutDashboard, href: "/client" },
+  { label: "Appointments", icon: Calendar, href: "/client/appointments" },
+  { label: "My Sessions", icon: ClipboardList, href: "/client/sessions" },
+  { label: "Performance", icon: Activity, href: "/client/performance" },
+  { label: "Billing", icon: CreditCard, href: "/client/billing" },
+];
+
+const navMap: Record<string, NavItem[]> = {
+  admin: adminNav,
+  consultant: consultantNav,
+  client: clientNav,
+};
+
+interface AppSidebarProps {
+  role: string;
+}
+
+export default function AppSidebar({ role }: AppSidebarProps) {
+  const [collapsed, setCollapsed] = useState(false);
+  const location = useLocation();
+  const items = navMap[role] || adminNav;
+
+  return (
+    <aside
+      className={cn(
+        "flex flex-col h-screen bg-sidebar border-r border-sidebar-border transition-all duration-300",
+        collapsed ? "w-16" : "w-64"
+      )}
+    >
+      {/* Logo */}
+      <div className="flex items-center gap-3 px-4 py-5 border-b border-sidebar-border">
+        <div className="w-8 h-8 rounded-lg gradient-primary flex items-center justify-center flex-shrink-0">
+          <Activity className="w-4 h-4 text-primary-foreground" />
+        </div>
+        {!collapsed && (
+          <span className="font-display font-bold text-sidebar-primary-foreground text-lg tracking-tight">
+            ISHPO
+          </span>
+        )}
+      </div>
+
+      {/* Nav */}
+      <nav className="flex-1 py-4 px-2 space-y-1 overflow-y-auto">
+        {items.map((item) => {
+          const isActive =
+            location.pathname === item.href ||
+            (item.href !== `/${role}` && location.pathname.startsWith(item.href));
+          return (
+            <Link
+              key={item.href}
+              to={item.href}
+              className={cn(
+                "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
+                isActive
+                  ? "bg-sidebar-accent text-sidebar-primary shadow-glow"
+                  : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+              )}
+            >
+              <item.icon className="w-5 h-5 flex-shrink-0" />
+              {!collapsed && <span>{item.label}</span>}
+            </Link>
+          );
+        })}
+      </nav>
+
+      {/* Footer */}
+      <div className="border-t border-sidebar-border p-2 space-y-1">
+        <button
+          onClick={() => setCollapsed(!collapsed)}
+          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-sidebar-foreground hover:bg-sidebar-accent w-full transition-colors"
+        >
+          {collapsed ? <ChevronRight className="w-5 h-5" /> : <ChevronLeft className="w-5 h-5" />}
+          {!collapsed && <span>Collapse</span>}
+        </button>
+        <Link
+          to="/login"
+          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-sidebar-foreground hover:bg-destructive/20 hover:text-destructive w-full transition-colors"
+        >
+          <LogOut className="w-5 h-5 flex-shrink-0" />
+          {!collapsed && <span>Sign Out</span>}
+        </Link>
+      </div>
+    </aside>
+  );
+}
