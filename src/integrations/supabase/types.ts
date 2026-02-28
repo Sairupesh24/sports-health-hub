@@ -14,16 +14,378 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      client_documents: {
+        Row: {
+          client_id: string
+          created_at: string
+          document_name: string
+          document_type: string | null
+          file_path: string
+          id: string
+          organization_id: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          document_name: string
+          document_type?: string | null
+          file_path: string
+          id?: string
+          organization_id: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          document_name?: string
+          document_type?: string | null
+          file_path?: string
+          id?: string
+          organization_id?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_documents_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_documents_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_field_config: {
+        Row: {
+          field_name: string
+          id: string
+          is_mandatory: boolean
+          organization_id: string
+          updated_at: string
+        }
+        Insert: {
+          field_name: string
+          id?: string
+          is_mandatory?: boolean
+          organization_id: string
+          updated_at?: string
+        }
+        Update: {
+          field_name?: string
+          id?: string
+          is_mandatory?: boolean
+          organization_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_field_config_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clients: {
+        Row: {
+          aadhaar_no: string | null
+          address: string | null
+          age: number | null
+          alternate_mobile_no: string | null
+          blood_group: string | null
+          city: string | null
+          country: string | null
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          district: string | null
+          dob: string | null
+          email: string | null
+          first_name: string
+          gender: string | null
+          has_insurance: boolean | null
+          honorific: string | null
+          id: string
+          insurance_coverage_amount: number | null
+          insurance_policy_no: string | null
+          insurance_provider: string | null
+          insurance_validity: string | null
+          last_name: string
+          locality: string | null
+          location_id: string | null
+          middle_name: string | null
+          mobile_no: string
+          occupation: string | null
+          org_name: string | null
+          organization_id: string
+          pincode: string | null
+          registered_on: string
+          state: string | null
+          uhid: string
+          updated_at: string
+        }
+        Insert: {
+          aadhaar_no?: string | null
+          address?: string | null
+          age?: number | null
+          alternate_mobile_no?: string | null
+          blood_group?: string | null
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          district?: string | null
+          dob?: string | null
+          email?: string | null
+          first_name: string
+          gender?: string | null
+          has_insurance?: boolean | null
+          honorific?: string | null
+          id?: string
+          insurance_coverage_amount?: number | null
+          insurance_policy_no?: string | null
+          insurance_provider?: string | null
+          insurance_validity?: string | null
+          last_name: string
+          locality?: string | null
+          location_id?: string | null
+          middle_name?: string | null
+          mobile_no: string
+          occupation?: string | null
+          org_name?: string | null
+          organization_id: string
+          pincode?: string | null
+          registered_on?: string
+          state?: string | null
+          uhid: string
+          updated_at?: string
+        }
+        Update: {
+          aadhaar_no?: string | null
+          address?: string | null
+          age?: number | null
+          alternate_mobile_no?: string | null
+          blood_group?: string | null
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          district?: string | null
+          dob?: string | null
+          email?: string | null
+          first_name?: string
+          gender?: string | null
+          has_insurance?: boolean | null
+          honorific?: string | null
+          id?: string
+          insurance_coverage_amount?: number | null
+          insurance_policy_no?: string | null
+          insurance_provider?: string | null
+          insurance_validity?: string | null
+          last_name?: string
+          locality?: string | null
+          location_id?: string | null
+          middle_name?: string | null
+          mobile_no?: string
+          occupation?: string | null
+          org_name?: string | null
+          organization_id?: string
+          pincode?: string | null
+          registered_on?: string
+          state?: string | null
+          uhid?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clients_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clients_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      locations: {
+        Row: {
+          address: string | null
+          created_at: string
+          deleted_at: string | null
+          id: string
+          name: string
+          organization_id: string
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          name: string
+          organization_id: string
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          name?: string
+          organization_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "locations_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organizations: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          email: string | null
+          first_name: string
+          id: string
+          last_name: string
+          organization_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          first_name?: string
+          id: string
+          last_name?: string
+          organization_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          first_name?: string
+          id?: string
+          last_name?: string
+          organization_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profiles_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      uhid_sequences: {
+        Row: {
+          id: string
+          last_serial: number
+          organization_id: string
+          year_month: string
+        }
+        Insert: {
+          id?: string
+          last_serial?: number
+          organization_id: string
+          year_month: string
+        }
+        Update: {
+          id?: string
+          last_serial?: number
+          organization_id?: string
+          year_month?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "uhid_sequences_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      generate_uhid: { Args: { p_organization_id: string }; Returns: string }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "consultant" | "client"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +512,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "consultant", "client"],
+    },
   },
 } as const
