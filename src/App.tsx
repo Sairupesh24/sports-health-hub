@@ -10,6 +10,7 @@ import NotFound from "./pages/NotFound";
 import LoginPage from "./pages/LoginPage";
 import SignupPage from "./pages/auth/SignupPage";
 import PendingApprovalPage from "./pages/auth/PendingApprovalPage";
+import SetupPage from "./pages/auth/SetupPage";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import ClientList from "./pages/admin/ClientList";
 import ClientRegistration from "./pages/admin/ClientRegistration";
@@ -32,6 +33,7 @@ const App = () => (
             <Route path="/login" element={<LoginPage />} />
             <Route path="/signup" element={<SignupPage />} />
             <Route path="/pending-approval" element={<PendingApprovalPage />} />
+            <Route path="/setup" element={<SetupPage />} />
             <Route path="/admin" element={<ProtectedRoute requiredRole="admin"><AdminDashboard /></ProtectedRoute>} />
             <Route path="/admin/clients" element={<ProtectedRoute requiredRole="admin"><ClientList /></ProtectedRoute>} />
             <Route path="/admin/clients/register" element={<ProtectedRoute requiredRole="admin"><ClientRegistration /></ProtectedRoute>} />
