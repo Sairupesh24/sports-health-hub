@@ -382,6 +382,7 @@ export type Database = {
     }
     Functions: {
       generate_uhid: { Args: { p_organization_id: string }; Returns: string }
+      get_my_org_id: { Args: never; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
