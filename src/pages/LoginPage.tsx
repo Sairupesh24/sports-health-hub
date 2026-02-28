@@ -1,22 +1,57 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Activity, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-
-const roles = [
-  { value: "admin", label: "Admin", description: "Organization management" },
-  { value: "consultant", label: "Consultant", description: "Clinical workflow" },
-  { value: "client", label: "Client", description: "Patient portal" },
-];
+import { toast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function LoginPage() {
   const navigate = useNavigate();
-  const [selectedRole, setSelectedRole] = useState("admin");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleDemoLogin = () => {
-    navigate(`/${selectedRole}`);
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) throw error;
+
+      // Auth state change in context will handle redirect
+      // Fetch profile to determine role
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("No user");
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("is_approved")
+        .eq("id", user.id)
+        .single();
+
+      if (!profile?.is_approved) {
+        navigate("/pending-approval");
+        return;
+      }
+
+      const { data: roles } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id);
+
+      const userRoles = roles?.map((r) => r.role) || [];
+      if (userRoles.includes("admin")) navigate("/admin");
+      else if (userRoles.includes("consultant")) navigate("/consultant");
+      else if (userRoles.includes("client")) navigate("/client");
+      else navigate("/pending-approval");
+
+    } catch (err: any) {
+      toast({ title: "Login failed", description: err.message, variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -45,7 +80,7 @@ export default function LoginPage() {
 
       {/* Right - Login */}
       <div className="flex-1 flex items-center justify-center p-8 bg-background">
-        <div className="w-full max-w-md space-y-8">
+        <form onSubmit={handleLogin} className="w-full max-w-md space-y-6">
           <div className="lg:hidden flex items-center gap-3 mb-4">
             <div className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center">
               <Activity className="w-5 h-5 text-primary-foreground" />
@@ -61,40 +96,24 @@ export default function LoginPage() {
           <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" placeholder="you@clinic.com" />
+              <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required placeholder="you@clinic.com" />
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
-              <Input id="password" type="password" placeholder="••••••••" />
+              <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required placeholder="••••••••" />
             </div>
           </div>
 
-          {/* Demo Role Selector */}
-          <div className="space-y-3">
-            <Label className="text-xs uppercase tracking-wider text-muted-foreground">Demo: Select Role</Label>
-            <div className="grid grid-cols-3 gap-2">
-              {roles.map((role) => (
-                <button
-                  key={role.value}
-                  onClick={() => setSelectedRole(role.value)}
-                  className={`p-3 rounded-lg border text-center transition-all duration-200 ${
-                    selectedRole === role.value
-                      ? "border-primary bg-primary/10 text-primary shadow-glow"
-                      : "border-border bg-card text-card-foreground hover:border-primary/50"
-                  }`}
-                >
-                  <p className="text-sm font-semibold">{role.label}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">{role.description}</p>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <Button onClick={handleDemoLogin} className="w-full gradient-primary text-primary-foreground h-11 font-semibold">
-            Enter Demo
+          <Button type="submit" disabled={loading} className="w-full gradient-primary text-primary-foreground h-11 font-semibold">
+            {loading ? "Signing in..." : "Sign In"}
             <ArrowRight className="w-4 h-4 ml-2" />
           </Button>
-        </div>
+
+          <p className="text-sm text-center text-muted-foreground">
+            Don't have an account?{" "}
+            <Link to="/signup" className="text-primary hover:underline">Sign up</Link>
+          </p>
+        </form>
       </div>
     </div>
   );

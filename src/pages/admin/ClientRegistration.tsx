@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@/components/ui/separator";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { ArrowLeft, UserPlus, Upload, Shield, X } from "lucide-react";
 import { format } from "date-fns";
 
@@ -31,6 +32,7 @@ const clientSchema = z.object({
   email: z.string().email("Invalid email").optional().or(z.literal("")),
   alternate_mobile_no: z.string().optional(),
   occupation: z.string().optional(),
+  sport: z.string().optional(),
   org_name: z.string().optional(),
   address: z.string().optional(),
   locality: z.string().optional(),
@@ -51,6 +53,12 @@ type ClientFormData = z.infer<typeof clientSchema>;
 const HONORIFICS = ["Mr.", "Mrs.", "Ms.", "Dr.", "Prof.", "Master", "Miss"];
 const GENDERS = ["Male", "Female", "Other", "Prefer not to say"];
 const BLOOD_GROUPS = ["A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-"];
+const SPORTS = [
+  "Cricket", "Football", "Hockey", "Badminton", "Tennis", "Basketball",
+  "Volleyball", "Athletics", "Swimming", "Boxing", "Wrestling", "Kabaddi",
+  "Table Tennis", "Shooting", "Archery", "Weightlifting", "Gymnastics",
+  "Cycling", "Rugby", "Martial Arts", "Other",
+];
 const INDIAN_STATES = [
   "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh",
   "Goa", "Gujarat", "Haryana", "Himachal Pradesh", "Jharkhand", "Karnataka",
@@ -62,6 +70,7 @@ const INDIAN_STATES = [
 
 export default function ClientRegistration() {
   const navigate = useNavigate();
+  const { profile } = useAuth();
   const [submitting, setSubmitting] = useState(false);
   const [documents, setDocuments] = useState<File[]>([]);
   const [showInsurance, setShowInsurance] = useState(false);
@@ -106,8 +115,8 @@ export default function ClientRegistration() {
   const onSubmit = async (data: ClientFormData) => {
     setSubmitting(true);
     try {
-      // Use the default org for now
-      const orgId = "00000000-0000-0000-0000-000000000001";
+      const orgId = profile?.organization_id;
+      if (!orgId) throw new Error("No organization found. Contact your admin.");
 
       // Generate UHID via database function
       const { data: uhidResult, error: uhidError } = await supabase.rpc("generate_uhid", {
@@ -132,6 +141,7 @@ export default function ClientRegistration() {
         email: data.email || null,
         alternate_mobile_no: data.alternate_mobile_no || null,
         occupation: data.occupation || null,
+        sport: data.sport || null,
         org_name: data.org_name || null,
         address: data.address || null,
         locality: data.locality || null,
@@ -311,10 +321,19 @@ export default function ClientRegistration() {
               </div>
 
               {/* Row 4: Occupation, Org */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="space-y-1.5">
                   <Label>Occupation</Label>
                   <Input className={inputClass} {...register("occupation")} placeholder="e.g. Athlete, Student" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Sport</Label>
+                  <Select onValueChange={(v) => setValue("sport", v)}>
+                    <SelectTrigger className={inputClass}><SelectValue placeholder="Select sport" /></SelectTrigger>
+                    <SelectContent>
+                      {SPORTS.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-1.5">
                   <Label>Organization Name</Label>

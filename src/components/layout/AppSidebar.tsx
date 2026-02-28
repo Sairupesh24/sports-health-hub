@@ -1,6 +1,7 @@
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
+  UserCheck,
   Users,
   Calendar,
   ClipboardList,
@@ -14,6 +15,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface NavItem {
   label: string;
@@ -30,6 +32,7 @@ const adminNav: NavItem[] = [
   { label: "Performance", icon: Activity, href: "/admin/performance" },
   { label: "Billing", icon: CreditCard, href: "/admin/billing" },
   { label: "Settings", icon: Settings, href: "/admin/settings" },
+  { label: "User Approval", icon: UserCheck, href: "/admin/users" },
 ];
 
 const consultantNav: NavItem[] = [
@@ -61,6 +64,8 @@ interface AppSidebarProps {
 export default function AppSidebar({ role }: AppSidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
+  const { signOut } = useAuth();
   const items = navMap[role] || adminNav;
 
   return (
@@ -115,13 +120,13 @@ export default function AppSidebar({ role }: AppSidebarProps) {
           {collapsed ? <ChevronRight className="w-5 h-5" /> : <ChevronLeft className="w-5 h-5" />}
           {!collapsed && <span>Collapse</span>}
         </button>
-        <Link
-          to="/login"
+        <button
+          onClick={async () => { await signOut(); navigate("/login"); }}
           className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-sidebar-foreground hover:bg-destructive/20 hover:text-destructive w-full transition-colors"
         >
           <LogOut className="w-5 h-5 flex-shrink-0" />
           {!collapsed && <span>Sign Out</span>}
-        </Link>
+        </button>
       </div>
     </aside>
   );

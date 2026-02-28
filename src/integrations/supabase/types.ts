@@ -128,6 +128,7 @@ export type Database = {
           organization_id: string
           pincode: string | null
           registered_on: string
+          sport: string | null
           state: string | null
           uhid: string
           updated_at: string
@@ -165,6 +166,7 @@ export type Database = {
           organization_id: string
           pincode?: string | null
           registered_on?: string
+          sport?: string | null
           state?: string | null
           uhid: string
           updated_at?: string
@@ -202,6 +204,7 @@ export type Database = {
           organization_id?: string
           pincode?: string | null
           registered_on?: string
+          sport?: string | null
           state?: string | null
           uhid?: string
           updated_at?: string
@@ -291,6 +294,7 @@ export type Database = {
           email: string | null
           first_name: string
           id: string
+          is_approved: boolean
           last_name: string
           organization_id: string | null
           updated_at: string
@@ -300,6 +304,7 @@ export type Database = {
           email?: string | null
           first_name?: string
           id: string
+          is_approved?: boolean
           last_name?: string
           organization_id?: string | null
           updated_at?: string
@@ -309,6 +314,7 @@ export type Database = {
           email?: string | null
           first_name?: string
           id?: string
+          is_approved?: boolean
           last_name?: string
           organization_id?: string | null
           updated_at?: string
