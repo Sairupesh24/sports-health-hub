@@ -14,8 +14,10 @@ import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
-import { CreditCard, Plus, Search, Receipt, Building2 } from "lucide-react";
+import { CreditCard, Plus, Search, Receipt, Building2, CheckCircle2 } from "lucide-react";
 import { format } from "date-fns";
+
+const PAYMENT_METHODS = ["Cash", "UPI", "Card"] as const;
 
 export default function Billing() {
   const { profile } = useAuth();
@@ -24,6 +26,9 @@ export default function Billing() {
   const [showNewBill, setShowNewBill] = useState(false);
   const [showAddReferral, setShowAddReferral] = useState(false);
   const [showAddPackage, setShowAddPackage] = useState(false);
+  const [showMarkPaid, setShowMarkPaid] = useState(false);
+  const [markPaidBillId, setMarkPaidBillId] = useState<string | null>(null);
+  const [paymentMethod, setPaymentMethod] = useState("");
   const [newReferralName, setNewReferralName] = useState("");
   const [newPackageName, setNewPackageName] = useState("");
   const [newPackagePrice, setNewPackagePrice] = useState("");
@@ -115,7 +120,7 @@ export default function Billing() {
   const selectedPkg = packages?.find((p) => p.id === selectedPackage);
   const amount = selectedPkg?.price ?? 0;
   const discountNum = parseFloat(discount) || 0;
-  const total = Math.max(0, amount - discountNum);
+  const total = Math.max(0, Number(amount) - discountNum);
 
   // Add referral source
   const addReferral = useMutation({
@@ -163,6 +168,32 @@ export default function Billing() {
     },
   });
 
+  // Mark bill as paid
+  const markAsPaid = useMutation({
+    mutationFn: async () => {
+      if (!markPaidBillId || !paymentMethod) return;
+      const { error } = await supabase
+        .from("bills")
+        .update({
+          status: "paid",
+          payment_method: paymentMethod.toLowerCase(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", markPaidBillId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["bills"] });
+      setShowMarkPaid(false);
+      setMarkPaidBillId(null);
+      setPaymentMethod("");
+      toast({ title: "Bill marked as paid" });
+    },
+    onError: (err: any) => {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    },
+  });
+
   // Create bill
   const createBill = async () => {
     if (!selectedClient || !selectedPackage || !orgId) {
@@ -176,7 +207,7 @@ export default function Billing() {
         client_id: selectedClient,
         package_id: selectedPackage,
         referral_source_id: selectedReferral || null,
-        amount,
+        amount: Number(amount),
         discount: discountNum,
         total,
         notes: notes || null,
@@ -200,6 +231,12 @@ export default function Billing() {
     setSelectedReferral("");
     setDiscount("0");
     setNotes("");
+  };
+
+  const openMarkPaid = (billId: string) => {
+    setMarkPaidBillId(billId);
+    setPaymentMethod("");
+    setShowMarkPaid(true);
   };
 
   const inputClass = "bg-muted/30 border-border focus:border-primary";
@@ -304,10 +341,10 @@ export default function Billing() {
                       <TableHead>Client</TableHead>
                       <TableHead>Package</TableHead>
                       <TableHead>Referral</TableHead>
-                      <TableHead className="text-right">Amount</TableHead>
-                      <TableHead className="text-right">Discount</TableHead>
                       <TableHead className="text-right">Total</TableHead>
+                      <TableHead>Payment</TableHead>
                       <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -325,24 +362,40 @@ export default function Billing() {
                         <TableCell className="text-muted-foreground">
                           {(bill as any).referral_sources?.name ?? "—"}
                         </TableCell>
-                        <TableCell className="text-right">₹{Number(bill.amount).toLocaleString("en-IN")}</TableCell>
-                        <TableCell className="text-right text-muted-foreground">
-                          ₹{Number(bill.discount).toLocaleString("en-IN")}
-                        </TableCell>
                         <TableCell className="text-right font-semibold">
                           ₹{Number(bill.total).toLocaleString("en-IN")}
+                        </TableCell>
+                        <TableCell>
+                          {bill.payment_method ? (
+                            <Badge variant="outline" className="capitalize">{bill.payment_method}</Badge>
+                          ) : (
+                            <span className="text-muted-foreground text-xs">—</span>
+                          )}
                         </TableCell>
                         <TableCell>
                           <Badge
                             variant="secondary"
                             className={
                               bill.status === "paid"
-                                ? "bg-green-500/10 text-green-500"
-                                : "bg-yellow-500/10 text-yellow-500"
+                                ? "bg-green-500/10 text-green-600"
+                                : "bg-yellow-500/10 text-yellow-600"
                             }
                           >
                             {bill.status}
                           </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {bill.status === "pending" && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 text-xs gap-1 text-green-600 hover:text-green-700"
+                              onClick={() => openMarkPaid(bill.id)}
+                            >
+                              <CheckCircle2 className="w-3.5 h-3.5" />
+                              Mark Paid
+                            </Button>
+                          )}
                         </TableCell>
                       </TableRow>
                     ))}
@@ -353,6 +406,38 @@ export default function Billing() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Mark as Paid Dialog */}
+      <Dialog open={showMarkPaid} onOpenChange={setShowMarkPaid}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Mark Bill as Paid</DialogTitle>
+            <DialogDescription>Select the payment method used.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <Label>Payment Method <span className="text-destructive">*</span></Label>
+            <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+              <SelectTrigger className={inputClass}><SelectValue placeholder="Select method" /></SelectTrigger>
+              <SelectContent>
+                {PAYMENT_METHODS.map((m) => (
+                  <SelectItem key={m} value={m}>{m}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowMarkPaid(false)}>Cancel</Button>
+            <Button
+              onClick={() => markAsPaid.mutate()}
+              disabled={markAsPaid.isPending || !paymentMethod}
+              className="gap-1"
+            >
+              <CheckCircle2 className="w-4 h-4" />
+              {markAsPaid.isPending ? "Updating..." : "Confirm Payment"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* New Bill Dialog */}
       <Dialog open={showNewBill} onOpenChange={setShowNewBill}>
@@ -444,7 +529,7 @@ export default function Billing() {
             <div className="space-y-2 bg-muted/30 rounded-lg p-4">
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Amount</span>
-                <span>₹{amount.toLocaleString("en-IN")}</span>
+                <span>₹{Number(amount).toLocaleString("en-IN")}</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Discount</span>
