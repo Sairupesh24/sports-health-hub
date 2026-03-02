@@ -16,6 +16,7 @@ import ClientList from "./pages/admin/ClientList";
 import ClientRegistration from "./pages/admin/ClientRegistration";
 import FieldConfig from "./pages/admin/FieldConfig";
 import UserApproval from "./pages/admin/UserApproval";
+import Billing from "./pages/admin/Billing";
 import ConsultantDashboard from "./pages/consultant/ConsultantDashboard";
 import ClientDashboard from "./pages/client/ClientDashboard";
 
@@ -39,6 +40,7 @@ const App = () => (
             <Route path="/admin/clients/register" element={<ProtectedRoute requiredRole="admin"><ClientRegistration /></ProtectedRoute>} />
             <Route path="/admin/settings/fields" element={<ProtectedRoute requiredRole="admin"><FieldConfig /></ProtectedRoute>} />
             <Route path="/admin/users" element={<ProtectedRoute requiredRole="admin"><UserApproval /></ProtectedRoute>} />
+            <Route path="/admin/billing" element={<ProtectedRoute requiredRole="admin"><Billing /></ProtectedRoute>} />
             <Route path="/consultant" element={<ProtectedRoute requiredRole="consultant"><ConsultantDashboard /></ProtectedRoute>} />
             <Route path="/client" element={<ProtectedRoute requiredRole="client"><ClientDashboard /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
