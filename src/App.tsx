@@ -17,6 +17,7 @@ import ClientRegistration from "./pages/admin/ClientRegistration";
 import FieldConfig from "./pages/admin/FieldConfig";
 import UserApproval from "./pages/admin/UserApproval";
 import Billing from "./pages/admin/Billing";
+import ClientDetail from "./pages/admin/ClientDetail";
 import ConsultantDashboard from "./pages/consultant/ConsultantDashboard";
 import ClientDashboard from "./pages/client/ClientDashboard";
 
@@ -38,6 +39,7 @@ const App = () => (
             <Route path="/admin" element={<ProtectedRoute requiredRole="admin"><AdminDashboard /></ProtectedRoute>} />
             <Route path="/admin/clients" element={<ProtectedRoute requiredRole="admin"><ClientList /></ProtectedRoute>} />
             <Route path="/admin/clients/register" element={<ProtectedRoute requiredRole="admin"><ClientRegistration /></ProtectedRoute>} />
+            <Route path="/admin/clients/:id" element={<ProtectedRoute requiredRole="admin"><ClientDetail /></ProtectedRoute>} />
             <Route path="/admin/settings/fields" element={<ProtectedRoute requiredRole="admin"><FieldConfig /></ProtectedRoute>} />
             <Route path="/admin/users" element={<ProtectedRoute requiredRole="admin"><UserApproval /></ProtectedRoute>} />
             <Route path="/admin/billing" element={<ProtectedRoute requiredRole="admin"><Billing /></ProtectedRoute>} />

@@ -26,6 +26,7 @@ export type Database = {
           notes: string | null
           organization_id: string
           package_id: string | null
+          payment_method: string | null
           referral_source_id: string | null
           status: string
           total: number
@@ -42,6 +43,7 @@ export type Database = {
           notes?: string | null
           organization_id: string
           package_id?: string | null
+          payment_method?: string | null
           referral_source_id?: string | null
           status?: string
           total?: number
@@ -58,6 +60,7 @@ export type Database = {
           notes?: string | null
           organization_id?: string
           package_id?: string | null
+          payment_method?: string | null
           referral_source_id?: string | null
           status?: string
           total?: number

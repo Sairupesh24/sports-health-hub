@@ -95,8 +95,8 @@ export default function ClientList() {
                   </TableHeader>
                   <TableBody>
                     {clients.map((c) => (
-                      <TableRow key={c.id} className="cursor-pointer hover:bg-muted/20">
-                        <TableCell className="font-mono text-primary font-medium">{c.uhid}</TableCell>
+                      <TableRow key={c.id} className="cursor-pointer hover:bg-muted/20" onClick={() => navigate(`/admin/clients/${c.id}`)}>
+                        <TableCell className="font-mono text-primary font-medium underline cursor-pointer">{c.uhid}</TableCell>
                         <TableCell className="font-medium">
                           {[c.honorific, c.first_name, c.middle_name, c.last_name].filter(Boolean).join(" ")}
                         </TableCell>
