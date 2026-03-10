@@ -1,0 +1,564 @@
+import { useEffect, useState } from "react";
+import DashboardLayout from "@/components/layout/DashboardLayout";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { toast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { CheckCircle, Users, UserX, Plus, Copy, ExternalLink, Search } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+
+interface PendingUser {
+  id: string;
+  email: string | null;
+  first_name: string;
+  last_name: string;
+  is_approved: boolean;
+  created_at: string;
+  current_role?: string;
+  uhid?: string;
+}
+
+export default function UserApproval() {
+  const { profile } = useAuth();
+  const navigate = useNavigate();
+  const [users, setUsers] = useState<PendingUser[]>([]);
+  const [selectedRoles, setSelectedRoles] = useState<Record<string, string>>({});
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const filteredUsers = users.filter((u) => {
+    if (!searchQuery.trim()) return true;
+    const query = searchQuery.toLowerCase();
+    const fullName = `${u.first_name || ""} ${u.last_name || ""}`.toLowerCase();
+    return (
+      fullName.includes(query) ||
+      (u.email && u.email.toLowerCase().includes(query)) ||
+      (u.current_role && u.current_role.toLowerCase().includes(query)) ||
+      (u.uhid && u.uhid.toLowerCase().includes(query))
+    );
+  });
+
+  // New user state
+  const [addUserOpen, setAddUserOpen] = useState(false);
+  const [newEmail, setNewEmail] = useState("");
+  const [newFirst, setNewFirst] = useState("");
+  const [newLast, setNewLast] = useState("");
+  const [newRole, setNewRole] = useState("consultant");
+  const [newUhid, setNewUhid] = useState("");
+  const [isAdding, setIsAdding] = useState(false);
+  const [generatedCreds, setGeneratedCreds] = useState<{ email: string, password: string } | null>(null);
+
+  // State for pop-up when client role is assigned
+  const [pendingAction, setPendingAction] = useState<{ type: "change_role" | "approve", userId: string, role: string } | null>(null);
+  const [pendingActionUhid, setPendingActionUhid] = useState("");
+
+  const fetchUsers = async () => {
+    if (!profile?.organization_id) return;
+
+    try {
+      // Fetch profiles
+      const { data: profiles, error: profilesError } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("organization_id", profile.organization_id)
+        .neq("id", profile.id)
+        .order("created_at", { ascending: false });
+
+      if (profilesError) throw profilesError;
+
+      const userIds = profiles?.map(p => p.id) || [];
+      let rolesData: any[] = [];
+
+      if (userIds.length > 0) {
+        const { data: roles } = await supabase
+          .from("user_roles")
+          .select("user_id, role")
+          .in("user_id", userIds);
+
+        rolesData = roles || [];
+      }
+
+      if (profiles) {
+        const merged = profiles.map(p => {
+          const userRole = rolesData.find(r => r.user_id === p.id);
+          return {
+            ...p,
+            current_role: userRole ? userRole.role : undefined
+          };
+        });
+
+        setUsers(merged as PendingUser[]);
+
+        const initialRoles: Record<string, string> = {};
+        merged.forEach(u => {
+          if (u.current_role) {
+            initialRoles[u.id] = u.current_role;
+          }
+        });
+        setSelectedRoles(initialRoles);
+      }
+    } catch (err: any) {
+      console.error("Error fetching users:", err);
+      toast({ title: "Failed to load users", description: err.message, variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchUsers();
+  }, [profile]);
+
+  const handleAddUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newEmail || !newRole) return;
+    if (newRole === "client" && !newUhid.trim()) {
+      toast({ title: "UHID Required", description: "You must provide a valid UHID to create a Client account.", variant: "destructive" });
+      return;
+    }
+
+    setIsAdding(true);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+
+      const { data, error } = await supabase.functions.invoke("create-user", {
+        headers: { Authorization: `Bearer ${token}` },
+        body: { email: newEmail, firstName: newFirst, lastName: newLast, role: newRole, uhid: newUhid }
+      });
+
+      if (error) throw error;
+      if (data && data.error) throw new Error(data.error);
+
+      setGeneratedCreds(data.user);
+      toast({ title: "User created", description: "Successfully created user and bypassed email verification." });
+      fetchUsers();
+    } catch (err: any) {
+      toast({ title: "Error creating user", description: err.message, variant: "destructive" });
+    } finally {
+      setIsAdding(false);
+    }
+  };
+
+  const copyCredentials = () => {
+    if (!generatedCreds) return;
+    const text = `Welcome to ISHPO!\n\nYour account has been created.\nLogin URL: ${window.location.origin}/login\nEmail: ${generatedCreds.email}\nTemporary Password: ${generatedCreds.password}\n\nPlease log in and change your password.`;
+    navigator.clipboard.writeText(text);
+    toast({ title: "Copied!", description: "Credentials copied to clipboard." });
+    setAddUserOpen(false);
+    setGeneratedCreds(null);
+    setNewEmail("");
+    setNewFirst("");
+    setNewLast("");
+    setNewUhid("");
+  };
+
+  const approveUser = async (userId: string, providedUhid?: string) => {
+    const role = selectedRoles[userId];
+    if (!role) {
+      toast({ title: "Select a role", description: "Please assign a role before approving.", variant: "destructive" });
+      return;
+    }
+
+    const uhid = providedUhid;
+    if (role === "client" && !uhid?.trim()) {
+      toast({ title: "UHID Required", description: "You must enter the client's UHID before approving their access.", variant: "destructive" });
+      return;
+    }
+
+    try {
+      const profileUpdate: any = { is_approved: true };
+      if (role === "client" && uhid?.trim()) {
+        const cleanUhid = uhid.trim();
+        const { data: clientCheck, error: checkError } = await supabase.from("clients").select("id").eq("uhid", cleanUhid).maybeSingle();
+        if (checkError) throw checkError;
+        if (!clientCheck) {
+          toast({ title: "Invalid UHID", description: "This UHID does not exist in your clinic's records.", variant: "destructive" });
+          return;
+        }
+        profileUpdate.uhid = cleanUhid;
+      }
+
+      const { error: profileError } = await supabase
+        .from("profiles")
+        .update(profileUpdate)
+        .eq("id", userId);
+      if (profileError) throw profileError;
+
+      const { data: existingRole, error: fetchError } = await supabase.from("user_roles").select("*").eq("user_id", userId).maybeSingle();
+      if (fetchError && fetchError.code !== 'PGRST116') throw fetchError;
+
+      if (existingRole) {
+        const { error: roleUpdateError } = await supabase.from("user_roles").update({ role } as any).eq("user_id", userId);
+        if (roleUpdateError) throw roleUpdateError;
+      } else {
+        const { error: roleInsertError } = await supabase.from("user_roles").insert({ user_id: userId, role } as any);
+        if (roleInsertError) throw roleInsertError;
+      }
+
+      toast({ title: "User approved", description: `User has been approved as ${role}.` });
+      fetchUsers();
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    }
+  };
+
+  const changeUserRole = async (userId: string, newRole: string, providedUhid?: string) => {
+    const uhid = providedUhid;
+    if (newRole === "client" && !uhid?.trim()) {
+      toast({ title: "UHID Required", description: "You must supply a UHID before converting the user to a Client role.", variant: "destructive" });
+      return;
+    }
+
+    setSelectedRoles(prev => ({ ...prev, [userId]: newRole }));
+
+    try {
+      if (newRole === "client" && uhid?.trim()) {
+        const cleanUhid = uhid.trim();
+        const { data: clientCheck, error: checkError } = await supabase.from("clients").select("id").eq("uhid", cleanUhid).maybeSingle();
+        if (checkError) throw checkError;
+        if (!clientCheck) {
+          toast({ title: "Invalid UHID", description: "This UHID does not exist in your clinic's records.", variant: "destructive" });
+          // Revert optimistic role state update since it failed
+          setSelectedRoles(prev => {
+            const next = { ...prev };
+            // We don't have the old role easily stored here in this closure, 
+            // so we just trigger a fetchUsers to refresh to the truth
+            return next;
+          });
+          fetchUsers();
+          return;
+        }
+
+        const { error: profileError } = await supabase.from("profiles").update({ uhid: cleanUhid } as any).eq("id", userId);
+        if (profileError) throw profileError;
+      }
+
+      const { data: existingRole, error: fetchError } = await supabase.from("user_roles").select("*").eq("user_id", userId).maybeSingle();
+      if (fetchError && fetchError.code !== 'PGRST116') throw fetchError;
+
+      if (existingRole) {
+        const { error: roleUpdateError } = await supabase.from("user_roles").update({ role: newRole } as any).eq("user_id", userId);
+        if (roleUpdateError) throw roleUpdateError;
+      } else {
+        const { error: roleInsertError } = await supabase.from("user_roles").insert({ user_id: userId, role: newRole } as any);
+        if (roleInsertError) throw roleInsertError;
+      }
+
+      toast({ title: "Role updated", description: "User's role has been changed successfully." });
+      fetchUsers();
+    } catch (err: any) {
+      toast({ title: "Error updating role", description: err.message, variant: "destructive" });
+      fetchUsers();
+    }
+  };
+
+  const revokeAccess = async (userId: string) => {
+    if (!confirm("Are you sure you want to revoke this user's access to the organization?")) return;
+
+    try {
+      const { error: profileError } = await supabase
+        .from("profiles")
+        .update({ is_approved: false } as any)
+        .eq("id", userId);
+      if (profileError) throw profileError;
+
+      const { error: roleError } = await supabase
+        .from("user_roles")
+        .delete()
+        .eq("user_id", userId);
+      if (roleError) throw roleError;
+
+      toast({ title: "Access Revoked", description: "User has been removed from active members." });
+
+      setSelectedRoles(prev => {
+        const next = { ...prev };
+        delete next[userId];
+        return next;
+      });
+
+      fetchUsers();
+    } catch (err: any) {
+      toast({ title: "Error revoking access", description: err.message, variant: "destructive" });
+    }
+  };
+
+  const handleRoleSelect = (userId: string, newRole: string) => {
+    if (newRole === "client") {
+      setPendingAction({ type: "change_role", userId, role: newRole });
+      setPendingActionUhid("");
+    } else {
+      changeUserRole(userId, newRole);
+    }
+  };
+
+  const handleApproveClick = (userId: string) => {
+    const role = selectedRoles[userId];
+    if (role === "client") {
+      setPendingAction({ type: "approve", userId, role });
+      setPendingActionUhid("");
+    } else {
+      approveUser(userId);
+    }
+  };
+
+  const confirmPendingAction = () => {
+    if (!pendingAction) return;
+    if (!pendingActionUhid.trim()) {
+      toast({ title: "UHID Required", description: "You must enter a UHID to assign the Client role.", variant: "destructive" });
+      return;
+    }
+
+    if (pendingAction.type === "change_role") {
+      changeUserRole(pendingAction.userId, pendingAction.role, pendingActionUhid);
+    } else {
+      approveUser(pendingAction.userId, pendingActionUhid);
+    }
+
+    setPendingAction(null);
+  };
+
+  const handleViewClientDetails = async (uhid?: string) => {
+    if (!uhid) {
+      toast({ title: "No UHID Link", description: "This user does not have a UHID assigned to their profile yet.", variant: "destructive" });
+      return;
+    }
+    try {
+      const { data, error } = await supabase.from("clients").select("id").eq("uhid", uhid).maybeSingle();
+      if (error || !data) {
+        toast({ title: "Client Not Found", description: "Clinical record for this UHID not found.", variant: "destructive" });
+        return;
+      }
+      navigate(`/admin/clients/${data.id}`);
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    }
+  };
+
+  return (
+    <DashboardLayout role="admin">
+      <div className="space-y-6 pb-10">
+        <div>
+          <h1 className="text-2xl font-display font-bold text-foreground">User Approval</h1>
+          <p className="text-muted-foreground text-sm mt-1">Approve new staff, manage access, and assign roles</p>
+        </div>
+
+        <Card className="gradient-card border-border">
+          <CardHeader className="flex flex-col md:flex-row md:items-start justify-between gap-4">
+            <div>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Users className="w-5 h-5 text-primary" />
+                Organization Members
+              </CardTitle>
+              <CardDescription>Manage your team's access to the platform</CardDescription>
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
+              <div className="relative w-full sm:w-64">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search members..."
+                  className="pl-9 bg-muted/30 border-border"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
+
+              <Dialog open={!!pendingAction} onOpenChange={(open) => !open && setPendingAction(null)}>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Assign Client UHID</DialogTitle>
+                    <DialogDescription>
+                      A Clinic Reference Number (UHID) is mandatory when linking a user to the Client role.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 pt-4">
+                    <div className="space-y-2">
+                      <Label>Client UHID <span className="text-destructive">*</span></Label>
+                      <Input
+                        value={pendingActionUhid}
+                        onChange={e => setPendingActionUhid(e.target.value)}
+                        required
+                        placeholder="e.g. CSH03260001"
+                      />
+                    </div>
+                    <Button onClick={confirmPendingAction} className="w-full">
+                      Confirm Selection
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
+
+              <Dialog open={addUserOpen} onOpenChange={(open) => {
+                setAddUserOpen(open);
+                if (!open) {
+                  setGeneratedCreds(null);
+                  setNewEmail(""); setNewFirst(""); setNewLast(""); setNewUhid("");
+                }
+              }}>
+                <DialogTrigger asChild>
+                  <Button className="gap-2">
+                    <Plus className="w-4 h-4" /> Add New User
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Add Team Member</DialogTitle>
+                    <DialogDescription>
+                      Directly create an approved account without requiring them to wait for email verification.
+                    </DialogDescription>
+                  </DialogHeader>
+
+                  {generatedCreds ? (
+                    <div className="space-y-4 pt-4">
+                      <div className="bg-muted p-4 rounded-md space-y-2 font-mono text-sm break-all">
+                        <p><strong>Email:</strong> {generatedCreds.email}</p>
+                        <p><strong>Password:</strong> {generatedCreds.password}</p>
+                      </div>
+                      <Button onClick={copyCredentials} className="w-full gap-2">
+                        <Copy className="w-4 h-4" /> Copy Credentials to Share
+                      </Button>
+                    </div>
+                  ) : (
+                    <form onSubmit={handleAddUser} className="space-y-4 pt-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label>First Name</Label>
+                          <Input value={newFirst} onChange={e => setNewFirst(e.target.value)} placeholder="John" />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Last Name</Label>
+                          <Input value={newLast} onChange={e => setNewLast(e.target.value)} placeholder="Doe" />
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Email</Label>
+                        <Input type="email" value={newEmail} onChange={e => setNewEmail(e.target.value)} required placeholder="employee@clinic.com" />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Role</Label>
+                        <Select value={newRole} onValueChange={setNewRole}>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="admin">Admin</SelectItem>
+                            <SelectItem value="consultant">Consultant</SelectItem>
+                            <SelectItem value="foe">Front Office Executive</SelectItem>
+                            <SelectItem value="client">Client</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      {newRole === "client" && (
+                        <div className="space-y-2 animate-in fade-in zoom-in duration-200">
+                          <Label>Client UHID <span className="text-destructive">*</span></Label>
+                          <Input value={newUhid} onChange={e => setNewUhid(e.target.value)} required placeholder="e.g. CSH03260001" />
+                          <p className="text-xs text-muted-foreground">Required to link this account to their clinical records.</p>
+                        </div>
+                      )}
+                      <Button type="submit" disabled={isAdding} className="w-full">
+                        {isAdding ? "Creating User..." : "Create User"}
+                      </Button>
+                    </form>
+                  )}
+                </DialogContent>
+              </Dialog>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <p className="text-muted-foreground text-sm">Loading members...</p>
+            ) : users.length === 0 ? (
+              <p className="text-muted-foreground text-sm">No team members joined your organization yet.</p>
+            ) : filteredUsers.length === 0 ? (
+              <p className="text-muted-foreground text-sm py-4 text-center">No members match your search.</p>
+            ) : (
+              <div className="space-y-3">
+                {filteredUsers.map((u) => (
+                  <div key={u.id} className="flex flex-col md:flex-row items-start md:items-center justify-between p-4 rounded-lg bg-muted/30 border border-border gap-4">
+                    <div className="w-full md:w-auto">
+                      <p className="text-sm font-medium text-foreground">
+                        {u.first_name || u.last_name ? `${u.first_name} ${u.last_name}`.trim() : "No name provided"}
+                      </p>
+                      <p className="text-xs text-muted-foreground break-all">{u.email}</p>
+                    </div>
+
+                    <div className="flex flex-row flex-wrap items-center gap-2 w-full md:w-auto mt-1 md:mt-0">
+                      {u.is_approved ? (
+                        <>
+                          <div className="flex items-center gap-2 flex-1 md:flex-none">
+                            <Badge variant="secondary" className="bg-success/10 text-success border-success/20 h-9 hidden xl:flex">
+                              <CheckCircle className="w-3 h-3 mr-1" /> Approved
+                            </Badge>
+                            <Select value={selectedRoles[u.id] || ""} onValueChange={(v) => handleRoleSelect(u.id, v)}>
+                              <SelectTrigger className="w-full md:w-[130px] h-9" aria-label="Change role">
+                                <SelectValue placeholder="Role" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="admin">Admin</SelectItem>
+                                <SelectItem value="consultant">Consultant</SelectItem>
+                                <SelectItem value="foe">Front Office Executive</SelectItem>
+                                <SelectItem value="client">Client</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="flex gap-2">
+                            {(selectedRoles[u.id] === "client" || (!selectedRoles[u.id] && u.current_role === "client")) && (
+                              <Button
+                                size="icon"
+                                variant="outline"
+                                onClick={() => handleViewClientDetails(u.uhid)}
+                                className="h-9 w-9 shrink-0"
+                                title="View Client Details"
+                              >
+                                <ExternalLink className="w-4 h-4" />
+                              </Button>
+                            )}
+                            <Button
+                              size="icon"
+                              variant="destructive"
+                              onClick={() => revokeAccess(u.id)}
+                              className="h-9 w-9 shrink-0 opacity-80 hover:opacity-100"
+                              title="Revoke Access"
+                            >
+                              <UserX className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="flex-1 md:flex-none">
+                            <Select value={selectedRoles[u.id] || ""} onValueChange={(v) => setSelectedRoles((prev) => ({ ...prev, [u.id]: v }))}>
+                              <SelectTrigger className="w-full md:w-[140px] h-9">
+                                <SelectValue placeholder="Assign role" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="admin">Admin</SelectItem>
+                                <SelectItem value="consultant">Consultant</SelectItem>
+                                <SelectItem value="foe">Front Office Executive</SelectItem>
+                                <SelectItem value="client">Client</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <Button size="sm" onClick={() => handleApproveClick(u.id)} className="gap-1 whitespace-nowrap h-9 px-4">
+                            <CheckCircle className="w-3.5 h-3.5" /> Approve
+                          </Button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </DashboardLayout>
+  );
+}
