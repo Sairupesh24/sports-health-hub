@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { UserPlus, Search, Users } from "lucide-react";
 import { format } from "date-fns";
+import { ClientBulkUpload } from "@/components/admin/ClientBulkUpload";
 
 export default function ClientList() {
   const navigate = useNavigate();
@@ -44,10 +45,13 @@ export default function ClientList() {
             <h1 className="text-2xl font-display font-bold text-foreground">Clients</h1>
             <p className="text-muted-foreground text-sm mt-0.5">Manage your client registrations</p>
           </div>
-          <Button onClick={() => navigate("/admin/clients/register")} className="gap-2 w-full sm:w-auto">
-            <UserPlus className="w-4 h-4" />
-            Register Client
-          </Button>
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <ClientBulkUpload />
+            <Button onClick={() => navigate("/admin/clients/register")} className="gap-2 shrink-0">
+              <UserPlus className="w-4 h-4" />
+              Register Client
+            </Button>
+          </div>
         </div>
 
         <Card className="gradient-card border-border">

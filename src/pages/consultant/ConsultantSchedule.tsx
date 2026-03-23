@@ -11,6 +11,8 @@ import {
     endOfWeek,
     startOfMonth,
     endOfMonth,
+    startOfDay,
+    endOfDay,
     eachDayOfInterval,
     isSameDay,
     isSameMonth,
@@ -23,9 +25,10 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, User } from "lucide-react";
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, User, ClipboardList, AlertTriangle } from "lucide-react";
 import SOAPNoteModal from "@/components/consultant/SOAPNoteModal";
 import { Loader2 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 type ViewMode = "day" | "week" | "month";
 
@@ -38,6 +41,7 @@ interface SessionEvent {
     service_type: string;
     client: { first_name: string; last_name: string };
     rawSession: any; // For passing to SOAP Modal
+    is_unentitled?: boolean;
 }
 
 export default function ConsultantSchedule() {
@@ -54,8 +58,8 @@ export default function ConsultantSchedule() {
     const dateRange = useMemo(() => {
         let start, end;
         if (viewMode === "day") {
-            start = currentDate;
-            end = currentDate;
+            start = startOfDay(currentDate);
+            end = endOfDay(currentDate);
         } else if (viewMode === "week") {
             start = startOfWeek(currentDate, { weekStartsOn: 1 });
             end = endOfWeek(currentDate, { weekStartsOn: 1 });
@@ -67,7 +71,7 @@ export default function ConsultantSchedule() {
         // Add a buffer to ensure timezone differences don't cut off sessions at the edges
         return {
             start: start.toISOString(),
-            end: addDays(end, 1).toISOString()
+            end: end.toISOString()
         };
     }, [currentDate, viewMode]);
 
@@ -85,12 +89,13 @@ export default function ConsultantSchedule() {
           scheduled_end,
           status,
           service_type,
-          client:clients(first_name, last_name),
+          is_unentitled,
+          client:clients!sessions_client_id_fkey(first_name, last_name),
           physio_session_details(*)
         `)
                 .eq("therapist_id", profile.id)
                 .gte("scheduled_start", dateRange.start)
-                .lte("scheduled_start", dateRange.end)
+                .lte("scheduled_end", dateRange.end)
                 .order("scheduled_start", { ascending: true });
 
             if (error) throw error;
@@ -111,6 +116,71 @@ export default function ConsultantSchedule() {
             });
         },
         enabled: !!profile?.id
+    });
+
+    // ── Pre-completion entitlement check for Planned sessions ─────────────────
+    const plannedClientIds = useMemo(() =>
+        [...new Set(sessions.filter((s: any) => s.status === 'Planned').map((s: any) => s.client_id))],
+        [sessions]
+    );
+
+    const { data: clientEntitlementMap } = useQuery({
+        queryKey: ["consultant-planned-entitlements", plannedClientIds],
+        queryFn: async () => {
+            if (!plannedClientIds.length) return {};
+            const results = await Promise.all(
+                plannedClientIds.map(async (clientId: string) => {
+                    const { data } = await supabase.rpc('fn_compute_entitlement_balance', { p_client_id: clientId });
+                    const balanceByName: Record<string, number> = {};
+                    (data ?? []).forEach((b: any) => {
+                        balanceByName[b.service_name?.toLowerCase().trim()] = b.sessions_remaining;
+                    });
+                    return { clientId, balanceByName };
+                })
+            );
+            const map: Record<string, Record<string, number>> = {};
+            results.forEach(({ clientId, balanceByName }) => { map[clientId] = balanceByName; });
+            return map;
+        },
+        enabled: plannedClientIds.length > 0,
+        staleTime: 30000,
+    });
+
+    const enrichedSessions = useMemo(() =>
+        sessions.map((s: any) => {
+            if (s.status !== 'Planned') return s;
+            const clientBalance = clientEntitlementMap?.[s.client_id];
+            const serviceKey = s.service_type?.toLowerCase().trim();
+            const hasNoBalance = !clientBalance || clientBalance[serviceKey] === undefined || clientBalance[serviceKey] <= 0;
+            return { ...s, is_pre_unentitled: hasNoBalance };
+        }),
+        [sessions, clientEntitlementMap]
+    );
+
+    // Query: Completed sessions with no SOAP notes (pending)
+    const { data: pendingSoapSessions = [] } = useQuery({
+        queryKey: ["pending-soap-notes", profile?.id],
+        queryFn: async () => {
+            if (!profile?.id) return [];
+            const { data, error } = await supabase
+                .from("sessions")
+                .select(`
+                    id, client_id, scheduled_start, service_type, organization_id,
+                    client:clients!sessions_client_id_fkey(first_name, last_name),
+                    physio_session_details(session_id)
+                `)
+                .eq("therapist_id", profile.id)
+                .eq("status", "Completed")
+                .order("scheduled_start", { ascending: false })
+                .limit(50);
+            if (error) throw error;
+            // Only keep sessions that have NO physio_session_details
+            return (data ?? []).filter((s: any) =>
+                !s.physio_session_details || (Array.isArray(s.physio_session_details) && s.physio_session_details.length === 0)
+            );
+        },
+        enabled: !!profile?.id,
+        refetchInterval: 60000,
     });
 
     // Navigation handlers
@@ -175,7 +245,7 @@ export default function ConsultantSchedule() {
                 const cloneDay = day;
 
                 // Find events for this day
-                const dayEvents = sessions.filter(session => isSameDay(parseISO(session.scheduled_start), cloneDay));
+                const dayEvents = enrichedSessions.filter(session => isSameDay(parseISO(session.scheduled_start), cloneDay));
 
                 days.push(
                     <div
@@ -202,6 +272,16 @@ export default function ConsultantSchedule() {
                                 >
                                     <span className="font-semibold">{format(parseISO(event.scheduled_start), "HH:mm")}</span>
                                     {" "}{event.client?.first_name} {event.client?.last_name}
+                                    {event.is_unentitled && (
+                                        <span className="ml-1 px-1 bg-red-500 text-white rounded-[2px] text-[8px] font-bold animate-pulse">
+                                            UN
+                                        </span>
+                                    )}
+                                    {(event as any).is_pre_unentitled && (
+                                        <span className="ml-1 px-1 bg-orange-400 text-white rounded-[2px] text-[8px] font-bold" title="No entitlement for this service">
+                                            ⚠
+                                        </span>
+                                    )}
                                 </div>
                             ))}
                         </div>
@@ -274,7 +354,7 @@ export default function ConsultantSchedule() {
                         {/* Events */}
                         <div className="absolute inset-0 flex">
                             {weekDays.map(day => {
-                                const dayEvents = sessions.filter(s => isSameDay(parseISO(s.scheduled_start), day));
+                                const dayEvents = enrichedSessions.filter(s => isSameDay(parseISO(s.scheduled_start), day));
                                 return (
                                     <div key={`ev-${day}`} className="flex-1 relative border-r border-transparent">
                                         {dayEvents.map(event => {
@@ -302,6 +382,16 @@ export default function ConsultantSchedule() {
                                                     <div className="text-xs font-semibold">{format(startD, "HH:mm")} - {format(endD, "HH:mm")}</div>
                                                     <div className="text-xs truncate font-medium">{event.client?.first_name} {event.client?.last_name}</div>
                                                     {height > 40 && <div className="text-xs truncate opacity-80 mt-0.5">{event.service_type}</div>}
+                                                    {event.is_unentitled && (
+                                                        <div className="mt-1 px-1 py-0.5 bg-red-600 text-white text-[9px] font-bold rounded flex items-center gap-1 animate-pulse">
+                                                            UN-ENTITLED
+                                                        </div>
+                                                    )}
+                                                    {(event as any).is_pre_unentitled && (
+                                                        <div className="mt-1 px-1 py-0.5 bg-orange-400 text-white text-[9px] font-bold rounded flex items-center gap-1">
+                                                            ⚠ NO ENT
+                                                        </div>
+                                                    )}
                                                 </div>
                                             )
                                         })}
@@ -317,7 +407,7 @@ export default function ConsultantSchedule() {
 
     const renderDayView = () => {
         const hours = Array.from({ length: 17 }, (_, i) => i + 6); // 6 AM to 10 PM
-        const dayEvents = sessions.filter(s => isSameDay(parseISO(s.scheduled_start), currentDate));
+        const dayEvents = enrichedSessions.filter(s => isSameDay(parseISO(s.scheduled_start), currentDate));
 
         return (
             <div className="border border-border/50 rounded-lg overflow-hidden bg-card flex flex-col">
@@ -383,6 +473,11 @@ export default function ConsultantSchedule() {
                                             <User className="w-4 h-4 opacity-70" />
                                             {event.client?.first_name} {event.client?.last_name}
                                         </div>
+                                        {event.is_unentitled && (
+                                            <div className="mt-1 px-2 py-0.5 bg-red-600 text-white text-[11px] font-bold rounded-md flex items-center gap-1.5 animate-pulse w-fit">
+                                                UN-ENTITLED SESSION
+                                            </div>
+                                        )}
                                     </div>
                                     <div className="text-sm opacity-90 hidden md:block">
                                         {event.service_type}
@@ -422,6 +517,47 @@ export default function ConsultantSchedule() {
                         </div>
                     </div>
                 </div>
+
+                {/* Pending SOAP Notes Widget */}
+                {pendingSoapSessions.length > 0 && (
+                    <div className="rounded-xl border border-amber-300 bg-amber-50 shadow-sm overflow-hidden">
+                        <div className="flex items-center gap-3 px-5 py-3 bg-amber-100 border-b border-amber-200">
+                            <ClipboardList className="w-5 h-5 text-amber-700" />
+                            <h2 className="font-semibold text-amber-900 text-sm">Pending SOAP Notes</h2>
+                            <Badge className="ml-auto bg-amber-600 text-white hover:bg-amber-600">{pendingSoapSessions.length}</Badge>
+                        </div>
+                        <div className="divide-y divide-amber-100">
+                            {pendingSoapSessions.map((s: any) => (
+                                <div key={s.id} className="flex items-center justify-between px-5 py-3 hover:bg-amber-50/80 transition-colors">
+                                    <div className="flex items-center gap-3">
+                                        <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0" />
+                                        <div>
+                                            <p className="text-sm font-medium text-amber-900">
+                                                {s.client?.first_name} {s.client?.last_name}
+                                            </p>
+                                            <p className="text-xs text-amber-700">
+                                                {format(new Date(s.scheduled_start), "MMM d, yyyy • h:mm a")} · {s.service_type}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="border-amber-400 text-amber-800 hover:bg-amber-100 text-xs"
+                                        onClick={() => {
+                                            setSelectedSession(s);
+                                            setSelectedClientId(s.client_id);
+                                            setSoapModalOpen(true);
+                                        }}
+                                    >
+                                        <ClipboardList className="w-3 h-3 mr-1" />
+                                        Add SOAP Note
+                                    </Button>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
 
                 <Card className="border-border shadow-sm">
                     <CardHeader className="py-4 px-6 border-b border-border/50 bg-muted/20 pb-0">

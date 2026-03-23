@@ -10,6 +10,8 @@ import {
     endOfWeek,
     startOfMonth,
     endOfMonth,
+    startOfDay,
+    endOfDay,
     eachDayOfInterval,
     isSameDay,
     isSameMonth,
@@ -23,9 +25,10 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Filter, Layers, Clock, Plus } from "lucide-react";
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Filter, Layers, Clock, Plus, Download } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2 } from "lucide-react";
+import { toast } from "@/hooks/use-toast";
 
 import AdminAvailability from "./AdminAvailability";
 import AppointmentList from "../shared/AppointmentList";
@@ -45,6 +48,7 @@ interface SessionEvent {
     client: { first_name: string; last_name: string };
     therapist: { first_name: string; last_name: string };
     rawSession: any;
+    is_unentitled?: boolean;
 }
 
 export default function AdminCalendar() {
@@ -58,6 +62,69 @@ export default function AdminCalendar() {
     const [viewMode, setViewMode] = useState<ViewMode>("month");
     const [consultants, setConsultants] = useState<{ id: string, name: string }[]>([]);
     const [selectedConsultant, setSelectedConsultant] = useState<string>("all");
+    const [exporting, setExporting] = useState(false);
+
+    const handleExportDaily = async () => {
+        if (!profile?.organization_id) return;
+        setExporting(true);
+        try {
+            const XLSX = await import("xlsx");
+            
+            const startStr = format(currentDate, "yyyy-MM-dd") + "T00:00:00Z";
+            const endStr = format(currentDate, "yyyy-MM-dd") + "T23:59:59Z";
+
+            let query = supabase
+                .from("sessions")
+                .select(`
+                    id, status, scheduled_start, scheduled_end, service_type,
+                    client:clients(first_name, last_name, uhid, mobile_no),
+                    therapist:profiles!sessions_therapist_id_fkey(first_name, last_name)
+                `)
+                .eq("organization_id", profile.organization_id)
+                .gte("scheduled_start", startStr)
+                .lte("scheduled_end", endStr)
+                .order("scheduled_start", { ascending: true });
+
+            if (selectedConsultant !== "all") {
+                query = query.eq("therapist_id", selectedConsultant);
+            }
+
+            const { data, error } = await query;
+
+            if (error) throw error;
+            if (!data || data.length === 0) {
+                toast({ title: "No Appointments", description: "There are no appointments scheduled for this day to export." });
+                return;
+            }
+
+            const exportData = (data as any[]).map(session => ({
+                "Time": `${format(new Date(session.scheduled_start), "hh:mm a")} - ${format(new Date(session.scheduled_end), "hh:mm a")}`,
+                "Consultant": session.therapist ? `Dr. ${session.therapist.first_name} ${session.therapist.last_name}` : "Unassigned",
+                "Client Name": session.client ? `${session.client.first_name} ${session.client.last_name}` : "Unknown",
+                "UHID": session.client?.uhid || "-",
+                "Mobile": session.client?.mobile_no || "-",
+                "Service": session.service_type || "-",
+                "Status": session.status || "-"
+            }));
+
+            const worksheet = XLSX.utils.json_to_sheet(exportData);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Appointments");
+            
+            const colWidths = [{ wch: 20 }, { wch: 25 }, { wch: 25 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }];
+            worksheet['!cols'] = colWidths;
+
+            const consultantLabel = selectedConsultant === "all" ? "All" : "Cons";
+            const filename = `Appointments_${consultantLabel}_${format(currentDate, "yyyy-MM-dd")}.xlsx`;
+            XLSX.writeFile(workbook, filename);
+            toast({ title: "Export Successful", description: `Downloaded ${filename}` });
+        } catch (error: any) {
+            console.error("Export Error: ", error);
+            toast({ title: "Export Failed", description: "There was an error generating the Excel file.", variant: "destructive" });
+        } finally {
+            setExporting(false);
+        }
+    };
 
     // Fetch consultants for the filter dropdown
     useEffect(() => {
@@ -105,8 +172,8 @@ export default function AdminCalendar() {
     const dateRange = useMemo(() => {
         let start, end;
         if (viewMode === "day") {
-            start = currentDate;
-            end = currentDate;
+            start = startOfDay(currentDate);
+            end = endOfDay(currentDate);
         } else if (viewMode === "week") {
             start = startOfWeek(currentDate, { weekStartsOn: 1 });
             end = endOfWeek(currentDate, { weekStartsOn: 1 });
@@ -117,7 +184,7 @@ export default function AdminCalendar() {
 
         return {
             start: start.toISOString(),
-            end: addDays(end, 1).toISOString()
+            end: end.toISOString()
         };
     }, [currentDate, viewMode]);
 
@@ -126,8 +193,6 @@ export default function AdminCalendar() {
         queryFn: async () => {
             if (!profile?.organization_id) return [];
 
-            // Note: Depending on RLS, Admin can see all sessions from the org. 
-            // We'll join client and therapist profiles.
             const { data, error } = await supabase
                 .from("sessions")
                 .select(`
@@ -138,29 +203,70 @@ export default function AdminCalendar() {
                      scheduled_end,
                      status,
                      service_type,
-                     client:clients(first_name, last_name),
-                     therapist:profiles(first_name, last_name)
+                     is_unentitled,
+                     organization_id,
+                     client:clients!sessions_client_id_fkey(first_name, last_name),
+                     therapist:profiles!sessions_therapist_id_fkey(first_name, last_name)
                  `)
+                .eq("organization_id", profile.organization_id)
                 .gte("scheduled_start", dateRange.start)
-                .lte("scheduled_start", dateRange.end)
+                .lte("scheduled_end", dateRange.end)
                 .order("scheduled_start", { ascending: true });
 
             if (error) throw error;
-
-            return (data as any[]).map(session => {
-                return {
-                    ...session,
-                    rawSession: session
-                } as SessionEvent;
-            });
+            return (data as any[]).map(session => ({ ...session, rawSession: session } as SessionEvent));
         },
         enabled: !!profile?.organization_id
     });
 
+    // ── Pre-completion entitlement check for Planned sessions ─────────────────
+    // Get unique client IDs that have upcoming Planned sessions
+    const plannedClientIds = useMemo(() =>
+        [...new Set(allSessions.filter(s => s.status === 'Planned').map(s => s.client_id))],
+        [allSessions]
+    );
+
+    // Fetch entitlement balances for all those clients in parallel
+    const { data: clientEntitlementMap } = useQuery({
+        queryKey: ["planned-client-entitlements", plannedClientIds],
+        queryFn: async () => {
+            if (!plannedClientIds.length) return {};
+            const results = await Promise.all(
+                plannedClientIds.map(async (clientId) => {
+                    const { data } = await supabase.rpc('fn_compute_entitlement_balance', { p_client_id: clientId });
+                    // Map service_name → sessions_remaining
+                    const balanceByName: Record<string, number> = {};
+                    (data ?? []).forEach((b: any) => {
+                        balanceByName[b.service_name?.toLowerCase().trim()] = b.sessions_remaining;
+                    });
+                    return { clientId, balanceByName };
+                })
+            );
+            // Build map: clientId → { serviceName → remaining }
+            const map: Record<string, Record<string, number>> = {};
+            results.forEach(({ clientId, balanceByName }) => { map[clientId] = balanceByName; });
+            return map;
+        },
+        enabled: plannedClientIds.length > 0,
+        staleTime: 30000,
+    });
+
+    // Enrich sessions with pre-unentitled flag
+    const sessionsWithEntitlementStatus = useMemo(() =>
+        allSessions.map(s => {
+            if (s.status !== 'Planned') return s;
+            const clientBalance = clientEntitlementMap?.[s.client_id];
+            const serviceKey = s.service_type?.toLowerCase().trim();
+            const hasNoBalance = !clientBalance || clientBalance[serviceKey] === undefined || clientBalance[serviceKey] <= 0;
+            return { ...s, is_pre_unentitled: hasNoBalance };
+        }),
+        [allSessions, clientEntitlementMap]
+    );
+
     const sessions = useMemo(() => {
-        if (selectedConsultant === "all") return allSessions;
-        return allSessions.filter(s => s.therapist_id === selectedConsultant);
-    }, [allSessions, selectedConsultant]);
+        if (selectedConsultant === "all") return sessionsWithEntitlementStatus;
+        return sessionsWithEntitlementStatus.filter(s => s.therapist_id === selectedConsultant);
+    }, [sessionsWithEntitlementStatus, selectedConsultant]);
 
     // Navigation handlers
     const handlePrev = () => {
@@ -194,6 +300,8 @@ export default function AdminCalendar() {
             case 'Completed': return 'bg-gray-100 text-gray-800 border-gray-200';
             case 'Missed': return 'bg-red-100 text-red-800 border-red-200';
             case 'Rescheduled': return 'bg-orange-100 text-orange-800 border-orange-200';
+            case 'Cancelled': return 'bg-gray-100 text-gray-800 border-gray-200';
+            case 'Checked In': return 'bg-purple-100 text-purple-800 border-purple-200';
             default: return 'bg-primary/10 text-primary border-primary/20';
         }
     };
@@ -239,6 +347,16 @@ export default function AdminCalendar() {
                                 >
                                     <span className="font-semibold">{format(parseISO(event.scheduled_start), "HH:mm")}</span>
                                     {" "}{event.client?.first_name} {event.client?.last_name}
+                                    {event.is_unentitled && (
+                                        <span className="ml-1 px-1 bg-red-500 text-white rounded-[2px] text-[8px] font-bold animate-pulse">
+                                            UN
+                                        </span>
+                                    )}
+                                    {(event as any).is_pre_unentitled && (
+                                        <span className="ml-1 px-1 bg-orange-400 text-white rounded-[2px] text-[8px] font-bold" title="Client has no entitlements for this service">
+                                            ⚠
+                                        </span>
+                                    )}
                                 </div>
                             ))}
                         </div>
@@ -332,6 +450,16 @@ export default function AdminCalendar() {
                                                     {selectedConsultant === "all" && height > 40 && (
                                                         <div className="text-[10px] truncate opacity-80 mt-0.5 border-t border-current/20 pt-0.5">
                                                             Dr. {event.therapist?.last_name}
+                                                        </div>
+                                                    )}
+                                                    {event.is_unentitled && (
+                                                        <div className="mt-1 px-1.5 py-0.5 bg-red-600 text-white text-[9px] font-bold rounded flex items-center gap-1 animate-pulse">
+                                                            <Filter className="w-2.5 h-2.5" /> UN-ENTITLED
+                                                        </div>
+                                                    )}
+                                                    {(event as any).is_pre_unentitled && (
+                                                        <div className="mt-1 px-1.5 py-0.5 bg-orange-400 text-white text-[9px] font-bold rounded flex items-center gap-1">
+                                                            ⚠ NO ENT
                                                         </div>
                                                     )}
                                                 </div>
@@ -429,6 +557,17 @@ export default function AdminCalendar() {
                                             Dr. {event.therapist?.last_name}
                                         </div>
                                     )}
+                                    {event.is_unentitled && (
+                                        <div className="mt-2 px-2 py-1 bg-red-600 text-white text-[10px] font-bold rounded-md flex items-center gap-1.5 animate-pulse w-fit">
+                                            <Filter className="w-3 h-3" /> UN-ENTITLED SESSION
+                                        </div>
+                                    )}
+                                    {(event as any).is_pre_unentitled && (
+                                        <div className="mt-2 px-2 py-1 bg-orange-400 text-white text-[10px] font-bold rounded-md flex items-center gap-1.5 w-fit" title="Client has no entitlements for this service">
+                                            ⚠ NO ENTITLEMENT
+                                        </div>
+                                    )}
+
                                 </div>
                             )
                         })}
@@ -506,6 +645,9 @@ export default function AdminCalendar() {
                                             </SelectContent>
                                         </Select>
 
+                                        <Button variant="outline" onClick={handleExportDaily} disabled={exporting} className="h-9 gap-2 whitespace-nowrap">
+                                            <Download className="w-4 h-4" /> {exporting ? "Exporting..." : "Daily Export"}
+                                        </Button>
                                         <Button onClick={() => setIsBookModalOpen(true)} className="h-9 gap-2 whitespace-nowrap">
                                             <Plus className="w-4 h-4" /> Book Session
                                         </Button>

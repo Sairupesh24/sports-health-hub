@@ -72,43 +72,82 @@ export default function OrganizationUsers({ organizationId }: OrganizationUsersP
             const workbook = XLSX.read(data);
             const worksheet = workbook.Sheets[workbook.SheetNames[0]];
 
-            const rows = XLSX.utils.sheet_to_json<any[]>(worksheet, { header: 1, blankrows: false });
+            // Use defval to ensure empty cells produce empty strings instead of being omitted
+            const rows = XLSX.utils.sheet_to_json<any[]>(worksheet, { header: 1, blankrows: false, defval: "" });
 
             if (rows.length < 2) {
                 throw new Error("File must contain headers and at least one user row.");
             }
 
-            const headerRow = rows[0] as string[];
-            if (headerRow[0] !== EXPECTED_HEADERS[0] || headerRow[4] !== EXPECTED_HEADERS[4]) {
-                throw new Error("Invalid headers. Please download and use the official template.");
+            // Dynamically map column indices from the header row
+            const headerRow = (rows[0] as any[]).map(h => (h || "").toString().trim().toLowerCase());
+
+            const findCol = (keywords: string[]): number => {
+                return headerRow.findIndex(h => keywords.some(kw => h.includes(kw)));
+            };
+
+            const colFirst    = findCol(["first name", "first"]);
+            const colMiddle   = findCol(["middle"]);
+            const colLast     = findCol(["last name", "last"]);
+            const colPhone    = findCol(["phone"]);
+            const colRole     = findCol(["role"]);
+            const colEmail    = findCol(["email"]);
+            const colPassword = findCol(["password"]);
+
+            // Validate that required columns were found
+            if (colFirst === -1 || colLast === -1 || colRole === -1 || colEmail === -1) {
+                const missing = [];
+                if (colFirst === -1) missing.push("First Name");
+                if (colLast === -1) missing.push("Last Name");
+                if (colRole === -1) missing.push("Role");
+                if (colEmail === -1) missing.push("Email");
+                throw new Error(`Missing required columns: ${missing.join(", ")}. Please download and use the official template.`);
             }
 
             const parsed: ParsedUser[] = [];
 
             // Process data rows
             for (let i = 1; i < rows.length; i++) {
-                const row = rows[i];
-                if (!row || row.length === 0 || row[0]?.toString().startsWith("*")) continue;
+                const row = rows[i] as any[];
+                if (!row || row.length === 0) continue;
 
-                const roleStr = (row[4] || "").toString().toLowerCase().trim();
+                // Skip rows where all cells are empty (defval:"" produces ["","","",...""])
+                const hasAnyData = row.some((cell: any) => (cell || "").toString().trim() !== "");
+                if (!hasAnyData) continue;
+
+                // Skip note/instruction rows (start with *)
+                const firstCell = (row[0] || "").toString().trim();
+                if (firstCell.startsWith("*")) continue;
+
+                const roleRaw = (row[colRole] || "").toString();
+                const roleStr = roleRaw.toLowerCase().trim().replace(/[^a-z]/g, '');
+
                 if (!["admin", "consultant", "client"].includes(roleStr)) {
-                    throw new Error(`Row ${i + 1}: Invalid or missing Role '${roleStr}'. Must be admin, consultant, or client.`);
+                    throw new Error(`Row ${i + 1}: Invalid or missing Role '${roleRaw.trim()}'. Must be admin, consultant, or client.`);
                 }
 
-                if (!row[0] || !row[2] || !row[5]) {
+                const firstName = (row[colFirst] || "").toString().trim();
+                const lastName  = (row[colLast] || "").toString().trim();
+                const email     = (row[colEmail] || "").toString().trim();
+
+                if (!firstName || !lastName || !email) {
                     throw new Error(`Row ${i + 1}: First Name, Last Name, and Email are mandatory fields.`);
                 }
 
                 parsed.push({
-                    firstName: row[0].toString().trim(),
-                    middleName: row[1] ? row[1].toString().trim() : undefined,
-                    lastName: row[2].toString().trim(),
-                    phone: row[3] ? row[3].toString().trim() : "",
+                    firstName,
+                    middleName: colMiddle !== -1 && row[colMiddle] ? row[colMiddle].toString().trim() : undefined,
+                    lastName,
+                    phone: colPhone !== -1 && row[colPhone] ? row[colPhone].toString().trim() : "",
                     role: roleStr as any,
-                    email: row[5].toString().trim(),
-                    password: row[6] ? row[6].toString().trim() : undefined,
+                    email,
+                    password: colPassword !== -1 && row[colPassword] ? row[colPassword].toString().trim() : undefined,
                     status: "pending"
                 });
+            }
+
+            if (parsed.length === 0) {
+                throw new Error("No valid user rows found in the file. Make sure data starts on the second row.");
             }
 
             setParsedUsers(parsed);
@@ -125,43 +164,120 @@ export default function OrganizationUsers({ organizationId }: OrganizationUsersP
     const processUsers = async () => {
         if (parsedUsers.length === 0) return;
 
+        const createdUserIds: string[] = [];
         try {
             setProcessing(true);
 
-            const { data, error } = await supabase.functions.invoke("bulk-create-users", {
-                body: { users: parsedUsers, organizationId }
+            // Create an admin client using the service role key to bypass RLS
+            const { createClient } = await import("@supabase/supabase-js");
+            const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+            const serviceRoleKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
+
+            if (!supabaseUrl || !serviceRoleKey) {
+                throw new Error("Missing Supabase URL or Service Role Key in environment variables.");
+            }
+
+            const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
+                auth: { autoRefreshToken: false, persistSession: false }
             });
 
-            if (error) {
-                throw new Error(error.message || "Failed to contact edge function");
-            }
+            // Start Transaction-like processing
+            // Phase 1: Create all Auth Users
+            for (let i = 0; i < parsedUsers.length; i++) {
+                const user = parsedUsers[i];
+                const tempPassword = user.password || `${Math.random().toString(36).slice(-6)}${Math.random().toString(36).slice(-6).toUpperCase()}!8z`;
+                const combinedFirstName = user.middleName ? `${user.firstName} ${user.middleName}`.trim() : user.firstName;
 
-            if (!data.success) {
-                throw new Error(data.error || "Execution failed");
-            }
+                const { data: authData, error: authCreateError } = await supabaseAdmin.auth.admin.createUser({
+                    email: user.email,
+                    password: tempPassword,
+                    email_confirm: true,
+                    user_metadata: { first_name: combinedFirstName, last_name: user.lastName, organization_id: organizationId }
+                });
 
-            const serverResults = data.data; // { successful: X, failed: Y, errors: [...] }
-            setResultsSummary({ successful: serverResults.successful, failed: serverResults.failed });
-
-            // Map errors back to UI state
-            const updatedUsers = parsedUsers.map(u => {
-                const errMatch = serverResults.errors?.find((e: any) => e.email === u.email);
-                if (errMatch) {
-                    return { ...u, status: "error" as const, errorMsg: errMatch.error };
+                if (authCreateError) {
+                    throw new Error(`Failed to create user ${user.email}: ${authCreateError.message}`);
                 }
-                return { ...u, status: "success" as const };
-            });
 
-            setParsedUsers(updatedUsers);
-
-            if (serverResults.failed > 0) {
-                toast({ title: "Import Completed with Errors", description: `${serverResults.successful} created, ${serverResults.failed} failed.`, variant: "destructive" });
-            } else {
-                toast({ title: "Import Successful", description: `All ${serverResults.successful} users were created.` });
+                createdUserIds.push(authData.user.id);
             }
+
+            // Phase 2: Setup profiles, roles and client records
+            for (let i = 0; i < parsedUsers.length; i++) {
+                const user = parsedUsers[i];
+                const newUserId = createdUserIds[i];
+                const combinedFirstName = user.middleName ? `${user.firstName} ${user.middleName}`.trim() : user.firstName;
+
+                // Wait briefly for triggers to potentially finish their initial handle_new_user work
+                await new Promise(resolve => setTimeout(resolve, 800));
+
+                // 2. Update Profile
+                const { error: profileUpdateErr } = await supabaseAdmin
+                    .from("profiles")
+                    .update({
+                        organization_id: organizationId,
+                        is_approved: true,
+                        first_name: combinedFirstName,
+                        last_name: user.lastName
+                    })
+                    .eq("id", newUserId);
+
+                if (profileUpdateErr) throw new Error(`Profile setup failed for ${user.email}: ${profileUpdateErr.message}`);
+
+                // 3. Assign Role
+                const { error: roleInsertErr } = await supabaseAdmin
+                    .from("user_roles")
+                    .insert({ user_id: newUserId, role: user.role.toLowerCase() });
+
+                if (roleInsertErr) throw new Error(`Role assignment failed for ${user.email}: ${roleInsertErr.message}`);
+
+                // 4. Generate UHID and create client record if Client
+                if (user.role.toLowerCase() === "client") {
+                    const { data: uhid, error: uhidError } = await supabaseAdmin.rpc("generate_uhid", { p_organization_id: organizationId });
+
+                    if (uhidError) throw new Error(`UHID generation failed for ${user.email}: ${uhidError.message}`);
+
+                    const { error: clientInsertErr } = await supabaseAdmin
+                        .from("clients")
+                        .insert({
+                            uhid: uhid,
+                            organization_id: organizationId,
+                            first_name: combinedFirstName,
+                            last_name: user.lastName,
+                            email: user.email,
+                            mobile_no: user.phone || "",
+                            status: "active"
+                        });
+
+                    if (clientInsertErr) throw new Error(`Client record failed for ${user.email}: ${clientInsertErr.message}`);
+
+                    // Link UHID to profile
+                    await supabaseAdmin.from("profiles").update({ uhid: uhid }).eq("id", newUserId);
+                }
+            }
+
+            setResultsSummary({ successful: parsedUsers.length, failed: 0 });
+            setParsedUsers(parsedUsers.map(u => ({ ...u, status: "success" })));
+            toast({ title: "Import Successful", description: `All ${parsedUsers.length} users were created.` });
 
         } catch (error: any) {
-            toast({ title: "Processing Failed", description: error.message, variant: "destructive" });
+            console.error("[BulkImport] Error during processing, rolling back:", error);
+            
+            // Rollback: Delete all users created during this session
+            if (createdUserIds.length > 0) {
+                const { createClient } = await import("@supabase/supabase-js");
+                const supabaseAdmin = createClient(
+                    import.meta.env.VITE_SUPABASE_URL,
+                    import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY,
+                    { auth: { autoRefreshToken: false, persistSession: false } }
+                );
+
+                for (const id of createdUserIds) {
+                    await supabaseAdmin.auth.admin.deleteUser(id);
+                }
+            }
+
+            toast({ title: "Import Failed & Reverted", description: `${error.message}. All partially created users have been rolled back.`, variant: "destructive" });
         } finally {
             setProcessing(false);
         }

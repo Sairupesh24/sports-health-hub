@@ -7,16 +7,18 @@ interface Profile {
   email: string | null;
   first_name: string;
   last_name: string;
-  avatar_url: string | null;
-  mobile_no: string | null;
+  avatar_url?: string | null;
+  mobile_no?: string | null;
   organization_id: string | null;
   is_approved: boolean;
+  uhid: string | null;
 }
 
 interface AuthContextType {
   session: Session | null;
   user: User | null;
   profile: Profile | null;
+  clientId: string | null;
   roles: string[];
   loading: boolean;
   signOut: () => Promise<void>;
@@ -26,6 +28,7 @@ const AuthContext = createContext<AuthContextType>({
   session: null,
   user: null,
   profile: null,
+  clientId: null,
   roles: [],
   loading: true,
   signOut: async () => { },
@@ -37,16 +40,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [clientId, setClientId] = useState<string | null>(null);
   const [roles, setRoles] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchProfile = async (userId: string) => {
-    const { data } = await supabase
+  const fetchProfileAndClient = async (userId: string) => {
+    const { data: profileData } = await supabase
       .from("profiles")
       .select("*")
       .eq("id", userId)
       .single();
-    setProfile(data as Profile | null);
+    
+    setProfile(profileData as any);
+    
+    if (profileData) {
+      const p = profileData as any;
+      let cId = null;
+      
+      if (p.uhid) {
+        const { data: clientByUhid } = await supabase
+          .from("clients")
+          .select("id")
+          .eq("uhid", p.uhid)
+          .maybeSingle();
+        cId = clientByUhid?.id;
+      }
+      
+      if (!cId && p.email && p.organization_id) {
+        const { data: clientByEmail } = await supabase
+          .from("clients")
+          .select("id")
+          .eq("email", p.email)
+          .eq("organization_id", p.organization_id)
+          .maybeSingle();
+        cId = clientByEmail?.id;
+      }
+      setClientId(cId);
+    }
   };
 
   const fetchRoles = async (userId: string) => {
@@ -65,9 +95,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (session?.user) {
           // Use setTimeout to avoid Supabase auth deadlock
           setTimeout(async () => {
-            await fetchProfile(session.user.id);
-            await fetchRoles(session.user.id);
-            setLoading(false);
+            try {
+              await fetchProfileAndClient(session.user.id);
+              await fetchRoles(session.user.id);
+            } finally {
+              setLoading(false);
+            }
           }, 0);
         } else {
           setProfile(null);
@@ -81,7 +114,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        fetchProfile(session.user.id).then(() =>
+        fetchProfileAndClient(session.user.id).then(() =>
           fetchRoles(session.user.id).then(() => setLoading(false))
         );
       } else {
@@ -101,7 +134,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ session, user, profile, roles, loading, signOut }}>
+    <AuthContext.Provider value={{ session, user, profile, clientId, roles, loading, signOut }}>
       {children}
     </AuthContext.Provider>
   );

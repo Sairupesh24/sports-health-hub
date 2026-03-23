@@ -1,0 +1,37 @@
+--- Checking Constraints for session_facts ---
+Constraint Error: {"code":"PGRST202","details":"Searched for the function public.fn_execute_query with parameter query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.","hint":"Perhaps you meant to call the function public.generate_uhid","message":"Could not find the function public.fn_execute_query(query) in the schema cache"}
+
+--- Checking Sample Sessions Content ---
+Sessions Samples: [
+  {
+    "id": "737fe4db-6bc6-4ff7-90c7-7e807bcdfd36",
+    "client_id": "7b63f175-b62d-4f1d-9089-d8ab364729b1",
+    "status": "Completed"
+  },
+  {
+    "id": "884a6313-a16a-48ff-ac19-8e8dd4ccf3a4",
+    "client_id": "7b63f175-b62d-4f1d-9089-d8ab364729b1",
+    "status": "Completed"
+  },
+  {
+    "id": "e50a430c-669d-4a26-8ec7-5867e1ae59f8",
+    "client_id": "7b63f175-b62d-4f1d-9089-d8ab364729b1",
+    "status": "Completed"
+  },
+  {
+    "id": "3eda900a-3225-4f4f-8f78-af036ef4664c",
+    "client_id": "7b63f175-b62d-4f1d-9089-d8ab364729b1",
+    "status": "Planned"
+  },
+  {
+    "id": "5dbf641f-4896-4722-a360-10611fd2487b",
+    "client_id": "7b63f175-b62d-4f1d-9089-d8ab364729b1",
+    "status": "Planned"
+  }
+]
+
+--- Checking if Client ID 7b63f175-b62d-4f1d-9089-d8ab364729b1 exists in clients table ---
+Client found in clients table: true
+
+--- Checking if Client ID 7b63f175-b62d-4f1d-9089-d8ab364729b1 exists in profiles table ---
+Client found in profiles table: false

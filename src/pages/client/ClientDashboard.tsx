@@ -15,6 +15,7 @@ const stats = [
   { title: "Outstanding Balance", value: "₹3,500", change: "1 pending invoice", changeType: "negative" as const, icon: CreditCard },
 ];
 
+
 const recentSessions = [
   { id: "1", date: "25 Feb", consultant: "Dr. Patel", notes: "Pain reduced. Added resistance band exercises.", painScore: 3 },
   { id: "2", date: "20 Feb", consultant: "Dr. Patel", notes: "Good progress on ROM. Continue stretching protocol.", painScore: 4 },
@@ -23,24 +24,23 @@ const recentSessions = [
 
 export default function ClientDashboard() {
   const navigate = useNavigate();
-  const { profile } = useAuth();
+  const { profile, clientId } = useAuth();
   const [appointments, setAppointments] = useState<any[]>([]);
 
   useEffect(() => {
     async function fetchUpcoming() {
-      if (!profile?.id) return;
-      const today = format(new Date(), 'yyyy-MM-dd');
+      if (!clientId) return;
+      const today = new Date().toISOString();
 
       const { data, error } = await (supabase as any)
-        .from('appointments')
+        .from('sessions')
         .select(`
-          id, appointment_date, start_time, service_type,
-          profiles_consultant:profiles!appointments_consultant_id_fkey(first_name, last_name)
+          id, scheduled_start, service_type,
+          therapist:profiles!sessions_therapist_id_fkey(first_name, last_name)
         `)
-        .eq('client_id', profile.id)
-        .gte('appointment_date', today)
-        .order('appointment_date', { ascending: true })
-        .order('start_time', { ascending: true })
+        .eq('client_id', clientId)
+        .gte('scheduled_start', today)
+        .order('scheduled_start', { ascending: true })
         .limit(3);
 
       if (!error && data) {
@@ -48,7 +48,7 @@ export default function ClientDashboard() {
       }
     }
     fetchUpcoming();
-  }, [profile]);
+  }, [clientId]);
 
   return (
     <DashboardLayout role="client">
@@ -83,15 +83,15 @@ export default function ClientDashboard() {
                 </div>
               ) : (
                 appointments.map((apt) => {
-                  const dateObj = new Date(apt.appointment_date);
+                  const dateObj = new Date(apt.scheduled_start);
                   return (
                     <div key={apt.id} className="flex items-center gap-3 p-3 rounded-lg bg-muted/30 animate-fade-in group hover:bg-primary/5 transition-colors cursor-pointer border border-transparent hover:border-primary/20">
                       <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
                         <Clock className="w-4 h-4 text-primary" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-card-foreground">{format(dateObj, "EEE, d MMM")} at {apt.start_time.substring(0, 5)}</p>
-                        <p className="text-xs text-muted-foreground">Dr. {apt.profiles_consultant?.last_name} — {apt.service_type || 'Session'}</p>
+                        <p className="text-sm font-medium text-card-foreground">{format(dateObj, "EEE, d MMM")} at {format(dateObj, "HH:mm")}</p>
+                        <p className="text-xs text-muted-foreground">Dr. {apt.therapist?.last_name || 'Consultant'} — {apt.service_type || 'Session'}</p>
                       </div>
                       <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
                     </div>

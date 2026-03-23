@@ -1,0 +1,65 @@
+[
+  {
+    "Email": "test_newuser2_xyz@ishpo.com",
+    "Name": "Sai Rupesh Kavuturi",
+    "Role": "admin",
+    "Org": "Center for Spine and Sports Health",
+    "Confirmed": true
+  },
+  {
+    "Email": "scientist_test@example.com",
+    "Name": "Test Scientist",
+    "Role": "sports_scientist",
+    "Org": "Test Clinic Fixed",
+    "Confirmed": true
+  },
+  {
+    "Email": "test_clinic_admin@ishpo.com",
+    "Name": "TestClinic Admin",
+    "Role": "admin",
+    "Org": "Test Clinic Fixed",
+    "Confirmed": true
+  },
+  {
+    "Email": "new_master@ishpo.com",
+    "Name": "New SuperAdmin",
+    "Role": "super_admin",
+    "Org": "ISHPO Default Clinic",
+    "Confirmed": true
+  },
+  {
+    "Email": "foe3445@ishpo.com",
+    "Name": "Front Office Executive",
+    "Role": "foe",
+    "Org": "Test Clinic Fixed",
+    "Confirmed": true
+  },
+  {
+    "Email": "testuser1772708483495@gmail.com",
+    "Name": "Test User",
+    "Role": "super_admin",
+    "Org": "ISHPO Default Clinic",
+    "Confirmed": true
+  },
+  {
+    "Email": "client3445@ishpo.com",
+    "Name": "John Doe",
+    "Role": "client",
+    "Org": "Test Clinic Fixed",
+    "Confirmed": true
+  },
+  {
+    "Email": "doctor3445@ishpo.com",
+    "Name": "Jane Smith",
+    "Role": "consultant",
+    "Org": "Test Clinic Fixed",
+    "Confirmed": true
+  },
+  {
+    "Email": "admin3445@ishpo.com",
+    "Name": "Test Admin",
+    "Role": "admin",
+    "Org": "Test Clinic Fixed",
+    "Confirmed": true
+  }
+]

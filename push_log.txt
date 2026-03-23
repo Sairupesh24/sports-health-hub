@@ -1,0 +1,14 @@
+Initialising login role...
+Connecting to remote database...
+Do you want to push these migrations to the remote database?
+ • 20270104000000_b728241b.sql
+ • 20270104000001_3774f969-eb1c-4665-a0f1-351fff21b760.sql
+ • 20270105000000_scalable_entitlements.sql
+
+ [Y/n] y
+Applying migration 20270104000000_b728241b.sql...
+ERROR: relation "public.bills" does not exist (SQLSTATE 42P01)      
+At statement: 0                                                     
+-- Add payment_method column to bills                               
+ALTER TABLE public.bills ADD COLUMN payment_method TEXT DEFAULT NULL
+Try rerunning the command with --debug to troubleshoot the error.

@@ -54,20 +54,34 @@ export default function OrganizationPackages({ organizationId }: OrganizationPac
         try {
             setLoading(true);
             const { data, error } = await supabase
-                .from("service_packages")
+                .from("packages")
                 .select(`
-                    *,
-                    items:service_package_items (
+                    id, name, description, price,
+                    items:package_services (
                         id,
-                        service_type,
-                        default_sessions
+                        sessions_included,
+                        service:services(name)
                     )
                 `)
                 .eq("organization_id", organizationId)
                 .order("created_at", { ascending: false });
 
             if (error) throw error;
-            setPackages(data || []);
+            
+            // Map the nested relational structure back into the generic ServicePackage interface 
+            const formatted = (data || []).map((pkg: any) => ({
+                id: pkg.id,
+                name: pkg.name,
+                description: pkg.description,
+                price: pkg.price,
+                items: pkg.items ? pkg.items.map((item: any) => ({
+                    id: item.id,
+                    service_type: item.service?.name || "Unknown",
+                    default_sessions: item.sessions_included
+                })) : []
+            }));
+            
+            setPackages(formatted);
         } catch (error: any) {
             toast({ title: "Error", description: error.message, variant: "destructive" });
         } finally {
@@ -149,21 +163,46 @@ export default function OrganizationPackages({ organizationId }: OrganizationPac
                 serviceTypes.push(headerName);
             }
 
-            // Replace existing logic: Old packages are wiped completely
-            const { error: deleteError } = await supabase
-                .from("service_packages")
-                .delete()
+            // Step A: Ensure all serviceTypes exist in the org's `services` table
+            const { data: existingServicesData, error: servicesError } = await supabase
+                .from("services")
+                .select("id, name")
                 .eq("organization_id", organizationId);
-
-            if (deleteError) throw deleteError;
+                
+            if (servicesError) throw servicesError;
+            
+            let servicesMap: Record<string, string> = {};
+            if (existingServicesData) {
+                existingServicesData.forEach((s) => servicesMap[s.name.toLowerCase()] = s.id);
+            }
+            
+            const missingServices = serviceTypes.filter(st => !servicesMap[st.toLowerCase()]);
+            if (missingServices.length > 0) {
+                const newServicesArray = missingServices.map(name => ({
+                    organization_id: organizationId,
+                    name: name,
+                    category: "General",
+                    default_session_duration: 60,
+                    is_active: true
+                }));
+                
+                const { data: newlyInsertedServices, error: insertServicesError } = await supabase
+                    .from("services")
+                    .insert(newServicesArray)
+                    .select();
+                    
+                if (insertServicesError) throw insertServicesError;
+                if (newlyInsertedServices) {
+                    newlyInsertedServices.forEach(s => servicesMap[s.name.toLowerCase()] = s.id);
+                }
+            }
 
             let insertedCount = 0;
+            const processedPackageIds: string[] = [];
 
-            // Sequential insert for logical packages and items
-            // We ignore header and footer notes
             for (let i = 1; i < rows.length; i++) {
                 const row = rows[i];
-                if (!row[0] || row[0].toString().startsWith('*')) continue; // Skip empty rows or footer notes
+                if (!row[0] || row[0].toString().startsWith('*')) continue;
 
                 const name = row[0]?.toString().trim();
                 const description = row[1]?.toString().trim() || null;
@@ -173,14 +212,16 @@ export default function OrganizationPackages({ organizationId }: OrganizationPac
                     throw new Error(`Row ${i + 1} is missing a Package Name.`);
                 }
 
-                // 1. Insert the Package Header
+                // 1. Upsert the Package Header (avoiding deletion to preserve FKs in bills)
                 const { data: pkgData, error: pkgError } = await supabase
-                    .from("service_packages")
-                    .insert({
+                    .from("packages")
+                    .upsert({
                         organization_id: organizationId,
                         name,
                         description,
                         price
+                    }, {
+                        onConflict: 'organization_id, name'
                     })
                     .select()
                     .single();
@@ -188,34 +229,54 @@ export default function OrganizationPackages({ organizationId }: OrganizationPac
                 if (pkgError) throw pkgError;
 
                 const packageId = pkgData.id;
+                processedPackageIds.push(packageId);
 
-                // 2. Insert the Package Items
-                const itemsToInsert: { package_id: string, service_type: string, default_sessions: number }[] = [];
+                // 2. Clear existing services for THIS package SPECIFICALLY
+                const { error: clearItemsError } = await supabase
+                    .from("package_services")
+                    .delete()
+                    .eq("package_id", packageId);
 
-                // Check dynamic columns for session counts
+                if (clearItemsError) throw clearItemsError;
+
+                // 3. Insert the new Package Items
+                const itemsToInsert: { package_id: string, service_id: string, sessions_included: number }[] = [];
+
                 for (let col = 3; col < headerRow.length; col++) {
                     const sessionCount = parseInt(row[col]?.toString() || "0", 10);
                     if (!isNaN(sessionCount) && sessionCount > 0) {
                         const serviceType = serviceTypes[col - 3];
                         if (serviceType) {
-                            itemsToInsert.push({
-                                package_id: packageId,
-                                service_type: serviceType,
-                                default_sessions: sessionCount
-                            });
+                            const serviceId = servicesMap[serviceType.toLowerCase()];
+                            if (serviceId) {
+                                itemsToInsert.push({
+                                    package_id: packageId,
+                                    service_id: serviceId,
+                                    sessions_included: sessionCount
+                                });
+                            }
                         }
                     }
                 }
 
                 if (itemsToInsert.length > 0) {
                     const { error: itemsError } = await supabase
-                        .from("service_package_items")
+                        .from("package_services")
                         .insert(itemsToInsert);
 
                     if (itemsError) throw itemsError;
                 }
 
                 insertedCount++;
+            }
+
+            // 4. Soft-delete packages that were NOT in the new file
+            if (processedPackageIds.length > 0) {
+                await supabase
+                    .from("packages")
+                    .update({ deleted_at: new Date().toISOString() })
+                    .eq("organization_id", organizationId)
+                    .not("id", "in", `(${processedPackageIds.join(",")})`);
             }
 
             toast({ title: "Success", description: `Successfully uploaded ${insertedCount} packages.` });

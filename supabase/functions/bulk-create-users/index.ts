@@ -97,8 +97,7 @@ serve(async (req) => {
                         organization_id: targetOrgId,
                         is_approved: true,
                         first_name: combinedFirstName,
-                        last_name: user.lastName,
-                        mobile_no: user.phone || null
+                        last_name: user.lastName
                     })
                     .eq("id", newUserId);
 

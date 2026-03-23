@@ -1,0 +1,114 @@
+import fs from 'fs';
+import { createClient } from '@supabase/supabase-js';
+
+const envText = fs.readFileSync('.env', 'utf-8');
+const envMatchesKey = envText.match(/VITE_SUPABASE_SERVICE_ROLE_KEY\s*=\s*[\"']?([^\"'\n\r]+)[\"']?/);
+let rawKey = envMatchesKey ? envMatchesKey[1] : '';
+
+// Fix accidental 's' character prefix
+if (rawKey.startsWith('seyJ')) {
+  rawKey = rawKey.substring(1);
+}
+
+const parts = rawKey.split('.');
+if (parts.length !== 3) {
+  console.error("The provided Service Role Key is not a valid JWT format.");
+  process.exit(1);
+}
+
+const payloadString = Buffer.from(parts[1], 'base64').toString('utf-8');
+const payload = JSON.parse(payloadString);
+const ref = payload.ref;
+
+const supabaseUrl = `https://${ref}.supabase.co`;
+
+const supabase = createClient(supabaseUrl, rawKey, {
+  auth: { autoRefreshToken: false, persistSession: false }
+});
+
+async function createOrgAdmin() {
+  const orgName = 'Test Clinic Fixed';
+  const email = 'test_clinic_admin@ishpo.com';
+  const password = 'password123';
+  
+  console.log(`Finding organization: ${orgName}`);
+
+  // 1. Get Organization ID
+  const { data: orgs, error: orgErr } = await supabase
+    .from('organizations')
+    .select('id')
+    .eq('name', orgName)
+    .limit(1);
+
+  if (orgErr || !orgs || orgs.length === 0) {
+    console.error(`Could not find organization '${orgName}'. Error:`, orgErr?.message);
+    return;
+  }
+  const orgId = orgs[0].id;
+  console.log(`Found Org ID: ${orgId}`);
+
+  console.log(`Creating admin: ${email}...`);
+
+  // 2. Create User
+  const { data: authData, error: createErr } = await supabase.auth.admin.createUser({
+    email: email,
+    password: password,
+    email_confirm: true,
+    user_metadata: { first_name: 'TestClinic', last_name: 'Admin' }
+  });
+
+  if (createErr && !createErr.message.includes('already exists')) {
+    console.error('Failed to create auth user:', createErr.message);
+    return;
+  }
+
+  // Get user ID
+  let userId;
+  if (authData?.user?.id) {
+      userId = authData.user.id;
+  } else {
+      const { data: existingUser } = await supabase.auth.admin.listUsers();
+      const user = existingUser.users.find(u => u.email === email);
+      if (user) {
+          userId = user.id;
+          // Ensure password is correct
+          await supabase.auth.admin.updateUserById(userId, { password: password });
+      } else {
+          console.error("Could not trace user ID");
+          return;
+      }
+  }
+
+  // 3. Assign Admin Role
+  const { error: roleErr } = await supabase.from('user_roles').upsert({
+    user_id: userId,
+    role: 'admin'
+  }, { onConflict: 'user_id, role' });
+
+  if (roleErr) {
+      console.error("Failed to assign role:", roleErr.message);
+      return;
+  }
+
+  // 4. Update Profile status and Org
+  const { error: profErr } = await supabase.from('profiles').update({
+      is_approved: true,
+      first_name: 'TestClinic',
+      last_name: 'Admin',
+      organization_id: orgId
+  }).eq('id', userId);
+
+  if (profErr) {
+      console.log("Note: Profile update warning (might just be a trigger delay):", profErr.message);
+  }
+
+  console.log("=========================================");
+  console.log("SUCCESS! Created new Org Admin account:");
+  console.log(`Email:    ${email}`);
+  console.log(`Password: ${password}`);
+  console.log(`Org:      ${orgName}`);
+  console.log("Role:     admin");
+  console.log("=========================================");
+}
+
+createOrgAdmin();

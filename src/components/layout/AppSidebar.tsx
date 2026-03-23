@@ -19,22 +19,24 @@ import {
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
 
 interface NavItem {
   label: string;
   icon: React.ElementType;
   href: string;
+  isUnderDevelopment?: boolean;
 }
 
 const adminNav: NavItem[] = [
   { label: "Dashboard", icon: LayoutDashboard, href: "/admin" },
   { label: "Clients", icon: Users, href: "/admin/clients" },
   { label: "Calendar", icon: CalendarDays, href: "/admin/calendar" },
-  { label: "Sessions", icon: ClipboardList, href: "/admin/sessions" },
-  { label: "Programs", icon: Dumbbell, href: "/admin/programs" },
-  { label: "Performance", icon: Activity, href: "/admin/performance" },
+  { label: "Reports", icon: ClipboardList, href: "/admin/reports" },
+  { label: "Programs", icon: Dumbbell, href: "/admin/programs", isUnderDevelopment: true },
+  { label: "Performance", icon: Activity, href: "/admin/performance", isUnderDevelopment: true },
   { label: "Billing", icon: CreditCard, href: "/admin/billing" },
-  { label: "Settings", icon: Settings, href: "/admin/settings" },
+  { label: "Settings", icon: Settings, href: "/admin/settings", isUnderDevelopment: true },
   { label: "User Approval", icon: UserCheck, href: "/admin/users" },
 ];
 
@@ -43,7 +45,7 @@ const consultantNav: NavItem[] = [
   { label: "My Clients", icon: Users, href: "/consultant/clients" },
   { label: "Schedule", icon: Calendar, href: "/consultant/schedule" },
   { label: "Availability", icon: Clock, href: "/consultant/availability" },
-  { label: "Sessions", icon: ClipboardList, href: "/consultant/sessions" },
+  { label: "Reports", icon: ClipboardList, href: "/consultant/reports" },
   { label: "Programs", icon: Dumbbell, href: "/consultant/programs" },
 ];
 
@@ -51,7 +53,7 @@ const clientNav: NavItem[] = [
   { label: "Dashboard", icon: LayoutDashboard, href: "/client" },
   { label: "Book Session", icon: CalendarPlus, href: "/client/book" },
   { label: "Appointments", icon: Calendar, href: "/client/appointments" },
-  { label: "My Sessions", icon: ClipboardList, href: "/client/sessions" },
+  { label: "My Reports", icon: ClipboardList, href: "/client/reports" },
   { label: "Performance", icon: Activity, href: "/client/performance" },
   { label: "Billing", icon: CreditCard, href: "/client/billing" },
 ];
@@ -59,8 +61,25 @@ const clientNav: NavItem[] = [
 const foeNav: NavItem[] = [
   { label: "Clients", icon: Users, href: "/admin/clients" },
   { label: "Calendar", icon: Calendar, href: "/admin/calendar" },
-  { label: "Appointments", icon: ClipboardList, href: "/admin/appointments" },
+  { label: "Reports", icon: ClipboardList, href: "/admin/reports" },
   { label: "Billing", icon: CreditCard, href: "/admin/billing" },
+];
+
+const sportsScientistNav: NavItem[] = [
+  { label: "Dashboard", icon: LayoutDashboard, href: "/sports-scientist" },
+  { label: "Schedule", icon: Calendar, href: "/sports-scientist/schedule" },
+  { label: "Sessions Log", icon: ClipboardList, href: "/sports-scientist/sessions" },
+  { label: "My Clients", icon: Users, href: "/sports-scientist/clients" },
+  { label: "Reports", icon: ClipboardList, href: "/sports-scientist/reports" },
+  { label: "Templates", icon: ClipboardList, href: "/sports-scientist/templates" },
+  { label: "Analytics", icon: Activity, href: "/sports-scientist/analytics" },
+];
+
+const managerNav: NavItem[] = [
+  { label: "Dashboard", icon: LayoutDashboard, href: "/admin" },
+  { label: "Clients", icon: Users, href: "/admin/clients" },
+  { label: "Calendar", icon: CalendarDays, href: "/admin/calendar" },
+  { label: "Reports", icon: ClipboardList, href: "/admin/reports" },
 ];
 
 const superAdminNav: NavItem[] = [
@@ -74,6 +93,8 @@ const navMap: Record<string, NavItem[]> = {
   consultant: consultantNav,
   client: clientNav,
   foe: foeNav,
+  sports_scientist: sportsScientistNav,
+  manager: managerNav,
 };
 
 interface AppSidebarProps {
@@ -88,6 +109,7 @@ export default function AppSidebar({ role, isMobile, className, onNavigate }: Ap
   const location = useLocation();
   const navigate = useNavigate();
   const { signOut } = useAuth();
+  const { toast } = useToast();
   const items = navMap[role] || adminNav;
 
   return (
@@ -121,8 +143,18 @@ export default function AppSidebar({ role, isMobile, className, onNavigate }: Ap
           return (
             <Link
               key={item.href}
-              to={item.href}
-              onClick={onNavigate}
+              to={item.isUnderDevelopment ? "#" : item.href}
+              onClick={(e) => {
+                if (item.isUnderDevelopment) {
+                  e.preventDefault();
+                  toast({
+                    title: "Under Development",
+                    description: `${item.label} page is currently under development and will be available in later updates.`,
+                  });
+                } else if (onNavigate) {
+                  onNavigate();
+                }
+              }}
               className={cn(
                 "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
                 isActive

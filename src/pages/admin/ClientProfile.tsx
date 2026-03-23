@@ -1,24 +1,37 @@
 import { useState, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useParams, useNavigate } from "react-router-dom";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, User, Phone, MapPin, Shield, Activity, CalendarDays, FileText, Download } from "lucide-react";
+import { ArrowLeft, User, Phone, MapPin, Shield, Activity, CalendarDays, FileText, Download, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
+import { ClientEntitlements } from "./ClientEntitlements";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { toast } from "@/hooks/use-toast";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+import * as XLSX from 'xlsx';
+import AMSTrainingLoadWidget from "@/components/dashboard/AMSTrainingLoadWidget";
 
 export default function ClientProfile() {
+    const queryClient = useQueryClient();
     const { id } = useParams();
     const navigate = useNavigate();
     const [client, setClient] = useState<any>(null);
     const [loading, setLoading] = useState(true);
+    const [paymentBillId, setPaymentBillId] = useState<string>("");
+    const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+    const [paymentMethod, setPaymentMethod] = useState("");
 
-    // Mock billing history since backend doesn't support bills yet
-    const mockBills = [
-        { id: "INV-1044", date: "2023-11-01T10:00:00Z", package: "Initial Consultation", amount: 1500, status: "Paid", method: "UPI" },
-        { id: "INV-2099", date: "2023-11-20T14:30:00Z", package: "Rehab Session", amount: 800, status: "Pending", method: "-" },
-    ];
+    // Filters
+    const [startDate, setStartDate] = useState("");
+    const [endDate, setEndDate] = useState("");
+    const [sessionTypeFilter, setSessionTypeFilter] = useState("all");
 
     useEffect(() => {
         async function fetchClient() {
@@ -36,6 +49,178 @@ export default function ClientProfile() {
         }
         fetchClient();
     }, [id]);
+
+    const { data: sessions, isLoading: sessionsLoading } = useQuery({
+        queryKey: ['client-sessions', id, startDate, endDate, sessionTypeFilter],
+        queryFn: async () => {
+            if (!id) return [];
+            let query = supabase
+                .from('sessions')
+                .select(`
+                    *,
+                    therapist:profiles!sessions_therapist_id_fkey(first_name, last_name),
+                    physio_session_details(*)
+                `)
+                .eq('client_id', id);
+
+            if (startDate) {
+                query = query.gte('scheduled_start', `${startDate}T00:00:00`);
+            }
+            if (endDate) {
+                query = query.lte('scheduled_start', `${endDate}T23:59:59`);
+            }
+            if (sessionTypeFilter !== "all") {
+                query = query.eq('service_type', sessionTypeFilter);
+            }
+
+            const { data, error } = await query.order('scheduled_start', { ascending: false });
+            if (error) throw error;
+            return data;
+        },
+        enabled: !!id
+    });
+
+    const { data: bills, isLoading: billsLoading } = useQuery({
+        queryKey: ['client-bills', id],
+        queryFn: async () => {
+            if (!id) return [];
+            const { data, error } = await supabase
+                .from('bills')
+                .select(`
+                    id,
+                    created_at,
+                    total,
+                    status,
+                    notes,
+                    packages(name, package_services(sessions_included, services(name)))
+                `)
+                .eq('client_id', id)
+                .order('created_at', { ascending: false });
+            if (error) throw error;
+            return data;
+        },
+        enabled: !!id
+    });
+
+    const markAsPaid = async () => {
+        if (!paymentMethod) {
+            toast({ title: "Select a payment method", variant: "destructive" });
+            return;
+        }
+
+        try {
+            const { error } = await supabase.from('bills')
+                .update({ status: 'Paid', notes: `Paid via ${paymentMethod}` })
+                .eq('id', paymentBillId);
+
+            if (error) throw error;
+
+            // Invalidate bills query to refresh the billing list without page reload
+            queryClient.invalidateQueries({ queryKey: ['client-bills', id] });
+
+            setIsPaymentModalOpen(false);
+            setPaymentMethod("");
+            setPaymentBillId("");
+            toast({ title: "Payment Recorded!" });
+        } catch (err: any) {
+            toast({ title: "Failed to record payment", description: err.message, variant: "destructive" });
+        }
+    };
+
+    const handleDownloadInvoice = (bill: any) => {
+        if (!client) return;
+        const d = new jsPDF();
+        const fullName = `${client.honorific ? client.honorific + " " : ""}${client.first_name} ${client.last_name}`;
+
+        // Header
+        d.setFontSize(22);
+        d.setTextColor(15, 23, 42);
+        d.text(client.org_name || "Clinic", 14, 25);
+
+        d.setFontSize(14);
+        d.setTextColor(100, 116, 139);
+        d.text("INVOICE", 170, 25);
+
+        // Invoice Details
+        d.setFontSize(10);
+        d.setTextColor(71, 85, 105);
+        d.text(`Invoice # : ${bill.id}`, 14, 38);
+        d.text(`Date : ${format(new Date(bill.created_at), "dd MMM yyyy, hh:mm a")}`, 14, 44);
+
+        // Bill To
+        d.setFontSize(11);
+        d.setTextColor(15, 23, 42);
+        d.text("Bill To:", 14, 58);
+
+        d.setFontSize(10);
+        d.setTextColor(71, 85, 105);
+        d.text(fullName, 14, 65);
+        if (client.uhid) d.text(`UHID : ${client.uhid}`, 14, 71);
+        if (client.mobile_no) d.text(`Mobile : ${client.mobile_no}`, 14, 77);
+        if (client.email) d.text(`Email : ${client.email}`, 14, 83);
+
+        // Table
+        const pkgName = bill.packages ? bill.packages.name : "Custom Package";
+        const tableData = [["1", pkgName, `Rs. ${bill.total}`]];
+
+        autoTable(d, {
+            startY: 95,
+            head: [["#", "Description", "Amount"]],
+            body: tableData,
+            theme: 'striped',
+            headStyles: { fillColor: [15, 118, 110] },
+            styles: { fontSize: 10, cellPadding: 5 },
+            columnStyles: {
+                0: { cellWidth: 15 },
+                1: { cellWidth: 'auto' },
+                2: { cellWidth: 40, halign: 'right' }
+            }
+        });
+
+        // Entitlements breakdown
+        const entitlementsBody: any[] = [];
+        if (bill.packages && bill.packages.package_services) {
+            bill.packages.package_services.forEach((ps: any) => {
+                entitlementsBody.push([
+                    pkgName,
+                    ps.services?.name || 'Session',
+                    `${ps.sessions_included} Sessions`
+                ]);
+            });
+        }
+
+        let finalY = (d as any).lastAutoTable.finalY + 15;
+
+        if (entitlementsBody.length > 0) {
+            d.setFontSize(11);
+            d.setTextColor(15, 23, 42);
+            d.text("Entitlements Included:", 14, finalY);
+
+            autoTable(d, {
+                startY: finalY + 5,
+                head: [["Package", "Service", "Sessions Included"]],
+                body: entitlementsBody,
+                theme: 'plain',
+                headStyles: { fillColor: [241, 245, 249], textColor: [71, 85, 105] },
+                styles: { fontSize: 9, cellPadding: 4, lineColor: [226, 232, 240], lineWidth: 0.1 },
+            });
+            finalY = (d as any).lastAutoTable.finalY + 15;
+        }
+
+        // Calculations
+        d.setFontSize(10);
+        d.setTextColor(71, 85, 105);
+        d.text("Subtotal:", 140, finalY);
+        d.setTextColor(15, 23, 42);
+        d.text(`Rs. ${bill.total}`, 185, finalY, { align: "right" });
+
+        d.setFontSize(12);
+        d.setFont("helvetica", "bold");
+        d.text("Total Payable:", 140, finalY + 10);
+        d.text(`Rs. ${bill.total}`, 185, finalY + 10, { align: "right" });
+
+        d.save(`Invoice_${bill.id.substring(0, 8)}.pdf`);
+    };
 
     if (loading) {
         return <DashboardLayout role="admin"><div className="flex justify-center py-20">Loading profile...</div></DashboardLayout>;
@@ -60,6 +245,29 @@ export default function ClientProfile() {
 
     const fullName = `${honorific ? honorific + " " : ""}${first_name} ${last_name}`;
 
+    const handleExportExcel = () => {
+        if (!sessions || sessions.length === 0) {
+            toast({ title: "No data to export", variant: "destructive" });
+            return;
+        }
+
+        const exportData = sessions.map(s => ({
+            'Date & Time': s.scheduled_start ? format(new Date(s.scheduled_start), "dd MMM yyyy, hh:mm a") : "-",
+            'Type': s.service_type || "-",
+            'Provider': s.therapist
+                ? (s.service_type === 'Physiotherapy' ? `Dr. ${s.therapist.first_name} ${s.therapist.last_name}` : `${s.therapist.first_name} ${s.therapist.last_name}`)
+                : (s.therapist_id || "-"),
+            'Status': s.status,
+            'Pain Score': s.physio_session_details?.[0]?.pain_score ?? "-",
+            'Clinical Notes': s.physio_session_details?.[0]?.clinical_notes || "-"
+        }));
+
+        const worksheet = XLSX.utils.json_to_sheet(exportData);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Sessions");
+        XLSX.writeFile(workbook, `Sessions_${uhid || id}.xlsx`);
+    };
+
     return (
         <DashboardLayout role="admin">
             <div className="max-w-5xl mx-auto space-y-6 pb-12">
@@ -80,8 +288,10 @@ export default function ClientProfile() {
 
                 {/* Content */}
                 <Tabs defaultValue="profile" className="w-full">
-                    <TabsList className="mb-6 grid w-full max-w-md grid-cols-2">
+                    <TabsList className="mb-6 grid w-full max-w-2xl grid-cols-4">
                         <TabsTrigger value="profile">Profile Details</TabsTrigger>
+                        <TabsTrigger value="entitlements">Entitlements</TabsTrigger>
+                        <TabsTrigger value="sessions">Session History</TabsTrigger>
                         <TabsTrigger value="billing">Billing History</TabsTrigger>
                     </TabsList>
 
@@ -153,6 +363,120 @@ export default function ClientProfile() {
                         </div>
                     </TabsContent>
 
+                    {/* ENTITLEMENTS TAB */}
+                    <TabsContent value="entitlements">
+                        <ClientEntitlements clientId={id!} />
+                    </TabsContent>                    {/* SESSION HISTORY TAB */}
+                    <TabsContent value="sessions">
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                            <Card className="gradient-card border-border lg:col-span-2">
+                                <CardHeader>
+                                    <div className="flex items-center justify-between">
+                                        <CardTitle className="text-lg flex items-center gap-2">
+                                            <CalendarDays className="w-5 h-5 text-primary" />
+                                            Session History
+                                        </CardTitle>
+                                        <Button variant="outline" size="sm" className="h-9 gap-2 text-xs font-bold" onClick={handleExportExcel}>
+                                            <Download className="w-4 h-4" /> Export to Excel
+                                        </Button>
+                                    </div>
+                                    <CardDescription>
+                                        All past and upcoming appointments for this client.
+                                    </CardDescription>
+                                    <div className="mt-4 flex flex-wrap gap-3 items-end">
+                                        <div className="space-y-1">
+                                            <span className="text-[10px] text-muted-foreground uppercase font-bold">Start Date</span>
+                                            <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="h-9 w-[150px] text-xs bg-muted/50" />
+                                        </div>
+                                        <div className="space-y-1">
+                                            <span className="text-[10px] text-muted-foreground uppercase font-bold">End Date</span>
+                                            <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="h-9 w-[150px] text-xs bg-muted/50" />
+                                        </div>
+                                        <div className="space-y-1">
+                                            <span className="text-[10px] text-muted-foreground uppercase font-bold">Session Type</span>
+                                            <Select value={sessionTypeFilter} onValueChange={setSessionTypeFilter}>
+                                                <SelectTrigger className="h-9 w-[160px] text-xs bg-muted/50">
+                                                    <SelectValue placeholder="All Types" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="all">All Types</SelectItem>
+                                                    <SelectItem value="Physiotherapy">Physiotherapy</SelectItem>
+                                                    <SelectItem value="Sports Science">Sports Science</SelectItem>
+                                                    <SelectItem value="Nutrition">Nutrition</SelectItem>
+                                                    <SelectItem value="Active Recovery Training">Active Recovery</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                    </div>
+                                </CardHeader>
+                                <CardContent>
+                                    {sessionsLoading ? (
+                                        <p className="text-sm text-muted-foreground p-4">Loading sessions...</p>
+                                    ) : !sessions || sessions.length === 0 ? (
+                                        <p className="text-sm text-muted-foreground p-4 text-center py-10">No sessions found for this client.</p>
+                                    ) : (
+                                        <div className="rounded-md border overflow-x-auto">
+                                            <table className="w-full text-sm">
+                                                <thead>
+                                                    <tr className="border-b bg-muted/50 text-left">
+                                                        <th className="p-3 font-medium text-muted-foreground">Date & Time</th>
+                                                        <th className="p-3 font-medium text-muted-foreground">Type</th>
+                                                        <th className="p-3 font-medium text-muted-foreground">Provider</th>
+                                                        <th className="p-3 font-medium text-muted-foreground">Status</th>
+                                                        <th className="p-3 font-medium text-muted-foreground">Notes/SOAP</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {sessions.map((session: any) => (
+                                                        <tr key={session.id} className="border-b last:border-0 hover:bg-muted/20 transition-colors text-xs">
+                                                            <td className="p-3 font-medium text-foreground">
+                                                                {session.scheduled_start ? format(new Date(session.scheduled_start), "dd MMM, hh:mm a") : "-"}
+                                                            </td>
+                                                            <td className="p-3">
+                                                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${session.service_type === 'Physiotherapy' ? 'bg-blue-50 text-blue-700' : 'bg-emerald-50 text-emerald-700'
+                                                                    }`}>
+                                                                    {session.service_type || 'Performance'}
+                                                                </span>
+                                                            </td>
+                                                            <td className="p-3 text-muted-foreground flex items-center gap-1.5 min-w-[150px]">
+                                                                <User className="w-3.5 h-3.5 text-muted-foreground/50" />
+                                                                {session.therapist
+                                                                    ? (session.service_type === 'Physiotherapy' ? `Dr. ${session.therapist.first_name} ${session.therapist.last_name}` : `${session.therapist.first_name} ${session.therapist.last_name}`)
+                                                                    : (session.therapist_id || "-")}
+                                                            </td>
+                                                            <td className="p-3">
+                                                                <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold uppercase
+                                                                    ${session.status === 'Completed' ? 'bg-emerald-500/10 text-emerald-600' :
+                                                                        session.status === 'Planned' ? 'bg-blue-500/10 text-blue-600' :
+                                                                            session.status === 'Checked In' ? 'bg-purple-500/10 text-purple-600' :
+                                                                                'bg-gray-500/10 text-gray-500'}`}>
+                                                                    {session.status}
+                                                                </span>
+                                                            </td>
+                                                            <td className="p-3 text-muted-foreground">
+                                                                {session.physio_session_details && session.physio_session_details.length > 0 ? (
+                                                                    <span className="text-emerald-600 flex items-center gap-1 font-bold">
+                                                                        <FileText className="w-3 h-3" /> SOAP
+                                                                    </span>
+                                                                ) : session.session_mode === 'Group' ? (
+                                                                    <span className="italic text-[10px]">Group: {session.group_name}</span>
+                                                                ) : "-"}
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    )}
+                                </CardContent>
+                            </Card>
+
+                            <div className="space-y-6">
+                                <AMSTrainingLoadWidget clientId={id} />
+                            </div>
+                        </div>
+                    </TabsContent>
+
                     {/* BILLING HISTORY TAB */}
                     <TabsContent value="billing">
                         <Card className="gradient-card border-border">
@@ -162,7 +486,7 @@ export default function ClientProfile() {
                                     Billing History
                                 </CardTitle>
                                 <CardDescription>
-                                    This is a mocked history of recent bills for this client.
+                                    Recent invoices generated for this client.
                                 </CardDescription>
                             </CardHeader>
                             <CardContent>
@@ -179,23 +503,34 @@ export default function ClientProfile() {
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            {mockBills.map((bill) => (
+                                            {billsLoading ? (
+                                                <tr><td colSpan={6} className="p-4 text-center text-muted-foreground">Loading bills...</td></tr>
+                                            ) : !bills || bills.length === 0 ? (
+                                                <tr><td colSpan={6} className="p-4 text-center text-muted-foreground">No billing history found.</td></tr>
+                                            ) : bills.map((bill: any) => (
                                                 <tr key={bill.id} className="border-b last:border-0 hover:bg-muted/20 transition-colors">
-                                                    <td className="p-3 font-medium text-foreground">{bill.id}</td>
-                                                    <td className="p-3 text-muted-foreground">{format(new Date(bill.date), "dd MMM yyyy")}</td>
-                                                    <td className="p-3 text-muted-foreground">{bill.package}</td>
-                                                    <td className="p-3 text-right font-medium">Rs. {bill.amount}</td>
-                                                    <td className="p-3 text-center">
-                                                        {bill.status === "Paid" ? (
-                                                            <span className="inline-block px-2 py-0.5 rounded text-xs font-medium bg-emerald-500/10 text-emerald-500">Paid ({bill.method})</span>
-                                                        ) : (
-                                                            <span className="inline-block px-2 py-0.5 rounded text-xs font-medium bg-amber-500/10 text-amber-500">Pending</span>
-                                                        )}
+                                                    <td className="p-3 font-medium text-foreground">{bill.id.substring(0, 8)}...</td>
+                                                    <td className="p-3 text-muted-foreground">{format(new Date(bill.created_at), "dd MMM yyyy")}</td>
+                                                    <td className="p-3 text-muted-foreground">{bill.packages ? bill.packages.name : "Custom"}</td>
+                                                    <td className="p-3 text-right font-medium">Rs. {bill.total}</td>                                                    <td className="p-3 text-center">
+                                                        <span className={`inline-block px-2 py-0.5 rounded text-xs font-semibold ${bill.status === 'Paid' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-amber-500/10 text-amber-600'}`}>
+                                                            {bill.status}
+                                                        </span>
                                                     </td>
                                                     <td className="p-3 text-right">
-                                                        <Button size="icon" variant="ghost" title="Download Invoice">
-                                                            <Download className="w-4 h-4 text-primary" />
-                                                        </Button>
+                                                        <div className="flex justify-end gap-2">
+                                                            {bill.status === "Pending" && (
+                                                                <Button size="sm" variant="outline" onClick={() => {
+                                                                    setPaymentBillId(bill.id);
+                                                                    setIsPaymentModalOpen(true);
+                                                                }}>
+                                                                    Mark Paid
+                                                                </Button>
+                                                            )}
+                                                            <Button size="sm" variant="ghost" onClick={() => handleDownloadInvoice(bill)}>
+                                                                <Download className="w-4 h-4" />
+                                                            </Button>
+                                                        </div>
                                                     </td>
                                                 </tr>
                                             ))}
@@ -207,6 +542,29 @@ export default function ClientProfile() {
                     </TabsContent>
                 </Tabs>
             </div>
+
+            {/* Payment Modal */}
+            <Dialog open={isPaymentModalOpen} onOpenChange={setIsPaymentModalOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Record Payment</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                        <Select onValueChange={setPaymentMethod}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Select Payment Method" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="Cash">Cash</SelectItem>
+                                <SelectItem value="Card">Card / POS</SelectItem>
+                                <SelectItem value="UPI">UPI / Digital</SelectItem>
+                                <SelectItem value="Bank Transfer">Bank Transfer</SelectItem>
+                            </SelectContent>
+                        </Select>
+                        <Button onClick={markAsPaid} className="w-full">Confirm Payment</Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
         </DashboardLayout>
     );
 }

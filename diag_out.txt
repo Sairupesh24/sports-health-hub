@@ -1,0 +1,31 @@
+
+=== 1. Sessions for today ===
+{"id":"5dbf641f-4896-4722-a360-10611fd2487b","client_id":"7b63f175-b62d-4f1d-9089-d8ab364729b1","service_type":"Physiotherapy","service_id":null,"status":"Planned","is_unentitled":false,"time":"03:30"}
+{"id":"bf4b22f7-f33b-4629-b8eb-3a5fa87d607e","client_id":"7b63f175-b62d-4f1d-9089-d8ab364729b1","service_type":"Physiotherapy","service_id":null,"status":"Completed","is_unentitled":true,"time":"10:30"}
+
+=== 2. All services in DB ===
+{"id":"d4c3c915-02ed-4571-ae20-ef71611036c6","name":"Consultation"}
+{"id":"6ef49f64-6f95-4cc9-858c-57dba9a43d9d","name":"Physiotherapy"}
+{"id":"e9093b21-fa0a-4bea-8c4c-741e3637cd1c","name":"Yoga"}
+{"id":"ca3cdbe0-8c35-48a6-9a3b-5609501c1e9f","name":"Strength & Conditioning"}
+{"id":"61fd8c6e-f725-4175-818a-bee81fd03fb9","name":"Nutrition"}
+{"id":"da9f036e-475f-487b-9d80-1c3f2fdc1ddd","name":"Active Recovery Training"}
+{"id":"0a3edb5c-8a5b-4c16-84b1-989942f1b9d1","name":"Cryotherapy"}
+
+=== 3. Entitlement balance for the un-entitled session client ===
+{"service_id":"d4c3c915-02ed-4571-ae20-ef71611036c6","service_name":"Consultation","total_purchased":1,"sessions_used":0,"sessions_remaining":1}
+{"service_id":"6ef49f64-6f95-4cc9-858c-57dba9a43d9d","service_name":"Physiotherapy","total_purchased":2,"sessions_used":0,"sessions_remaining":2}
+{"service_id":"e9093b21-fa0a-4bea-8c4c-741e3637cd1c","service_name":"Yoga","total_purchased":10,"sessions_used":0,"sessions_remaining":10}
+{"service_id":"ca3cdbe0-8c35-48a6-9a3b-5609501c1e9f","service_name":"Strength & Conditioning","total_purchased":15,"sessions_used":0,"sessions_remaining":15}
+{"service_id":"61fd8c6e-f725-4175-818a-bee81fd03fb9","service_name":"Nutrition","total_purchased":1,"sessions_used":0,"sessions_remaining":1}
+{"service_id":"da9f036e-475f-487b-9d80-1c3f2fdc1ddd","service_name":"Active Recovery Training","total_purchased":4,"sessions_used":0,"sessions_remaining":4}
+{"service_id":"0a3edb5c-8a5b-4c16-84b1-989942f1b9d1","service_name":"Cryotherapy","total_purchased":2,"sessions_used":0,"sessions_remaining":2}
+
+=== 4. Client entitlements raw ===
+{"id":"d12afdc6-ab04-4d03-ab79-edb2b5cc49ad","service_id":"d4c3c915-02ed-4571-ae20-ef71611036c6","sessions_allowed":1,"purchase_id":"cb48462e-5fd6-4f59-a63f-72fa53d5736f"}
+{"id":"b5a7764d-3970-4ca2-8259-dc1b1911e6f2","service_id":"6ef49f64-6f95-4cc9-858c-57dba9a43d9d","sessions_allowed":2,"purchase_id":"cb48462e-5fd6-4f59-a63f-72fa53d5736f"}
+{"id":"ff92f8fa-80ed-4c6f-bf2b-1fb7c785d514","service_id":"ca3cdbe0-8c35-48a6-9a3b-5609501c1e9f","sessions_allowed":15,"purchase_id":"cb48462e-5fd6-4f59-a63f-72fa53d5736f"}
+{"id":"6d2d8a21-6ed2-42c1-9569-01e459e520c4","service_id":"61fd8c6e-f725-4175-818a-bee81fd03fb9","sessions_allowed":1,"purchase_id":"cb48462e-5fd6-4f59-a63f-72fa53d5736f"}
+{"id":"f9fea762-eb18-495d-8b82-ee5bbc8e4136","service_id":"da9f036e-475f-487b-9d80-1c3f2fdc1ddd","sessions_allowed":4,"purchase_id":"cb48462e-5fd6-4f59-a63f-72fa53d5736f"}
+{"id":"5073b50f-a8ce-4bc3-b7b1-e342d4ba7b45","service_id":"0a3edb5c-8a5b-4c16-84b1-989942f1b9d1","sessions_allowed":2,"purchase_id":"cb48462e-5fd6-4f59-a63f-72fa53d5736f"}
+{"id":"ed769852-e82b-495c-824f-b37cabe8e6be","service_id":"e9093b21-fa0a-4bea-8c4c-741e3637cd1c","sessions_allowed":10,"purchase_id":"99af415c-fbe7-4bc4-8ce6-02e989082c9f"}

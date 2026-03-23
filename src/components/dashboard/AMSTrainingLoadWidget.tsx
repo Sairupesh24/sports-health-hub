@@ -12,6 +12,8 @@ interface TrainingLoadWithProfile {
     workout_name: string;
     training_load: number;
     readiness_score: number;
+    duration_minutes: number | null;
+    completion_status: string | null;
     client: {
         id: string;
         first_name: string;
@@ -43,6 +45,8 @@ export default function AMSTrainingLoadWidget({ clientId }: { clientId?: string 
                     workout_name,
                     training_load,
                     readiness_score,
+                    duration_minutes,
+                    completion_status,
                     client:profiles!external_training_summary_client_id_fkey(id, first_name, last_name)
                 `)
                 .gte("training_date", lastWeek.toISOString())
@@ -126,6 +130,12 @@ export default function AMSTrainingLoadWidget({ clientId }: { clientId?: string 
                                         </span>
                                         <span>•</span>
                                         <span>{new Date(load.training_date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}</span>
+                                        {load.duration_minutes && (
+                                            <>
+                                                <span>•</span>
+                                                <span>{load.duration_minutes}m</span>
+                                            </>
+                                        )}
                                     </div>
                                 </div>
 
@@ -133,9 +143,14 @@ export default function AMSTrainingLoadWidget({ clientId }: { clientId?: string 
                                     <Badge variant="outline" className={`${getLoadColor(load.training_load)} text-[11px] h-6 px-2 whitespace-nowrap`}>
                                         Load: {load.training_load || "--"}
                                     </Badge>
-                                    {load.readiness_score !== null && (
                                         <span className={`text-[10px] font-medium ${load.readiness_score < 4 ? 'text-destructive' : 'text-emerald-600'}`}>
                                             Readiness: {load.readiness_score}/10
+                                        </span>
+                                    {load.completion_status && (
+                                        <span className={`text-[10px] font-bold uppercase ${
+                                            load.completion_status.toLowerCase() === 'completed' ? 'text-emerald-500' : 'text-amber-500'
+                                        }`}>
+                                            {load.completion_status}
                                         </span>
                                     )}
                                 </div>

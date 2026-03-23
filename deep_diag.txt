@@ -1,0 +1,49 @@
+
+=== 1. Planned sessions ===
+{"id":"e362f4aa-df7c-4538-a06a-687e941aeddd","client_id":"7b63f175-b62d-4f1d-9089-d8ab364729b1","service_type":"Physiotherapy","service_id":null,"status":"Planned","is_unentitled":false,"scheduled_start":"2026-03-09T03:30:00+00:00","therapist_id":"e76c6dbb-e500-4d16-90a1-7a9614dbeb99","organization_id":"95d6393e-68ab-4839-9b35-a11562cfc150"}
+{"id":"3eda900a-3225-4f4f-8f78-af036ef4664c","client_id":"7b63f175-b62d-4f1d-9089-d8ab364729b1","service_type":"Physiotherapy","service_id":null,"status":"Planned","is_unentitled":false,"scheduled_start":"2026-03-11T03:30:00+00:00","therapist_id":"e76c6dbb-e500-4d16-90a1-7a9614dbeb99","organization_id":"95d6393e-68ab-4839-9b35-a11562cfc150"}
+{"id":"5dbf641f-4896-4722-a360-10611fd2487b","client_id":"7b63f175-b62d-4f1d-9089-d8ab364729b1","service_type":"Physiotherapy","service_id":null,"status":"Planned","is_unentitled":false,"scheduled_start":"2026-03-13T03:30:00+00:00","therapist_id":"e76c6dbb-e500-4d16-90a1-7a9614dbeb99","organization_id":"95d6393e-68ab-4839-9b35-a11562cfc150"}
+{"id":"fb1e88f3-5749-46bb-9d3f-751a44591c04","client_id":"7b63f175-b62d-4f1d-9089-d8ab364729b1","service_type":"Physiotherapy","service_id":null,"status":"Planned","is_unentitled":false,"scheduled_start":"2026-03-16T03:30:00+00:00","therapist_id":"e76c6dbb-e500-4d16-90a1-7a9614dbeb99","organization_id":"95d6393e-68ab-4839-9b35-a11562cfc150"}
+
+=== 2. Calling complete_session RPC for session e362f4aa-df7c-4538-a06a-687e941aeddd ===
+service_type: Physiotherapy
+service_id (before): null
+organization_id: 95d6393e-68ab-4839-9b35-a11562cfc150
+
+=== 3. Services in org ===
+{"id":"d4c3c915-02ed-4571-ae20-ef71611036c6","name":"Consultation","is_active":true}
+{"id":"6ef49f64-6f95-4cc9-858c-57dba9a43d9d","name":"Physiotherapy","is_active":true}
+{"id":"e9093b21-fa0a-4bea-8c4c-741e3637cd1c","name":"Yoga","is_active":true}
+{"id":"ca3cdbe0-8c35-48a6-9a3b-5609501c1e9f","name":"Strength & Conditioning","is_active":true}
+{"id":"61fd8c6e-f725-4175-818a-bee81fd03fb9","name":"Nutrition","is_active":true}
+{"id":"da9f036e-475f-487b-9d80-1c3f2fdc1ddd","name":"Active Recovery Training","is_active":true}
+{"id":"0a3edb5c-8a5b-4c16-84b1-989942f1b9d1","name":"Cryotherapy","is_active":true}
+
+Would match: {"id":"6ef49f64-6f95-4cc9-858c-57dba9a43d9d","name":"Physiotherapy","is_active":true}
+
+=== 4. Entitlement balance BEFORE ===
+{"service_id":"d4c3c915-02ed-4571-ae20-ef71611036c6","service_name":"Consultation","total_purchased":1,"sessions_used":0,"sessions_remaining":1}
+{"service_id":"6ef49f64-6f95-4cc9-858c-57dba9a43d9d","service_name":"Physiotherapy","total_purchased":2,"sessions_used":0,"sessions_remaining":2}
+{"service_id":"e9093b21-fa0a-4bea-8c4c-741e3637cd1c","service_name":"Yoga","total_purchased":10,"sessions_used":0,"sessions_remaining":10}
+{"service_id":"ca3cdbe0-8c35-48a6-9a3b-5609501c1e9f","service_name":"Strength & Conditioning","total_purchased":15,"sessions_used":0,"sessions_remaining":15}
+{"service_id":"61fd8c6e-f725-4175-818a-bee81fd03fb9","service_name":"Nutrition","total_purchased":1,"sessions_used":0,"sessions_remaining":1}
+{"service_id":"da9f036e-475f-487b-9d80-1c3f2fdc1ddd","service_name":"Active Recovery Training","total_purchased":4,"sessions_used":0,"sessions_remaining":4}
+{"service_id":"0a3edb5c-8a5b-4c16-84b1-989942f1b9d1","service_name":"Cryotherapy","total_purchased":2,"sessions_used":0,"sessions_remaining":2}
+
+=== 5. Calling complete_session ===
+RPC ERROR: Cannot mark session as Completed without providing actual_start and actual_end timestamps. | Code: P0001
+
+=== 6. Session state AFTER ===
+{"id":"e362f4aa-df7c-4538-a06a-687e941aeddd","status":"Planned","service_id":null,"is_unentitled":false,"entitlement_id":null}
+
+=== 7. Consumption log entries ===
+[]
+
+=== 8. Entitlement balance AFTER ===
+{"service_id":"d4c3c915-02ed-4571-ae20-ef71611036c6","service_name":"Consultation","total_purchased":1,"sessions_used":0,"sessions_remaining":1}
+{"service_id":"6ef49f64-6f95-4cc9-858c-57dba9a43d9d","service_name":"Physiotherapy","total_purchased":2,"sessions_used":0,"sessions_remaining":2}
+{"service_id":"e9093b21-fa0a-4bea-8c4c-741e3637cd1c","service_name":"Yoga","total_purchased":10,"sessions_used":0,"sessions_remaining":10}
+{"service_id":"ca3cdbe0-8c35-48a6-9a3b-5609501c1e9f","service_name":"Strength & Conditioning","total_purchased":15,"sessions_used":0,"sessions_remaining":15}
+{"service_id":"61fd8c6e-f725-4175-818a-bee81fd03fb9","service_name":"Nutrition","total_purchased":1,"sessions_used":0,"sessions_remaining":1}
+{"service_id":"da9f036e-475f-487b-9d80-1c3f2fdc1ddd","service_name":"Active Recovery Training","total_purchased":4,"sessions_used":0,"sessions_remaining":4}
+{"service_id":"0a3edb5c-8a5b-4c16-84b1-989942f1b9d1","service_name":"Cryotherapy","total_purchased":2,"sessions_used":0,"sessions_remaining":2}

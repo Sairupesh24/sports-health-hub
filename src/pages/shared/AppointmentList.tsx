@@ -8,7 +8,7 @@ import { Calendar, Clock, User, ClipboardList } from "lucide-react";
 import { AdminSessionStatusModal } from "@/components/admin/AdminSessionStatusModal";
 
 export default function AppointmentList({ role, hideLayout = false }: { role: 'admin' | 'consultant' | 'client', hideLayout?: boolean }) {
-    const { profile } = useAuth();
+    const { profile, clientId } = useAuth();
     const [appointments, setAppointments] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedSession, setSelectedSession] = useState<any>(null);
@@ -18,15 +18,21 @@ export default function AppointmentList({ role, hideLayout = false }: { role: 'a
         try {
             let query = (supabase as any).from("sessions").select(`
           id, scheduled_start, scheduled_end, service_type, status,
-          client:clients(first_name, last_name),
-          therapist:profiles(first_name, last_name)
+          client:clients!sessions_client_id_fkey(first_name, last_name, uhid),
+        therapist:profiles!sessions_therapist_id_fkey(first_name, last_name)
         `).eq("organization_id", profile.organization_id)
                 .order('scheduled_start', { ascending: false });
 
             if (role === 'client') {
-                query = query.eq('client_id', profile.id);
+                if (clientId) {
+                    query = query.eq('client_id', clientId);
+                } else {
+                    setAppointments([]);
+                    setLoading(false);
+                    return;
+                }
             } else if (role === 'consultant') {
-                query = query.eq('consultant_id', profile.id);
+                query = query.eq('therapist_id', profile.id);
             }
 
             const { data } = await query;
@@ -47,6 +53,7 @@ export default function AppointmentList({ role, hideLayout = false }: { role: 'a
             case 'Rescheduled': return <span className="px-2 py-1 text-xs rounded-full bg-orange-100 text-orange-800">Rescheduled</span>;
             case 'Missed': return <span className="px-2 py-1 text-xs rounded-full bg-red-100 text-red-800">Missed</span>;
             case 'Cancelled': return <span className="px-2 py-1 text-xs rounded-full bg-red-100 text-red-800">Cancelled</span>;
+            case 'Checked In': return <span className="px-2 py-1 text-xs rounded-full bg-purple-100 text-purple-800">Checked In</span>;
             default: return <span className="px-2 py-1 text-xs rounded-full bg-yellow-100 text-yellow-800">{status}</span>;
         }
     };

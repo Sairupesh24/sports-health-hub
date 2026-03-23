@@ -37,6 +37,7 @@ serve(async (req) => {
       });
     }
 
+<<<<<<< HEAD
     // Read orgName from request body
     const body = await req.json().catch(() => ({}));
     const orgName = body.orgName || "Default Organization";
@@ -54,6 +55,14 @@ serve(async (req) => {
     await supabase
       .from("profiles")
       .update({ organization_id: orgData.id, is_approved: true })
+=======
+    const orgId = "00000000-0000-0000-0000-000000000001";
+
+    // Update profile with org and approval
+    await supabase
+      .from("profiles")
+      .update({ organization_id: orgId, is_approved: true })
+>>>>>>> 06b5c2f5749e810212bca517c51285b0f66adef2
       .eq("id", user.id);
 
     // Assign admin role

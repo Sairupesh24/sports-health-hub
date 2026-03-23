@@ -8,7 +8,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Slider } from "@/components/ui/slider";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Copy, Save } from "lucide-react";
+import { Copy, Save, AlertTriangle, RefreshCw, Loader2 } from "lucide-react";
+import { format } from "date-fns";
 
 interface SOAPNoteModalProps {
     open: boolean;
@@ -23,6 +24,9 @@ const MODALITIES = ["IFT", "UST", "TENS", "STIMULATION", "CRYOTHERAPY", "HC", "N
 export default function SOAPNoteModal({ open, onOpenChange, session, clientId, onSuccess }: SOAPNoteModalProps) {
     const [loading, setLoading] = useState(false);
     const [fetchingPrevious, setFetchingPrevious] = useState(false);
+    const [reconciling, setReconciling] = useState(false);
+    const [balanceLoading, setBalanceLoading] = useState(false);
+    const [remainingSessions, setRemainingSessions] = useState<number | null>(null);
 
     // Note State
     const [painScore, setPainScore] = useState<number>(0);
@@ -39,7 +43,12 @@ export default function SOAPNoteModal({ open, onOpenChange, session, clientId, o
         Array.isArray(session.physio_session_details)
             ? session.physio_session_details.length > 0
             : Object.keys(session.physio_session_details).length > 0
-    );
+    ) || session?.status === 'Completed';
+
+    const isUnentitled = session?.is_unentitled === true;
+    const isFutureSession = session?.scheduled_start ? new Date(session.scheduled_start) > new Date() : false;
+    const isCancelled = session?.status === 'Cancelled';
+    const canEnterNotes = !isFutureSession && !isCancelled;
 
     // Load existing data if edit mode
     useEffect(() => {
@@ -71,6 +80,32 @@ export default function SOAPNoteModal({ open, onOpenChange, session, clientId, o
             }
         }
     }, [open, session, isCompleted]);
+
+    // Fetch entitlement balance for Planned sessions
+    useEffect(() => {
+        if (!open || !session?.id || session.status !== "Planned") {
+            setRemainingSessions(null);
+            return;
+        }
+
+        const fetchBalance = async () => {
+            setBalanceLoading(true);
+            try {
+                const { data, error } = await (supabase as any).rpc('fn_compute_entitlement_balance', { 
+                    p_client_id: clientId 
+                });
+                if (!error && data) {
+                    const serviceKey = (session.service_type || "").toLowerCase().trim();
+                    const balance = (data as any[]).find(b => b.service_name?.toLowerCase().trim() === serviceKey);
+                    setRemainingSessions(balance ? balance.sessions_remaining : 0);
+                }
+            } finally {
+                setBalanceLoading(false);
+            }
+        };
+
+        fetchBalance();
+    }, [open, session?.id, session?.status, clientId, session?.service_type]);
 
     const handleModalityToggle = (modality: string) => {
         setSelectedModalities(prev => {
@@ -156,11 +191,20 @@ export default function SOAPNoteModal({ open, onOpenChange, session, clientId, o
 
                 // Mark session as completed
                 if (!error) {
-                    await supabase.from('sessions').update({
-                        status: 'Completed',
+                    const { error: timesError } = await supabase.from('sessions').update({
                         actual_start: new Date().toISOString(),
                         actual_end: new Date().toISOString()
                     }).eq('id', session.id);
+                    
+                    if (timesError) throw timesError;
+
+                    const { data: { user } } = await supabase.auth.getUser();
+                    const { error: rpcError } = await supabase.rpc('complete_session', {
+                        p_session_id: session.id,
+                        p_user_id: user?.id
+                    });
+                    
+                    if (rpcError) throw new Error(rpcError.message || "Failed to consume session entitlement");
                 }
             }
 
@@ -176,13 +220,43 @@ export default function SOAPNoteModal({ open, onOpenChange, session, clientId, o
         }
     };
 
+    const handleReconcile = async () => {
+        if (!session?.id) return;
+        setReconciling(true);
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            const { error } = await (supabase as any).rpc("reconcile_session", {
+                p_session_id: session.id,
+                p_user_id: user?.id
+            });
+            if (error) throw new Error(error.message);
+            toast({ title: "✅ Reconciled", description: "Session entitlement has been deducted and the un-entitled flag cleared." });
+            onSuccess();
+            onOpenChange(false);
+        } catch (error: any) {
+            toast({ title: "Reconciliation Failed", description: error.message, variant: "destructive" });
+        } finally {
+            setReconciling(false);
+        }
+    };
+
     if (!session) return null;
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
                 <DialogHeader className="flex flex-row items-center justify-between">
-                    <DialogTitle>SOAP Note - {new Date(session.scheduled_start).toLocaleDateString()}</DialogTitle>
+                    <div className="flex flex-col gap-1">
+                        <DialogTitle className="flex items-center gap-2">
+                            SOAP Note - {format(new Date(session.scheduled_start), "MMM d, yyyy")}
+                            {isUnentitled && (
+                                <span className="ml-2 px-2 py-0.5 rounded bg-red-100 text-red-700 text-xs font-bold border border-red-300 flex items-center gap-1">
+                                    <AlertTriangle className="w-3 h-3" /> UN-ENTITLED
+                                </span>
+                            )}
+                        </DialogTitle>
+                        <p className="text-xs text-muted-foreground">Client: {session.client?.first_name} {session.client?.last_name}</p>
+                    </div>
                     {!isCompleted && (
                         <Button variant="outline" size="sm" onClick={handleCopyPrevious} disabled={fetchingPrevious} className="mr-8">
                             <Copy className="w-4 h-4 mr-2" />
@@ -190,6 +264,64 @@ export default function SOAPNoteModal({ open, onOpenChange, session, clientId, o
                         </Button>
                     )}
                 </DialogHeader>
+
+                <div className="space-y-4 pt-4">
+                    {/* Future session entitlement warning */}
+                    {session.status === "Planned" && !balanceLoading && remainingSessions === 0 && (
+                        <div className="flex items-start gap-2 rounded-md border border-orange-300 bg-orange-50 p-3 text-sm text-orange-800 animate-in fade-in duration-300">
+                            <span className="text-base text-orange-500 font-bold">⚠</span>
+                            <span>
+                                <strong>No Entitlements Remaining:</strong> This client has no sessions left for {session.service_type || "this service"}. 
+                                Completing this session will mark it as <strong>Un-entitled</strong> unless a new package is purchased.
+                            </span>
+                        </div>
+                    )}
+
+                    {/* Future session guard */}
+                    {isFutureSession && (
+                        <div className="flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-800 animate-in fade-in duration-300">
+                            <span className="text-base text-amber-500 font-bold">⚠</span>
+                            <span>
+                                <strong>Early Entry Prohibited:</strong> You cannot enter SOAP notes before the scheduled session time (<strong>{format(new Date(session.scheduled_start), "MMM d, yyyy h:mm a")}</strong>).
+                            </span>
+                        </div>
+                    )}
+
+                    {/* Cancelled session guard */}
+                    {isCancelled && (
+                        <div className="flex items-start gap-2 rounded-md border border-red-300 bg-red-50 p-3 text-sm text-red-800 animate-in fade-in duration-300">
+                            <span className="text-base text-red-500 font-bold">🚫</span>
+                            <span>
+                                <strong>Cancelled Session:</strong> SOAP notes cannot be entered for a cancelled session.
+                            </span>
+                        </div>
+                    )}
+
+                    {/* UN-ENTITLED Banner with Reconcile */}
+                    {isUnentitled && (
+                        <div className="rounded-lg border border-red-300 bg-red-50 p-4 space-y-3 animate-in fade-in duration-300">
+                            <div className="flex items-center gap-2 text-red-700">
+                                <AlertTriangle className="w-5 h-5 flex-shrink-0" />
+                                <div>
+                                    <p className="font-semibold text-sm">Un-entitled Session</p>
+                                    <p className="text-xs text-red-600 mt-0.5">This session was completed without consuming an entitlement. The client had no active package at the time.</p>
+                                </div>
+                            </div>
+                            <Button
+                                size="sm"
+                                variant="outline"
+                                className="w-full border-red-400 text-red-700 hover:bg-red-100 text-xs font-semibold"
+                                onClick={handleReconcile}
+                                disabled={reconciling}
+                            >
+                                {reconciling
+                                    ? <><Loader2 className="w-3 h-3 mr-1 animate-spin" /> Reconciling...</>
+                                    : <><RefreshCw className="w-3 h-3 mr-1" /> Reconcile — Client Has Paid</>
+                                }
+                            </Button>
+                        </div>
+                    )}
+                </div>
 
                 <form onSubmit={handleSubmit} className="space-y-6 pt-4">
 
@@ -284,9 +416,11 @@ export default function SOAPNoteModal({ open, onOpenChange, session, clientId, o
 
                     <div className="flex justify-end gap-3 pt-2">
                         <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-                        <Button type="submit" disabled={loading}>
-                            {loading ? "Saving..." : <><Save className="w-4 h-4 mr-2" /> {isCompleted ? "Update Note" : "Save Note"}</>}
-                        </Button>
+                        {canEnterNotes && (
+                            <Button type="submit" disabled={loading}>
+                                {loading ? "Saving..." : <><Save className="w-4 h-4 mr-2" /> {isCompleted ? "Update Note" : "Save Note"}</>}
+                            </Button>
+                        )}
                     </div>
                 </form>
             </DialogContent>

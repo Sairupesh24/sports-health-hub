@@ -13,6 +13,11 @@ import SOAPNoteModal from "@/components/consultant/SOAPNoteModal";
 import ResolveInjuryModal from "@/components/consultant/ResolveInjuryModal";
 import AdHocSessionModal from "@/components/consultant/AdHocSessionModal";
 import { format } from "date-fns";
+import * as XLSX from "xlsx";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Download, FileText } from "lucide-react";
 
 interface ClientProfile {
     id: string;
@@ -41,11 +46,16 @@ export default function ConsultantClientProfile() {
 
     const [adHocModalOpen, setAdHocModalOpen] = useState(false);
 
+    // Filters
+    const [startDate, setStartDate] = useState("");
+    const [endDate, setEndDate] = useState("");
+    const [sessionTypeFilter, setSessionTypeFilter] = useState("all");
+
     useEffect(() => {
         if (id) {
             fetchData();
         }
-    }, [id]);
+    }, [id, startDate, endDate, sessionTypeFilter]);
 
     const fetchData = async () => {
         try {
@@ -69,14 +79,25 @@ export default function ConsultantClientProfile() {
             setInjuries(injuryData || []);
 
             // Fetch Sessions History
-            const { data: sessionData, error: sessionErr } = await supabase
+            let sessionQuery = supabase
                 .from('sessions')
                 .select(`
-            *,
-            physio_session_details (*)
-        `)
-                .eq('client_id', id)
-                .order('scheduled_start', { ascending: false });
+                    *,
+                    physio_session_details (*)
+                `)
+                .eq('client_id', id);
+
+            if (startDate) {
+                sessionQuery = sessionQuery.gte('scheduled_start', `${startDate}T00:00:00`);
+            }
+            if (endDate) {
+                sessionQuery = sessionQuery.lte('scheduled_start', `${endDate}T23:59:59`);
+            }
+            if (sessionTypeFilter !== "all") {
+                sessionQuery = sessionQuery.eq('service_type', sessionTypeFilter);
+            }
+
+            const { data: sessionData, error: sessionErr } = await sessionQuery.order('scheduled_start', { ascending: false });
             if (sessionErr) throw sessionErr;
             setSessions(sessionData || []);
 
@@ -85,6 +106,27 @@ export default function ConsultantClientProfile() {
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleExportExcel = () => {
+        if (!sessions || sessions.length === 0) {
+            toast({ title: "No data to export", variant: "destructive" });
+            return;
+        }
+
+        const exportData = sessions.map(s => ({
+            'Date': s.scheduled_start ? format(new Date(s.scheduled_start), "dd MMM yyyy") : "-",
+            'Time': s.scheduled_start ? format(new Date(s.scheduled_start), "hh:mm a") : "-",
+            'Type': s.service_type || "-",
+            'Status': s.status,
+            'Pain Score': s.physio_session_details?.[0]?.pain_score ?? "-",
+            'Clinical Notes': s.physio_session_details?.[0]?.clinical_notes || "-"
+        }));
+
+        const worksheet = XLSX.utils.json_to_sheet(exportData);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Session History");
+        XLSX.writeFile(workbook, `Session_History_${client?.last_name || id}.xlsx`);
     };
 
     if (loading) return <DashboardLayout role="consultant"><div className="p-8">Loading client profile...</div></DashboardLayout>;
@@ -119,9 +161,7 @@ export default function ConsultantClientProfile() {
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    {/* Left Column: Clinical Info */}
-                    <div className="lg:col-span-2 space-y-6">
-
+                    {/* Left Column: Clinical Info */}                    <div className="lg:col-span-2 space-y-6">
                         {/* Active Injuries */}
                         <Card className="border-border shadow-sm">
                             <CardHeader className="flex flex-row items-center justify-between pb-3">
@@ -194,50 +234,90 @@ export default function ConsultantClientProfile() {
                                 <CardTitle className="text-lg flex items-center gap-2">
                                     <ClipboardList className="w-5 h-5 text-primary" /> Session History & SOAP Notes
                                 </CardTitle>
+                                <div className="mt-4 flex flex-wrap gap-3 items-end">
+                                    <div className="space-y-1">
+                                        <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Start Date</span>
+                                        <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="h-9 w-[140px] text-xs bg-muted/30" />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">End Date</span>
+                                        <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="h-9 w-[140px] text-xs bg-muted/30" />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Type</span>
+                                        <Select value={sessionTypeFilter} onValueChange={setSessionTypeFilter}>
+                                            <SelectTrigger className="h-9 w-[160px] text-xs bg-muted/30">
+                                                <SelectValue placeholder="All Types" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="all">All Types</SelectItem>
+                                                <SelectItem value="Physiotherapy">Physiotherapy</SelectItem>
+                                                <SelectItem value="Sports Science">Sports Science</SelectItem>
+                                                <SelectItem value="Nutrition">Nutrition</SelectItem>
+                                                <SelectItem value="Active Recovery Training">Active Recovery</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="ml-auto">
+                                        <Button variant="outline" size="sm" className="h-9 gap-2 text-xs" onClick={handleExportExcel}>
+                                            <Download className="w-4 h-4" /> Export
+                                        </Button>
+                                    </div>
+                                </div>
                             </CardHeader>
                             <CardContent>
                                 {sessions.length === 0 ? (
-                                    <div className="text-center py-6 text-muted-foreground bg-muted/20 rounded-lg">
-                                        No sessions recorded yet.
+                                    <div className="text-center py-10 text-muted-foreground bg-muted/10 rounded-lg border border-dashed">
+                                        No sessions found matching filters.
                                     </div>
                                 ) : (
-                                    <div className="space-y-4 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-border before:to-transparent">
-                                        {sessions.map((session, i) => (
-                                            <div key={session.id} className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
-                                                {/* Timeline marker */}
-                                                <div className="flex items-center justify-center w-10 h-10 rounded-full border border-white bg-slate-100 text-slate-500 shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 shadow">
-                                                    <Calendar className="w-4 h-4" />
-                                                </div>
-                                                {/* Card */}
-                                                <div
-                                                    className="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] p-4 rounded-xl border bg-card shadow-sm cursor-pointer hover:border-primary transition-colors"
-                                                    onClick={() => { setSelectedSession(session); setSoapModalOpen(true); }}
-                                                >
-                                                    <div className="flex justify-between items-start mb-1">
-                                                        <div className="font-semibold">{format(new Date(session.scheduled_start), "MMM d, yyyy")}</div>
-                                                        <Badge variant={session.status === 'Completed' ? 'default' : 'secondary'}>{session.status}</Badge>
-                                                    </div>
-                                                    <p className="text-sm text-foreground mb-2">{session.service_type}</p>
-
-                                                    {/* SOAP Summary Blurb */}
-                                                    {session.physio_session_details && session.physio_session_details.length > 0 ? (
-                                                        <div className="bg-muted/30 p-2 rounded text-xs space-y-1 mt-2 border">
-                                                            <p><span className="font-semibold">Pain:</span> {session.physio_session_details[0].pain_score}/10</p>
-                                                            <p className="line-clamp-1"><span className="font-semibold">Notes:</span> {session.physio_session_details[0].clinical_notes || '—'}</p>
-                                                        </div>
-                                                    ) : (
-                                                        <div className="flex justify-end mt-2">
-                                                            <Button size="sm" variant="outline" className="h-7 text-xs">Add SOAP Note</Button>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        ))}
+                                    <div className="rounded-md border overflow-hidden">
+                                        <Table>
+                                            <TableHeader className="bg-muted/50">
+                                                <TableRow>
+                                                    <TableHead className="text-[10px] font-bold uppercase tracking-wider">Date & Time</TableHead>
+                                                    <TableHead className="text-[10px] font-bold uppercase tracking-wider">Type</TableHead>
+                                                    <TableHead className="text-[10px] font-bold uppercase tracking-wider">Status</TableHead>
+                                                    <TableHead className="text-[10px] font-bold uppercase tracking-wider">SOAP Note</TableHead>
+                                                    <TableHead className="text-right text-[10px] font-bold uppercase tracking-wider">Actions</TableHead>
+                                                </TableRow>
+                                            </TableHeader>
+                                            <TableBody>
+                                                {sessions.map((session) => (
+                                                    <TableRow key={session.id} className="cursor-pointer hover:bg-muted/10 transition-colors" onClick={() => { setSelectedSession(session); setSoapModalOpen(true); }}>
+                                                        <TableCell className="font-medium text-sm py-3">
+                                                            {format(new Date(session.scheduled_start), "dd MMM yyyy, hh:mm a")}
+                                                        </TableCell>
+                                                        <TableCell className="text-sm">
+                                                            <Badge variant="outline" className="font-normal">{session.service_type || "Performance"}</Badge>
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            <Badge variant={session.status === 'Completed' ? 'default' : 'secondary'} className="text-[10px] uppercase font-bold">
+                                                                {session.status}
+                                                            </Badge>
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            {session.physio_session_details && session.physio_session_details.length > 0 ? (
+                                                                <span className="text-emerald-600 flex items-center gap-1 text-xs font-semibold">
+                                                                    <FileText className="w-3.5 h-3.5" /> Pain: {session.physio_session_details[0].pain_score}/10
+                                                                </span>
+                                                            ) : (
+                                                                <span className="text-muted-foreground text-xs italic">No note log</span>
+                                                            )}
+                                                        </TableCell>
+                                                        <TableCell className="text-right">
+                                                            <Button variant="ghost" size="sm" className="h-8 text-xs text-primary font-bold">
+                                                                {session.physio_session_details?.length > 0 ? "View Details" : "Add SOAP"}
+                                                            </Button>
+                                                        </TableCell>
+                                                    </TableRow>
+                                                ))}
+                                            </TableBody>
+                                        </Table>
                                     </div>
                                 )}
                             </CardContent>
                         </Card>
-
                     </div>
 
                     {/* Right Column: AMS Load & Quick Actions */}

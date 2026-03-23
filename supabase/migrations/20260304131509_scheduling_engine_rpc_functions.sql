@@ -92,8 +92,7 @@ BEGIN
             EXIT;
         END IF;
         
-        -- Check if it collides with ANY existing active appointments
-        -- Use the EXACT same tsrange intersection (&&) logic to ensure 100% parity with the PostgreSQL Engine DB locking constraint
+        -- Check if it collides with ANY existing active appointments in legacy table
         SELECT NOT EXISTS (
             SELECT 1 FROM public.appointments 
             WHERE consultant_id = p_consultant_id
@@ -108,6 +107,13 @@ BEGIN
                     (appointment_date + end_time)::timestamp,
                     '()'
                   )
+        ) AND NOT EXISTS (
+            -- Also check the new unified sessions table
+            SELECT 1 FROM public.sessions
+            WHERE therapist_id = p_consultant_id
+              AND status != 'Cancelled'
+              AND tsrange(scheduled_start::timestamp, scheduled_end::timestamp, '()') && 
+                  tsrange((p_date + v_slot_iter)::timestamp, (p_date + v_slot_iter_end)::timestamp, '()')
         ) INTO v_is_available;
         
         -- Further optimization: Partial Day block Exceptions (Like "Lunch Break")

@@ -10,7 +10,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { CheckCircle, Users, UserX, Plus, Copy, ExternalLink, Search } from "lucide-react";
+import { CheckCircle, Users, UserX, Plus, Copy, ExternalLink, Search, Trash2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 interface PendingUser {
@@ -289,6 +289,33 @@ export default function UserApproval() {
     }
   };
 
+  const deleteUserAtAuth = async (userId: string) => {
+    if (!confirm("Are you sure you want to PERMANENTLY delete this user account? This cannot be undone.")) return;
+
+    try {
+      const { createClient } = await import("@supabase/supabase-js");
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const serviceRoleKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
+
+      if (!supabaseUrl || !serviceRoleKey) {
+        throw new Error("Missing Supabase URL or Service Role Key in environment variables.");
+      }
+
+      const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
+        auth: { autoRefreshToken: false, persistSession: false }
+      });
+
+      const { error } = await supabaseAdmin.auth.admin.deleteUser(userId);
+      if (error) throw error;
+
+      toast({ title: "User Deleted", description: "User account has been permanently removed." });
+      fetchUsers();
+    } catch (err: any) {
+      console.error("Error deleting user:", err);
+      toast({ title: "Error deleting user", description: err.message, variant: "destructive" });
+    }
+  };
+
   const handleRoleSelect = (userId: string, newRole: string) => {
     if (newRole === "client") {
       setPendingAction({ type: "change_role", userId, role: newRole });
@@ -450,6 +477,7 @@ export default function UserApproval() {
                           <SelectContent>
                             <SelectItem value="admin">Admin</SelectItem>
                             <SelectItem value="consultant">Consultant</SelectItem>
+                            <SelectItem value="sports_scientist">Sports Scientist</SelectItem>
                             <SelectItem value="foe">Front Office Executive</SelectItem>
                             <SelectItem value="client">Client</SelectItem>
                           </SelectContent>
@@ -490,6 +518,17 @@ export default function UserApproval() {
                     </div>
 
                     <div className="flex flex-row flex-wrap items-center gap-2 w-full md:w-auto mt-1 md:mt-0">
+                      {(selectedRoles[u.id] === "client" || (!selectedRoles[u.id] && u.current_role === "client")) && (
+                        <Button
+                          size="icon"
+                          variant="outline"
+                          onClick={() => handleViewClientDetails(u.uhid)}
+                          className="h-9 w-9 shrink-0"
+                          title="View Client Details"
+                        >
+                          <ExternalLink className="w-4 h-4" />
+                        </Button>
+                      )}
                       {u.is_approved ? (
                         <>
                           <div className="flex items-center gap-2 flex-1 md:flex-none">
@@ -503,23 +542,13 @@ export default function UserApproval() {
                               <SelectContent>
                                 <SelectItem value="admin">Admin</SelectItem>
                                 <SelectItem value="consultant">Consultant</SelectItem>
+                                <SelectItem value="sports_scientist">Sports Scientist</SelectItem>
                                 <SelectItem value="foe">Front Office Executive</SelectItem>
                                 <SelectItem value="client">Client</SelectItem>
                               </SelectContent>
                             </Select>
                           </div>
                           <div className="flex gap-2">
-                            {(selectedRoles[u.id] === "client" || (!selectedRoles[u.id] && u.current_role === "client")) && (
-                              <Button
-                                size="icon"
-                                variant="outline"
-                                onClick={() => handleViewClientDetails(u.uhid)}
-                                className="h-9 w-9 shrink-0"
-                                title="View Client Details"
-                              >
-                                <ExternalLink className="w-4 h-4" />
-                              </Button>
-                            )}
                             <Button
                               size="icon"
                               variant="destructive"
@@ -528,6 +557,15 @@ export default function UserApproval() {
                               title="Revoke Access"
                             >
                               <UserX className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="destructive"
+                              onClick={() => deleteUserAtAuth(u.id)}
+                              className="h-9 w-9 shrink-0 opacity-80 hover:opacity-100 bg-red-600 hover:bg-red-700"
+                              title="Delete Permanently"
+                            >
+                              <Trash2 className="w-4 h-4" />
                             </Button>
                           </div>
                         </>
@@ -541,6 +579,7 @@ export default function UserApproval() {
                               <SelectContent>
                                 <SelectItem value="admin">Admin</SelectItem>
                                 <SelectItem value="consultant">Consultant</SelectItem>
+                                <SelectItem value="sports_scientist">Sports Scientist</SelectItem>
                                 <SelectItem value="foe">Front Office Executive</SelectItem>
                                 <SelectItem value="client">Client</SelectItem>
                               </SelectContent>
@@ -548,6 +587,15 @@ export default function UserApproval() {
                           </div>
                           <Button size="sm" onClick={() => handleApproveClick(u.id)} className="gap-1 whitespace-nowrap h-9 px-4">
                             <CheckCircle className="w-3.5 h-3.5" /> Approve
+                          </Button>
+                          <Button 
+                            size="icon" 
+                            variant="destructive" 
+                            onClick={() => deleteUserAtAuth(u.id)}
+                            className="h-9 w-9 shrink-0 bg-red-600 hover:bg-red-700"
+                            title="Delete Permanently"
+                          >
+                            <Trash2 className="w-4 h-4" />
                           </Button>
                         </>
                       )}

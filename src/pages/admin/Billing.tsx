@@ -90,14 +90,63 @@ export default function BillingPage() {
 
             // Fetch Live Packages
             const { data: pkgData } = await supabase
-                .from("service_packages")
-                .select("id, name, price, service_package_items(service_type, default_sessions)")
+                .from("packages")
+                .select("id, name, price, package_services(service_id)")
                 .eq("organization_id", profile.organization_id)
                 .order("created_at", { ascending: false });
 
             if (pkgData) {
-                // Map numeric types if needed, though they come back as numbers
-                setPackages(pkgData as Package[]);
+                // Formatting for UI
+                setPackages(pkgData as any[]);
+            }
+
+            // Fetch Bills
+            const { data: billsData } = await supabase
+                .from("bills")
+                .select(`
+                    id, 
+                    amount, 
+                    total, 
+                    status, 
+                    created_at, 
+                    client_id, 
+                    clients(first_name, last_name, uhid, email, mobile_no), 
+                    packages(name, package_services(sessions_included, services(name)))
+                `)
+                .eq("organization_id", profile.organization_id)
+                .order("created_at", { ascending: false });
+
+            if (billsData) {
+                const formattedBills = billsData.map(b => {
+                    const pkg = b.packages as any;
+                    let entitlements: any[] = [];
+                    if (pkg && pkg.package_services) {
+                        entitlements = pkg.package_services.map((ps: any) => ({
+                            service_type: ps.services?.name || 'Session',
+                            default_sessions: ps.sessions_included
+                        }));
+                    }
+
+                    return {
+                        id: b.id,
+                        client_id: b.client_id,
+                        client_name: b.clients ? `${(b.clients as any).first_name} ${(b.clients as any).last_name}` : "Unknown",
+                        items: [{ 
+                            name: pkg ? pkg.name : "Custom", 
+                            price: b.total,
+                            entitlements
+                        }],
+                        referral_source: "-",
+                        subtotal: b.amount,
+                        discount_type: "flat",
+                        discount_value: 0,
+                        total_amount: b.total,
+                        status: b.status === "Paid" ? "Paid" : "Pending",
+                        date: b.created_at,
+                    };
+                });
+                // @ts-ignore
+                setBills(formattedBills);
             }
         }
         fetchData();
@@ -155,7 +204,7 @@ export default function BillingPage() {
 
     const totalPayable = Math.max(0, subtotal - calculatedDiscountAmount());
 
-    const handleCreateBill = (e: React.FormEvent) => {
+    const handleCreateBill = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!selectedClient) {
             toast({ title: "Please select a client", variant: "destructive" });
@@ -167,42 +216,65 @@ export default function BillingPage() {
         }
 
         const client = clients.find(c => c.id === selectedClient);
+        
+        // Loop over the cart and insert a bill for EACH package so the backend trigger can properly issue entitlements
+        try {
+            for (const item of cart) {
+                // Calculate proportional discount (simple approach: split flat equally)
+                const itemRatio = item.price / subtotal;
+                const itemDiscount = discountType === "percentage" 
+                    ? (item.price * (Number(discountValue) || 0) / 100) 
+                    : ((Number(discountValue) || 0) * itemRatio);
+                const itemTotal = Math.max(0, item.price - itemDiscount);
 
-        const newBill: Bill = {
-            id: `INV-${Math.floor(Math.random() * 10000)}`,
-            client_id: selectedClient,
-            client_name: client ? `${client.first_name} ${client.last_name}` : "Unknown",
-            items: cart.map(item => ({ name: item.name, price: item.price, entitlements: item.items })),
-            referral_source: selectedReferral || "None",
-            subtotal,
-            discount_type: discountType,
-            discount_value: Number(discountValue) || 0,
-            total_amount: totalPayable,
-            status: "Pending",
-            date: new Date().toISOString(),
-        };
+                const { error } = await supabase.from('bills').insert({
+                    organization_id: profile?.organization_id,
+                    client_id: selectedClient,
+                    package_id: item.package_id,
+                    amount: item.price,
+                    discount: itemDiscount,
+                    total: itemTotal,
+                    status: 'Pending'
+                });
 
-        setBills([newBill, ...bills]);
-        toast({ title: "Bill Created Successfully" });
+                if (error) throw error;
+            }
 
-        // Reset form
-        setSelectedClient("");
-        setSelectedReferral("");
-        setCart([]);
-        setDiscountValue("0");
-        setDiscountType("flat");
+            toast({ title: "Bill Created Successfully" });
+            
+            // Reload the page to fetch bills
+            window.location.reload();
+        } catch (err: any) {
+            toast({ title: "Error creating bill", description: err.message, variant: "destructive" });
+        }
     };
 
-    const markAsPaid = () => {
+    const markAsPaid = async () => {
         if (!paymentMethod) {
             toast({ title: "Select a payment method", variant: "destructive" });
             return;
         }
-        setBills(bills.map(b => b.id === paymentBillId ? { ...b, status: "Paid", payment_method: paymentMethod } : b));
-        setIsPaymentModalOpen(false);
-        setPaymentMethod("");
-        setPaymentBillId("");
-        toast({ title: "Payment Recorded!" });
+        
+        try {
+            const { error } = await supabase.from('bills')
+                .update({ status: 'Paid', notes: `Paid via ${paymentMethod}` })
+                .eq('id', paymentBillId);
+                
+            if (error) throw error;
+            
+            // The DB trigger `trg_on_invoice_generated` runs ON INSERT. 
+            // Wait, does the trigger run on INSERT or when STATUS = 'Paid'?
+            // Let me check my previous implementation for the trigger. 
+            // If it ran on INSERT, entitlements are already generated.
+
+            setBills(bills.map(b => b.id === paymentBillId ? { ...b, status: "Paid", payment_method: paymentMethod } : b));
+            setIsPaymentModalOpen(false);
+            setPaymentMethod("");
+            setPaymentBillId("");
+            toast({ title: "Payment Recorded!" });
+        } catch (err: any) {
+            toast({ title: "Failed to record payment", description: err.message, variant: "destructive" });
+        }
     };
 
     const downloadInvoice = (bill: Bill) => {

@@ -1,0 +1,123 @@
+{
+  "roles": [
+    {
+      "id": "8ac61435-44a5-46d0-967a-24fc13e089d3",
+      "user_id": "9d972dc0-69c3-4703-bcac-e6c49fad835c",
+      "role": "admin"
+    },
+    {
+      "id": "d35f9786-4d62-4efa-a36e-5d16f0b3ef3a",
+      "user_id": "e76c6dbb-e500-4d16-90a1-7a9614dbeb99",
+      "role": "consultant"
+    },
+    {
+      "id": "feaf494c-046b-4353-acee-27048146554c",
+      "user_id": "0ce2c8e4-adb1-4b05-99d6-300ed353d8af",
+      "role": "client"
+    },
+    {
+      "id": "2c98ab79-8ec2-4214-821b-024ff950372c",
+      "user_id": "17ea2d11-4015-47ba-b83a-db9f3bc969b2",
+      "role": "super_admin"
+    },
+    {
+      "id": "b7e96f25-ddf9-4feb-badc-7e3fe50818eb",
+      "user_id": "e7e9c7a6-1e3f-4951-bafb-1be3d5d7a340",
+      "role": "foe"
+    },
+    {
+      "id": "44297e12-dca2-4cfd-b491-61bcd2e90ac7",
+      "user_id": "bf722745-3ab3-405a-ac1f-12439dd30b1f",
+      "role": "super_admin"
+    },
+    {
+      "id": "a51baf01-0748-4897-88a7-5efd2f4f0287",
+      "user_id": "5b1f2055-a848-4ccb-a2f2-d95fc6dd26f5",
+      "role": "admin"
+    }
+  ],
+  "profiles": [
+    {
+      "id": "9d972dc0-69c3-4703-bcac-e6c49fad835c",
+      "email": "admin3445@ishpo.com",
+      "first_name": "Test",
+      "last_name": "Admin",
+      "is_approved": true,
+      "organization_id": "95d6393e-68ab-4839-9b35-a11562cfc150"
+    },
+    {
+      "id": "e76c6dbb-e500-4d16-90a1-7a9614dbeb99",
+      "email": "doctor3445@ishpo.com",
+      "first_name": "Jane",
+      "last_name": "Smith",
+      "is_approved": true,
+      "organization_id": "95d6393e-68ab-4839-9b35-a11562cfc150"
+    },
+    {
+      "id": "17ea2d11-4015-47ba-b83a-db9f3bc969b2",
+      "email": "testuser1772708483495@gmail.com",
+      "first_name": "Test",
+      "last_name": "User",
+      "is_approved": true,
+      "organization_id": "00000000-0000-0000-0000-000000000001"
+    },
+    {
+      "id": "0ce2c8e4-adb1-4b05-99d6-300ed353d8af",
+      "email": "client3445@ishpo.com",
+      "first_name": "John",
+      "last_name": "Doe",
+      "is_approved": true,
+      "organization_id": "95d6393e-68ab-4839-9b35-a11562cfc150"
+    },
+    {
+      "id": "e7e9c7a6-1e3f-4951-bafb-1be3d5d7a340",
+      "email": "foe3445@ishpo.com",
+      "first_name": "Front Office",
+      "last_name": "Executive",
+      "is_approved": true,
+      "organization_id": "95d6393e-68ab-4839-9b35-a11562cfc150"
+    },
+    {
+      "id": "bf722745-3ab3-405a-ac1f-12439dd30b1f",
+      "email": "new_master@ishpo.com",
+      "first_name": "New",
+      "last_name": "SuperAdmin",
+      "is_approved": true,
+      "organization_id": "00000000-0000-0000-0000-000000000001"
+    },
+    {
+      "id": "5b1f2055-a848-4ccb-a2f2-d95fc6dd26f5",
+      "email": "test_clinic_admin@ishpo.com",
+      "first_name": "TestClinic",
+      "last_name": "Admin",
+      "is_approved": true,
+      "organization_id": "95d6393e-68ab-4839-9b35-a11562cfc150"
+    },
+    {
+      "id": "fb2a359a-6914-4a48-907f-5a4475e3172f",
+      "email": "scientist_test@example.com",
+      "first_name": "Test",
+      "last_name": "Scientist",
+      "is_approved": true,
+      "organization_id": "00000000-0000-0000-0000-000000000001"
+    }
+  ],
+  "orgs": [
+    {
+      "id": "00000000-0000-0000-0000-000000000001",
+      "name": "ISHPO Default Clinic"
+    },
+    {
+      "id": "95d6393e-68ab-4839-9b35-a11562cfc150",
+      "name": "Test Clinic Fixed"
+    },
+    {
+      "id": "db415fe4-ca57-4785-b683-d6a7fdec7e91",
+      "name": "ISHPO Headquarters"
+    },
+    {
+      "id": "02f1e999-4fe5-4d40-a9e2-e6f5472d18da",
+      "name": "Center for Spine and Sports Health"
+    }
+  ]
+}

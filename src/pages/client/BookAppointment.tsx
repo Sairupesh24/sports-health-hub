@@ -30,7 +30,7 @@ const SERVICES = [
 ];
 
 export default function BookAppointment() {
-    const { profile } = useAuth();
+    const { profile, clientId } = useAuth();
     const [step, setStep] = useState(1);
     const [loading, setLoading] = useState(false);
     const [consultants, setConsultants] = useState<Consultant[]>([]);
@@ -108,45 +108,41 @@ export default function BookAppointment() {
     }, [selectedConsultant, selectedDate, step, profile]);
 
     const handleBook = async () => {
-        if (!profile?.organization_id || !selectedSlot || !selectedDate) return;
+        if (!profile?.organization_id || !selectedSlot || !selectedDate || !clientId) {
+            if (!clientId) toast({ title: "Registration Incomplete", description: "Your client profile is not fully registered. Please contact the administrator.", variant: "destructive" });
+            return;
+        }
         setBooking(true);
 
         try {
             const formattedDate = format(selectedDate, "yyyy-MM-dd");
+            
+            // Construct timestamps for sessions table
+            const scheduledStart = `${formattedDate}T${selectedSlot.slot_start}`;
+            const scheduledEnd = `${formattedDate}T${selectedSlot.slot_end}`;
 
-            // 1. Insert into appointments (Double Booking Constraint will inherently protect this transaction)
-            const { data: newAppt, error: apptError } = await (supabase as any)
-                .from('appointments')
+            // 1. Insert into sessions (Unified table)
+            const { data: newSession, error: sessionError } = await (supabase as any)
+                .from('sessions')
                 .insert({
                     organization_id: profile.organization_id,
-                    client_id: profile.id,
-                    consultant_id: selectedConsultant,
+                    client_id: clientId,
+                    therapist_id: selectedConsultant,
                     service_type: selectedService,
-                    appointment_date: formattedDate,
-                    start_time: selectedSlot.slot_start,
-                    end_time: selectedSlot.slot_end,
-                    status: 'confirmed',
+                    scheduled_start: scheduledStart,
+                    scheduled_end: scheduledEnd,
+                    status: 'Planned',
                     created_by: profile.id
                 })
                 .select()
                 .single();
 
-            // If a Postgres exclusion constraint fails, it throws a specific error code (23P04)
-            if (apptError) {
-                if (apptError.code === '23P04') {
+            if (sessionError) {
+                // Check for double booking (exclusion constraint)
+                if (sessionError.code === '23P04' || sessionError.message?.includes('overlap')) {
                     throw new Error("This timeslot was just booked by someone else. Please select another time.");
                 }
-                throw apptError;
-            }
-
-            // 2. Insert Audit History
-            if (newAppt) {
-                await (supabase as any).from('appointment_history').insert({
-                    appointment_id: newAppt.id,
-                    new_status: 'confirmed',
-                    changed_by: profile.id,
-                    change_reason: 'Client created via Booking Wizard'
-                });
+                throw sessionError;
             }
 
             toast({ title: "Appointment Confirmed!", description: "Check your dashboard for details." });
