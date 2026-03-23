@@ -39,6 +39,7 @@ type Bill = {
     total_amount: number;
     status: "Pending" | "Paid";
     payment_method?: string;
+    transaction_id?: string;
     date: string;
 };
 
@@ -73,6 +74,7 @@ export default function BillingPage() {
 
     const [paymentBillId, setPaymentBillId] = useState("");
     const [paymentMethod, setPaymentMethod] = useState("");
+    const [transactionId, setTransactionId] = useState("");
     const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
 
     const [openCombobox, setOpenCombobox] = useState(false);
@@ -142,6 +144,7 @@ export default function BillingPage() {
                         discount_value: 0,
                         total_amount: b.total,
                         status: b.status === "Paid" ? "Paid" : "Pending",
+                        transaction_id: b.transaction_id,
                         date: b.created_at,
                     };
                 });
@@ -254,22 +257,27 @@ export default function BillingPage() {
             toast({ title: "Select a payment method", variant: "destructive" });
             return;
         }
+
+        if ((paymentMethod === "UPI" || paymentMethod === "Card") && !transactionId.trim()) {
+            toast({ title: "Transaction ID is mandatory for UPI/Card payments", variant: "destructive" });
+            return;
+        }
         
         try {
             const { error } = await supabase.from('bills')
-                .update({ status: 'Paid', notes: `Paid via ${paymentMethod}` })
+                .update({ 
+                    status: 'Paid', 
+                    notes: `Paid via ${paymentMethod}${transactionId ? ` (TXN: ${transactionId})` : ''}`,
+                    transaction_id: transactionId
+                })
                 .eq('id', paymentBillId);
                 
             if (error) throw error;
             
-            // The DB trigger `trg_on_invoice_generated` runs ON INSERT. 
-            // Wait, does the trigger run on INSERT or when STATUS = 'Paid'?
-            // Let me check my previous implementation for the trigger. 
-            // If it ran on INSERT, entitlements are already generated.
-
-            setBills(bills.map(b => b.id === paymentBillId ? { ...b, status: "Paid", payment_method: paymentMethod } : b));
+            setBills(bills.map(b => b.id === paymentBillId ? { ...b, status: "Paid", payment_method: paymentMethod, transaction_id: transactionId } : b));
             setIsPaymentModalOpen(false);
             setPaymentMethod("");
+            setTransactionId("");
             setPaymentBillId("");
             toast({ title: "Payment Recorded!" });
         } catch (err: any) {
@@ -399,7 +407,8 @@ export default function BillingPage() {
         d.setFont("helvetica", "normal");
         if (bill.status === "Paid") {
             d.setTextColor(16, 185, 129); // emerald-500
-            d.text(`STATUS: PAID VIA ${bill.payment_method?.toUpperCase()}`, 14, nextY);
+            const payMethodStatus = `STATUS: PAID VIA ${bill.payment_method?.toUpperCase()}${bill.transaction_id ? ` (TXN: ${bill.transaction_id})` : ''}`;
+            d.text(payMethodStatus, 14, nextY);
         } else {
             d.setTextColor(245, 158, 11); // amber-500
             d.text("STATUS: PENDING", 14, nextY);
@@ -711,7 +720,13 @@ export default function BillingPage() {
             </div>
 
             {/* Payment Modal */}
-            <Dialog open={isPaymentModalOpen} onOpenChange={setIsPaymentModalOpen}>
+            <Dialog open={isPaymentModalOpen} onOpenChange={(open) => {
+                setIsPaymentModalOpen(open);
+                if (!open) {
+                    setPaymentMethod("");
+                    setTransactionId("");
+                }
+            }}>
                 <DialogContent>
                     <DialogHeader><DialogTitle>Record Payment</DialogTitle></DialogHeader>
                     <div className="py-4 space-y-4">
@@ -727,8 +742,29 @@ export default function BillingPage() {
                                 <CreditCard className="w-6 h-6" /> Card
                             </Button>
                         </div>
+
+                        {(paymentMethod === "UPI" || paymentMethod === "Card") && (
+                            <div className="space-y-2 pt-2 animate-in fade-in slide-in-from-top-2">
+                                <Label htmlFor="transactionId">Transaction ID <span className="text-destructive">*</span></Label>
+                                <Input 
+                                    id="transactionId"
+                                    placeholder="Enter transaction/reference ID" 
+                                    value={transactionId}
+                                    onChange={(e) => setTransactionId(e.target.value)}
+                                    required
+                                />
+                                <p className="text-[10px] text-muted-foreground">Mandatory for {paymentMethod} payments to track revenue correctly.</p>
+                            </div>
+                        )}
                     </div>
-                    <DialogFooter><Button onClick={markAsPaid} disabled={!paymentMethod}>Confirm Payment</Button></DialogFooter>
+                    <DialogFooter>
+                        <Button 
+                            onClick={markAsPaid} 
+                            disabled={!paymentMethod || ((paymentMethod === "UPI" || paymentMethod === "Card") && !transactionId.trim())}
+                        >
+                            Confirm Payment
+                        </Button>
+                    </DialogFooter>
                 </DialogContent>
             </Dialog>
         </DashboardLayout>

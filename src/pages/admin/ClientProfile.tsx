@@ -12,6 +12,7 @@ import { ClientEntitlements } from "./ClientEntitlements";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -27,6 +28,7 @@ export default function ClientProfile() {
     const [paymentBillId, setPaymentBillId] = useState<string>("");
     const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
     const [paymentMethod, setPaymentMethod] = useState("");
+    const [transactionId, setTransactionId] = useState("");
 
     // Filters
     const [startDate, setStartDate] = useState("");
@@ -108,9 +110,18 @@ export default function ClientProfile() {
             return;
         }
 
+        if ((paymentMethod === "UPI" || paymentMethod === "Card") && !transactionId.trim()) {
+            toast({ title: "Transaction ID is mandatory for UPI/Card payments", variant: "destructive" });
+            return;
+        }
+
         try {
             const { error } = await supabase.from('bills')
-                .update({ status: 'Paid', notes: `Paid via ${paymentMethod}` })
+                .update({ 
+                    status: 'Paid', 
+                    notes: `Paid via ${paymentMethod}${transactionId ? ` (TXN: ${transactionId})` : ''}`,
+                    transaction_id: transactionId
+                })
                 .eq('id', paymentBillId);
 
             if (error) throw error;
@@ -120,6 +131,7 @@ export default function ClientProfile() {
 
             setIsPaymentModalOpen(false);
             setPaymentMethod("");
+            setTransactionId("");
             setPaymentBillId("");
             toast({ title: "Payment Recorded!" });
         } catch (err: any) {
@@ -214,10 +226,16 @@ export default function ClientProfile() {
         d.setTextColor(15, 23, 42);
         d.text(`Rs. ${bill.total}`, 185, finalY, { align: "right" });
 
-        d.setFontSize(12);
-        d.setFont("helvetica", "bold");
-        d.text("Total Payable:", 140, finalY + 10);
-        d.text(`Rs. ${bill.total}`, 185, finalY + 10, { align: "right" });
+        d.setFontSize(10);
+        d.setFont("helvetica", "normal");
+        if (bill.status === "Paid") {
+            d.setTextColor(16, 185, 129); // emerald-500
+            const payMethodStatus = `STATUS: PAID VIA ${bill.payment_method?.toUpperCase() || (bill.notes?.split('via ')[1]?.split(' (')[0]?.toUpperCase()) || 'N/A'}${bill.transaction_id ? ` (TXN: ${bill.transaction_id})` : ''}`;
+            d.text(payMethodStatus, 14, finalY + 20);
+        } else {
+            d.setTextColor(245, 158, 11); // amber-500
+            d.text("STATUS: PENDING", 14, finalY + 20);
+        }
 
         d.save(`Invoice_${bill.id.substring(0, 8)}.pdf`);
     };
@@ -544,13 +562,19 @@ export default function ClientProfile() {
             </div>
 
             {/* Payment Modal */}
-            <Dialog open={isPaymentModalOpen} onOpenChange={setIsPaymentModalOpen}>
+            <Dialog open={isPaymentModalOpen} onOpenChange={(open) => {
+                setIsPaymentModalOpen(open);
+                if (!open) {
+                    setPaymentMethod("");
+                    setTransactionId("");
+                }
+            }}>
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>Record Payment</DialogTitle>
                     </DialogHeader>
                     <div className="space-y-4 py-4">
-                        <Select onValueChange={setPaymentMethod}>
+                        <Select onValueChange={setPaymentMethod} value={paymentMethod}>
                             <SelectTrigger>
                                 <SelectValue placeholder="Select Payment Method" />
                             </SelectTrigger>
@@ -561,7 +585,28 @@ export default function ClientProfile() {
                                 <SelectItem value="Bank Transfer">Bank Transfer</SelectItem>
                             </SelectContent>
                         </Select>
-                        <Button onClick={markAsPaid} className="w-full">Confirm Payment</Button>
+
+                        {(paymentMethod === "UPI" || paymentMethod === "Card") && (
+                            <div className="space-y-2 pt-2 animate-in fade-in slide-in-from-top-2">
+                                <Label htmlFor="transactionId" className="text-xs font-semibold">Transaction ID <span className="text-destructive">*</span></Label>
+                                <Input 
+                                    id="transactionId"
+                                    placeholder="Enter transaction/reference ID" 
+                                    value={transactionId}
+                                    onChange={(e) => setTransactionId(e.target.value)}
+                                    className="h-9 text-sm"
+                                    required
+                                />
+                            </div>
+                        )}
+
+                        <Button 
+                            onClick={markAsPaid} 
+                            className="w-full"
+                            disabled={!paymentMethod || ((paymentMethod === "UPI" || paymentMethod === "Card") && !transactionId.trim())}
+                        >
+                            Confirm Payment
+                        </Button>
                     </div>
                 </DialogContent>
             </Dialog>

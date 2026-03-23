@@ -235,11 +235,12 @@ export default function ClientDetail() {
                       <TableHead className="text-right">Discount</TableHead>
                       <TableHead className="text-right">Total</TableHead>
                       <TableHead>Payment</TableHead>
+                      <TableHead>Transaction ID</TableHead>
                       <TableHead>Status</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {bills.map((bill) => (
+                    {bills.map((bill: any) => (
                       <TableRow key={bill.id}>
                         <TableCell className="text-muted-foreground text-sm">
                           {format(new Date(bill.created_at), "dd MMM yyyy")}
@@ -258,6 +259,13 @@ export default function ClientDetail() {
                         <TableCell>
                           {bill.payment_method ? (
                             <Badge variant="outline" className="capitalize">{bill.payment_method}</Badge>
+                          ) : (
+                            <span className="text-muted-foreground text-xs">—</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {bill.transaction_id ? (
+                            <code className="text-[10px] bg-muted px-1 py-0.5 rounded">{bill.transaction_id}</code>
                           ) : (
                             <span className="text-muted-foreground text-xs">—</span>
                           )}

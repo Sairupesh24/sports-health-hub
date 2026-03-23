@@ -85,6 +85,7 @@ export const REPORT_STRUCTURE: Record<ReportModule, ReportTemplate[]> = {
         { key: "client_name", label: "Client" },
         { key: "total", label: "Amount" },
         { key: "status", label: "Status" },
+        { key: "transaction_id", label: "Transaction ID" },
         { key: "created_at", label: "Date" }
     ]},
     { id: "revenue_by_service", name: "Revenue by Service", description: "Financial breakdown by service type", columns: [
@@ -167,11 +168,11 @@ export async function generateReportData(module: ReportModule, templateId: strin
             if (templateId === "invoice_summary") {
                 const { data, error } = await supabase
                     .from("bills")
-                    .select("id, total, status, created_at, clients(first_name, last_name)")
+                    .select("id, total, status, transaction_id, created_at, clients(first_name, last_name)")
                     .order("created_at", { ascending: false });
                 
                 if (error) throw error;
-                return data.map(b => ({
+                return (data as any[]).map(b => ({
                     ...b,
                     client_name: b.clients ? `${(b.clients as any).first_name} ${(b.clients as any).last_name}` : "Unknown"
                 }));
