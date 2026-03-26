@@ -23,6 +23,11 @@ import { useSearchParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import AMSTrainingLoadWidget from "@/components/dashboard/AMSTrainingLoadWidget";
+import PerformanceAnalytics from "@/components/ams/PerformanceAnalytics";
+import { generateAthletePerformanceReport } from "@/lib/reports/AthletePerformanceReport";
+import { usePerformanceResults, usePersonalBests } from "@/hooks/usePerformanceResults";
+import { FileDown, Trophy } from "lucide-react";
+
 
 export default function SportsScientistAnalytics() {
     const { user } = useAuth();
@@ -175,7 +180,14 @@ export default function SportsScientistAnalytics() {
                                 <Users className="w-4 h-4" /> Comprehensive Athlete Analytics
                             </p>
                         </div>
+                        <div className="ml-auto">
+                           <PerformanceReportButton 
+                                athleteName={`${athleteData.client.first_name} ${athleteData.client.last_name}`}
+                                athleteId={clientId}
+                           />
+                        </div>
                     </div>
+
 
                     {/* Stats Grid */}
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -257,6 +269,16 @@ export default function SportsScientistAnalytics() {
                             <AMSTrainingLoadWidget clientId={clientId} />
                         </div>
                     </div>
+
+                    {/* Performance Analytics Phase 6 */}
+                    <div className="mt-8">
+                        <h2 className="text-xl font-bold flex items-center gap-2 mb-4">
+                            <Trophy className="w-6 h-6 text-primary" />
+                            Performance & Benchmarking
+                        </h2>
+                        <PerformanceAnalytics athleteId={clientId} />
+                    </div>
+
 
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         {/* Injury Reports */}
@@ -474,3 +496,26 @@ export default function SportsScientistAnalytics() {
         </DashboardLayout>
     );
 }
+
+function PerformanceReportButton({ athleteName, athleteId }: { athleteName: string, athleteId: string }) {
+    const { data: results } = usePerformanceResults(athleteId);
+    const { personalBests } = usePersonalBests(athleteId);
+
+    const handleDownload = () => {
+        if (!results) return;
+        generateAthletePerformanceReport({
+            athleteName,
+            organization: "ISHPO High Performance",
+            assessments: results,
+            personalBests
+        });
+    };
+
+    return (
+        <Button onClick={handleDownload} className="gap-2 shadow-lg hover:shadow-primary/20 transition-all">
+            <FileDown className="w-4 h-4" />
+            Download Performance Report
+        </Button>
+    );
+}
+

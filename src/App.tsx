@@ -11,6 +11,14 @@ import LoginPage from "./pages/LoginPage";
 import SignupPage from "./pages/auth/SignupPage";
 import PendingApprovalPage from "./pages/auth/PendingApprovalPage";
 import SetupPage from "./pages/auth/SetupPage";
+import AthleteDashboard from "./pages/ams/AthleteDashboard";
+import BatchTestEntry from "./pages/ams/BatchTestEntry";
+import CoachDashboard from "./pages/ams/CoachDashboard";
+import ProgramsPage from "./pages/ams/ProgramsPage";
+import WorkoutBuilder from "./pages/ams/WorkoutBuilder";
+import WorkoutLogging from "./pages/ams/WorkoutLogging";
+import AmsFeed from "./pages/ams/AmsFeed";
+import AmsCalendar from "./pages/ams/AmsCalendar";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import ClientList from "./pages/admin/ClientList";
 import ClientRegistration from "./pages/admin/ClientRegistration";
@@ -25,6 +33,7 @@ import ConsultantClientProfile from "./pages/consultant/ClientProfile";
 import ConsultantSchedule from "./pages/consultant/ConsultantSchedule";
 import ClientDashboard from "./pages/client/ClientDashboard";
 import BookAppointment from "./pages/client/BookAppointment";
+import ClientPerformancePage from "./pages/client/ClientPerformancePage";
 import AdminCalendar from "./pages/admin/AdminCalendar";
 import AdminAvailability from "./pages/admin/AdminAvailability";
 import AppointmentList from "./pages/shared/AppointmentList";
@@ -55,6 +64,8 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/signup" element={<SignupPage />} />
+            <Route path="/ams/athlete-portal" element={<ProtectedRoute><AthleteDashboard /></ProtectedRoute>} />
+            <Route path="/ams/coach-dashboard" element={<ProtectedRoute><CoachDashboard /></ProtectedRoute>} />
             <Route path="/pending-approval" element={<PendingApprovalPage />} />
             <Route path="/setup" element={<SetupPage />} />
             <Route path="/admin" element={<ProtectedRoute requiredRole="admin"><AdminDashboard /></ProtectedRoute>} />
@@ -81,11 +92,20 @@ const App = () => (
             <Route path="/sports-scientist/clients" element={<ProtectedRoute requiredRole="sports_scientist"><SportsScientistClients /></ProtectedRoute>} />
             <Route path="/sports-scientist/reports" element={<ProtectedRoute requiredRole="sports_scientist"><ReportsPage role="sports_scientist" /></ProtectedRoute>} />
             <Route path="/sports-scientist/templates" element={<ProtectedRoute requiredRole="sports_scientist"><SportsScientistTemplates /></ProtectedRoute>} />
+
+            <Route path="/ams/programs" element={<ProtectedRoute requiredRole={["coach", "sports_scientist", "admin"]}><ProgramsPage /></ProtectedRoute>} />
+            <Route path="/ams/programs/:id/builder" element={<ProtectedRoute requiredRole={["coach", "sports_scientist", "admin"]}><WorkoutBuilder /></ProtectedRoute>} />
+            <Route path="/ams/feed" element={<ProtectedRoute requiredRole={["coach", "sports_scientist", "admin"]}><AmsFeed /></ProtectedRoute>} />
+            <Route path="/ams/calendar" element={<ProtectedRoute requiredRole={["coach", "sports_scientist", "admin"]}><AmsCalendar /></ProtectedRoute>} />
+            <Route path="/ams/athlete/calendar" element={<ProtectedRoute requiredRole={["client", "athlete"]}><AthleteDashboard /></ProtectedRoute>} />
+            <Route path="/ams/athlete/workout/:id" element={<ProtectedRoute requiredRole={["client", "athlete"]}><WorkoutLogging /></ProtectedRoute>} />
+            <Route path="/ams/batch-tests" element={<ProtectedRoute requiredRole={["coach", "sports_scientist", "admin"]}><BatchTestEntry /></ProtectedRoute>} />
             <Route path="/sports-scientist/analytics" element={<ProtectedRoute requiredRole="sports_scientist"><SportsScientistAnalytics /></ProtectedRoute>} />
 
-            <Route path="/client" element={<ProtectedRoute requiredRole="client"><ClientDashboard /></ProtectedRoute>} />
-            <Route path="/client/book" element={<ProtectedRoute requiredRole="client"><BookAppointment /></ProtectedRoute>} />
-            <Route path="/client/appointments" element={<ProtectedRoute requiredRole="client"><AppointmentList role="client" /></ProtectedRoute>} />
+            <Route path="/client" element={<ProtectedRoute requiredRole={["client", "athlete"]}><ClientDashboard /></ProtectedRoute>} />
+            <Route path="/client/book" element={<ProtectedRoute requiredRole={["client", "athlete"]}><BookAppointment /></ProtectedRoute>} />
+            <Route path="/client/appointments" element={<ProtectedRoute requiredRole={["client", "athlete"]}><AppointmentList role="client" /></ProtectedRoute>} />
+            <Route path="/client/performance" element={<ProtectedRoute requiredRole={["client", "athlete"]}><ClientPerformancePage /></ProtectedRoute>} />
             <Route path="/super-admin" element={<ProtectedRoute requiredRole="super_admin"><SuperAdminDashboard /></ProtectedRoute>} />
             <Route path="/super-admin/organizations/new" element={<ProtectedRoute requiredRole="super_admin"><OnboardOrganization /></ProtectedRoute>} />
             <Route path="/super-admin/organizations/:id" element={<ProtectedRoute requiredRole="super_admin"><OrganizationDetails /></ProtectedRoute>} />

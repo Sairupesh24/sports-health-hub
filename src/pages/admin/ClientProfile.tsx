@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams, useNavigate } from "react-router-dom";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -13,11 +13,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "@/hooks/use-toast";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import * as XLSX from 'xlsx';
-import AMSTrainingLoadWidget from "@/components/dashboard/AMSTrainingLoadWidget";
+import { Badge } from "@/components/ui/badge";
+
+
 
 export default function ClientProfile() {
     const queryClient = useQueryClient();
@@ -29,6 +32,9 @@ export default function ClientProfile() {
     const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
     const [paymentMethod, setPaymentMethod] = useState("");
     const [transactionId, setTransactionId] = useState("");
+
+    const [amsRole, setAmsRole] = useState<string | null>(null);
+    const [profileId, setProfileId] = useState<string | null>(null);
 
     // Filters
     const [startDate, setStartDate] = useState("");
@@ -46,6 +52,31 @@ export default function ClientProfile() {
 
             if (!error && data) {
                 setClient(data);
+                
+                if (data.uhid) {
+                    let { data: profileData } = await supabase
+                        .from("profiles")
+                        .select("id, ams_role, email")
+                        .eq("uhid", data.uhid)
+                        .maybeSingle();
+
+                    if (!profileData && data.email) {
+                        const { data: profileByEmail } = await supabase
+                            .from("profiles")
+                            .select("id, ams_role, email")
+                            .eq("email", data.email)
+                            .maybeSingle();
+                        
+                        if (profileByEmail) {
+                            profileData = profileByEmail;
+                        }
+                    }
+
+                    if (profileData) {
+                        setAmsRole(profileData.ams_role);
+                        setProfileId(profileData.id);
+                    }
+                }
             }
             setLoading(false);
         }
@@ -104,6 +135,50 @@ export default function ClientProfile() {
         enabled: !!id
     });
 
+    const toggleAmsAccess = async (checked: boolean) => {
+        let currentProfileId = profileId;
+
+        // Auto-link profile if not linked but email matches
+        if (!currentProfileId && client?.email) {
+            const { data: profileByEmail } = await supabase
+                .from("profiles")
+                .select("id")
+                .eq("email", client.email)
+                .maybeSingle();
+            
+            if (profileByEmail) {
+                currentProfileId = profileByEmail.id;
+                // Auto-link the UHID to bridge the gap
+                await supabase.from("profiles").update({ uhid: client.uhid }).eq("id", currentProfileId);
+                setProfileId(currentProfileId);
+            }
+        }
+
+        if (!currentProfileId) {
+            toast({
+                title: "No Login Credentials",
+                description: "This client only has a clinical record. They must sign up for an ISHPO login account (using their email) before AMS access can be granted.",
+                variant: "destructive"
+            });
+            return;
+        }
+
+        const newRole = checked ? "athlete" : null;
+        // Optimistic UI update
+        setAmsRole(newRole);
+
+        const { error } = await supabase
+            .from("profiles")
+            .update({ ams_role: newRole as any })
+            .eq("id", currentProfileId);
+        if (!error) {
+          setAmsRole(newRole);
+          toast({ title: "AMS Access Updated", description: `Client has been ${checked ? 'granted' : 'revoked'} access to the Athlete Monitoring System.` });
+        } else {
+          toast({ title: "Failed to update AMS access", description: error.message, variant: "destructive" });
+        }
+    };
+
     const markAsPaid = async () => {
         if (!paymentMethod) {
             toast({ title: "Select a payment method", variant: "destructive" });
@@ -126,7 +201,6 @@ export default function ClientProfile() {
 
             if (error) throw error;
 
-            // Invalidate bills query to refresh the billing list without page reload
             queryClient.invalidateQueries({ queryKey: ['client-bills', id] });
 
             setIsPaymentModalOpen(false);
@@ -294,13 +368,27 @@ export default function ClientProfile() {
                     <Button variant="ghost" size="icon" onClick={() => navigate("/admin/clients")}>
                         <ArrowLeft className="w-5 h-5" />
                     </Button>
-                    <div className="flex-1">
-                        <h1 className="text-3xl font-display font-bold text-foreground">{fullName}</h1>
-                        <p className="text-muted-foreground flex items-center gap-2 mt-1">
-                            <span className="bg-primary/10 text-primary px-2 py-0.5 rounded text-xs font-semibold">UHID: {uhid}</span>
-                            <span>•</span>
-                            <span>Registered on: {format(new Date(registered_on), "dd MMM yyyy")}</span>
-                        </p>
+                    <div className="flex-1 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div>
+                            <h1 className="text-3xl font-display font-bold text-foreground">{fullName}</h1>
+                            <p className="text-muted-foreground flex flex-wrap items-center gap-2 mt-1">
+                                <span className="bg-primary/10 text-primary px-2 py-0.5 rounded text-xs font-semibold">UHID: {uhid}</span>
+                                <span>•</span>
+                                <span>Registered on: {format(new Date(registered_on), "dd MMM yyyy")}</span>
+                            </p>
+                        </div>
+                        
+                        <div className="flex items-center gap-3 bg-muted/30 p-3 rounded-lg border">
+                           <Label htmlFor="ams-toggle" className="text-sm font-semibold cursor-pointer">
+                               {amsRole === "athlete" ? "AMS Access: Active" : "AMS Access: Inactive"}
+                           </Label>
+                           <Switch 
+                             id="ams-toggle" 
+                             className="data-[state=checked]:bg-green-500"
+                             checked={amsRole === "athlete"}
+                             onCheckedChange={toggleAmsAccess}
+                           />
+                        </div>
                     </div>
                 </div>
 
@@ -312,6 +400,7 @@ export default function ClientProfile() {
                         <TabsTrigger value="sessions">Session History</TabsTrigger>
                         <TabsTrigger value="billing">Billing History</TabsTrigger>
                     </TabsList>
+
 
                     {/* PROFILE TAB */}
                     <TabsContent value="profile" className="space-y-6">
@@ -384,7 +473,9 @@ export default function ClientProfile() {
                     {/* ENTITLEMENTS TAB */}
                     <TabsContent value="entitlements">
                         <ClientEntitlements clientId={id!} />
-                    </TabsContent>                    {/* SESSION HISTORY TAB */}
+                    </TabsContent>
+
+                    {/* SESSION HISTORY TAB */}
                     <TabsContent value="sessions">
                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                             <Card className="gradient-card border-border lg:col-span-2">
@@ -470,7 +561,14 @@ export default function ClientProfile() {
                                                                                 'bg-gray-500/10 text-gray-500'}`}>
                                                                     {session.status}
                                                                 </span>
+                                                                {session.is_unentitled && (
+                                                                    <Badge variant="destructive" className="ml-2 text-[8px] h-4 px-1 font-black animate-pulse">
+                                                                        UN-ENTITLED
+                                                                    </Badge>
+                                                                )}
                                                             </td>
+
+
                                                             <td className="p-3 text-muted-foreground">
                                                                 {session.physio_session_details && session.physio_session_details.length > 0 ? (
                                                                     <span className="text-emerald-600 flex items-center gap-1 font-bold">
@@ -490,10 +588,11 @@ export default function ClientProfile() {
                             </Card>
 
                             <div className="space-y-6">
-                                <AMSTrainingLoadWidget clientId={id} />
                             </div>
                         </div>
                     </TabsContent>
+
+
 
                     {/* BILLING HISTORY TAB */}
                     <TabsContent value="billing">
@@ -530,7 +629,8 @@ export default function ClientProfile() {
                                                     <td className="p-3 font-medium text-foreground">{bill.id.substring(0, 8)}...</td>
                                                     <td className="p-3 text-muted-foreground">{format(new Date(bill.created_at), "dd MMM yyyy")}</td>
                                                     <td className="p-3 text-muted-foreground">{bill.packages ? bill.packages.name : "Custom"}</td>
-                                                    <td className="p-3 text-right font-medium">Rs. {bill.total}</td>                                                    <td className="p-3 text-center">
+                                                    <td className="p-3 text-right font-medium">Rs. {bill.total}</td>
+                                                    <td className="p-3 text-center">
                                                         <span className={`inline-block px-2 py-0.5 rounded text-xs font-semibold ${bill.status === 'Paid' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-amber-500/10 text-amber-600'}`}>
                                                             {bill.status}
                                                         </span>

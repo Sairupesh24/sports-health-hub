@@ -1,10 +1,7 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import DashboardLayout from "@/components/layout/DashboardLayout";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
+import { format, parseISO } from "date-fns";
 import { 
     Users, 
     Calendar, 
@@ -14,12 +11,18 @@ import {
     TrendingUp, 
     Clock, 
     CheckCircle2,
-    ArrowRight
+    ArrowRight,
+    LucideIcon
 } from "lucide-react";
-import { format, parseISO } from "date-fns";
-import { useState } from "react";
+import DashboardLayout from "@/components/layout/DashboardLayout";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import { SportsScientistBookSessionModal } from "@/components/sports-scientist/SportsScientistBookSessionModal";
 import { SportsScientistSessionStatusModal } from "@/components/sports-scientist/SportsScientistSessionStatusModal";
+import AmsStaffNav from "@/components/ams/AmsStaffNav";
+import { cn } from "@/lib/utils";
 
 export default function SportsScientistDashboard() {
     const { user } = useAuth();
@@ -38,8 +41,8 @@ export default function SportsScientistDashboard() {
             const todayEnd = new Date();
             todayEnd.setHours(23, 59, 59, 999);
 
-            const { data: todaySessions } = await supabase
-                .from("sessions")
+            const { data: todaySessions } = await (supabase
+                .from("sessions") as any)
                 .select(`
                     id, 
                     scheduled_start,
@@ -80,176 +83,176 @@ export default function SportsScientistDashboard() {
 
     return (
         <DashboardLayout role="sports_scientist">
-            <div className="space-y-8 pb-12">
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                    <div>
-                        <h1 className="text-4xl font-display font-bold text-foreground">Performance Console</h1>
-                        <p className="text-muted-foreground mt-1">Operational overview for {format(new Date(), "EEEE, MMMM do")}</p>
-                    </div>
-                    <div className="flex gap-3">
-                        <Button 
-                            variant="outline" 
-                            className="rounded-xl border-primary/20 text-primary hover:bg-primary/5"
-                            onClick={() => navigate("/sports-scientist/templates")}
-                        >
-                            <ClipboardList className="w-4 h-4 mr-2" /> Templates
-                        </Button>
-                        <Button 
-                            className="rounded-xl shadow-lg shadow-primary/20 gap-2"
-                            onClick={() => setIsBookModalOpen(true)}
-                        >
-                            <Plus className="w-5 h-5" /> Schedule Session
-                        </Button>
-                    </div>
-                </div>
-
-                {/* KPI Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                    <Card className="gradient-card border-none shadow-md overflow-hidden relative group">
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-bold uppercase tracking-wider text-muted-foreground/80">Athletes</CardTitle>
-                            <Users className="h-5 w-5 text-primary opacity-50 group-hover:opacity-100 transition-opacity" />
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-3xl font-bold">{dashboardData?.clientCount}</div>
-                            <p className="text-xs text-muted-foreground mt-1">Manage assigned personnel</p>
-                        </CardContent>
-                    </Card>
-                    <Card className="gradient-card border-none shadow-md overflow-hidden relative group">
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-bold uppercase tracking-wider text-muted-foreground/80">Active Templates</CardTitle>
-                            <ClipboardList className="h-5 w-5 text-primary opacity-50 group-hover:opacity-100 transition-opacity" />
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-3xl font-bold">{dashboardData?.templateCount}</div>
-                            <p className="text-xs text-muted-foreground mt-1">Reusable workout plans</p>
-                        </CardContent>
-                    </Card>
-                    <Card className="gradient-card border-none shadow-md overflow-hidden relative group">
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-bold uppercase tracking-wider text-muted-foreground/80">Today's Schedule</CardTitle>
-                            <Clock className="h-5 w-5 text-primary opacity-50 group-hover:opacity-100 transition-opacity" />
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-3xl font-bold">{dashboardData?.todaySessions.length}</div>
-                            <p className="text-xs text-muted-foreground mt-1">Total loads scheduled</p>
-                        </CardContent>
-                    </Card>
-                    <Card className="gradient-card border-none shadow-md overflow-hidden relative group">
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-bold uppercase tracking-wider text-muted-foreground/80">Completion</CardTitle>
-                            <CheckCircle2 className="h-5 w-5 text-emerald-500 opacity-50 group-hover:opacity-100 transition-opacity" />
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-3xl font-bold">--</div>
-                            <p className="text-xs text-muted-foreground mt-1">Protocol compliance rate</p>
-                        </CardContent>
-                    </Card>
-                </div>
-
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    {/* Today's Agenda */}
-                    <div className="lg:col-span-2 space-y-4">
-                        <div className="flex items-center justify-between">
-                            <h2 className="text-xl font-display font-bold flex items-center gap-2">
-                                <Calendar className="w-5 h-5 text-primary" />
-                                Today's Agenda
-                            </h2>
-                            <Button variant="link" className="text-primary text-sm font-bold" onClick={() => navigate("/sports-scientist/schedule")}>
-                                View Full Schedule <ArrowRight className="w-4 h-4 ml-1" />
+            <div className="min-h-screen bg-[#f8fafc]">
+                <AmsStaffNav />
+                
+                <main className="container mx-auto p-4 sm:p-8 space-y-8 max-w-[1600px] animate-in fade-in duration-700">
+                    <header className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
+                        <div className="space-y-1">
+                            <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-black">
+                                {format(new Date(), 'EEEE, MMMM do, yyyy')}
+                            </p>
+                            <h1 className="text-3xl font-black tracking-tight text-slate-900">Performance Console</h1>
+                        </div>
+                        <div className="flex gap-3">
+                            <Button 
+                                variant="outline" 
+                                className="glass h-11 border-none shadow-sm font-bold gap-2"
+                                onClick={() => navigate("/sports-scientist/templates")}
+                            >
+                                <ClipboardList className="w-4 h-4 text-primary" /> Templates
+                            </Button>
+                            <Button 
+                                className="h-11 rounded-xl bg-primary text-primary-foreground font-bold shadow-lg shadow-primary/20 gap-2 px-6"
+                                onClick={() => setIsBookModalOpen(true)}
+                            >
+                                <Plus className="w-5 h-5" /> Schedule Session
                             </Button>
                         </div>
+                    </header>
 
-                        {dashboardData?.todaySessions.length === 0 ? (
-                            <Card className="bg-muted/10 border-dashed border-2 flex flex-col items-center justify-center py-12 text-muted-foreground">
-                                <Activity className="w-10 h-10 opacity-20 mb-3" />
-                                <p className="font-medium">No sessions scheduled for today</p>
-                                <Button variant="ghost" className="mt-2 text-primary" onClick={() => setIsBookModalOpen(true)}>
-                                    Schedule something now
-                                </Button>
-                            </Card>
-                        ) : (
-                            <div className="space-y-3">
-                                {dashboardData?.todaySessions.map((session: any) => (
-                                    <div 
-                                        key={session.id} 
-                                        className="bg-card border border-border/50 hover:border-primary/50 transition-all p-4 rounded-2xl flex items-center justify-between shadow-sm group"
-                                    >
-                                        <div className="flex items-center gap-4">
-                                            <div className="h-12 w-12 rounded-xl bg-primary/5 flex flex-col items-center justify-center border border-primary/10">
-                                                <span className="text-[10px] uppercase font-bold text-muted-foreground">{format(parseISO(session.scheduled_start), "HH:mm")}</span>
-                                            </div>
-                                            <div>
-                                                <h4 className="font-bold text-base group-hover:text-primary transition-colors">
-                                                    {session.session_mode === 'Group' ? `Group: ${session.group_name}` : `${session.client?.first_name} ${session.client?.last_name}`}
-                                                </h4>
-                                                <p className="text-sm text-muted-foreground">{session.session_type?.name || "Sports Science Session"}</p>
-                                            </div>
-                                        </div>
-                                        <div className="flex items-center gap-4">
-                                            <button
-                                                onClick={() => setSelectedSession(session)}
-                                                className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-tight cursor-pointer transition-all hover:ring-2 hover:ring-offset-1 ${
-                                                    session.status === 'Completed' 
-                                                        ? 'bg-emerald-50 text-emerald-700 hover:ring-emerald-400' 
-                                                        : session.status === 'Cancelled' || session.status === 'Missed'
-                                                        ? 'bg-red-50 text-red-700 hover:ring-red-400'
-                                                        : 'bg-blue-50 text-blue-700 hover:ring-blue-400'
-                                                }`}
-                                                title="Click to update session status"
-                                            >
-                                                {session.status}
-                                            </button>
-                                            <Button variant="ghost" size="icon" className="rounded-full" onClick={() => navigate("/sports-scientist/sessions")}>
-                                                <ArrowRight className="w-4 h-4" />
-                                            </Button>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
+                    {/* KPI Cards */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                        <KPICard 
+                            title="Athletes" 
+                            value={dashboardData?.clientCount || 0} 
+                            description="Active personnel" 
+                            icon={Users} 
+                        />
+                        <KPICard 
+                            title="Templates" 
+                            value={dashboardData?.templateCount || 0} 
+                            description="Reusable plans" 
+                            icon={ClipboardList} 
+                        />
+                        <KPICard 
+                            title="Today's Sessions" 
+                            value={dashboardData?.todaySessions.length || 0} 
+                            description="Loads scheduled" 
+                            icon={Clock} 
+                        />
+                        <KPICard 
+                            title="Compliance" 
+                            value="--" 
+                            description="Protocol rate" 
+                            icon={CheckCircle2} 
+                            color="text-emerald-500"
+                        />
                     </div>
 
-                    {/* Quick Access / Stats */}
-                    <div className="space-y-6">
-                        <Card className="shadow-lg border-primary/10 overflow-hidden">
-                            <CardHeader className="bg-primary/5 pb-4">
-                                <CardTitle className="text-lg flex items-center gap-2">
-                                    <TrendingUp className="w-5 h-5 text-primary" />
-                                    Performance Insights
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent className="pt-6">
-                                <div className="space-y-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        {/* Today's Agenda */}
+                        <div className="lg:col-span-2 space-y-4">
+                            <div className="flex items-center justify-between">
+                                <h2 className="text-xl font-display font-bold flex items-center gap-2">
+                                    <Calendar className="w-5 h-5 text-primary" />
+                                    Today's Agenda
+                                </h2>
+                                <Button variant="link" className="text-primary text-sm font-bold" onClick={() => navigate("/sports-scientist/schedule")}>
+                                    View Full Schedule <ArrowRight className="w-4 h-4 ml-1" />
+                                </Button>
+                            </div>
+
+                            {dashboardData?.todaySessions.length === 0 ? (
+                                <Card className="bg-muted/10 border-dashed border-2 flex flex-col items-center justify-center py-12 text-muted-foreground rounded-[32px]">
+                                    <Activity className="w-10 h-10 opacity-20 mb-3" />
+                                    <p className="font-bold uppercase text-xs tracking-widest">No sessions scheduled today</p>
+                                    <Button variant="ghost" className="mt-2 text-primary font-bold" onClick={() => setIsBookModalOpen(true)}>
+                                        Schedule something now
+                                    </Button>
+                                </Card>
+                            ) : (
+                                <div className="space-y-3">
+                                    {dashboardData?.todaySessions.map((session: any) => (
+                                        <div 
+                                            key={session.id} 
+                                            className="bg-white border hover:border-primary/30 transition-all p-5 rounded-[24px] flex items-center justify-between shadow-sm group"
+                                        >
+                                            <div className="flex items-center gap-5">
+                                                <div className="h-14 w-14 rounded-2xl bg-slate-50 flex flex-col items-center justify-center border border-slate-100">
+                                                    <span className="text-[10px] uppercase font-black text-slate-400">{format(parseISO(session.scheduled_start), "HH:mm")}</span>
+                                                </div>
+                                                <div>
+                                                    <h4 className="font-black text-lg group-hover:text-primary transition-colors">
+                                                        {session.session_mode === 'Group' ? `Group: ${session.group_name}` : `${session.client?.first_name} ${session.client?.last_name}`}
+                                                    </h4>
+                                                    <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground/60">{session.session_type?.name || "Sports Science Session"}</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-4">
+                                                <button
+                                                    onClick={() => setSelectedSession(session)}
+                                                    className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest cursor-pointer transition-all hover:scale-105 active:scale-95 ${
+                                                        session.status === 'Completed' 
+                                                            ? 'bg-emerald-500/10 text-emerald-600' 
+                                                            : session.status === 'Cancelled' || session.status === 'Missed'
+                                                            ? 'bg-rose-500/10 text-rose-600'
+                                                            : 'bg-primary/10 text-primary'
+                                                    }`}
+                                                >
+                                                    {session.status}
+                                                </button>
+                                                <Button variant="ghost" size="icon" className="rounded-full hover:bg-primary/5 text-primary" onClick={() => navigate("/sports-scientist/sessions")}>
+                                                    <ArrowRight className="w-5 h-5" />
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Performance Insights Sidebar */}
+                        <div className="space-y-6">
+                            <div className="glass-card rounded-[32px] p-8 space-y-6 shadow-sm border-none overflow-hidden relative">
+                                <div className="absolute top-0 right-0 p-4 opacity-10">
+                                    <TrendingUp className="w-32 h-32 -mr-16 -mt-16" />
+                                </div>
+                                <h3 className="font-black text-xs uppercase tracking-widest flex items-center gap-2">
+                                    <TrendingUp className="w-4 h-4 text-primary" /> Performance Insights
+                                </h3>
+                                
+                                <div className="space-y-6 relative z-10">
                                     <div className="flex justify-between items-end">
-                                        <span className="text-sm text-muted-foreground">Weekly Target</span>
-                                        <span className="text-xl font-bold">24 / 40</span>
+                                        <div className="space-y-1">
+                                            <p className="text-[10px] font-black uppercase text-muted-foreground/60 tracking-wider">Weekly Target</p>
+                                            <p className="text-3xl font-black">24 <span className="text-base text-muted-foreground/40 font-bold">/ 40</span></p>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="text-emerald-500 font-black text-sm">+20%</p>
+                                            <p className="text-[10px] font-bold text-muted-foreground/40">vs Last Week</p>
+                                        </div>
                                     </div>
-                                    <div className="w-full h-3 bg-muted rounded-full overflow-hidden">
-                                        <div className="h-full bg-primary w-[60%] rounded-full shadow-[0_0_8px_rgba(var(--primary-rgb),0.5)]" />
+                                    
+                                    <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden">
+                                        <div className="h-full bg-primary w-[60%] rounded-full shadow-[0_0_15px_rgba(var(--primary-rgb),0.3)] animate-in slide-in-from-left duration-1000" />
                                     </div>
-                                    <p className="text-xs text-muted-foreground leading-relaxed italic">
-                                        "You are on track to meet your weekly training load target. Group sessions are up by 20% helping with org efficiency."
+                                    
+                                    <p className="text-xs font-bold text-slate-500 leading-relaxed italic">
+                                        "You are on track to meet your weekly training load target. Compliance is scaling well with the new group templates."
                                     </p>
-                                    <Button className="w-full bg-muted hover:bg-muted/80 text-foreground border-none rounded-xl font-bold" onClick={() => navigate("/sports-scientist/analytics")}>
+                                    
+                                    <Button className="w-full h-12 bg-white hover:bg-slate-50 text-foreground border shadow-sm rounded-2xl font-black text-[11px] uppercase tracking-widest" onClick={() => navigate("/sports-scientist/analytics")}>
                                         Deep Dive Analytics
                                     </Button>
                                 </div>
-                            </CardContent>
-                        </Card>
+                            </div>
 
-                        <div className="grid grid-cols-2 gap-4">
-                            <Button variant="outline" className="h-24 flex flex-col gap-2 rounded-2xl border-dashed" onClick={() => navigate("/sports-scientist/clients")}>
-                                <Users className="w-6 h-6 text-primary" />
-                                <span className="text-xs font-bold uppercase">My Clients</span>
-                            </Button>
-                            <Button variant="outline" className="h-24 flex flex-col gap-2 rounded-2xl border-dashed" onClick={() => navigate("/sports-scientist/schedule")}>
-                                <Calendar className="w-6 h-6 text-primary" />
-                                <span className="text-xs font-bold uppercase">Schedule</span>
-                            </Button>
+                            <div className="grid grid-cols-2 gap-4">
+                                <QuickActionButton 
+                                    label="My Clients" 
+                                    icon={Users} 
+                                    onClick={() => navigate("/sports-scientist/clients")} 
+                                />
+                                <QuickActionButton 
+                                    label="Schedule" 
+                                    icon={Calendar} 
+                                    onClick={() => navigate("/sports-scientist/schedule")} 
+                                />
+                            </div>
                         </div>
                     </div>
-                </div>
+                </main>
             </div>
 
             <SportsScientistBookSessionModal
@@ -265,5 +268,35 @@ export default function SportsScientistDashboard() {
                 onSuccess={refetch}
             />
         </DashboardLayout>
+    );
+}
+
+function KPICard({ title, value, description, icon: Icon, color = "text-primary" }: { title: string, value: any, description: string, icon: LucideIcon, color?: string }) {
+    return (
+        <div className="bg-white rounded-[32px] p-6 shadow-sm border border-slate-100 group hover:border-primary/20 transition-all hover:shadow-md">
+            <div className="flex justify-between items-start mb-4">
+                <div className={cn("p-3 rounded-2xl bg-slate-50 border border-slate-100 group-hover:bg-primary/5 transition-colors", color.replace('text', 'bg-opacity-10 text'))}>
+                    <Icon className={cn("w-6 h-6", color)} />
+                </div>
+            </div>
+            <div className="space-y-1">
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60">{title}</p>
+                <h3 className="text-3xl font-black tabular-nums">{value}</h3>
+                <p className="text-[10px] font-bold text-muted-foreground/40 italic">{description}</p>
+            </div>
+        </div>
+    );
+}
+
+function QuickActionButton({ label, icon: Icon, onClick }: { label: string, icon: LucideIcon, onClick: () => void }) {
+    return (
+        <Button 
+            variant="ghost" 
+            className="h-28 flex flex-col gap-3 rounded-[24px] border-2 border-dashed border-slate-200 hover:border-primary/30 hover:bg-primary/5 hover:text-primary transition-all group"
+            onClick={onClick}
+        >
+            <Icon className="w-7 h-7 text-muted-foreground group-hover:text-primary transition-colors" />
+            <span className="text-[10px] font-black uppercase tracking-widest">{label}</span>
+        </Button>
     );
 }

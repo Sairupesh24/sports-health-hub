@@ -9,6 +9,7 @@ import {
   Activity,
   CreditCard,
   Settings,
+  Target,
   LogOut,
   ChevronLeft,
   ChevronRight,
@@ -34,7 +35,6 @@ const adminNav: NavItem[] = [
   { label: "Calendar", icon: CalendarDays, href: "/admin/calendar" },
   { label: "Reports", icon: ClipboardList, href: "/admin/reports" },
   { label: "Programs", icon: Dumbbell, href: "/admin/programs", isUnderDevelopment: true },
-  { label: "Performance", icon: Activity, href: "/admin/performance", isUnderDevelopment: true },
   { label: "Billing", icon: CreditCard, href: "/admin/billing" },
   { label: "Settings", icon: Settings, href: "/admin/settings", isUnderDevelopment: true },
   { label: "User Approval", icon: UserCheck, href: "/admin/users" },
@@ -47,6 +47,7 @@ const consultantNav: NavItem[] = [
   { label: "Availability", icon: Clock, href: "/consultant/availability" },
   { label: "Reports", icon: ClipboardList, href: "/consultant/reports" },
   { label: "Programs", icon: Dumbbell, href: "/consultant/programs" },
+  { label: "Performance", icon: Activity, href: "/consultant/performance", isUnderDevelopment: true },
 ];
 
 const clientNav: NavItem[] = [
@@ -87,6 +88,15 @@ const superAdminNav: NavItem[] = [
   { label: "Settings", icon: Settings, href: "/super-admin/settings" },
 ];
 
+const athleteNav: NavItem[] = [
+  { label: "Dashboard", icon: LayoutDashboard, href: "/ams/athlete-portal" },
+  { label: "Performance", icon: Activity, href: "/client/performance" },
+  { label: "Book Session", icon: CalendarPlus, href: "/client/book" },
+  { label: "Appointments", icon: Calendar, href: "/client/appointments" },
+  { label: "My Reports", icon: ClipboardList, href: "/client/reports" },
+  { label: "Billing", icon: CreditCard, href: "/client/billing" },
+];
+
 const navMap: Record<string, NavItem[]> = {
   super_admin: superAdminNav,
   admin: adminNav,
@@ -95,6 +105,7 @@ const navMap: Record<string, NavItem[]> = {
   foe: foeNav,
   sports_scientist: sportsScientistNav,
   manager: managerNav,
+  athlete: athleteNav,
 };
 
 interface AppSidebarProps {
@@ -108,9 +119,21 @@ export default function AppSidebar({ role, isMobile, className, onNavigate }: Ap
   const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
-  const { signOut } = useAuth();
+  const { signOut, profile } = useAuth();
   const { toast } = useToast();
-  const items = navMap[role] || adminNav;
+  
+  let items = navMap[role] || adminNav;
+
+
+  if (role === "sports_scientist" || profile?.ams_role === "coach") {
+    if (!items.find(i => i.label === "AMS Dashboard")) {
+      items = [
+        ...items,
+        { label: "AMS Dashboard", icon: LayoutDashboard, href: "/ams/coach-dashboard" },
+        { label: "Batch Testing", icon: Target, href: "/ams/batch-tests" }
+      ];
+    }
+  }
 
   return (
     <aside

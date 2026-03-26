@@ -32,7 +32,12 @@ export default function ProtectedRoute({ children, requiredRole }: ProtectedRout
 
   if (requiredRole) {
     const rolesArray = Array.isArray(requiredRole) ? requiredRole : [requiredRole];
-    const hasRole = rolesArray.some((role) => roles.includes(role));
+    let hasRole = rolesArray.some((role) => roles.includes(role));
+
+    // Athlete and Client are interchangeable for access to client-facing routes
+    if (!hasRole && roles.includes("athlete") && rolesArray.includes("client")) {
+      hasRole = true;
+    }
 
     if (!hasRole) {
       if (roles.includes("super_admin")) return <Navigate to="/super-admin" replace />;
@@ -42,6 +47,7 @@ export default function ProtectedRoute({ children, requiredRole }: ProtectedRout
       if (roles.includes("consultant")) return <Navigate to="/consultant" replace />;
       if (roles.includes("foe")) return <Navigate to="/admin/calendar" replace />;
       if (roles.includes("client")) return <Navigate to="/client" replace />;
+      if (roles.includes("athlete")) return <Navigate to="/client" replace />;
       
       // If approved but no recognized role yet, or wrong role for route
       if (isApproved) {

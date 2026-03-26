@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import PerformanceSnapshot from "./PerformanceSnapshot";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,7 +15,7 @@ import { format } from "date-fns";
 interface SOAPNoteModalProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
-    session: any; // The session object to attach the SOAP note to
+    session: any;
     clientId: string;
     onSuccess: () => void;
 }
@@ -39,18 +40,17 @@ export default function SOAPNoteModal({ open, onOpenChange, session, clientId, o
     const [clinicalNotes, setClinicalNotes] = useState("");
     const [nextPlan, setNextPlan] = useState("");
 
-    const isCompleted = session?.physio_session_details && (
+    const isCompleted = (session?.physio_session_details && (
         Array.isArray(session.physio_session_details)
             ? session.physio_session_details.length > 0
             : Object.keys(session.physio_session_details).length > 0
-    ) || session?.status === 'Completed';
+    )) || session?.status === 'Completed';
 
     const isUnentitled = session?.is_unentitled === true;
     const isFutureSession = session?.scheduled_start ? new Date(session.scheduled_start) > new Date() : false;
     const isCancelled = session?.status === 'Cancelled';
     const canEnterNotes = !isFutureSession && !isCancelled;
 
-    // Load existing data if edit mode
     useEffect(() => {
         if (open && session) {
             if (isCompleted) {
@@ -67,7 +67,6 @@ export default function SOAPNoteModal({ open, onOpenChange, session, clientId, o
                 setClinicalNotes(data.clinical_notes || "");
                 setNextPlan(data.next_plan || "");
             } else {
-                // Reset for new
                 setPainScore(0);
                 setSelectedModalities([]);
                 setTreatmentType("");
@@ -81,7 +80,6 @@ export default function SOAPNoteModal({ open, onOpenChange, session, clientId, o
         }
     }, [open, session, isCompleted]);
 
-    // Fetch entitlement balance for Planned sessions
     useEffect(() => {
         if (!open || !session?.id || session.status !== "Planned") {
             setRemainingSessions(null);
@@ -103,41 +101,30 @@ export default function SOAPNoteModal({ open, onOpenChange, session, clientId, o
                 setBalanceLoading(false);
             }
         };
-
         fetchBalance();
     }, [open, session?.id, session?.status, clientId, session?.service_type]);
 
     const handleModalityToggle = (modality: string) => {
         setSelectedModalities(prev => {
-            if (modality === "NONE") return ["NONE"]; // If NONE is selected, clear others
-
+            if (modality === "NONE") return ["NONE"];
             const withoutNone = prev.filter(m => m !== "NONE");
-            if (withoutNone.includes(modality)) {
-                return withoutNone.filter(m => m !== modality);
-            } else {
-                return [...withoutNone, modality];
-            }
+            return withoutNone.includes(modality) ? withoutNone.filter(m => m !== modality) : [...withoutNone, modality];
         });
     };
 
     const handleCopyPrevious = async () => {
         try {
             setFetchingPrevious(true);
-            // Find the most recent session WITH a SOAP note for this client
             const { data, error } = await supabase
                 .from("physio_session_details")
-                .select(`
-                *,
-                sessions!inner(client_id, scheduled_start)
-            `)
+                .select(`*, sessions!inner(client_id, scheduled_start)`)
                 .eq("sessions.client_id", clientId)
                 .lt("sessions.scheduled_start", session.scheduled_start)
                 .order("sessions.scheduled_start" as any, { ascending: false })
                 .limit(1);
 
             if (error) throw error;
-
-            if (data && data.length > 0) {
+            if (data?.length) {
                 const prev = data[0];
                 setPainScore(prev.pain_score || 0);
                 setSelectedModalities(prev.modality_used ? prev.modality_used.split(',').map((s: string) => s.trim()) : []);
@@ -150,7 +137,7 @@ export default function SOAPNoteModal({ open, onOpenChange, session, clientId, o
                 setNextPlan(prev.next_plan || "");
                 toast({ title: "Copied", description: "Copied data from previous session." });
             } else {
-                toast({ title: "No Previous Note", description: "No previous SOAP notes found for this client.", variant: "destructive" });
+                toast({ title: "No Previous Note", description: "No previous SOAP notes found.", variant: "destructive" });
             }
         } catch (error: any) {
             toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -165,7 +152,6 @@ export default function SOAPNoteModal({ open, onOpenChange, session, clientId, o
 
         try {
             setLoading(true);
-
             const payload = {
                 session_id: session.id,
                 pain_score: painScore,
@@ -181,35 +167,28 @@ export default function SOAPNoteModal({ open, onOpenChange, session, clientId, o
 
             let error;
             if (isCompleted) {
-                // Update
                 const res = await supabase.from('physio_session_details').update(payload).eq('session_id', session.id);
                 error = res.error;
             } else {
-                // Insert
                 const res = await supabase.from('physio_session_details').insert(payload);
                 error = res.error;
 
-                // Mark session as completed
                 if (!error) {
-                    const { error: timesError } = await supabase.from('sessions').update({
+                    await supabase.from('sessions').update({
                         actual_start: new Date().toISOString(),
-                        actual_end: new Date().toISOString()
+                        actual_end: new Date().toISOString(),
+                        status: 'Completed'
                     }).eq('id', session.id);
-                    
-                    if (timesError) throw timesError;
 
                     const { data: { user } } = await supabase.auth.getUser();
-                    const { error: rpcError } = await supabase.rpc('complete_session', {
+                    await supabase.rpc('complete_session', {
                         p_session_id: session.id,
                         p_user_id: user?.id
                     });
-                    
-                    if (rpcError) throw new Error(rpcError.message || "Failed to consume session entitlement");
                 }
             }
 
             if (error) throw error;
-
             toast({ title: "Success", description: "SOAP note saved successfully." });
             onOpenChange(false);
             onSuccess();
@@ -230,7 +209,7 @@ export default function SOAPNoteModal({ open, onOpenChange, session, clientId, o
                 p_user_id: user?.id
             });
             if (error) throw new Error(error.message);
-            toast({ title: "✅ Reconciled", description: "Session entitlement has been deducted and the un-entitled flag cleared." });
+            toast({ title: "✅ Reconciled", description: "Entitlement deducted successfully." });
             onSuccess();
             onOpenChange(false);
         } catch (error: any) {
@@ -244,185 +223,151 @@ export default function SOAPNoteModal({ open, onOpenChange, session, clientId, o
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
-                <DialogHeader className="flex flex-row items-center justify-between">
+            <DialogContent className="sm:max-w-[90vw] lg:max-w-[1200px] max-h-[95vh] overflow-y-auto overflow-x-hidden">
+                <DialogHeader className="flex flex-row items-center justify-between border-b pb-4">
                     <div className="flex flex-col gap-1">
-                        <DialogTitle className="flex items-center gap-2">
-                            SOAP Note - {format(new Date(session.scheduled_start), "MMM d, yyyy")}
+                        <DialogTitle className="flex items-center gap-2 text-xl font-display">
+                            SOAP Note — {format(new Date(session.scheduled_start), "MMM d, yyyy")}
                             {isUnentitled && (
                                 <span className="ml-2 px-2 py-0.5 rounded bg-red-100 text-red-700 text-xs font-bold border border-red-300 flex items-center gap-1">
                                     <AlertTriangle className="w-3 h-3" /> UN-ENTITLED
                                 </span>
                             )}
                         </DialogTitle>
-                        <p className="text-xs text-muted-foreground">Client: {session.client?.first_name} {session.client?.last_name}</p>
+                        <p className="text-sm text-muted-foreground">Athlete: <span className="font-semibold text-foreground">{session.client?.first_name} {session.client?.last_name}</span></p>
                     </div>
                     {!isCompleted && (
                         <Button variant="outline" size="sm" onClick={handleCopyPrevious} disabled={fetchingPrevious} className="mr-8">
                             <Copy className="w-4 h-4 mr-2" />
-                            Same as before
+                            Copy Previous
                         </Button>
                     )}
                 </DialogHeader>
 
-                <div className="space-y-4 pt-4">
-                    {/* Future session entitlement warning */}
-                    {session.status === "Planned" && !balanceLoading && remainingSessions === 0 && (
-                        <div className="flex items-start gap-2 rounded-md border border-orange-300 bg-orange-50 p-3 text-sm text-orange-800 animate-in fade-in duration-300">
-                            <span className="text-base text-orange-500 font-bold">⚠</span>
-                            <span>
-                                <strong>No Entitlements Remaining:</strong> This client has no sessions left for {session.service_type || "this service"}. 
-                                Completing this session will mark it as <strong>Un-entitled</strong> unless a new package is purchased.
-                            </span>
-                        </div>
-                    )}
-
-                    {/* Future session guard */}
-                    {isFutureSession && (
-                        <div className="flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-800 animate-in fade-in duration-300">
-                            <span className="text-base text-amber-500 font-bold">⚠</span>
-                            <span>
-                                <strong>Early Entry Prohibited:</strong> You cannot enter SOAP notes before the scheduled session time (<strong>{format(new Date(session.scheduled_start), "MMM d, yyyy h:mm a")}</strong>).
-                            </span>
-                        </div>
-                    )}
-
-                    {/* Cancelled session guard */}
-                    {isCancelled && (
-                        <div className="flex items-start gap-2 rounded-md border border-red-300 bg-red-50 p-3 text-sm text-red-800 animate-in fade-in duration-300">
-                            <span className="text-base text-red-500 font-bold">🚫</span>
-                            <span>
-                                <strong>Cancelled Session:</strong> SOAP notes cannot be entered for a cancelled session.
-                            </span>
-                        </div>
-                    )}
-
-                    {/* UN-ENTITLED Banner with Reconcile */}
-                    {isUnentitled && (
-                        <div className="rounded-lg border border-red-300 bg-red-50 p-4 space-y-3 animate-in fade-in duration-300">
-                            <div className="flex items-center gap-2 text-red-700">
-                                <AlertTriangle className="w-5 h-5 flex-shrink-0" />
+                <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 pt-6">
+                    {/* Main Entry Area */}
+                    <div className="lg:col-span-3 space-y-6">
+                        {/* Status Banners */}
+                        {session.status === "Planned" && !balanceLoading && remainingSessions === 0 && (
+                            <div className="flex items-start gap-3 rounded-xl border border-orange-200 bg-orange-50 p-4 text-sm text-orange-800 shadow-sm">
+                                <AlertTriangle className="w-5 h-5 text-orange-500 shrink-0" />
                                 <div>
-                                    <p className="font-semibold text-sm">Un-entitled Session</p>
-                                    <p className="text-xs text-red-600 mt-0.5">This session was completed without consuming an entitlement. The client had no active package at the time.</p>
+                                    <p className="font-bold">No Entitlements Remaining</p>
+                                    <p className="text-xs opacity-90 text-orange-700">This session will be marked as Un-entitled upon completion.</p>
                                 </div>
                             </div>
-                            <Button
-                                size="sm"
-                                variant="outline"
-                                className="w-full border-red-400 text-red-700 hover:bg-red-100 text-xs font-semibold"
-                                onClick={handleReconcile}
-                                disabled={reconciling}
-                            >
-                                {reconciling
-                                    ? <><Loader2 className="w-3 h-3 mr-1 animate-spin" /> Reconciling...</>
-                                    : <><RefreshCw className="w-3 h-3 mr-1" /> Reconcile — Client Has Paid</>
-                                }
-                            </Button>
-                        </div>
-                    )}
-                </div>
-
-                <form onSubmit={handleSubmit} className="space-y-6 pt-4">
-
-                    {/* Subjective */}
-                    <div className="space-y-4 rounded-lg border p-4 bg-muted/10">
-                        <h3 className="font-semibold text-sm uppercase tracking-wider text-muted-foreground">Subjective</h3>
-
-                        <div className="space-y-4">
-                            <div className="flex justify-between">
-                                <Label>Pain Score (0-10): <span className="font-bold text-primary ml-2">{painScore}</span></Label>
-                            </div>
-                            <Slider
-                                value={[painScore]}
-                                onValueChange={(val) => setPainScore(val[0])}
-                                max={10}
-                                step={1}
-                            />
-                        </div>
-
-                        <div className="space-y-2">
-                            <Label>Patient Feedback / Subjective Notes</Label>
-                            <Textarea
-                                value={clinicalNotes}
-                                onChange={e => setClinicalNotes(e.target.value)}
-                                placeholder="How is the patient feeling since last session?"
-                                rows={2}
-                            />
-                        </div>
-                    </div>
-
-                    {/* Objective */}
-                    <div className="space-y-4 rounded-lg border p-4 bg-muted/10">
-                        <h3 className="font-semibold text-sm uppercase tracking-wider text-muted-foreground">Objective & Treatment</h3>
-
-                        <div className="space-y-3">
-                            <Label>Modalities Used</Label>
-                            <div className="flex flex-wrap gap-3">
-                                {MODALITIES.map(modality => (
-                                    <div key={modality} className="flex items-center space-x-2 border rounded-md px-3 py-2 bg-card">
-                                        <Checkbox
-                                            id={`mod-${modality}`}
-                                            checked={selectedModalities.includes(modality)}
-                                            onCheckedChange={() => handleModalityToggle(modality)}
-                                        />
-                                        <label htmlFor={`mod-${modality}`} className="text-sm font-medium leading-none cursor-pointer">
-                                            {modality}
-                                        </label>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <Label>Treatment Type</Label>
-                                <Input value={treatmentType} onChange={e => setTreatmentType(e.target.value)} placeholder="e.g. Laser Therapy" list="treatment-types" />
-                                <datalist id="treatment-types">
-                                    <option value="Consultation" />
-                                    <option value="Physiotherapy" />
-                                    <option value="Device Assessment" />
-                                    <option value="Taping" />
-                                </datalist>
-                            </div>
-                            <div className="space-y-2">
-                                <Label>Manual Therapy</Label>
-                                <Input value={manualTherapy} onChange={e => setManualTherapy(e.target.value)} placeholder="e.g. Soft tissue mobilization" />
-                            </div>
-                            <div className="space-y-2">
-                                <Label>Range of Motion</Label>
-                                <Input value={rangeOfMotion} onChange={e => setRangeOfMotion(e.target.value)} placeholder="e.g. 90deg flexion" />
-                            </div>
-                            <div className="space-y-2">
-                                <Label>Strength Progress</Label>
-                                <Input value={strengthProgress} onChange={e => setStrengthProgress(e.target.value)} placeholder="e.g. 4/5 quad strength" />
-                            </div>
-                        </div>
-
-                        <div className="space-y-2">
-                            <Label>Exercise Given</Label>
-                            <Textarea value={exerciseGiven} onChange={e => setExerciseGiven(e.target.value)} placeholder="Describe exercises performed or prescribed..." rows={2} />
-                        </div>
-                    </div>
-
-                    {/* Plan */}
-                    <div className="space-y-4 rounded-lg border p-4 bg-muted/10">
-                        <h3 className="font-semibold text-sm uppercase tracking-wider text-muted-foreground">Plan</h3>
-                        <div className="space-y-2">
-                            <Label>Next Steps</Label>
-                            <Textarea value={nextPlan} onChange={e => setNextPlan(e.target.value)} placeholder="Progress to Phase 2, increase load..." rows={2} />
-                        </div>
-                    </div>
-
-                    <div className="flex justify-end gap-3 pt-2">
-                        <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-                        {canEnterNotes && (
-                            <Button type="submit" disabled={loading}>
-                                {loading ? "Saving..." : <><Save className="w-4 h-4 mr-2" /> {isCompleted ? "Update Note" : "Save Note"}</>}
-                            </Button>
                         )}
+
+                        {isFutureSession && (
+                            <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800 shadow-sm">
+                                <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0" />
+                                <div>
+                                    <p className="font-bold">Early Entry Guard</p>
+                                    <p className="text-xs opacity-90">Notes cannot be finalized before the scheduled session time.</p>
+                                </div>
+                            </div>
+                        )}
+
+                        {isUnentitled && (
+                            <div className="rounded-xl border border-red-200 bg-red-50 p-4 space-y-3 shadow-sm">
+                                <div className="flex items-center gap-3">
+                                    <AlertTriangle className="w-5 h-5 text-red-600 shrink-0" />
+                                    <p className="font-bold text-red-800">Un-entitled Session Detected</p>
+                                </div>
+                                <Button size="sm" variant="outline" className="w-full bg-white border-red-300 text-red-700 hover:bg-red-50" onClick={handleReconcile} disabled={reconciling}>
+                                    {reconciling ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <RefreshCw className="w-4 h-4 mr-2" />} 
+                                    Reconcile with New Package
+                                </Button>
+                            </div>
+                        )}
+
+                        <form onSubmit={handleSubmit} className="space-y-8 pb-8">
+                            {/* Subjective Section */}
+                            <div className="space-y-6 rounded-2xl border bg-card p-6 shadow-sm">
+                                <div className="flex items-center gap-2 border-b pb-4">
+                                    <div className="w-1 h-4 bg-primary rounded-full" />
+                                    <h3 className="font-bold text-base uppercase tracking-wider text-foreground">Subjective</h3>
+                                </div>
+                                <div className="space-y-6">
+                                    <div className="space-y-4">
+                                        <div className="flex justify-between items-end">
+                                            <Label className="text-sm font-semibold">Pain Intensity</Label>
+                                            <span className="text-2xl font-black text-primary font-display">{painScore}<span className="text-xs text-muted-foreground font-normal ml-1">/ 10</span></span>
+                                        </div>
+                                        <Slider value={[painScore]} onValueChange={(val) => setPainScore(val[0])} max={10} step={1} className="py-2" />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label className="text-sm font-semibold">Subjective Notes / Patient Feedback</Label>
+                                        <Textarea value={clinicalNotes} onChange={e => setClinicalNotes(e.target.value)} placeholder="How is the patient feeling?" className="min-h-[100px] bg-muted/20" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Objective & Treatment Section */}
+                            <div className="space-y-6 rounded-2xl border bg-card p-6 shadow-sm">
+                                <div className="flex items-center gap-2 border-b pb-4">
+                                    <div className="w-1 h-4 bg-primary rounded-full" />
+                                    <h3 className="font-bold text-base uppercase tracking-wider text-foreground">Objective & Treatment</h3>
+                                </div>
+                                <div className="space-y-6">
+                                    <div className="space-y-3">
+                                        <Label className="text-sm font-semibold">Clinical Modallities</Label>
+                                        <div className="flex flex-wrap gap-2">
+                                            {MODALITIES.map(m => (
+                                                <Button key={m} type="button" variant={selectedModalities.includes(m) ? "default" : "outline"} size="sm" className="h-8 text-[11px] font-bold" onClick={() => handleModalityToggle(m)}>
+                                                    {m}
+                                                </Button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div className="space-y-2"><Label>Primary Treatment</Label><Input value={treatmentType} onChange={e => setTreatmentType(e.target.value)} placeholder="e.g. Laser, TENS" /></div>
+                                        <div className="space-y-2"><Label>Manual Therapy</Label><Input value={manualTherapy} onChange={e => setManualTherapy(e.target.value)} placeholder="e.g. Myofascial Release" /></div>
+                                        <div className="space-y-2"><Label>Range of Motion</Label><Input value={rangeOfMotion} onChange={e => setRangeOfMotion(e.target.value)} placeholder="e.g. Flexion 100°" /></div>
+                                        <div className="space-y-2"><Label>Strength Status</Label><Input value={strengthProgress} onChange={e => setStrengthProgress(e.target.value)} placeholder="e.g. 4/5 MMT" /></div>
+                                    </div>
+                                    <div className="space-y-2"><Label>Exercise / Rehabilitation Given</Label><Textarea value={exerciseGiven} onChange={e => setExerciseGiven(e.target.value)} placeholder="List exercises and parameters..." className="bg-muted/20" /></div>
+                                </div>
+                            </div>
+
+                            {/* Plan Section */}
+                            <div className="space-y-6 rounded-2xl border bg-card p-6 shadow-sm">
+                                <div className="flex items-center gap-2 border-b pb-4">
+                                    <div className="w-1 h-4 bg-primary rounded-full" />
+                                    <h3 className="font-bold text-base uppercase tracking-wider text-foreground">Next Plan</h3>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label className="text-sm font-semibold">Rehabilitation Plan</Label>
+                                    <Textarea value={nextPlan} onChange={e => setNextPlan(e.target.value)} placeholder="Next session goals..." className="bg-muted/20" />
+                                </div>
+                            </div>
+
+                            <div className="flex justify-end gap-4 pt-4 sticky bottom-0 bg-background/80 backdrop-blur-sm border-t p-4 -mx-6 rounded-b-2xl">
+                                <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>Discard</Button>
+                                {canEnterNotes && (
+                                    <Button type="submit" disabled={loading} className="min-w-[140px] shadow-lg shadow-primary/20">
+                                        {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
+                                        {isCompleted ? "Update Record" : "Finalize SOAP Note"}
+                                    </Button>
+                                )}
+                            </div>
+                        </form>
                     </div>
-                </form>
+
+                    {/* Sidebar Area */}
+                    <div className="lg:col-span-1 space-y-6">
+                        <PerformanceSnapshot clientId={clientId} />
+                        
+                        <div className="p-5 rounded-2xl border border-primary/10 bg-primary/5 space-y-4 shadow-sm">
+                            <h4 className="text-[10px] font-black text-primary uppercase tracking-[0.2em] mb-2">Internal Context</h4>
+                            <div className="space-y-3 text-sm">
+                                <div className="flex flex-col"><span className="text-[10px] text-muted-foreground uppercase font-bold">Service Type</span><span className="font-semibold text-foreground">{session.service_type}</span></div>
+                                <div className="flex flex-col"><span className="text-[10px] text-muted-foreground uppercase font-bold">Scheduled At</span><span className="font-semibold text-foreground">{format(new Date(session.scheduled_start), "MMM d, h:mm a")}</span></div>
+                                <div className="flex flex-col"><span className="text-[10px] text-muted-foreground uppercase font-bold">Consultant</span><span className="font-semibold text-foreground">Dr. {session.therapist?.last_name || "TBD"}</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </DialogContent>
         </Dialog>
     );

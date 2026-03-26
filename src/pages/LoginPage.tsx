@@ -55,6 +55,7 @@ export default function LoginPage() {
       else if (userRoles.includes("consultant")) navigate("/consultant");
       else if (userRoles.includes("foe")) navigate("/admin/calendar");
       else if (userRoles.includes("client")) navigate("/client");
+      else if (userRoles.includes("athlete")) navigate("/client");
       else navigate("/");
 
     } catch (err: any) {

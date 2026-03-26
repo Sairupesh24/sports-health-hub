@@ -40,7 +40,7 @@ export default function MyProfile() {
             setAvatarUrl(profile.avatar_url || "");
 
             // If they are a client/patient, fetch their expanded record
-            if (roles.includes("client") || roles.includes("Patient")) {
+            if (roles.includes("client") || roles.includes("athlete") || roles.includes("Patient")) {
                 setIsClient(true);
                 fetchClientDetails();
             } else {
@@ -190,6 +190,7 @@ export default function MyProfile() {
     else if (roles.includes("admin")) displayRole = "Administrator";
     else if (roles.includes("consultant")) displayRole = "Consultant";
     else if (roles.includes("client")) displayRole = "Client";
+    else if (roles.includes("athlete")) displayRole = "Athlete";
 
     return (
         <DashboardLayout role={roles[0] || "client"}>

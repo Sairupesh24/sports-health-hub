@@ -22,6 +22,7 @@ interface PendingUser {
   created_at: string;
   current_role?: string;
   uhid?: string;
+  ams_role?: string | null;
 }
 
 export default function UserApproval() {
@@ -44,7 +45,6 @@ export default function UserApproval() {
     );
   });
 
-  // New user state
   const [addUserOpen, setAddUserOpen] = useState(false);
   const [newEmail, setNewEmail] = useState("");
   const [newFirst, setNewFirst] = useState("");
@@ -54,15 +54,14 @@ export default function UserApproval() {
   const [isAdding, setIsAdding] = useState(false);
   const [generatedCreds, setGeneratedCreds] = useState<{ email: string, password: string } | null>(null);
 
-  // State for pop-up when client role is assigned
   const [pendingAction, setPendingAction] = useState<{ type: "change_role" | "approve", userId: string, role: string } | null>(null);
   const [pendingActionUhid, setPendingActionUhid] = useState("");
+  const [pendingActionAmsRole, setPendingActionAmsRole] = useState<string>("none");
 
   const fetchUsers = async () => {
     if (!profile?.organization_id) return;
 
     try {
-      // Fetch profiles
       const { data: profiles, error: profilesError } = await supabase
         .from("profiles")
         .select("*")
@@ -159,21 +158,25 @@ export default function UserApproval() {
     setNewUhid("");
   };
 
-  const approveUser = async (userId: string, providedUhid?: string) => {
-    const role = selectedRoles[userId];
+  const approveUser = async (userId: string, providedUhid?: string, amsRole?: string | null) => {
+    const role = pendingAction?.role || selectedRoles[userId];
     if (!role) {
       toast({ title: "Select a role", description: "Please assign a role before approving.", variant: "destructive" });
       return;
     }
 
     const uhid = providedUhid;
-    if (role === "client" && !uhid?.trim()) {
+    if ((role === "client" || role === "athlete") && !uhid?.trim()) {
       toast({ title: "UHID Required", description: "You must enter the client's UHID before approving their access.", variant: "destructive" });
       return;
     }
 
     try {
-      const profileUpdate: any = { is_approved: true };
+      const profileUpdate: any = { 
+        is_approved: true,
+        ams_role: amsRole !== undefined ? amsRole : null
+      };
+
       if (role === "client" && uhid?.trim()) {
         const cleanUhid = uhid.trim();
         const { data: clientCheck, error: checkError } = await supabase.from("clients").select("id").eq("uhid", cleanUhid).maybeSingle();
@@ -183,6 +186,10 @@ export default function UserApproval() {
           return;
         }
         profileUpdate.uhid = cleanUhid;
+      }
+      
+      if (role === "athlete" && !amsRole) {
+        profileUpdate.ams_role = "athlete";
       }
 
       const { error: profileError } = await supabase
@@ -209,34 +216,35 @@ export default function UserApproval() {
     }
   };
 
-  const changeUserRole = async (userId: string, newRole: string, providedUhid?: string) => {
+  const changeUserRole = async (userId: string, newRole: string, providedUhid?: string, amsRole?: string | null) => {
     const uhid = providedUhid;
-    if (newRole === "client" && !uhid?.trim()) {
-      toast({ title: "UHID Required", description: "You must supply a UHID before converting the user to a Client role.", variant: "destructive" });
+    if ((newRole === "client" || newRole === "athlete") && !uhid?.trim()) {
+      toast({ title: "UHID Required", description: "You must supply a UHID before converting the user to this role.", variant: "destructive" });
       return;
     }
 
     setSelectedRoles(prev => ({ ...prev, [userId]: newRole }));
 
     try {
+      const profileUpdate: any = {};
+      if (amsRole !== undefined) {
+        profileUpdate.ams_role = amsRole;
+      }
+
       if (newRole === "client" && uhid?.trim()) {
         const cleanUhid = uhid.trim();
         const { data: clientCheck, error: checkError } = await supabase.from("clients").select("id").eq("uhid", cleanUhid).maybeSingle();
         if (checkError) throw checkError;
         if (!clientCheck) {
           toast({ title: "Invalid UHID", description: "This UHID does not exist in your clinic's records.", variant: "destructive" });
-          // Revert optimistic role state update since it failed
-          setSelectedRoles(prev => {
-            const next = { ...prev };
-            // We don't have the old role easily stored here in this closure, 
-            // so we just trigger a fetchUsers to refresh to the truth
-            return next;
-          });
           fetchUsers();
           return;
         }
+        profileUpdate.uhid = cleanUhid;
+      }
 
-        const { error: profileError } = await supabase.from("profiles").update({ uhid: cleanUhid } as any).eq("id", userId);
+      if (Object.keys(profileUpdate).length > 0) {
+        const { error: profileError } = await supabase.from("profiles").update(profileUpdate).eq("id", userId);
         if (profileError) throw profileError;
       }
 
@@ -317,35 +325,40 @@ export default function UserApproval() {
   };
 
   const handleRoleSelect = (userId: string, newRole: string) => {
-    if (newRole === "client") {
-      setPendingAction({ type: "change_role", userId, role: newRole });
-      setPendingActionUhid("");
-    } else {
-      changeUserRole(userId, newRole);
-    }
+    // Open Dialog for AMS Role prompt
+    const currentUser = users.find(u => u.id === userId);
+    let defaultAmsRole = currentUser?.ams_role || "none";
+    if (newRole === "athlete") defaultAmsRole = "athlete";
+    setPendingActionAmsRole(defaultAmsRole);
+    setPendingAction({ type: "change_role", userId, role: newRole });
+    setPendingActionUhid(currentUser?.uhid || "");
   };
 
   const handleApproveClick = (userId: string) => {
     const role = selectedRoles[userId];
-    if (role === "client") {
-      setPendingAction({ type: "approve", userId, role });
-      setPendingActionUhid("");
-    } else {
-      approveUser(userId);
+    if (!role && !pendingAction?.role) {
+      toast({ title: "Select a role", description: "Please assign an initial role before approving.", variant: "destructive" });
+      return;
     }
+    const currentUser = users.find(u => u.id === userId);
+    setPendingActionAmsRole(currentUser?.ams_role || "none");
+    setPendingAction({ type: "approve", userId, role: role || pendingAction?.role || "client" });
+    setPendingActionUhid(currentUser?.uhid || "");
   };
 
   const confirmPendingAction = () => {
     if (!pendingAction) return;
-    if (!pendingActionUhid.trim()) {
-      toast({ title: "UHID Required", description: "You must enter a UHID to assign the Client role.", variant: "destructive" });
+    if ((pendingAction.role === "client" || pendingAction.role === "athlete") && !pendingActionUhid.trim()) {
+      toast({ title: "UHID Required", description: "You must enter a UHID to assign this role.", variant: "destructive" });
       return;
     }
 
+    const amsRole = pendingActionAmsRole === "none" ? null : pendingActionAmsRole;
+
     if (pendingAction.type === "change_role") {
-      changeUserRole(pendingAction.userId, pendingAction.role, pendingActionUhid);
+      changeUserRole(pendingAction.userId, pendingAction.role, pendingActionUhid, amsRole);
     } else {
-      approveUser(pendingAction.userId, pendingActionUhid);
+      approveUser(pendingAction.userId, pendingActionUhid, amsRole);
     }
 
     setPendingAction(null);
@@ -400,23 +413,39 @@ export default function UserApproval() {
               <Dialog open={!!pendingAction} onOpenChange={(open) => !open && setPendingAction(null)}>
                 <DialogContent>
                   <DialogHeader>
-                    <DialogTitle>Assign Client UHID</DialogTitle>
+                    <DialogTitle>{pendingAction?.type === 'approve' ? 'Approve User & Assign Roles' : 'Confirm Role Change'}</DialogTitle>
                     <DialogDescription>
-                      A Clinic Reference Number (UHID) is mandatory when linking a user to the Client role.
+                      Specify the core ISHPO system role and optionally assign an AMS functionality role.
                     </DialogDescription>
                   </DialogHeader>
                   <div className="space-y-4 pt-4">
+                    {(pendingAction?.role === "client" || pendingAction?.role === "athlete") && (
+                      <div className="space-y-2 animate-in fade-in zoom-in duration-200">
+                        <Label>Client UHID <span className="text-destructive">*</span></Label>
+                        <Input
+                          value={pendingActionUhid}
+                          onChange={e => setPendingActionUhid(e.target.value)}
+                          required
+                          placeholder="e.g. CSH03260001"
+                        />
+                      </div>
+                    )}
                     <div className="space-y-2">
-                      <Label>Client UHID <span className="text-destructive">*</span></Label>
-                      <Input
-                        value={pendingActionUhid}
-                        onChange={e => setPendingActionUhid(e.target.value)}
-                        required
-                        placeholder="e.g. CSH03260001"
-                      />
+                      <Label>AMS Role (Athlete Monitoring System)</Label>
+                      <Select value={pendingActionAmsRole} onValueChange={setPendingActionAmsRole}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select AMS Role" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">No AMS Access</SelectItem>
+                          <SelectItem value="coach">AMS Coach</SelectItem>
+                          <SelectItem value="athlete">AMS Athlete</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-muted-foreground">Select an AMS functional tier if this user requires tracking/coaching within the Athlete workflow.</p>
                     </div>
                     <Button onClick={confirmPendingAction} className="w-full">
-                      Confirm Selection
+                      Confirm Action
                     </Button>
                   </div>
                 </DialogContent>
@@ -480,10 +509,11 @@ export default function UserApproval() {
                             <SelectItem value="sports_scientist">Sports Scientist</SelectItem>
                             <SelectItem value="foe">Front Office Executive</SelectItem>
                             <SelectItem value="client">Client</SelectItem>
+                            <SelectItem value="athlete">Athlete</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
-                      {newRole === "client" && (
+                      {(newRole === "client" || newRole === "athlete") && (
                         <div className="space-y-2 animate-in fade-in zoom-in duration-200">
                           <Label>Client UHID <span className="text-destructive">*</span></Label>
                           <Input value={newUhid} onChange={e => setNewUhid(e.target.value)} required placeholder="e.g. CSH03260001" />
@@ -511,9 +541,16 @@ export default function UserApproval() {
                 {filteredUsers.map((u) => (
                   <div key={u.id} className="flex flex-col md:flex-row items-start md:items-center justify-between p-4 rounded-lg bg-muted/30 border border-border gap-4">
                     <div className="w-full md:w-auto">
-                      <p className="text-sm font-medium text-foreground">
-                        {u.first_name || u.last_name ? `${u.first_name} ${u.last_name}`.trim() : "No name provided"}
-                      </p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-medium text-foreground">
+                          {u.first_name || u.last_name ? `${u.first_name} ${u.last_name}`.trim() : "No name provided"}
+                        </p>
+                        {u.ams_role && (
+                          <Badge variant="outline" className="text-[10px] h-5 px-1.5 uppercase font-bold border-primary/50 text-primary">
+                            AMS {u.ams_role}
+                          </Badge>
+                        )}
+                      </div>
                       <p className="text-xs text-muted-foreground break-all">{u.email}</p>
                     </div>
 
@@ -545,6 +582,7 @@ export default function UserApproval() {
                                 <SelectItem value="sports_scientist">Sports Scientist</SelectItem>
                                 <SelectItem value="foe">Front Office Executive</SelectItem>
                                 <SelectItem value="client">Client</SelectItem>
+                                <SelectItem value="athlete">Athlete</SelectItem>
                               </SelectContent>
                             </Select>
                           </div>
@@ -582,6 +620,7 @@ export default function UserApproval() {
                                 <SelectItem value="sports_scientist">Sports Scientist</SelectItem>
                                 <SelectItem value="foe">Front Office Executive</SelectItem>
                                 <SelectItem value="client">Client</SelectItem>
+                                <SelectItem value="athlete">Athlete</SelectItem>
                               </SelectContent>
                             </Select>
                           </div>

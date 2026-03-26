@@ -12,6 +12,7 @@ interface Profile {
   organization_id: string | null;
   is_approved: boolean;
   uhid: string | null;
+  ams_role?: "coach" | "athlete" | null;
 }
 
 interface AuthContextType {
@@ -50,13 +51,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .select("*")
       .eq("id", userId)
       .single();
-    
+
     setProfile(profileData as any);
-    
+
     if (profileData) {
       const p = profileData as any;
       let cId = null;
-      
+
       if (p.uhid) {
         const { data: clientByUhid } = await supabase
           .from("clients")
@@ -65,7 +66,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           .maybeSingle();
         cId = clientByUhid?.id;
       }
-      
+
       if (!cId && p.email && p.organization_id) {
         const { data: clientByEmail } = await supabase
           .from("clients")
@@ -75,7 +76,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           .maybeSingle();
         cId = clientByEmail?.id;
       }
-      setClientId(cId);
+      setClientId(cId ?? null);
     }
   };
 
@@ -88,12 +89,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
+    // Single hydration path — onAuthStateChange fires INITIAL_SESSION on mount
+    // with the persisted session, so we don't need a separate getSession() call.
+    // Having both caused a race where loading was set to false before
+    // profile/roles were fetched, flashing the user back to /login.
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
+
         if (session?.user) {
-          // Use setTimeout to avoid Supabase auth deadlock
+          // setTimeout avoids Supabase internal deadlock on nested auth calls
           setTimeout(async () => {
             try {
               await fetchProfileAndClient(session.user.id);
@@ -104,23 +110,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }, 0);
         } else {
           setProfile(null);
+          setClientId(null);
           setRoles([]);
           setLoading(false);
         }
       }
     );
-
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        fetchProfileAndClient(session.user.id).then(() =>
-          fetchRoles(session.user.id).then(() => setLoading(false))
-        );
-      } else {
-        setLoading(false);
-      }
-    });
 
     return () => subscription.unsubscribe();
   }, []);
@@ -130,6 +125,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setSession(null);
     setUser(null);
     setProfile(null);
+    setClientId(null);
     setRoles([]);
   };
 

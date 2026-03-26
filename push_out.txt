@@ -1,0 +1,22 @@
+﻿node.exe : Initialising login role...
+At line:1 char:1
++ & "C:\Program Files\nodejs/node.exe" 
+"C:\Program Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecifie 
+   d: (Initialising login role...:String  
+  ) [], RemoteException
+    + FullyQualifiedErrorId : NativeComma 
+   ndError
+ 
+Connecting to remote database...
+Found local migration files to be 
+inserted before the last migration on 
+remote database.
+
+Rerun the command with --include-all flag 
+to apply these migrations:
+supabase\migrations\20260324093514_ams_sch
+ema.sql
+

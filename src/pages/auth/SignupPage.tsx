@@ -135,6 +135,7 @@ export default function SignupPage() {
               <option value="admin">S&C Coach / Administrator</option>
               <option value="foe">Front Office Executive (FOE)</option>
               <option value="client">Client</option>
+              <option value="athlete">Athlete</option>
             </select>
           </div>
 

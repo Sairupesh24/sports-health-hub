@@ -109,7 +109,10 @@ export function AdminSessionStatusModal({ open, onOpenChange, session, onSuccess
         try {
             const updateData: any = { status };
 
-            if (status === "Completed") {
+            const isMarkingAttendance = status === "Attendance Confirmed" || status === "Completed";
+
+            if (isMarkingAttendance) {
+
                 if (!actualStart || !actualEnd) throw new Error("Actual start and end times are required for completed sessions.");
 
                 const dateStr = format(new Date(session.scheduled_start), "yyyy-MM-dd");
@@ -354,6 +357,7 @@ export function AdminSessionStatusModal({ open, onOpenChange, session, onSuccess
                                     </SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="Planned">Planned</SelectItem>
+                                        <SelectItem value="Attendance Confirmed">Attendance Confirmed</SelectItem>
                                         <SelectItem value="Completed" disabled={isFutureSession}>Completed</SelectItem>
                                         <SelectItem value="Missed">Missed</SelectItem>
                                         <SelectItem value="Rescheduled">Rescheduled</SelectItem>

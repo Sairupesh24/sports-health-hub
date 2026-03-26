@@ -18,6 +18,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Download, FileText } from "lucide-react";
+import PerformanceSnapshot from "@/components/consultant/PerformanceSnapshot";
+import PerformanceAnalytics from "@/components/ams/PerformanceAnalytics";
+import { Trophy } from "lucide-react";
+
+
 
 interface ClientProfile {
     id: string;
@@ -28,7 +33,9 @@ interface ClientProfile {
     gender: string;
     age: number;
     organization_id: string;
+    ams_role?: string;
 }
+
 
 export default function ConsultantClientProfile() {
     const { id } = useParams<{ id: string }>();
@@ -291,11 +298,17 @@ export default function ConsultantClientProfile() {
                                                         <TableCell className="text-sm">
                                                             <Badge variant="outline" className="font-normal">{session.service_type || "Performance"}</Badge>
                                                         </TableCell>
-                                                        <TableCell>
-                                                            <Badge variant={session.status === 'Completed' ? 'default' : 'secondary'} className="text-[10px] uppercase font-bold">
-                                                                {session.status}
-                                                            </Badge>
-                                                        </TableCell>
+                                                         <TableCell>
+                                                             <Badge variant={session.status === 'Completed' ? 'default' : 'secondary'} className="text-[10px] uppercase font-bold">
+                                                                 {session.status}
+                                                             </Badge>
+                                                             {session.is_unentitled && (
+                                                                 <Badge variant="destructive" className="ml-2 text-[8px] h-4 px-1 font-black animate-pulse">
+                                                                     UN-ENTITLED
+                                                                 </Badge>
+                                                             )}
+                                                         </TableCell>
+
                                                         <TableCell>
                                                             {session.physio_session_details && session.physio_session_details.length > 0 ? (
                                                                 <span className="text-emerald-600 flex items-center gap-1 text-xs font-semibold">
@@ -322,12 +335,26 @@ export default function ConsultantClientProfile() {
 
                     {/* Right Column: AMS Load & Quick Actions */}
                     <div className="space-y-6 lg:col-span-1">
-                        <div className="h-[400px]">
-                            {/* Notice we pass clientId to strictly isolate the data to this athlete */}
-                            <AMSTrainingLoadWidget clientId={id} />
-                        </div>
+                        {id && <PerformanceSnapshot clientId={id} />}
+                        <AMSTrainingLoadWidget clientId={id} />
                     </div>
                 </div>
+
+                {/* Athlete Performance Section Phase 6 */}
+                {id && (
+                    <Card className="border-border shadow-md">
+                        <CardHeader className="bg-muted/30">
+                            <CardTitle className="flex items-center gap-2">
+                                <Trophy className="w-5 h-5 text-primary" />
+                                Athlete Performance & Benchmarking
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="pt-6">
+                             <PerformanceAnalytics athleteId={id} />
+                        </CardContent>
+                    </Card>
+                )}
+
 
                 {/* Modals */}
                 {client && (

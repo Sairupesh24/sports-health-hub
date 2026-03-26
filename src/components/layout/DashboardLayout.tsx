@@ -23,6 +23,7 @@ export default function DashboardLayout({ role, children }: DashboardLayoutProps
   else if (roles?.includes("sports_scientist")) effectiveRole = "sports_scientist";
   else if (roles?.includes("manager")) effectiveRole = "manager";
   else if (roles?.includes("client")) effectiveRole = "client";
+  else if (roles?.includes("athlete")) effectiveRole = "athlete";
 
   return (
     <div className="flex h-screen overflow-hidden bg-background w-full">
@@ -52,7 +53,7 @@ export default function DashboardLayout({ role, children }: DashboardLayoutProps
             </SheetTrigger>
             <SheetContent side="left" className="p-0 w-72 border-r-0">
               <AppSidebar
-                role={role}
+                role={effectiveRole}
                 isMobile
                 onNavigate={() => setMobileMenuOpen(false)}
               />
