@@ -240,6 +240,7 @@ export type Database = {
           referral_source_id: string | null
           status: string
           total: number
+          transaction_id: string | null
           updated_at: string
         }
         Insert: {
@@ -257,6 +258,7 @@ export type Database = {
           referral_source_id?: string | null
           status?: string
           total?: number
+          transaction_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -274,6 +276,7 @@ export type Database = {
           referral_source_id?: string | null
           status?: string
           total?: number
+          transaction_id?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -1837,6 +1840,73 @@ export type Database = {
           },
         ]
       }
+      refunds: {
+        Row: {
+          amount: number
+          bill_id: string
+          client_id: string
+          created_at: string | null
+          id: string
+          is_entitlement_reversed: boolean | null
+          notes: string | null
+          organization_id: string
+          refund_mode: Database["public"]["Enums"]["refund_mode"]
+          refund_proof_url: string | null
+          transaction_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          amount: number
+          bill_id: string
+          client_id: string
+          created_at?: string | null
+          id?: string
+          is_entitlement_reversed?: boolean | null
+          notes?: string | null
+          organization_id: string
+          refund_mode: Database["public"]["Enums"]["refund_mode"]
+          refund_proof_url?: string | null
+          transaction_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          amount?: number
+          bill_id?: string
+          client_id?: string
+          created_at?: string | null
+          id?: string
+          is_entitlement_reversed?: boolean | null
+          notes?: string | null
+          organization_id?: string
+          refund_mode?: Database["public"]["Enums"]["refund_mode"]
+          refund_proof_url?: string | null
+          transaction_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "refunds_bill_id_fkey"
+            columns: ["bill_id"]
+            isOneToOne: false
+            referencedRelation: "bills"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "refunds_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "refunds_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sessions: {
         Row: {
           actual_end: string | null
@@ -2087,6 +2157,7 @@ export type Database = {
         | "no_show"
         | "rescheduled"
         | "checked_in"
+      refund_mode: "Cash" | "Online Bank Transfer" | "UPI" | "Clinic Credit"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2224,6 +2295,7 @@ export const Constants = {
         "rescheduled",
         "checked_in",
       ],
+      refund_mode: ["Cash", "Online Bank Transfer", "UPI", "Clinic Credit"],
     },
   },
 } as const

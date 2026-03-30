@@ -4,13 +4,13 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectValue, SelectTrigger } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Plus, Download, CheckCircle, CreditCard, Banknote, Smartphone, Trash2, ShoppingCart, Check, ChevronsUpDown } from "lucide-react";
+import { Plus, Download, CheckCircle, CreditCard, Banknote, Smartphone, Trash2, ShoppingCart, Check, ChevronsUpDown, Receipt, Copy } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -18,6 +18,9 @@ import { cn } from "@/lib/utils";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { format } from "date-fns";
+import { useQueryClient } from "@tanstack/react-query";
+import { RefundModal } from "@/components/admin/RefundModal";
+import { generateRefundVoucher } from "@/lib/refundActions";
 
 type CartItem = {
     id: string; // unique cart item id
@@ -41,6 +44,8 @@ type Bill = {
     payment_method?: string;
     transaction_id?: string;
     date: string;
+    organization?: { name: string; id: string };
+    client?: { id: string; full_name: string };
 };
 
 type Client = { id: string; first_name: string; last_name: string; uhid: string; email?: string; mobile_no?: string };
@@ -48,6 +53,7 @@ type Package = { id: string; name: string; price: number; service_package_items?
 
 export default function BillingPage() {
     const { profile } = useAuth();
+    const queryClient = useQueryClient();
     const orgName = "Integration Sports Clinic";
 
     const [clients, setClients] = useState<Client[]>([]);
@@ -77,83 +83,100 @@ export default function BillingPage() {
     const [transactionId, setTransactionId] = useState("");
     const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
 
+    // Refund State
+    const [isRefundModalOpen, setIsRefundModalOpen] = useState(false);
+    const [refundBillObj, setRefundBillObj] = useState<any>(null);
+
     const [openCombobox, setOpenCombobox] = useState(false);
+    const [searchTerm, setSearchTerm] = useState("");
 
     useEffect(() => {
-        async function fetchData() {
-            if (!profile?.organization_id) return;
-
-            // Fetch Clients
-            const { data: clientData } = await supabase
-                .from("clients")
-                .select("id, first_name, last_name, uhid, email, mobile_no")
-                .eq("organization_id", profile.organization_id);
-            if (clientData) setClients(clientData as Client[]);
-
-            // Fetch Live Packages
-            const { data: pkgData } = await supabase
-                .from("packages")
-                .select("id, name, price, package_services(service_id)")
-                .eq("organization_id", profile.organization_id)
-                .order("created_at", { ascending: false });
-
-            if (pkgData) {
-                // Formatting for UI
-                setPackages(pkgData as any[]);
-            }
-
-            // Fetch Bills
-            const { data: billsData } = await supabase
-                .from("bills")
-                .select(`
-                    id, 
-                    amount, 
-                    total, 
-                    status, 
-                    created_at, 
-                    client_id, 
-                    clients(first_name, last_name, uhid, email, mobile_no), 
-                    packages(name, package_services(sessions_included, services(name)))
-                `)
-                .eq("organization_id", profile.organization_id)
-                .order("created_at", { ascending: false });
-
-            if (billsData) {
-                const formattedBills = billsData.map(b => {
-                    const pkg = b.packages as any;
-                    let entitlements: any[] = [];
-                    if (pkg && pkg.package_services) {
-                        entitlements = pkg.package_services.map((ps: any) => ({
-                            service_type: ps.services?.name || 'Session',
-                            default_sessions: ps.sessions_included
-                        }));
-                    }
-
-                    return {
-                        id: b.id,
-                        client_id: b.client_id,
-                        client_name: b.clients ? `${(b.clients as any).first_name} ${(b.clients as any).last_name}` : "Unknown",
-                        items: [{ 
-                            name: pkg ? pkg.name : "Custom", 
-                            price: b.total,
-                            entitlements
-                        }],
-                        referral_source: "-",
-                        subtotal: b.amount,
-                        discount_type: "flat",
-                        discount_value: 0,
-                        total_amount: b.total,
-                        status: b.status === "Paid" ? "Paid" : "Pending",
-                        transaction_id: b.transaction_id,
-                        date: b.created_at,
-                    };
-                });
-                // @ts-ignore
-                setBills(formattedBills);
-            }
+        if (profile?.organization_id) {
+            fetchData();
         }
-        fetchData();
     }, [profile]);
+
+    const fetchData = async () => {
+        if (!profile?.organization_id) return;
+
+        // Fetch Clients
+        const { data: clientData } = await supabase
+            .from("clients")
+            .select("id, first_name, last_name, uhid, email, mobile_no")
+            .eq("organization_id", profile.organization_id);
+        if (clientData) setClients(clientData as Client[]);
+
+        // Fetch Live Packages
+        const { data: pkgData } = await supabase
+            .from("packages")
+            .select("id, name, price, package_services(service_id)")
+            .eq("organization_id", profile.organization_id)
+            .order("created_at", { ascending: false });
+
+        if (pkgData) {
+            setPackages(pkgData as any[]);
+        }
+
+        // Fetch Bills
+        const { data: billsData } = await supabase
+            .from("bills")
+            .select(`
+                id, 
+                amount, 
+                total, 
+                status, 
+                created_at, 
+                client_id, 
+                transaction_id,
+                payment_method,
+                organization_id,
+                organizations(id, name),
+                clients(id, first_name, last_name, uhid, email, mobile_no), 
+                packages(id, name, price, package_services(sessions_included, services(name)))
+            `)
+            .eq("organization_id", profile.organization_id)
+            .order("created_at", { ascending: false });
+
+        if (billsData) {
+            const formattedBills = billsData.map(b => {
+                const pkg = b.packages as any;
+                let entitlements: any[] = [];
+                if (pkg && pkg.package_services) {
+                    entitlements = pkg.package_services.map((ps: any) => ({
+                        service_type: ps.services?.name || 'Session',
+                        default_sessions: ps.sessions_included
+                    }));
+                }
+
+                const clientObj = b.clients as any;
+                const clientName = clientObj ? `${clientObj.first_name} ${clientObj.last_name}` : "Unknown";
+
+                return {
+                    id: b.id,
+                    client_id: b.client_id,
+                    client: { id: b.client_id, full_name: clientName },
+                    organization: b.organizations,
+                    client_name: clientName,
+                    client_uhid: clientObj?.uhid || "",
+                    client_mobile: clientObj?.mobile_no || "",
+                    items: [{ 
+                        name: pkg ? pkg.name : "Custom", 
+                        price: b.total,
+                        entitlements
+                    }],
+                    referral_source: "-",
+                    subtotal: b.amount,
+                    discount_type: "flat",
+                    discount_value: 0,
+                    total_amount: b.total,
+                    status: b.status === "Paid" ? "Paid" : "Pending",
+                    transaction_id: b.transaction_id,
+                    date: b.created_at,
+                };
+            }) as any[];
+            setBills(formattedBills);
+        }
+    };
 
     const handleAddReferral = () => {
         if (!newReferralName.trim()) return;
@@ -168,14 +191,25 @@ export default function BillingPage() {
         if (!newPkgName.trim() || !newPkgPrice) return;
         const newPkg = { id: Date.now().toString(), name: newPkgName, price: Number(newPkgPrice) };
         setPackages([...packages, newPkg]);
-
-        // Optionally auto-add to cart
         setCart([...cart, { id: Date.now().toString(), package_id: newPkg.id, name: newPkg.name, price: newPkg.price }]);
-
         setNewPkgName("");
         setNewPkgPrice("");
         setIsPkgModalOpen(false);
         toast({ title: "Package Added to Cart" });
+    };
+
+    const handleRefundSuccess = (refund: any) => {
+        fetchData();
+        queryClient.invalidateQueries({ queryKey: ['client-refunds'] });
+        queryClient.invalidateQueries({ queryKey: ['billing-stats'] });
+        
+        if (refundBillObj) {
+            generateRefundVoucher(
+                (refundBillObj.organization as any)?.name || orgName, 
+                refundBillObj.client_name, 
+                refund
+            );
+        }
     };
 
     const addToCart = (pkgId: string) => {
@@ -218,12 +252,8 @@ export default function BillingPage() {
             return;
         }
 
-        const client = clients.find(c => c.id === selectedClient);
-        
-        // Loop over the cart and insert a bill for EACH package so the backend trigger can properly issue entitlements
         try {
             for (const item of cart) {
-                // Calculate proportional discount (simple approach: split flat equally)
                 const itemRatio = item.price / subtotal;
                 const itemDiscount = discountType === "percentage" 
                     ? (item.price * (Number(discountValue) || 0) / 100) 
@@ -244,8 +274,6 @@ export default function BillingPage() {
             }
 
             toast({ title: "Bill Created Successfully" });
-            
-            // Reload the page to fetch bills
             window.location.reload();
         } catch (err: any) {
             toast({ title: "Error creating bill", description: err.message, variant: "destructive" });
@@ -268,13 +296,14 @@ export default function BillingPage() {
                 .update({ 
                     status: 'Paid', 
                     notes: `Paid via ${paymentMethod}${transactionId ? ` (TXN: ${transactionId})` : ''}`,
-                    transaction_id: transactionId
+                    transaction_id: transactionId,
+                    payment_method: paymentMethod
                 })
                 .eq('id', paymentBillId);
                 
             if (error) throw error;
             
-            setBills(bills.map(b => b.id === paymentBillId ? { ...b, status: "Paid", payment_method: paymentMethod, transaction_id: transactionId } : b));
+            fetchData();
             setIsPaymentModalOpen(false);
             setPaymentMethod("");
             setTransactionId("");
@@ -285,26 +314,23 @@ export default function BillingPage() {
         }
     };
 
-    const downloadInvoice = (bill: Bill) => {
+    const handleDownloadInvoice = (bill: Bill) => {
         const d = new jsPDF();
         const c = clients.find(x => x.id === bill.client_id);
 
-        // Header
         d.setFontSize(22);
-        d.setTextColor(15, 23, 42); // slate-900
+        d.setTextColor(15, 23, 42); 
         d.text(orgName, 14, 25);
 
         d.setFontSize(14);
-        d.setTextColor(100, 116, 139); // slate-500
+        d.setTextColor(100, 116, 139); 
         d.text("INVOICE", 170, 25);
 
-        // Invoice Details
         d.setFontSize(10);
         d.setTextColor(71, 85, 105);
         d.text(`Invoice # : ${bill.id}`, 14, 38);
         d.text(`Date : ${format(new Date(bill.date), "dd MMM yyyy, hh:mm a")}`, 14, 44);
 
-        // Bill To
         d.setFontSize(11);
         d.setTextColor(15, 23, 42);
         d.text("Bill To:", 14, 58);
@@ -316,11 +342,6 @@ export default function BillingPage() {
         if (c?.mobile_no) d.text(`Mobile : ${c.mobile_no}`, 14, 77);
         if (c?.email) d.text(`Email : ${c.email}`, 14, 83);
 
-        if (bill.referral_source !== "None") {
-            d.text(`Referral : ${bill.referral_source}`, 140, 65);
-        }
-
-        // Table
         const tableData = bill.items.map((item, index) => [
             (index + 1).toString(),
             item.name,
@@ -332,436 +353,321 @@ export default function BillingPage() {
             head: [["#", "Description", "Amount"]],
             body: tableData,
             theme: 'striped',
-            headStyles: { fillColor: [15, 118, 110] }, // teal-700
+            headStyles: { fillColor: [15, 118, 110] }, 
             styles: { fontSize: 10, cellPadding: 5 },
-            columnStyles: {
-                0: { cellWidth: 15 },
-                1: { cellWidth: 'auto' },
-                2: { cellWidth: 40, halign: 'right' }
-            }
         });
 
-        // Loop over items and collect entitlements
-        const entitlementsBody: any[] = [];
-        bill.items.forEach(item => {
-            if (item.entitlements && item.entitlements.length > 0) {
-                item.entitlements.forEach(ent => {
-                    entitlementsBody.push([
-                        item.name,
-                        ent.service_type,
-                        `${ent.default_sessions} Sessions`
-                    ]);
-                });
-            }
-        });
-
-        // Calculations
-        let finalY = (d as any).lastAutoTable.finalY + 15;
-
-        // Draw Entitlements Breakdown if any
-        if (entitlementsBody.length > 0) {
-            d.setFontSize(11);
-            d.setTextColor(15, 23, 42);
-            d.text("Entitlements Included:", 14, finalY);
-            finalY += 5;
-
-            autoTable(d, {
-                startY: finalY,
-                head: [["Package Source", "Service Type", "Granted"]],
-                body: entitlementsBody,
-                theme: 'grid',
-                headStyles: { fillColor: [241, 245, 249], textColor: [71, 85, 105] }, // slate-100, slate-600
-                styles: { fontSize: 9, cellPadding: 3 },
-            });
-            finalY = (d as any).lastAutoTable.finalY + 15;
-        }
-
-        d.setFontSize(10);
-        d.setTextColor(71, 85, 105);
-        d.text("Subtotal:", 135, finalY);
-        d.text(`Rs. ${bill.subtotal.toFixed(2)}`, 196, finalY, { align: 'right' });
-
-        let nextY = finalY;
-
-        if (bill.discount_value > 0) {
-            nextY += 8;
-            const discountLabel = bill.discount_type === "percentage"
-                ? `Discount (${bill.discount_value}%):`
-                : "Discount (Flat):";
-            // Calculate derived discount amount
-            const discountAmount = bill.subtotal - bill.total_amount;
-
-            d.text(discountLabel, 135, nextY);
-            d.text(`- Rs. ${discountAmount.toFixed(2)}`, 196, nextY, { align: 'right' });
-        }
-
-        nextY += 12;
-        d.setFontSize(12);
-        d.setTextColor(15, 23, 42);
-        d.setFont("helvetica", "bold");
-        d.text("Total:", 135, nextY);
-        d.text(`Rs. ${bill.total_amount.toFixed(2)}`, 196, nextY, { align: 'right' });
-
-        nextY += 15;
-        d.setFontSize(10);
-        d.setFont("helvetica", "normal");
-        if (bill.status === "Paid") {
-            d.setTextColor(16, 185, 129); // emerald-500
-            const payMethodStatus = `STATUS: PAID VIA ${bill.payment_method?.toUpperCase()}${bill.transaction_id ? ` (TXN: ${bill.transaction_id})` : ''}`;
-            d.text(payMethodStatus, 14, nextY);
-        } else {
-            d.setTextColor(245, 158, 11); // amber-500
-            d.text("STATUS: PENDING", 14, nextY);
-        }
-
-        // Footer
-        d.setFontSize(9);
-        d.setTextColor(148, 163, 184); // slate-400
-        d.text("Thank you for choosing Integration Sports Clinic!", 105, 280, { align: "center" });
-
-        // Save
-        const fileName = `${bill.client_name.replace(/\s+/g, '_')}_Invoice_${bill.id}.pdf`;
-        d.save(fileName);
-        toast({ title: "Invoice PDF Downloaded" });
+        d.save(`Invoice_${bill.id.substring(0, 8)}.pdf`);
     };
+
+    const filteredBills = bills.filter(bill => {
+        const s = searchTerm.toLowerCase();
+        return (
+            bill.client_name.toLowerCase().includes(s) ||
+            (bill as any).client_uhid?.toLowerCase().includes(s) ||
+            (bill as any).client_mobile?.includes(s) ||
+            bill.id.toLowerCase().includes(s)
+        );
+    });
 
     return (
         <DashboardLayout role="admin">
-            <div className="max-w-6xl mx-auto space-y-6 pb-12">
-                <div className="flex flex-col flex-wrap sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div className="p-6 space-y-6">
+                <div className="flex justify-between items-center">
                     <div>
-                        <h1 className="text-2xl font-display font-bold text-foreground">Billing & Invoicing</h1>
-                        <p className="text-muted-foreground text-sm mt-0.5">Manage generation of invoices and track payments</p>
+                        <h1 className="text-3xl font-bold tracking-tight text-foreground">Billing & Invoicing</h1>
+                        <p className="text-muted-foreground mt-1">Generate invoices and record payments for packages</p>
                     </div>
                 </div>
 
-                <div className="space-y-6">
-                    {/* Form Section */}
+                <div className="flex flex-col gap-8">
                     <div>
                         <Card className="gradient-card border-border">
                             <CardHeader>
                                 <CardTitle>Create New Bill</CardTitle>
-                                <CardDescription>Generate an invoice for a client</CardDescription>
+                                <CardDescription>Select client and packages to generate an invoice</CardDescription>
                             </CardHeader>
                             <CardContent>
                                 <form onSubmit={handleCreateBill} className="space-y-6">
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 border-b border-border/50 pb-6">
-                                        <div className="space-y-1.5">
-                                            <Label>Select Client <span className="text-destructive">*</span></Label>
-                                            <Popover>
-                                                <PopoverTrigger asChild>
-                                                    <Button
-                                                        variant="outline"
-                                                        role="combobox"
-                                                        className={cn("w-full justify-between font-normal", !selectedClient && "text-muted-foreground")}
-                                                    >
-                                                        {selectedClient ? (() => {
-                                                            const c = clients.find(x => x.id === selectedClient);
-                                                            return c ? `${c.first_name} ${c.last_name} (${c.uhid})` : "Search Client...";
-                                                        })() : "Search Client..."}
-                                                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                                    </Button>
-                                                </PopoverTrigger>
-                                                <PopoverContent className="w-[400px] p-0" align="start">
-                                                    <Command>
-                                                        <CommandInput placeholder="Search client by name or UHID..." />
-                                                        <CommandList>
-                                                            <CommandEmpty>No clients found</CommandEmpty>
-                                                            <CommandGroup>
-                                                                {clients.map(c => (
-                                                                    <CommandItem
-                                                                        key={c.id}
-                                                                        value={`${c.first_name} ${c.last_name} ${c.uhid}`}
-                                                                        onSelect={() => setSelectedClient(c.id)}
-                                                                    >
-                                                                        <Check className={cn("mr-2 h-4 w-4", selectedClient === c.id ? "opacity-100" : "opacity-0")} />
-                                                                        {c.first_name} {c.last_name} ({c.uhid})
-                                                                    </CommandItem>
-                                                                ))}
-                                                            </CommandGroup>
-                                                        </CommandList>
-                                                    </Command>
-                                                </PopoverContent>
-                                            </Popover>
-                                        </div>
-
-                                        <div className="space-y-1.5">
-                                            <div className="flex justify-between items-center mb-1">
-                                                <Label>Referral Source</Label>
-                                                <Dialog open={isReferralModalOpen} onOpenChange={setIsReferralModalOpen}>
-                                                    <DialogTrigger asChild>
-                                                        <Button variant="link" size="sm" className="h-auto p-0 text-xs"><Plus className="w-3 h-3 mr-1" /> Add New</Button>
-                                                    </DialogTrigger>
-                                                    <DialogContent>
-                                                        <DialogHeader><DialogTitle>Add Referral Source</DialogTitle></DialogHeader>
-                                                        <Input value={newReferralName} onChange={e => setNewReferralName(e.target.value)} placeholder="e.g. Dr. Adams" />
-                                                        <DialogFooter><Button onClick={handleAddReferral}>Save</Button></DialogFooter>
-                                                    </DialogContent>
-                                                </Dialog>
-                                            </div>
-                                            <Select value={selectedReferral} onValueChange={setSelectedReferral}>
-                                                <SelectTrigger><SelectValue placeholder="Select Source (Optional)" /></SelectTrigger>
-                                                <SelectContent>
-                                                    {referralSources.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
-                                                </SelectContent>
-                                            </Select>
-                                        </div>
-                                    </div>
-
-                                    {/* Cart Section */}
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                        <div className="space-y-3">
-                                            <div className="flex justify-between items-center mb-2">
-                                                <Label className="text-base font-semibold flex items-center gap-2">
-                                                    <ShoppingCart className="w-4 h-4" /> Packages Cart
-                                                </Label>
-                                                <Dialog open={isPkgModalOpen} onOpenChange={setIsPkgModalOpen}>
-                                                    <DialogTrigger asChild>
-                                                        <Button variant="link" size="sm" className="h-auto p-0 text-xs"><Plus className="w-3 h-3 mr-1" /> Create Custom Package</Button>
-                                                    </DialogTrigger>
-                                                    <DialogContent>
-                                                        <DialogHeader><DialogTitle>Create Custom Package</DialogTitle></DialogHeader>
-                                                        <div className="space-y-3">
-                                                            <div><Label>Name</Label><Input value={newPkgName} onChange={e => setNewPkgName(e.target.value)} placeholder="Package Name" /></div>
-                                                            <div><Label>Price (Rs)</Label><Input type="number" value={newPkgPrice} onChange={e => setNewPkgPrice(e.target.value)} placeholder="Amount" /></div>
-                                                        </div>
-                                                        <DialogFooter className="mt-4"><Button onClick={handleAddPackage}>Add & Save</Button></DialogFooter>
-                                                    </DialogContent>
-                                                </Dialog>
-                                            </div>
-
-                                            <Popover open={openCombobox} onOpenChange={setOpenCombobox}>
-                                                <PopoverTrigger asChild>
-                                                    <Button
-                                                        variant="outline"
-                                                        role="combobox"
-                                                        aria-expanded={openCombobox}
-                                                        className="w-full justify-between font-normal"
-                                                    >
-                                                        Search and add package...
-                                                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                                    </Button>
-                                                </PopoverTrigger>
-                                                <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
-                                                    <Command>
-                                                        <CommandInput placeholder="Search packages..." />
-                                                        <CommandEmpty>No package found.</CommandEmpty>
-                                                        <CommandList>
-                                                            <CommandGroup>
-                                                                {packages.map((p) => (
-                                                                    <CommandItem
-                                                                        key={p.id}
-                                                                        value={p.name}
-                                                                        onSelect={() => {
-                                                                            addToCart(p.id);
-                                                                            setOpenCombobox(false);
-                                                                        }}
-                                                                    >
-                                                                        <div className="flex flex-col w-full">
-                                                                            <div className="flex justify-between items-center w-full">
-                                                                                <span className="font-medium text-foreground">{p.name}</span>
-                                                                                <span className="text-muted-foreground mr-1 text-sm font-semibold">Rs. {p.price}</span>
+                                        <div className="space-y-4">
+                                            <div className="space-y-2">
+                                                <Label htmlFor="client">Select Client <span className="text-destructive">*</span></Label>
+                                                <Popover open={openCombobox} onOpenChange={setOpenCombobox}>
+                                                    <PopoverTrigger asChild>
+                                                        <Button
+                                                            variant="outline"
+                                                            role="combobox"
+                                                            aria-expanded={openCombobox}
+                                                            className="w-full justify-between font-normal"
+                                                        >
+                                                            {selectedClient
+                                                                ? clients.find((c) => c.id === selectedClient)?.first_name + " " + clients.find((c) => c.id === selectedClient)?.last_name
+                                                                : "Search for a client..."}
+                                                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                                        </Button>
+                                                    </PopoverTrigger>
+                                                    <PopoverContent className="w-[300px] p-0">
+                                                        <Command>
+                                                            <CommandInput placeholder="Search client by name or UHID..." />
+                                                            <CommandEmpty>No client found.</CommandEmpty>
+                                                            <CommandList>
+                                                                <CommandGroup>
+                                                                    {clients.map((c) => (
+                                                                        <CommandItem
+                                                                            key={c.id}
+                                                                            value={`${c.first_name} ${c.last_name} ${c.uhid}`}
+                                                                            onSelect={() => {
+                                                                                setSelectedClient(c.id);
+                                                                                setOpenCombobox(false);
+                                                                            }}
+                                                                        >
+                                                                            <Check
+                                                                                className={cn(
+                                                                                    "mr-2 h-4 w-4",
+                                                                                    selectedClient === c.id ? "opacity-100" : "opacity-0"
+                                                                                )}
+                                                                            />
+                                                                            <div>
+                                                                                <div>{c.first_name} {c.last_name}</div>
+                                                                                <div className="text-[10px] text-muted-foreground">{c.uhid}</div>
                                                                             </div>
-                                                                            {/* Sub items info for combobox optional */}
-                                                                            {p.service_package_items && p.service_package_items.length > 0 && (
-                                                                                <div className="text-[10px] text-muted-foreground mt-0.5 truncate flex gap-1.5">
-                                                                                    {p.service_package_items.map((spi, i) => (
-                                                                                        <span key={i} className="bg-muted px-1.5 py-0.5 rounded">{spi.default_sessions}x {spi.service_type}</span>
-                                                                                    ))}
-                                                                                </div>
-                                                                            )}
-                                                                        </div>
-                                                                    </CommandItem>
-                                                                ))}
-                                                            </CommandGroup>
-                                                        </CommandList>
-                                                    </Command>
-                                                </PopoverContent>
-                                            </Popover>
+                                                                        </CommandItem>
+                                                                    ))}
+                                                                </CommandGroup>
+                                                            </CommandList>
+                                                        </Command>
+                                                    </PopoverContent>
+                                                </Popover>
+                                            </div>
 
-                                            {cart.length > 0 ? (
-                                                <div className="bg-card border rounded-md p-3 max-h-[250px] overflow-y-auto space-y-2 mt-4 text-sm shadow-sm">
-                                                    {cart.map((item, idx) => (
-                                                        <div key={item.id} className="flex justify-between items-start py-2 border-b last:border-0 hover:bg-muted/20 transition-colors">
-                                                            <div className="flex-1 pr-2">
-                                                                <div className="text-foreground font-medium">{idx + 1}. {item.name}</div>
-                                                                {item.items && item.items.length > 0 && (
-                                                                    <div className="text-[11px] text-muted-foreground mt-1 flex flex-wrap gap-1">
-                                                                        {item.items.map((ent, i) => (
-                                                                            <span key={i} className="-mt-0.5 bg-primary/10 text-primary px-1.5 py-0.5 rounded-sm">{ent.default_sessions}x {ent.service_type}</span>
-                                                                        ))}
-                                                                    </div>
-                                                                )}
+                                            <div className="space-y-2">
+                                                <Label>Packages / Services <span className="text-destructive">*</span></Label>
+                                                <Popover>
+                                                    <PopoverTrigger asChild>
+                                                        <Button variant="outline" className="w-full justify-start text-muted-foreground font-normal overflow-hidden">
+                                                            <ShoppingCart className="w-4 h-4 mr-2" />
+                                                            Search Packages...
+                                                        </Button>
+                                                    </PopoverTrigger>
+                                                    <PopoverContent className="p-0 w-[300px]" align="start">
+                                                        <Command>
+                                                            <CommandInput placeholder="Type package name..." />
+                                                            <CommandList>
+                                                                <CommandEmpty>No packages found.</CommandEmpty>
+                                                                <CommandGroup>
+                                                                    {packages.map(p => (
+                                                                        <CommandItem key={p.id} onSelect={() => addToCart(p.id)}>
+                                                                            <div className="flex justify-between w-full items-center">
+                                                                                <span>{p.name}</span>
+                                                                                <span className="font-bold text-xs">Rs. {p.price}</span>
+                                                                            </div>
+                                                                        </CommandItem>
+                                                                    ))}
+                                                                </CommandGroup>
+                                                            </CommandList>
+                                                        </Command>
+                                                    </PopoverContent>
+                                                </Popover>
+
+                                                {cart.length > 0 && (
+                                                    <div className="bg-muted/30 border rounded-md p-2 space-y-1 mt-2">
+                                                        {cart.map(item => (
+                                                            <div key={item.id} className="flex justify-between items-center text-sm p-1.5 bg-background rounded border">
+                                                                <span className="truncate pr-2">{item.name}</span>
+                                                                <div className="flex items-center gap-2">
+                                                                    <span className="font-semibold text-xs">Rs.{item.price}</span>
+                                                                    <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => removeFromCart(item.id)}>
+                                                                        <Trash2 className="w-3 h-3" />
+                                                                    </Button>
+                                                                </div>
                                                             </div>
-                                                            <div className="flex items-center gap-3">
-                                                                <span className="font-semibold text-foreground mt-0.5">Rs. {item.price}</span>
-                                                                <Button variant="ghost" size="icon" type="button" className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10" onClick={() => removeFromCart(item.id)}>
-                                                                    <Trash2 className="w-4 h-4" />
-                                                                </Button>
-                                                            </div>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            ) : (
-                                                <div className="text-center py-8 bg-muted/30 border border-dashed rounded-md text-muted-foreground text-sm">
-                                                    Cart is empty. Search to add packages.
-                                                </div>
-                                            )}
-                                        </div>
-
-                                        {/* Discount Section */}
-                                        <div className="flex flex-col justify-end">
-                                            <div className="bg-muted/30 border p-5 rounded-lg space-y-5 h-full flex flex-col justify-center shadow-sm">
-                                                <div className="flex justify-between items-center">
-                                                    <span className="text-muted-foreground">Cart Subtotal</span>
-                                                    <span className="font-semibold text-lg">Rs. {subtotal.toFixed(2)}</span>
-                                                </div>
-
-                                                <div className="space-y-3">
-                                                    <Label className="font-semibold text-sm">Apply Discount</Label>
-                                                    <RadioGroup defaultValue={discountType} onValueChange={(v) => setDiscountType(v as "percentage" | "flat")} className="flex gap-4">
-                                                        <div className="flex items-center space-x-2">
-                                                            <RadioGroupItem value="flat" id="flat" />
-                                                            <Label htmlFor="flat" className="cursor-pointer font-normal text-sm">Flat Offset (Rs)</Label>
-                                                        </div>
-                                                        <div className="flex items-center space-x-2">
-                                                            <RadioGroupItem value="percentage" id="percentage" />
-                                                            <Label htmlFor="percentage" className="cursor-pointer font-normal text-sm">Percentage (%)</Label>
-                                                        </div>
-                                                    </RadioGroup>
-                                                    <Input
-                                                        type="number"
-                                                        value={discountValue}
-                                                        onChange={e => setDiscountValue(e.target.value)}
-                                                        placeholder="Enter discount amount"
-                                                        className="w-full bg-background"
-                                                    />
-                                                </div>
-
-                                                <div className="border-t border-border pt-4 mt-auto flex justify-between items-center text-xl font-bold">
-                                                    <span className="text-foreground">Total Payable</span>
-                                                    <span className="text-primary">Rs. {totalPayable.toFixed(2)}</span>
-                                                </div>
+                                                        ))}
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
-                                    </div>
-                                    <div className="pt-2">
-                                        <Button type="submit" size="lg" className="w-full" disabled={cart.length === 0}>Generate Official Invoice</Button>
+
+                                        <div className="space-y-4">
+                                            <div className="bg-muted/20 border rounded-lg p-4 space-y-4">
+                                                <div className="flex justify-between text-sm">
+                                                    <span className="text-muted-foreground">Subtotal</span>
+                                                    <span className="font-bold text-foreground">Rs. {subtotal.toFixed(2)}</span>
+                                                </div>
+                                                
+                                                <div className="space-y-2">
+                                                    <Label className="text-xs">Apply Discount</Label>
+                                                    <div className="flex gap-2">
+                                                        <Select value={discountType} onValueChange={(v) => setDiscountType(v as any)}>
+                                                            <SelectTrigger className="w-24 h-8 text-xs"><SelectValue /></SelectTrigger>
+                                                            <SelectContent>
+                                                                <SelectItem value="flat">Rs</SelectItem>
+                                                                <SelectItem value="percentage">%</SelectItem>
+                                                            </SelectContent>
+                                                        </Select>
+                                                        <Input 
+                                                            type="number" 
+                                                            className="h-8 text-xs" 
+                                                            value={discountValue} 
+                                                            onChange={e => setDiscountValue(e.target.value)}
+                                                        />
+                                                    </div>
+                                                </div>
+
+                                                <div className="pt-2 border-t flex justify-between items-end">
+                                                    <span className="text-sm font-bold">Total Amount</span>
+                                                    <span className="text-2xl font-black text-primary">Rs. {totalPayable.toFixed(2)}</span>
+                                                </div>
+                                            </div>
+                                            <Button type="submit" className="w-full h-12 text-lg shadow-lg" disabled={cart.length === 0}>
+                                                Generate Bill
+                                            </Button>
+                                        </div>
                                     </div>
                                 </form>
                             </CardContent>
                         </Card>
                     </div>
 
-                    {/* Table Section */}
                     <div>
                         <Card className="gradient-card border-border h-full">
-                            <CardHeader>
-                                <CardTitle>Recent Bills</CardTitle>
-                                <CardDescription>View and manage generated invoices</CardDescription>
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-7">
+                                <div className="space-y-1">
+                                    <CardTitle>Recent Invoices</CardTitle>
+                                    <CardDescription>Tracking your clinical revenue</CardDescription>
+                                </div>
+                                <div className="w-full max-w-sm">
+                                    <Input 
+                                        placeholder="Search by name, UHID, or mobile..." 
+                                        value={searchTerm}
+                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                        className="h-9 bg-background shadow-sm"
+                                    />
+                                </div>
                             </CardHeader>
                             <CardContent>
-                                {bills.length === 0 ? (
-                                    <div className="text-center py-10 text-muted-foreground border-2 border-dashed border-border rounded-lg">
-                                        No bills generated yet. Create one using the form.
-                                    </div>
-                                ) : (
-                                    <div className="rounded-md border overflow-x-auto">
-                                        <Table>
-                                            <TableHeader>
+                                <div className="rounded-md border overflow-x-auto">
+                                    <Table>
+                                        <TableHeader>
+                                            <TableRow className="bg-muted/50">
+                                                <TableHead>Invoice #</TableHead>
+                                                <TableHead>Client</TableHead>
+                                                <TableHead>Status</TableHead>
+                                                <TableHead className="text-right pr-4">Amount</TableHead>
+                                                <TableHead className="text-center">Action</TableHead>
+                                            </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {filteredBills.length === 0 ? (
                                                 <TableRow>
-                                                    <TableHead>Invoice #</TableHead>
-                                                    <TableHead>Client</TableHead>
-                                                    <TableHead>Total Amt</TableHead>
-                                                    <TableHead>Status</TableHead>
-                                                    <TableHead className="text-right">Actions</TableHead>
+                                                    <TableCell colSpan={5} className="text-center py-10 text-muted-foreground italic">No invoices found matching your search.</TableCell>
                                                 </TableRow>
-                                            </TableHeader>
-                                            <TableBody>
-                                                {bills.map((bill) => (
-                                                    <TableRow key={bill.id}>
-                                                        <TableCell className="font-medium">{bill.id}</TableCell>
-                                                        <TableCell>
-                                                            <div className="font-medium text-foreground">{bill.client_name}</div>
-                                                            <div className="text-xs text-muted-foreground mt-0.5">{bill.items.length} item(s)</div>
-                                                        </TableCell>
-                                                        <TableCell className="font-semibold">Rs. {bill.total_amount.toFixed(2)}</TableCell>
-                                                        <TableCell>
-                                                            {bill.status === "Paid" ? (
-                                                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-500">
-                                                                    <CheckCircle className="w-3.5 h-3.5" /> Paid
-                                                                </span>
-                                                            ) : (
-                                                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-amber-500/10 text-amber-500">
-                                                                    Pending
-                                                                </span>
-                                                            )}
-                                                        </TableCell>
-                                                        <TableCell className="text-right flex items-center justify-end gap-2 h-[72px]">
+                                            ) : filteredBills.map((bill) => (
+                                                <TableRow key={bill.id} className="hover:bg-muted/10 transition-colors">
+                                                    <TableCell className="font-mono text-[10px]">{bill.id.substring(0, 8)}</TableCell>
+                                                    <TableCell className="font-medium text-xs">{bill.client_name}</TableCell>
+                                                    <TableCell>
+                                                        {bill.status === "Paid" ? (
+                                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 text-[10px] font-bold">
+                                                                <CheckCircle className="w-3 h-3" /> PAID
+                                                            </span>
+                                                        ) : (
+                                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 text-[10px] font-bold">
+                                                                PENDING
+                                                            </span>
+                                                        )}
+                                                    </TableCell>
+                                                    <TableCell className="text-right pr-4 font-bold text-xs">Rs. {bill.total_amount.toFixed(2)}</TableCell>
+                                                    <TableCell className="text-center">
+                                                        <div className="flex items-center justify-center gap-1">
                                                             {bill.status === "Pending" && (
-                                                                <Button size="sm" variant="outline" onClick={() => { setPaymentBillId(bill.id); setIsPaymentModalOpen(true); }}>
-                                                                    Mark Paid
+                                                                <Button 
+                                                                    size="sm" 
+                                                                    className="h-7 px-2 text-[10px] bg-primary hover:bg-primary/90" 
+                                                                    onClick={() => { setPaymentBillId(bill.id); setIsPaymentModalOpen(true); }}
+                                                                >
+                                                                    Collect
                                                                 </Button>
                                                             )}
-                                                            <Button size="icon" variant="ghost" onClick={() => downloadInvoice(bill)} title="Download PDF">
-                                                                <Download className="w-4 h-4 text-primary" />
+                                                            {bill.status === "Paid" && (
+                                                                <Button 
+                                                                    size="sm" 
+                                                                    variant="ghost" 
+                                                                    className="h-7 px-2 text-[10px] text-amber-600 hover:text-amber-700 hover:bg-amber-50"
+                                                                    onClick={() => {
+                                                                        setRefundBillObj(bill);
+                                                                        setIsRefundModalOpen(true);
+                                                                    }}
+                                                                >
+                                                                    <Receipt className="w-3 h-3 mr-1" /> Refund
+                                                                </Button>
+                                                            )}
+                                                            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => handleDownloadInvoice(bill)}>
+                                                                <Download className="w-3.5 h-3.5" />
                                                             </Button>
-                                                        </TableCell>
-                                                    </TableRow>
-                                                ))}
-                                            </TableBody>
-                                        </Table>
-                                    </div>
-                                )}
+                                                        </div>
+                                                    </TableCell>
+                                                </TableRow>
+                                            ))}
+                                        </TableBody>
+                                    </Table>
+                                </div>
                             </CardContent>
                         </Card>
                     </div>
                 </div>
             </div>
 
-            {/* Payment Modal */}
-            <Dialog open={isPaymentModalOpen} onOpenChange={(open) => {
-                setIsPaymentModalOpen(open);
-                if (!open) {
-                    setPaymentMethod("");
-                    setTransactionId("");
-                }
-            }}>
-                <DialogContent>
-                    <DialogHeader><DialogTitle>Record Payment</DialogTitle></DialogHeader>
-                    <div className="py-4 space-y-4">
-                        <Label>Select Payment Method</Label>
-                        <div className="grid grid-cols-3 gap-3">
-                            <Button type="button" variant={paymentMethod === "Cash" ? "default" : "outline"} onClick={() => setPaymentMethod("Cash")} className="h-20 flex flex-col items-center justify-center gap-2">
-                                <Banknote className="w-6 h-6" /> Cash
-                            </Button>
-                            <Button type="button" variant={paymentMethod === "UPI" ? "default" : "outline"} onClick={() => setPaymentMethod("UPI")} className="h-20 flex flex-col items-center justify-center gap-2">
-                                <Smartphone className="w-6 h-6" /> UPI
-                            </Button>
-                            <Button type="button" variant={paymentMethod === "Card" ? "default" : "outline"} onClick={() => setPaymentMethod("Card")} className="h-20 flex flex-col items-center justify-center gap-2">
-                                <CreditCard className="w-6 h-6" /> Card
-                            </Button>
-                        </div>
+            {/* Refund Modal */}
+            {refundBillObj && (
+                <RefundModal 
+                    isOpen={isRefundModalOpen}
+                    onOpenChange={setIsRefundModalOpen}
+                    billId={refundBillObj.id}
+                    clientId={refundBillObj.client?.id || ""}
+                    clientName={refundBillObj.client_name}
+                    organizationId={profile?.organization_id || ""}
+                    onSuccess={handleRefundSuccess}
+                />
+            )}
 
+            {/* Payment Modal */}
+            <Dialog open={isPaymentModalOpen} onOpenChange={setIsPaymentModalOpen}>
+                <DialogContent className="sm:max-w-[400px]">
+                    <DialogHeader><DialogTitle>Record Payment</DialogTitle></DialogHeader>
+                    <div className="space-y-4 py-4">
+                        <Label>Payment Mode</Label>
+                        <div className="grid grid-cols-3 gap-2">
+                            {[
+                                { id: 'Cash', icon: Banknote },
+                                { id: 'UPI', icon: Smartphone },
+                                { id: 'Card', icon: CreditCard }
+                            ].map(m => (
+                                <Button 
+                                    key={m.id} 
+                                    variant={paymentMethod === m.id ? "default" : "outline"}
+                                    onClick={() => setPaymentMethod(m.id)}
+                                    className="h-16 flex flex-col gap-1"
+                                >
+                                    <m.icon className="w-5 h-5" />
+                                    <span className="text-[10px]">{m.id}</span>
+                                </Button>
+                            ))}
+                        </div>
                         {(paymentMethod === "UPI" || paymentMethod === "Card") && (
-                            <div className="space-y-2 pt-2 animate-in fade-in slide-in-from-top-2">
-                                <Label htmlFor="transactionId">Transaction ID <span className="text-destructive">*</span></Label>
+                            <div className="space-y-1.5 pt-2 animate-in fade-in slide-in-from-top-2">
+                                <Label className="text-xs">Transaction ID <span className="text-destructive">*</span></Label>
                                 <Input 
-                                    id="transactionId"
-                                    placeholder="Enter transaction/reference ID" 
+                                    placeholder="Reference ID" 
+                                    className="h-9"
                                     value={transactionId}
-                                    onChange={(e) => setTransactionId(e.target.value)}
-                                    required
+                                    onChange={e => setTransactionId(e.target.value)}
                                 />
-                                <p className="text-[10px] text-muted-foreground">Mandatory for {paymentMethod} payments to track revenue correctly.</p>
                             </div>
                         )}
                     </div>
                     <DialogFooter>
-                        <Button 
-                            onClick={markAsPaid} 
-                            disabled={!paymentMethod || ((paymentMethod === "UPI" || paymentMethod === "Card") && !transactionId.trim())}
-                        >
+                        <Button className="w-full" onClick={markAsPaid} disabled={!paymentMethod || ((paymentMethod === "UPI" || paymentMethod === "Card") && !transactionId.trim())}>
                             Confirm Payment
                         </Button>
                     </DialogFooter>

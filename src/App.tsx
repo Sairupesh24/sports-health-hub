@@ -9,6 +9,8 @@ import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import LoginPage from "./pages/LoginPage";
 import SignupPage from "./pages/auth/SignupPage";
+import ForgotPasswordPage from "./pages/auth/ForgotPasswordPage";
+import ResetPasswordPage from "./pages/auth/ResetPasswordPage";
 import PendingApprovalPage from "./pages/auth/PendingApprovalPage";
 import SetupPage from "./pages/auth/SetupPage";
 import AthleteDashboard from "./pages/ams/AthleteDashboard";
@@ -65,6 +67,8 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/signup" element={<SignupPage />} />
+            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="/ams/athlete-portal" element={<ProtectedRoute><AthleteDashboard /></ProtectedRoute>} />
             <Route path="/ams/coach-dashboard" element={<ProtectedRoute><CoachDashboard /></ProtectedRoute>} />
             <Route path="/pending-approval" element={<PendingApprovalPage />} />

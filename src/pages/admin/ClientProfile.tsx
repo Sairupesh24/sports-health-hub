@@ -5,7 +5,7 @@ import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, User, Phone, MapPin, Shield, Activity, CalendarDays, FileText, Download, Users } from "lucide-react";
+import { ArrowLeft, User, Phone, MapPin, Shield, Activity, CalendarDays, FileText, Download, Users, Banknote, Smartphone, Landmark, CreditCard } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { ClientEntitlements } from "./ClientEntitlements";
@@ -19,6 +19,9 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import * as XLSX from 'xlsx';
 import { Badge } from "@/components/ui/badge";
+import { RefundModal } from "@/components/admin/RefundModal";
+import { generateRefundVoucher } from "@/lib/refundActions";
+import { Copy, Receipt } from "lucide-react";
 
 
 
@@ -27,6 +30,7 @@ export default function ClientProfile() {
     const { id } = useParams();
     const navigate = useNavigate();
     const [client, setClient] = useState<any>(null);
+    const fullName = client ? `${client.honorific ? client.honorific + " " : ""}${client.first_name} ${client.last_name}` : "";
     const [loading, setLoading] = useState(true);
     const [paymentBillId, setPaymentBillId] = useState<string>("");
     const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
@@ -40,6 +44,10 @@ export default function ClientProfile() {
     const [startDate, setStartDate] = useState("");
     const [endDate, setEndDate] = useState("");
     const [sessionTypeFilter, setSessionTypeFilter] = useState("all");
+
+    // Refund State
+    const [isRefundModalOpen, setIsRefundModalOpen] = useState(false);
+    const [refundBillId, setRefundBillId] = useState("");
 
     useEffect(() => {
         async function fetchClient() {
@@ -125,8 +133,25 @@ export default function ClientProfile() {
                     total,
                     status,
                     notes,
+                    transaction_id,
+                    payment_method,
                     packages(name, package_services(sessions_included, services(name)))
                 `)
+                .eq('client_id', id)
+                .order('created_at', { ascending: false });
+            if (error) throw error;
+            return data;
+        },
+        enabled: !!id
+    });
+
+    const { data: refunds, isLoading: refundsLoading } = useQuery({
+        queryKey: ['client-refunds', id],
+        queryFn: async () => {
+            if (!id) return [];
+            const { data, error } = await supabase
+                .from('refunds')
+                .select('*')
                 .eq('client_id', id)
                 .order('created_at', { ascending: false });
             if (error) throw error;
@@ -216,7 +241,6 @@ export default function ClientProfile() {
     const handleDownloadInvoice = (bill: any) => {
         if (!client) return;
         const d = new jsPDF();
-        const fullName = `${client.honorific ? client.honorific + " " : ""}${client.first_name} ${client.last_name}`;
 
         // Header
         d.setFontSize(22);
@@ -314,6 +338,20 @@ export default function ClientProfile() {
         d.save(`Invoice_${bill.id.substring(0, 8)}.pdf`);
     };
 
+    const handleRefundSuccess = (refund: any) => {
+        queryClient.invalidateQueries({ queryKey: ['client-bills', id] });
+        queryClient.invalidateQueries({ queryKey: ['client-refunds', id] });
+        queryClient.invalidateQueries({ queryKey: ['client-entitlements', id] });
+        
+        // Auto-download refund voucher
+        generateRefundVoucher(client.org_name || "Clinic", fullName, refund);
+    };
+
+    const copyToClipboard = (text: string) => {
+        navigator.clipboard.writeText(text);
+        toast({ title: "Copied to clipboard" });
+    };
+
     if (loading) {
         return <DashboardLayout role="admin"><div className="flex justify-center py-20">Loading profile...</div></DashboardLayout>;
     }
@@ -334,8 +372,6 @@ export default function ClientProfile() {
         has_insurance, insurance_provider, insurance_policy_no, insurance_coverage_amount,
         registered_on
     } = client;
-
-    const fullName = `${honorific ? honorific + " " : ""}${first_name} ${last_name}`;
 
     const handleExportExcel = () => {
         if (!sessions || sessions.length === 0) {
@@ -645,6 +681,19 @@ export default function ClientProfile() {
                                                                     Mark Paid
                                                                 </Button>
                                                             )}
+                                                            {bill.status === "Paid" && (
+                                                                <Button 
+                                                                    size="sm" 
+                                                                    variant="ghost" 
+                                                                    className="text-amber-600 hover:text-amber-700 hover:bg-amber-50"
+                                                                    onClick={() => {
+                                                                        setRefundBillId(bill.id);
+                                                                        setIsRefundModalOpen(true);
+                                                                    }}
+                                                                >
+                                                                    <Receipt className="w-4 h-4 mr-1.5" /> Refund
+                                                                </Button>
+                                                            )}
                                                             <Button size="sm" variant="ghost" onClick={() => handleDownloadInvoice(bill)}>
                                                                 <Download className="w-4 h-4" />
                                                             </Button>
@@ -655,11 +704,84 @@ export default function ClientProfile() {
                                         </tbody>
                                     </table>
                                 </div>
+
+                                {/* Refund History */}
+                                <div className="mt-8 space-y-4">
+                                    <h3 className="text-sm font-bold flex items-center gap-2 text-foreground">
+                                        <Receipt className="w-4 h-4 text-amber-500" /> Refund History
+                                    </h3>
+                                    <div className="rounded-md border overflow-x-auto">
+                                        <table className="w-full text-sm">
+                                            <thead>
+                                                <tr className="border-b bg-muted/50 text-left">
+                                                    <th className="p-3 font-medium text-muted-foreground">ID</th>
+                                                    <th className="p-3 font-medium text-muted-foreground">Date</th>
+                                                    <th className="p-3 font-medium text-muted-foreground">Invoice #</th>
+                                                    <th className="p-3 font-medium text-muted-foreground text-right">Amount</th>
+                                                    <th className="p-3 font-medium text-muted-foreground">Mode</th>
+                                                    <th className="p-3 font-medium text-muted-foreground">Txn ID</th>
+                                                    <th className="p-3 font-medium text-muted-foreground text-right">Proof</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {refundsLoading ? (
+                                                    <tr><td colSpan={7} className="p-4 text-center text-muted-foreground text-xs">Loading refunds...</td></tr>
+                                                ) : !refunds || refunds.length === 0 ? (
+                                                    <tr><td colSpan={7} className="p-4 text-center text-muted-foreground text-xs italic">No refunds processed for this client.</td></tr>
+                                                ) : refunds.map((ref: any) => (
+                                                    <tr key={ref.id} className="border-b last:border-0 hover:bg-muted/10 transition-colors text-xs">
+                                                        <td className="p-3 font-medium">{ref.id.substring(0, 8)}</td>
+                                                        <td className="p-3 text-muted-foreground">{format(new Date(ref.created_at), "dd MMM yyyy")}</td>
+                                                        <td className="p-3 font-mono text-[10px]">{ref.bill_id.substring(0, 8)}...</td>
+                                                        <td className="p-3 text-right font-bold text-red-600">Rs. {ref.amount}</td>
+                                                        <td className="p-3">
+                                                            <span className="flex items-center gap-1.5">
+                                                                {ref.refund_mode === 'Cash' && <Banknote className="w-3 h-3" />}
+                                                                {ref.refund_mode === 'UPI' && <Smartphone className="w-3 h-3" />}
+                                                                {ref.refund_mode === 'Online Bank Transfer' && <Landmark className="w-3 h-3" />}
+                                                                {ref.refund_mode === 'Clinic Credit' && <CreditCard className="w-3 h-3" />}
+                                                                {ref.refund_mode}
+                                                            </span>
+                                                        </td>
+                                                        <td className="p-3">
+                                                            {ref.transaction_id ? (
+                                                                <div className="flex items-center gap-1.5">
+                                                                    <span className="font-mono text-[10px] bg-muted px-1.5 py-0.5 rounded">{ref.transaction_id}</span>
+                                                                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => copyToClipboard(ref.transaction_id)}>
+                                                                        <Copy className="w-3 h-3" />
+                                                                    </Button>
+                                                                </div>
+                                                            ) : "-"}
+                                                        </td>
+                                                        <td className="p-3 text-right">
+                                                            {ref.refund_proof_url ? (
+                                                                <a href={ref.refund_proof_url} target="_blank" rel="noreferrer" className="text-primary hover:underline font-bold text-[10px]">View Proof</a>
+                                                            ) : "-"}
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
                             </CardContent>
                         </Card>
                     </TabsContent>
                 </Tabs>
             </div>
+
+            {/* Refund Modal */}
+            {client && (
+                <RefundModal 
+                    isOpen={isRefundModalOpen}
+                    onOpenChange={setIsRefundModalOpen}
+                    billId={refundBillId}
+                    clientId={id!}
+                    clientName={fullName}
+                    organizationId={client.organization_id}
+                    onSuccess={handleRefundSuccess}
+                />
+            )}
 
             {/* Payment Modal */}
             <Dialog open={isPaymentModalOpen} onOpenChange={(open) => {
