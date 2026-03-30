@@ -18,6 +18,6 @@ export default defineConfig(({ mode }) => ({
     },
   },
   preview: {
-    allowedHosts: ['sports-health-hub.onrender.com']
+    allowedHosts: true
   }
 }));
