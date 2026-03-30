@@ -13,7 +13,7 @@ export default function SetupPage() {
   const [password, setPassword] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
-  const [orgName, setOrgName] = useState("");
+  const [orgCode, setOrgCode] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleSetup = async (e: React.FormEvent) => {
@@ -47,7 +47,7 @@ export default function SetupPage() {
       // Call edge function to finalize admin setup
       const { data: setupResult, error: setupError } = await supabase.functions.invoke("setup-admin", {
         headers: { Authorization: `Bearer ${authData.session.access_token}` },
-        body: { orgName }
+        body: { orgCode }
       });
       if (setupError) throw setupError;
 
@@ -82,8 +82,8 @@ export default function SetupPage() {
         </div>
 
         <div className="space-y-2">
-          <Label>Organization Name</Label>
-          <Input value={orgName} onChange={(e) => setOrgName(e.target.value)} required placeholder="My Clinic Name" />
+          <Label>Organization Code</Label>
+          <Input value={orgCode} onChange={(e) => setOrgCode(e.target.value.toUpperCase())} required placeholder="e.g. CLINIC01" />
         </div>
 
         <div className="grid grid-cols-2 gap-4">

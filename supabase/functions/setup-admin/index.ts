@@ -37,32 +37,48 @@ serve(async (req) => {
       });
     }
 
-<<<<<<< HEAD
-    // Read orgName from request body
+    // Read orgCode from request body
     const body = await req.json().catch(() => ({}));
-    const orgName = body.orgName || "Default Organization";
+    const orgCode = body.orgCode;
 
-    // Insert Organization
-    const { data: orgData, error: orgError } = await supabase
+    if (!orgCode) throw new Error("Organization Code is required");
+
+    // Try to find if the organization already exists
+    const { data: existingOrg } = await supabase
       .from("organizations")
-      .insert({ name: orgName })
-      .select()
-      .single();
+      .select("id")
+      .eq("org_code", orgCode.toUpperCase())
+      .maybeSingle();
 
-    if (orgError || !orgData) throw new Error("Failed to create organization: " + (orgError?.message || "Unknown error"));
+    let orgId;
+    if (existingOrg) {
+      orgId = existingOrg.id;
+    } else {
+      // Create new organization with this code
+      const { data: newOrg, error: orgError } = await supabase
+        .from("organizations")
+        .insert({ 
+          name: orgCode, // Use code as name 
+          org_code: orgCode.toUpperCase(),
+          status: 'active'
+        })
+        .select()
+        .single();
+      
+      if (orgError) throw new Error("Failed to create organization: " + orgError.message);
+      orgId = newOrg.id;
 
-    // Update profile with new org and approval
-    await supabase
-      .from("profiles")
-      .update({ organization_id: orgData.id, is_approved: true })
-=======
-    const orgId = "00000000-0000-0000-0000-000000000001";
+      // Create a default location for new organization
+      await supabase.from("locations").insert({
+        organization_id: orgId,
+        name: "Main Location"
+      });
+    }
 
     // Update profile with org and approval
-    await supabase
+    const { error: profileError } = await supabase
       .from("profiles")
       .update({ organization_id: orgId, is_approved: true })
->>>>>>> 06b5c2f5749e810212bca517c51285b0f66adef2
       .eq("id", user.id);
 
     // Assign admin role
