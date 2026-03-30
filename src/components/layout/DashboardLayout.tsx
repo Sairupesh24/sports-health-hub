@@ -4,6 +4,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Menu, Activity } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import ClientBottomNav from "../client/ClientBottomNav";
 
 interface DashboardLayoutProps {
   role: string;
@@ -62,10 +63,13 @@ export default function DashboardLayout({ role, children }: DashboardLayoutProps
         </div>
 
         {/* Content Area */}
-        <div className="p-4 sm:p-6 lg:p-8 max-w-[1600px] w-full mx-auto flex-1">
+        <div className="p-4 sm:p-6 lg:p-8 max-w-[1600px] w-full mx-auto flex-1 pb-24 md:pb-8">
           {children}
         </div>
       </main>
+
+      {/* Mobile Bottom Navigation for Clients/Athletes */}
+      {(effectiveRole === "client" || effectiveRole === "athlete") && <ClientBottomNav />}
     </div>
   );
 }

@@ -33,6 +33,8 @@ interface ProgramAssignmentModalProps {
   initialSelectedAthleteId?: string | null;
   initialSelectedBatchId?: string | null;
   initialStartDate?: string;
+  initialDays?: any[];
+  recipientName?: string;
 }
 
 export default function ProgramAssignmentModal({ 
@@ -42,7 +44,9 @@ export default function ProgramAssignmentModal({
   onSuccess,
   initialSelectedAthleteId,
   initialSelectedBatchId,
-  initialStartDate
+  initialStartDate,
+  initialDays,
+  recipientName
 }: ProgramAssignmentModalProps) {
   const [athletes, setAthletes] = useState<any[]>([]);
   const [selectedAthleteIds, setSelectedAthleteIds] = useState<string[]>([]);
@@ -65,11 +69,9 @@ export default function ProgramAssignmentModal({
       // Auto-preselect and skip to builder if an athlete or batch is provided
       if (initialSelectedAthleteId) {
         setSelectedAthleteIds([initialSelectedAthleteId]);
-        setStep('builder');
+        setStep('builder'); // ALWAYS SKIP if we have an athlete
       } else if (initialSelectedBatchId) {
-        // If it's a batch, we'll mark the batchId but still might want to show members
-        // For now, let's just allow the assignment to refer to the batch_id
-        setStep('builder');
+        setStep('builder'); // ALWAYS SKIP if we have a batch
       } else {
         // Reset if coming from a different state
         setSelectedAthleteIds([]);
@@ -207,7 +209,58 @@ export default function ProgramAssignmentModal({
 
       const orgId = profile?.organization_id;
 
-      // 1. Create Transient Program
+      // Handle EDITING existing items
+      if (initialDays && initialDays.length > 0) {
+        const day = daysData[0];
+        const dayId = day.id;
+
+        // 1. Delete all existing items for this specific day to ensure sync
+        await supabase
+          .from('workout_items' as any)
+          .delete()
+          .eq('workout_day_id', dayId);
+
+        // 2. Re-insert items
+        for (const item of day.items) {
+          const { data: itemData, error: iError } = await (supabase
+            .from('workout_items' as any)
+            .insert({
+              workout_day_id: dayId,
+              org_id: orgId,
+              item_type: 'lift',
+              display_order: day.items.indexOf(item)
+            } as any) as any)
+            .select()
+            .single();
+
+          if (iError) throw iError;
+
+          const { error: liftError } = await supabase
+            .from('lift_items' as any)
+            .insert({
+              id: itemData.id,
+              org_id: orgId,
+              exercise_id: item.exerciseId,
+              sets: item.sets,
+              reps: item.reps,
+              load_value: item.weight,
+              tempo: item.tempo,
+              rest_time_secs: item.rest_time_secs,
+              workout_grouping: item.workout_grouping,
+              each_side: item.each_side,
+              additional_info: item.additional_info
+            } as any);
+
+          if (liftError) throw liftError;
+        }
+
+        toast({ title: "Workout Updated!" });
+        onSuccess();
+        onClose();
+        return;
+      }
+
+      // 1. Create Transient Program (Original Logic for NEW)
       const { data: programData, error: pError } = await (supabase
         .from('training_programs' as any)
         .insert({
@@ -260,7 +313,12 @@ export default function ProgramAssignmentModal({
               exercise_id: item.exerciseId,
               sets: item.sets,
               reps: item.reps,
-              load_value: item.weight
+              load_value: item.weight,
+              tempo: item.tempo,
+              rest_time_secs: item.rest_time_secs,
+              workout_grouping: item.workout_grouping,
+              each_side: item.each_side,
+              additional_info: item.additional_info
             } as any);
 
           if (liftError) throw liftError;
@@ -437,9 +495,19 @@ export default function ProgramAssignmentModal({
           ) : (
             <AmsQuickBuilder 
               startDate={startDate}
-              onCancel={() => setStep('selection')}
+              onCancel={() => {
+                // If it was a pre-selection from timeline, cancel should close modal
+                if (initialSelectedAthleteId || initialSelectedBatchId) {
+                  onClose();
+                } else {
+                  setStep('selection');
+                }
+              }}
               onSave={handleQuickSave}
               loading={loading}
+              initialDays={initialDays}
+              recipientName={recipientName}
+              hideTitle={true}
             />
           )}
         </div>

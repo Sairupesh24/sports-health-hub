@@ -19,6 +19,7 @@ import WorkoutBuilder from "./pages/ams/WorkoutBuilder";
 import WorkoutLogging from "./pages/ams/WorkoutLogging";
 import AmsFeed from "./pages/ams/AmsFeed";
 import AmsCalendar from "./pages/ams/AmsCalendar";
+import ExerciseLibrary from "./pages/ams/ExerciseLibrary";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import ClientList from "./pages/admin/ClientList";
 import ClientRegistration from "./pages/admin/ClientRegistration";
@@ -97,6 +98,7 @@ const App = () => (
             <Route path="/ams/programs/:id/builder" element={<ProtectedRoute requiredRole={["coach", "sports_scientist", "admin"]}><WorkoutBuilder /></ProtectedRoute>} />
             <Route path="/ams/feed" element={<ProtectedRoute requiredRole={["coach", "sports_scientist", "admin"]}><AmsFeed /></ProtectedRoute>} />
             <Route path="/ams/calendar" element={<ProtectedRoute requiredRole={["coach", "sports_scientist", "admin"]}><AmsCalendar /></ProtectedRoute>} />
+            <Route path="/ams/exercises" element={<ProtectedRoute requiredRole={["coach", "sports_scientist", "admin"]}><ExerciseLibrary /></ProtectedRoute>} />
             <Route path="/ams/athlete/calendar" element={<ProtectedRoute requiredRole={["client", "athlete"]}><AthleteDashboard /></ProtectedRoute>} />
             <Route path="/ams/athlete/workout/:id" element={<ProtectedRoute requiredRole={["client", "athlete"]}><WorkoutLogging /></ProtectedRoute>} />
             <Route path="/ams/batch-tests" element={<ProtectedRoute requiredRole={["coach", "sports_scientist", "admin"]}><BatchTestEntry /></ProtectedRoute>} />

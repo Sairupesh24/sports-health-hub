@@ -77,12 +77,10 @@ export default function AthleteDashboard() {
         .from('workout_days' as any)
         .select(`
           *,
+          *,
           items:workout_items(
             *,
-            lift:lift_items(*, exercise:exercises(name)),
-            saqc:saqc_items(*, exercise:exercises(name)),
-            circuit:circuit_items(*),
-            note:note_items(*)
+            lift:lift_items(*, exercise:exercises(name))
           )
         `)
         .eq('program_id', (assignment as any).program_id)
@@ -218,20 +216,51 @@ export default function AthleteDashboard() {
                            <Badge variant="outline">{todayWorkout.items?.length || 0} Total</Badge>
                         </div>
                         <div className="space-y-4">
-                          {todayWorkout.items?.map((item: any, i: number) => (
-                             <div key={item.id} className="flex items-center justify-between p-6 bg-white rounded-3xl border border-slate-100 shadow-sm">
-                                <div className="flex items-center gap-4">
-                                   <div className="w-10 h-10 rounded-xl bg-primary/5 flex items-center justify-center text-primary font-black">
-                                      {i + 1}
-                                   </div>
-                                   <div>
-                                      <p className="text-sm font-bold">{item[item.item_type]?.exercise?.name || "Workout Item"}</p>
-                                      <p className="text-[10px] uppercase font-black opacity-30 tracking-widest">{item.item_type}</p>
-                                   </div>
-                                </div>
-                                <ArrowRight className="w-4 h-4 text-slate-300" />
-                             </div>
-                          ))}
+                           {todayWorkout.items?.map((item: any, i: number) => {
+                             const lift = item[item.item_type];
+                             return (
+                               <div key={item.id} className="p-6 bg-white rounded-3xl border border-slate-100 shadow-sm hover:border-primary/20 transition-all group">
+                                  <div className="flex items-start justify-between gap-4">
+                                     <div className="flex items-start gap-4 flex-1">
+                                        <div className="w-10 h-10 rounded-xl bg-primary/5 flex items-center justify-center text-primary font-black flex-shrink-0">
+                                           {lift?.workout_grouping || (i + 1)}
+                                        </div>
+                                        <div className="min-w-0 flex-1">
+                                           <div className="flex items-center gap-2 flex-wrap">
+                                              <p className="text-sm font-bold truncate">{lift?.exercise?.name || "Workout Item"}</p>
+                                              {lift?.each_side && <Badge variant="outline" className="text-[8px] uppercase font-black tracking-widest border-amber-200 text-amber-600 bg-amber-50">Each Side</Badge>}
+                                           </div>
+                                           
+                                           <div className="flex items-center gap-3 mt-1.5 flex-wrap">
+                                              <span className="text-[10px] font-black uppercase text-slate-400">
+                                                 {lift?.sets} x {lift?.reps} @ {lift?.load_value}KG
+                                              </span>
+                                              {(lift?.tempo || lift?.rest_time_secs) && (
+                                                <div className="flex items-center gap-3">
+                                                   <div className="w-1 h-1 rounded-full bg-slate-200" />
+                                                   <span className="text-[10px] font-bold text-primary/60 italic uppercase tracking-tighter">
+                                                      {lift?.tempo && `Tempo: ${lift.tempo}`}
+                                                      {lift?.tempo && lift?.rest_time_secs && ' | '}
+                                                      {lift?.rest_time_secs && `Rest: ${lift.rest_time_secs}s`}
+                                                   </span>
+                                                </div>
+                                              )}
+                                           </div>
+
+                                           {lift?.additional_info && (
+                                             <p className="mt-2 text-[10px] text-slate-500 font-medium leading-relaxed bg-slate-50 p-2 rounded-lg border border-slate-100">
+                                                {lift.additional_info}
+                                             </p>
+                                           )}
+                                        </div>
+                                     </div>
+                                     <div className="flex flex-col items-end gap-2 text-right">
+                                        <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-primary transition-colors" />
+                                     </div>
+                                  </div>
+                               </div>
+                             );
+                           })}
                         </div>
                         <Button className="w-full h-14 rounded-2xl" onClick={navigateToLogging}>
                            Go to Logging Floor

@@ -1,0 +1,7 @@
+Starting Diagnostic v9...
+Assignment: Quick Assign - Mar 26, 16:04, Start: 2026-03-26
+  - Days: 1
+    * [0] Basic workout plan (test)
+Assignment: Quick Assign - Mar 26, 16:05, Start: 2026-03-27
+  - Days: 1
+    * [0] Day 2 workout

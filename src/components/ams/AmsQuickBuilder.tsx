@@ -14,13 +14,16 @@ import {
   Type,
   ChevronRight,
   ChevronLeft,
-  LayoutTemplate
+  LayoutTemplate,
+  Pencil
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Textarea } from "@/components/ui/textarea";
 import { 
   Command, 
   CommandEmpty, 
@@ -44,6 +47,11 @@ interface ExerciseItem {
   sets: number;
   reps: string;
   weight: number;
+  tempo?: string;
+  rest_time_secs?: number;
+  workout_grouping?: string;
+  each_side?: boolean;
+  additional_info?: string;
 }
 
 interface WorkoutDay {
@@ -60,9 +68,11 @@ interface AmsQuickBuilderProps {
   loading?: boolean;
   templateMode?: boolean;
   initialDays?: WorkoutDay[];
+  recipientName?: string;
+  hideTitle?: boolean;
 }
 
-export default function AmsQuickBuilder({ startDate, onSave, onCancel, loading, templateMode, initialDays }: AmsQuickBuilderProps) {
+export default function AmsQuickBuilder({ startDate, onSave, onCancel, loading, templateMode, initialDays, recipientName, hideTitle }: AmsQuickBuilderProps) {
   const [days, setDays] = useState<WorkoutDay[]>(initialDays || [
     { id: '1', title: '', date: startDate, items: [] }
   ]);
@@ -70,6 +80,7 @@ export default function AmsQuickBuilder({ startDate, onSave, onCancel, loading, 
   const [searchOpen, setSearchOpen] = useState<{ [dayId: string]: boolean }>({});
   const { profile } = useAuth();
   const navigate = useNavigate();
+  const [expandedItems, setExpandedItems] = useState<{ [itemId: string]: boolean }>({});
 
   const { data: templates } = useQuery({
       queryKey: ["ams-templates", profile?.organization_id],
@@ -84,7 +95,7 @@ export default function AmsQuickBuilder({ startDate, onSave, onCancel, loading, 
           if (error) throw error;
           return data;
       },
-      enabled: !!profile?.organization_id && !templateMode // don't load templates if we ARE building a template
+      enabled: !!profile?.organization_id
   });
 
   useEffect(() => {
@@ -105,12 +116,12 @@ export default function AmsQuickBuilder({ startDate, onSave, onCancel, loading, 
     setExercises(data || []);
   };
 
-  const addDay = () => {
-    const nextDate = addDays(new Date(days[days.length - 1].date), 1).toISOString().split('T')[0];
+  const addGroup = () => {
+    const lastDate = days[days.length - 1].date;
     setDays([...days, { 
       id: Math.random().toString(36).substr(2, 9), 
       title: '', 
-      date: nextDate, 
+      date: lastDate, 
       items: [] 
     }]);
   };
@@ -122,8 +133,10 @@ export default function AmsQuickBuilder({ startDate, onSave, onCancel, loading, 
   };
 
   const addExercise = (dayId: string, exercise: any) => {
-    setDays(days.map(d => {
+    setDays(days.map((d, dIdx) => {
       if (d.id === dayId) {
+        const groupLetter = String.fromCharCode(65 + dIdx);
+        const exerciseNumber = d.items.length + 1;
         return {
           ...d,
           items: [...d.items, {
@@ -133,7 +146,15 @@ export default function AmsQuickBuilder({ startDate, onSave, onCancel, loading, 
             type: 'lift',
             sets: 3,
             reps: '10',
-            weight: 0
+            weight: 0,
+            tempo: '0-0-0-0',
+            rest_time_secs: 60,
+            workout_grouping: `${groupLetter}${exerciseNumber}`,
+            each_side: false,
+            additional_info: '',
+            is_completion_lift: false,
+            is_bodyweight: false,
+            is_coach_completion: false
           }]
         };
       }
@@ -143,14 +164,15 @@ export default function AmsQuickBuilder({ startDate, onSave, onCancel, loading, 
   };
 
   const applyTemplate = (dayId: string, template: any) => {
-    setDays(days.map(d => {
+    setDays(days.map((d, dIdx) => {
       if (d.id === dayId) {
         // Find the first day of the template
         const templateDay = template.days?.[0];
         if (!templateDay || !templateDay.items) return d;
 
         // Map template items to our ExerciseItem format
-        const newItems = templateDay.items.map((item: any) => {
+        const groupLetter = String.fromCharCode(65 + dIdx);
+        const newItems = templateDay.items.map((item: any, iIdx: any) => {
           const lift = item.lift_items;
           return {
             id: Math.random().toString(36).substr(2, 9),
@@ -159,7 +181,15 @@ export default function AmsQuickBuilder({ startDate, onSave, onCancel, loading, 
             type: 'lift',
             sets: lift?.sets || 3,
             reps: lift?.reps || '10',
-            weight: lift?.load_value || 0
+            weight: lift?.load_value || 0,
+            tempo: lift?.tempo || '0-0-0-0',
+            rest_time_secs: lift?.rest_time_secs || 60,
+            workout_grouping: lift?.workout_grouping || `${groupLetter}${d.items.length + iIdx + 1}`,
+            each_side: lift?.each_side || false,
+            additional_info: lift?.additional_info || '',
+            is_completion_lift: lift?.is_completion_lift || false,
+            is_bodyweight: lift?.is_bodyweight || false,
+            is_coach_completion: lift?.is_coach_completion || false
           };
         });
 
@@ -196,14 +226,31 @@ export default function AmsQuickBuilder({ startDate, onSave, onCancel, loading, 
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
+      {!hideTitle && (
+        <div className="flex flex-col">
+          <h3 className="text-2xl font-black uppercase tracking-tight text-white flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shadow-lg shadow-primary/20">
+              <Dumbbell className="w-5 h-5" />
+            </div>
+            {templateMode ? "Create Template" : "Build Training Plan"}
+          </h3>
+        </div>
+      )}
+      {recipientName && (
+        <div className={cn("flex items-center gap-2 mt-2", !hideTitle && "pl-13")}>
+          <Badge variant="outline" className="bg-primary/20 border-primary/40 text-primary text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-lg">
+            Assigning to: {recipientName}
+          </Badge>
+        </div>
+      )}
       <div className="space-y-6">
         {days.map((day, dayIdx) => (
           <div key={day.id} className="rounded-[2.5rem] border border-white/10 overflow-hidden bg-[#1A1F26] shadow-2xl relative">
             {/* Header Section with subtle gradient */}
             <div className="p-8 border-b border-white/5 bg-gradient-to-r from-white/[0.04] to-transparent flex items-center justify-between">
               <div className="flex items-center gap-6 flex-1 min-w-0 pr-4">
-                <div className="w-14 h-14 rounded-2xl bg-[#FF6B35]/20 flex items-center justify-center shrink-0 text-[#FF6B35] font-black border border-[#FF6B35]/40 shadow-lg shadow-[#FF6B35]/10 text-xl italic uppercase">
-                  D{dayIdx + 1}
+                <div className="w-14 h-14 rounded-2xl bg-primary/20 flex items-center justify-center shrink-0 text-primary font-black border border-primary/40 shadow-lg shadow-primary/10 text-xl italic uppercase">
+                  {String.fromCharCode(65 + dayIdx)}
                 </div>
                 <div className="flex-1 min-w-0">
                   <input 
@@ -225,7 +272,6 @@ export default function AmsQuickBuilder({ startDate, onSave, onCancel, loading, 
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                {!templateMode && (
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button variant="ghost" size="sm" className="h-10 border-white/10 hover:bg-white/5 text-white/50 hover:text-white font-bold uppercase tracking-wider text-[10px] gap-2 rounded-xl border">
@@ -263,10 +309,15 @@ export default function AmsQuickBuilder({ startDate, onSave, onCancel, loading, 
                       </div>
                     </PopoverContent>
                   </Popover>
-                )}
+                
 
-                {days.length > 1 && !templateMode && (
-                  <Button variant="ghost" size="icon" onClick={() => removeDay(day.id)} className="h-10 w-10 text-destructive hover:bg-destructive/10 rounded-xl transition-all border border-transparent hover:border-destructive/20 ml-2">
+                {days.length > 1 && (
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    onClick={() => removeDay(day.id)} 
+                    className="h-10 w-10 text-destructive hover:bg-destructive/10 rounded-xl transition-all border border-transparent hover:border-destructive/20 ml-2"
+                  >
                     <Trash2 className="w-4 h-4" />
                   </Button>
                 )}
@@ -277,59 +328,153 @@ export default function AmsQuickBuilder({ startDate, onSave, onCancel, loading, 
               {/* Items List */}
               <div className="space-y-4">
                 {day.items.map((item, itemIdx) => (
-                  <div key={item.id} className="grid grid-cols-12 gap-6 items-center group bg-[#242933] p-7 rounded-[2rem] border border-white/5 hover:border-[#FF6B35]/40 transition-all shadow-2xl relative overflow-hidden ring-1 ring-white/5">
-                    <div className="col-span-1 text-center">
-                       <span className="text-[14px] font-black text-white/20 italic tracking-tighter">#{itemIdx + 1}</span>
-                    </div>
-                    
-                    <div className="col-span-4 min-w-0">
-                      <p className="font-black text-lg text-white uppercase tracking-tighter truncate italic">{item.exerciseName}</p>
-                      <div className="flex items-center gap-2 mt-1">
-                        <Badge variant="outline" className="text-[8px] uppercase font-black tracking-[0.2em] border-[#FF6B35]/30 bg-[#FF6B35]/10 text-[#FF6B35] px-2 py-0.5">Strength</Badge>
+                  <div 
+                    key={item.id} 
+                    className={cn(
+                      "group bg-[#242933] p-7 rounded-[2rem] border transition-all shadow-2xl relative overflow-hidden ring-1 ring-white/5 space-y-6",
+                      expandedItems[item.id] ? "border-[#FF6B35]/40 ring-[#FF6B35]/10" : "border-white/5 hover:border-[#FF6B35]/20"
+                    )}
+                  >
+                    <div className="grid grid-cols-12 gap-6 items-center">
+                      <div className="col-span-1 text-center">
+                         <span className="text-[14px] font-black text-white/20 italic tracking-tighter">#{itemIdx + 1}</span>
+                      </div>
+                      
+                      <div className="col-span-4 min-w-0">
+                        <p className="font-black text-lg text-white uppercase tracking-tighter truncate italic">{item.exerciseName}</p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <Badge variant="outline" className="text-[8px] uppercase font-black tracking-[0.2em] border-[#FF6B35]/30 bg-[#FF6B35]/10 text-[#FF6B35] px-2 py-0.5">Strength</Badge>
+                          {expandedItems[item.id] && <Badge variant="outline" className="text-[8px] uppercase font-black tracking-[0.2em] border-emerald-500/20 bg-emerald-500/5 text-emerald-500 px-2 py-0.5 animate-pulse">Editing</Badge>}
+                        </div>
+                      </div>
+                      
+                      <div className="col-span-2 space-y-2">
+                         <Label className="text-[9px] font-black text-center uppercase tracking-[0.2em] text-[#FF6B35] opacity-60 block">Sets</Label>
+                         <div className="relative group/input" onClick={(e) => e.stopPropagation()}>
+                           <input 
+                            type="number" 
+                            value={item.sets}
+                            onChange={(e) => updateItem(day.id, item.id, 'sets', parseInt(e.target.value) || 0)}
+                            className="w-full bg-[#1A1F26] border border-white/10 text-center text-2xl font-black italic rounded-xl h-14 focus:ring-2 focus:ring-[#FF6B35]/60 focus:border-transparent outline-none text-white shadow-2xl transition-all group-hover/input:border-[#FF6B35]/30"
+                          />
+                         </div>
+                      </div>
+
+                      <div className="col-span-2 space-y-2">
+                         <Label className="text-[9px] font-black text-center uppercase tracking-[0.2em] text-[#FF6B35] opacity-60 block">Reps</Label>
+                         <div className="relative group/input" onClick={(e) => e.stopPropagation()}>
+                           <input 
+                            type="text" 
+                            value={item.reps}
+                            onChange={(e) => updateItem(day.id, item.id, 'reps', e.target.value)}
+                            className="w-full bg-[#1A1F26] border border-white/10 text-center text-2xl font-black italic rounded-xl h-14 focus:ring-2 focus:ring-[#FF6B35]/60 focus:border-transparent outline-none text-white shadow-2xl transition-all group-hover/input:border-[#FF6B35]/30"
+                          />
+                         </div>
+                      </div>
+
+                      <div className="col-span-2 space-y-2">
+                         <Label className="text-[9px] font-black text-center uppercase tracking-[0.2em] text-[#FF6B35] opacity-60 block">Load (KG)</Label>
+                         <div className="relative group/input" onClick={(e) => e.stopPropagation()}>
+                           <input 
+                            type="number" 
+                            value={item.weight}
+                            onChange={(e) => updateItem(day.id, item.id, 'weight', parseFloat(e.target.value) || 0)}
+                            className="w-full bg-[#1A1F26] border border-white/10 text-center text-2xl font-black italic rounded-xl h-14 focus:ring-2 focus:ring-[#FF6B35]/60 focus:border-transparent outline-none text-white shadow-2xl transition-all group-hover/input:border-[#FF6B35]/30"
+                          />
+                         </div>
+                      </div>
+
+                      <div className="col-span-1 flex justify-center gap-2">
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            e.preventDefault();
+                            setExpandedItems(prev => ({ ...prev, [item.id]: !prev[item.id] }));
+                          }} 
+                          className={cn(
+                            "h-10 w-10 rounded-xl transition-all border border-transparent shadow-lg",
+                            expandedItems[item.id] 
+                              ? "bg-[#FF6B35] text-white ring-4 ring-[#FF6B35]/20 scale-110" 
+                              : "bg-white/5 text-[#FF6B35] hover:bg-[#FF6B35]/10 hover:text-[#FF6B35] hover:border-[#FF6B35]/20"
+                          )}
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            e.preventDefault();
+                            removeItem(day.id, item.id);
+                          }} 
+                          className="h-10 w-10 text-destructive/40 hover:text-destructive hover:bg-destructive/10 rounded-xl transition-all border border-transparent hover:border-destructive/20"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
                       </div>
                     </div>
-                    
-                    <div className="col-span-2 space-y-2">
-                       <Label className="text-[9px] font-black text-center uppercase tracking-[0.2em] text-[#FF6B35] opacity-60 block">Sets</Label>
-                       <div className="relative group/input">
-                         <input 
-                          type="number" 
-                          value={item.sets}
-                          onChange={(e) => updateItem(day.id, item.id, 'sets', parseInt(e.target.value) || 0)}
-                          className="w-full bg-[#1A1F26] border border-white/10 text-center text-2xl font-black italic rounded-xl h-14 focus:ring-2 focus:ring-[#FF6B35]/60 focus:border-transparent outline-none text-white shadow-2xl transition-all group-hover/input:border-[#FF6B35]/30"
-                        />
-                       </div>
-                    </div>
 
-                    <div className="col-span-2 space-y-2">
-                       <Label className="text-[9px] font-black text-center uppercase tracking-[0.2em] text-[#FF6B35] opacity-60 block">Reps</Label>
-                       <div className="relative group/input">
-                         <input 
-                          type="text" 
-                          value={item.reps}
-                          onChange={(e) => updateItem(day.id, item.id, 'reps', e.target.value)}
-                          className="w-full bg-[#1A1F26] border border-white/10 text-center text-2xl font-black italic rounded-xl h-14 focus:ring-2 focus:ring-[#FF6B35]/60 focus:border-transparent outline-none text-white shadow-2xl transition-all group-hover/input:border-[#FF6B35]/30"
-                        />
-                       </div>
-                    </div>
+                    {/* Advanced parameters section - collapsible */}
+                    {expandedItems[item.id] && (
+                      <div className="animate-in slide-in-from-top-4 duration-300 space-y-6" onClick={(e) => e.stopPropagation()}>
+                        <div className="pt-6 border-t border-white/5 grid grid-cols-1 md:grid-cols-4 gap-6">
+                          <div className="space-y-2">
+                            <Label className="text-[9px] font-black uppercase tracking-[0.2em] text-white/40 block pl-1">Grouping</Label>
+                            <Input 
+                              placeholder="e.g. A1"
+                              value={item.workout_grouping}
+                              onChange={(e) => updateItem(day.id, item.id, 'workout_grouping', e.target.value)}
+                              className="bg-[#1A1F26] border-white/10 rounded-xl h-12 font-bold focus:ring-[#FF6B35]/40"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label className="text-[9px] font-black uppercase tracking-[0.2em] text-white/40 block pl-1">Tempo</Label>
+                            <Input 
+                              placeholder="5-0-1-0"
+                              value={item.tempo}
+                              onChange={(e) => updateItem(day.id, item.id, 'tempo', e.target.value)}
+                              className="bg-[#1A1F26] border-white/10 rounded-xl h-12 font-bold focus:ring-[#FF6B35]/40"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label className="text-[9px] font-black uppercase tracking-[0.2em] text-white/40 block pl-1">Rest (Secs)</Label>
+                            <Input 
+                              type="number"
+                              placeholder="60"
+                              value={item.rest_time_secs}
+                              onChange={(e) => updateItem(day.id, item.id, 'rest_time_secs', parseInt(e.target.value) || 0)}
+                              className="bg-[#1A1F26] border-white/10 rounded-xl h-12 font-bold focus:ring-[#FF6B35]/40"
+                            />
+                          </div>
+                          <div className="flex flex-col justify-center gap-2 pt-4 md:pt-4">
+                            <div className="flex items-center gap-3">
+                              <Checkbox 
+                                id={`each-side-${item.id}`} 
+                                checked={item.each_side} 
+                                onCheckedChange={(checked) => updateItem(day.id, item.id, 'each_side', checked)}
+                                className="border-white/20 data-[state=checked]:bg-[#FF6B35] data-[state=checked]:border-[#FF6B35]"
+                              />
+                              <Label htmlFor={`each-side-${item.id}`} className="text-[10px] font-black uppercase tracking-widest text-white/60 cursor-pointer">Each Side</Label>
+                            </div>
+                          </div>
+                        </div>
 
-                    <div className="col-span-2 space-y-2">
-                       <Label className="text-[9px] font-black text-center uppercase tracking-[0.2em] text-[#FF6B35] opacity-60 block">Load (KG)</Label>
-                       <div className="relative group/input">
-                         <input 
-                          type="number" 
-                          value={item.weight}
-                          onChange={(e) => updateItem(day.id, item.id, 'weight', parseFloat(e.target.value) || 0)}
-                          className="w-full bg-[#1A1F26] border border-white/10 text-center text-2xl font-black italic rounded-xl h-14 focus:ring-2 focus:ring-[#FF6B35]/60 focus:border-transparent outline-none text-white shadow-2xl transition-all group-hover/input:border-[#FF6B35]/30"
-                        />
-                       </div>
-                    </div>
-
-                    <div className="col-span-1 flex justify-center">
-                      <Button variant="ghost" size="icon" onClick={() => removeItem(day.id, item.id)} className="h-10 w-10 opacity-0 group-hover:opacity-100 text-destructive hover:bg-destructive/10 rounded-xl transition-all border border-transparent hover:border-destructive/20">
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
+                        <div className="grid grid-cols-1 md:grid-cols-1 gap-6">
+                          <div className="space-y-2">
+                            <Label className="text-[9px] font-black uppercase tracking-[0.2em] text-white/40 block pl-1">Additional Information</Label>
+                            <Textarea 
+                              placeholder="Special instructions for this exercise..."
+                              value={item.additional_info}
+                              onChange={(e) => updateItem(day.id, item.id, 'additional_info', e.target.value)}
+                              className="bg-[#1A1F26] border-white/10 rounded-xl h-24 font-medium focus:ring-[#FF6B35]/40 text-xs py-3"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )}
 
                     {/* Right Accent Glow */}
                     <div className="absolute right-0 top-0 h-full w-1 bg-gradient-to-b from-transparent via-[#FF6B35]/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -374,15 +519,13 @@ export default function AmsQuickBuilder({ startDate, onSave, onCancel, loading, 
           </div>
         ))}
 
-        {!templateMode && (
           <Button 
-            onClick={addDay} 
+            onClick={addGroup} 
             variant="outline" 
             className="w-full h-14 rounded-[2rem] border-white/5 bg-white/[0.02] hover:bg-white/5 font-black uppercase tracking-widest text-[10px] text-primary"
           >
-            <Plus className="w-4 h-4 mr-2" /> Add Training Day
+            <Plus className="w-4 h-4 mr-2" /> Add Workout Group
           </Button>
-        )}
       </div>
 
       <div className="flex gap-4 pt-4 border-t border-white/5">
@@ -392,7 +535,7 @@ export default function AmsQuickBuilder({ startDate, onSave, onCancel, loading, 
           disabled={loading || days.some(d => d.items.length === 0)}
           className="h-14 flex-[2] rounded-2xl bg-primary hover:bg-primary/90 text-primary-foreground font-black uppercase tracking-[0.2em] text-[11px] shadow-xl shadow-primary/20"
         >
-          {loading ? (templateMode ? "Saving..." : "Assigning...") : (templateMode ? "Save Template" : "Publish Multi-Workout Plan")}
+          {loading ? (templateMode ? "Saving..." : "Assigning...") : (templateMode ? "Save Template" : "Publish Workout Plan")}
         </Button>
       </div>
     </div>

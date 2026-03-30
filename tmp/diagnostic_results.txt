@@ -1,0 +1,9 @@
+Starting Diagnostic v6...
+Found 3 assignments:
+- ID: dc58ece1-7bb2-4efa-833b-8d1e22e434a5, Start: 2026-03-26, Athlete: Sai Kavuturi (ID: b961162a-99ac-41cc-9939-adba92a54af3), Program: Quick Assign - Mar 26, 16:04, Status: active, Batch: null
+- ID: aef62673-d5b4-4fe5-ba6b-1f754948ea3b, Start: 2026-03-27, Athlete: Sai Kavuturi (ID: b961162a-99ac-41cc-9939-adba92a54af3), Program: Quick Assign - Mar 26, 16:05, Status: active, Batch: null
+- ID: e0f7b3bc-db1e-4822-8539-bab7626dc1bc, Start: 2026-03-26, Athlete: null (ID: null), Program: Quick Assign - Mar 26, 17:30, Status: active, Batch: 2b9dc200-1a99-460b-a18c-bd42e50c6f07
+
+Found 2 profiles matching Kavuturi:
+- Sai Rupesh Kavuturi: 5845300c-2ebe-45cc-9a2f-080b64b519dd
+- Sai Kavuturi: b961162a-99ac-41cc-9939-adba92a54af3

@@ -26,6 +26,8 @@ const bodyParts: BodyPart[] = [
     { id: "hip_flexor_r", label: "Hip Flexor (R)", view: "front", path: "M128,155 L115,155 L118,175 L130,170 Z" },
     { id: "quad_l", label: "Quads (L)", view: "front", path: "M75,180 L98,180 L95,230 L70,230 Z" },
     { id: "quad_r", label: "Quads (R)", view: "front", path: "M125,180 L102,180 L105,230 L130,230 Z" },
+    { id: "shin_l", label: "Shin (L)", view: "front", path: "M75,235 L95,235 L90,285 L80,285 Z" },
+    { id: "shin_r", label: "Shin (R)", view: "front", path: "M125,235 L105,235 L110,285 L120,285 Z" },
 
     // BACK VIEW
     { id: "neck_post", label: "Neck", view: "back", path: "M92,55 L108,55 L106,68 L94,68 Z" },
@@ -59,15 +61,21 @@ interface SorenessHeatmapProps {
 
 export default function SorenessHeatmap({ onZoneToggle, selectedZones, readOnly = false }: SorenessHeatmapProps) {
     // Map old IDs to new ones for backward compatibility
+    // Map old/database IDs to current ones for maximum compatibility
     const normalizedSelectedZones = selectedZones.map(id => {
-        if (id === "left_shoulder") return "shoulder_l";
-        if (id === "right_shoulder") return "shoulder_r";
-        if (id === "left_quad") return "quad_l";
-        if (id === "right_quad") return "quad_r";
-        if (id === "left_hamstring") return "hamstring_l";
-        if (id === "neck") return "neck_ant";
-        return id;
-    });
+        // Universal normalization: remove _ant/_post for checking existence if needed
+        // but since we render both views, it's better to map specifically
+        if (id === "left_shoulder" || id === "shoulder_l") return ["shoulder_l_ant", "shoulder_l_post"];
+        if (id === "right_shoulder" || id === "shoulder_r") return ["shoulder_r_ant", "shoulder_r_post"];
+        if (id === "left_quad" || id === "quad_l") return ["quad_l"];
+        if (id === "right_quad" || id === "quad_r") return ["quad_r"];
+        if (id === "left_hamstring" || id === "hamstring_l") return ["hamstring_l"];
+        if (id === "right_hamstring" || id === "hamstring_r") return ["hamstring_r"];
+        if (id === "neck") return ["neck_ant", "neck_post"];
+        if (id === "shin_l" || id === "left_shin") return ["shin_l"];
+        if (id === "shin_r" || id === "right_shin") return ["shin_r"];
+        return [id];
+    }).flat();
 
     const renderSilhouette = (view: "front" | "back") => (
         <svg viewBox="0 0 200 300" className="w-full h-auto drop-shadow-xl">

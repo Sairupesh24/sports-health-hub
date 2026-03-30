@@ -1,0 +1,51 @@
+[
+  {
+    "id": "c70418d2-7eff-44cc-861c-f7df6367a6d5",
+    "email": "foe3445@ishpo.com",
+    "organization_id": "95d6393e-68ab-4839-9b35-a11562cfc150",
+    "ams_role": null,
+    "uhid": null
+  },
+  {
+    "id": "baf86a34-80eb-4d8d-8bed-7b11fd119615",
+    "email": "client3445@ishpo.com",
+    "organization_id": "95d6393e-68ab-4839-9b35-a11562cfc150",
+    "ams_role": "athlete",
+    "uhid": null
+  },
+  {
+    "id": "e76c6dbb-e500-4d16-90a1-7a9614dbeb99",
+    "email": "doctor3445@ishpo.com",
+    "organization_id": "95d6393e-68ab-4839-9b35-a11562cfc150",
+    "ams_role": null,
+    "uhid": null
+  },
+  {
+    "id": "5b1f2055-a848-4ccb-a2f2-d95fc6dd26f5",
+    "email": "test_clinic_admin@ishpo.com",
+    "organization_id": "95d6393e-68ab-4839-9b35-a11562cfc150",
+    "ams_role": null,
+    "uhid": null
+  },
+  {
+    "id": "fb2a359a-6914-4a48-907f-5a4475e3172f",
+    "email": "scientist_test@example.com",
+    "organization_id": "95d6393e-68ab-4839-9b35-a11562cfc150",
+    "ams_role": null,
+    "uhid": null
+  },
+  {
+    "id": "47300314-3ea1-4149-9835-47c31d0a24c0",
+    "email": "test_clinic_admin@ishpo.com",
+    "organization_id": "95d6393e-68ab-4839-9b35-a11562cfc150",
+    "ams_role": null,
+    "uhid": null
+  },
+  {
+    "id": "1f6563ca-e12d-405d-9585-e5e6c450c188",
+    "email": "doctor3445@ishpo.com",
+    "organization_id": "95d6393e-68ab-4839-9b35-a11562cfc150",
+    "ams_role": null,
+    "uhid": null
+  }
+]

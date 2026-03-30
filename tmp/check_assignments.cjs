@@ -1,32 +1,37 @@
 const { createClient } = require('@supabase/supabase-js');
-const URL = "https://fbjlgepxbyoyradaacvd.supabase.co";
-const KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZiamxnZXB4YnlveXJhZGFhY3ZkIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjQ0Mzk4NSwiZXhwIjoyMDg4MDE5OTg1fQ.85pkS0NHT5zr7Fs6SDc_A2C6rFSMGLO6HdC2HITcOTg";
-const supabase = createClient(URL, KEY);
+const fs = require('fs');
 
-async function checkLatestAssignment() {
-  const { data, error } = await supabase
-    .from('program_assignments')
-    .select(`
-      *,
-      program:training_programs(
-        *,
-        days:workout_days(
-          *,
-          items:workout_items(
-            *,
-            lift_items(*)
-          )
-        )
-      )
-    `)
-    .order('created_at', { ascending: false })
-    .limit(3);
+// Try to load env from .env if it exists
+let supabaseUrl = process.env.VITE_SUPABASE_URL;
+let supabaseKey = process.env.VITE_SUPABASE_ANON_KEY;
 
-  if (error) {
-    console.error('Error:', error);
-  } else {
-    console.log(JSON.stringify(data, null, 2));
-  }
+if (!supabaseUrl) {
+    // Fallback or read from common locations if needed
+    console.error("VITE_SUPABASE_URL not found in env");
 }
 
-checkLatestAssignment();
+const supabase = createClient(supabaseUrl, supabaseKey);
+
+async function check() {
+    const { data: assignments, error } = await supabase
+        .from('program_assignments')
+        .select(`
+            *,
+            athlete:profiles!athlete_id(first_name, last_name, ams_role),
+            program:training_programs(
+                id, 
+                name, 
+                days:workout_days(id, title, display_order, day_number)
+            )
+        `)
+        .eq('status', 'active');
+
+    if (error) {
+        console.error("Error fetching assignments:", error);
+        return;
+    }
+
+    console.log(JSON.stringify(assignments, null, 2));
+}
+
+check();

@@ -33,7 +33,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
+import { Plus } from "lucide-react";
 
 interface WorkoutItemModalProps {
   isOpen: boolean;
@@ -65,6 +67,14 @@ export default function WorkoutItemModal({
     load_value: 0,
     rounds: 1,
     content: "",
+    tempo: "0-0-0-0",
+    rest_time_secs: 60,
+    workout_grouping: "",
+    each_side: false,
+    additional_info: "",
+    is_completion_lift: false,
+    is_bodyweight: false,
+    is_coach_completion: false,
     ...initialItem?.[initialItem?.item_type]
   });
 
@@ -82,7 +92,15 @@ export default function WorkoutItemModal({
         reps: "10",
         load_value: 0,
         rounds: 1,
-        content: ""
+        content: "",
+        tempo: "0-0-0-0",
+        rest_time_secs: 60,
+        workout_grouping: "",
+        each_side: false,
+        additional_info: "",
+        is_completion_lift: false,
+        is_bodyweight: false,
+        is_coach_completion: false
       });
     }
   }, [initialItem, isOpen]);
@@ -134,6 +152,14 @@ export default function WorkoutItemModal({
         detailPayload.sets = formData.sets;
         detailPayload.reps = formData.reps;
         detailPayload.load_value = formData.load_value;
+        detailPayload.tempo = formData.tempo;
+        detailPayload.rest_time_secs = formData.rest_time_secs;
+        detailPayload.workout_grouping = formData.workout_grouping;
+        detailPayload.each_side = formData.each_side;
+        detailPayload.additional_info = formData.additional_info;
+        detailPayload.is_completion_lift = formData.is_completion_lift;
+        detailPayload.is_bodyweight = formData.is_bodyweight;
+        detailPayload.is_coach_completion = formData.is_coach_completion;
       } else if (activeTab === 'circuit') {
         detailPayload.circuit_name = formData.circuit_name;
         detailPayload.rounds = formData.rounds;
@@ -222,10 +248,40 @@ export default function WorkoutItemModal({
                 </Popover>
 
                 {selectedExercise && (
-                  <div className="grid grid-cols-3 gap-4 animate-in slide-in-from-top-2 duration-300">
-                    <Field label="Sets" value={formData.sets} onChange={(v) => setFormData({...formData, sets: v})} type="number" />
-                    <Field label="Reps" value={formData.reps} onChange={(v) => setFormData({...formData, reps: v})} type="text" />
-                    <Field label="Load %" value={formData.load_value} onChange={(v) => setFormData({...formData, load_value: v})} type="number" />
+                  <div className="space-y-6 animate-in slide-in-from-top-2 duration-300">
+                    <div className="grid grid-cols-3 gap-4">
+                      <Field label="Sets" value={formData.sets} onChange={(v) => setFormData({...formData, sets: v})} type="number" />
+                      <Field label="Reps" value={formData.reps} onChange={(v) => setFormData({...formData, reps: v})} type="text" />
+                      <Field label="Load %" value={formData.load_value} onChange={(v) => setFormData({...formData, load_value: v})} type="number" />
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-4">
+                      <Field label="Grouping" value={formData.workout_grouping} onChange={(v) => setFormData({...formData, workout_grouping: v})} type="text" />
+                      <Field label="Tempo" value={formData.tempo} onChange={(v) => setFormData({...formData, tempo: v})} type="text" />
+                      <Field label="Rest (S)" value={formData.rest_time_secs} onChange={(v) => setFormData({...formData, rest_time_secs: v})} type="number" />
+                    </div>
+
+                    <div className="flex items-center gap-6">
+                      <div className="flex items-center gap-3">
+                        <Checkbox 
+                          id="modal-each-side" 
+                          checked={formData.each_side} 
+                          onCheckedChange={(checked) => setFormData({...formData, each_side: !!checked})} 
+                          className="border-white/20"
+                        />
+                        <Label htmlFor="modal-each-side" className="text-[10px] uppercase font-black tracking-widest text-white/60 cursor-pointer">Each Side</Label>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-[10px] uppercase font-black tracking-widest opacity-50 pl-1">Additional Information</Label>
+                      <Textarea 
+                        value={formData.additional_info} 
+                        onChange={(e) => setFormData({...formData, additional_info: e.target.value})}
+                        placeholder="Instructions..."
+                        className="bg-white/5 border-white/10 rounded-2xl h-24 focus:ring-primary/40"
+                      />
+                    </div>
                   </div>
                 )}
               </div>

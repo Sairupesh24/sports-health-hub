@@ -26,7 +26,7 @@ import {
   Columns,
   Sparkles
 } from "lucide-react";
-import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths, isToday, addDays, differenceInCalendarDays } from "date-fns";
+import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths, isToday, addDays, differenceInCalendarDays, startOfDay, isBefore } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -50,6 +50,9 @@ import ProgramAssignmentModal from "@/components/ams/ProgramAssignmentModal";
 import BatchCreationModal from "@/components/ams/BatchCreationModal";
 import BatchInfoPopover from "@/components/ams/BatchInfoPopover";
 import { Calendar } from "@/components/ui/calendar";
+import { useToast } from "@/components/ui/use-toast";
+import WorkoutItemModal from "@/components/ams/WorkoutItemModal";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function AmsCalendar() {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -62,6 +65,10 @@ export default function AmsCalendar() {
   const [editingBatch, setEditingBatch] = useState<any>(null);
   const [isAthletePopoverOpen, setIsAthletePopoverOpen] = useState(false);
   const [selectedAssignDate, setSelectedAssignDate] = useState<Date | null>(null);
+  const [editingItem, setEditingItem] = useState<any>(null);
+  const [editingWorkoutDays, setEditingWorkoutDays] = useState<any[] | null>(null);
+  const { toast } = useToast();
+  const { profile } = useAuth();
   
   const timelineRef = useRef<HTMLDivElement>(null);
   const dayRefs = useRef<Map<string, HTMLDivElement>>(new Map());
@@ -168,17 +175,68 @@ export default function AmsCalendar() {
 
   const handleDeleteWorkout = async (assignmentId: string) => {
     try {
+      setLoading(true);
       const { error } = await supabase
         .from('program_assignments' as any)
         .delete()
         .eq('id', assignmentId);
 
       if (error) throw error;
-
+      toast({ title: "Assignment deleted" });
       fetchAthleteWorkouts();
     } catch (error: any) {
       console.error("Error deleting workout:", error);
+    } finally {
+      setLoading(false);
     }
+  };
+
+  const handleDeleteItem = async (itemId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      setLoading(true);
+      const { error } = await supabase
+        .from('workout_items' as any)
+        .delete()
+        .eq('id', itemId);
+
+      if (error) throw error;
+      toast({ title: "Exercise removed from schedule" });
+      fetchAthleteWorkouts();
+    } catch (error: any) {
+      console.error("Error deleting item:", error);
+      toast({ title: "Failed to delete exercise", variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEditWorkout = (workout: any) => {
+    const mappedDays = [{
+      id: workout.workout_day_id || workout.id, // Using the day id
+      title: workout.title || "Untitled Workout",
+      date: workout.targetDate ? format(workout.targetDate, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
+      items: (workout.items || []).map((item: any) => {
+        const lift = item.lift_items || {};
+        return {
+          id: item.id, // THE ITEM ID from workout_items
+          exerciseId: lift.exercise_id,
+          exerciseName: lift.exercise?.name || "Unknown",
+          type: (item.item_type as any) || 'lift',
+          sets: lift.sets || 3,
+          reps: String(lift.reps || "10"),
+          weight: lift.load_value || 0,
+          tempo: lift.tempo,
+          rest_time_secs: lift.rest_time_secs,
+          workout_grouping: lift.workout_grouping,
+          each_side: lift.each_side,
+          additional_info: lift.additional_info
+        };
+      })
+    }];
+    setEditingWorkoutDays(mappedDays);
+    setSelectedAssignDate(workout.targetDate || new Date());
+    setIsAssignModalOpen(true);
   };
 
   const getDayWorkouts = (day: Date) => {
@@ -190,7 +248,7 @@ export default function AmsCalendar() {
       if (diffDays >= 0 && w.program?.days) {
         // Find if this specific day (offset) exists in the program
         const workoutDay = w.program.days.find((d: any) => d.display_order === diffDays);
-        if (workoutDay) return [{ ...workoutDay, id: w.id, programName: w.program.name }];
+        if (workoutDay) return [{ ...workoutDay, id: w.id, programName: w.program.name, targetDate: day }];
       }
       return [];
     });
@@ -387,8 +445,9 @@ export default function AmsCalendar() {
               </div>
             ) : (
               timelineDays.map((day, index) => {
-              const dayWorkouts = getDayWorkouts(day);
-              const isTodayDate = isToday(day);
+               const dayWorkouts = getDayWorkouts(day);
+               const isTodayDate = isToday(day);
+               const isPastDay = isBefore(startOfDay(day), startOfDay(new Date()));
               
               return (
                 <div 
@@ -426,22 +485,24 @@ export default function AmsCalendar() {
                                 Untitled Workout
                              </h3>
                            </div>
-                           <div className="flex items-center gap-2 pl-7 mt-4">
-                              <Button 
-                                variant="ghost" 
-                                size="sm" 
-                                className="bg-[#10B981]/5 hover:bg-[#10B981] text-[#10B981] hover:text-white rounded-xl font-black uppercase text-[10px] tracking-widest h-10 px-4 transition-all gap-2 border-none"
-                                onClick={() => {
-                                  setSelectedAssignDate(day);
-                                  setIsAssignModalOpen(true);
-                                }}
-                              >
-                                 <div className="w-5 h-5 rounded-full bg-[#10B981]/20 flex items-center justify-center group-hover:bg-white/20">
-                                   <Plus className="w-3 h-3" />
-                                 </div>
-                                 Add Workout
-                              </Button>
-                           </div>
+                           {!isPastDay && (
+                             <div className="flex items-center gap-2 pl-7 mt-4">
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm" 
+                                  className="bg-[#10B981]/5 hover:bg-[#10B981] text-[#10B981] hover:text-white rounded-xl font-black uppercase text-[10px] tracking-widest h-10 px-4 transition-all gap-2 border-none"
+                                  onClick={() => {
+                                    setSelectedAssignDate(day);
+                                    setIsAssignModalOpen(true);
+                                  }}
+                                >
+                                   <div className="w-5 h-5 rounded-full bg-[#10B981]/20 flex items-center justify-center group-hover:bg-white/20">
+                                     <Plus className="w-3 h-3" />
+                                   </div>
+                                   Add Workout
+                                </Button>
+                             </div>
+                           )}
                          </>
                        ) : (
                          <div className="space-y-8 w-full">
@@ -481,17 +542,25 @@ export default function AmsCalendar() {
                                                  </p>
                                                </div>
                                              </div>
-                                             <div className="flex items-center gap-1 opacity-100 sm:opacity-0 group-hover/ext:opacity-100 transition-opacity mt-2 sm:mt-0 justify-end border-t sm:border-none border-slate-100 pt-2 sm:pt-0">
-                                               <button className="p-2 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-blue-500 transition-colors">
-                                                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
-                                               </button>
-                                               <button 
-                                                 className="p-2 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-red-500 transition-colors"
-                                                 onClick={() => handleDeleteDailyWorkouts([workout])}
-                                               >
-                                                  <Trash2 className="w-3.5 h-3.5" />
-                                               </button>
-                                             </div>
+                                              {!isPastDay && (
+                                                <div className="flex items-center gap-1 opacity-100 sm:opacity-0 group-hover/ext:opacity-100 transition-opacity mt-2 sm:mt-0 justify-end border-t sm:border-none border-slate-100 pt-2 sm:pt-0">
+                                                  <button 
+                                                    className="p-2 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-blue-500 transition-colors"
+                                                    onClick={(e) => {
+                                                      e.stopPropagation();
+                                                      handleEditWorkout(workout);
+                                                    }}
+                                                  >
+                                                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+                                                  </button>
+                                                  <button 
+                                                    className="p-2 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-red-500 transition-colors"
+                                                    onClick={(e) => handleDeleteItem(item.id, e)}
+                                                  >
+                                                     <Trash2 className="w-3.5 h-3.5" />
+                                                  </button>
+                                                </div>
+                                              )}
                                            </div>
                                          );
                                        }
@@ -501,46 +570,50 @@ export default function AmsCalendar() {
                                  </div>
                                )}
 
-                               <div className="flex items-center gap-2 pl-7 mt-4">
-                                  <Button 
-                                    variant="ghost" 
-                                    size="sm" 
-                                    className="bg-[#10B981]/5 hover:bg-[#10B981] text-[#10B981] hover:text-white rounded-xl font-black uppercase text-[10px] tracking-widest h-10 px-4 transition-all gap-2 border-none cursor-pointer"
-                                    onClick={() => {
-                                      setSelectedAssignDate(day);
-                                      setIsAssignModalOpen(true);
-                                    }}
-                                  >
-                                     <div className="w-5 h-5 rounded-full bg-[#10B981]/20 flex items-center justify-center group-hover:bg-white/20">
-                                       <Plus className="w-3 h-3" />
-                                     </div>
-                                     Add Workout
-                                  </Button>
-                               </div>
+                               {!isPastDay && (
+                                 <div className="flex items-center gap-2 pl-7 mt-4">
+                                    <Button 
+                                      variant="ghost" 
+                                      size="sm" 
+                                      className="bg-[#10B981]/5 hover:bg-[#10B981] text-[#10B981] hover:text-white rounded-xl font-black uppercase text-[10px] tracking-widest h-10 px-4 transition-all gap-2 border-none cursor-pointer"
+                                      onClick={() => {
+                                        setSelectedAssignDate(day);
+                                        setIsAssignModalOpen(true);
+                                      }}
+                                    >
+                                       <div className="w-5 h-5 rounded-full bg-[#10B981]/20 flex items-center justify-center group-hover:bg-white/20">
+                                         <Plus className="w-3 h-3" />
+                                       </div>
+                                       Add Workout
+                                    </Button>
+                                 </div>
+                               )}
                              </div>
                            ))}
                          </div>
                        )}
                     </div>
 
-                    <div className="flex items-center gap-2">
-                       <Popover>
-                         <PopoverTrigger asChild>
-                           <button className="p-3 hover:bg-slate-50 rounded-2xl text-slate-300 hover:text-slate-600 transition-all opacity-0 group-hover/card:opacity-100">
-                              <MoreVertical className="w-5 h-5" />
-                           </button>
-                         </PopoverTrigger>
-                         <PopoverContent className="w-48 bg-white border-slate-200 rounded-2xl shadow-xl p-2" align="end">
-                            <Button 
-                              variant="ghost" 
-                              className="w-full justify-start text-red-500 hover:text-red-600 hover:bg-red-50 h-10 px-3 rounded-xl gap-2 font-bold text-xs uppercase tracking-tight"
-                              onClick={() => handleDeleteDailyWorkouts(dayWorkouts)}
-                            >
-                              <Trash2 className="w-4 h-4" /> Delete All for Day
-                            </Button>
-                         </PopoverContent>
-                       </Popover>
-                    </div>
+                     {!isPastDay && (
+                       <div className="flex items-center gap-2">
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <button className="p-3 hover:bg-slate-50 rounded-2xl text-slate-300 hover:text-slate-600 transition-all opacity-0 group-hover/card:opacity-100">
+                                 <MoreVertical className="w-5 h-5" />
+                              </button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-48 bg-white border-slate-200 rounded-2xl shadow-xl p-2" align="end">
+                               <Button 
+                                 variant="ghost" 
+                                 className="w-full justify-start text-red-500 hover:text-red-600 hover:bg-red-50 h-10 px-3 rounded-xl gap-2 font-bold text-xs uppercase tracking-tight"
+                                 onClick={() => handleDeleteDailyWorkouts(dayWorkouts)}
+                               >
+                                 <Trash2 className="w-4 h-4" /> Delete All for Day
+                               </Button>
+                             </PopoverContent>
+                          </Popover>
+                       </div>
+                     )}
 
                     {/* Background Progress Decor */}
                     <div className="absolute right-0 top-0 h-full w-1.5 bg-slate-50 group-hover/card:bg-primary/20 transition-colors" />
@@ -557,12 +630,15 @@ export default function AmsCalendar() {
         onClose={() => {
           setIsAssignModalOpen(false);
           setSelectedAssignDate(null);
+          setEditingWorkoutDays(null);
         }}
         program={null}
         onSuccess={fetchAthleteWorkouts}
         initialSelectedAthleteId={selectedAthlete?.entityType !== 'batch' ? selectedAthlete?.id : null}
         initialSelectedBatchId={selectedAthlete?.entityType === 'batch' ? selectedAthlete?.id : null}
         initialStartDate={selectedAssignDate ? format(selectedAssignDate, 'yyyy-MM-dd') : undefined}
+        initialDays={editingWorkoutDays || undefined}
+        recipientName={selectedAthlete ? (selectedAthlete.entityType === 'batch' ? selectedAthlete.name : `${selectedAthlete.last_name}, ${selectedAthlete.first_name}`) : undefined}
       />
 
       <BatchCreationModal 
@@ -574,6 +650,20 @@ export default function AmsCalendar() {
         onSuccess={fetchAthletes}
         batchToEdit={editingBatch}
       />
+
+      {editingItem && (
+        <WorkoutItemModal 
+          isOpen={!!editingItem}
+          onClose={() => setEditingItem(null)}
+          dayId={editingItem.workout_day_id}
+          orgId={profile?.organization_id || ""}
+          initialItem={editingItem}
+          onSave={() => {
+            toast({ title: "Exercise updated" });
+            fetchAthleteWorkouts();
+          }}
+        />
+      )}
       </div>
     </DashboardLayout>
   );

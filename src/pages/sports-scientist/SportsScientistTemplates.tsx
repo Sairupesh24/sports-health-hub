@@ -151,7 +151,12 @@ export default function SportsScientistTemplates() {
                         exercise_id: item.exerciseId,
                         sets: item.sets,
                         reps: item.reps,
-                        load_value: item.weight
+                        load_value: item.weight,
+                        tempo: item.tempo,
+                        rest_time_secs: item.rest_time_secs,
+                        workout_grouping: item.workout_grouping,
+                        each_side: item.each_side,
+                        additional_info: item.additional_info
                       } as any);
 
                     if (liftError) throw liftError;
@@ -188,7 +193,12 @@ export default function SportsScientistTemplates() {
             type: item.item_type,
             sets: item.lift_items?.sets || 3,
             reps: item.lift_items?.reps || '10',
-            weight: item.lift_items?.load_value || 0
+            weight: item.lift_items?.load_value || 0,
+            tempo: item.lift_items?.tempo || '0-0-0-0',
+            rest_time_secs: item.lift_items?.rest_time_secs || 60,
+            workout_grouping: item.lift_items?.workout_grouping || '',
+            each_side: item.lift_items?.each_side || false,
+            additional_info: item.lift_items?.additional_info || ''
         }))
     })) : undefined;
 

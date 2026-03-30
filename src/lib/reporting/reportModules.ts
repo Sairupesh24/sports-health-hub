@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { format } from "date-fns";
 
 export type ReportModule = 
   | "registration"
@@ -133,7 +134,27 @@ export const REPORT_STRUCTURE: Record<ReportModule, ReportTemplate[]> = {
         { key: "remaining", label: "Remaining" }
     ]}
   ],
-  clients: [],
+  clients: [
+    { id: "workout_schedule", name: "Workout Schedule", description: "Detailed exercise schedule for a specific client", columns: [
+        { key: "date", label: "Date" },
+        { key: "workout_title", label: "Workout" },
+        { key: "exercise_name", label: "Exercise" },
+        { key: "workout_grouping", label: "Group" },
+        { key: "sets", label: "Sets" },
+        { key: "reps", label: "Reps" },
+        { key: "weight", label: "Weight" },
+        { key: "tempo", label: "Tempo" },
+        { key: "rest", label: "Rest (s)" }
+    ]},
+    { id: "protocol_adherence", name: "Protocol Adherence", description: "Advised vs Followed workout adherence rates", columns: [
+        { key: "client_name", label: "Client" },
+        { key: "assigned_workouts", label: "Advised Workouts" },
+        { key: "completed_workouts", label: "Followed Workouts" },
+        { key: "assigned_sets", label: "Advised Sets" },
+        { key: "completed_sets", label: "Followed Sets" },
+        { key: "adherence_pct", label: "Adherence %" }
+    ]}
+  ],
   attendance: [],
   analytics: [
     { id: "revenue_growth", name: "Revenue Growth", description: "Month-over-month revenue analysis", columns: [
@@ -176,6 +197,181 @@ export async function generateReportData(module: ReportModule, templateId: strin
                     ...b,
                     client_name: b.clients ? `${(b.clients as any).first_name} ${(b.clients as any).last_name}` : "Unknown"
                 }));
+            }
+            break;
+        case "clients":
+            if (templateId === "workout_schedule") {
+                const { athleteId, startDate, endDate } = filters;
+                if (!athleteId) throw new Error("Athlete selection required");
+
+                let query = supabase
+                    .from('program_assignments' as any)
+                    .select(`
+                        id,
+                        start_date,
+                        program:training_programs(
+                            name,
+                            days:workout_days(
+                                title,
+                                display_order,
+                                items:workout_items(
+                                    display_order,
+                                    lift_items(
+                                        sets,
+                                        reps,
+                                        load_value,
+                                        tempo,
+                                        rest_time_secs,
+                                        workout_grouping,
+                                        exercise:exercises(name)
+                                    )
+                                )
+                            )
+                        )
+                    `)
+                    .eq('athlete_id', athleteId)
+                    .eq('status', 'active');
+
+                if (startDate) query = query.gte('start_date', startDate);
+                if (endDate) query = query.lte('start_date', endDate); // Simplified date logic for now
+
+                const { data, error } = await query;
+                if (error) throw error;
+
+                const flattened: any[] = [];
+                (data as any[]).forEach(assignment => {
+                    const baseDate = new Date(assignment.start_date);
+                    assignment.program?.days?.forEach((day: any) => {
+                        const workoutDate = new Date(baseDate);
+                        workoutDate.setDate(baseDate.getDate() + (day.display_order || 0));
+                        
+                        day.items?.forEach((item: any) => {
+                            const lift = item.lift_items;
+                            if (!lift) return;
+                            
+                            flattened.push({
+                                date: format(workoutDate, 'yyyy-MM-dd'),
+                                workout_title: day.title,
+                                exercise_name: lift.exercise?.name || 'Unknown',
+                                workout_grouping: lift.workout_grouping || '-',
+                                sets: lift.sets,
+                                reps: lift.reps,
+                                weight: lift.load_value,
+                                tempo: lift.tempo,
+                                rest: lift.rest_time_secs
+                            });
+                        });
+                    });
+                });
+
+                return flattened.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+            }
+
+            if (templateId === "protocol_adherence") {
+                const { startDate, endDate, athleteId } = filters;
+                
+                // 1. Fetch all assigned workout days and their items
+                let assignmentsQuery = supabase
+                    .from('program_assignments' as any)
+                    .select(`
+                        athlete_id,
+                        start_date,
+                        profiles!athlete_id(first_name, last_name),
+                        program:training_programs(
+                            days:workout_days(
+                                items:workout_items(
+                                    lift_items(sets)
+                                )
+                            )
+                        )
+                    `)
+                    .eq('status', 'active');
+
+                if (athleteId) assignmentsQuery = assignmentsQuery.eq('athlete_id', athleteId);
+                if (startDate) assignmentsQuery = assignmentsQuery.gte('start_date', startDate);
+                if (endDate) assignmentsQuery = assignmentsQuery.lte('start_date', endDate);
+
+                const { data: assignments, error: aError } = await assignmentsQuery;
+                if (aError) throw aError;
+
+                // 2. Fetch all completions for the same period
+                let completionsQuery = supabase
+                    .from('athlete_workout_completions' as any)
+                    .select('id, athlete_id, workout_day_id');
+                
+                if (startDate) completionsQuery = completionsQuery.gte('completed_at', startDate);
+                if (endDate) completionsQuery = completionsQuery.lte('completed_at', endDate);
+
+                const { data: completions, error: cError } = await completionsQuery;
+                if (cError) throw cError;
+
+                // 3. Fetch all item logs for the completions
+                const completionIds = (completions as any[]).map(c => c.id);
+                let logs: any[] = [];
+                if (completionIds.length > 0) {
+                    const { data: logsData, error: lError } = await supabase
+                        .from('athlete_item_logs' as any)
+                        .select('completion_id, is_completed')
+                        .in('completion_id', completionIds)
+                        .eq('is_completed', true);
+                    if (lError) throw lError;
+                    logs = logsData || [];
+                }
+
+                // 4. Aggregate by Athlete
+                const reportMap: Record<string, any> = {};
+
+                (assignments as any[]).forEach(assignment => {
+                    const athleteId = assignment.athlete_id;
+                    const name = `${assignment.profiles?.first_name} ${assignment.profiles?.last_name}`;
+                    
+                    if (!reportMap[athleteId]) {
+                        reportMap[athleteId] = {
+                            client_name: name,
+                            assigned_workouts: 0,
+                            completed_workouts: 0,
+                            assigned_sets: 0,
+                            completed_sets: 0,
+                        };
+                    }
+
+                    const stats = reportMap[athleteId];
+                    const days = assignment.program?.days || [];
+                    stats.assigned_workouts += days.length;
+                    
+                    days.forEach((day: any) => {
+                        day.items?.forEach((item: any) => {
+                            stats.assigned_sets += item.lift_items?.sets || 0;
+                        });
+                    });
+                });
+
+                // Add completion counts
+                (completions as any[]).forEach(completion => {
+                    if (reportMap[completion.athlete_id]) {
+                        reportMap[completion.athlete_id].completed_workouts += 1;
+                    }
+                });
+
+                // Add set log counts
+                const logsByCompletion = logs.reduce((acc, log) => {
+                    acc[log.completion_id] = (acc[log.completion_id] || 0) + 1;
+                    return acc;
+                }, {} as Record<string, number>);
+
+                (completions as any[]).forEach(completion => {
+                    if (reportMap[completion.athlete_id]) {
+                        reportMap[completion.athlete_id].completed_sets += (logsByCompletion[completion.id] || 0);
+                    }
+                });
+
+                // Calculate final percentages
+                return Object.values(reportMap).map(stats => ({
+                    ...stats,
+                    adherence_pct: stats.assigned_sets > 0 
+                        ? `${Math.round((stats.completed_sets / stats.assigned_sets) * 100)}%`
+                        : stats.assigned_workouts > 0 ? "0%" : "N/A"
+                })).sort((a, b) => b.completed_workouts - a.completed_workouts);
             }
             break;
             

@@ -52,6 +52,11 @@ const exerciseSchema = z.object({
   exercise_name: z.string(),
   equipment_type: z.string().default("Barbell"),
   sets: z.array(setSchema).min(1, "At least one set required"),
+  tempo: z.string().optional().default("0-0-0-0"),
+  rest_time_secs: z.coerce.number().optional().default(60),
+  workout_grouping: z.string().optional().default(""),
+  each_side: z.boolean().optional(),
+  additional_info: z.string().optional().default(""),
 });
 
 const workoutSchema = z.object({
@@ -63,7 +68,7 @@ const workoutSchema = z.object({
 
 type WorkoutFormValues = z.infer<typeof workoutSchema>;
 
-export default function LogSessionForm() {
+export default function LogSessionForm({ onComplete }: { onComplete?: () => void }) {
   const { clientId } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -108,6 +113,11 @@ export default function LogSessionForm() {
           exercise_name: "",
           equipment_type: "Barbell",
           sets: [{ weight_kg: 0, reps: 0, rpe: 7 }],
+          tempo: "0-0-0-0",
+          rest_time_secs: 60,
+          workout_grouping: "",
+          each_side: false,
+          additional_info: ""
         },
       ],
     },
@@ -164,6 +174,11 @@ export default function LogSessionForm() {
             sets: ex.sets.length,
             reps: ex.sets[0].reps.toString(),
             load_value: ex.sets[0].weight_kg,
+            tempo: ex.tempo,
+            rest_time_secs: ex.rest_time_secs,
+            workout_grouping: ex.workout_grouping,
+            each_side: ex.each_side,
+            additional_info: ex.additional_info,
             org_id: profile?.organization_id
           } as any));
 
@@ -197,6 +212,7 @@ export default function LogSessionForm() {
       queryClient.invalidateQueries({ queryKey: ["athlete_item_logs"] });
       
       form.reset();
+      if (onComplete) onComplete();
     } catch (error: any) {
       toast({
         title: "Logging Failed",
@@ -297,6 +313,11 @@ export default function LogSessionForm() {
                     exercise_name: "",
                     equipment_type: "Barbell",
                     sets: [{ weight_kg: 0, reps: 0, rpe: 7 }],
+                    tempo: "0-0-0-0",
+                    rest_time_secs: 60,
+                    workout_grouping: "",
+                    each_side: false,
+                    additional_info: ""
                 })}
                 className="w-full h-14 rounded-2xl border-dashed border-2 border-primary/20 hover:border-primary/50 hover:bg-primary/5 text-primary font-bold gap-2 transition-all"
             >
@@ -423,6 +444,49 @@ function ExerciseField({
               <ToggleGroupItem value="Dumbbell" className="rounded-lg">Dumbbell</ToggleGroupItem>
               <ToggleGroupItem value="Machine" className="rounded-lg">Machine</ToggleGroupItem>
             </ToggleGroup>
+          </div>
+          
+          <div className="flex flex-wrap items-center gap-4 mt-2">
+             <div className="flex items-center gap-2">
+                <input 
+                  type="checkbox" 
+                  id={`each-side-${index}`}
+                  checked={form.watch(`exercises.${index}.each_side`)}
+                  onChange={(e) => form.setValue(`exercises.${index}.each_side`, e.target.checked)}
+                  className="rounded border-white/20 bg-white/5"
+                />
+                <label htmlFor={`each-side-${index}`} className="text-[10px] uppercase font-black tracking-widest text-muted-foreground">Each Side</label>
+             </div>
+             <div className="flex items-center gap-2">
+                <span className="text-[10px] uppercase font-black tracking-widest text-muted-foreground opacity-40">Group:</span>
+                <input 
+                  type="text" 
+                  value={form.watch(`exercises.${index}.workout_grouping`)}
+                  onChange={(e) => form.setValue(`exercises.${index}.workout_grouping`, e.target.value)}
+                  placeholder="A1"
+                  className="bg-transparent border-none text-[10px] font-black w-8 outline-none text-primary"
+                />
+             </div>
+             <div className="flex items-center gap-2 border-l border-white/10 pl-4">
+                <span className="text-[10px] uppercase font-black tracking-widest text-muted-foreground opacity-40">Tempo:</span>
+                <input 
+                  type="text" 
+                  value={form.watch(`exercises.${index}.tempo`)}
+                  onChange={(e) => form.setValue(`exercises.${index}.tempo`, e.target.value)}
+                  placeholder="0-0-0-0"
+                  className="bg-transparent border-none text-[10px] font-black w-14 outline-none text-primary"
+                />
+             </div>
+             <div className="flex items-center gap-2 border-l border-white/10 pl-4">
+                <span className="text-[10px] uppercase font-black tracking-widest text-muted-foreground opacity-40">Rest:</span>
+                <input 
+                  type="number" 
+                  value={form.watch(`exercises.${index}.rest_time_secs`)}
+                  onChange={(e) => form.setValue(`exercises.${index}.rest_time_secs`, parseInt(e.target.value) || 0)}
+                  className="bg-transparent border-none text-[10px] font-black w-8 outline-none text-primary"
+                />
+                <span className="text-[10px] font-black opacity-20 uppercase">s</span>
+             </div>
           </div>
         </div>
         

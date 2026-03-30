@@ -46,12 +46,8 @@ export default function WorkoutLogging() {
           *,
           items:workout_items(
             *,
-            lift:lift_items(*, exercise:exercises(*)),
-            saqc:saqc_items(*, exercise:exercises(*)),
-            circuit:circuit_items(*),
-            science:sport_science_items(*),
-            warmup:warmup_items(*),
-            note:note_items(*)
+            *,
+            lift:lift_items(*, exercise:exercises(*))
           )
         `)
         .eq('id', workoutDayId)
@@ -205,17 +201,43 @@ export default function WorkoutLogging() {
         {workout?.items?.map((item: any, idx: number) => (
           <div key={item.id} className="glass-card rounded-[2rem] border-white/5 overflow-hidden ring-1 ring-white/5 hover:ring-primary/20 transition-all">
              <div className="p-6">
-                <div className="flex items-start justify-between mb-4">
-                    <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center border border-white/10 text-primary shadow-2xl">
-                            {item.item_type === 'lift' ? <Dumbbell className="w-6 h-6" /> : <Zap className="w-6 h-6" />}
+                <div className="flex items-start justify-between mb-6">
+                    <div className="flex flex-1 items-center gap-4">
+                        <div className="w-14 h-14 rounded-3xl bg-white/5 flex items-center justify-center border border-white/10 text-primary shadow-2xl flex-shrink-0">
+                            {item[item.item_type]?.workout_grouping || idx + 1}
                         </div>
-                        <div>
-                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary opacity-60">Exercise {idx + 1}</span>
-                            <h3 className="text-xl font-bold uppercase tracking-tight">{item[item.item_type]?.exercise?.name || "Workout Item"}</h3>
+                        <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <h3 className="text-xl font-bold uppercase tracking-tight truncate">{item[item.item_type]?.exercise?.name || "Workout Item"}</h3>
+                              {item[item.item_type]?.each_side && (
+                                <Badge variant="outline" className="text-[8px] uppercase font-black tracking-widest border-amber-500/30 text-amber-500 bg-amber-500/5">Each Side</Badge>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-3 flex-wrap">
+                               <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary opacity-60">
+                                  {item[item.item_type]?.sets} Sets x {item[item.item_type]?.reps} Reps
+                               </span>
+                               {(item[item.item_type]?.tempo || item[item.item_type]?.rest_time_secs) && (
+                                 <div className="flex items-center gap-2 border-l border-white/10 pl-3 ml-1">
+                                    <span className="text-[10px] font-bold text-white/40 italic uppercase">
+                                       {item[item.item_type]?.tempo && `Tempo: ${item[item.item_type].tempo}`}
+                                       {item[item.item_type]?.tempo && item[item.item_type]?.rest_time_secs && ' | '}
+                                       {item[item.item_type]?.rest_time_secs && `Rest: ${item[item.item_type].rest_time_secs}s`}
+                                    </span>
+                                 </div>
+                               )}
+                            </div>
                         </div>
                     </div>
                 </div>
+
+                {item[item.item_type]?.additional_info && (
+                   <div className="mb-6 bg-white/[0.03] border border-white/5 rounded-2xl p-4">
+                      <p className="text-[11px] font-medium text-white/50 leading-relaxed italic">
+                         " {item[item.item_type].additional_info} "
+                      </p>
+                   </div>
+                )}
 
                 {/* Sets Area */}
                 <div className="space-y-3">

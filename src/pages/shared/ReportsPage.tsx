@@ -17,10 +17,22 @@ import {
     FileJson,
     ChevronLeft,
     ChevronRight,
-    SearchX
+    SearchX,
+    Check,
+    Users
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
+import { 
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogFooter
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { supabase } from "@/integrations/supabase/client";
 import { 
     Table, 
     TableBody, 
@@ -45,6 +57,13 @@ export default function ReportsPage({ role }: ReportsPageProps) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [reportData, setReportData] = useState<any[]>([]);
   const [currentTemplate, setCurrentTemplate] = useState<ReportTemplate | null>(null);
+  
+  // Athlete Selection (for Workout Schedule)
+  const [isAthleteModalOpen, setIsAthleteModalOpen] = useState(false);
+  const [selectedAthlete, setSelectedAthlete] = useState<{id: string, name: string} | null>(null);
+  const [athletes, setAthletes] = useState<any[]>([]);
+  const [athleteSearchQuery, setAthleteSearchQuery] = useState("");
+  const [isFetchingAthletes, setIsFetchingAthletes] = useState(false);
 
   // Filters
   const [startDate, setStartDate] = useState("");
@@ -64,12 +83,44 @@ export default function ReportsPage({ role }: ReportsPageProps) {
     setSelectedTemplate("");
     setReportData([]);
     setCurrentTemplate(null);
+    setSelectedAthlete(null);
   }, [selectedModule]);
+
+  useEffect(() => {
+    if (selectedTemplate === "workout_schedule") {
+        setIsAthleteModalOpen(true);
+        fetchAthletes();
+    }
+  }, [selectedTemplate]);
+
+  const fetchAthletes = async () => {
+    try {
+      setIsFetchingAthletes(true);
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, first_name, last_name, uhid')
+        .not('ams_role', 'is', null)
+        .neq('ams_role', 'coach')
+        .order('last_name', { ascending: true });
+
+      if (error) throw error;
+      setAthletes(data || []);
+    } catch (err: any) {
+      toast({ title: "Error fetching athletes", description: err.message, variant: "destructive" });
+    } finally {
+      setIsFetchingAthletes(false);
+    }
+  };
 
   const handleGenerateReport = async () => {
     if (!selectedModule || !selectedTemplate) {
       toast({ title: "Module and Template selection required", variant: "destructive" });
       return;
+    }
+
+    if (selectedTemplate === "workout_schedule" && !selectedAthlete) {
+        setIsAthleteModalOpen(true);
+        return;
     }
     
     setIsGenerating(true);
@@ -77,7 +128,11 @@ export default function ReportsPage({ role }: ReportsPageProps) {
         const template = templates.find(t => t.id === selectedTemplate);
         setCurrentTemplate(template || null);
         
-        const data = await generateReportData(selectedModule as ReportModule, selectedTemplate, { startDate, endDate });
+        const data = await generateReportData(selectedModule as ReportModule, selectedTemplate, { 
+            startDate, 
+            endDate,
+            athleteId: selectedAthlete?.id 
+        });
         setReportData(data);
         toast({ title: "Report generated successfully" });
     } catch (error: any) {
@@ -138,7 +193,7 @@ export default function ReportsPage({ role }: ReportsPageProps) {
               Reporting Engine
             </h1>
             <p className="text-muted-foreground mt-1">Generate modular reports across all system modules</p>
-            {role !== "admin" && role !== "manager" && (
+            {role !== "admin" && (
               <p className="text-xs text-amber-500 mt-1 flex items-center gap-1">
                 <span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-500" />
                 Financial & billing reports are restricted to Admin access only.
@@ -239,6 +294,46 @@ export default function ReportsPage({ role }: ReportsPageProps) {
                         />
                     </div>
                   </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Location</label>
+                  <Select defaultValue="all">
+                    <SelectTrigger className="bg-background/50 h-9 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Locations</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Client / Athlete</label>
+                  <div 
+                    onClick={() => {
+                        setIsAthleteModalOpen(true);
+                        fetchAthletes();
+                    }}
+                    className={cn(
+                        "h-9 px-3 bg-background/50 border border-white/10 rounded-lg flex items-center justify-between cursor-pointer group hover:border-primary/40 transition-all",
+                        selectedAthlete && "border-primary/40 text-primary"
+                    )}
+                  >
+                    <span className="text-[10px] font-medium truncate">
+                        {selectedAthlete ? selectedAthlete.name : "All Clients"}
+                    </span>
+                    <Users className="w-3 h-3 opacity-40 group-hover:opacity-100 transition-opacity" />
+                  </div>
+                  {selectedAthlete && (
+                      <button 
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedAthlete(null);
+                        }}
+                        className="text-[9px] font-bold text-destructive/60 hover:text-destructive transition-colors ml-1"
+                      >
+                        Clear Selection
+                      </button>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -359,6 +454,62 @@ export default function ReportsPage({ role }: ReportsPageProps) {
           </div>
         </div>
       </div>
+
+      <Dialog open={isAthleteModalOpen} onOpenChange={setIsAthleteModalOpen}>
+        <DialogContent className="bg-[#1A1F26] border-white/20 text-white rounded-[2rem] max-w-xl p-0 overflow-hidden shadow-2xl ring-1 ring-white/10">
+          <DialogHeader className="p-8 bg-white/[0.04] border-b border-white/10">
+            <DialogTitle className="text-xl font-black uppercase tracking-tight flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                <Users className="w-5 h-5" />
+              </div>
+              Select Client
+            </DialogTitle>
+          </DialogHeader>
+          <div className="p-8 space-y-6">
+            <div className="relative group">
+              <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 opacity-40 group-focus-within:text-primary transition-all" />
+              <Input 
+                placeholder="Search by name or UHID..." 
+                value={athleteSearchQuery}
+                onChange={(e) => setAthleteSearchQuery(e.target.value)}
+                className="h-14 bg-white/[0.08] border-white/20 rounded-2xl pl-14 text-sm font-bold text-white placeholder:opacity-30"
+              />
+            </div>
+            <div className="max-h-60 overflow-y-auto pr-2 space-y-2 no-scrollbar">
+              {athletes
+                .filter(a => `${a.first_name} ${a.last_name} ${a.uhid}`.toLowerCase().includes(athleteSearchQuery.toLowerCase()))
+                .map(athlete => (
+                <div 
+                  key={athlete.id}
+                  onClick={() => {
+                    setSelectedAthlete({ id: athlete.id, name: `${athlete.first_name} ${athlete.last_name}` });
+                    setIsAthleteModalOpen(false);
+                  }}
+                  className="flex items-center justify-between p-4 rounded-2xl bg-white/[0.03] border border-white/5 hover:bg-white/[0.08] hover:border-primary/30 transition-all cursor-pointer group"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center font-black text-xs uppercase">
+                      {athlete.first_name?.[0]}{athlete.last_name?.[0]}
+                    </div>
+                    <div>
+                      <div className="font-bold text-slate-100">{athlete.first_name} {athlete.last_name}</div>
+                      <div className="text-[10px] opacity-40 font-bold uppercase tracking-widest">{athlete.uhid || "CLIENT RECORD"}</div>
+                    </div>
+                  </div>
+                  {selectedAthlete?.id === athlete.id && (
+                    <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center">
+                      <Check className="w-3.5 h-3.5 text-white stroke-[4px]" />
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+          <DialogFooter className="p-8 bg-black/20 pt-4 flex gap-3">
+             <Button variant="ghost" onClick={() => setIsAthleteModalOpen(false)} className="rounded-xl h-12 font-bold uppercase tracking-wider text-[10px] opacity-50">Cancel</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 }

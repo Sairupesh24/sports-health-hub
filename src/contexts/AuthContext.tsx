@@ -12,7 +12,7 @@ interface Profile {
   organization_id: string | null;
   is_approved: boolean;
   uhid: string | null;
-  ams_role?: "coach" | "athlete" | null;
+  ams_role?: "coach" | "athlete" | "client" | "sports_scientist" | null;
 }
 
 interface AuthContextType {

@@ -13,7 +13,8 @@ import {
   ClipboardList,
   Users,
   Target,
-  Mail
+  Mail,
+  LayoutTemplate
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -29,81 +30,47 @@ import { Link, useLocation } from "react-router-dom";
 
 export default function AmsStaffNav() {
   return (
-    <nav className="h-16 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-40 px-4 flex items-center justify-between">
+    <nav className="h-16 border-b border-slate-200 bg-white sticky top-0 z-40 px-4 flex items-center justify-between text-slate-900 transition-all duration-300 hover:shadow-md group/nav">
       <div className="flex items-center gap-6">
         {/* Branding Logo */}
-        <div className="flex items-center gap-2 mr-4">
-           <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-              <Activity className="w-5 h-5 text-primary-foreground" />
+        <div className="flex items-center gap-2 mr-4 group/logo cursor-pointer">
+           <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center transition-transform group-hover/logo:scale-110">
+              <Activity className="w-5 h-5 text-primary" />
            </div>
-           <span className="font-bold tracking-tight text-lg hidden md:block">ISHPO <span className="text-muted-foreground font-normal">AMS</span></span>
+           <span className="font-black tracking-tighter text-xl hidden md:block text-slate-900">ISHPO <span className="text-primary font-bold italic">AMS</span></span>
         </div>
 
         {/* Nav Links */}
-        <div className="hidden lg:flex items-center gap-1 font-bold text-[11px] uppercase tracking-widest text-muted-foreground">
+        <div className="hidden lg:flex items-center gap-1 font-black text-[11px] uppercase tracking-widest text-slate-500">
           <NavLink label="Daily Brief" to="/ams/coach-dashboard" active />
-          <NavLink label="Feed" to="/ams/feed" />
           <NavLink label="Calendar" to="/ams/calendar" />
-          <NavLink label="Programs" to="/ams/programs" />
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button className="px-3 py-2 hover:bg-muted rounded-md transition-colors flex items-center gap-1 group">
-                Workout Tools
-                <ChevronDown className="w-3 h-3 group-data-[state=open]:rotate-180 transition-transform" />
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-56 bg-[#1A1F26] border border-white/20 shadow-2xl mt-2 ring-1 ring-white/10 rounded-2xl overflow-hidden p-1" align="start">
-              <div className="p-2 border-b border-white/10 mb-1">
-                <p className="text-[10px] font-black uppercase tracking-tighter text-primary/80 px-2">Workout Toolkit</p>
-              </div>
-              <ToolItem label="Whiteboard" icon={ClipboardList} />
-              <ToolItem label="Workout Entry" icon={Dumbbell} />
-              <ToolItem label="Maxes/PRs" icon={Trophy} />
-              <ToolItem label="Journal" icon={ClipboardList} />
-              <ToolItem label="Leaderboard" icon={Target} />
-              <ToolItem label="Evaluations" icon={Target} />
-            </DropdownMenuContent>
-          </DropdownMenu>
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="px-3 py-2 hover:bg-muted rounded-md transition-colors flex items-center gap-1 group">
+              <button className="px-4 py-2 hover:bg-slate-50 hover:text-green-600 rounded-xl transition-all flex items-center gap-1.5 group font-black uppercase text-[11px] tracking-widest text-slate-600">
                 Staff Tools
-                <ChevronDown className="w-3 h-3 group-data-[state=open]:rotate-180 transition-transform" />
+                <ChevronDown className="w-3.5 h-3.5 group-data-[state=open]:rotate-180 transition-transform opacity-40 group-hover:text-green-600" />
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-64 bg-[#1A1F26] border border-white/20 shadow-2xl mt-2 ring-1 ring-white/10 rounded-2xl overflow-hidden p-1" align="start">
-              <div className="p-2 border-b border-white/10 mb-1">
-                <p className="text-[10px] font-black uppercase tracking-tighter text-primary/80 px-2">Staff Administration</p>
+            <DropdownMenuContent className="w-64 bg-white border border-slate-200 shadow-2xl mt-2 ring-1 ring-slate-100 rounded-2xl overflow-hidden p-1 z-50" align="start">
+              <div className="p-3 border-b border-slate-100 mb-1 bg-slate-50/50">
+                <p className="text-[10px] font-black uppercase tracking-tighter text-slate-400 px-2 italic">Management Tools</p>
               </div>
-              <ToolItem label="Manage Users" icon={Users} />
               <ToolItem label="Manage Calendars" icon={CalendarIcon} />
               <ToolItem label="The Planner" icon={LayoutDashboard} />
-              <ToolItem label="Exercises" icon={Dumbbell} />
+              <ToolItem label="Exercises" icon={Dumbbell} to="/ams/exercises" />
+              <ToolItem label="Templates" icon={LayoutTemplate} to="/sports-scientist/templates" />
               <ToolItem label="Goals" icon={Target} />
               <ToolItem label="Documents & Links" icon={ClipboardList} />
-              <ToolItem label="Reporting" icon={Activity} />
+              <ToolItem label="Reporting" icon={Activity} to="/sports-scientist/reports" />
             </DropdownMenuContent>
           </DropdownMenu>
 
-          <NavLink label="AMS" to="/ams" />
         </div>
       </div>
 
       <div className="flex items-center gap-2">
-        <Button variant="ghost" size="icon" className="text-muted-foreground">
-          <Search className="w-5 h-5" />
-        </Button>
-        <Button variant="ghost" size="icon" className="text-muted-foreground relative">
-          <Bell className="w-5 h-5" />
-          <span className="absolute top-2 right-2 w-2 h-2 bg-amber-500 rounded-full border-2 border-background" />
-        </Button>
-        <Button variant="ghost" size="icon" className="text-muted-foreground">
-          <Mail className="w-5 h-5" />
-        </Button>
-        <div className="ml-2 w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-black text-xs border-2 border-primary/20 cursor-pointer">
-           SC
-        </div>
+         {/* Profile/Actions removed per request */}
       </div>
     </nav>
   );
@@ -117,8 +84,10 @@ function NavLink({ label, to, active }: { label: string; to: string; active?: bo
     <Link 
       to={to} 
       className={cn(
-        "px-3 py-2 rounded-md transition-colors",
-        isCurrentlyActive ? "text-primary bg-primary/5" : "hover:bg-muted"
+        "px-4 py-2 rounded-xl transition-all font-black uppercase text-[11px] tracking-widest whitespace-nowrap",
+        isCurrentlyActive 
+          ? "text-green-600 bg-green-50 shadow-sm" 
+          : "text-slate-500 hover:bg-slate-50 hover:text-green-600"
       )}
     >
       {label}
@@ -126,11 +95,29 @@ function NavLink({ label, to, active }: { label: string; to: string; active?: bo
   );
 }
 
-function ToolItem({ label, icon: Icon }: { label: string; icon: any }) {
+function ToolItem({ label, icon: Icon, to }: { label: string; icon: any; to?: string }) {
+  const content = (
+    <>
+      <div className="w-8 h-8 rounded-lg bg-green-500/5 flex items-center justify-center group-data-[highlighted]:bg-green-600 transition-colors">
+        <Icon className="w-4 h-4 text-green-600 group-data-[highlighted]:text-white" />
+      </div>
+      <span className="font-black text-[10px] uppercase tracking-widest text-slate-500 group-data-[highlighted]:text-green-600 transition-colors">{label}</span>
+    </>
+  );
+
+  if (to) {
+    return (
+      <Link to={to} className="w-full focus:outline-none">
+        <DropdownMenuItem className="group flex items-center gap-3 p-2 cursor-pointer data-[highlighted]:bg-green-50/50 rounded-xl transition-all outline-none">
+          {content}
+        </DropdownMenuItem>
+      </Link>
+    );
+  }
+
   return (
-    <DropdownMenuItem className="flex items-center gap-3 p-3 cursor-pointer focus:bg-primary/20 focus:text-white hover:bg-white/5 rounded-xl transition-all text-white/90">
-      <Icon className="w-4 h-4 text-primary" />
-      <span className="font-bold text-[12px] uppercase tracking-wider">{label}</span>
+    <DropdownMenuItem className="group flex items-center gap-3 p-2.5 cursor-pointer data-[highlighted]:bg-green-50/50 rounded-xl transition-all outline-none">
+      {content}
     </DropdownMenuItem>
   );
 }

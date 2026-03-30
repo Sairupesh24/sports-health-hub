@@ -1,0 +1,6 @@
+Starting Diagnostic v8...
+Found 2 assignments for b961162a:
+Assignment ID: dc58ece1-7bb2-4efa-833b-8d1e22e434a5, Start: 2026-03-26, Program: Quick Assign - Mar 26, 16:04
+  - Workout Days Count: 0
+Assignment ID: aef62673-d5b4-4fe5-ba6b-1f754948ea3b, Start: 2026-03-27, Program: Quick Assign - Mar 26, 16:05
+  - Workout Days Count: 0
