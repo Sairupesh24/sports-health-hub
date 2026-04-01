@@ -23,6 +23,7 @@ interface PendingUser {
   current_role?: string;
   uhid?: string;
   ams_role?: string | null;
+  profession?: string | null;
 }
 
 export default function UserApproval() {
@@ -57,6 +58,7 @@ export default function UserApproval() {
   const [pendingAction, setPendingAction] = useState<{ type: "change_role" | "approve", userId: string, role: string } | null>(null);
   const [pendingActionUhid, setPendingActionUhid] = useState("");
   const [pendingActionAmsRole, setPendingActionAmsRole] = useState<string>("none");
+  const [pendingActionProfession, setPendingActionProfession] = useState<string>("none");
 
   const fetchUsers = async () => {
     if (!profile?.organization_id) return;
@@ -158,7 +160,7 @@ export default function UserApproval() {
     setNewUhid("");
   };
 
-  const approveUser = async (userId: string, providedUhid?: string, amsRole?: string | null) => {
+  const approveUser = async (userId: string, providedUhid?: string, amsRole?: string | null, profession?: string | null) => {
     const role = pendingAction?.role || selectedRoles[userId];
     if (!role) {
       toast({ title: "Select a role", description: "Please assign a role before approving.", variant: "destructive" });
@@ -174,7 +176,8 @@ export default function UserApproval() {
     try {
       const profileUpdate: any = { 
         is_approved: true,
-        ams_role: amsRole !== undefined ? amsRole : null
+        ams_role: amsRole !== undefined ? amsRole : null,
+        profession: profession !== "none" ? profession : null
       };
 
       if (role === "client" && uhid?.trim()) {
@@ -216,7 +219,7 @@ export default function UserApproval() {
     }
   };
 
-  const changeUserRole = async (userId: string, newRole: string, providedUhid?: string, amsRole?: string | null) => {
+  const changeUserRole = async (userId: string, newRole: string, providedUhid?: string, amsRole?: string | null, profession?: string | null) => {
     const uhid = providedUhid;
     if ((newRole === "client" || newRole === "athlete") && !uhid?.trim()) {
       toast({ title: "UHID Required", description: "You must supply a UHID before converting the user to this role.", variant: "destructive" });
@@ -229,6 +232,9 @@ export default function UserApproval() {
       const profileUpdate: any = {};
       if (amsRole !== undefined) {
         profileUpdate.ams_role = amsRole;
+      }
+      if (profession !== undefined) {
+        profileUpdate.profession = profession !== "none" ? profession : null;
       }
 
       if (newRole === "client" && uhid?.trim()) {
@@ -313,16 +319,30 @@ export default function UserApproval() {
         auth: { autoRefreshToken: false, persistSession: false }
       });
 
-      const { error } = await supabaseAdmin.auth.admin.deleteUser(userId);
-      if (error) throw error;
+      const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(userId);
+      
+      if (authError) {
+        if (authError.message === "User not found") {
+          console.warn("Auth user not found, cleaning up database records anyway...");
+          const { error: dbError } = await supabaseAdmin.from("profiles").delete().eq("id", userId);
+          if (dbError) throw dbError;
+        } else {
+          throw authError;
+        }
+      }
 
-      toast({ title: "User Deleted", description: "User account has been permanently removed." });
+      toast({ title: "User Deleted", description: "User account and all related data have been removed." });
       fetchUsers();
     } catch (err: any) {
       console.error("Error deleting user:", err);
-      toast({ title: "Error deleting user", description: err.message, variant: "destructive" });
+      let errMsg = err.message || "Unknown error";
+      if (errMsg.toLowerCase().includes("foreign key constraint")) {
+        errMsg = "This user cannot be deleted because they are referenced by other records (e.g. sessions, clients, or audits). Consider revoking access instead.";
+      }
+      toast({ title: "Error deleting user", description: errMsg, variant: "destructive" });
     }
   };
+
 
   const handleRoleSelect = (userId: string, newRole: string) => {
     // Open Dialog for AMS Role prompt
@@ -332,6 +352,7 @@ export default function UserApproval() {
     setPendingActionAmsRole(defaultAmsRole);
     setPendingAction({ type: "change_role", userId, role: newRole });
     setPendingActionUhid(currentUser?.uhid || "");
+    setPendingActionProfession(currentUser?.profession || "none");
   };
 
   const handleApproveClick = (userId: string) => {
@@ -344,6 +365,7 @@ export default function UserApproval() {
     setPendingActionAmsRole(currentUser?.ams_role || "none");
     setPendingAction({ type: "approve", userId, role: role || pendingAction?.role || "client" });
     setPendingActionUhid(currentUser?.uhid || "");
+    setPendingActionProfession(currentUser?.profession || "none");
   };
 
   const confirmPendingAction = () => {
@@ -354,11 +376,12 @@ export default function UserApproval() {
     }
 
     const amsRole = pendingActionAmsRole === "none" ? null : pendingActionAmsRole;
+    const profession = pendingActionProfession;
 
     if (pendingAction.type === "change_role") {
-      changeUserRole(pendingAction.userId, pendingAction.role, pendingActionUhid, amsRole);
+      changeUserRole(pendingAction.userId, pendingAction.role, pendingActionUhid, amsRole, profession);
     } else {
-      approveUser(pendingAction.userId, pendingActionUhid, amsRole);
+      approveUser(pendingAction.userId, pendingActionUhid, amsRole, profession);
     }
 
     setPendingAction(null);
@@ -444,6 +467,26 @@ export default function UserApproval() {
                       </Select>
                       <p className="text-xs text-muted-foreground">Select an AMS functional tier if this user requires tracking/coaching within the Athlete workflow.</p>
                     </div>
+
+                    {(pendingAction?.role === "consultant" || pendingAction?.role === "sports_scientist") && (
+                      <div className="space-y-2 animate-in fade-in slide-in-from-top-1 duration-200">
+                        <Label>Consultant Profession</Label>
+                        <Select value={pendingActionProfession} onValueChange={setPendingActionProfession}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select Profession" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">No Specific Specialization</SelectItem>
+                            <SelectItem value="Physiotherapist">Physiotherapist</SelectItem>
+                            <SelectItem value="Sports Scientist">Sports Scientist</SelectItem>
+                            <SelectItem value="Nutritionist">Nutritionist</SelectItem>
+                            <SelectItem value="Sports Physician">Sports Physician</SelectItem>
+                            <SelectItem value="Massage therapist">Massage therapist</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <p className="text-xs text-muted-foreground">This restricts the service types they can select during sessions.</p>
+                      </div>
+                    )}
                     <Button onClick={confirmPendingAction} className="w-full">
                       Confirm Action
                     </Button>

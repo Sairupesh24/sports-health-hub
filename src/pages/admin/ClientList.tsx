@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { UserPlus, Search, Users } from "lucide-react";
 import { format } from "date-fns";
 import { ClientBulkUpload } from "@/components/admin/ClientBulkUpload";
+import { VIPBadge, VIPName } from "@/components/ui/VIPBadge";
 
 export default function ClientList() {
   const navigate = useNavigate();
@@ -102,7 +103,10 @@ export default function ClientList() {
                       <TableRow key={c.id} onClick={() => navigate(`/admin/clients/${c.id}`)} className="cursor-pointer hover:bg-muted/20">
                         <TableCell className="font-mono text-primary font-medium">{c.uhid}</TableCell>
                         <TableCell className="font-medium">
-                          {[c.honorific, c.first_name, c.middle_name, c.last_name].filter(Boolean).join(" ")}
+                          <VIPName 
+                            name={[c.honorific, c.first_name, c.middle_name, c.last_name].filter(Boolean).join(" ")} 
+                            isVIP={(c as any).is_vip} 
+                          />
                         </TableCell>
                         <TableCell>{c.mobile_no}</TableCell>
                         <TableCell>{c.gender || "—"}</TableCell>

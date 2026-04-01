@@ -9,6 +9,7 @@ import { Loader2, AlertTriangle, CheckCircle, ClipboardList, RefreshCw } from "l
 import { format } from "date-fns";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
+import { filterServicesByRole, Service } from "@/utils/serviceMapping";
 
 interface Props {
     open: boolean;
@@ -28,10 +29,14 @@ export function AdminSessionStatusModal({ open, onOpenChange, session, onSuccess
     const [soapLoading, setSoapLoading] = useState(false);
     const [balanceLoading, setBalanceLoading] = useState(false);
     const [remainingSessions, setRemainingSessions] = useState<number | null>(null);
+    const [services, setServices] = useState<Service[]>([]);
+    const [serviceId, setServiceId] = useState<string>("");
 
     useEffect(() => {
         if (session) {
             setStatus(session.status || "Planned");
+            setServiceId(session.service_id || "");
+            fetchServices();
             if (session.actual_start) {
                 setActualStart(format(new Date(session.actual_start), "HH:mm"));
             } else if (session.scheduled_start) {
@@ -44,6 +49,16 @@ export function AdminSessionStatusModal({ open, onOpenChange, session, onSuccess
             }
         }
     }, [session]);
+
+    const fetchServices = async () => {
+        if (!session?.organization_id) return;
+        const { data } = await supabase
+            .from("services")
+            .select("id, name, category, organization_id")
+            .eq("organization_id", session.organization_id)
+            .eq("is_active", true);
+        if (data) setServices(data as Service[]);
+    };
 
     // Fetch SOAP notes when modal opens for a Completed session
     useEffect(() => {
@@ -72,8 +87,9 @@ export function AdminSessionStatusModal({ open, onOpenChange, session, onSuccess
                     p_client_id: session.client_id 
                 });
                 if (!error && data) {
-                    const serviceKey = (session.service_type || "").toLowerCase().trim();
-                    const balance = (data as any[]).find(b => b.service_name?.toLowerCase().trim() === serviceKey);
+                    const balance = (data as any[]).find(b => 
+                        serviceId ? b.service_id === serviceId : b.service_name?.toLowerCase().trim() === (session.service_type || "").toLowerCase().trim()
+                    );
                     setRemainingSessions(balance ? balance.sessions_remaining : 0);
                 }
             } finally {
@@ -82,7 +98,7 @@ export function AdminSessionStatusModal({ open, onOpenChange, session, onSuccess
         };
 
         fetchBalance();
-    }, [open, session?.id, session?.status, session?.client_id, session?.service_type]);
+    }, [open, session?.id, session?.status, session?.client_id, session?.service_type, serviceId]);
 
     // Derived guards
     const sessionDate = session ? new Date(session.scheduled_start) : null;
@@ -151,8 +167,20 @@ export function AdminSessionStatusModal({ open, onOpenChange, session, onSuccess
                 }
 
             } else {
-                const { error } = await supabase.from("sessions").update(updateData).eq("id", session.id);
+                const selectedService = services.find(s => s.id === serviceId);
+                const { error } = await supabase
+                    .from("sessions")
+                    .update({ 
+                        status, 
+                        service_id: serviceId || null,
+                        service_type: selectedService?.name || session.service_type
+                    })
+                    .eq("id", session.id);
                 if (error) throw error;
+
+                if (status === "Cancelled") {
+                    await checkWaitlist(session);
+                }
             }
 
             if (status === "Checked In" && session.therapist_id) {
@@ -172,6 +200,47 @@ export function AdminSessionStatusModal({ open, onOpenChange, session, onSuccess
             toast({ title: "Error", description: error.message, variant: "destructive" });
         } finally {
             setLoading(false);
+        }
+    };
+
+    const checkWaitlist = async (session: any) => {
+        try {
+            const dateStr = format(new Date(session.scheduled_start), "yyyy-MM-dd");
+            const timeStr = format(new Date(session.scheduled_start), "HH:mm");
+            
+            const { data: matches, error } = await (supabase as any)
+                .from("waitlist")
+                .select("id, client_id")
+                .eq("organization_id", session.organization_id)
+                .eq("preferred_date", dateStr)
+                .eq("preferred_time_slot", timeStr)
+                .eq("status", "Waiting")
+                .or(`therapist_id.eq.${session.therapist_id},therapist_id.is.null`)
+                .order("created_at", { ascending: true })
+                .limit(1);
+
+            if (error) throw error;
+
+            if (matches && matches.length > 0) {
+                const nextInLine = matches[0];
+                const { error: updateError } = await (supabase as any)
+                    .from("waitlist")
+                    .update({ status: "Notified" })
+                    .eq("id", nextInLine.id);
+                
+                if (updateError) throw updateError;
+
+                toast({ 
+                    title: "Waitlist Notified", 
+                    description: "A patient on the waitlist has been notified of this newly available slot.",
+                });
+
+                // Mock SMS/Text link generation
+                const claimLink = btoa(JSON.stringify({ waitlistId: nextInLine.id, action: "claim" }));
+                console.log(`[MOCK NOTIFICATION] Sent to Client ${nextInLine.client_id}: Claim your slot within 15 mins: /book?claim=${claimLink}`);
+            }
+        } catch (err) {
+            console.error("Waitlist Notification Error:", err);
         }
     };
 
@@ -270,7 +339,19 @@ export function AdminSessionStatusModal({ open, onOpenChange, session, onSuccess
                         <p><strong>Client:</strong> {session.client?.first_name} {session.client?.last_name}</p>
                         <p><strong>Consultant:</strong> Dr. {session.therapist?.last_name}</p>
                         <p><strong>Scheduled:</strong> {format(new Date(session.scheduled_start), "MMM d, yyyy h:mm a")}</p>
-                        <p><strong>Service:</strong> {session.service_type || "—"}</p>
+                        <div className="flex items-center gap-2">
+                             <strong>Service:</strong>
+                             <Select value={serviceId} onValueChange={setServiceId} disabled={isLocked || session.status === "Completed"}>
+                                 <SelectTrigger className="h-7 text-xs bg-transparent border-none p-0 focus:ring-0">
+                                     <SelectValue placeholder="Select Service" />
+                                 </SelectTrigger>
+                                 <SelectContent>
+                                     {services.map(s => (
+                                         <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                                     ))}
+                                 </SelectContent>
+                             </Select>
+                        </div>
                     </div>
 
                     {/* SOAP Notes (shown only for Completed sessions) */}

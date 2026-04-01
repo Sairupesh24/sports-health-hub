@@ -5,12 +5,13 @@ import ScheduleCard from "@/components/dashboard/ScheduleCard";
 import InjuriesWidget from "@/components/dashboard/InjuriesWidget";
 import SOAPNoteModal from "@/components/consultant/SOAPNoteModal";
 import AdHocSessionModal from "@/components/consultant/AdHocSessionModal";
-import { Users, Calendar, ClipboardList, TrendingUp } from "lucide-react";
+import { Users, Calendar, ClipboardList, TrendingUp, Clock } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { format, subDays, addDays, startOfDay, endOfDay } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
+import { Badge } from "@/components/ui/badge";
 
 const stats = [
   { title: "Assigned Clients", value: 24, change: "+3 this week", changeType: "positive" as const, icon: Users },
@@ -35,6 +36,7 @@ export default function ConsultantDashboard() {
   const { toast } = useToast();
   const navigate = useNavigate();
 
+  const [waitlistCount, setWaitlistCount] = useState(0);
   const [liveSchedule, setLiveSchedule] = useState<{
     id: string;
     time: string;
@@ -67,7 +69,7 @@ export default function ConsultantDashboard() {
                     scheduled_start, 
                     status, 
                     service_type,
-                    client:clients(first_name, last_name),
+                    client:clients(first_name, last_name, is_vip),
                     physio_session_details(*)
                 `)
       .eq("therapist_id", profile.id)
@@ -84,14 +86,33 @@ export default function ConsultantDashboard() {
         status: session.status === "Completed" ? "completed" as const :
           session.status === "Planned" ? "confirmed" as const : "pending" as const,
         clientId: session.client_id,
+        isVIP: session.client?.is_vip,
         rawSession: session
       }));
       setLiveSchedule(formatted);
     }
   };
 
+  const fetchWaitlistCount = async () => {
+    if (!profile?.id || !profile?.organization_id) return;
+    
+    const today = format(new Date(), "yyyy-MM-dd");
+    const { count, error } = await (supabase as any)
+      .from("waitlist")
+      .select("*", { count: "exact", head: true })
+      .eq("organization_id", profile.organization_id)
+      .eq("preferred_date", today)
+      .eq("status", "Waiting")
+      .or(`therapist_id.eq.${profile.id},therapist_id.is.null`);
+
+    if (!error) {
+      setWaitlistCount(count || 0);
+    }
+  };
+
   useEffect(() => {
     fetchTodaySessions();
+    fetchWaitlistCount();
   }, [profile?.id]);
 
   return (
@@ -107,10 +128,12 @@ export default function ConsultantDashboard() {
         </div>
 
         {/* Top Metrics Map */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {stats.map((stat) => (
-            <StatCard key={stat.title} {...stat} />
-          ))}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+          <StatCard title="Assigned Clients" value={24} change="+3 this week" changeType="positive" icon={Users} />
+          <StatCard title="Today's Sessions" value={liveSchedule.length} change={`${liveSchedule.filter(s => s.status !== 'completed').length} remaining`} changeType="neutral" icon={Calendar} />
+          <StatCard title="Pending Waitlist" value={waitlistCount} change={waitlistCount > 0 ? "Potential fills" : "No queue"} changeType={waitlistCount > 0 ? "positive" : "neutral"} icon={Clock} className={waitlistCount > 0 ? "animate-pulse" : ""} />
+          <StatCard title="Sessions This Month" value={42} change="+15% vs last month" changeType="positive" icon={ClipboardList} />
+          <StatCard title="Avg. Improvement" value="18%" change="Pain score reduction" changeType="positive" icon={TrendingUp} />
         </div>
 
         {/* Main Middle Content */}

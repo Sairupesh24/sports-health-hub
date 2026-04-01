@@ -13,6 +13,7 @@ interface Profile {
   is_approved: boolean;
   uhid: string | null;
   ams_role?: "coach" | "athlete" | "client" | "sports_scientist" | null;
+  profession?: string | null;
 }
 
 interface AuthContextType {

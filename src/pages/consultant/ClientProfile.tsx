@@ -14,13 +14,17 @@ import ResolveInjuryModal from "@/components/consultant/ResolveInjuryModal";
 import AdHocSessionModal from "@/components/consultant/AdHocSessionModal";
 import { format } from "date-fns";
 import * as XLSX from "xlsx";
+import { VIPBadge, VIPName } from "@/components/ui/VIPBadge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Download, FileText } from "lucide-react";
 import PerformanceSnapshot from "@/components/consultant/PerformanceSnapshot";
 import PerformanceAnalytics from "@/components/ams/PerformanceAnalytics";
-import { Trophy } from "lucide-react";
+import { Trophy, FileStack } from "lucide-react";
+import { DocumentManager } from "@/components/admin/documents/DocumentManager";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useAuth } from "@/contexts/AuthContext";
 
 
 
@@ -34,6 +38,7 @@ interface ClientProfile {
     age: number;
     organization_id: string;
     ams_role?: string;
+    is_vip?: boolean;
 }
 
 
@@ -52,6 +57,12 @@ export default function ConsultantClientProfile() {
     const [resolveModalOpen, setResolveModalOpen] = useState(false);
 
     const [adHocModalOpen, setAdHocModalOpen] = useState(false);
+    const [isDocumentModalOpen, setIsDocumentModalOpen] = useState(false);
+
+    const { roles, profile: currentUserProfile } = useAuth();
+    const isAdmin = roles.includes('admin');
+    const isSportsPhysician = currentUserProfile?.profession === 'Sports Physician';
+    const canAccessDocuments = isAdmin || isSportsPhysician;
 
     // Filters
     const [startDate, setStartDate] = useState("");
@@ -150,7 +161,7 @@ export default function ConsultantClientProfile() {
                     <div>
                         <div className="flex items-center gap-3">
                             <h1 className="text-2xl font-display font-bold text-foreground">
-                                {client.first_name} {client.last_name}
+                                <VIPName name={`${client.first_name} ${client.last_name}`} isVIP={client.is_vip} />
                             </h1>
                             <Badge variant="outline" className="font-mono">{client.uhid}</Badge>
                         </div>
@@ -159,8 +170,17 @@ export default function ConsultantClientProfile() {
                             <span className="flex items-center gap-1"><Phone className="w-4 h-4" /> {client.mobile_no || "No phone"}</span>
                         </div>
                     </div>
-                    {/* Universal Ad-Hoc Action */}
-                    <div className="ml-auto">
+                    {/* Header Actions */}
+                    <div className="ml-auto flex items-center gap-2">
+                        {canAccessDocuments && (
+                            <Button 
+                              variant="outline" 
+                              className="border-primary/20 hover:bg-primary/5 gap-2"
+                              onClick={() => setIsDocumentModalOpen(true)}
+                            >
+                                <FileStack className="w-4 h-4 text-primary" /> Documents
+                            </Button>
+                        )}
                         <Button onClick={() => setAdHocModalOpen(true)}>
                             <ClipboardList className="w-4 h-4 mr-2" /> Add SOAP Note
                         </Button>
@@ -378,6 +398,23 @@ export default function ConsultantClientProfile() {
                             preselectedClientId={client.id}
                             onSuccess={fetchData}
                         />
+
+                        {/* Document Manager Modal for Consultant */}
+                        <Dialog open={isDocumentModalOpen} onOpenChange={setIsDocumentModalOpen}>
+                            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                                <DialogHeader>
+                                    <DialogTitle className="flex items-center gap-2 text-xl font-bold">
+                                        <div className="p-2 bg-primary/10 rounded-lg">
+                                            <FileStack className="w-5 h-5 text-primary" />
+                                        </div>
+                                        Client Documents - {client.first_name} {client.last_name}
+                                    </DialogTitle>
+                                </DialogHeader>
+                                <div className="mt-4">
+                                    <DocumentManager clientId={client.id} isVIP={client.is_vip} />
+                                </div>
+                            </DialogContent>
+                        </Dialog>
                     </>
                 )}
             </div>

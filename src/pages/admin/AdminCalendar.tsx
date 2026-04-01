@@ -22,10 +22,11 @@ import {
     subDays,
     parseISO
 } from "date-fns";
+import { cn } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Filter, Layers, Clock, Plus, Download } from "lucide-react";
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Filter, Layers, Clock, Plus, Download, Bell } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
@@ -34,6 +35,8 @@ import AdminAvailability from "./AdminAvailability";
 import AppointmentList from "../shared/AppointmentList";
 import { AdminBookSessionModal } from "@/components/admin/AdminBookSessionModal";
 import { AdminSessionStatusModal } from "@/components/admin/AdminSessionStatusModal";
+import { WaitlistDashboard } from "@/components/admin/WaitlistDashboard";
+import { VIPBadge } from "@/components/ui/VIPBadge";
 
 type ViewMode = "day" | "week" | "month";
 
@@ -44,11 +47,13 @@ interface SessionEvent {
     scheduled_start: string;
     scheduled_end: string;
     status: string;
+    service_id?: string | null;
     service_type: string;
-    client: { first_name: string; last_name: string };
-    therapist: { first_name: string; last_name: string };
+    client: { first_name: string; last_name: string; is_vip?: boolean };
+    therapist: { first_name: string; last_name: string; role?: string };
     rawSession: any;
     is_unentitled?: boolean;
+    is_pre_unentitled?: boolean;
 }
 
 export default function AdminCalendar() {
@@ -188,6 +193,23 @@ export default function AdminCalendar() {
         };
     }, [currentDate, viewMode]);
 
+    const { data: waitlistSummary = [] } = useQuery({
+        queryKey: ["waitlist-summary", profile?.organization_id, dateRange.start, dateRange.end],
+        queryFn: async () => {
+            if (!profile?.organization_id) return [];
+            const { data, error } = await (supabase as any)
+                .from("waitlist")
+                .select("id, preferred_date, status")
+                .eq("organization_id", profile.organization_id)
+                .eq("status", "Waiting")
+                .gte("preferred_date", dateRange.start.split('T')[0])
+                .lte("preferred_date", dateRange.end.split('T')[0]);
+            if (error) throw error;
+            return data || [];
+        },
+        enabled: !!profile?.organization_id
+    });
+
     const { data: allSessions = [], isLoading, refetch } = useQuery({
         queryKey: ["admin-master-sessions", profile?.organization_id, dateRange.start, dateRange.end],
         queryFn: async () => {
@@ -202,11 +224,12 @@ export default function AdminCalendar() {
                      scheduled_start,
                      scheduled_end,
                      status,
+                     service_id,
                      service_type,
                      is_unentitled,
                      organization_id,
-                     client:clients!sessions_client_id_fkey(first_name, last_name),
-                     therapist:profiles!sessions_therapist_id_fkey(first_name, last_name)
+                     client:clients!sessions_client_id_fkey(first_name, last_name, is_vip),
+                     therapist:profiles!sessions_therapist_id_fkey(first_name, last_name, ams_role, profession)
                  `)
                 .eq("organization_id", profile.organization_id)
                 .gte("scheduled_start", dateRange.start)
@@ -234,17 +257,17 @@ export default function AdminCalendar() {
             const results = await Promise.all(
                 plannedClientIds.map(async (clientId) => {
                     const { data } = await supabase.rpc('fn_compute_entitlement_balance', { p_client_id: clientId });
-                    // Map service_name → sessions_remaining
-                    const balanceByName: Record<string, number> = {};
+                    const byServiceId: Record<string, number> = {};
+                    const byServiceName: Record<string, number> = {};
                     (data ?? []).forEach((b: any) => {
-                        balanceByName[b.service_name?.toLowerCase().trim()] = b.sessions_remaining;
+                        if (b.service_id) byServiceId[b.service_id] = b.sessions_remaining;
+                        if (b.service_name) byServiceName[b.service_name?.toLowerCase().trim()] = b.sessions_remaining;
                     });
-                    return { clientId, balanceByName };
+                    return { clientId, byServiceId, byServiceName };
                 })
             );
-            // Build map: clientId → { serviceName → remaining }
-            const map: Record<string, Record<string, number>> = {};
-            results.forEach(({ clientId, balanceByName }) => { map[clientId] = balanceByName; });
+            const map: Record<string, { byServiceId: Record<string, number>, byServiceName: Record<string, number> }> = {};
+            results.forEach(({ clientId, byServiceId, byServiceName }) => { map[clientId] = { byServiceId, byServiceName }; });
             return map;
         },
         enabled: plannedClientIds.length > 0,
@@ -256,9 +279,21 @@ export default function AdminCalendar() {
         allSessions.map(s => {
             if (s.status !== 'Planned') return s;
             const clientBalance = clientEntitlementMap?.[s.client_id];
-            const serviceKey = s.service_type?.toLowerCase().trim();
-            const hasNoBalance = !clientBalance || clientBalance[serviceKey] === undefined || clientBalance[serviceKey] <= 0;
-            return { ...s, is_pre_unentitled: hasNoBalance };
+            
+            let hasNoBalance = true;
+            if (clientBalance) {
+                if (s.service_id && clientBalance.byServiceId[s.service_id] !== undefined) {
+                    hasNoBalance = clientBalance.byServiceId[s.service_id] <= 0;
+                } else if (s.service_type) {
+                    const serviceKey = s.service_type.toLowerCase().trim();
+                    hasNoBalance = clientBalance.byServiceName[serviceKey] === undefined || clientBalance.byServiceName[serviceKey] <= 0;
+                }
+            }
+            
+            return {
+                ...s,
+                is_pre_unentitled: hasNoBalance
+            };
         }),
         [allSessions, clientEntitlementMap]
     );
@@ -320,19 +355,25 @@ export default function AdminCalendar() {
             for (let i = 0; i < 7; i++) {
                 const cloneDay = day;
                 const formattedDate = format(cloneDay, "d");
-
                 const dayEvents = sessions.filter(s => isSameDay(parseISO(s.scheduled_start), cloneDay));
+                const hasWaitlist = waitlistSummary.some((w: any) => isSameDay(parseISO(w.preferred_date), cloneDay));
 
                 days.push(
                     <div
                         key={cloneDay.toString()}
-                        className={`min-h-[120px] p-2 border border-border/50 transition-colors ${!isSameMonth(cloneDay, monthStart)
+                        className={`min-h-[120px] p-2 border border-border/50 transition-colors relative ${!isSameMonth(cloneDay, monthStart)
                             ? "bg-muted/30 text-muted-foreground opacity-50"
                             : isSameDay(cloneDay, new Date())
                                 ? "bg-primary/5"
                                 : "bg-card"
                             }`}
                     >
+                        {hasWaitlist && isSameMonth(cloneDay, monthStart) && (
+                            <div 
+                                className="absolute top-2 right-2 w-2 h-2 bg-orange-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(249,115,22,0.8)] z-10" 
+                                title="Active Waitlist Entries" 
+                            />
+                        )}
                         <div className="flex justify-between items-start">
                             <span className={`text-sm font-medium w-7 h-7 flex items-center justify-center rounded-full ${isSameDay(cloneDay, new Date()) ? "bg-primary text-primary-foreground" : ""}`}>
                                 {formattedDate}
@@ -346,7 +387,11 @@ export default function AdminCalendar() {
                                     className={`text-xs p-1.5 rounded border truncate cursor-pointer hover:opacity-80 transition-opacity ${getStatusColor(event.status)}`}
                                 >
                                     <span className="font-semibold">{format(parseISO(event.scheduled_start), "HH:mm")}</span>
-                                    {" "}{event.client?.first_name} {event.client?.last_name}
+                                    {" "}
+                                    <span className={event.client?.is_vip ? "text-[#D4AF37] font-bold" : ""}>
+                                        {event.client?.first_name} {event.client?.last_name}
+                                    </span>
+                                    <VIPBadge isVIP={event.client?.is_vip} iconOnly size="sm" className="ml-1 inline-flex" />
                                     {event.is_unentitled && (
                                         <span className="ml-1 px-1 bg-red-500 text-white rounded-[2px] text-[8px] font-bold animate-pulse">
                                             UN
@@ -446,7 +491,10 @@ export default function AdminCalendar() {
                                                     style={{ top: `${topPos}px`, height: `${height}px`, minHeight: '24px' }}
                                                 >
                                                     <div className="text-xs font-semibold">{format(startD, "HH:mm")} - {format(endD, "HH:mm")}</div>
-                                                    <div className="text-[10px] truncate font-medium">C: {event.client?.first_name} {event.client?.last_name}</div>
+                                                    <div className={cn("text-[10px] truncate font-medium flex items-center gap-1", event.client?.is_vip && "text-[#D4AF37] font-bold")}>
+                                                        C: {event.client?.first_name} {event.client?.last_name}
+                                                        <VIPBadge isVIP={event.client?.is_vip} iconOnly size="sm" />
+                                                    </div>
                                                     {selectedConsultant === "all" && height > 40 && (
                                                         <div className="text-[10px] truncate opacity-80 mt-0.5 border-t border-current/20 pt-0.5">
                                                             Dr. {event.therapist?.last_name}
@@ -549,8 +597,9 @@ export default function AdminCalendar() {
                                     <div className="font-semibold text-xs mb-1">
                                         {format(startD, "h:mm a")} - {format(endD, "h:mm a")}
                                     </div>
-                                    <div className="font-medium text-sm truncate">
+                                    <div className={cn("font-medium text-sm truncate flex items-center gap-2", event.client?.is_vip && "text-[#D4AF37] font-bold")}>
                                         C: {event.client?.first_name} {event.client?.last_name}
+                                        <VIPBadge isVIP={event.client?.is_vip} size="sm" />
                                     </div>
                                     {selectedConsultant === "all" && (
                                         <div className="text-xs truncate opacity-80 mt-1 flex items-center gap-1">
@@ -589,20 +638,26 @@ export default function AdminCalendar() {
                 </div>
 
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                    <TabsList className="grid w-full grid-cols-3 max-w-2xl mb-6">
-                        <TabsTrigger value="master" className="flex items-center gap-2">
+                    <div className="w-full overflow-x-auto custom-scrollbar pb-2 mb-4 -mx-1 px-1 sm:mx-0 sm:px-0">
+                        <TabsList className="flex md:grid w-max md:w-full md:grid-cols-4 min-w-max md:min-w-0 md:max-w-3xl">
+                        <TabsTrigger value="master" className="flex items-center gap-2 px-4 py-2 whitespace-nowrap">
                             <CalendarIcon className="w-4 h-4" />
                             Master Schedule
                         </TabsTrigger>
-                        <TabsTrigger value="appointments" className="flex items-center gap-2">
+                        <TabsTrigger value="appointments" className="flex items-center gap-2 px-4 py-2 whitespace-nowrap">
                             <Layers className="w-4 h-4" />
                             Appointments List
                         </TabsTrigger>
-                        <TabsTrigger value="availability" className="flex items-center gap-2">
+                        <TabsTrigger value="availability" className="flex items-center gap-2 px-4 py-2 whitespace-nowrap">
                             <Clock className="w-4 h-4" />
                             Availability Settings
                         </TabsTrigger>
+                        <TabsTrigger value="waitlist" className="flex items-center gap-2 px-4 py-2 whitespace-nowrap">
+                            <Bell className="w-4 h-4" />
+                            Waitlist Queue
+                        </TabsTrigger>
                     </TabsList>
+                    </div>
 
                     <TabsContent value="master" className="mt-0 outline-none">
                         <Card className="border-border shadow-sm">
@@ -624,8 +679,8 @@ export default function AdminCalendar() {
                                     </div>
 
                                     <div className="flex flex-wrap items-center gap-3 w-full xl:w-auto mt-2 xl:mt-0">
-                                        <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as ViewMode)} className="w-[300px] shrink-0">
-                                            <TabsList className="grid w-full grid-cols-3 h-9">
+                                        <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as ViewMode)} className="w-full sm:w-[300px] shrink-0">
+                                            <TabsList className="grid w-full grid-cols-3 h-9 bg-muted/50 p-1">
                                                 <TabsTrigger value="day" className="text-xs">Day</TabsTrigger>
                                                 <TabsTrigger value="week" className="text-xs">Week</TabsTrigger>
                                                 <TabsTrigger value="month" className="text-xs">Month</TabsTrigger>
@@ -682,6 +737,10 @@ export default function AdminCalendar() {
                         <div className="bg-card border border-border rounded-xl shadow-sm p-4 sm:p-6">
                             <AdminAvailability hideLayout />
                         </div>
+                    </TabsContent>
+
+                    <TabsContent value="waitlist" className="mt-0 outline-none">
+                        <WaitlistDashboard />
                     </TabsContent>
                 </Tabs>
             </div>

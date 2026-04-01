@@ -3,8 +3,8 @@ import DashboardLayout from "@/components/layout/DashboardLayout";
 import StatCard from "@/components/dashboard/StatCard";
 import RecentActivity from "@/components/dashboard/RecentActivity";
 import ScheduleCard from "@/components/dashboard/ScheduleCard";
-import { Users, Calendar, CreditCard, TrendingUp, Activity, AlertTriangle, Loader2 } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { Users, Calendar, CreditCard, TrendingUp, Activity, AlertTriangle, Loader2, Bell, Clock } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval, parseISO, formatDistanceToNow, format } from "date-fns";
@@ -114,6 +114,27 @@ export default function AdminDashboard() {
     enabled: !!organizationId
   });
 
+  const { data: waitlistAlerts, isLoading: waitlistLoading } = useQuery({
+    queryKey: ['admin-waitlist-alerts', organizationId],
+    queryFn: async () => {
+        const { data, error } = await (supabase as any)
+            .from('waitlist')
+            .select(`
+                id, 
+                status, 
+                preferred_date, 
+                preferred_time_slot,
+                client:clients(first_name, last_name, is_vip, mobile_no)
+            `)
+            .eq('organization_id', organizationId)
+            .in('status', ['Waiting', 'Notified'])
+            .order('created_at', { ascending: false });
+        if (error) throw error;
+        return data;
+    },
+    enabled: !!organizationId
+  });
+
   const metrics = useMemo(() => {
     if (!sessions || !bills) return null;
 
@@ -174,12 +195,15 @@ export default function AdminDashboard() {
     };
   }, [sessions, bills, timeRange]);
 
-  const stats = [
-    { title: "Active Clients", value: metrics?.uniqueClients || 0, change: "in selected period", changeType: "neutral" as const, icon: Users },
-    { title: "Total Sessions", value: metrics?.totalSessions || 0, change: "in selected period", changeType: "neutral" as const, icon: Calendar },
-    { title: "Revenue", value: `₹${(metrics?.totalRevenue || 0).toLocaleString()}`, change: "in selected period", changeType: "positive" as const, icon: CreditCard },
-    { title: "No-Show / Cancelled", value: `${metrics?.noShowRate || 0}%`, change: "in selected period", changeType: "neutral" as const, icon: AlertTriangle },
-  ];
+    const waitingTodayCount = waitlistAlerts?.filter(w => w.preferred_date === format(new Date(), "yyyy-MM-dd") && w.status === 'Waiting').length || 0;
+    const notifiedWaitlist = waitlistAlerts?.filter(w => w.status === 'Notified') || [];
+
+    const stats = [
+        { title: "Active Clients", value: metrics?.uniqueClients || 0, change: "in selected period", changeType: "neutral" as const, icon: Users },
+        { title: "Today's Sessions", value: metrics?.totalSessions || 0, change: "in selected period", changeType: "neutral" as const, icon: Calendar },
+        { title: "Revenue", value: `₹${(metrics?.totalRevenue || 0).toLocaleString()}`, change: "in selected period", changeType: "positive" as const, icon: CreditCard },
+        { title: "Patients Waiting", value: waitingTodayCount, change: notifiedWaitlist.length > 0 ? `${notifiedWaitlist.length} Notified (Action)` : "No queue", changeType: notifiedWaitlist.length > 0 ? "positive" : "neutral", icon: Bell, className: notifiedWaitlist.length > 0 ? "animate-bounce" : "" },
+    ];
 
   // Transform today's sessions for schedule
   const schedule = useMemo(() => {
@@ -299,21 +323,30 @@ export default function AdminDashboard() {
                 </div>
               </div>
 
-              {/* Consultant Productivity */}
-              <div className="lg:col-span-2 rounded-xl border border-border bg-card p-5 gradient-card animate-in fade-in slide-in-from-bottom-4 duration-500 delay-200">
-                <h3 className="font-display font-semibold text-card-foreground mb-4">Top Consultants ({timeRange})</h3>
+              {/* Waitlist Alerts Widget */}
+              <div className="lg:col-span-2 rounded-xl border border-orange-200 bg-orange-50/30 p-5 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-200">
+                <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-display font-semibold text-orange-900 flex items-center gap-2">
+                        <Bell className="w-4 h-4" /> Waitlist Alerts
+                    </h3>
+                    {notifiedWaitlist.length > 0 && <span className="bg-orange-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full animate-pulse">ACTION</span>}
+                </div>
                 <div className="space-y-3">
-                  {metrics?.topConsultants.length === 0 ? (
-                    <p className="text-sm text-muted-foreground text-center py-8">No sessions in this period.</p>
+                  {notifiedWaitlist.length === 0 ? (
+                    <div className="text-center py-8">
+                        <Clock className="w-10 h-10 mx-auto mb-2 text-orange-200" />
+                        <p className="text-sm text-orange-800/60 italic">No notified patients pending follow-up.</p>
+                    </div>
                   ) : (
-                    metrics?.topConsultants.map((c) => (
-                      <div key={c.name} className="flex items-center justify-between p-3 rounded-lg bg-muted/30 transition-colors hover:bg-muted/50 cursor-default">
-                        <div>
-                          <p className="text-sm font-medium text-card-foreground">{c.name}</p>
+                    notifiedWaitlist.map((w: any) => (
+                      <div key={w.id} className="flex items-center justify-between p-3 rounded-lg bg-white/60 border border-orange-200 shadow-sm">
+                        <div className="flex flex-col">
+                          <p className="text-sm font-semibold text-orange-950">{w.client?.first_name} {w.client?.last_name}</p>
+                          <p className="text-[10px] text-orange-800/70">{format(new Date(w.preferred_date), "MMM d")} @ {w.preferred_time_slot.substring(0, 5)}</p>
                         </div>
-                        <span className="text-xs font-medium bg-primary/10 text-primary px-2 py-1 rounded-full">
-                          {c.count} sessions
-                        </span>
+                        <a href={`tel:${w.client?.mobile_no}`} className="p-2 rounded-full bg-orange-500 text-white hover:bg-orange-600 transition-colors">
+                            <Activity className="w-3 h-3" />
+                        </a>
                       </div>
                     ))
                   )}

@@ -46,6 +46,7 @@ import { format } from "date-fns";
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { VIPBadge, VIPName } from "@/components/ui/VIPBadge";
 
 interface ReportsPageProps {
   role: "admin" | "consultant" | "sports_scientist" | "client";
@@ -98,7 +99,7 @@ export default function ReportsPage({ role }: ReportsPageProps) {
       setIsFetchingAthletes(true);
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, first_name, last_name, uhid')
+        .select('id, first_name, last_name, uhid, is_vip')
         .not('ams_role', 'is', null)
         .neq('ams_role', 'coach')
         .order('last_name', { ascending: true });
@@ -492,7 +493,9 @@ export default function ReportsPage({ role }: ReportsPageProps) {
                       {athlete.first_name?.[0]}{athlete.last_name?.[0]}
                     </div>
                     <div>
-                      <div className="font-bold text-slate-100">{athlete.first_name} {athlete.last_name}</div>
+                      <div className="font-bold text-slate-100">
+                        <VIPName name={`${athlete.first_name} ${athlete.last_name}`} isVIP={athlete.is_vip} />
+                      </div>
                       <div className="text-[10px] opacity-40 font-bold uppercase tracking-widest">{athlete.uhid || "CLIENT RECORD"}</div>
                     </div>
                   </div>

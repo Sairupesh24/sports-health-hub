@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { Search, Users, ClipboardList } from "lucide-react";
 import AdHocSessionModal from "@/components/consultant/AdHocSessionModal";
+import { VIPBadge, VIPName } from "@/components/ui/VIPBadge";
 
 export default function MyClients() {
     const navigate = useNavigate();
@@ -23,7 +24,7 @@ export default function MyClients() {
         queryFn: async () => {
             // For now, fetching all active clients in the consultant's organization.
             // In the future, this could be filtered by clients who have a session with this specific therapist.
-            let query = supabase
+            let query = (supabase as any)
                 .from("clients")
                 .select("*")
                 .is("deleted_at", null)
@@ -35,9 +36,9 @@ export default function MyClients() {
                 );
             }
 
-            const { data, error } = await query.limit(50);
+            const { data, error } = await (query as any).limit(50);
             if (error) throw error;
-            return data;
+            return data as any[];
         },
     });
 
@@ -97,7 +98,10 @@ export default function MyClients() {
                                             >
                                                 <TableCell className="font-mono text-primary font-medium">{c.uhid}</TableCell>
                                                 <TableCell className="font-medium">
-                                                    {[c.honorific, c.first_name, c.middle_name, c.last_name].filter(Boolean).join(" ")}
+                                                    <VIPName 
+                                                        name={[c.honorific, c.first_name, c.middle_name, c.last_name].filter(Boolean).join(" ")} 
+                                                        isVIP={c.is_vip} 
+                                                    />
                                                 </TableCell>
                                                 <TableCell>{c.gender || "—"}</TableCell>
                                                 <TableCell>{c.age ?? "—"}</TableCell>

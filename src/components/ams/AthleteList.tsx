@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { format, isToday, subDays } from "date-fns";
-import { AlertCircle, CheckCircle2, User, Activity as ActivityIcon } from "lucide-react";
+import { AlertCircle, CheckCircle2, User, Activity as ActivityIcon, FileText } from "lucide-react";
 import { DateRange } from "react-day-picker";
 import { toast } from "sonner";
 
@@ -20,6 +20,8 @@ import WorkloadChart from "@/components/ams/charts/WorkloadChart";
 import WellnessRadarChart from "@/components/ams/charts/WellnessRadarChart";
 import ReturnToPlayChart from "@/components/ams/charts/ReturnToPlayChart";
 import SorenessHeatmap from "@/components/ams/SorenessHeatmap";
+import { DocumentManager } from "@/components/admin/documents/DocumentManager";
+import { useAuth } from "@/contexts/AuthContext";
 
 
 
@@ -29,8 +31,13 @@ interface AthleteListProps {
 }
 
 export default function AthleteList({ athletes, dateRange }: AthleteListProps) {
+  const { roles, profile: currentUserProfile } = useAuth();
   const [selectedAthlete, setSelectedAthlete] = useState<any>(null);
   const toastedRef = useRef<Set<string>>(new Set());
+
+  const isAdmin = roles.includes('admin');
+  const isSportsPhysician = currentUserProfile?.profession === 'Sports Physician';
+  const canAccessDocuments = isAdmin || isSportsPhysician;
 
   useEffect(() => {
     if (!athletes) return;
@@ -206,6 +213,23 @@ export default function AthleteList({ athletes, dateRange }: AthleteListProps) {
               <div className="space-y-4">
                 <WellnessRadarChart logs={selectedAthlete.wellness_logs || []} />
               </div>
+
+              {/* MEDICAL DOCUMENTS SECTION */}
+              {canAccessDocuments && (
+                <Card className="lg:col-span-2 border-primary/10 bg-primary/5">
+                  <CardHeader>
+                    <CardTitle className="text-lg font-bold flex items-center gap-2">
+                       <div className="p-2 bg-primary/10 rounded-lg">
+                          <FileText className="w-5 h-5 text-primary" />
+                       </div>
+                       Patient Documents
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <DocumentManager clientId={selectedAthlete.id} />
+                  </CardContent>
+                </Card>
+              )}
             </div>
           )}
         </DialogContent>

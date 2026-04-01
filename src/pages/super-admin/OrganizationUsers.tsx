@@ -273,8 +273,16 @@ export default function OrganizationUsers({ organizationId }: OrganizationUsersP
                 );
 
                 for (const id of createdUserIds) {
-                    await supabaseAdmin.auth.admin.deleteUser(id);
+                    try {
+                        const { error: delError } = await supabaseAdmin.auth.admin.deleteUser(id);
+                        if (delError && delError.message !== "User not found") {
+                            console.warn(`Rollback: Failed to delete user ${id}:`, delError.message);
+                        }
+                    } catch (e) {
+                        console.error(`Rollback: Exception deleting user ${id}:`, e);
+                    }
                 }
+
             }
 
             toast({ title: "Import Failed & Reverted", description: `${error.message}. All partially created users have been rolled back.`, variant: "destructive" });

@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Plus, Download, CheckCircle, CreditCard, Banknote, Smartphone, Trash2, ShoppingCart, Check, ChevronsUpDown, Receipt, Copy } from "lucide-react";
+import { Plus, Download, CheckCircle, CreditCard, Banknote, Smartphone, Trash2, ShoppingCart, Check, ChevronsUpDown, Receipt, Copy, User, MessageSquare, ShieldCheck, UserPlus, Eye, EyeOff } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -21,6 +21,9 @@ import { format } from "date-fns";
 import { useQueryClient } from "@tanstack/react-query";
 import { RefundModal } from "@/components/admin/RefundModal";
 import { generateRefundVoucher } from "@/lib/refundActions";
+import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
+import { VIPBadge, VIPName } from "@/components/ui/VIPBadge";
 
 type CartItem = {
     id: string; // unique cart item id
@@ -46,10 +49,16 @@ type Bill = {
     date: string;
     organization?: { name: string; id: string };
     client?: { id: string; full_name: string };
+    notes?: string;
+    discount_authorized_by?: string;
+    billing_staff_name?: string;
+    referral_source_name?: string;
+    include_notes_in_invoice?: boolean;
 };
 
-type Client = { id: string; first_name: string; last_name: string; uhid: string; email?: string; mobile_no?: string };
+type Client = { id: string; first_name: string; last_name: string; uhid: string; email?: string; mobile_no?: string; is_vip?: boolean };
 type Package = { id: string; name: string; price: number; service_package_items?: { service_type: string; default_sessions: number; }[] };
+type ReferralSource = { id: string; name: string };
 
 export default function BillingPage() {
     const { profile } = useAuth();
@@ -58,12 +67,16 @@ export default function BillingPage() {
 
     const [clients, setClients] = useState<Client[]>([]);
     const [bills, setBills] = useState<Bill[]>([]);
-    const [referralSources, setReferralSources] = useState(["Walk-in", "Dr. Smith", "Facebook Ad", "Instagram"]);
+    const [referralSources, setReferralSources] = useState<ReferralSource[]>([]);
     const [packages, setPackages] = useState<Package[]>([]);
 
     // Form States
     const [selectedClient, setSelectedClient] = useState("");
     const [selectedReferral, setSelectedReferral] = useState("");
+    const [selectedReferralName, setSelectedReferralName] = useState("");
+    const [remarks, setRemarks] = useState("");
+    const [includeNotesInInvoice, setIncludeNotesInInvoice] = useState(false);
+    const [discountAuthorizedBy, setDiscountAuthorizedBy] = useState("");
     const [cart, setCart] = useState<CartItem[]>([]);
 
     // Discount States
@@ -88,6 +101,8 @@ export default function BillingPage() {
     const [refundBillObj, setRefundBillObj] = useState<any>(null);
 
     const [openCombobox, setOpenCombobox] = useState(false);
+    const [openReferralCombobox, setOpenReferralCombobox] = useState(false);
+    const [referralSearch, setReferralSearch] = useState("");
     const [searchTerm, setSearchTerm] = useState("");
 
     useEffect(() => {
@@ -100,9 +115,9 @@ export default function BillingPage() {
         if (!profile?.organization_id) return;
 
         // Fetch Clients
-        const { data: clientData } = await supabase
+        const { data: clientData } = await (supabase as any)
             .from("clients")
-            .select("id, first_name, last_name, uhid, email, mobile_no")
+            .select("id, first_name, last_name, uhid, email, mobile_no, is_vip")
             .eq("organization_id", profile.organization_id);
         if (clientData) setClients(clientData as Client[]);
 
@@ -117,8 +132,15 @@ export default function BillingPage() {
             setPackages(pkgData as any[]);
         }
 
+        // Fetch Referral Sources
+        const { data: refData } = await supabase
+            .from("referral_sources")
+            .select("id, name")
+            .eq("organization_id", profile.organization_id);
+        if (refData) setReferralSources(refData as ReferralSource[]);
+
         // Fetch Bills
-        const { data: billsData } = await supabase
+        const { data: billsData } = await (supabase as any)
             .from("bills")
             .select(`
                 id, 
@@ -131,8 +153,13 @@ export default function BillingPage() {
                 payment_method,
                 organization_id,
                 organizations(id, name),
-                clients(id, first_name, last_name, uhid, email, mobile_no), 
-                packages(id, name, price, package_services(sessions_included, services(name)))
+                clients(id, first_name, last_name, uhid, email, mobile_no, is_vip), 
+                packages(id, name, price, package_services(sessions_included, services(name))),
+                referral_sources(id, name),
+                discount_authorized_by,
+                billing_staff_name,
+                notes,
+                include_notes_in_invoice
             `)
             .eq("organization_id", profile.organization_id)
             .order("created_at", { ascending: false });
@@ -154,9 +181,10 @@ export default function BillingPage() {
                 return {
                     id: b.id,
                     client_id: b.client_id,
-                    client: { id: b.client_id, full_name: clientName },
+                    client: { id: b.client_id, full_name: clientName, is_vip: clientObj?.is_vip },
                     organization: b.organizations,
                     client_name: clientName,
+                    client_is_vip: clientObj?.is_vip,
                     client_uhid: clientObj?.uhid || "",
                     client_mobile: clientObj?.mobile_no || "",
                     items: [{ 
@@ -164,14 +192,19 @@ export default function BillingPage() {
                         price: b.total,
                         entitlements
                     }],
-                    referral_source: "-",
+                    referral_source: (b as any).referral_sources?.name || "-",
+                    referral_source_name: (b as any).referral_sources?.name || "-",
                     subtotal: b.amount,
                     discount_type: "flat",
-                    discount_value: 0,
+                    discount_value: b.discount || 0,
                     total_amount: b.total,
                     status: b.status === "Paid" ? "Paid" : "Pending",
                     transaction_id: b.transaction_id,
                     date: b.created_at,
+                    notes: b.notes,
+                    discount_authorized_by: b.discount_authorized_by,
+                    billing_staff_name: b.billing_staff_name,
+                    include_notes_in_invoice: (b as any).include_notes_in_invoice
                 };
             }) as any[];
             setBills(formattedBills);
@@ -180,8 +213,10 @@ export default function BillingPage() {
 
     const handleAddReferral = () => {
         if (!newReferralName.trim()) return;
-        setReferralSources([...referralSources, newReferralName]);
-        setSelectedReferral(newReferralName);
+        const newRef = { id: Date.now().toString(), name: newReferralName };
+        setReferralSources([...referralSources, newRef]);
+        setSelectedReferral(newRef.id);
+        setSelectedReferralName(newRef.name);
         setNewReferralName("");
         setIsReferralModalOpen(false);
         toast({ title: "Referral Source Added" });
@@ -243,16 +278,47 @@ export default function BillingPage() {
 
     const handleCreateBill = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!selectedClient) {
-            toast({ title: "Please select a client", variant: "destructive" });
-            return;
-        }
         if (cart.length === 0) {
             toast({ title: "Please add at least one package to the cart", variant: "destructive" });
             return;
         }
 
+        const dVal = Number(discountValue) || 0;
+        if (dVal > 0 && !discountAuthorizedBy.trim()) {
+            toast({ 
+                title: "Authorizer Required", 
+                description: "Please specify who authorized this discount.", 
+                variant: "destructive" 
+            });
+            return;
+        }
+
+        const billingStaffName = profile ? `${profile.first_name} ${profile.last_name}` : "System";
+
         try {
+            let referralId = selectedReferral;
+
+            // If we have a custom referral name but no ID, create it
+            if (!referralId && selectedReferralName) {
+                // Check if it already exists (case insensitive)
+                const existing = referralSources.find(r => r.name.toLowerCase() === selectedReferralName.toLowerCase());
+                if (existing) {
+                    referralId = existing.id;
+                } else {
+                    const { data, error: refError } = await supabase
+                        .from('referral_sources')
+                        .insert({
+                            name: selectedReferralName,
+                            organization_id: profile?.organization_id
+                        })
+                        .select()
+                        .single();
+                    
+                    if (refError) throw refError;
+                    referralId = data.id;
+                }
+            }
+
             for (const item of cart) {
                 const itemRatio = item.price / subtotal;
                 const itemDiscount = discountType === "percentage" 
@@ -267,7 +333,12 @@ export default function BillingPage() {
                     amount: item.price,
                     discount: itemDiscount,
                     total: itemTotal,
-                    status: 'Pending'
+                    status: 'Pending',
+                    referral_source_id: referralId || null,
+                    notes: remarks,
+                    include_notes_in_invoice: includeNotesInInvoice,
+                    discount_authorized_by: (Number(discountValue) > 0) ? discountAuthorizedBy : null,
+                    billing_staff_name: billingStaffName
                 });
 
                 if (error) throw error;
@@ -317,45 +388,96 @@ export default function BillingPage() {
     const handleDownloadInvoice = (bill: Bill) => {
         const d = new jsPDF();
         const c = clients.find(x => x.id === bill.client_id);
+        
+        // Load Logo
+        const logoUrl = "/logo.png";
+        
+        const addHeader = (doc: jsPDF) => {
+            try {
+                // Header Logo - Adjusted to aspect ratio 2.45:1 (60mm x 24.5mm)
+                doc.addImage(logoUrl, 'PNG', 14, 10, 60, 24.5);
+            } catch (e) {
+                // Fallback if logo fails
+                doc.setFontSize(22);
+                doc.setTextColor(15, 23, 42); 
+                doc.text(orgName, 14, 25);
+            }
 
-        d.setFontSize(22);
-        d.setTextColor(15, 23, 42); 
-        d.text(orgName, 14, 25);
+            doc.setFontSize(14);
+            doc.setTextColor(100, 116, 139); 
+            doc.text("INVOICE", 170, 25);
 
-        d.setFontSize(14);
-        d.setTextColor(100, 116, 139); 
-        d.text("INVOICE", 170, 25);
+            doc.setFontSize(10);
+            doc.setTextColor(71, 85, 105);
+            doc.text(`Invoice # : ${bill.id.substring(0, 8)}`, 14, 45);
+            doc.text(`Date : ${format(new Date(bill.date), "dd MMM yyyy, hh:mm a")}`, 14, 51);
+            if (bill.billing_staff_name) doc.text(`Billed By: ${bill.billing_staff_name}`, 14, 57);
+        };
 
-        d.setFontSize(10);
-        d.setTextColor(71, 85, 105);
-        d.text(`Invoice # : ${bill.id}`, 14, 38);
-        d.text(`Date : ${format(new Date(bill.date), "dd MMM yyyy, hh:mm a")}`, 14, 44);
+        addHeader(d);
 
         d.setFontSize(11);
         d.setTextColor(15, 23, 42);
-        d.text("Bill To:", 14, 58);
+        d.text("Bill To:", 14, 75);
 
         d.setFontSize(10);
         d.setTextColor(71, 85, 105);
-        d.text(bill.client_name, 14, 65);
-        if (c?.uhid) d.text(`UHID : ${c.uhid}`, 14, 71);
-        if (c?.mobile_no) d.text(`Mobile : ${c.mobile_no}`, 14, 77);
-        if (c?.email) d.text(`Email : ${c.email}`, 14, 83);
+        d.text(bill.client_name, 14, 82);
+        if (c?.uhid) d.text(`UHID : ${c.uhid}`, 14, 88);
+        if (c?.mobile_no) d.text(`Mobile : ${c.mobile_no}`, 14, 94);
+        
+        if (bill.referral_source_name && bill.referral_source_name !== "-") {
+            d.text(`Referral: ${bill.referral_source_name}`, 14, 100);
+        }
 
-        const tableData = bill.items.map((item, index) => [
-            (index + 1).toString(),
-            item.name,
-            `Rs. ${item.price.toFixed(2)}`
-        ]);
+        const tableData = bill.items.map((item, index) => {
+            let description = item.name;
+            if (item.entitlements && item.entitlements.length > 0) {
+                const entitlementList = item.entitlements
+                    .map(e => `  • ${e.service_type}: ${e.default_sessions} sessions`)
+                    .join('\n');
+                description += `\n${entitlementList}`;
+            }
+            return [
+                (index + 1).toString(),
+                description,
+                `Rs. ${item.price.toFixed(2)}`
+            ];
+        });
 
         autoTable(d, {
-            startY: 95,
+            startY: 110,
             head: [["#", "Description", "Amount"]],
             body: tableData,
             theme: 'striped',
             headStyles: { fillColor: [15, 118, 110] }, 
-            styles: { fontSize: 10, cellPadding: 5 },
+            styles: { fontSize: 10, cellPadding: 5, overflow: 'linebreak' },
+            columnStyles: {
+                1: { cellWidth: 120 }
+            }
         });
+
+        const finalY = (d as any).lastAutoTable.finalY + 10;
+        d.setFontSize(10);
+        d.setTextColor(15, 23, 42);
+        
+        if (Number(bill.discount_value) > 0) {
+            d.text(`Discount: Rs. ${bill.discount_value.toFixed(2)}`, 14, finalY);
+            if (bill.discount_authorized_by) {
+                d.text(`Auth By: ${bill.discount_authorized_by}`, 14, finalY + 6);
+            }
+        }
+        
+        d.setFontSize(12);
+        d.text(`Total Amount: Rs. ${bill.total_amount.toFixed(2)}`, 140, finalY);
+
+        if (bill.notes && bill.include_notes_in_invoice) {
+            d.setFontSize(9);
+            d.setTextColor(100, 116, 139);
+            d.text(`Remarks:`, 14, finalY + 15);
+            const splitRemarks = d.splitTextToSize(bill.notes, 180);
+            d.text(splitRemarks, 14, finalY + 20);
+        }
 
         d.save(`Invoice_${bill.id.substring(0, 8)}.pdf`);
     };
@@ -428,10 +550,13 @@ export default function BillingPage() {
                                                                                     selectedClient === c.id ? "opacity-100" : "opacity-0"
                                                                                 )}
                                                                             />
-                                                                            <div>
-                                                                                <div>{c.first_name} {c.last_name}</div>
-                                                                                <div className="text-[10px] text-muted-foreground">{c.uhid}</div>
-                                                                            </div>
+                                                                                <div>
+                                                                                    <div className="flex items-center gap-2">
+                                                                                        {c.first_name} {c.last_name}
+                                                                                        <VIPBadge isVIP={c.is_vip} iconOnly size="sm" />
+                                                                                    </div>
+                                                                                    <div className="text-[10px] text-muted-foreground">{c.uhid}</div>
+                                                                                </div>
                                                                         </CommandItem>
                                                                     ))}
                                                                 </CommandGroup>
@@ -439,6 +564,92 @@ export default function BillingPage() {
                                                         </Command>
                                                     </PopoverContent>
                                                 </Popover>
+                                            </div>
+
+                                            <div className="space-y-2">
+                                                <Label>Referral Source / Reference Person</Label>
+                                                <Popover open={openReferralCombobox} onOpenChange={setOpenReferralCombobox}>
+                                                    <PopoverTrigger asChild>
+                                                        <Button
+                                                            variant="outline"
+                                                            role="combobox"
+                                                            aria-expanded={openReferralCombobox}
+                                                            className="w-full justify-between font-normal"
+                                                        >
+                                                            {selectedReferralName || "Select or type source..."}
+                                                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                                        </Button>
+                                                    </PopoverTrigger>
+                                                    <PopoverContent className="w-[300px] p-0">
+                                                        <Command>
+                                                            <CommandInput 
+                                                                placeholder="Search or add source..." 
+                                                                value={referralSearch}
+                                                                onValueChange={setReferralSearch}
+                                                            />
+                                                            <CommandList>
+                                                                <CommandEmpty>
+                                                                    <div 
+                                                                        className="flex items-center gap-2 p-2 cursor-pointer hover:bg-muted text-primary text-sm"
+                                                                        onClick={() => {
+                                                                            setSelectedReferral("");
+                                                                            setSelectedReferralName(referralSearch);
+                                                                            setOpenReferralCombobox(false);
+                                                                        }}
+                                                                    >
+                                                                        <UserPlus className="w-4 h-4" />
+                                                                        <span>Add "{referralSearch}"</span>
+                                                                    </div>
+                                                                </CommandEmpty>
+                                                                <CommandGroup>
+                                                                    {referralSources.map((r) => (
+                                                                        <CommandItem
+                                                                            key={r.id}
+                                                                            value={r.name}
+                                                                            onSelect={() => {
+                                                                                setSelectedReferral(r.id);
+                                                                                setSelectedReferralName(r.name);
+                                                                                setOpenReferralCombobox(false);
+                                                                            }}
+                                                                        >
+                                                                            <Check
+                                                                                className={cn(
+                                                                                    "mr-2 h-4 w-4",
+                                                                                    selectedReferral === r.id ? "opacity-100" : "opacity-0"
+                                                                                )}
+                                                                            />
+                                                                            {r.name}
+                                                                        </CommandItem>
+                                                                    ))}
+                                                                </CommandGroup>
+                                                            </CommandList>
+                                                        </Command>
+                                                    </PopoverContent>
+                                                </Popover>
+                                            </div>
+
+                                            <div className="space-y-2">
+                                                <div className="flex items-center justify-between">
+                                                    <Label htmlFor="remarks">Remarks (if any)</Label>
+                                                    <div className="flex items-center space-x-2">
+                                                        <Checkbox 
+                                                            id="show-in-pdf" 
+                                                            checked={includeNotesInInvoice}
+                                                            onCheckedChange={(checked) => setIncludeNotesInInvoice(checked as boolean)}
+                                                        />
+                                                        <Label htmlFor="show-in-pdf" className="text-[10px] text-muted-foreground flex items-center gap-1 cursor-pointer">
+                                                            {includeNotesInInvoice ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
+                                                            Show in PDF
+                                                        </Label>
+                                                    </div>
+                                                </div>
+                                                <Textarea 
+                                                    id="remarks" 
+                                                    placeholder="Add any specific notes for this bill..." 
+                                                    className="resize-none h-20"
+                                                    value={remarks}
+                                                    onChange={e => setRemarks(e.target.value)}
+                                                />
                                             </div>
 
                                             <div className="space-y-2">
@@ -485,6 +696,31 @@ export default function BillingPage() {
                                                         ))}
                                                     </div>
                                                 )}
+                                            </div>
+
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div className="space-y-2">
+                                                    <Label className="flex items-center gap-2"><User className="w-3.5 h-3.5" /> Billing Staff</Label>
+                                                    <Input 
+                                                        value={profile ? `${profile.first_name} ${profile.last_name}` : ""} 
+                                                        readOnly 
+                                                        className="bg-muted/50 cursor-not-allowed h-9 text-xs"
+                                                    />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <Label className="flex items-center gap-2">
+                                                        <ShieldCheck className="w-3.5 h-3.5" /> 
+                                                        Authorized By
+                                                        {Number(discountValue) > 0 && <span className="text-destructive">*</span>}
+                                                    </Label>
+                                                    <Input 
+                                                        placeholder={Number(discountValue) > 0 ? "Required" : "Approver's Name"} 
+                                                        className={cn("h-9 text-xs", Number(discountValue) > 0 && !discountAuthorizedBy && "border-destructive/50")}
+                                                        value={discountAuthorizedBy}
+                                                        onChange={e => setDiscountAuthorizedBy(e.target.value)}
+                                                        disabled={Number(discountValue) === 0}
+                                                    />
+                                                </div>
                                             </div>
                                         </div>
 
@@ -552,6 +788,8 @@ export default function BillingPage() {
                                             <TableRow className="bg-muted/50">
                                                 <TableHead>Invoice #</TableHead>
                                                 <TableHead>Client</TableHead>
+                                                <TableHead>Source</TableHead>
+                                                <TableHead>Staff</TableHead>
                                                 <TableHead>Status</TableHead>
                                                 <TableHead className="text-right pr-4">Amount</TableHead>
                                                 <TableHead className="text-center">Action</TableHead>
@@ -560,12 +798,23 @@ export default function BillingPage() {
                                         <TableBody>
                                             {filteredBills.length === 0 ? (
                                                 <TableRow>
-                                                    <TableCell colSpan={5} className="text-center py-10 text-muted-foreground italic">No invoices found matching your search.</TableCell>
+                                                    <TableCell colSpan={7} className="text-center py-10 text-muted-foreground italic">No invoices found matching your search.</TableCell>
                                                 </TableRow>
                                             ) : filteredBills.map((bill) => (
                                                 <TableRow key={bill.id} className="hover:bg-muted/10 transition-colors">
                                                     <TableCell className="font-mono text-[10px]">{bill.id.substring(0, 8)}</TableCell>
-                                                    <TableCell className="font-medium text-xs">{bill.client_name}</TableCell>
+                                                    <TableCell>
+                                                        <div className="font-medium text-xs truncate max-w-[150px]">
+                                                            <VIPName name={bill.client_name} isVIP={(bill as any).client_is_vip} />
+                                                        </div>
+                                                        {bill.notes && (
+                                                            <div className="text-[9px] text-muted-foreground italic truncate max-w-[120px]" title={bill.notes}>
+                                                                "{bill.notes}"
+                                                            </div>
+                                                        )}
+                                                    </TableCell>
+                                                    <TableCell className="text-[10px] text-muted-foreground">{bill.referral_source_name || "-"}</TableCell>
+                                                    <TableCell className="text-[10px] text-muted-foreground">{bill.billing_staff_name || "-"}</TableCell>
                                                     <TableCell>
                                                         {bill.status === "Paid" ? (
                                                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 text-[10px] font-bold">

@@ -50,6 +50,8 @@ const clientSchema = z.object({
   insurance_policy_no: z.string().optional(),
   insurance_validity: z.string().optional(),
   insurance_coverage_amount: z.coerce.number().optional(),
+  is_vip: z.boolean().optional(),
+  admin_remarks: z.string().optional(),
 });
 
 type ClientFormData = z.infer<typeof clientSchema>;
@@ -74,7 +76,8 @@ const INDIAN_STATES = [
 
 export default function ClientRegistration() {
   const navigate = useNavigate();
-  const { profile } = useAuth();
+  const { profile, roles } = useAuth();
+  const isAdmin = roles.includes('admin');
   const [submitting, setSubmitting] = useState(false);
   const [documents, setDocuments] = useState<File[]>([]);
   const [showInsurance, setShowInsurance] = useState(false);
@@ -132,6 +135,7 @@ export default function ClientRegistration() {
     defaultValues: {
       country: "India",
       has_insurance: false,
+      is_vip: false,
     },
   });
 
@@ -201,6 +205,7 @@ export default function ClientRegistration() {
         insurance_policy_no: data.insurance_policy_no || null,
         insurance_validity: data.insurance_validity || null,
         insurance_coverage_amount: data.insurance_coverage_amount || null,
+        is_vip: data.is_vip || false,
       };
 
       const { data: newClient, error: clientError } = await supabase
@@ -210,6 +215,14 @@ export default function ClientRegistration() {
         .single();
 
       if (clientError) throw clientError;
+
+      // Handle Admin Remarks if provided and user is admin
+      if (data.admin_remarks && isAdmin) {
+          await (supabase as any).from("client_admin_notes").insert({
+              client_id: newClient.id,
+              remarks: data.admin_remarks
+          });
+      }
 
       // Upload documents
       for (const file of documents) {
@@ -335,6 +348,23 @@ export default function ClientRegistration() {
                     </SelectContent>
                   </Select>
                 </div>
+              </div>
+
+              {/* VIP Status */}
+              <div className="flex items-center justify-between p-3 rounded-lg bg-yellow-500/5 border border-yellow-500/20 mb-4">
+                  <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-yellow-500/10 flex items-center justify-center">
+                          <Plus className="w-5 h-5 text-yellow-600" />
+                      </div>
+                      <div>
+                          <Label className="text-sm font-bold text-yellow-800">VIP Client Tier</Label>
+                          <p className="text-xs text-yellow-600/80 font-medium">Mark this client for premium services and priority care</p>
+                      </div>
+                  </div>
+                  <Switch
+                      checked={watch("is_vip")}
+                      onCheckedChange={(v) => setValue("is_vip", v)}
+                  />
               </div>
 
               {/* Row 3: DOB, Age, Email, Alternate Mobile */}
@@ -574,6 +604,26 @@ export default function ClientRegistration() {
               )}
             </CardContent>
           </Card>
+
+          {/* Admin Remarks - ONLY FOR ADMINS */}
+          {isAdmin && (
+              <Card className="gradient-card border-border border-l-4 border-l-primary">
+                  <CardHeader className="pb-4">
+                      <CardTitle className="text-lg flex items-center gap-2">
+                          <Shield className="w-5 h-5 text-primary" />
+                          Administrative Remarks (Internal)
+                      </CardTitle>
+                      <CardDescription>Strictly visible only to Administrators. Not visible to consultants or staff.</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                      <Textarea 
+                          className={cn(inputClass, "min-h-[120px] font-medium")}
+                          {...register("admin_remarks")}
+                          placeholder="Strategic notes, preferred consultant, billing preferences, etc."
+                      />
+                  </CardContent>
+              </Card>
+          )}
 
           {/* Submit */}
           <div className="flex items-center justify-end gap-3 pb-8">

@@ -8,6 +8,7 @@ import { Calendar, Clock, User, ClipboardList, ChevronRight, MapPin } from "luci
 import { AdminSessionStatusModal } from "@/components/admin/AdminSessionStatusModal";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { VIPBadge, VIPName } from "@/components/ui/VIPBadge";
 
 export default function AppointmentList({ role, hideLayout = false }: { role: 'admin' | 'consultant' | 'client', hideLayout?: boolean }) {
     const { profile, clientId } = useAuth();
@@ -20,7 +21,7 @@ export default function AppointmentList({ role, hideLayout = false }: { role: 'a
         try {
             let query = (supabase as any).from("sessions").select(`
           id, scheduled_start, scheduled_end, service_type, status,
-          client:clients!sessions_client_id_fkey(first_name, last_name, uhid),
+          client:clients!sessions_client_id_fkey(first_name, last_name, uhid, is_vip),
         therapist:profiles!sessions_therapist_id_fkey(first_name, last_name)
         `).eq("organization_id", profile.organization_id)
                 .order('scheduled_start', { ascending: false });
@@ -128,7 +129,7 @@ export default function AppointmentList({ role, hideLayout = false }: { role: 'a
                                             <div className="hidden md:block w-px h-10 bg-slate-100" />
                                             <div className="flex flex-col gap-1">
                                                 <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Client</p>
-                                                <span className="text-sm font-bold text-slate-700">{apt.client?.first_name} {apt.client?.last_name}</span>
+                                                <VIPName name={`${apt.client?.first_name} ${apt.client?.last_name}`} isVIP={apt.client?.is_vip} className="text-sm font-bold text-slate-700" />
                                             </div>
                                         </>
                                     )}

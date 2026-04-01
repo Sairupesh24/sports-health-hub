@@ -310,6 +310,58 @@ export type Database = {
           },
         ]
       }
+      client_assignment_history: {
+        Row: {
+          change_reason: string | null
+          changed_by: string | null
+          client_id: string
+          created_at: string | null
+          id: string
+          new_consultant_id: string | null
+          previous_consultant_id: string | null
+        }
+        Insert: {
+          change_reason?: string | null
+          changed_by?: string | null
+          client_id: string
+          created_at?: string | null
+          id?: string
+          new_consultant_id?: string | null
+          previous_consultant_id?: string | null
+        }
+        Update: {
+          change_reason?: string | null
+          changed_by?: string | null
+          client_id?: string
+          created_at?: string | null
+          id?: string
+          new_consultant_id?: string | null
+          previous_consultant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_assignment_history_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_assignment_history_new_consultant_id_fkey"
+            columns: ["new_consultant_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_assignment_history_previous_consultant_id_fkey"
+            columns: ["previous_consultant_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_documents: {
         Row: {
           client_id: string
@@ -320,6 +372,10 @@ export type Database = {
           id: string
           organization_id: string
           uploaded_by: string | null
+          category: Database["public"]["Enums"]["document_category"] | null
+          access_level: string | null
+          uploaded_by_role: string | null
+          notes: string | null
         }
         Insert: {
           client_id: string
@@ -330,6 +386,10 @@ export type Database = {
           id?: string
           organization_id: string
           uploaded_by?: string | null
+          category?: Database["public"]["Enums"]["document_category"] | null
+          access_level?: string | null
+          uploaded_by_role?: string | null
+          notes?: string | null
         }
         Update: {
           client_id?: string
@@ -340,6 +400,10 @@ export type Database = {
           id?: string
           organization_id?: string
           uploaded_by?: string | null
+          category?: Database["public"]["Enums"]["document_category"] | null
+          access_level?: string | null
+          uploaded_by_role?: string | null
+          notes?: string | null
         }
         Relationships: [
           {
@@ -1325,6 +1389,8 @@ export type Database = {
           uhid: string | null
           updated_at: string
           ams_role: "coach" | "athlete" | null
+          assigned_consultant_id: string | null
+          profession: string | null
         }
         Insert: {
           created_at?: string
@@ -1337,6 +1403,8 @@ export type Database = {
           uhid?: string | null
           updated_at?: string
           ams_role?: "coach" | "athlete" | null
+          assigned_consultant_id?: string | null
+          profession?: string | null
         }
         Update: {
           created_at?: string
@@ -1349,6 +1417,8 @@ export type Database = {
           uhid?: string | null
           updated_at?: string
           ams_role?: "coach" | "athlete" | null
+          assigned_consultant_id?: string | null
+          profession?: string | null
         }
         Relationships: [
           {
@@ -1363,6 +1433,13 @@ export type Database = {
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profiles_assigned_consultant_id_fkey"
+            columns: ["assigned_consultant_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -2158,6 +2235,13 @@ export type Database = {
         | "rescheduled"
         | "checked_in"
       refund_mode: "Cash" | "Online Bank Transfer" | "UPI" | "Clinic Credit"
+      document_category: 
+        | "Exercise Charts"
+        | "Scan Reports"
+        | "Insurance"
+        | "Consent Forms"
+        | "Prescriptions"
+        | "Other"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2296,6 +2380,14 @@ export const Constants = {
         "checked_in",
       ],
       refund_mode: ["Cash", "Online Bank Transfer", "UPI", "Clinic Credit"],
+      document_category: [
+        "Exercise Charts",
+        "Scan Reports",
+        "Insurance",
+        "Consent Forms",
+        "Prescriptions",
+        "Other",
+      ],
     },
   },
 } as const

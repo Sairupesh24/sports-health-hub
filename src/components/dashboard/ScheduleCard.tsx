@@ -1,5 +1,6 @@
 import { Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { VIPBadge, VIPName } from "@/components/ui/VIPBadge";
 
 interface ScheduleItem {
   id: string;
@@ -8,6 +9,7 @@ interface ScheduleItem {
   type: string;
   status: "confirmed" | "pending" | "completed";
   clientId?: string;
+  isVIP?: boolean; 
   rawSession?: any;
 }
 
@@ -42,7 +44,9 @@ export default function ScheduleCard({ items, title = "Today's Schedule", onItem
           >
             <span className="text-sm font-mono font-medium text-primary w-14">{item.time}</span>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-card-foreground truncate">{item.clientName}</p>
+              <p className="text-sm font-medium text-card-foreground truncate">
+                <VIPName name={item.clientName} isVIP={item.isVIP} />
+              </p>
               <p className="text-xs text-muted-foreground">{item.type}</p>
             </div>
             <span className={cn("text-xs px-2 py-0.5 rounded-full font-medium", statusStyles[item.status])}>

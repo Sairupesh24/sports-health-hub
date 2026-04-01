@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import PerformanceSnapshot from "./PerformanceSnapshot";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,9 @@ import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Copy, Save, AlertTriangle, RefreshCw, Loader2 } from "lucide-react";
 import { format } from "date-fns";
+import { filterServicesByRole, Service } from "@/utils/serviceMapping";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface SOAPNoteModalProps {
     open: boolean;
@@ -23,11 +26,15 @@ interface SOAPNoteModalProps {
 const MODALITIES = ["IFT", "UST", "TENS", "STIMULATION", "CRYOTHERAPY", "HC", "NONE"];
 
 export default function SOAPNoteModal({ open, onOpenChange, session, clientId, onSuccess }: SOAPNoteModalProps) {
+    const { profile, roles } = useAuth();
     const [loading, setLoading] = useState(false);
     const [fetchingPrevious, setFetchingPrevious] = useState(false);
     const [reconciling, setReconciling] = useState(false);
     const [balanceLoading, setBalanceLoading] = useState(false);
     const [remainingSessions, setRemainingSessions] = useState<number | null>(null);
+    const [services, setServices] = useState<Service[]>([]);
+    const [serviceId, setServiceId] = useState<string>("");
+    const [servicesLoading, setServicesLoading] = useState(false);
 
     // Note State
     const [painScore, setPainScore] = useState<number>(0);
@@ -53,6 +60,8 @@ export default function SOAPNoteModal({ open, onOpenChange, session, clientId, o
 
     useEffect(() => {
         if (open && session) {
+            setServiceId(session.service_id || "");
+            fetchServices();
             if (isCompleted) {
                 const data = Array.isArray(session.physio_session_details)
                     ? session.physio_session_details[0]
@@ -80,6 +89,26 @@ export default function SOAPNoteModal({ open, onOpenChange, session, clientId, o
         }
     }, [open, session, isCompleted]);
 
+    const fetchServices = async () => {
+        if (!session?.organization_id) return;
+        setServicesLoading(true);
+        try {
+            const { data } = await supabase
+                .from("services")
+                .select("id, name, category, organization_id")
+                .eq("organization_id", session.organization_id)
+                .eq("is_active", true);
+            if (data) setServices(data as Service[]);
+        } finally {
+            setServicesLoading(false);
+        }
+    };
+
+    const filteredServices = useMemo(() => {
+        // Use profession if available from profile (consultant view), or role fallback
+        return filterServicesByRole(services, profile?.profession, roles[0]);
+    }, [services, profile?.profession, roles]);
+
     useEffect(() => {
         if (!open || !session?.id || session.status !== "Planned") {
             setRemainingSessions(null);
@@ -93,8 +122,11 @@ export default function SOAPNoteModal({ open, onOpenChange, session, clientId, o
                     p_client_id: clientId 
                 });
                 if (!error && data) {
-                    const serviceKey = (session.service_type || "").toLowerCase().trim();
-                    const balance = (data as any[]).find(b => b.service_name?.toLowerCase().trim() === serviceKey);
+                    // Use serviceId if set, otherwise fallback to name mapping
+                    const currentServiceId = serviceId;
+                    const balance = (data as any[]).find(b => 
+                        currentServiceId ? b.service_id === currentServiceId : b.service_name?.toLowerCase().trim() === (session.service_type || "").toLowerCase().trim()
+                    );
                     setRemainingSessions(balance ? balance.sessions_remaining : 0);
                 }
             } finally {
@@ -102,7 +134,7 @@ export default function SOAPNoteModal({ open, onOpenChange, session, clientId, o
             }
         };
         fetchBalance();
-    }, [open, session?.id, session?.status, clientId, session?.service_type]);
+    }, [open, session?.id, session?.status, clientId, session?.service_type, serviceId]);
 
     const handleModalityToggle = (modality: string) => {
         setSelectedModalities(prev => {
@@ -174,10 +206,14 @@ export default function SOAPNoteModal({ open, onOpenChange, session, clientId, o
                 error = res.error;
 
                 if (!error) {
+                    // Update session with finalized service_id if changed or missing
+                    const selectedService = services.find(s => s.id === serviceId);
                     await supabase.from('sessions').update({
                         actual_start: new Date().toISOString(),
                         actual_end: new Date().toISOString(),
-                        status: 'Completed'
+                        status: 'Completed',
+                        service_id: serviceId,
+                        service_type: selectedService?.name || session.service_type
                     }).eq('id', session.id);
 
                     const { data: { user } } = await supabase.auth.getUser();
@@ -330,22 +366,55 @@ export default function SOAPNoteModal({ open, onOpenChange, session, clientId, o
                                 </div>
                             </div>
 
-                            {/* Plan Section */}
+                             {/* Plan Section */}
                             <div className="space-y-6 rounded-2xl border bg-card p-6 shadow-sm">
                                 <div className="flex items-center gap-2 border-b pb-4">
                                     <div className="w-1 h-4 bg-primary rounded-full" />
-                                    <h3 className="font-bold text-base uppercase tracking-wider text-foreground">Next Plan</h3>
+                                    <h3 className="font-bold text-base uppercase tracking-wider text-foreground">Session Configuration</h3>
                                 </div>
-                                <div className="space-y-2">
-                                    <Label className="text-sm font-semibold">Rehabilitation Plan</Label>
-                                    <Textarea value={nextPlan} onChange={e => setNextPlan(e.target.value)} placeholder="Next session goals..." className="bg-muted/20" />
+                                <div className="space-y-4">
+                                    <div className="space-y-2">
+                                        <Label className="text-sm font-semibold">Service / Session Type Done</Label>
+                                        <Select 
+                                            value={serviceId} 
+                                            onValueChange={setServiceId}
+                                            disabled={isCompleted}
+                                        >
+                                            <SelectTrigger className="bg-muted/20">
+                                                <SelectValue placeholder="Select the type of session done..." />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {filteredServices.map(s => (
+                                                    <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                                                ))}
+                                                {/* Ensure the currently selected service is always visible even if filtered out */}
+                                                {(serviceId && !filteredServices.find(s => s.id === serviceId)) && (
+                                                    <SelectItem value={serviceId}>
+                                                        {services.find(s => s.id === serviceId)?.name || session.service_type}
+                                                    </SelectItem>
+                                                )}
+                                                {filteredServices.length === 0 && !serviceId && (
+                                                    <SelectItem value="none" disabled>No matching services for your role</SelectItem>
+                                                )}
+                                            </SelectContent>
+                                        </Select>
+                                        {!serviceId && !isCompleted && (
+                                            <p className="text-[10px] text-red-500 font-medium animate-pulse">
+                                                ⚠️ Please select the session type before finalizing.
+                                            </p>
+                                        )}
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label className="text-sm font-semibold">Rehabilitation Plan</Label>
+                                        <Textarea value={nextPlan} onChange={e => setNextPlan(e.target.value)} placeholder="Next session goals..." className="bg-muted/20" />
+                                    </div>
                                 </div>
                             </div>
 
                             <div className="flex justify-end gap-4 pt-4 sticky bottom-0 bg-background/80 backdrop-blur-sm border-t p-4 -mx-6 rounded-b-2xl">
                                 <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>Discard</Button>
                                 {canEnterNotes && (
-                                    <Button type="submit" disabled={loading} className="min-w-[140px] shadow-lg shadow-primary/20">
+                                    <Button type="submit" disabled={loading || (!serviceId && !isCompleted)} className="min-w-[140px] shadow-lg shadow-primary/20">
                                         {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
                                         {isCompleted ? "Update Record" : "Finalize SOAP Note"}
                                     </Button>

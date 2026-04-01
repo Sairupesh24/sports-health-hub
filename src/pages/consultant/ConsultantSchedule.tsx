@@ -29,6 +29,7 @@ import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, User, Clipb
 import SOAPNoteModal from "@/components/consultant/SOAPNoteModal";
 import { Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { VIPBadge, VIPName } from "@/components/ui/VIPBadge";
 
 type ViewMode = "day" | "week" | "month";
 
@@ -38,10 +39,12 @@ interface SessionEvent {
     scheduled_start: string;
     scheduled_end: string;
     status: string;
+    service_id?: string | null;
     service_type: string;
-    client: { first_name: string; last_name: string };
+    client: { first_name: string; last_name: string; is_vip?: boolean };
     rawSession: any; // For passing to SOAP Modal
     is_unentitled?: boolean;
+    is_pre_unentitled?: boolean;
 }
 
 export default function ConsultantSchedule() {
@@ -88,9 +91,10 @@ export default function ConsultantSchedule() {
           scheduled_start,
           scheduled_end,
           status,
+          service_id,
           service_type,
           is_unentitled,
-          client:clients!sessions_client_id_fkey(first_name, last_name),
+          client:clients!sessions_client_id_fkey(first_name, last_name, is_vip),
           physio_session_details(*)
         `)
                 .eq("therapist_id", profile.id)
@@ -131,15 +135,17 @@ export default function ConsultantSchedule() {
             const results = await Promise.all(
                 plannedClientIds.map(async (clientId: string) => {
                     const { data } = await supabase.rpc('fn_compute_entitlement_balance', { p_client_id: clientId });
-                    const balanceByName: Record<string, number> = {};
+                    const byServiceId: Record<string, number> = {};
+                    const byServiceName: Record<string, number> = {};
                     (data ?? []).forEach((b: any) => {
-                        balanceByName[b.service_name?.toLowerCase().trim()] = b.sessions_remaining;
+                        if (b.service_id) byServiceId[b.service_id] = b.sessions_remaining;
+                        if (b.service_name) byServiceName[b.service_name?.toLowerCase().trim()] = b.sessions_remaining;
                     });
-                    return { clientId, balanceByName };
+                    return { clientId, byServiceId, byServiceName };
                 })
             );
-            const map: Record<string, Record<string, number>> = {};
-            results.forEach(({ clientId, balanceByName }) => { map[clientId] = balanceByName; });
+            const map: Record<string, { byServiceId: Record<string, number>, byServiceName: Record<string, number> }> = {};
+            results.forEach(({ clientId, byServiceId, byServiceName }) => { map[clientId] = { byServiceId, byServiceName }; });
             return map;
         },
         enabled: plannedClientIds.length > 0,
@@ -150,9 +156,21 @@ export default function ConsultantSchedule() {
         sessions.map((s: any) => {
             if (s.status !== 'Planned') return s;
             const clientBalance = clientEntitlementMap?.[s.client_id];
-            const serviceKey = s.service_type?.toLowerCase().trim();
-            const hasNoBalance = !clientBalance || clientBalance[serviceKey] === undefined || clientBalance[serviceKey] <= 0;
-            return { ...s, is_pre_unentitled: hasNoBalance };
+            
+            let hasNoBalance = true;
+            if (clientBalance) {
+                if (s.service_id && clientBalance.byServiceId[s.service_id] !== undefined) {
+                    hasNoBalance = clientBalance.byServiceId[s.service_id] <= 0;
+                } else if (s.service_type) {
+                    const serviceKey = s.service_type.toLowerCase().trim();
+                    hasNoBalance = clientBalance.byServiceName[serviceKey] === undefined || clientBalance.byServiceName[serviceKey] <= 0;
+                }
+            }
+            
+            return {
+                ...s,
+                is_pre_unentitled: hasNoBalance
+            };
         }),
         [sessions, clientEntitlementMap]
     );
@@ -166,7 +184,7 @@ export default function ConsultantSchedule() {
                 .from("sessions")
                 .select(`
                     id, client_id, scheduled_start, service_type, organization_id,
-                    client:clients!sessions_client_id_fkey(first_name, last_name),
+                    client:clients!sessions_client_id_fkey(first_name, last_name, is_vip),
                     physio_session_details(session_id)
                 `)
                 .eq("therapist_id", profile.id)
@@ -271,7 +289,8 @@ export default function ConsultantSchedule() {
                                     className={`text-xs p-1.5 rounded border truncate cursor-pointer hover:opacity-80 transition-opacity ${getStatusColor(event.status)}`}
                                 >
                                     <span className="font-semibold">{format(parseISO(event.scheduled_start), "HH:mm")}</span>
-                                    {" "}{event.client?.first_name} {event.client?.last_name}
+                                    {" "}
+                                    <VIPName name={`${event.client?.first_name} ${event.client?.last_name}`} isVIP={event.client?.is_vip} />
                                     {event.is_unentitled && (
                                         <span className="ml-1 px-1 bg-red-500 text-white rounded-[2px] text-[8px] font-bold animate-pulse">
                                             UN
@@ -380,7 +399,9 @@ export default function ConsultantSchedule() {
                                                     style={{ top: `${topPos}px`, height: `${height}px`, minHeight: '24px' }}
                                                 >
                                                     <div className="text-xs font-semibold">{format(startD, "HH:mm")} - {format(endD, "HH:mm")}</div>
-                                                    <div className="text-xs truncate font-medium">{event.client?.first_name} {event.client?.last_name}</div>
+                                                    <div className="text-xs truncate font-medium">
+                                                        <VIPName name={`${event.client?.first_name} ${event.client?.last_name}`} isVIP={event.client?.is_vip} />
+                                                    </div>
                                                     {height > 40 && <div className="text-xs truncate opacity-80 mt-0.5">{event.service_type}</div>}
                                                     {event.is_unentitled && (
                                                         <div className="mt-1 px-1 py-0.5 bg-red-600 text-white text-[9px] font-bold rounded flex items-center gap-1 animate-pulse">
@@ -471,7 +492,7 @@ export default function ConsultantSchedule() {
                                         </div>
                                         <div className="font-display font-medium text-lg mt-1 flex items-center gap-2">
                                             <User className="w-4 h-4 opacity-70" />
-                                            {event.client?.first_name} {event.client?.last_name}
+                                            <VIPName name={`${event.client?.first_name} ${event.client?.last_name}`} isVIP={event.client?.is_vip} />
                                         </div>
                                         {event.is_unentitled && (
                                             <div className="mt-1 px-2 py-0.5 bg-red-600 text-white text-[11px] font-bold rounded-md flex items-center gap-1.5 animate-pulse w-fit">
@@ -533,7 +554,7 @@ export default function ConsultantSchedule() {
                                         <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0" />
                                         <div>
                                             <p className="text-sm font-medium text-amber-900">
-                                                {s.client?.first_name} {s.client?.last_name}
+                                                <VIPName name={`${s.client?.first_name} ${s.client?.last_name}`} isVIP={s.client?.is_vip} />
                                             </p>
                                             <p className="text-xs text-amber-700">
                                                 {format(new Date(s.scheduled_start), "MMM d, yyyy • h:mm a")} · {s.service_type}

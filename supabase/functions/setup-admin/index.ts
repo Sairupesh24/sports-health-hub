@@ -50,30 +50,11 @@ serve(async (req) => {
       .eq("org_code", orgCode.toUpperCase())
       .maybeSingle();
 
-    let orgId;
-    if (existingOrg) {
-      orgId = existingOrg.id;
-    } else {
-      // Create new organization with this code
-      const { data: newOrg, error: orgError } = await supabase
-        .from("organizations")
-        .insert({ 
-          name: orgCode, // Use code as name 
-          org_code: orgCode.toUpperCase(),
-          status: 'active'
-        })
-        .select()
-        .single();
-      
-      if (orgError) throw new Error("Failed to create organization: " + orgError.message);
-      orgId = newOrg.id;
-
-      // Create a default location for new organization
-      await supabase.from("locations").insert({
-        organization_id: orgId,
-        name: "Main Location"
-      });
+    if (!existingOrg) {
+      throw new Error("This organization code was not found. Please check with your Main Administrator.");
     }
+
+    const orgId = existingOrg.id;
 
     // Update profile with org and approval
     const { error: profileError } = await supabase

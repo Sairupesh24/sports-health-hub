@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,7 +8,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, User, Phone, MapPin, Shield, Activity, CalendarDays, FileText, Download, Users, Banknote, Smartphone, Landmark, CreditCard } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
+import { Textarea } from "@/components/ui/textarea";
 import { ClientEntitlements } from "./ClientEntitlements";
+import { DocumentManager } from "@/components/admin/documents/DocumentManager";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
@@ -21,7 +23,10 @@ import * as XLSX from 'xlsx';
 import { Badge } from "@/components/ui/badge";
 import { RefundModal } from "@/components/admin/RefundModal";
 import { generateRefundVoucher } from "@/lib/refundActions";
-import { Copy, Receipt } from "lucide-react";
+import { Copy, Receipt, Save, RefreshCw } from "lucide-react";
+import { VIPBadge, VIPName } from "@/components/ui/VIPBadge";
+import { useAuth } from "@/contexts/AuthContext";
+import { TherapistAssignmentCard } from "@/components/client/TherapistAssignmentCard";
 
 
 
@@ -29,6 +34,12 @@ export default function ClientProfile() {
     const queryClient = useQueryClient();
     const { id } = useParams();
     const navigate = useNavigate();
+    const [searchParams, setSearchParams] = useSearchParams();
+    const activeTab = searchParams.get("tab") || "profile";
+
+    const handleTabChange = (value: string) => {
+        setSearchParams({ tab: value });
+    };
     const [client, setClient] = useState<any>(null);
     const fullName = client ? `${client.honorific ? client.honorific + " " : ""}${client.first_name} ${client.last_name}` : "";
     const [loading, setLoading] = useState(true);
@@ -39,6 +50,13 @@ export default function ClientProfile() {
 
     const [amsRole, setAmsRole] = useState<string | null>(null);
     const [profileId, setProfileId] = useState<string | null>(null);
+    const { roles, profile: currentUserProfile } = useAuth();
+    const isAdmin = roles.includes('admin');
+    const isSportsPhysician = currentUserProfile?.profession === 'Sports Physician';
+    const canAccessDocuments = isAdmin || isSportsPhysician;
+    
+    const [adminRemarks, setAdminRemarks] = useState("");
+    const [isUpdatingRemarks, setIsUpdatingRemarks] = useState(false);
 
     // Filters
     const [startDate, setStartDate] = useState("");
@@ -83,6 +101,18 @@ export default function ClientProfile() {
                     if (profileData) {
                         setAmsRole(profileData.ams_role);
                         setProfileId(profileData.id);
+                    }
+                }
+
+                // Fetch Admin Remarks if admin
+                if (isAdmin) {
+                    const { data: remarksData } = await (supabase as any)
+                        .from("client_admin_notes")
+                        .select("remarks")
+                        .eq("client_id", id)
+                        .maybeSingle();
+                    if (remarksData) {
+                        setAdminRemarks(remarksData.remarks);
                     }
                 }
             }
@@ -352,6 +382,42 @@ export default function ClientProfile() {
         toast({ title: "Copied to clipboard" });
     };
 
+    const handleUpdateAdminRemarks = async () => {
+        if (!id) return;
+        setIsUpdatingRemarks(true);
+        try {
+            const { error } = await (supabase as any)
+                .from("client_admin_notes")
+                .upsert({ 
+                    client_id: id, 
+                    remarks: adminRemarks 
+                });
+
+            if (error) throw error;
+            toast({ title: "Remarks updated successfully" });
+        } catch (err: any) {
+            toast({ title: "Failed to update remarks", description: err.message, variant: "destructive" });
+        } finally {
+            setIsUpdatingRemarks(false);
+        }
+    };
+
+    const handleToggleVIP = async (val: boolean) => {
+        if (!id) return;
+        try {
+            const { error } = await supabase
+                .from("clients")
+                .update({ is_vip: val } as any)
+                .eq("id", id);
+
+            if (error) throw error;
+            setClient({ ...client, is_vip: val });
+            toast({ title: val ? "Client marked as VIP" : "VIP status removed" });
+        } catch (err: any) {
+            toast({ title: "Failed to update VIP status", description: err.message, variant: "destructive" });
+        }
+    };
+
     if (loading) {
         return <DashboardLayout role="admin"><div className="flex justify-center py-20">Loading profile...</div></DashboardLayout>;
     }
@@ -406,11 +472,17 @@ export default function ClientProfile() {
                     </Button>
                     <div className="flex-1 flex flex-col md:flex-row md:items-center justify-between gap-4">
                         <div>
-                            <h1 className="text-3xl font-display font-bold text-foreground">{fullName}</h1>
+                            <div className="flex items-center gap-3">
+                                <h1 className="text-3xl font-display font-bold text-foreground">
+                                    {fullName}
+                                </h1>
+                                <VIPBadge isVIP={client.is_vip} size="lg" />
+                            </div>
                             <p className="text-muted-foreground flex flex-wrap items-center gap-2 mt-1">
                                 <span className="bg-primary/10 text-primary px-2 py-0.5 rounded text-xs font-semibold">UHID: {uhid}</span>
                                 <span>•</span>
                                 <span>Registered on: {format(new Date(registered_on), "dd MMM yyyy")}</span>
+                                {client.is_vip && <span className="text-yellow-600 font-bold ml-2">★ PREMIUM TIER</span>}
                             </p>
                         </div>
                         
@@ -429,12 +501,13 @@ export default function ClientProfile() {
                 </div>
 
                 {/* Content */}
-                <Tabs defaultValue="profile" className="w-full">
-                    <TabsList className="mb-6 grid w-full max-w-2xl grid-cols-4">
+                <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
+                    <TabsList className={`mb-6 grid w-full ${canAccessDocuments ? 'max-w-3xl grid-cols-5' : 'max-w-2xl grid-cols-4'}`}>
                         <TabsTrigger value="profile">Profile Details</TabsTrigger>
                         <TabsTrigger value="entitlements">Entitlements</TabsTrigger>
                         <TabsTrigger value="sessions">Session History</TabsTrigger>
                         <TabsTrigger value="billing">Billing History</TabsTrigger>
+                        {canAccessDocuments && <TabsTrigger value="documents">Documents</TabsTrigger>}
                     </TabsList>
 
 
@@ -483,6 +556,11 @@ export default function ClientProfile() {
                                 </CardContent>
                             </Card>
 
+                            {/* Therapist Assignment */}
+                            <div className="md:col-span-2">
+                                <TherapistAssignmentCard clientId={id!} orgId={client.organization_id} />
+                            </div>
+
                             {/* Insurance */}
                             <Card className="gradient-card border-border md:col-span-2">
                                 <CardHeader className="pb-3">
@@ -503,6 +581,50 @@ export default function ClientProfile() {
                                     )}
                                 </CardContent>
                             </Card>
+
+                            {/* Admin Remarks Section - ONLY FOR ADMINS */}
+                            {isAdmin && (
+                                <Card className="gradient-card border-border md:col-span-2 border-l-4 border-l-yellow-500">
+                                    <CardHeader className="pb-3 flex-row items-center justify-between space-y-0">
+                                        <div className="space-y-1">
+                                            <CardTitle className="text-lg flex items-center gap-2">
+                                                <Shield className="w-5 h-5 text-yellow-600" />
+                                                Administrative Remarks & VIP Management
+                                            </CardTitle>
+                                            <CardDescription>Private notes visible only to system administrators.</CardDescription>
+                                        </div>
+                                        <div className="flex items-center gap-4 bg-yellow-500/5 px-4 py-2 rounded-full border border-yellow-500/20">
+                                            <Label htmlFor="vip-toggle" className="text-sm font-bold text-yellow-800 cursor-pointer">
+                                                VIP Status
+                                            </Label>
+                                            <Switch 
+                                                id="vip-toggle"
+                                                checked={client.is_vip}
+                                                onCheckedChange={handleToggleVIP}
+                                                className="data-[state=checked]:bg-yellow-500"
+                                            />
+                                        </div>
+                                    </CardHeader>
+                                    <CardContent className="space-y-4">
+                                        <Textarea
+                                            value={adminRemarks}
+                                            onChange={(e) => setAdminRemarks(e.target.value)}
+                                            placeholder="Write strategic internal notes here..."
+                                            className="min-h-[120px] bg-muted/20 font-medium"
+                                        />
+                                        <div className="flex justify-end">
+                                            <Button 
+                                                onClick={handleUpdateAdminRemarks} 
+                                                disabled={isUpdatingRemarks}
+                                                className="gap-2 bg-yellow-600 hover:bg-yellow-700 text-white"
+                                            >
+                                                {isUpdatingRemarks ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                                                Save Internal Notes
+                                            </Button>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            )}
                         </div>
                     </TabsContent>
 
@@ -767,6 +889,13 @@ export default function ClientProfile() {
                             </CardContent>
                         </Card>
                     </TabsContent>
+
+                    {/* DOCUMENTS TAB */}
+                    {canAccessDocuments && (
+                        <TabsContent value="documents">
+                            <DocumentManager clientId={id!} isVIP={client.is_vip} />
+                        </TabsContent>
+                    )}
                 </Tabs>
             </div>
 
