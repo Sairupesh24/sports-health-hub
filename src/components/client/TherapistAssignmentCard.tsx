@@ -80,7 +80,7 @@ export function TherapistAssignmentCard({ clientId, orgId }: { clientId: string,
       const { data: roleData, error: roleError } = await supabase
         .from('user_roles')
         .select('user_id, role')
-        .in('role', ['consultant', 'clinic_admin'] as any[]);
+        .in('role', ['consultant', 'admin'] as any[]);
         
       if (roleError) throw roleError;
       

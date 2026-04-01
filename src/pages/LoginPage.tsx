@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Activity, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -6,12 +6,44 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { getDashboardPath, isUserApproved } from "@/utils/navigation";
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const { user, profile, roles, loading: authLoading } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+
+  // ── Effect-driven redirect ──────────────────────────────────────────
+  // Once AuthContext finishes loading after a sign-in (or if the user is
+  // already authenticated), redirect to the correct console.  This
+  // replaces the old inline redirect that raced with AuthContext.
+  useEffect(() => {
+    if (authLoading || !user) return;
+
+    // Profile is still being fetched — wait for AuthContext to finish
+    // authLoading being false means the fetch completed. If profile is
+    // STILL null at that point, the user's profile row is missing.
+    if (!profile) {
+      toast({
+        title: "Account error",
+        description: "Your profile could not be found. Please contact an administrator.",
+        variant: "destructive",
+      });
+      setLoading(false);
+      supabase.auth.signOut();
+      return;
+    }
+
+    if (!isUserApproved(profile, roles)) {
+      navigate("/pending-approval", { replace: true });
+      return;
+    }
+
+    navigate(getDashboardPath(roles), { replace: true });
+  }, [user, profile, roles, authLoading, navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -19,48 +51,10 @@ export default function LoginPage() {
     try {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
-
-      // Auth state change in context will handle redirect
-      // Fetch profile to determine role
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("No user");
-
-      // Fetch profile and roles to determine redirection
-      const { data: profileData } = await supabase
-        .from("profiles")
-        .select("is_approved")
-        .eq("id", user.id)
-        .maybeSingle();
-
-      const { data: roleData } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", user.id);
-
-      const userRoles = roleData?.map((r) => r.role as string) || [];
-      const isAdmin = userRoles.includes("admin") || userRoles.includes("super_admin");
-      const isScientist = userRoles.includes("sports_scientist");
-      const isApproved = profileData?.is_approved || isAdmin || isScientist;
-
-      // Super admins, admins and scientists bypass the approval check
-      if (!isApproved) {
-        navigate("/pending-approval");
-        return;
-      }
-
-      if (userRoles.includes("super_admin")) navigate("/super-admin");
-      else if (userRoles.includes("admin")) navigate("/admin");
-      else if (userRoles.includes("sports_scientist")) navigate("/sports-scientist");
-      else if (userRoles.includes("manager")) navigate("/admin");
-      else if (userRoles.includes("consultant")) navigate("/consultant");
-      else if (userRoles.includes("foe")) navigate("/admin/calendar");
-      else if (userRoles.includes("client")) navigate("/client");
-      else if (userRoles.includes("athlete")) navigate("/client");
-      else navigate("/");
-
+      // Navigation is handled by the useEffect above once AuthContext
+      // finishes hydrating profile & roles.  No redundant fetch needed.
     } catch (err: any) {
       toast({ title: "Login failed", description: err.message, variant: "destructive" });
-    } finally {
       setLoading(false);
     }
   };
@@ -145,7 +139,7 @@ export default function LoginPage() {
             </div>
           </div>
 
-          <Button type="submit" disabled={loading} className="w-full gradient-primary text-primary-foreground h-11 font-semibold">
+          <Button type="submit" disabled={loading || authLoading} className="w-full gradient-primary text-primary-foreground h-11 font-semibold">
             {loading ? "Signing in..." : "Sign In"}
             <ArrowRight className="w-4 h-4 ml-2" />
           </Button>

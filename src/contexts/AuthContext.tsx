@@ -100,6 +100,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(session?.user ?? null);
 
         if (session?.user) {
+          // Mark as loading BEFORE the async fetch so ProtectedRoute
+          // shows its spinner instead of acting on stale profile/role data.
+          setLoading(true);
           // setTimeout avoids Supabase internal deadlock on nested auth calls
           setTimeout(async () => {
             try {

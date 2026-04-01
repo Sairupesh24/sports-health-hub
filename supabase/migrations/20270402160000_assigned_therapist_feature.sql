@@ -25,7 +25,7 @@ CREATE POLICY "Users can view org client assignment history" ON public.client_as
 -- Staff can insert client assignment history
 CREATE POLICY "Staff can insert client assignment history" ON public.client_assignment_history FOR INSERT WITH CHECK (
     client_id IN (SELECT id FROM public.profiles WHERE organization_id = public.get_my_org_id())
-    AND (public.has_role(auth.uid(), 'admin') OR public.has_role(auth.uid(), 'foe') OR public.has_role(auth.uid(), 'clinic_admin'))
+    AND (public.has_role(auth.uid(), 'admin') OR public.has_role(auth.uid(), 'foe'))
 );
 
 -- 4. Audit Trigger for Assignment Changes

@@ -119,7 +119,7 @@ BEGIN
         JOIN public.user_roles ur ON ur.user_id = alt.id
         WHERE alt.organization_id = v_org_id
           AND alt.id != v_assigned_consultant_id
-          AND ur.role IN ('consultant', 'clinic_admin')
+          AND ur.role IN ('consultant', 'admin')
           AND COALESCE(alt.profession, '') = COALESCE(v_c_details.profession, '')
           AND EXISTS (
              SELECT 1 FROM public.get_available_slots(v_org_id, alt.id, p_date, NULL)

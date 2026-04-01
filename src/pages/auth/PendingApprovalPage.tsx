@@ -1,9 +1,43 @@
-import { Activity, Clock, LogOut } from "lucide-react";
+import { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { Clock, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
+import { getDashboardPath, isUserApproved } from "@/utils/navigation";
 
 export default function PendingApprovalPage() {
-  const { signOut, user } = useAuth();
+  const { signOut, user, profile, roles, loading } = useAuth();
+  const navigate = useNavigate();
+
+  // ── Self-correction redirect ────────────────────────────────────────
+  // If the user is actually approved (e.g. they were routed here by a
+  // stale state, or an admin just approved them and they refreshed),
+  // redirect them to their correct dashboard.
+  useEffect(() => {
+    if (loading) return;
+
+    // Not logged in at all → send to login
+    if (!user) {
+      navigate("/login", { replace: true });
+      return;
+    }
+
+    // Profile not loaded yet — wait
+    if (!profile) return;
+
+    if (isUserApproved(profile, roles)) {
+      navigate(getDashboardPath(roles), { replace: true });
+    }
+  }, [loading, user, profile, roles, navigate]);
+
+  // Show a simple loading state while AuthContext hydrates
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="animate-pulse text-muted-foreground">Loading...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-8">
