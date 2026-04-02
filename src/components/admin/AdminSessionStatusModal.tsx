@@ -324,7 +324,9 @@ export function AdminSessionStatusModal({ open, onOpenChange, session, onSuccess
                             <span>
                                 {session?.status === "Cancelled" || session?.status === "Rescheduled" 
                                     ? `This session is ${session.status.toLowerCase()} and cannot be edited.` 
-                                    : "This session is locked. It cannot be edited more than 24 hours after completion."}
+                                    : isUnentitled 
+                                        ? "This session is locked and cannot be edited. However, reconciliation for payment is still permitted."
+                                        : "This session is locked. It cannot be edited more than 24 hours after completion."}
                             </span>
                         </div>
                     )}
