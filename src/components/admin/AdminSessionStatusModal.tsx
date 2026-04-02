@@ -31,6 +31,8 @@ export function AdminSessionStatusModal({ open, onOpenChange, session, onSuccess
     const [remainingSessions, setRemainingSessions] = useState<number | null>(null);
     const [services, setServices] = useState<Service[]>([]);
     const [serviceId, setServiceId] = useState<string>("");
+    const [rescheduledDate, setRescheduledDate] = useState("");
+    const [rescheduledTime, setRescheduledTime] = useState("");
 
     useEffect(() => {
         if (session) {
@@ -47,6 +49,10 @@ export function AdminSessionStatusModal({ open, onOpenChange, session, onSuccess
             } else if (session.scheduled_end) {
                 setActualEnd(format(new Date(session.scheduled_end), "HH:mm"));
             }
+
+            // Initialize rescheduling defaults
+            setRescheduledDate(format(new Date(session.scheduled_start), "yyyy-MM-dd"));
+            setRescheduledTime(format(new Date(session.scheduled_start), "HH:mm"));
         }
     }, [session]);
 
@@ -104,9 +110,9 @@ export function AdminSessionStatusModal({ open, onOpenChange, session, onSuccess
     const sessionDate = session ? new Date(session.scheduled_start) : null;
     const now = new Date();
     const isFutureSession = sessionDate ? sessionDate > now : false;
-    const isLocked = session?.status === "Completed" && session?.actual_end
-        ? (now.getTime() - new Date(session.actual_end).getTime()) > 24 * 60 * 60 * 1000
-        : false;
+    const isLocked = (session?.status === "Completed" && session?.actual_end && (now.getTime() - new Date(session.actual_end).getTime()) > 24 * 60 * 60 * 1000) || 
+                     session?.status === "Cancelled" || 
+                     session?.status === "Rescheduled";
     const isUnentitled = session?.is_unentitled === true;
 
     const handleSave = async () => {
@@ -166,6 +172,27 @@ export function AdminSessionStatusModal({ open, onOpenChange, session, onSuccess
                     }
                 }
 
+            } else if (status === "Rescheduled") {
+                if (session.status !== "Planned") {
+                    throw new Error("Only sessions in 'Planned' status can be rescheduled.");
+                }
+                if (!rescheduledDate || !rescheduledTime) {
+                    throw new Error("Please select both a date and time for rescheduling.");
+                }
+
+                const newStartTime = new Date(`${rescheduledDate}T${rescheduledTime}:00`);
+                const durationMs = new Date(session.scheduled_end).getTime() - new Date(session.scheduled_start).getTime();
+                const newEndTime = new Date(newStartTime.getTime() + durationMs);
+
+                const { data: newSessionId, error: rescheduleError } = await supabase.rpc("reschedule_session", {
+                    p_session_id: session.id,
+                    p_new_start: newStartTime.toISOString(),
+                    p_new_end: newEndTime.toISOString()
+                });
+
+                if (rescheduleError) throw rescheduleError;
+
+                toast({ title: "Rescheduled", description: "The session has been moved to the new date and time." });
             } else {
                 const selectedService = services.find(s => s.id === serviceId);
                 const { error } = await supabase
@@ -294,7 +321,11 @@ export function AdminSessionStatusModal({ open, onOpenChange, session, onSuccess
                     {isLocked && (
                         <div className="flex items-start gap-2 rounded-md border border-red-300 bg-red-50 p-3 text-sm text-red-800">
                             <span className="text-base">🔒</span>
-                            <span>This session is locked. It cannot be edited more than 24 hours after completion.</span>
+                            <span>
+                                {session?.status === "Cancelled" || session?.status === "Rescheduled" 
+                                    ? `This session is ${session.status.toLowerCase()} and cannot be edited.` 
+                                    : "This session is locked. It cannot be edited more than 24 hours after completion."}
+                            </span>
                         </div>
                     )}
 
@@ -438,36 +469,48 @@ export function AdminSessionStatusModal({ open, onOpenChange, session, onSuccess
                                     </SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="Planned">Planned</SelectItem>
-                                        <SelectItem value="Attendance Confirmed">Attendance Confirmed</SelectItem>
-                                        <SelectItem value="Completed" disabled={isFutureSession}>Completed</SelectItem>
-                                        <SelectItem value="Missed">Missed</SelectItem>
-                                        <SelectItem value="Rescheduled">Rescheduled</SelectItem>
-                                        <SelectItem value="Cancelled">Cancelled</SelectItem>
                                         <SelectItem value="Checked In">Checked In</SelectItem>
+                                        <SelectItem value="Completed" disabled={isFutureSession}>Completed</SelectItem>
+                                        <SelectItem value="Rescheduled" disabled={session.status !== "Planned"}>Rescheduled</SelectItem>
+                                        <SelectItem value="Cancelled">Cancelled</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>
 
-                            {status === "Completed" && (
-                                <div className="grid gap-2 animate-in slide-in-from-top-2 pt-2 border-t mt-2">
-                                    <Label>Actual Times (Required for Completion)</Label>
-                                    <div className="flex items-center gap-2">
-                                        <div className="grid gap-1 flex-1">
-                                            <Label className="text-xs text-muted-foreground">Start</Label>
-                                            <Input type="time" value={actualStart} onChange={e => setActualStart(e.target.value)} />
+                            {status === "Rescheduled" && (
+                                <div className="grid gap-3 animate-in slide-in-from-top-2 pt-3 border-t mt-2">
+                                    <Label className="text-amber-700 font-semibold flex items-center gap-2">
+                                        🗓️ Reschedule Details
+                                    </Label>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div className="grid gap-1.5">
+                                            <Label className="text-xs text-muted-foreground font-medium">New Date</Label>
+                                            <Input 
+                                                type="date" 
+                                                value={rescheduledDate} 
+                                                onChange={e => setRescheduledDate(e.target.value)}
+                                                className="h-9"
+                                            />
                                         </div>
-                                        <span className="pt-5">-</span>
-                                        <div className="grid gap-1 flex-1">
-                                            <Label className="text-xs text-muted-foreground">End</Label>
-                                            <Input type="time" value={actualEnd} onChange={e => setActualEnd(e.target.value)} />
+                                        <div className="grid gap-1.5">
+                                            <Label className="text-xs text-muted-foreground font-medium">New Time</Label>
+                                            <Input 
+                                                type="time" 
+                                                value={rescheduledTime} 
+                                                onChange={e => setRescheduledTime(e.target.value)}
+                                                className="h-9"
+                                            />
                                         </div>
                                     </div>
+                                    <p className="text-[10px] text-muted-foreground italic">
+                                        Note: This will mark the current slot as 'Rescheduled' and create a new 'Planned' session.
+                                    </p>
                                 </div>
                             )}
 
                             <Button onClick={handleSave} disabled={loading} className="w-full mt-2">
                                 {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                Save Status
+                                {status === "Rescheduled" ? "Reschedule Session" : "Save Status"}
                             </Button>
                         </>
                     )}

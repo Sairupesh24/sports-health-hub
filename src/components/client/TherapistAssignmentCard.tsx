@@ -117,7 +117,7 @@ export function TherapistAssignmentCard({ clientId, orgId }: { clientId: string,
   const handleAssign = async (therapistId: string) => {
     try {
       const { error } = await supabase
-        .from('profiles')
+        .from('clients')
         .update({ assigned_consultant_id: therapistId })
         .eq('id', clientId);
         

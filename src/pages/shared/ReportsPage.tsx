@@ -21,6 +21,7 @@ import {
     Check,
     Users
 } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -49,10 +50,18 @@ import autoTable from 'jspdf-autotable';
 import { VIPBadge, VIPName } from "@/components/ui/VIPBadge";
 
 interface ReportsPageProps {
-  role: "admin" | "consultant" | "sports_scientist" | "client";
+  role: "admin" | "consultant" | "sports_scientist" | "client" | "foe" | "manager";
 }
 
-export default function ReportsPage({ role }: ReportsPageProps) {
+export default function ReportsPage({ role: initialRole }: ReportsPageProps) {
+  const { roles } = useAuth();
+  
+  // Determine effective role for reports
+  let role: ReportsPageProps['role'] = initialRole;
+  if (roles.includes('admin')) role = 'admin';
+  else if (roles.includes('foe')) role = 'foe';
+  else if (roles.includes('manager')) role = 'manager';
+  
   const [selectedModule, setSelectedModule] = useState<ReportModule | "">("");
   const [selectedTemplate, setSelectedTemplate] = useState<string>("");
   const [isGenerating, setIsGenerating] = useState(false);
@@ -381,13 +390,31 @@ export default function ReportsPage({ role }: ReportsPageProps) {
                 </div>
                 {reportData.length > 0 && (
                   <div className="flex gap-2">
-                    <Button variant="outline" size="sm" className="gap-2 h-9 text-[10px] font-extrabold uppercase tracking-tighter" onClick={exportToPDF}>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="gap-2 h-9 text-[10px] font-extrabold uppercase tracking-tighter" 
+                      onClick={exportToPDF}
+                      disabled={role === "foe" && (selectedModule === "billing" || selectedModule === "analytics")}
+                    >
                       <FileText className="w-3.5 h-3.5" /> PDF
                     </Button>
-                    <Button variant="outline" size="sm" className="gap-2 h-9 text-[10px] font-extrabold uppercase tracking-tighter" onClick={exportToExcel}>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="gap-2 h-9 text-[10px] font-extrabold uppercase tracking-tighter" 
+                      onClick={exportToExcel}
+                      disabled={role === "foe" && (selectedModule === "billing" || selectedModule === "analytics")}
+                    >
                       <FileSpreadsheet className="w-3.5 h-3.5" /> EXCEL
                     </Button>
-                    <Button variant="outline" size="sm" className="gap-2 h-9 text-[10px] font-extrabold uppercase tracking-tighter" onClick={exportToCSV}>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="gap-2 h-9 text-[10px] font-extrabold uppercase tracking-tighter" 
+                      onClick={exportToCSV}
+                      disabled={role === "foe" && (selectedModule === "billing" || selectedModule === "analytics")}
+                    >
                       <FileJson className="w-3.5 h-3.5" /> CSV
                     </Button>
                   </div>

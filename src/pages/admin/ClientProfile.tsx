@@ -52,8 +52,9 @@ export default function ClientProfile() {
     const [profileId, setProfileId] = useState<string | null>(null);
     const { roles, profile: currentUserProfile } = useAuth();
     const isAdmin = roles.includes('admin');
+    const isFOE = roles.includes('foe');
     const isSportsPhysician = currentUserProfile?.profession === 'Sports Physician';
-    const canAccessDocuments = isAdmin || isSportsPhysician;
+    const canAccessDocuments = (isAdmin && !isFOE) || isSportsPhysician;
     
     const [adminRemarks, setAdminRemarks] = useState("");
     const [isUpdatingRemarks, setIsUpdatingRemarks] = useState(false);
@@ -495,6 +496,7 @@ export default function ClientProfile() {
                              className="data-[state=checked]:bg-green-500"
                              checked={amsRole === "athlete"}
                              onCheckedChange={toggleAmsAccess}
+                             disabled={isFOE}
                            />
                         </div>
                     </div>
@@ -557,9 +559,11 @@ export default function ClientProfile() {
                             </Card>
 
                             {/* Therapist Assignment */}
-                            <div className="md:col-span-2">
-                                <TherapistAssignmentCard clientId={id!} orgId={client.organization_id} />
-                            </div>
+                            {!isFOE && (
+                                <div className="md:col-span-2">
+                                    <TherapistAssignmentCard clientId={id!} orgId={client.organization_id} />
+                                </div>
+                            )}
 
                             {/* Insurance */}
                             <Card className="gradient-card border-border md:col-span-2">
@@ -582,8 +586,8 @@ export default function ClientProfile() {
                                 </CardContent>
                             </Card>
 
-                            {/* Admin Remarks Section - ONLY FOR ADMINS */}
-                            {isAdmin && (
+                            {/* Admin Remarks Section - ONLY FOR ADMINS (NOT FOE) */}
+                            {isAdmin && !isFOE && (
                                 <Card className="gradient-card border-border md:col-span-2 border-l-4 border-l-yellow-500">
                                     <CardHeader className="pb-3 flex-row items-center justify-between space-y-0">
                                         <div className="space-y-1">

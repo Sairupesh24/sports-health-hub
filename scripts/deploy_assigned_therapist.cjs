@@ -10,8 +10,8 @@ async function main() {
   
   try {
     const sqlFiles = [
-      '20270402160000_assigned_therapist_feature.sql',
-      '20270402160500_therapist_availability_rpc.sql'
+      '20270402170000_fix_therapist_assignment_schema.sql',
+      '20270402170500_update_therapist_availability_rpc.sql'
     ];
     
     for (const fileName of sqlFiles) {

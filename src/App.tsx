@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
+import { useAuth } from "@/contexts/AuthContext";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import LoginPage from "./pages/LoginPage";
@@ -23,6 +24,7 @@ import AmsFeed from "./pages/ams/AmsFeed";
 import AmsCalendar from "./pages/ams/AmsCalendar";
 import ExerciseLibrary from "./pages/ams/ExerciseLibrary";
 import AdminDashboard from "./pages/admin/AdminDashboard";
+import FOEDashboard from "./pages/admin/FOEDashboard";
 import ClientList from "./pages/admin/ClientList";
 import ClientRegistration from "./pages/admin/ClientRegistration";
 import FieldConfig from "./pages/admin/FieldConfig";
@@ -56,6 +58,14 @@ import SportsScientistAnalytics from "./pages/sports-scientist/SportsScientistAn
 
 const queryClient = new QueryClient();
 
+const AdminDashboardRedirect = () => {
+  const { roles } = useAuth();
+  if (roles.includes('foe')) {
+    return <FOEDashboard />;
+  }
+  return <AdminDashboard />;
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -73,7 +83,7 @@ const App = () => (
             <Route path="/ams/coach-dashboard" element={<ProtectedRoute><CoachDashboard /></ProtectedRoute>} />
             <Route path="/pending-approval" element={<PendingApprovalPage />} />
             <Route path="/setup" element={<SetupPage />} />
-            <Route path="/admin" element={<ProtectedRoute requiredRole="admin"><AdminDashboard /></ProtectedRoute>} />
+            <Route path="/admin" element={<ProtectedRoute requiredRole={["admin", "foe"]}><AdminDashboardRedirect /></ProtectedRoute>} />
             <Route path="/admin/clients" element={<ProtectedRoute requiredRole={["admin", "foe"]}><ClientList /></ProtectedRoute>} />
             <Route path="/admin/clients/register" element={<ProtectedRoute requiredRole={["admin", "foe"]}><ClientRegistration /></ProtectedRoute>} />
             <Route path="/admin/clients/:id" element={<ProtectedRoute requiredRole={["admin", "foe"]}><ClientProfile /></ProtectedRoute>} />
