@@ -61,7 +61,7 @@ export default function ConsultantClientProfile() {
 
     const { roles, profile: currentUserProfile } = useAuth();
     const isAdmin = roles.includes('admin');
-    const isSportsPhysician = currentUserProfile?.profession === 'Sports Physician';
+    const isSportsPhysician = currentUserProfile?.profession === 'Sports Physician' || roles.includes('sports_physician') || roles.includes('consultant');
     const canAccessDocuments = isAdmin || isSportsPhysician;
 
     // Filters

@@ -52,7 +52,7 @@ export default function ClientProfile() {
     const [profileId, setProfileId] = useState<string | null>(null);
     const { roles, profile: currentUserProfile } = useAuth();
     const isAdmin = roles.includes('admin');
-    const isSportsPhysician = currentUserProfile?.profession === 'Sports Physician';
+    const isSportsPhysician = currentUserProfile?.profession === 'Sports Physician' || roles.includes('sports_physician') || roles.includes('consultant');
     const canAccessDocuments = isAdmin || isSportsPhysician;
     
     const [adminRemarks, setAdminRemarks] = useState("");

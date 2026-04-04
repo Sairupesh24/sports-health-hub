@@ -1,0 +1,35 @@
+{
+  "sessions": [
+    {
+      "id": "9a6f7d8e-bd18-445b-b969-a0ad8703e615",
+      "organization_id": "95d6393e-68ab-4839-9b35-a11562cfc150",
+      "client_id": "7b63f175-b62d-4f1d-9089-d8ab364729b1",
+      "therapist_id": null,
+      "service_type": null,
+      "entitlement_id": null,
+      "session_mode": "Individual",
+      "scheduled_start": "2026-03-14T03:30:00+00:00",
+      "scheduled_end": "2026-03-14T04:30:00+00:00",
+      "actual_start": null,
+      "actual_end": null,
+      "status": "Missed",
+      "rescheduled_from_session_id": null,
+      "rescheduled_to_session_id": null,
+      "created_at": "2026-03-14T11:42:43.361569+00:00",
+      "updated_at": "2026-03-18T07:18:27.02+00:00",
+      "created_by": null,
+      "service_id": null,
+      "session_type": "Standard",
+      "is_unentitled": false,
+      "scientist_id": "fb2a359a-6914-4a48-907f-5a4475e3172f",
+      "group_name": null,
+      "session_location": null,
+      "session_notes": "",
+      "attachments": [],
+      "session_type_id": "6bce96df-8ea0-4187-8f92-b12ac92195a0",
+      "cancellation_reason": null
+    }
+  ],
+  "physio_session_details": [],
+  "rehab_progress": []
+}

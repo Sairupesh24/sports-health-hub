@@ -1,0 +1,9 @@
+{
+  "data": null,
+  "error": {
+    "code": "PGRST200",
+    "details": "Searched for a foreign key relationship between 'injuries' and 'profiles' using the hint 'injuries_client_id_fkey' in the schema 'public', but no matches were found.",
+    "hint": null,
+    "message": "Could not find a relationship between 'injuries' and 'profiles' in the schema cache"
+  }
+}

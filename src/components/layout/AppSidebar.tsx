@@ -46,8 +46,7 @@ const consultantNav: NavItem[] = [
   { label: "Schedule", icon: Calendar, href: "/consultant/schedule" },
   { label: "Availability", icon: Clock, href: "/consultant/availability" },
   { label: "Reports", icon: ClipboardList, href: "/consultant/reports" },
-  { label: "Programs", icon: Dumbbell, href: "/consultant/programs" },
-  { label: "Performance", icon: Activity, href: "/consultant/performance", isUnderDevelopment: true },
+  { label: "Injury Repo", icon: Activity, href: "/consultant/injuries" },
 ];
 
 const clientNav: NavItem[] = [

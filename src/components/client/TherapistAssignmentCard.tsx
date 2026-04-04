@@ -116,15 +116,17 @@ export function TherapistAssignmentCard({ clientId, orgId }: { clientId: string,
 
   const handleAssign = async (therapistId: string) => {
     try {
+      // Assignment lives on the clients table, not profiles
       const { error } = await supabase
-        .from('profiles')
+        .from('clients')
         .update({ assigned_consultant_id: therapistId })
         .eq('id', clientId);
         
       if (error) throw error;
       toast({ title: "Therapist Assigned", description: "Successfully updated primary therapist." });
       setIsAssigning(false);
-      fetchAvailability(date);
+      // Re-fetch to refresh the display
+      await fetchAvailability(date);
     } catch (err: any) {
       toast({ title: "Assignment Failed", description: err.message, variant: "destructive" });
     }
