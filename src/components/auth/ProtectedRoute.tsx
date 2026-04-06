@@ -36,6 +36,12 @@ export default function ProtectedRoute({ children, requiredRole }: ProtectedRout
     const rolesArray = Array.isArray(requiredRole) ? requiredRole : [requiredRole];
     let hasRole = rolesArray.some((role) => roles.includes(role));
 
+    // Specialized consultant roles are interchangeable with generic consultant access
+    const consultantRoles = ["consultant", "sports_physician", "physiotherapist", "nutritionist"];
+    if (!hasRole && roles.some(role => consultantRoles.includes(role)) && rolesArray.includes("consultant")) {
+      hasRole = true;
+    }
+
     // Athlete and Client are interchangeable for access to client-facing routes
     if (!hasRole && roles.includes("athlete") && rolesArray.includes("client")) {
       hasRole = true;

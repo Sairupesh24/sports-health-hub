@@ -1,0 +1,23 @@
+{
+  "injuries": [
+    {
+      "id": "c1cf5d9c-5f11-4379-b043-acac86b37499",
+      "client_id": "9c8e4d9e-94ea-4aef-8c2c-29f2a8b6c54e",
+      "client": {
+        "id": "9c8e4d9e-94ea-4aef-8c2c-29f2a8b6c54e",
+        "last_name": "Karvepak",
+        "first_name": "Aak"
+      }
+    }
+  ],
+  "iError": null,
+  "profiles": [
+    {
+      "id": "fb2a359a-6914-4a48-907f-5a4475e3172f",
+      "first_name": "Test",
+      "assigned_consultant_id": null,
+      "consultant": []
+    }
+  ],
+  "pError": null
+}

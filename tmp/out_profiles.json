@@ -1,0 +1,23 @@
+{
+  "profiles": [
+    {
+      "id": "fb2a359a-6914-4a48-907f-5a4475e3172f",
+      "organization_id": "95d6393e-68ab-4839-9b35-a11562cfc150",
+      "first_name": "Test",
+      "last_name": "Scientist",
+      "email": "scientist_test@example.com",
+      "created_at": "2026-03-12T10:48:41.91707+00:00",
+      "updated_at": "2026-03-12T10:48:41.91707+00:00",
+      "is_approved": true,
+      "uhid": null,
+      "full_name": null,
+      "ams_role": "coach",
+      "position": null,
+      "max_hr": null,
+      "resting_hr": null,
+      "mobile_no": null,
+      "profession": "Sports Scientist",
+      "assigned_consultant_id": null
+    }
+  ]
+}

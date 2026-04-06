@@ -50,7 +50,7 @@ export default function UserApproval() {
   const [newEmail, setNewEmail] = useState("");
   const [newFirst, setNewFirst] = useState("");
   const [newLast, setNewLast] = useState("");
-  const [newRole, setNewRole] = useState("consultant");
+  const [newRole, setNewRole] = useState("sports_physician");
   const [newUhid, setNewUhid] = useState("");
   const [isAdding, setIsAdding] = useState(false);
   const [generatedCreds, setGeneratedCreds] = useState<{ email: string, password: string } | null>(null);
@@ -548,7 +548,9 @@ export default function UserApproval() {
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="admin">Admin</SelectItem>
-                            <SelectItem value="consultant">Consultant</SelectItem>
+                            <SelectItem value="sports_physician">Sports Physician</SelectItem>
+                            <SelectItem value="physiotherapist">Physiotherapist</SelectItem>
+                            <SelectItem value="nutritionist">Nutritionist</SelectItem>
                             <SelectItem value="sports_scientist">Sports Scientist</SelectItem>
                             <SelectItem value="foe">Front Office Executive</SelectItem>
                             <SelectItem value="client">Client</SelectItem>
@@ -621,7 +623,9 @@ export default function UserApproval() {
                               </SelectTrigger>
                               <SelectContent>
                                 <SelectItem value="admin">Admin</SelectItem>
-                                <SelectItem value="consultant">Consultant</SelectItem>
+                                <SelectItem value="sports_physician">Sports Physician</SelectItem>
+                                <SelectItem value="physiotherapist">Physiotherapist</SelectItem>
+                                <SelectItem value="nutritionist">Nutritionist</SelectItem>
                                 <SelectItem value="sports_scientist">Sports Scientist</SelectItem>
                                 <SelectItem value="foe">Front Office Executive</SelectItem>
                                 <SelectItem value="client">Client</SelectItem>
@@ -659,7 +663,9 @@ export default function UserApproval() {
                               </SelectTrigger>
                               <SelectContent>
                                 <SelectItem value="admin">Admin</SelectItem>
-                                <SelectItem value="consultant">Consultant</SelectItem>
+                                <SelectItem value="sports_physician">Sports Physician</SelectItem>
+                                <SelectItem value="physiotherapist">Physiotherapist</SelectItem>
+                                <SelectItem value="nutritionist">Nutritionist</SelectItem>
                                 <SelectItem value="sports_scientist">Sports Scientist</SelectItem>
                                 <SelectItem value="foe">Front Office Executive</SelectItem>
                                 <SelectItem value="client">Client</SelectItem>

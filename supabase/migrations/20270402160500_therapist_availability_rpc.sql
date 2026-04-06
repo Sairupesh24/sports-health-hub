@@ -21,9 +21,9 @@ DECLARE
     
     v_alternate_therapists JSON := '[]'::JSON;
 BEGIN
-    -- 1. Get client and assigned consultant
+    -- 1. Get client and assigned consultant from the CLIENTS table
     SELECT assigned_consultant_id, organization_id INTO v_assigned_consultant_id, v_org_id
-    FROM public.profiles
+    FROM public.clients
     WHERE id = p_client_id;
     
     IF v_assigned_consultant_id IS NULL THEN
@@ -99,9 +99,6 @@ BEGIN
     -- 5. Alternate Therapists logic
     -- Fetch alternate if unavailability
     IF v_status IN ('Unavailable', 'On Leave') THEN
-        -- Find other consultants in the same org, matching professions/services if possible
-        -- For simplicity, fetch all consultants in the same org, NOT the assigned one,
-        -- who have > 0 available slots on this date. Match by same `profession`.
         SELECT json_agg(
             json_build_object(
                 'id', alt.id,

@@ -1,0 +1,62 @@
+{
+  "clientData": {
+    "id": "9c8e4d9e-94ea-4aef-8c2c-29f2a8b6c54e",
+    "organization_id": "95d6393e-68ab-4839-9b35-a11562cfc150",
+    "location_id": null,
+    "uhid": "CSH03260003",
+    "registered_on": "2026-03-06T06:55:57.219499+00:00",
+    "honorific": "Mr.",
+    "first_name": "Aak",
+    "middle_name": "Paak",
+    "last_name": "Karvepak",
+    "gender": "Male",
+    "mobile_no": "8125383111",
+    "aadhaar_no": null,
+    "blood_group": "B+",
+    "dob": "2026-01-01",
+    "age": null,
+    "email": "adhomail@gmail.com",
+    "alternate_mobile_no": null,
+    "occupation": null,
+    "org_name": "Scam",
+    "address": null,
+    "locality": null,
+    "pincode": null,
+    "city": null,
+    "district": null,
+    "state": null,
+    "country": "India",
+    "has_insurance": false,
+    "insurance_provider": null,
+    "insurance_policy_no": null,
+    "insurance_validity": null,
+    "insurance_coverage_amount": null,
+    "created_by": null,
+    "created_at": "2026-03-06T06:55:57.219499+00:00",
+    "updated_at": "2026-03-06T06:55:57.219499+00:00",
+    "deleted_at": null,
+    "sport": "Boxing",
+    "primary_scientist_id": null,
+    "ams_enabled": false,
+    "is_vip": false,
+    "assigned_consultant_id": null
+  },
+  "clientError": null,
+  "profileData": null,
+  "profileError": {
+    "code": "PGRST116",
+    "details": "The result contains 0 rows",
+    "hint": null,
+    "message": "Cannot coerce the result to a single JSON object"
+  },
+  "sessionsData": [
+    {
+      "id": "92f0b313-50e2-42f0-9912-2491f58e964f",
+      "scheduled_start": "2026-03-24T06:30:00+00:00",
+      "therapist_id": null,
+      "status": "Missed",
+      "physio_session_details": null
+    }
+  ],
+  "sessionsError": null
+}

@@ -20,41 +20,42 @@ export default function SetupPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      // Check if any admin already exists
-      const { count } = await supabase
-        .from("user_roles")
-        .select("*", { count: "exact", head: true })
-        .eq("role", "admin");
-
-      if (count && count > 0) {
-        toast({ title: "Setup already complete", description: "An admin user already exists. Please log in.", variant: "destructive" });
-        navigate("/login");
-        return;
+      // Validate organization code first
+      const { data: orgId, error: orgError } = await supabase.rpc('get_org_by_code', { p_code: orgCode });
+      
+      if (orgError || !orgId) {
+        throw new Error("Invalid organization code. Please check with your administrator.");
       }
 
-      // Sign up the admin user
+      // Sign up the admin user with metadata for the trigger to handle setup
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password,
         options: {
           emailRedirectTo: window.location.origin,
-          data: { first_name: firstName, last_name: lastName },
+          data: { 
+            first_name: firstName, 
+            last_name: lastName,
+            organization_id: orgId,
+            is_initial_admin: true
+          },
         },
       });
+      
       if (authError) throw authError;
-      if (!authData.session) throw new Error("Signup succeeded but no session. Check email confirmation settings.");
 
-      // Call edge function to finalize admin setup
-      const { data: setupResult, error: setupError } = await supabase.functions.invoke("setup-admin", {
-        headers: { Authorization: `Bearer ${authData.session.access_token}` },
-        body: { orgCode }
-      });
-      if (setupError) throw setupError;
-
-      toast({
-        title: "Admin account created!",
-        description: "You can now log in as admin.",
-      });
+      if (!authData.session) {
+        toast({
+          title: "Setup almost complete!",
+          description: "Signup succeeded. Please check your email to confirm your account and complete setup.",
+        });
+      } else {
+        toast({
+          title: "Admin account created!",
+          description: "Setup complete. You are now logged in.",
+        });
+      }
+      
       navigate("/login");
     } catch (err: any) {
       toast({ title: "Setup failed", description: err.message, variant: "destructive" });

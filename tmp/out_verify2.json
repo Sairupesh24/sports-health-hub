@@ -1,0 +1,18 @@
+{
+  "clientData": {
+    "id": "9c8e4d9e-94ea-4aef-8c2c-29f2a8b6c54e",
+    "assigned_consultant_id": null,
+    "consultant": null
+  },
+  "clientError": null,
+  "sessionsData": [
+    {
+      "id": "92f0b313-50e2-42f0-9912-2491f58e964f",
+      "scheduled_start": "2026-03-24T06:30:00+00:00",
+      "therapist_id": null,
+      "status": "Missed",
+      "physio_session_details": null
+    }
+  ],
+  "sessionsError": null
+}
