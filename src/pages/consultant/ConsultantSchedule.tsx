@@ -519,7 +519,7 @@ export default function ConsultantSchedule() {
                     <div>
                         <h1 className="text-2xl font-display font-bold text-foreground flex items-center gap-2">
                             <CalendarIcon className="w-6 h-6 text-primary" />
-                            My Schedule
+                            {profile?.profession ? `${profile.profession} Schedule` : 'Specialist Schedule'}
                         </h1>
                         <p className="text-muted-foreground mt-1">Manage and view your upcoming consultations</p>
                     </div>

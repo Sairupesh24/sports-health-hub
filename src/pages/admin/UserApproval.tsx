@@ -174,10 +174,20 @@ export default function UserApproval() {
     }
 
     try {
+      let prof = (profession as string) !== "none" ? (profession as string) : null;
+      
+      // Auto-assign profession if role implies it
+      if (!prof) {
+          if (role === 'sports_physician') prof = 'Sports Physician';
+          else if (role === 'physiotherapist') prof = 'Physiotherapist';
+          else if (role === 'nutritionist') prof = 'Nutritionist';
+          else if (role === 'sports_scientist') prof = 'Sports Scientist';
+      }
+
       const profileUpdate: any = { 
         is_approved: true,
         ams_role: amsRole !== undefined ? amsRole : null,
-        profession: profession !== "none" ? profession : null
+        profession: prof
       };
 
       if (role === "client" && uhid?.trim()) {
@@ -234,7 +244,17 @@ export default function UserApproval() {
         profileUpdate.ams_role = amsRole;
       }
       if (profession !== undefined) {
-        profileUpdate.profession = profession !== "none" ? profession : null;
+        let prof = (profession as string) !== "none" ? (profession as string) : null;
+        
+        // Auto-assign profession if role implies it
+        if (!prof) {
+            if (newRole === 'sports_physician') prof = 'Sports Physician';
+            else if (newRole === 'physiotherapist') prof = 'Physiotherapist';
+            else if (newRole === 'nutritionist') prof = 'Nutritionist';
+            else if (newRole === 'sports_scientist') prof = 'Sports Scientist';
+        }
+        
+        profileUpdate.profession = prof;
       }
 
       if (newRole === "client" && uhid?.trim()) {
@@ -345,14 +365,22 @@ export default function UserApproval() {
 
 
   const handleRoleSelect = (userId: string, newRole: string) => {
-    // Open Dialog for AMS Role prompt
     const currentUser = users.find(u => u.id === userId);
     let defaultAmsRole = currentUser?.ams_role || "none";
     if (newRole === "athlete") defaultAmsRole = "athlete";
     setPendingActionAmsRole(defaultAmsRole);
     setPendingAction({ type: "change_role", userId, role: newRole });
     setPendingActionUhid(currentUser?.uhid || "");
-    setPendingActionProfession(currentUser?.profession || "none");
+    
+    // Auto-detect profession for specialized roles
+    let profession = currentUser?.profession || "none";
+    if (profession === "none") {
+        if (newRole === 'sports_physician') profession = 'Sports Physician';
+        else if (newRole === 'physiotherapist') profession = 'Physiotherapist';
+        else if (newRole === 'nutritionist') profession = 'Nutritionist';
+        else if (newRole === 'sports_scientist') profession = 'Sports Scientist';
+    }
+    setPendingActionProfession(profession);
   };
 
   const handleApproveClick = (userId: string) => {
@@ -468,15 +496,15 @@ export default function UserApproval() {
                       <p className="text-xs text-muted-foreground">Select an AMS functional tier if this user requires tracking/coaching within the Athlete workflow.</p>
                     </div>
 
-                    {(pendingAction?.role === "consultant" || pendingAction?.role === "sports_scientist") && (
+                    {(pendingAction?.role === "consultant" || pendingAction?.role === "sports_physician" || pendingAction?.role === "physiotherapist" || pendingAction?.role === "nutritionist" || pendingAction?.role === "sports_scientist") && (
                       <div className="space-y-2 animate-in fade-in slide-in-from-top-1 duration-200">
-                        <Label>Consultant Profession</Label>
+                        <Label>Specialist Designation / Profession</Label>
                         <Select value={pendingActionProfession} onValueChange={setPendingActionProfession}>
                           <SelectTrigger>
                             <SelectValue placeholder="Select Profession" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="none">No Specific Specialization</SelectItem>
+                            <SelectItem value="none">General / No Specific Specialization</SelectItem>
                             <SelectItem value="Physiotherapist">Physiotherapist</SelectItem>
                             <SelectItem value="Sports Scientist">Sports Scientist</SelectItem>
                             <SelectItem value="Nutritionist">Nutritionist</SelectItem>
@@ -484,7 +512,7 @@ export default function UserApproval() {
                             <SelectItem value="Massage therapist">Massage therapist</SelectItem>
                           </SelectContent>
                         </Select>
-                        <p className="text-xs text-muted-foreground">This restricts the service types they can select during sessions.</p>
+                        <p className="text-xs text-muted-foreground">This determines which services they can manage in the calendar.</p>
                       </div>
                     )}
                     <Button onClick={confirmPendingAction} className="w-full">

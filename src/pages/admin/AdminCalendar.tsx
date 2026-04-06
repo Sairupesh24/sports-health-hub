@@ -35,8 +35,8 @@ import AdminAvailability from "./AdminAvailability";
 import AppointmentList from "../shared/AppointmentList";
 import { AdminBookSessionModal } from "@/components/admin/AdminBookSessionModal";
 import { AdminSessionStatusModal } from "@/components/admin/AdminSessionStatusModal";
-import { WaitlistDashboard } from "@/components/admin/WaitlistDashboard";
 import { VIPBadge } from "@/components/ui/VIPBadge";
+import { WaitlistSidebar } from "@/components/admin/WaitlistSidebar";
 
 type ViewMode = "day" | "week" | "month";
 
@@ -61,11 +61,12 @@ export default function AdminCalendar() {
     const [activeTab, setActiveTab] = useState("master");
     const [isBookModalOpen, setIsBookModalOpen] = useState(false);
     const [selectedSession, setSelectedSession] = useState<any>(null);
+    const [waitlistInitialData, setWaitlistInitialData] = useState<any>(null);
 
     // Master Schedule States
     const [currentDate, setCurrentDate] = useState(new Date());
     const [viewMode, setViewMode] = useState<ViewMode>("month");
-    const [consultants, setConsultants] = useState<{ id: string, name: string }[]>([]);
+    const [consultants, setConsultants] = useState<{ id: string, name: string, profession?: string | null }[]>([]);
     const [selectedConsultant, setSelectedConsultant] = useState<string>("all");
     const [exporting, setExporting] = useState(false);
 
@@ -104,7 +105,7 @@ export default function AdminCalendar() {
 
             const exportData = (data as any[]).map(session => ({
                 "Time": `${format(new Date(session.scheduled_start), "hh:mm a")} - ${format(new Date(session.scheduled_end), "hh:mm a")}`,
-                "Consultant": session.therapist ? `Dr. ${session.therapist.first_name} ${session.therapist.last_name}` : "Unassigned",
+                "Specialist": session.therapist ? `${session.therapist.first_name} ${session.therapist.last_name}` : "Unassigned",
                 "Client Name": session.client ? `${session.client.first_name} ${session.client.last_name}` : "Unknown",
                 "UHID": session.client?.uhid || "-",
                 "Mobile": session.client?.mobile_no || "-",
@@ -131,16 +132,28 @@ export default function AdminCalendar() {
         }
     };
 
+    const handleWaitlistBook = (item: any) => {
+        setWaitlistInitialData({
+            clientId: item.client_id,
+            consultantId: item.therapist_id,
+            serviceId: item.service_id,
+            sessionDate: item.preferred_date,
+            startTime: item.preferred_time_slot,
+            preferenceType: item.preference_type
+        });
+        setIsBookModalOpen(true);
+    };
+
     // Fetch consultants for the filter dropdown
     useEffect(() => {
         async function fetchConsultants() {
             if (!profile?.organization_id) return;
 
-            // 1. Get user IDs that have the 'consultant' role
+            // 1. Get user IDs that have clinical roles
             const { data: roleData, error: roleError } = await supabase
                 .from("user_roles")
                 .select("user_id")
-                .eq("role", "consultant");
+                .in("role", ["consultant", "sports_physician", "physiotherapist", "nutritionist", "sports_scientist", "massage_therapist"] as any);
 
             if (roleError) {
                 console.error("Error fetching consultant roles:", roleError);
@@ -153,7 +166,7 @@ export default function AdminCalendar() {
                 // 2. Fetch profiles for those IDs within the same org, checking for approval
                 const { data: profilesData, error: profileError } = await supabase
                     .from("profiles")
-                    .select("id, first_name, last_name")
+                    .select("id, first_name, last_name, profession")
                     .eq("organization_id", profile.organization_id)
                     .in("id", consultantIds)
                     .eq("is_approved", true);
@@ -166,7 +179,8 @@ export default function AdminCalendar() {
                 if (profilesData) {
                     setConsultants(profilesData.map(p => ({
                         id: p.id,
-                        name: `${p.first_name} ${p.last_name}`
+                        name: `${p.first_name} ${p.last_name}`,
+                        profession: p.profession
                     })));
                 }
             }
@@ -233,7 +247,7 @@ export default function AdminCalendar() {
                  `)
                 .eq("organization_id", profile.organization_id)
                 .gte("scheduled_start", dateRange.start)
-                .lte("scheduled_end", dateRange.end)
+                .lt("scheduled_start", dateRange.end) // Fetch sessions that start within the range
                 .order("scheduled_start", { ascending: true });
 
             if (error) throw error;
@@ -303,30 +317,10 @@ export default function AdminCalendar() {
         return sessionsWithEntitlementStatus.filter(s => s.therapist_id === selectedConsultant);
     }, [sessionsWithEntitlementStatus, selectedConsultant]);
 
-    // Navigation handlers
-    const handlePrev = () => {
-        if (viewMode === "day") setCurrentDate(prev => subDays(prev, 1));
-        else if (viewMode === "week") setCurrentDate(prev => subWeeks(prev, 1));
-        else setCurrentDate(prev => subMonths(prev, 1));
-    };
-
-    const handleNext = () => {
-        if (viewMode === "day") setCurrentDate(prev => addDays(prev, 1));
-        else if (viewMode === "week") setCurrentDate(prev => addWeeks(prev, 1));
-        else setCurrentDate(prev => addMonths(prev, 1));
-    };
-
-    const handleToday = () => setCurrentDate(new Date());
-
-    const getHeaderTitle = () => {
-        if (viewMode === "day") return format(currentDate, "EEEE, MMMM d, yyyy");
-        if (viewMode === "week") {
-            const start = startOfWeek(currentDate, { weekStartsOn: 1 });
-            const end = endOfWeek(currentDate, { weekStartsOn: 1 });
-            if (isSameMonth(start, end)) return `${format(start, "MMM d")} - ${format(end, "d, yyyy")}`;
-            return `${format(start, "MMM d")} - ${format(end, "MMM d, yyyy")}`;
-        }
-        return format(currentDate, "MMMM yyyy");
+    const renderMasterSchedule = () => {
+        if (viewMode === "month") return renderMonthView();
+        if (viewMode === "week") return renderWeekView();
+        return renderDayView();
     };
 
     const getStatusColor = (status: string) => {
@@ -497,7 +491,7 @@ export default function AdminCalendar() {
                                                     </div>
                                                     {selectedConsultant === "all" && height > 40 && (
                                                         <div className="text-[10px] truncate opacity-80 mt-0.5 border-t border-current/20 pt-0.5">
-                                                            Dr. {event.therapist?.last_name}
+                                                            {event.therapist?.first_name} {event.therapist?.last_name}
                                                         </div>
                                                     )}
                                                     {event.is_unentitled && (
@@ -526,10 +520,6 @@ export default function AdminCalendar() {
     const renderDayView = () => {
         const hours = Array.from({ length: 13 }, (_, i) => i + 8);
         const dayEvents = sessions.filter(s => isSameDay(parseISO(s.scheduled_start), currentDate));
-
-        // Group by consultant if "all" is selected, or just show timeline if filtered
-        // For simplicity, we just render them overlapping if 'all', or maybe we can offset them if needed. 
-        // Right now, standard layout is fine.
 
         return (
             <div className="border border-border/50 rounded-lg overflow-hidden bg-card flex flex-col">
@@ -571,10 +561,6 @@ export default function AdminCalendar() {
 
                             if (startHour > 20 || endD.getHours() < 8) return null;
 
-                            // Calculate width and left if multiple overlapping
-                            // For simplicity on Admin, we give them a generic width if they overlap
-                            // But usually they don't if it's filtered to 1 consultant
-                            // If it's "all", just stagger them slightly if starting at same time
                             const overlapping = dayEvents.filter(e => e.id !== event.id && e.scheduled_start === event.scheduled_start);
                             const myIndex = dayEvents.filter(e => e.scheduled_start === event.scheduled_start).findIndex(e => e.id === event.id);
 
@@ -603,7 +589,7 @@ export default function AdminCalendar() {
                                     </div>
                                     {selectedConsultant === "all" && (
                                         <div className="text-xs truncate opacity-80 mt-1 flex items-center gap-1">
-                                            Dr. {event.therapist?.last_name}
+                                            {event.therapist?.first_name} {event.therapist?.last_name}
                                         </div>
                                     )}
                                     {event.is_unentitled && (
@@ -639,7 +625,7 @@ export default function AdminCalendar() {
 
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                     <div className="w-full overflow-x-auto custom-scrollbar pb-2 mb-4 -mx-1 px-1 sm:mx-0 sm:px-0">
-                        <TabsList className="flex md:grid w-max md:w-full md:grid-cols-4 min-w-max md:min-w-0 md:max-w-3xl">
+                        <TabsList className="flex md:grid w-max md:w-full md:grid-cols-3 min-w-max md:min-w-0 md:max-w-3xl">
                         <TabsTrigger value="master" className="flex items-center gap-2 px-4 py-2 whitespace-nowrap">
                             <CalendarIcon className="w-4 h-4" />
                             Master Schedule
@@ -652,82 +638,77 @@ export default function AdminCalendar() {
                             <Clock className="w-4 h-4" />
                             Availability Settings
                         </TabsTrigger>
-                        <TabsTrigger value="waitlist" className="flex items-center gap-2 px-4 py-2 whitespace-nowrap">
-                            <Bell className="w-4 h-4" />
-                            Waitlist Queue
-                        </TabsTrigger>
                     </TabsList>
                     </div>
 
-                    <TabsContent value="master" className="mt-0 outline-none">
-                        <Card className="border-border shadow-sm">
-                            <CardHeader className="py-4 px-4 sm:px-6 border-b border-border/50 bg-muted/20 pb-0">
-                                <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 mb-4">
-                                    <div className="flex flex-wrap items-center gap-3">
-                                        <div className="flex items-center gap-1 bg-background rounded-md border border-border">
-                                            <Button variant="ghost" size="icon" onClick={handlePrev} className="h-8 w-8">
+                    <TabsContent value="master" className="space-y-6 mt-0">
+                            <div className="flex flex-col lg:flex-row gap-6">
+                                <div className="flex-1 space-y-6">
+                                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-muted/20 p-4 rounded-xl border border-border/50">
+                                        <div className="flex items-center gap-2">
+                                            <Button variant="outline" size="icon" onClick={() => setCurrentDate(viewMode === "month" ? subMonths(currentDate, 1) : viewMode === "week" ? subWeeks(currentDate, 1) : subDays(currentDate, 1))}>
                                                 <ChevronLeft className="w-4 h-4" />
                                             </Button>
-                                            <Button variant="ghost" size="icon" onClick={handleNext} className="h-8 w-8">
+                                            <h2 className="text-lg font-semibold min-w-[200px] text-center">
+                                                {format(currentDate, viewMode === "month" ? "MMMM yyyy" : "MMMM d, yyyy")}
+                                            </h2>
+                                            <Button variant="outline" size="icon" onClick={() => setCurrentDate(viewMode === "month" ? addMonths(currentDate, 1) : viewMode === "week" ? addWeeks(currentDate, 1) : addDays(currentDate, 1))}>
                                                 <ChevronRight className="w-4 h-4" />
                                             </Button>
+                                            <Button variant="ghost" size="sm" onClick={() => setCurrentDate(new Date())} className="ml-2 font-bold uppercase text-[10px] tracking-widest bg-primary/5 text-primary hover:bg-primary/10">Today</Button>
                                         </div>
-                                        <CardTitle className="text-lg min-w-[180px]">{getHeaderTitle()}</CardTitle>
-                                        <Button variant="outline" size="sm" onClick={handleToday} className="h-8 whitespace-nowrap">
-                                            Today
-                                        </Button>
-                                    </div>
 
-                                    <div className="flex flex-wrap items-center gap-3 w-full xl:w-auto mt-2 xl:mt-0">
-                                        <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as ViewMode)} className="w-full sm:w-[300px] shrink-0">
-                                            <TabsList className="grid w-full grid-cols-3 h-9 bg-muted/50 p-1">
-                                                <TabsTrigger value="day" className="text-xs">Day</TabsTrigger>
-                                                <TabsTrigger value="week" className="text-xs">Week</TabsTrigger>
-                                                <TabsTrigger value="month" className="text-xs">Month</TabsTrigger>
-                                            </TabsList>
-                                        </Tabs>
+                                        <div className="flex flex-wrap items-center gap-3">
+                                            <Select value={selectedConsultant} onValueChange={setSelectedConsultant}>
+                                                <SelectTrigger className="w-[200px] h-9 bg-background"><SelectValue placeholder="All Specialists" /></SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="all" className="text-xs font-bold">ALL SPECIALISTS</SelectItem>
+                                                    {consultants.map(c => (
+                                                        <SelectItem key={c.id} value={c.id} className="text-xs uppercase font-medium">
+                                                            {c.name} {c.profession ? `(${c.profession})` : ''}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
 
-                                        <Select value={selectedConsultant} onValueChange={setSelectedConsultant}>
-                                            <SelectTrigger className="w-full sm:w-[200px] h-9 bg-background">
-                                                <Filter className="w-4 h-4 mr-2 text-muted-foreground" />
-                                                <SelectValue placeholder="All Consultants" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="all">All Consultants</SelectItem>
-                                                {consultants.map(c => (
-                                                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                                            <div className="flex bg-muted p-1 rounded-lg border border-border/50">
+                                                {(["day", "week", "month"] as ViewMode[]).map((m) => (
+                                                    <Button key={m} variant={viewMode === m ? "default" : "ghost"} size="sm" onClick={() => setViewMode(m)} className={cn("h-7 px-3 text-[10px] font-bold uppercase", viewMode === m && "shadow-sm")}>
+                                                        {m}
+                                                    </Button>
                                                 ))}
-                                            </SelectContent>
-                                        </Select>
+                                            </div>
 
-                                        <Button variant="outline" onClick={handleExportDaily} disabled={exporting} className="h-9 gap-2 whitespace-nowrap">
-                                            <Download className="w-4 h-4" /> {exporting ? "Exporting..." : "Daily Export"}
-                                        </Button>
-                                        <Button onClick={() => setIsBookModalOpen(true)} className="h-9 gap-2 whitespace-nowrap">
-                                            <Plus className="w-4 h-4" /> Book Session
-                                        </Button>
+                                            <Button variant="outline" size="sm" className="h-9 gap-2 font-bold text-[10px] uppercase tracking-wider" onClick={handleExportDaily} disabled={exporting}>
+                                                {exporting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5 text-primary" />}
+                                                Export
+                                            </Button>
+                                            
+                                            <Button size="sm" className="h-9 gap-2 font-bold text-[10px] uppercase tracking-widest pl-3 pr-4 shadow-lg active:scale-95 transition-transform" onClick={() => { setWaitlistInitialData(null); setIsBookModalOpen(true); }}>
+                                                <Plus className="w-3.5 h-3.5" /> Schedule
+                                            </Button>
+                                        </div>
+                                    </div>
+                                    <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-border/50 shadow-xl overflow-hidden p-3 min-h-[600px] transition-all relative">
+                                        {isLoading ? (
+                                            <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/50 backdrop-blur-sm z-50">
+                                                <Loader2 className="w-10 h-10 animate-spin text-primary mb-4" />
+                                                <p className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Syncing Appointments</p>
+                                            </div>
+                                        ) : null}
+                                        {renderMasterSchedule()}
                                     </div>
                                 </div>
-                            </CardHeader>
-                            <CardContent className="p-0">
-                                {isLoading ? (
-                                    <div className="min-h-[400px] flex flex-col items-center justify-center p-8 text-muted-foreground">
-                                        <Loader2 className="w-8 h-8 animate-spin mb-4 text-primary" />
-                                        Loading master schedule...
-                                    </div>
-                                ) : (
-                                    <div className="p-4 md:p-6 bg-muted/10">
-                                        {viewMode === "month" && renderMonthView()}
-                                        {viewMode === "week" && renderWeekView()}
-                                        {viewMode === "day" && renderDayView()}
-                                    </div>
-                                )}
-                            </CardContent>
-                        </Card>
-                    </TabsContent>
+                                <div className="hidden lg:block">
+                                    <WaitlistSidebar 
+                                        selectedDate={currentDate} 
+                                        onBook={handleWaitlistBook} 
+                                    />
+                                </div>
+                            </div>
+                        </TabsContent>
 
                     <TabsContent value="appointments" className="mt-0 outline-none">
-                        {/* We use standard List component and wrap it via its hideLayout prop inside this container */}
                         <div className="bg-card border border-border rounded-xl overflow-hidden shadow-sm">
                             <AppointmentList role="admin" hideLayout />
                         </div>
@@ -738,17 +719,17 @@ export default function AdminCalendar() {
                             <AdminAvailability hideLayout />
                         </div>
                     </TabsContent>
-
-                    <TabsContent value="waitlist" className="mt-0 outline-none">
-                        <WaitlistDashboard />
-                    </TabsContent>
                 </Tabs>
             </div>
 
-            <AdminBookSessionModal
-                open={isBookModalOpen}
-                onOpenChange={setIsBookModalOpen}
-                onSuccess={refetch}
+            <AdminBookSessionModal 
+                open={isBookModalOpen} 
+                onOpenChange={(open) => {
+                    setIsBookModalOpen(open);
+                    if (!open) setWaitlistInitialData(null);
+                }} 
+                onSuccess={refetch} 
+                initialData={waitlistInitialData}
             />
 
             <AdminSessionStatusModal

@@ -115,12 +115,12 @@ export default function AppointmentList({ role, hideLayout = false }: { role: 'a
                                     <div className="hidden md:block w-px h-10 bg-slate-100" />
 
                                     <div className="flex flex-col gap-1">
-                                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Consultant</p>
+                                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Specialist</p>
                                         <div className="flex items-center gap-2">
                                             <div className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center">
                                                 <User className="w-3 h-3 text-slate-500" />
                                             </div>
-                                            <span className="text-sm font-bold text-slate-700">Dr. {apt.therapist?.last_name}</span>
+                                            <span className="text-sm font-bold text-slate-700">{apt.therapist?.first_name} {apt.therapist?.last_name}</span>
                                         </div>
                                     </div>
                                     

@@ -27,6 +27,7 @@ import { Copy, Receipt, Save, RefreshCw } from "lucide-react";
 import { VIPBadge, VIPName } from "@/components/ui/VIPBadge";
 import { useAuth } from "@/contexts/AuthContext";
 import { TherapistAssignmentCard } from "@/components/client/TherapistAssignmentCard";
+import { ShieldCheck } from "lucide-react";
 
 
 
@@ -437,7 +438,7 @@ export default function ClientProfile() {
         mobile_no, email, occupation, sport, org_name,
         address, locality, city, state, pincode, country,
         has_insurance, insurance_provider, insurance_policy_no, insurance_coverage_amount,
-        registered_on
+        registered_on, referral_source, referral_source_detail
     } = client;
 
     const handleExportExcel = () => {
@@ -484,6 +485,15 @@ export default function ClientProfile() {
                                 <span>•</span>
                                 <span>Registered on: {format(new Date(registered_on), "dd MMM yyyy")}</span>
                                 {client.is_vip && <span className="text-yellow-600 font-bold ml-2">★ PREMIUM TIER</span>}
+                                {referral_source && (
+                                    <>
+                                        <span>•</span>
+                                        <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-[10px] font-bold">
+                                            SOURCE: {referral_source}
+                                            {referral_source_detail && ` (${referral_source_detail})`}
+                                        </Badge>
+                                    </>
+                                )}
                             </p>
                         </div>
                         
@@ -846,6 +856,7 @@ export default function ClientProfile() {
                                                     <th className="p-3 font-medium text-muted-foreground text-right">Amount</th>
                                                     <th className="p-3 font-medium text-muted-foreground">Mode</th>
                                                     <th className="p-3 font-medium text-muted-foreground">Txn ID</th>
+                                                    <th className="p-3 font-medium text-muted-foreground">Authorizer</th>
                                                     <th className="p-3 font-medium text-muted-foreground text-right">Proof</th>
                                                 </tr>
                                             </thead>
@@ -878,6 +889,16 @@ export default function ClientProfile() {
                                                                     </Button>
                                                                 </div>
                                                             ) : "-"}
+                                                        </td>
+                                                        <td className="p-3 font-medium">
+                                                            {ref.is_override ? (
+                                                                <div className="flex items-center gap-1.5 text-orange-600 font-bold">
+                                                                    <ShieldCheck className="w-3.5 h-3.5" />
+                                                                    {ref.authorized_by || "Administrator"}
+                                                                </div>
+                                                            ) : (
+                                                                <span className="text-muted-foreground italic text-[10px]">Standard System Calc</span>
+                                                            )}
                                                         </td>
                                                         <td className="p-3 text-right">
                                                             {ref.refund_proof_url ? (

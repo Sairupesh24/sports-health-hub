@@ -120,8 +120,9 @@ export default function ConsultantDashboard() {
       <div className="space-y-6">
         <div>
           <h1 className="text-2xl font-display font-bold text-foreground">
-            Good Morning, {profile?.first_name ? `Dr. ${profile.first_name}` : 'Doctor'}
+            Good Morning, {profile?.first_name ? `${profile.first_name}` : (profile?.profession || 'Staff')}
           </h1>
+          <p className="text-sm font-medium text-primary/80 mb-1">{profile?.profession || 'Specialist Console'}</p>
           <p className="text-muted-foreground mt-1">
             You have {liveSchedule.filter(s => s.status !== 'completed').length} sessions remaining today
           </p>

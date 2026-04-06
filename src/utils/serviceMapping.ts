@@ -10,15 +10,13 @@ export type ProfileRole =
   | 'Sports Physician' 
   | 'Massage therapist';
 
-// Mapping between consultant roles and service categories
+// Mapping between professional specialist roles and service categories
 export const ROLE_SERVICE_CATEGORY_MAP: Record<string, string[]> = {
   'Physiotherapist': ['Physiotherapy', 'Assessment', 'Therapy', 'Rehab'],
   'Sports Scientist': ['S&C', 'Strength & Conditioning', 'Testing', 'Training', 'Performance'],
-  'Nutritionist': ['Nutrition', 'Dietary'],
-  'Sports Physician': ['Medical', 'Consultation', 'Doctor'],
-  'Massage therapist': ['Massage', 'Recovery', 'Manual Therapy'],
-  'admin': [], // Admins can see all (handled in filtering logic)
-  'front_office': [], // FOE can see all
+  'Nutritionist': ['Nutrition', 'Dietary', 'Consultation', 'Nutritionist Consultation'],
+  'Sports Physician': ['Medical', 'Consultation', 'Doctor', 'Physician Consultation'],
+  'Massage therapist': ['Massage', 'Recovery', 'Manual Therapy', 'Massage Consultation'],
 };
 
 export interface Service {
@@ -29,7 +27,7 @@ export interface Service {
 }
 
 /**
- * Filters a list of services based on the consultant's profession and system role.
+ * Filters a list of services based on the specialist's profession and system role.
  */
 export function filterServicesByRole(
   services: Service[], 
@@ -57,6 +55,59 @@ export function filterServicesByRole(
         service.name.toLowerCase().includes(cat.toLowerCase())
     );
   });
+}
+
+/**
+ * Pairs a specialist with a service by checking if their profession matches 
+ * any categories allowed for that service.
+ */
+export function filterConsultantsByService(
+    consultants: any[],
+    service: Service | null | undefined
+): any[] {
+    if (!service) return consultants;
+
+    const sName = (service.name || "").toLowerCase().trim();
+    const sCat = (service.category || "").toLowerCase().trim();
+
+    return consultants.filter(c => {
+        const rawProf = c.profession || c.role || "";
+        const role = (c.role || "").toLowerCase();
+
+        // STRICT EXCLUSION: Admins and FOE are not specialists
+        const adminRoles = ['admin', 'clinic_admin', 'foe', 'front_office'];
+        if (adminRoles.includes(role)) {
+            // Only allow if they have an EXPLICIT clinical profession assigned
+            if (!c.profession || c.profession === 'none' || adminRoles.includes(c.profession.toLowerCase())) {
+                return false;
+            }
+        }
+        
+        // Find matching category list with robust key matching
+        let allowedCats: string[] = [];
+        const exactMatch = ROLE_SERVICE_CATEGORY_MAP[rawProf];
+        
+        if (exactMatch) {
+            allowedCats = exactMatch;
+        } else {
+            // Case-insensitive and snake_case vs Space normalization
+            const normalizedRaw = rawProf.toLowerCase().replace(/_/g, ' ').trim();
+            const matchingKey = Object.keys(ROLE_SERVICE_CATEGORY_MAP).find(k => 
+                k.toLowerCase().trim() === normalizedRaw
+            );
+            if (matchingKey) allowedCats = ROLE_SERVICE_CATEGORY_MAP[matchingKey];
+        }
+
+        // If no clinical mapping exists for this role/profession, exclude them from "Qualified Specialists"
+        if (!allowedCats || allowedCats.length === 0) return false;
+
+        return allowedCats.some(cat => {
+            const lowCat = cat.toLowerCase().trim();
+            if (!lowCat) return false;
+            // bidirectional inclusive matching
+            return sName.includes(lowCat) || sCat.includes(lowCat) || lowCat.includes(sName) || (sCat && lowCat.includes(sCat));
+        });
+    });
 }
 
 /**

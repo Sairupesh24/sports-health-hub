@@ -188,7 +188,10 @@ export default function MyProfile() {
     let displayRole = "User";
     if (roles.includes("super_admin")) displayRole = "Super Administrator";
     else if (roles.includes("admin")) displayRole = "Administrator";
-    else if (roles.includes("consultant")) displayRole = "Consultant";
+    else if (profile?.profession) displayRole = profile.profession; // Use professional designation if available
+    else if (roles.includes("consultant")) displayRole = "Specialist Staff";
+    else if (roles.includes("sports_scientist")) displayRole = "Sports Scientist";
+    else if (roles.includes("foe")) displayRole = "Front Office Executive";
     else if (roles.includes("client")) displayRole = "Client";
     else if (roles.includes("athlete")) displayRole = "Athlete";
 

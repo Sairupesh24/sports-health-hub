@@ -16,7 +16,7 @@ export function getDashboardPath(roles: string[]): string {
   if (roles.includes("foe")) return "/admin/calendar";
   if (roles.includes("client")) return "/client";
   if (roles.includes("athlete")) return "/client";
-  return "/";
+  return "/profile";
 }
 
 /**

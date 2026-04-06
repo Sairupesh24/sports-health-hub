@@ -51,6 +51,8 @@ const clientSchema = z.object({
   insurance_validity: z.string().optional(),
   insurance_coverage_amount: z.coerce.number().optional(),
   is_vip: z.boolean().optional(),
+  referral_source: z.string().optional(),
+  referral_source_detail: z.string().optional(),
   admin_remarks: z.string().optional(),
 });
 
@@ -64,6 +66,9 @@ const SPORTS = [
   "Volleyball", "Athletics", "Swimming", "Boxing", "Wrestling", "Kabaddi",
   "Table Tennis", "Shooting", "Archery", "Weightlifting", "Gymnastics",
   "Cycling", "Rugby", "Martial Arts", "Other",
+];
+const REFERRAL_SOURCES = [
+  "Social Media", "Word of Mouth", "Doctor Referral", "Badminton Academy (PGBA)", "Walk-in", "Other"
 ];
 const INDIAN_STATES = [
   "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh",
@@ -206,6 +211,8 @@ export default function ClientRegistration() {
         insurance_validity: data.insurance_validity || null,
         insurance_coverage_amount: data.insurance_coverage_amount || null,
         is_vip: data.is_vip || false,
+        referral_source: data.referral_source || null,
+        referral_source_detail: data.referral_source_detail || null,
       };
 
       const { data: newClient, error: clientError } = await supabase
@@ -348,6 +355,29 @@ export default function ClientRegistration() {
                     </SelectContent>
                   </Select>
                 </div>
+              </div>
+              
+              {/* Referral Source Row */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                <div className="space-y-1.5">
+                  <Label>How did you hear about us? (Referral Source)</Label>
+                  <Select onValueChange={(v) => setValue("referral_source", v)}>
+                    <SelectTrigger className={inputClass}><SelectValue placeholder="Select Source" /></SelectTrigger>
+                    <SelectContent>
+                      {REFERRAL_SOURCES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                {(watch("referral_source") === "Doctor Referral" || watch("referral_source") === "Other") && (
+                  <div className="space-y-1.5 animate-in fade-in slide-in-from-top-2">
+                    <Label>Specify Source <span className="text-destructive">*</span></Label>
+                    <Input 
+                        className={inputClass} 
+                        {...register("referral_source_detail")} 
+                        placeholder={watch("referral_source") === "Doctor Referral" ? "Enter Doctor's Name" : "Please specify"} 
+                    />
+                  </div>
+                )}
               </div>
 
               {/* VIP Status */}

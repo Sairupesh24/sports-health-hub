@@ -204,10 +204,6 @@ export function AdminSessionStatusModal({ open, onOpenChange, session, onSuccess
                     })
                     .eq("id", session.id);
                 if (error) throw error;
-
-                if (status === "Cancelled") {
-                    await checkWaitlist(session);
-                }
             }
 
             if (status === "Checked In" && session.therapist_id) {
@@ -227,47 +223,6 @@ export function AdminSessionStatusModal({ open, onOpenChange, session, onSuccess
             toast({ title: "Error", description: error.message, variant: "destructive" });
         } finally {
             setLoading(false);
-        }
-    };
-
-    const checkWaitlist = async (session: any) => {
-        try {
-            const dateStr = format(new Date(session.scheduled_start), "yyyy-MM-dd");
-            const timeStr = format(new Date(session.scheduled_start), "HH:mm");
-            
-            const { data: matches, error } = await (supabase as any)
-                .from("waitlist")
-                .select("id, client_id")
-                .eq("organization_id", session.organization_id)
-                .eq("preferred_date", dateStr)
-                .eq("preferred_time_slot", timeStr)
-                .eq("status", "Waiting")
-                .or(`therapist_id.eq.${session.therapist_id},therapist_id.is.null`)
-                .order("created_at", { ascending: true })
-                .limit(1);
-
-            if (error) throw error;
-
-            if (matches && matches.length > 0) {
-                const nextInLine = matches[0];
-                const { error: updateError } = await (supabase as any)
-                    .from("waitlist")
-                    .update({ status: "Notified" })
-                    .eq("id", nextInLine.id);
-                
-                if (updateError) throw updateError;
-
-                toast({ 
-                    title: "Waitlist Notified", 
-                    description: "A patient on the waitlist has been notified of this newly available slot.",
-                });
-
-                // Mock SMS/Text link generation
-                const claimLink = btoa(JSON.stringify({ waitlistId: nextInLine.id, action: "claim" }));
-                console.log(`[MOCK NOTIFICATION] Sent to Client ${nextInLine.client_id}: Claim your slot within 15 mins: /book?claim=${claimLink}`);
-            }
-        } catch (err) {
-            console.error("Waitlist Notification Error:", err);
         }
     };
 

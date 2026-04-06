@@ -95,13 +95,13 @@ const App = () => (
             <Route path="/admin/availability" element={<ProtectedRoute requiredRole="admin"><AdminAvailability /></ProtectedRoute>} />
             <Route path="/admin/reports" element={<ProtectedRoute requiredRole={["admin", "foe", "manager"]}><ReportsPage role="admin" /></ProtectedRoute>} />
             <Route path="/admin/appointments" element={<ProtectedRoute requiredRole={["admin", "foe"]}><AppointmentList role="admin" /></ProtectedRoute>} />
-            <Route path="/consultant" element={<ProtectedRoute requiredRole={["consultant", "sports_physician", "physiotherapist", "nutritionist"]}><ConsultantDashboard /></ProtectedRoute>} />
-            <Route path="/consultant/clients" element={<ProtectedRoute requiredRole={["consultant", "sports_physician", "physiotherapist", "nutritionist"]}><MyClients /></ProtectedRoute>} />
-            <Route path="/consultant/clients/:id" element={<ProtectedRoute requiredRole={["consultant", "sports_physician", "physiotherapist", "nutritionist"]}><ConsultantClientProfile /></ProtectedRoute>} />
-            <Route path="/consultant/availability" element={<ProtectedRoute requiredRole={["consultant", "sports_physician", "physiotherapist", "nutritionist"]}><ConsultantAvailability /></ProtectedRoute>} />
-            <Route path="/consultant/reports" element={<ProtectedRoute requiredRole={["consultant", "sports_physician", "physiotherapist", "nutritionist"]}><ReportsPage role="consultant" /></ProtectedRoute>} />
-            <Route path="/consultant/schedule" element={<ProtectedRoute requiredRole={["consultant", "sports_physician", "physiotherapist", "nutritionist"]}><ConsultantSchedule /></ProtectedRoute>} />
-            <Route path="/consultant/injuries" element={<ProtectedRoute requiredRole={["consultant", "sports_physician", "physiotherapist", "nutritionist"]}><InjuryRepoPage /></ProtectedRoute>} />
+            <Route path="/consultant" element={<ProtectedRoute requiredRole={["consultant", "sports_physician", "physiotherapist", "nutritionist", "massage_therapist"]}><ConsultantDashboard /></ProtectedRoute>} />
+            <Route path="/consultant/clients" element={<ProtectedRoute requiredRole={["consultant", "sports_physician", "physiotherapist", "nutritionist", "massage_therapist"]}><MyClients /></ProtectedRoute>} />
+            <Route path="/consultant/clients/:id" element={<ProtectedRoute requiredRole={["consultant", "sports_physician", "physiotherapist", "nutritionist", "massage_therapist"]}><ConsultantClientProfile /></ProtectedRoute>} />
+            <Route path="/consultant/availability" element={<ProtectedRoute requiredRole={["consultant", "sports_physician", "physiotherapist", "nutritionist", "massage_therapist"]}><ConsultantAvailability /></ProtectedRoute>} />
+            <Route path="/consultant/reports" element={<ProtectedRoute requiredRole={["consultant", "sports_physician", "physiotherapist", "nutritionist", "massage_therapist"]}><ReportsPage role="consultant" /></ProtectedRoute>} />
+            <Route path="/consultant/schedule" element={<ProtectedRoute requiredRole={["consultant", "sports_physician", "physiotherapist", "nutritionist", "massage_therapist"]}><ConsultantSchedule /></ProtectedRoute>} />
+            <Route path="/consultant/injuries" element={<ProtectedRoute requiredRole={["consultant", "sports_physician", "physiotherapist", "nutritionist", "massage_therapist"]}><InjuryRepoPage /></ProtectedRoute>} />
             
             <Route path="/sports-scientist" element={<ProtectedRoute requiredRole="sports_scientist"><SportsScientistDashboard /></ProtectedRoute>} />
             <Route path="/sports-scientist/schedule" element={<ProtectedRoute requiredRole="sports_scientist"><SportsScientistSchedule /></ProtectedRoute>} />

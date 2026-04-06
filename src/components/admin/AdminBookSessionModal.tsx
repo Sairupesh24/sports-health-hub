@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { format, parse, isBefore, addDays, addWeeks, addMonths, startOfWeek } from "date-fns";
+import { format, parse } from "date-fns";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -12,19 +12,42 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { filterServicesByRole, Service } from "@/utils/serviceMapping";
-import { CheckCircle2, Calendar as CalendarIcon, Clock, Loader2, Check, ChevronsUpDown, AlertCircle } from "lucide-react";
-import { VIPName } from "@/components/ui/VIPBadge";
-import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import { 
+    Plus, 
+    Trash2, 
+    Repeat, 
+    CheckCircle2, 
+    Calendar as CalendarIcon, 
+    Clock, 
+    Loader2, 
+    Check, 
+    ChevronsUpDown, 
+    AlertCircle, 
+    Bookmark 
+} from "lucide-react";
+import { VIPName } from "@/components/ui/VIPBadge";
+import { filterServicesByRole, filterConsultantsByService, type Service } from "@/utils/serviceMapping";
+import { Calendar } from "@/components/ui/calendar";
+import { addDays, isSameDay, startOfDay as startOfDateDay, parseISO } from "date-fns";
 
 interface Props {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     onSuccess: () => void;
+    initialData?: {
+        clientId?: string;
+        consultantId?: string;
+        serviceId?: string;
+        sessionDate?: string;
+        startTime?: string;
+        preferenceType?: "Strict" | "Flexible";
+    };
 }
 
-export function AdminBookSessionModal({ open, onOpenChange, onSuccess }: Props) {
+export function AdminBookSessionModal({ open, onOpenChange, onSuccess, initialData }: Props) {
     const { profile, roles } = useAuth();
     const { toast } = useToast();
     const [loading, setLoading] = useState(false);
@@ -39,8 +62,16 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess }: Props) 
     const [serviceId, setServiceId] = useState("");
     const [serviceType, setServiceType] = useState("");
     const [sessionDate, setSessionDate] = useState(format(new Date(), "yyyy-MM-dd"));
-    const [startTime, setStartTime] = useState("");
-    const [endTime, setEndTime] = useState("");
+    const [startTime, setStartTime] = useState("09:00");
+    const [endTime, setEndTime] = useState("10:00");
+    const [isConflict, setIsConflict] = useState(false);
+
+    // Recurring State
+    const [isRecurring, setIsRecurring] = useState(false);
+    const [totalSessions, setTotalSessions] = useState(5);
+    const [seriesSchedule, setSeriesSchedule] = useState<{ dayOfWeek: number, startTime: string, endTime: string }[]>([
+        { dayOfWeek: 1, startTime: "17:00", endTime: "17:45" }
+    ]);
 
     // Availability & Slot State
     const [isAvailable, setIsAvailable] = useState<boolean | null>(null);
@@ -48,8 +79,8 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess }: Props) 
     const [availableTherapists, setAvailableTherapists] = useState<any[]>([]);
     
     const [orgSettings, setOrgSettings] = useState<any>(null);
-    const [consultantAvailability, setConsultantAvailability] = useState<any[]>([]);
-    const [bookedSessions, setBookedSessions] = useState<any[]>([]);
+    const [allConsultantAvailability, setAllConsultantAvailability] = useState<any[]>([]);
+    const [allBookedSessions, setAllBookedSessions] = useState<any[]>([]);
 
     useEffect(() => {
         if (open && profile?.organization_id) {
@@ -57,8 +88,17 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess }: Props) 
             fetchConsultants();
             fetchServices();
             fetchOrgSettings();
+
+            if (initialData) {
+                if (initialData.clientId) setClientId(initialData.clientId);
+                if (initialData.consultantId) setConsultantId(initialData.consultantId);
+                if (initialData.serviceId) setServiceId(initialData.serviceId);
+                if (initialData.sessionDate) setSessionDate(initialData.sessionDate);
+                if (initialData.startTime) setStartTime(initialData.startTime);
+                if (initialData.preferenceType) setPreferenceType(initialData.preferenceType);
+            }
         }
-    }, [open, profile?.organization_id]);
+    }, [open, profile?.organization_id, initialData]);
 
     const fetchOrgSettings = async () => {
         const { data } = await supabase
@@ -69,34 +109,51 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess }: Props) 
         if (data) setOrgSettings(data);
     };
 
+    const filteredServices = useMemo(() => {
+        const userRole = roles.find(r => ['admin', 'clinic_admin', 'front_office', 'foe'].includes(r));
+        return filterServicesByRole(services, null, userRole);
+    }, [services, roles]);
+
+    const filteredConsultants = useMemo(() => {
+        const selectedService = services.find(s => s.id === serviceId);
+        return filterConsultantsByService(consultants, selectedService);
+    }, [consultants, serviceId, services]);
+
     const fetchConsultantData = async () => {
-        if (!consultantId || !sessionDate) return;
+        if (!sessionDate || !profile?.organization_id) return;
         
-        // 1. Fetch Availability for this consultant
-        const { data: avail } = await supabase
-            .from("consultant_availability")
-            .select("*")
-            .eq("consultant_id", consultantId);
-        setConsultantAvailability(avail || []);
+        // Fetch availability for ALL qualified consultants for this service
+        const qualifiedConsultantIds = filteredConsultants.map(c => c.id);
+        if (qualifiedConsultantIds.length === 0 && consultantId) {
+            qualifiedConsultantIds.push(consultantId);
+        }
 
-        // 2. Fetch Booked Sessions for this day
-        const startOfDay = `${sessionDate}T00:00:00Z`;
-        const endOfDay = `${sessionDate}T23:59:59Z`;
+        if (qualifiedConsultantIds.length > 0) {
+            const { data: avail } = await supabase
+                .from("consultant_availability")
+                .select("*")
+                .in("consultant_id", qualifiedConsultantIds);
+            setAllConsultantAvailability(avail || []);
 
-        const { data: booked } = await supabase
-            .from("sessions")
-            .select("scheduled_start, scheduled_end, therapist_id, status")
-            .eq("organization_id", profile?.organization_id)
-            .neq("status", "Cancelled")
-            .gte("scheduled_start", startOfDay)
-            .lte("scheduled_start", endOfDay);
-        
-        setBookedSessions(booked || []);
+            const startOfDayStr = `${sessionDate}T00:00:00Z`;
+            const endOfDayStr = `${sessionDate}T23:59:59Z`;
+
+            const { data: booked } = await supabase
+                .from("sessions")
+                .select("scheduled_start, scheduled_end, therapist_id, status")
+                .eq("organization_id", profile.organization_id)
+                .neq("status", "Cancelled")
+                .in("therapist_id", qualifiedConsultantIds)
+                .gte("scheduled_start", startOfDayStr)
+                .lte("scheduled_start", endOfDayStr);
+            
+            setAllBookedSessions(booked || []);
+        }
     };
 
     useEffect(() => {
         fetchConsultantData();
-    }, [consultantId, sessionDate]);
+    }, [consultantId, sessionDate, filteredConsultants]);
 
     const fetchServices = async () => {
         const { data } = await supabase
@@ -117,126 +174,186 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess }: Props) 
             console.error("Fetch Clients Error:", error);
             return;
         }
-        
-        if (data) {
-            setClients(data);
-        }
+        if (data) setClients(data);
     };
 
     const fetchConsultants = async () => {
-        const { data: roleData } = await supabase
+        if (!profile?.organization_id) return;
+
+        const { data: profilesData, error: profilesError } = await supabase
+            .from("profiles")
+            .select("id, first_name, last_name, ams_role, profession")
+            .eq("organization_id", profile.organization_id)
+            .eq("is_approved", true);
+
+        if (profilesError || !profilesData) {
+            console.error("Fetch Profiles Error:", profilesError);
+            return;
+        }
+
+        const userIds = profilesData.map(p => p.id);
+        const { data: roleData, error: roleError } = await supabase
             .from("user_roles")
-            .select("user_id")
-            .eq("role", "consultant");
+            .select("user_id, role")
+            .in("user_id", userIds);
 
-        if (roleData && roleData.length > 0) {
-            const consultantIds = roleData.map(r => r.user_id);
-            const profilesData = await supabase
-                .from("profiles")
-                .select("id, first_name, last_name, ams_role, profession")
-                .eq("organization_id", profile?.organization_id)
-                .in("id", consultantIds)
-                .eq("is_approved", true);
+        if (roleError) {
+            console.error("Fetch Roles Error:", roleError);
+            return;
+        }
 
-            if (profilesData?.data) {
-                setConsultants((profilesData.data as any[]).map(p => ({
-                    id: p.id,
-                    name: `${p.first_name} ${p.last_name}`,
-                    role: p.ams_role === 'coach' ? 'sports_scientist' : 'consultant',
-                    profession: p.profession
-                })));
-            }
+        if (profilesData && roleData) {
+            const specialists = profilesData
+                .filter(p => {
+                    const r = roleData.find(role => role.user_id === p.id);
+                    // Exclude clients and athletes from the specialist list
+                    return r && !["client", "athlete"].includes(r.role);
+                })
+                .map(p => {
+                    const userRole = roleData.find(r => r.user_id === p.id)?.role;
+                    return {
+                        id: p.id,
+                        name: `${p.first_name} ${p.last_name}`,
+                        role: userRole || 'consultant',
+                        profession: p.profession
+                    };
+                });
+            setConsultants(specialists);
         }
     };
 
-    const filteredServices = useMemo(() => {
-        const selectedConsultant = consultants.find(c => c.id === consultantId);
-        const userRole = roles.find(r => ['admin', 'clinic_admin', 'front_office', 'foe'].includes(r)) || selectedConsultant?.role;
-        return filterServicesByRole(services, selectedConsultant?.profession, userRole);
-    }, [services, consultantId, consultants, roles]);
 
-    const slots = useMemo(() => {
-        if (!consultantId || !sessionDate) return [];
-        
+
+    const availableSlots = useMemo(() => {
+        if (!consultantId || !sessionDate || allConsultantAvailability.length === 0) return [];
+
         const dateObj = parse(sessionDate, "yyyy-MM-dd", new Date());
-        const dayOfWeek = dateObj.getDay(); // 0=Sun, 6=Sat
+        const dayOfWeek = dateObj.getDay(); 
         
-        const dayAvail = consultantAvailability.find(a => a.day_of_week === dayOfWeek);
-        if (!dayAvail) return [];
+        // Use primary consultant's availability rules for slicing
+        const primaryAvail = allConsultantAvailability.find(a => a.consultant_id === consultantId && a.day_of_week === dayOfWeek);
+        if (!primaryAvail) return [];
 
-        const startStr = dayAvail.start_time;
-        const endStr = dayAvail.end_time;
-        const interval = dayAvail.slot_duration_interval || orgSettings?.default_slot_duration || 60;
+        const slotDuration = primaryAvail.slot_duration_interval || orgSettings?.default_slot_duration || 60;
+        const shiftStart = parse(primaryAvail.start_time, "HH:mm:ss", dateObj);
+        const shiftEnd = parse(primaryAvail.end_time, "HH:mm:ss", dateObj);
 
-        const generated = [];
-        let current = parse(startStr, "HH:mm:ss", dateObj);
-        const end = parse(endStr, "HH:mm:ss", dateObj);
+        const slots: { start: string, end: string, label: string, status: 'available' | 'flex' | 'waitlist' }[] = [];
+        let currentStart = shiftStart;
 
-        while (current < end) {
-            const timeStr = format(current, "HH:mm");
-            const slotEndTime = format(new Date(current.getTime() + interval * 60000), "HH:mm");
+        while (currentStart.getTime() + (slotDuration * 60000) <= shiftEnd.getTime()) {
+            const currentEnd = new Date(currentStart.getTime() + (slotDuration * 60000));
+            const startT = currentStart.getTime();
+            const endT = currentEnd.getTime();
+
+            // 1. Is selected consultant free?
+            const isPrimaryBusy = allBookedSessions.some(s => 
+                s.therapist_id === consultantId && 
+                ( (startT >= new Date(s.scheduled_start).getTime() && startT < new Date(s.scheduled_end).getTime()) || 
+                  (endT > new Date(s.scheduled_start).getTime() && endT <= new Date(s.scheduled_end).getTime()) )
+            );
+
+            let status: 'available' | 'flex' | 'waitlist' = 'available';
             
-            // Check if therapist is booked at this exact time
-            const isBooked = bookedSessions.some(s => {
-                const sStart = format(new Date(s.scheduled_start), "HH:mm");
-                return s.therapist_id === consultantId && sStart === timeStr;
-            });
+            if (isPrimaryBusy) {
+                // 2. Is ANY qualified specialist free?
+                const freeSpecialist = filteredConsultants.find(c => {
+                    if (c.id === consultantId) return false;
+                    const cAvail = allConsultantAvailability.find(a => a.consultant_id === c.id && a.day_of_week === dayOfWeek);
+                    if (!cAvail) return false;
+                    
+                    const cShiftS = parse(cAvail.start_time, "HH:mm:ss", dateObj).getTime();
+                    const cShiftE = parse(cAvail.end_time, "HH:mm:ss", dateObj).getTime();
+                    if (startT < cShiftS || endT > cShiftE) return false;
 
-            // For flexible: check if *anyone* else is available
-            let anyoneElseAvailable = false;
-            if (isBooked && preferenceType === "Flexible") {
-                const bookedAtThisTime = bookedSessions
-                    .filter(s => format(new Date(s.scheduled_start), "HH:mm") === timeStr)
-                    .map(s => s.therapist_id);
-                anyoneElseAvailable = consultants.some(c => !bookedAtThisTime.includes(c.id));
+                    const isBusy = allBookedSessions.some(s => 
+                        s.therapist_id === c.id && 
+                        ( (startT >= new Date(s.scheduled_start).getTime() && startT < new Date(s.scheduled_end).getTime()) || 
+                          (endT > new Date(s.scheduled_start).getTime() && endT <= new Date(s.scheduled_end).getTime()) )
+                    );
+                    return !isBusy;
+                });
+
+                status = freeSpecialist ? 'flex' : 'waitlist';
             }
 
-            generated.push({
-                time: timeStr,
-                endTime: slotEndTime,
-                isBooked,
-                anyoneElseAvailable
+            slots.push({
+                start: format(currentStart, "HH:mm"),
+                end: format(currentEnd, "HH:mm"),
+                label: `${format(currentStart, "HH:mm")} (${slotDuration}m)`,
+                status
             });
-            current = new Date(current.getTime() + interval * 60000);
+
+            currentStart = new Date(currentStart.getTime() + (slotDuration * 60000));
+            if (slots.length >= 50) break;
         }
-        return generated;
-    }, [consultantId, sessionDate, consultantAvailability, orgSettings, bookedSessions, preferenceType, consultants]);
+
+        return slots;
+    }, [consultantId, sessionDate, allConsultantAvailability, allBookedSessions, orgSettings, filteredConsultants]);
 
     const checkSlotAvailability = async (time: string, endT: string) => {
-        setStartTime(time);
-        setEndTime(endT);
+        if (!time || !endT || !consultantId) return;
+        
         setIsAvailable(null);
+        setIsConflict(false);
         setCheckingAvailability(true);
         
-        // Detailed check (duplicate of slot generation logic but more robust)
         try {
             const dateStr = sessionDate;
-            const startTimestamp = `${dateStr}T${time}:00`;
-            const endTimestamp = `${dateStr}T${endT}:00`;
+            const startTimestamp = new Date(`${dateStr}T${time}:00`).getTime();
+            const endTimestamp = new Date(`${dateStr}T${endT}:00`).getTime();
 
-            const { data: overlapping } = await supabase
-                .from("sessions")
-                .select("therapist_id")
-                .eq("organization_id", profile?.organization_id)
-                .neq("status", "Cancelled")
-                .gte("scheduled_start", startTimestamp)
-                .lt("scheduled_start", endTimestamp);
-
-            const bookedTherapistIds = overlapping?.map(s => s.therapist_id) || [];
+            const dateObj = parse(sessionDate, "yyyy-MM-dd", new Date());
+            const dayOfWeek = dateObj.getDay(); 
+            const dayAvail = allConsultantAvailability.find(a => a.consultant_id === consultantId && a.day_of_week === dayOfWeek);
             
-            if (preferenceType === "Strict") {
-                const isBooked = bookedTherapistIds.includes(consultantId);
-                setIsAvailable(!isBooked);
-            } else {
-                const available = consultants.filter(c => !bookedTherapistIds.includes(c.id));
-                setAvailableTherapists(available);
-                const isPreferredAvailable = !bookedTherapistIds.includes(consultantId);
-                setIsAvailable(isPreferredAvailable || available.length > 0);
+            if (!dayAvail) {
+                setIsAvailable(false);
+                setIsConflict(true);
+                return;
             }
+
+            const shiftStart = parse(dayAvail.start_time, "HH:mm:ss", dateObj).getTime();
+            const shiftEnd = parse(dayAvail.end_time, "HH:mm:ss", dateObj).getTime();
+
+            if (startTimestamp < shiftStart || endTimestamp > shiftEnd) {
+                setIsAvailable(false);
+                setIsConflict(true);
+                return;
+            }
+
+            const overlapping = allBookedSessions.some(s => {
+                const sStart = new Date(s.scheduled_start).getTime();
+                const sEnd = new Date(s.scheduled_end).getTime();
+                return s.therapist_id === consultantId && 
+                       ( (startTimestamp >= sStart && startTimestamp < sEnd) || 
+                         (endTimestamp > sStart && endTimestamp <= sEnd) ||
+                         (startTimestamp <= sStart && endTimestamp >= sEnd) );
+            });
+
+            if (overlapping) {
+                setIsAvailable(false);
+                setIsConflict(true);
+                return;
+            }
+
+            setIsAvailable(true);
+            setIsConflict(false);
+        } catch (e) {
+            console.error(e);
         } finally {
             setCheckingAvailability(false);
         }
     };
+
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            if (startTime && endTime && sessionDate && consultantId) {
+                checkSlotAvailability(startTime, endTime);
+            }
+        }, 300);
+        return () => clearTimeout(timer);
+    }, [startTime, endTime, sessionDate, consultantId, allBookedSessions, allConsultantAvailability]);
 
     useEffect(() => {
         const selected = services.find(s => s.id === serviceId);
@@ -244,44 +361,84 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess }: Props) 
     }, [serviceId, services]);
 
     const handleSave = async () => {
-        if (!clientId || !consultantId || !sessionDate || !startTime || !endTime || !profile?.organization_id) {
+        if (!clientId || !consultantId || !sessionDate || !profile?.organization_id) {
             toast({ title: "Validation Error", description: "Please fill all required fields.", variant: "destructive" });
             return;
         }
 
-        if (isAvailable === false) {
-            handleJoinWaitlist();
+        if (!isRecurring && (!startTime || !endTime)) {
+            toast({ title: "Validation Error", description: "Please select a time.", variant: "destructive" });
             return;
-        }
-
-        let finalTherapistId = consultantId;
-        if (isAvailable === true && preferenceType === "Flexible") {
-            const bookedTherapistIds = (await supabase.from("sessions").select("therapist_id").eq("scheduled_start", `${sessionDate}T${startTime}:00`)).data?.map(s => s.therapist_id) || [];
-            if (bookedTherapistIds.includes(consultantId) && availableTherapists.length > 0) {
-                finalTherapistId = availableTherapists[0].id;
-            }
         }
 
         setLoading(true);
         try {
-            const startTimestamp = `${sessionDate}T${startTime}:00`;
-            const endTimestamp = `${sessionDate}T${endTime}:00`;
+            const sessionsToCreate: any[] = [];
+            const seriesId = isRecurring ? `Series-${Date.now()}` : null;
 
-            const { error } = await supabase.from("sessions").insert({
-                organization_id: profile.organization_id,
-                client_id: clientId,
-                therapist_id: finalTherapistId,
-                service_id: serviceId || null,
-                service_type: serviceType,
-                session_mode: "Individual",
-                scheduled_start: new Date(startTimestamp).toISOString(),
-                scheduled_end: new Date(endTimestamp).toISOString(),
-                status: "Planned",
-            });
+            if (isRecurring) {
+                let sessionsCreated = 0;
+                let currentDate = parse(sessionDate, "yyyy-MM-dd", new Date());
+                
+                // We will loop through dates and match with schedule until totalSessions is reached
+                while (sessionsCreated < totalSessions) {
+                    const dayOfWeek = currentDate.getDay();
+                    const dayRules = seriesSchedule.filter(r => r.dayOfWeek === dayOfWeek);
+                    
+                    for (const rule of dayRules) {
+                        if (sessionsCreated >= totalSessions) break;
+                        
+                        const startTimestamp = new Date(format(currentDate, "yyyy-MM-dd") + `T${rule.startTime}:00`).toISOString();
+                        const endTimestamp = new Date(format(currentDate, "yyyy-MM-dd") + `T${rule.endTime}:00`).toISOString();
 
+                        sessionsToCreate.push({
+                            organization_id: profile.organization_id,
+                            client_id: clientId,
+                            therapist_id: consultantId,
+                            service_id: serviceId || null,
+                            service_type: serviceType,
+                            session_mode: "Individual",
+                            scheduled_start: startTimestamp,
+                            scheduled_end: endTimestamp,
+                            status: "Planned",
+                            group_name: seriesId,
+                            preference_type: preferenceType,
+                            is_flexible_routing: preferenceType === "Flexible"
+                        });
+                        sessionsCreated++;
+                    }
+                    currentDate = addDays(currentDate, 1);
+                    if (sessionsToCreate.length > 100) break; // Safety cap
+                }
+            } else {
+                // Single booking
+                const startTimestamp = `${sessionDate}T${startTime}:00`;
+                const endTimestamp = `${sessionDate}T${endTime}:00`;
+
+                sessionsToCreate.push({
+                    organization_id: profile.organization_id,
+                    client_id: clientId,
+                    therapist_id: consultantId,
+                    service_id: serviceId || null,
+                    service_type: serviceType,
+                    session_mode: "Individual",
+                    scheduled_start: new Date(startTimestamp).toISOString(),
+                    scheduled_end: new Date(endTimestamp).toISOString(),
+                    status: "Planned",
+                    preference_type: preferenceType,
+                    is_flexible_routing: preferenceType === "Flexible",
+                });
+            }
+
+            const { error } = await supabase.from("sessions").insert(sessionsToCreate);
             if (error) throw error;
 
-            toast({ title: "Success", description: "Appointment booked successfully." });
+            toast({ 
+                title: "Success", 
+                description: isRecurring 
+                    ? `Series of ${sessionsToCreate.length} appointments booked.` 
+                    : "Appointment booked successfully." 
+            });
             onSuccess();
             onOpenChange(false);
             resetForm();
@@ -334,34 +491,24 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess }: Props) 
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="max-w-4xl p-0 overflow-hidden bg-background border-none shadow-2xl rounded-xl sm:rounded-2xl">
                 <div className="flex flex-col h-[90vh] sm:h-auto max-h-[90vh]">
-                    {/* Header: Fixed */}
                     <div className="p-6 pb-4 border-b border-border bg-muted/5">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <DialogTitle className="text-2xl sm:text-3xl font-display font-bold tracking-tight text-foreground">New Appointment</DialogTitle>
-                                <DialogDescription className="text-sm sm:text-base text-muted-foreground mt-1">Fill in the details below to schedule a session or join the waitlist.</DialogDescription>
-                            </div>
-                        </div>
+                        <DialogTitle className="text-2xl sm:text-3xl font-display font-bold tracking-tight text-foreground">New Appointment</DialogTitle>
+                        <DialogDescription className="text-sm sm:text-base text-muted-foreground mt-1">Schedule a manual session or join the active waitlist.</DialogDescription>
                     </div>
 
                     <ScrollArea className="flex-1 p-6">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12">
-                            {/* Left Column: Patient & Specialist */}
                             <div className="space-y-8">
                                 <div className="space-y-3">
                                     <Label className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Select Patient</Label>
                                     <Popover>
                                         <PopoverTrigger asChild>
-                                            <Button
-                                                variant="outline"
-                                                role="combobox"
-                                                className={cn("w-full justify-between font-normal h-12 text-base", !clientId && "text-muted-foreground")}
-                                            >
+                                            <Button variant="outline" className={cn("w-full justify-between h-12", !clientId && "text-muted-foreground")}>
                                                 {clientId ? (() => {
                                                     const c = clients.find(x => x.id === clientId);
-                                                    return c ? <VIPName name={`${c.first_name || ''} ${c.last_name || ''}`} isVIP={c.isVIP || c.is_vip} /> : "Selected";
+                                                    return c ? <VIPName name={`${c.first_name} ${c.last_name}`} isVIP={c.is_vip} /> : "Selected";
                                                 })() : "Search patients..."}
-                                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                                <ChevronsUpDown className="ml-2 h-4 w-4 opacity-50" />
                                             </Button>
                                         </PopoverTrigger>
                                         <PopoverContent className="w-[300px] p-0" align="start">
@@ -370,15 +517,10 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess }: Props) 
                                                 <CommandList>
                                                     <CommandEmpty>No patient found.</CommandEmpty>
                                                     <CommandGroup>
-                                                        {clients.length === 0 && <p className="p-2 text-xs text-muted-foreground">Loading clients...</p>}
                                                         {clients.map((c) => (
-                                                            <CommandItem
-                                                                key={c.id}
-                                                                value={`${c.first_name} ${c.last_name}`}
-                                                                onSelect={() => setClientId(c.id)}
-                                                            >
+                                                            <CommandItem key={c.id} value={`${c.first_name} ${c.last_name}`} onSelect={() => setClientId(c.id)}>
                                                                 <Check className={cn("mr-2 h-4 w-4", clientId === c.id ? "opacity-100" : "opacity-0")} />
-                                                                <VIPName name={`${c.first_name} ${c.last_name}`} isVIP={c.isVIP || c.is_vip} />
+                                                                <VIPName name={`${c.first_name} ${c.last_name}`} isVIP={c.is_vip} />
                                                             </CommandItem>
                                                         ))}
                                                     </CommandGroup>
@@ -389,142 +531,229 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess }: Props) 
                                 </div>
 
                                 <div className="space-y-3">
-                                    <Label className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Assign Specialist</Label>
-                                    <div className="grid grid-cols-1 gap-2 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
-                                        {consultants.map(c => (
-                                            <div 
-                                                key={c.id}
-                                                onClick={() => setConsultantId(c.id)}
-                                                className={cn(
-                                                    "flex items-center gap-3 p-3 rounded-lg border transition-all cursor-pointer hover:bg-muted/50",
-                                                    consultantId === c.id ? "border-primary bg-primary/5 ring-1 ring-primary" : "border-border/50"
-                                                )}
-                                            >
-                                                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs uppercase">
-                                                    {c.name?.[0]}
-                                                </div>
-                                                <div className="flex-1">
-                                                    <div className="text-sm font-semibold uppercase tracking-tighter">{c.name}</div>
-                                                    <div className="text-[10px] text-muted-foreground">{c.profession || "Sports Specialist"}</div>
-                                                </div>
-                                                {consultantId === c.id && <CheckCircle2 className="w-4 h-4 text-primary" />}
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Right Column: Time & Service */}
-                            <div className="space-y-6">
-                                <div className="space-y-3">
-                                    <Label className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Session Date</Label>
-                                    <div className="relative">
-                                        <CalendarIcon className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                                        <Input type="date" className="pl-9 h-11" value={sessionDate} onChange={e => setSessionDate(e.target.value)} />
-                                    </div>
-                                </div>
-
-                                <div className="space-y-3">
-                                    <Label className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Available Slots</Label>
-                                    {slots.length === 0 ? (
-                                        <div className="p-4 border border-dashed rounded-lg text-center text-xs text-muted-foreground italic">
-                                            {consultantId ? "No availability set for this day." : "Select a specialist to see slots."}
-                                        </div>
-                                    ) : (
-                                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 max-h-[220px] overflow-y-auto pr-2 custom-scrollbar">
-                                            {slots.map(s => (
-                                                <Button
-                                                    key={s.time}
-                                                    variant={startTime === s.time ? "default" : "outline"}
-                                                    size="sm"
-                                                    className={cn(
-                                                        "h-10 sm:h-8 text-[11px] px-1 font-mono",
-                                                        startTime === s.time && "ring-2 ring-primary ring-offset-2",
-                                                        s.isBooked && !s.anyoneElseAvailable && "bg-orange-500/10 text-orange-600 border-orange-200 line-through opacity-60",
-                                                        s.isBooked && s.anyoneElseAvailable && "bg-blue-500/10 text-blue-600 border-blue-200"
-                                                    )}
-                                                    onClick={() => checkSlotAvailability(s.time, s.endTime)}
-                                                >
-                                                    {s.time}
-                                                </Button>
-                                            ))}
-                                        </div>
-                                    )}
-                                    {slots.length > 0 && (
-                                        <div className="flex gap-4 mt-2">
-                                            <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full border border-border"></div><span className="text-[9px] uppercase opacity-60">Free</span></div>
-                                            <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-blue-500/20 border border-blue-200"></div><span className="text-[9px] uppercase opacity-60">Flexi</span></div>
-                                            <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-orange-500/20 border border-orange-200"></div><span className="text-[9px] uppercase opacity-60">Busy</span></div>
-                                        </div>
-                                    )}
-                                </div>
-
-                                <div className="space-y-3">
-                                    <Label className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Service Selection</Label>
-                                    <Select value={serviceId} onValueChange={setServiceId}>
-                                        <SelectTrigger className="h-11"><SelectValue placeholder="Select service..." /></SelectTrigger>
+                                    <Label className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">1. Service Selection</Label>
+                                    <Select value={serviceId} onValueChange={(val) => { setServiceId(val); setConsultantId(""); }}>
+                                        <SelectTrigger className="h-12 bg-primary/5 border-primary/20 focus:ring-primary"><SelectValue placeholder="What service is required?" /></SelectTrigger>
                                         <SelectContent>
                                             {filteredServices.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
                                         </SelectContent>
                                     </Select>
                                 </div>
 
-                                <Separator />
-
-                                <div className="bg-muted/30 p-4 rounded-xl space-y-4">
-                                    <Label className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Routing Mode</Label>
-                                    <div className="grid grid-cols-2 gap-3">
-                                        <Button 
-                                            variant={preferenceType === "Flexible" ? "default" : "outline"}
-                                            className="h-12 flex-col gap-0 items-center justify-center"
-                                            onClick={() => setPreferenceType("Flexible")}
-                                        >
-                                            <span className="text-xs font-bold uppercase">Flexible</span>
-                                            <span className="text-[9px] opacity-70">Assign anyone</span>
-                                        </Button>
-                                        <Button 
-                                            variant={preferenceType === "Strict" ? "default" : "outline"}
-                                            className="h-12 flex-col gap-0 items-center justify-center"
-                                            onClick={() => setPreferenceType("Strict")}
-                                        >
-                                            <span className="text-xs font-bold uppercase">Strict</span>
-                                            <span className="text-[9px] opacity-70">Specialist only</span>
-                                        </Button>
-                                    </div>
-                                </div>
-
-                                {/* Availability Indicator */}
-                                <div className={cn(
-                                    "border rounded-xl p-4 flex items-center justify-between transition-all",
-                                    isAvailable === true ? "bg-emerald-500/5 border-emerald-500/20" :
-                                    isAvailable === false ? "bg-orange-500/5 border-orange-500/20" :
-                                    "bg-muted/10 border-border/50"
-                                )}>
-                                    <div className="flex items-center gap-3">
-                                        {checkingAvailability ? (
-                                            <Loader2 className="w-5 h-5 animate-spin text-primary" />
-                                        ) : isAvailable === true ? (
-                                            <div className="w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-500"><CheckCircle2 className="w-5 h-5" /></div>
-                                        ) : isAvailable === false ? (
-                                            <div className="w-8 h-8 rounded-full bg-orange-500/20 flex items-center justify-center text-orange-500"><AlertCircle className="w-5 h-5" /></div>
-                                        ) : (
-                                            <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-muted-foreground"><Clock className="w-5 h-5" /></div>
+                                <div className="space-y-3">
+                                    <div className="flex items-center justify-between">
+                                        <Label className={cn("text-sm font-semibold uppercase tracking-wider text-muted-foreground transition-opacity", !serviceId && "opacity-50")}>2. Assign Qualified Specialist</Label>
+                                        {serviceId && (
+                                            <div className="flex items-center gap-2 bg-muted/30 px-2 py-1 rounded-md border border-border/40">
+                                                <Label className="text-[10px] font-bold uppercase cursor-pointer" htmlFor="pref-mode">
+                                                    {preferenceType === "Strict" ? "Strict" : "Flexible"}
+                                                </Label>
+                                                <Switch 
+                                                    id="pref-mode" 
+                                                    className="scale-75"
+                                                    checked={preferenceType === "Flexible"} 
+                                                    onCheckedChange={(checked) => setPreferenceType(checked ? "Flexible" : "Strict")} 
+                                                />
+                                            </div>
                                         )}
-                                        <div className="flex flex-col">
-                                            <span className="text-xs font-bold uppercase tracking-tight">
-                                                {checkingAvailability ? "Checking..." : 
-                                                 isAvailable === true ? "Slot Available" : 
-                                                 isAvailable === false ? "Fully Booked" : "Select Inputs"}
-                                            </span>
-                                            <span className="text-[10px] text-muted-foreground leading-none">
-                                                {isAvailable === false ? "Fallback to waitlist active" : "Real-time verification"}
-                                            </span>
-                                        </div>
                                     </div>
-                                    {isAvailable !== null && !checkingAvailability && (
-                                        <Badge variant={isAvailable ? "secondary" : "outline"} className={cn("text-[9px] uppercase", isAvailable && "bg-emerald-500/20 text-emerald-600 hover:bg-emerald-500/30 border-none")}>
-                                            {isAvailable ? "READY" : "BUSY"}
-                                        </Badge>
+                                    {!serviceId ? (
+                                        <div className="p-8 border border-dashed rounded-xl flex flex-col items-center justify-center text-center space-y-2 bg-muted/20">
+                                            <Bookmark className="w-8 h-8 text-muted-foreground/30" />
+                                            <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest leading-tight">Pick a service first<br />to see specialists</p>
+                                        </div>
+                                    ) : (
+                                        <div className="grid grid-cols-1 gap-2 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar animate-in fade-in slide-in-from-top-2 duration-300">
+                                            {filteredConsultants.map(c => (
+                                                <div key={c.id} onClick={() => setConsultantId(c.id)} className={cn("flex items-center gap-3 p-3 rounded-lg border cursor-pointer hover:bg-muted/50 transition-all", consultantId === c.id ? "border-primary bg-primary/5 ring-1 ring-primary shadow-sm" : "border-border/50")}>
+                                                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs">{c.name?.[0]}</div>
+                                                    <div className="flex-1">
+                                                        <div className="text-sm font-semibold uppercase">{c.name}</div>
+                                                        <div className="text-[10px] text-muted-foreground">{c.profession}</div>
+                                                    </div>
+                                                    {consultantId === c.id && <CheckCircle2 className="w-4 h-4 text-primary" />}
+                                                </div>
+                                            ))}
+                                            {filteredConsultants.length === 0 && (
+                                                <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg flex gap-3 text-orange-800">
+                                                    <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                                                    <p className="text-[10px] font-medium leading-tight">No specialists found for this service category. Please check assignments.</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="space-y-6">
+                                <div className="space-y-4">
+                                    <div className="flex items-center justify-between p-3 bg-primary/5 rounded-lg border border-primary/10">
+                                        <div className="flex items-center gap-2">
+                                            <Repeat className="w-4 h-4 text-primary" />
+                                            <Label className="text-xs font-bold uppercase cursor-pointer" htmlFor="recurring-mode">Recurring Series</Label>
+                                        </div>
+                                        <Switch id="recurring-mode" checked={isRecurring} onCheckedChange={setIsRecurring} />
+                                    </div>
+
+                                    <div className="space-y-3">
+                                        <Label className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Session Date</Label>
+                                        <Popover>
+                                            <PopoverTrigger asChild>
+                                                <Button variant="outline" className={cn("w-full justify-start text-left font-normal h-11", !sessionDate && "text-muted-foreground")}>
+                                                    <CalendarIcon className="mr-2 h-4 w-4 text-primary" />
+                                                    {sessionDate ? format(parse(sessionDate, "yyyy-MM-dd", new Date()), "PPP") : <span>Pick a date</span>}
+                                                </Button>
+                                            </PopoverTrigger>
+                                            <PopoverContent className="w-auto p-0" align="start">
+                                                <Calendar
+                                                    mode="single"
+                                                    selected={parse(sessionDate, "yyyy-MM-dd", new Date())}
+                                                    onSelect={(date) => date && setSessionDate(format(date, "yyyy-MM-dd"))}
+                                                    initialFocus
+                                                />
+                                            </PopoverContent>
+                                        </Popover>
+                                    </div>
+
+                                    {!isRecurring ? (
+                                        <div className="space-y-4 animate-in fade-in slide-in-from-right-2 duration-300">
+                                            <div className="space-y-3">
+                                                <Label className="text-sm font-semibold uppercase tracking-wider text-muted-foreground flex items-center justify-between mt-4">
+                                                    Time Selection
+                                                    {isConflict && <Badge variant="destructive" className="animate-pulse flex items-center gap-1"><AlertCircle className="w-3 h-3" /> CONFLICT</Badge>}
+                                                </Label>
+
+                                                {availableSlots.length > 0 ? (
+                                                    <div className="space-y-3">
+                                                        <Label className="text-[10px] font-bold uppercase text-primary mb-2 block tracking-widest">Available Slots (Quick-Pick)</Label>
+                                                        <div className="flex flex-wrap gap-2 max-h-[200px] overflow-y-auto pr-1 custom-scrollbar">
+                                                            {availableSlots
+                                                                .sort((a, b) => {
+                                                                    const order = { available: 0, flex: 1, waitlist: 2 };
+                                                                    return order[a.status] - order[b.status];
+                                                                })
+                                                                .map((slot, i) => (
+                                                                    <Button 
+                                                                        key={i} 
+                                                                        variant={startTime === slot.start ? "default" : "outline"} 
+                                                                        size="sm" 
+                                                                        className={cn(
+                                                                            "text-[10px] h-9 px-3 font-bold transition-all",
+                                                                            startTime === slot.start 
+                                                                                ? "ring-2 ring-primary ring-offset-1" 
+                                                                                : slot.status === 'available' ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20 hover:bg-emerald-500/20" :
+                                                                                  slot.status === 'flex' ? "bg-blue-500/10 text-blue-600 border-blue-500/20 hover:bg-blue-500/20" :
+                                                                                  "bg-orange-500/10 text-orange-600 border-orange-500/20 hover:bg-orange-500/20"
+                                                                        )}
+                                                                        onClick={() => {
+                                                                            setStartTime(slot.start);
+                                                                            setEndTime(slot.end);
+                                                                        }}
+                                                                    >
+                                                                        {slot.status === 'flex' && "(FLEX) "}
+                                                                        {slot.status === 'waitlist' && "(WAIT) "}
+                                                                        {slot.label}
+                                                                    </Button>
+                                                                ))}
+                                                        </div>
+                                                        <p className="text-[9px] text-muted-foreground italic mt-1">
+                                                            * Select a slot to confirm your time.
+                                                        </p>
+                                                        
+                                                        <div className="mt-4 p-3 bg-muted/30 rounded-lg border border-border/50 space-y-2">
+                                                            <div className="flex items-start gap-2">
+                                                                <div className="w-2 h-2 rounded-full bg-emerald-500 mt-1" />
+                                                                <p className="text-[10px] leading-tight text-muted-foreground"><span className="font-bold text-emerald-700">AVAILABLE:</span> Your selected specialist is free and ready for booking.</p>
+                                                            </div>
+                                                            <div className="flex items-start gap-2">
+                                                                <div className="w-2 h-2 rounded-full bg-blue-500 mt-1" />
+                                                                <p className="text-[10px] leading-tight text-muted-foreground"><span className="font-bold text-blue-700">(FLEX):</span> Selected specialist is busy, but another qualified professional is available.</p>
+                                                            </div>
+                                                            <div className="flex items-start gap-2">
+                                                                <div className="w-2 h-2 rounded-full bg-orange-500 mt-1" />
+                                                                <p className="text-[10px] leading-tight text-muted-foreground"><span className="font-bold text-orange-700">(WAIT):</span> All qualified specialists are busy. This session will join the waitlist.</p>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <div className="p-4 border border-dashed rounded-lg text-center bg-muted/10">
+                                                        <Clock className="w-5 h-5 text-muted-foreground/40 mx-auto mb-1" />
+                                                        <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">No slots available</p>
+                                                    </div>
+                                                )}
+
+                                                {/* Hidden inputs to keep state logic intact but focus on slots */}
+                                                <div className="sr-only">
+                                                    <Input type="time" value={startTime} onChange={e => setStartTime(e.target.value)} />
+                                                    <Input type="time" value={endTime} onChange={e => setEndTime(e.target.value)} />
+                                                </div>
+                                            </div>
+                                            
+                                            <div className={cn("border rounded-xl p-4 flex items-center justify-between", isAvailable === true ? "bg-emerald-500/5 border-emerald-500/20" : isAvailable === false ? "bg-orange-500/5 border-orange-500/20" : "bg-muted/10 border-border/50")}>
+                                                <div className="flex items-center gap-3">
+                                                    {checkingAvailability ? <Loader2 className="w-5 h-5 animate-spin" /> : isAvailable === true ? <CheckCircle2 className="w-5 h-5 text-emerald-500" /> : isAvailable === false ? <AlertCircle className="w-5 h-5 text-orange-500" /> : <Clock className="w-5 h-5 text-muted-foreground" />}
+                                                    <div className="flex flex-col">
+                                                        <span className="text-xs font-bold uppercase">{checkingAvailability ? "Checking..." : isAvailable === true ? "Available" : isAvailable === false ? "Booked/Off" : "Awaiting Info"}</span>
+                                                        <span className="text-[10px] text-muted-foreground">Real-time cross-check</span>
+                                                    </div>
+                                                </div>
+                                                {isAvailable !== null && !checkingAvailability && <Badge variant={isAvailable ? "secondary" : "outline"} className="text-[9px]">{isAvailable ? "READY" : "BUSY"}</Badge>}
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-6 animate-in fade-in slide-in-from-left-2 duration-300">
+                                            <div className="space-y-3">
+                                                <Label className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Total Sessions in Series</Label>
+                                                <Input type="number" value={totalSessions} onChange={e => setTotalSessions(parseInt(e.target.value))} className="h-11" min={1} max={100} />
+                                            </div>
+
+                                            <div className="space-y-3">
+                                                <Label className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Series Schedule</Label>
+                                                <div className="space-y-3">
+                                                    {seriesSchedule.map((rule, idx) => (
+                                                        <div key={idx} className="flex items-end gap-2 p-3 bg-muted/30 rounded-lg border border-border/50 group">
+                                                            <div className="flex-1 space-y-1.5">
+                                                                <Label className="text-[9px] font-bold uppercase text-muted-foreground">Day</Label>
+                                                                <Select value={rule.dayOfWeek.toString()} onValueChange={(val) => {
+                                                                    const newSchedule = [...seriesSchedule];
+                                                                    newSchedule[idx].dayOfWeek = parseInt(val);
+                                                                    setSeriesSchedule(newSchedule);
+                                                                }}>
+                                                                    <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
+                                                                    <SelectContent>
+                                                                        {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day, i) => (
+                                                                            <SelectItem key={i} value={i.toString()}>{day}</SelectItem>
+                                                                        ))}
+                                                                    </SelectContent>
+                                                                </Select>
+                                                            </div>
+                                                            <div className="w-24 space-y-1.5">
+                                                                <Label className="text-[9px] font-bold uppercase text-muted-foreground">Start</Label>
+                                                                <Input type="time" value={rule.startTime} onChange={(e) => {
+                                                                    const newSchedule = [...seriesSchedule];
+                                                                    newSchedule[idx].startTime = e.target.value;
+                                                                    setSeriesSchedule(newSchedule);
+                                                                }} className="h-9 text-xs" />
+                                                            </div>
+                                                            <div className="w-24 space-y-1.5">
+                                                                <Label className="text-[9px] font-bold uppercase text-muted-foreground">End</Label>
+                                                                <Input type="time" value={rule.endTime} onChange={(e) => {
+                                                                    const newSchedule = [...seriesSchedule];
+                                                                    newSchedule[idx].endTime = e.target.value;
+                                                                    setSeriesSchedule(newSchedule);
+                                                                }} className="h-9 text-xs" />
+                                                            </div>
+                                                            <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-destructive" onClick={() => setSeriesSchedule(prev => prev.filter((_, i) => i !== idx))} disabled={seriesSchedule.length <= 1}>
+                                                                <Trash2 className="w-4 h-4" />
+                                                            </Button>
+                                                        </div>
+                                                    ))}
+                                                    <Button variant="outline" size="sm" className="w-full h-9 border-dashed text-xs text-primary" onClick={() => setSeriesSchedule(prev => [...prev, { dayOfWeek: 1, startTime: "09:00", endTime: "10:00" }])}>
+                                                        <Plus className="w-3 h-3 mr-2" /> Add Weekly Day
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        </div>
                                     )}
                                 </div>
                             </div>
@@ -532,19 +761,14 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess }: Props) 
                     </ScrollArea>
 
                     <Separator />
-
-                    <div className="flex gap-4 pt-2 pb-2">
-                        <Button variant="ghost" onClick={() => onOpenChange(false)} className="flex-1 h-12 uppercase tracking-widest text-xs font-bold">Cancel</Button>
+                    <div className="p-6 flex gap-4">
+                        <Button variant="ghost" onClick={() => onOpenChange(false)} className="flex-1 h-12 uppercase text-xs font-bold">Cancel</Button>
                         <Button 
                             onClick={handleSave} 
                             disabled={loading || checkingAvailability || !clientId || !consultantId || isAvailable === null} 
-                            className={cn(
-                                "flex-1 h-12 uppercase tracking-widest text-xs font-bold shadow-lg transition-transform active:scale-95",
-                                isAvailable === false ? "bg-orange-600 hover:bg-orange-700" : "bg-primary hover:bg-primary/90"
-                            )}
+                            className={cn("flex-1 h-12 uppercase text-xs font-bold", isAvailable === false ? "bg-orange-600 hover:bg-orange-700" : "bg-primary")}
                         >
-                            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 
-                             isAvailable === false ? "Join Waitlist" : "Confirm Booking"}
+                            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : isAvailable === false ? "Join Waitlist" : "Confirm Booking"}
                         </Button>
                     </div>
                 </div>

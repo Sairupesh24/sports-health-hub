@@ -74,7 +74,7 @@ export const calculateRefundAmount = async (billId: string, clientId: string) =>
         });
     }
 
-    return { totalRefund, breakdown };
+    return { totalRefund, breakdown, billTotal: bill.total };
 };
 
 export const processRefund = async (refundData: {
@@ -86,6 +86,8 @@ export const processRefund = async (refundData: {
     transactionId?: string;
     refundProofUrl?: string;
     notes?: string;
+    isOverride?: boolean;
+    authorizedBy?: string;
     reverseEntitlements: boolean;
 }) => {
     // 1. Insert Refund Record
@@ -100,6 +102,8 @@ export const processRefund = async (refundData: {
             transaction_id: refundData.transactionId,
             refund_proof_url: refundData.refundProofUrl,
             notes: refundData.notes,
+            is_override: refundData.isOverride || false,
+            authorized_by: refundData.authorizedBy || null,
             is_entitlement_reversed: refundData.reverseEntitlements
         })
         .select()

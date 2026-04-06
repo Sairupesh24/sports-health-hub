@@ -10,6 +10,8 @@ import { toast } from "@/hooks/use-toast";
 import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+import { Switch } from "@/components/ui/switch";
+import { ShieldCheck } from "lucide-react";
 
 interface RefundModalProps {
     isOpen: boolean;
@@ -38,6 +40,11 @@ export const RefundModal = ({ isOpen, onOpenChange, billId, clientId, clientName
     const [showEntitlementPrompt, setShowEntitlementPrompt] = useState(false);
     const [refundRecord, setRefundRecord] = useState<any>(null);
 
+    const [isOverride, setIsOverride] = useState(false);
+    const [authorizedBy, setAuthorizedBy] = useState("");
+    const [billTotal, setBillTotal] = useState<number>(0);
+    const [calculatedRefund, setCalculatedRefund] = useState<number>(0);
+
     useEffect(() => {
         if (isOpen && billId && clientId) {
             fetchCalculation();
@@ -57,14 +64,21 @@ export const RefundModal = ({ isOpen, onOpenChange, billId, clientId, clientName
         setIsUploading(false);
         setShowEntitlementPrompt(false);
         setRefundRecord(null);
+        setIsOverride(false);
+        setAuthorizedBy("");
+        setBillTotal(0);
+        setCalculatedRefund(0);
     };
 
     const fetchCalculation = async () => {
         setCalculating(true);
         try {
             const result = await calculateRefundAmount(billId, clientId);
-            setRefundAmount(Number(result.totalRefund.toFixed(2)));
+            const amt = Number(result.totalRefund.toFixed(2));
+            setCalculatedRefund(amt);
+            setRefundAmount(amt);
             setBreakdown(result.breakdown);
+            setBillTotal(result.billTotal);
         } catch (error: any) {
             toast({ title: "Error calculating refund", description: error.message, variant: "destructive" });
         } finally {
@@ -106,6 +120,11 @@ export const RefundModal = ({ isOpen, onOpenChange, billId, clientId, clientName
     };
 
     const handleConfirmRefund = async () => {
+        if (isOverride && !authorizedBy.trim()) {
+            toast({ title: "Authorization Required", description: "Please enter who authorized this full refund override.", variant: "destructive" });
+            return;
+        }
+
         if (!refundMode) {
             toast({ title: "Please select a refund mode", variant: "destructive" });
             return;
@@ -130,6 +149,8 @@ export const RefundModal = ({ isOpen, onOpenChange, billId, clientId, clientName
                 transactionId,
                 refundProofUrl: proofUrl || undefined,
                 notes: refundMode === 'Cash' ? (notes ? `Handover Signature: ${notes}` : 'Cash Handover') : notes,
+                isOverride,
+                authorizedBy: isOverride ? authorizedBy : undefined,
                 reverseEntitlements: false
             });
 
@@ -195,17 +216,31 @@ export const RefundModal = ({ isOpen, onOpenChange, billId, clientId, clientName
                     <div className="flex-1 overflow-y-auto" style={{ maxHeight: 'calc(90vh - 160px)' }}>
                         <div className="space-y-6 p-6">
                             {/* Calculation Summary */}
-                            <div className="bg-muted/30 border rounded-lg p-4 space-y-3">
+                            <div className={cn(
+                                "border rounded-lg p-4 space-y-3 transition-colors duration-200",
+                                isOverride ? "bg-orange-500/5 border-orange-500/20" : "bg-muted/30 border-muted"
+                            )}>
                                 <div className="flex justify-between items-center text-sm">
-                                    <span className="text-muted-foreground font-medium">Calculated Refund Amount</span>
+                                    <span className={cn("font-medium", isOverride ? "text-orange-700" : "text-muted-foreground")}>
+                                        {isOverride ? "Overridden Refund Amount" : "Calculated Refund Amount"}
+                                    </span>
                                     {calculating ? (
                                         <Loader2 className="w-4 h-4 animate-spin text-primary" />
                                     ) : (
-                                        <span className="text-lg font-bold text-foreground">Rs. {refundAmount.toFixed(2)}</span>
+                                        <div className="flex flex-col items-end">
+                                            <span className={cn("text-lg font-bold", isOverride ? "text-orange-600" : "text-foreground")}>
+                                                Rs. {refundAmount.toFixed(2)}
+                                            </span>
+                                            {isOverride && (
+                                                <span className="text-[10px] text-orange-500 font-medium line-through">
+                                                    Original calculation: Rs. {calculatedRefund.toFixed(2)}
+                                                </span>
+                                            )}
+                                        </div>
                                     )}
                                 </div>
                                 
-                                {!calculating && breakdown.length > 0 && (
+                                {!calculating && breakdown.length > 0 && !isOverride && (
                                     <div className="space-y-1.5 pt-2 border-t">
                                         {breakdown.map((item, idx) => (
                                             <div key={idx} className="flex justify-between text-[11px]">
@@ -215,7 +250,50 @@ export const RefundModal = ({ isOpen, onOpenChange, billId, clientId, clientName
                                         ))}
                                     </div>
                                 )}
+
+                                {isOverride && (
+                                    <div className="pt-2 border-t border-orange-500/10">
+                                        <p className="text-[10px] text-orange-600/80 leading-relaxed italic">
+                                            Administrative override: Full bill amount is being refunded bypassing session balance checks.
+                                        </p>
+                                    </div>
+                                )}
                             </div>
+
+                            {/* Administrative Override Toggle */}
+                            <div className="flex items-center justify-between p-3 rounded-lg border border-orange-500/30 bg-orange-500/10">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-8 h-8 rounded-full bg-orange-500/20 flex items-center justify-center">
+                                        <ShieldCheck className="w-4 h-4 text-orange-600" />
+                                    </div>
+                                    <div>
+                                        <Label className="text-sm font-bold text-orange-800">Force Full Refund</Label>
+                                        <p className="text-[10px] text-orange-600/80 font-medium">Bypass session checks & refund full invoice</p>
+                                    </div>
+                                </div>
+                                <Switch
+                                    checked={isOverride}
+                                    onCheckedChange={(v) => {
+                                        setIsOverride(v);
+                                        setRefundAmount(v ? billTotal : calculatedRefund);
+                                    }}
+                                    className="data-[state=checked]:bg-orange-500"
+                                />
+                            </div>
+
+                            {/* Authorization Field - Conditional */}
+                            {isOverride && (
+                                <div className="space-y-1.5 animate-in fade-in slide-in-from-top-2">
+                                    <Label className="text-xs text-orange-700 font-bold">Authorized By <span className="text-destructive">*</span></Label>
+                                    <Input 
+                                        placeholder="e.g. Clinic Director / Dr. Name"
+                                        value={authorizedBy}
+                                        onChange={e => setAuthorizedBy(e.target.value)}
+                                        className="h-9 border-orange-300 focus-visible:ring-orange-500"
+                                    />
+                                    <p className="text-[9px] text-orange-600">This name will be saved in the audit logs and refund history.</p>
+                                </div>
+                            )}
 
                             {/* Form Inputs */}
                             <div className="space-y-4">

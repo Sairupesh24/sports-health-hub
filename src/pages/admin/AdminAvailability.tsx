@@ -33,6 +33,8 @@ type ScheduleRow = {
     buffer_time: number;
 };
 
+const CLINICAL_ROLES = ["consultant", "sports_physician", "physiotherapist", "nutritionist", "sports_scientist", "massage_therapist"];
+
 export default function AdminAvailability({ hideLayout = false }: { hideLayout?: boolean }) {
     const { profile } = useAuth();
     const [loading, setLoading] = useState(true);
@@ -51,16 +53,50 @@ export default function AdminAvailability({ hideLayout = false }: { hideLayout?:
     const { data: consultants } = useQuery({
         queryKey: ['org-consultants', profile?.organization_id],
         queryFn: async () => {
-            const { data: roleData } = await supabase.from("user_roles").select("user_id").eq("role", "consultant");
-            if (!roleData || roleData.length === 0) return [];
-            const consultantIds = roleData.map(r => r.user_id);
-            const { data: profilesData } = await supabase
+            console.log("Fetching Specialists for Admin Availability: org =", profile?.organization_id);
+            
+            // Step 1: Get all approved profiles for this organization
+            const { data: profilesData, error: profileError } = await supabase
                 .from("profiles")
-                .select("id, first_name, last_name")
+                .select("id, first_name, last_name, profession")
                 .eq("organization_id", profile?.organization_id)
-                .in("id", consultantIds)
                 .eq("is_approved", true);
-            return profilesData || [];
+
+            if (profileError) {
+                console.error("Profile fetch error:", profileError);
+                return [];
+            }
+
+            if (!profilesData || profilesData.length === 0) {
+                console.log("No approved profiles found for this organization");
+                return [];
+            }
+
+            // Step 2: Get roles for these profiles to filter for clinical staff
+            const profileIds = profilesData.map(p => p.id);
+            const { data: roleData, error: roleError } = await supabase
+                .from("user_roles")
+                .select("user_id, role")
+                .in("user_id", profileIds);
+
+            if (roleError) {
+                console.error("Role fetch error:", roleError);
+                return [];
+            }
+
+            // Step 3: Filter profiles that have a clinical role
+            const validSpecialists = profilesData.filter(p => {
+                const userRole = roleData?.find(r => r.user_id === p.id)?.role;
+                return CLINICAL_ROLES.includes(userRole as string);
+            }).map(p => ({
+                id: p.id,
+                first_name: p.first_name,
+                last_name: p.last_name,
+                profession: p.profession
+            }));
+
+            console.log("Final Valid Specialists for Dropdown:", validSpecialists);
+            return validSpecialists;
         },
         enabled: !!profile?.organization_id
     });
@@ -206,7 +242,7 @@ export default function AdminAvailability({ hideLayout = false }: { hideLayout?:
         <div className={`space-y-6 max-w-5xl mx-auto ${hideLayout ? 'pb-2' : 'pb-10'}`}>
             <div>
                 <h1 className="text-2xl font-display font-bold text-foreground">Organization Availability</h1>
-                <p className="text-muted-foreground text-sm mt-1">Manage global duration settings and oversee consultant schedules</p>
+                <p className="text-muted-foreground text-sm mt-1">Manage global duration settings and oversee specialist schedules</p>
             </div>
 
             <Card className="gradient-card border-border">
@@ -224,9 +260,9 @@ export default function AdminAvailability({ hideLayout = false }: { hideLayout?:
                         <>
                             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 border border-border rounded-lg bg-muted/20">
                                 <div className="space-y-1 max-w-lg">
-                                    <Label className="text-base">Allow Custom Consultant Durations</Label>
+                                    <Label className="text-base">Allow Custom Specialist Durations</Label>
                                     <p className="text-sm text-muted-foreground">
-                                        If enabled, Consultants can freely define their own specific appointment durations.
+                                        If enabled, Specialists can freely define their own specific appointment durations.
                                         If disabled, all appointments use the global firm default.
                                     </p>
                                 </div>
@@ -260,22 +296,27 @@ export default function AdminAvailability({ hideLayout = false }: { hideLayout?:
                 <CardHeader>
                     <CardTitle className="text-lg flex items-center gap-2">
                         <CalendarIcon className="w-5 h-5 text-primary" />
-                        Consultant Schedules Override
+                        Specialist Schedules Override
                     </CardTitle>
-                    <CardDescription>Select a consultant below to explicitly manage their working hours.</CardDescription>
+                    <CardDescription>Select a specialist below to explicitly manage their working hours.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4 pt-4">
                     <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 p-4 border border-border rounded-lg bg-muted/20">
                         <User className="w-8 h-8 text-primary/50" />
                         <div className="w-full max-w-sm">
-                            <Label className="mb-2 block">Select Consultant</Label>
+                            <Label className="mb-2 block">Select Specialist</Label>
                             <Select value={selectedConsultant} onValueChange={setSelectedConsultant}>
                                 <SelectTrigger>
-                                    <SelectValue placeholder="Choose a consultant..." />
+                                    <SelectValue placeholder="Choose a specialist..." />
                                 </SelectTrigger>
                                 <SelectContent>
                                     {consultants?.map(c => (
-                                        <SelectItem key={c.id} value={c.id}>Dr. {c.first_name} {c.last_name}</SelectItem>
+                                        <SelectItem key={c.id} value={c.id}>
+                                            <div className="flex flex-col">
+                                                <span className="font-bold">{c.first_name} {c.last_name}</span>
+                                                <span className="text-[10px] text-muted-foreground uppercase">{c.profession || "Staff"}</span>
+                                            </div>
+                                        </SelectItem>
                                     ))}
                                 </SelectContent>
                             </Select>
@@ -285,7 +326,7 @@ export default function AdminAvailability({ hideLayout = false }: { hideLayout?:
                     {selectedConsultant && (
                         <div className="mt-8 space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
                             {consultantLoading ? (
-                                <p className="text-sm text-muted-foreground">Loading consultant schedule...</p>
+                                <p className="text-sm text-muted-foreground">Loading specialist schedule...</p>
                             ) : (
                                 <div className="space-y-4">
                                     <h4 className="font-semibold text-lg text-foreground mb-4">Weekly Time Blocks</h4>
@@ -350,7 +391,7 @@ export default function AdminAvailability({ hideLayout = false }: { hideLayout?:
                                     <div className="flex justify-end pt-4">
                                         <Button onClick={handleSaveConsultant} disabled={consultantLoading || consultantSaving} className="gap-2">
                                             <Save className="w-4 h-4" />
-                                            {consultantSaving ? "Saving..." : "Save Consultant Override"}
+                                            {consultantSaving ? "Saving..." : "Save Specialist Override"}
                                         </Button>
                                     </div>
                                 </div>
