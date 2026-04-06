@@ -60,7 +60,6 @@ import {
     TableHeader, 
     TableRow 
 } from "@/components/ui/table";
-import { VIPBadge, VIPName } from "@/components/ui/VIPBadge";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 
@@ -582,7 +581,7 @@ function LegacyReports({ role }: { role: ReportsPageProps['role'] }) {
   const fetchAthletes = async () => {
     try {
       setIsFetchingAthletes(true);
-      const { data, error } = await supabase.from('profiles').select('id, first_name, last_name, uhid, is_vip').not('ams_role', 'is', null).neq('ams_role', 'coach').order('last_name', { ascending: true });
+      const { data, error } = await supabase.from('profiles').select('id, first_name, last_name, uhid').not('ams_role', 'is', null).neq('ams_role', 'coach').order('last_name', { ascending: true });
       if (error) throw error;
       setAthletes(data || []);
     } catch (err: any) {
