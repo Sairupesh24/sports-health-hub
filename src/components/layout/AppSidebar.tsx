@@ -59,10 +59,13 @@ const clientNav: NavItem[] = [
 ];
 
 const foeNav: NavItem[] = [
+  { label: "Dashboard", icon: LayoutDashboard, href: "/admin" },
   { label: "Clients", icon: Users, href: "/admin/clients" },
-  { label: "Calendar", icon: Calendar, href: "/admin/calendar" },
+  { label: "Calendar", icon: CalendarDays, href: "/admin/calendar" },
   { label: "Reports", icon: ClipboardList, href: "/admin/reports" },
+  { label: "Programs", icon: Dumbbell, href: "/admin/programs", isUnderDevelopment: true },
   { label: "Billing", icon: CreditCard, href: "/admin/billing" },
+  { label: "Settings", icon: Settings, href: "/admin/settings", isUnderDevelopment: true },
 ];
 
 const sportsScientistNav: NavItem[] = [

@@ -41,7 +41,8 @@ function getSessionEditability(session: any): {
     const isFutureSession = daysAgo < 0;
     const isToday = daysAgo === 0;
     const isYesterday = daysAgo === 1;
-    const isLocked = daysAgo >= 2;
+    const isStatusLocked = session.status === "Cancelled" || session.status === "Rescheduled" || session.status === "Completed";
+    const isLocked = daysAgo >= 2 || isStatusLocked;
 
     return {
         isLocked,
@@ -49,7 +50,9 @@ function getSessionEditability(session: any): {
         isToday,
         isYesterday,
         daysAgo,
-        lockReason: isLocked
+        lockReason: isStatusLocked 
+            ? `This session is ${session.status.toLowerCase()} and cannot be edited.`
+            : isLocked
             ? `This session was on ${format(parseISO(session.scheduled_start), "MMM d, yyyy")} — sessions older than 1 day cannot be edited.`
             : undefined,
     };
@@ -64,6 +67,8 @@ export function SportsScientistSessionStatusModal({ open, onOpenChange, session,
     const [actualEnd, setActualEnd] = useState("");
     const [sessionNotes, setSessionNotes] = useState("");
     const [cancellationReason, setCancellationReason] = useState("");
+    const [rescheduledDate, setRescheduledDate] = useState("");
+    const [rescheduledTime, setRescheduledTime] = useState("");
 
     const editInfo = getSessionEditability(session);
 
@@ -108,10 +113,13 @@ export function SportsScientistSessionStatusModal({ open, onOpenChange, session,
                 setActualEnd(format(parseISO(session.scheduled_end), "HH:mm"));
             }
 
-            // Trigger auto-miss if applicable
             if (editInfo.isLocked && session.status === "Planned") {
                 autoMarkMissed();
             }
+
+            // Initialize rescheduling defaults
+            setRescheduledDate(format(parseISO(session.scheduled_start), "yyyy-MM-dd"));
+            setRescheduledTime(format(parseISO(session.scheduled_start), "HH:mm"));
         }
     }, [session]);
 
@@ -170,6 +178,27 @@ export function SportsScientistSessionStatusModal({ open, onOpenChange, session,
                     p_user_id: user?.id,
                 });
                 if (rpcError) throw new Error(rpcError.message || "Failed to complete session");
+            } else if (status === "Rescheduled") {
+                if (session.status !== "Planned") {
+                    throw new Error("Only Planned sessions can be rescheduled.");
+                }
+                if (!rescheduledDate || !rescheduledTime) {
+                    throw new Error("Please select both a date and time for rescheduling.");
+                }
+
+                const newStartTime = new Date(`${rescheduledDate}T${rescheduledTime}:00`);
+                const durationMs = new Date(session.scheduled_end || session.scheduled_start).getTime() - new Date(session.scheduled_start).getTime();
+                const newEndTime = new Date(newStartTime.getTime() + (durationMs || 3600000)); // Default 1h if duration missing
+
+                const { data: newSessionId, error: rescheduleError } = await supabase.rpc("reschedule_session", {
+                    p_session_id: session.id,
+                    p_new_start: newStartTime.toISOString(),
+                    p_new_end: newEndTime.toISOString()
+                });
+
+                if (rescheduleError) throw rescheduleError;
+
+                toast({ title: "Rescheduled", description: "The session has been moved to the new date and time." });
             } else {
                 const { error } = await (supabase as any)
                     .from("sessions")
@@ -203,6 +232,7 @@ export function SportsScientistSessionStatusModal({ open, onOpenChange, session,
             case "Completed": return "bg-emerald-100 text-emerald-800 border-emerald-300";
             case "Planned": return "bg-blue-100 text-blue-800 border-blue-300";
             case "Missed": return "bg-rose-100 text-rose-800 border-rose-300";
+            case "Checked In": return "bg-emerald-100 text-emerald-800 border-emerald-300";
             case "Cancelled": return "bg-slate-100 text-slate-600 border-slate-300";
             case "Rescheduled": return "bg-amber-100 text-amber-800 border-amber-300";
             default: return "bg-muted text-muted-foreground border-border";
@@ -211,7 +241,7 @@ export function SportsScientistSessionStatusModal({ open, onOpenChange, session,
 
     const availableStatuses = editInfo.isFuture
         ? ["Planned", "Cancelled"]
-        : ["Planned", "Completed", "Missed", "Rescheduled", "Cancelled"];
+        : ["Planned", "Checked In", "Completed", "Rescheduled", "Cancelled"];
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
@@ -286,9 +316,10 @@ export function SportsScientistSessionStatusModal({ open, onOpenChange, session,
                                     <SelectItem key={s} value={s}>
                                         <div className="flex items-center gap-2">
                                             {s === "Completed" && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />}
-                                            {s === "Missed" && <XCircle className="w-3.5 h-3.5 text-rose-500" />}
+                                            {s === "Checked In" && <Clock className="w-3.5 h-3.5 text-emerald-500" />}
                                             {s === "Cancelled" && <XCircle className="w-3.5 h-3.5 text-slate-400" />}
                                             {s === "Planned" && <Clock className="w-3.5 h-3.5 text-blue-500" />}
+                                            {s === "Rescheduled" && <Clock className="w-3.5 h-3.5 text-amber-500" />}
                                             {s}
                                         </div>
                                     </SelectItem>
@@ -304,14 +335,46 @@ export function SportsScientistSessionStatusModal({ open, onOpenChange, session,
                             <div className="flex items-center gap-3">
                                 <div className="grid gap-1.5 flex-1">
                                     <Label className="text-xs text-muted-foreground">Start</Label>
-                                    <Input type="time" value={actualStart} onChange={e => setActualStart(e.target.value)} className="h-9" />
+                                    <Input type="time" value={actualStart} onChange={e => setActualStart(e.target.value)} className="h-9 bg-white" />
                                 </div>
                                 <span className="text-muted-foreground text-xs pt-5">to</span>
                                 <div className="grid gap-1.5 flex-1">
                                     <Label className="text-xs text-muted-foreground">End</Label>
-                                    <Input type="time" value={actualEnd} onChange={e => setActualEnd(e.target.value)} className="h-9" />
+                                    <Input type="time" value={actualEnd} onChange={e => setActualEnd(e.target.value)} className="h-9 bg-white" />
                                 </div>
                             </div>
+                        </div>
+                    )}
+
+                    {/* Rescheduling Logic */}
+                    {status === "Rescheduled" && !editInfo.isLocked && (
+                        <div className="grid gap-3 animate-in slide-in-from-top-2 p-4 bg-amber-50/50 rounded-xl border border-amber-200">
+                            <Label className="text-sm font-semibold text-amber-800 flex items-center gap-2">
+                                🗓️ Reschedule Details
+                            </Label>
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="grid gap-1.5">
+                                    <Label className="text-xs text-muted-foreground">New Date</Label>
+                                    <Input 
+                                        type="date" 
+                                        value={rescheduledDate} 
+                                        onChange={e => setRescheduledDate(e.target.value)}
+                                        className="h-9 bg-white"
+                                    />
+                                </div>
+                                <div className="grid gap-1.5">
+                                    <Label className="text-xs text-muted-foreground">New Time</Label>
+                                    <Input 
+                                        type="time" 
+                                        value={rescheduledTime} 
+                                        onChange={e => setRescheduledTime(e.target.value)}
+                                        className="h-9 bg-white"
+                                    />
+                                </div>
+                            </div>
+                            <p className="text-[10px] text-muted-foreground italic">
+                                Note: This will mark the current slot as 'Rescheduled' and create a new 'Planned' session.
+                            </p>
                         </div>
                     )}
 

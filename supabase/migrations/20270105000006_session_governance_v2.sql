@@ -30,7 +30,10 @@ BEGIN
 
         -- Rule D: 24-hour edit lock after completion
         IF OLD.status = 'Completed' AND OLD.actual_end IS NOT NULL THEN
-            IF OLD.actual_end < (NOW() - interval '24 hours') THEN
+            -- ALLOW reconciliation (clearing un-entitled flag) even after 24h
+            IF OLD.is_unentitled AND NOT NEW.is_unentitled THEN
+                -- Do nothing, let it pass
+            ELSIF OLD.actual_end < (NOW() - interval '24 hours') THEN
                 RAISE EXCEPTION 'Session cannot be edited more than 24 hours after completion. Contact an administrator.';
             END IF;
         END IF;

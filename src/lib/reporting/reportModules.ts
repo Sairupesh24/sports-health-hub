@@ -55,6 +55,15 @@ export const ROLE_MODULE_ACCESS: Record<string, ReportModule[]> = {
     "clients",
     "appointments",
   ],
+  foe: [
+    "registration",
+    "appointments",
+    "physio",
+    "sports_science",
+    "entitlements",
+    "clients",
+    "attendance",
+  ],
   client: [],
 };
 
