@@ -1,0 +1,300 @@
+﻿export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[]
+
+export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "14.4"
+  }
+  public: {
+    Tables: {
+      appointment_history: {
+        Row: {
+          appointment_id: string
+          change_reason: string | null
+          changed_by: string | null
+          created_at: string | null
+          id: string
+          new_status: Database["public"]["Enums"]["appointment_status"]
+          previous_status:
+            | Database["public"]["Enums"]["appointment_status"]
+            | null
+        }
+        Insert: {
+          appointment_id: string
+          change_reason?: string | null
+          changed_by?: string | null
+          created_at?: string | null
+          id?: string
+          new_status: Database["public"]["Enums"]["appointment_status"]
+          previous_status?:
+            | Database["public"]["Enums"]["appointment_status"]
+            | null
+        }
+        Update: {
+          appointment_id?: string
+          change_reason?: string | null
+          changed_by?: string | null
+          created_at?: string | null
+          id?: string
+          new_status?: Database["public"]["Enums"]["appointment_status"]
+          previous_status?:
+            | Database["public"]["Enums"]["appointment_status"]
+            | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "appointment_history_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      appointments: {
+        Row: {
+          appointment_date: string
+          client_id: string
+          consultant_id: string
+          created_at: string | null
+          created_by: string | null
+          end_time: string
+          id: string
+          notes: string | null
+          organization_id: string
+          service_type: string
+          start_time: string
+          status: Database["public"]["Enums"]["appointment_status"] | null
+          updated_at: string | null
+        }
+        Insert: {
+          appointment_date: string
+          client_id: string
+          consultant_id: string
+          created_at?: string | null
+          created_by?: string | null
+          end_time: string
+          id?: string
+          notes?: string | null
+          organization_id: string
+          service_type: string
+          start_time: string
+          status?: Database["public"]["Enums"]["appointment_status"] | null
+          updated_at?: string | null
+        }
+        Update: {
+          appointment_date?: string
+          client_id?: string
+          consultant_id?: string
+          created_at?: string | null
+          created_by?: string | null
+          end_time?: string
+          id?: string
+          notes?: string | null
+          organization_id?: string
+          service_type?: string
+          start_time?: string
+          status?: Database["public"]["Enums"]["appointment_status"] | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "appointments_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointments_consultant_id_fkey"
+            columns: ["consultant_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointments_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      athlete_circuit_logs: {
+        Row: {
+          athlete_id: string
+          id: string
+          logged_at: string | null
+          notes: string | null
+          org_id: string
+          rounds_completed: number | null
+          sets_per_round: Json | null
+          workout_item_id: string
+        }
+        Insert: {
+          athlete_id: string
+          id?: string
+          logged_at?: string | null
+          notes?: string | null
+          org_id: string
+          rounds_completed?: number | null
+          sets_per_round?: Json | null
+          workout_item_id: string
+        }
+        Update: {
+          athlete_id?: string
+          id?: string
+          logged_at?: string | null
+          notes?: string | null
+          org_id?: string
+          rounds_completed?: number | null
+          sets_per_round?: Json | null
+          workout_item_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "athlete_circuit_logs_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "athlete_circuit_logs_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "athlete_circuit_logs_workout_item_id_fkey"
+            columns: ["workout_item_id"]
+            isOneToOne: false
+            referencedRelation: "workout_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      athlete_external_mapping: {
+        Row: {
+          client_id: string
+          created_at: string | null
+          external_athlete_id: string
+          external_system: string
+          id: string
+          organization_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          client_id: string
+          created_at?: string | null
+          external_athlete_id: string
+          external_system?: string
+          id?: string
+          organization_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          client_id?: string
+          created_at?: string | null
+          external_athlete_id?: string
+          external_system?: string
+          id?: string
+          organization_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "athlete_external_mapping_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "athlete_external_mapping_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      athlete_item_logs: {
+        Row: {
+          athlete_id: string
+          id: string
+          logged_at: string | null
+          notes: string | null
+          org_id: string
+          rpe: number | null
+          sets_completed: Json | null
+          skipped: boolean | null
+          workout_item_id: string
+        }
+        Insert: {
+          athlete_id: string
+          id?: string
+          logged_at?: string | null
+          notes?: string | null
+          org_id: string
+          rpe?: number | null
+          sets_completed?: Json | null
+          skipped?: boolean | null
+          workout_item_id: string
+        }
+        Update: {
+          athlete_id?: string
+          id?: string
+          logged_at?: string | null
+          notes?: string | null
+          org_id?: string
+          rpe?: number | null
+          sets_completed?: Json | null
+          skipped?: boolean | null
+          workout_item_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "athlete_item_logs_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "athlete_item_logs_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "athlete_item_logs_workout_item_id_fkey"
+            columns: ["workout_item_id"]
+            isOneToOne: false
+            referencedRelation: "workout_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      athlete_saqc_logs: {
+        Row: {
+          athlete_id: string
+          distance_recorded: number | null
+          id: string
+          intensity: string | null
+          logged_at: string | null
+          notes: string | null
+          org_id: string
+          sets_data: Json | null
+          time_recorded: string | null
+          workout_item_id: string

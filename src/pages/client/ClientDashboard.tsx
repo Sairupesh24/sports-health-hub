@@ -92,6 +92,15 @@ export default function ClientDashboard() {
     })[0];
   };
 
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 5) return "Good Night";
+    if (hour < 12) return "Good Morning";
+    if (hour < 17) return "Good Afternoon";
+    if (hour < 22) return "Good Evening";
+    return "Good Night";
+  };
+
   const todayWorkout = getTodayWorkout();
 
   return (
@@ -111,7 +120,7 @@ export default function ClientDashboard() {
                 <span className="text-white/40 font-black text-[9px] uppercase tracking-widest">{format(new Date(), 'EEEE, MMMM do')}</span>
               </div>
               <h1 className="text-4xl sm:text-6xl font-black tracking-tighter italic uppercase">
-                Welcome, <span className="text-primary">{profile?.first_name || 'Champion'}</span>
+                {getGreeting()}, <span className="text-primary">{profile?.first_name || 'Champion'}</span>
               </h1>
               <p className="text-white/40 font-medium text-lg max-w-xl">
                  Your recovery protocol is active. Stay focused on your <span className="text-primary font-bold italic">stability metrics</span> today.

@@ -42,10 +42,10 @@ export default function PerformanceSnapshot({ clientId }: PerformanceSnapshotPro
         </div>
     );
 
-    const latest = logs[0];
-    const avgSleep = logs.reduce((acc, log) => acc + log.sleep_score, 0) / logs.length;
-    const avgStress = logs.reduce((acc, log) => acc + log.stress_level, 0) / logs.length;
-    const avgFatigue = logs.reduce((acc, log) => acc + log.fatigue_level, 0) / logs.length;
+    const latest = logs?.[0] || null;
+    const avgSleep = logs.length > 0 ? logs.reduce((acc, log) => acc + (log.sleep_score || 0), 0) / logs.length : 0;
+    const avgStress = logs.length > 0 ? logs.reduce((acc, log) => acc + (log.stress_level || 0), 0) / logs.length : 0;
+    const avgFatigue = logs.length > 0 ? logs.reduce((acc, log) => acc + (log.fatigue_level || 0), 0) / logs.length : 0;
 
     const getScoreColor = (score: number) => {
         if (score >= 7) return "text-emerald-500";
@@ -90,9 +90,9 @@ export default function PerformanceSnapshot({ clientId }: PerformanceSnapshotPro
                     <div className="space-y-1">
                         <div className="flex justify-between text-[10px] font-medium uppercase text-muted-foreground">
                             <span>Muscle Soreness</span>
-                            <span className={getScoreColor(11 - latest.soreness_level)}>{latest.soreness_level}/10</span>
+                            <span className={getScoreColor(11 - (latest?.soreness_level || 0))}>{latest?.soreness_level || 0}/10</span>
                         </div>
-                        <Progress value={latest.soreness_level * 10} className={cn("h-1", getProgressColor(11 - latest.soreness_level))} />
+                        <Progress value={(latest?.soreness_level || 0) * 10} className={cn("h-1", getProgressColor(11 - (latest?.soreness_level || 0)))} />
                     </div>
 
                     {latest.soreness_data && (latest.soreness_data as string[]).length > 0 && (
@@ -116,7 +116,7 @@ export default function PerformanceSnapshot({ clientId }: PerformanceSnapshotPro
                 </div>
 
                 <p className="text-[10px] text-center text-muted-foreground italic">
-                    Latest check-in: {format(new Date(latest.created_at), "MMM d, h:mm a")}
+                    Latest check-in: {latest?.created_at ? format(new Date(latest.created_at), "MMM d, h:mm a") : "Recently"}
                 </p>
             </CardContent>
         </Card>

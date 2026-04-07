@@ -99,7 +99,7 @@ export default function ConsultantSchedule() {
         `)
                 .eq("therapist_id", profile.id)
                 .gte("scheduled_start", dateRange.start)
-                .lte("scheduled_end", dateRange.end)
+                .lt("scheduled_start", dateRange.end)
                 .order("scheduled_start", { ascending: true });
 
             if (error) throw error;

@@ -202,7 +202,7 @@ export default function AdminDashboard() {
         { title: "Active Clients", value: metrics?.uniqueClients || 0, change: "in selected period", changeType: "neutral" as const, icon: Users },
         { title: "Today's Sessions", value: metrics?.totalSessions || 0, change: "in selected period", changeType: "neutral" as const, icon: Calendar },
         { title: "Revenue", value: `₹${(metrics?.totalRevenue || 0).toLocaleString()}`, change: "in selected period", changeType: "positive" as const, icon: CreditCard },
-        { title: "Patients Waiting", value: waitingTodayCount, change: notifiedWaitlist.length > 0 ? `${notifiedWaitlist.length} Notified (Action)` : "No queue", changeType: notifiedWaitlist.length > 0 ? "positive" : "neutral", icon: Bell, className: notifiedWaitlist.length > 0 ? "animate-bounce" : "" },
+        { title: "Patients Waiting", value: waitingTodayCount, change: notifiedWaitlist.length > 0 ? `${notifiedWaitlist.length} Notified (Action)` : "No queue", changeType: (notifiedWaitlist.length > 0 ? "positive" : "neutral") as "positive" | "neutral", icon: Bell, className: notifiedWaitlist.length > 0 ? "animate-bounce" : "" },
     ];
 
   // Transform today's sessions for schedule
@@ -272,13 +272,24 @@ export default function AdminDashboard() {
     return activityList.slice(0, 10);
   }, [recentClients, sessions, recentBills]);
 
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 5) return "Good Night";
+    if (hour < 12) return "Good Morning";
+    if (hour < 17) return "Good Afternoon";
+    if (hour < 22) return "Good Evening";
+    return "Good Night";
+  };
+
   return (
     <DashboardLayout role="admin">
       <div className="space-y-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h1 className="text-2xl font-display font-bold text-foreground">Admin Dashboard</h1>
+            <h1 className="text-2xl font-display font-bold text-foreground">
+              {getGreeting()}, {profile?.first_name || 'Admin'}
+            </h1>
             <p className="text-muted-foreground mt-1">Overview of your organization's performance</p>
           </div>
 

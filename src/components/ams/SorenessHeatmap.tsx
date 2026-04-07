@@ -62,7 +62,8 @@ interface SorenessHeatmapProps {
 export default function SorenessHeatmap({ onZoneToggle, selectedZones, readOnly = false }: SorenessHeatmapProps) {
     // Map old IDs to new ones for backward compatibility
     // Map old/database IDs to current ones for maximum compatibility
-    const normalizedSelectedZones = selectedZones.map(id => {
+    const zones = Array.isArray(selectedZones) ? selectedZones : [];
+    const normalizedSelectedZones = zones.map(id => {
         // Universal normalization: remove _ant/_post for checking existence if needed
         // but since we render both views, it's better to map specifically
         if (id === "left_shoulder" || id === "shoulder_l") return ["shoulder_l_ant", "shoulder_l_post"];

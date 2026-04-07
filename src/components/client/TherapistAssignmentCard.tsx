@@ -11,7 +11,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CalendarIcon, User, Clock, AlertCircle } from "lucide-react";
+import { CalendarIcon, User, Clock, AlertCircle, History, UserPlus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/components/ui/use-toast";
 
@@ -38,13 +38,45 @@ interface AvailabilityResult {
   alternate_therapists: AlternateTherapist[];
 }
 
+interface HistoryEntry {
+  id: string;
+  therapist_id: string;
+  assigned_at: string;
+  therapist: {
+    first_name: string;
+    last_name: string;
+    profession: string | null;
+  };
+}
+
 export function TherapistAssignmentCard({ clientId, orgId }: { clientId: string, orgId: string }) {
   const [date, setDate] = useState<Date>(new Date());
   const [data, setData] = useState<AvailabilityResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [isAssigning, setIsAssigning] = useState(false);
   const [consultants, setConsultants] = useState<TherapistData[]>([]);
+  const [history, setHistory] = useState<HistoryEntry[]>([]);
   const { toast } = useToast();
+
+  const fetchHistory = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('client_therapist_history')
+        .select(`
+          id,
+          therapist_id,
+          assigned_at,
+          therapist:profiles!client_therapist_history_therapist_id_fkey(first_name, last_name, profession)
+        `)
+        .eq('client_id', clientId)
+        .order('assigned_at', { ascending: false });
+
+      if (error) throw error;
+      setHistory(data as any[]);
+    } catch (err: any) {
+      console.error("Error fetching history:", err.message);
+    }
+  };
 
   const fetchAvailability = async (selectedDate: Date) => {
     setLoading(true);
@@ -76,39 +108,20 @@ export function TherapistAssignmentCard({ clientId, orgId }: { clientId: string,
   const fetchConsultants = async () => {
     if (!orgId) return;
     try {
-      // Get user_roles for consultants and clinic_admins first
-      const { data: roleData, error: roleError } = await supabase
-        .from('user_roles')
-        .select('user_id, role')
-        .in('role', ['consultant', 'admin'] as any[]);
-        
-      if (roleError) throw roleError;
-      
-      if (!roleData || roleData.length === 0) {
-          setConsultants([]);
-          return;
-      }
-
-      const consultantIds = roleData.map(r => r.user_id);
-      
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from('profiles')
         .select('id, first_name, last_name, profession')
         .eq('organization_id', orgId)
-        .in('id', consultantIds)
-        .eq('is_approved', true);
+        .eq('is_approved', true)
+        .in('profession', ['Sports Physician', 'Physiotherapist', 'Sports Scientist']);
         
       if (error) throw error;
-      setConsultants((data as any[]).map((d: any) => {
-        // Find role from roleData
-        const userRole = roleData.find(r => r.user_id === d.id)?.role || 'consultant';
-        return {
-          id: d.id,
-          name: `${d.first_name} ${d.last_name}`,
-          role: userRole,
-          profession: d.profession
-        };
-      }));
+      setConsultants((data as any[]).map((d: any) => ({
+        id: d.id,
+        name: `${d.first_name} ${d.last_name}`,
+        role: 'consultant',
+        profession: d.profession
+      })));
     } catch (err: any) {
       toast({ title: "Failed to load consultants", description: err.message, variant: "destructive" });
     }
@@ -116,17 +129,33 @@ export function TherapistAssignmentCard({ clientId, orgId }: { clientId: string,
 
   const handleAssign = async (therapistId: string) => {
     try {
-      // Assignment lives on the clients table, not profiles
-      const { error } = await supabase
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      // 1. Update the primary therapist in the clients table
+      const { error: updateError } = await supabase
         .from('clients')
         .update({ assigned_consultant_id: therapistId })
         .eq('id', clientId);
         
-      if (error) throw error;
-      toast({ title: "Therapist Assigned", description: "Successfully updated primary therapist." });
+      if (updateError) throw updateError;
+
+      // 2. Log the reassignment to history
+      const { error: historyError } = await supabase
+        .from('client_therapist_history')
+        .insert({
+          client_id: clientId,
+          therapist_id: therapistId,
+          assigned_by: user?.id
+        });
+
+      if (historyError) throw historyError;
+
+      toast({ title: "Therapist Assigned", description: "Successfully updated primary therapist and logged to history." });
       setIsAssigning(false);
+      
       // Re-fetch to refresh the display
       await fetchAvailability(date);
+      await fetchHistory();
     } catch (err: any) {
       toast({ title: "Assignment Failed", description: err.message, variant: "destructive" });
     }
@@ -135,6 +164,7 @@ export function TherapistAssignmentCard({ clientId, orgId }: { clientId: string,
   useEffect(() => {
     if (clientId) {
       fetchAvailability(date);
+      fetchHistory();
     }
   }, [clientId, date]);
 
@@ -225,8 +255,13 @@ export function TherapistAssignmentCard({ clientId, orgId }: { clientId: string,
               <div>
                 <div className="flex items-center gap-2">
                   <h4 className="font-semibold text-base">{data.assigned_therapist?.name}</h4>
-                  <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground mb-1" onClick={() => setIsAssigning(true)}>
-                    <User className="h-3 w-3" />
+                  <Button 
+                    variant="link" 
+                    size="sm" 
+                    className="h-auto p-0 text-primary text-xs font-medium" 
+                    onClick={() => setIsAssigning(true)}
+                  >
+                    Change
                   </Button>
                 </div>
                 <p className="text-sm text-muted-foreground capitalize">
@@ -279,6 +314,65 @@ export function TherapistAssignmentCard({ clientId, orgId }: { clientId: string,
                 ) : (
                   <p className="text-xs text-amber-700">No alternate therapists available on this date with matching specialties.</p>
                 )}
+              </div>
+            )}
+
+            {/* Change Specialist Selection */}
+            {isAssigning && (
+              <div className="pt-4 border-t space-y-3">
+                <p className="text-sm font-medium flex items-center gap-2">
+                  <UserPlus className="w-4 h-4" /> Change Assigned Specialist
+                </p>
+                <div className="flex flex-col gap-2">
+                  <Select onValueChange={handleAssign}>
+                    <SelectTrigger className="w-full h-9">
+                      <SelectValue placeholder="Select new specialist..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {consultants.map(c => (
+                        <SelectItem key={c.id} value={c.id}>
+                          {c.name} {c.profession ? `(${c.profession})` : ''}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button variant="ghost" size="sm" className="h-8" onClick={() => setIsAssigning(false)}>
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Assignment History Section */}
+            {history.length > 0 && (
+              <div className="pt-6 border-t mt-6">
+                <div className="flex items-center gap-2 mb-3">
+                  <History className="w-4 h-4 text-muted-foreground" />
+                  <h5 className="text-sm font-semibold text-foreground">Specialist History</h5>
+                </div>
+                <div className="space-y-4 max-h-[200px] overflow-y-auto pr-1 no-scrollbar">
+                  {history.map((entry, idx) => (
+                    <div key={entry.id} className="relative pl-5 border-l border-muted pb-1 last:pb-0">
+                      <div className="absolute left-[-5px] top-1.5 w-2 h-2 rounded-full border border-white bg-muted-foreground ring-4 ring-white" />
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <p className="text-sm font-medium leading-none">
+                            {entry.therapist?.first_name} {entry.therapist?.last_name}
+                            {idx === 0 && entry.therapist_id === data.assigned_therapist?.id && (
+                              <Badge variant="secondary" className="ml-2 h-4 text-[10px] px-1 bg-green-50 text-green-700 border-green-200">Current</Badge>
+                            )}
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {entry.therapist?.profession || "Consultant"}
+                          </p>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground font-mono">
+                          {format(new Date(entry.assigned_at), "MMM d, yyyy")}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
           </>

@@ -184,6 +184,15 @@ export default function FOEDashboard() {
     { title: "Staff On-Duty", value: availableToday.length, icon: Users, change: "Consultants Today", changeType: "positive" },
   ];
 
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 5) return "Good Night";
+    if (hour < 12) return "Good Morning";
+    if (hour < 17) return "Good Afternoon";
+    if (hour < 22) return "Good Evening";
+    return "Good Night";
+  };
+
   return (
     <DashboardLayout role="foe">
       <div className="space-y-6 pb-12">
@@ -192,9 +201,9 @@ export default function FOEDashboard() {
           <div>
             <h1 className="text-3xl font-display font-bold text-foreground flex items-center gap-3">
               <Activity className="w-8 h-8 text-primary" />
-              FOE Operations Hub
+              {getGreeting()}, {profile?.first_name || 'Team'}
             </h1>
-            <p className="text-muted-foreground mt-1 text-sm font-medium">Daily management console for ISHPO front office staff</p>
+            <p className="text-muted-foreground mt-1 text-sm font-medium">FOE Operations Hub — Daily management console</p>
           </div>
           <div className="bg-muted/30 px-4 py-2 rounded-xl border flex items-center gap-3">
              <Clock className="w-4 h-4 text-primary animate-pulse" />

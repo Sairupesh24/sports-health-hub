@@ -8,7 +8,7 @@ import AdHocSessionModal from "@/components/consultant/AdHocSessionModal";
 import { Users, Calendar, ClipboardList, TrendingUp, Clock } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { format, subDays, addDays, startOfDay, endOfDay } from "date-fns";
+import { format, subDays, addDays, startOfDay, endOfDay, startOfMonth } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
@@ -46,6 +46,8 @@ export default function ConsultantDashboard() {
     clientId?: string;
     rawSession?: any;
   }[]>([]);
+  const [assignedClientsCount, setAssignedClientsCount] = useState(0);
+  const [monthSessionsCount, setMonthSessionsCount] = useState(0);
 
   const [soapModalOpen, setSoapModalOpen] = useState(false);
   const [selectedSession, setSelectedSession] = useState<any>(null);
@@ -57,15 +59,16 @@ export default function ConsultantDashboard() {
     if (!profile?.id) return;
 
     const today = new Date();
-    // Broaden search to generously catch UTC shifts for the "current" day
-    const start = subDays(today, 1).toISOString();
-    const end = addDays(today, 1).toISOString();
+    const todayDate = new Date();
+    const start = startOfDay(todayDate).toISOString();
+    const end = endOfDay(todayDate).toISOString();
 
     const { data, error } = await supabase
       .from("sessions")
       .select(`
                     id, 
                     client_id,
+                    organization_id,
                     scheduled_start, 
                     status, 
                     service_type,
@@ -110,17 +113,51 @@ export default function ConsultantDashboard() {
     }
   };
 
+  const fetchAssignedClientsCount = async () => {
+    if (!profile?.id) return;
+    const { count, error } = await supabase
+      .from("clients")
+      .select("*", { count: "exact", head: true })
+      .eq("assigned_consultant_id", profile.id);
+    if (!error) setAssignedClientsCount(count || 0);
+  };
+
+  const fetchMonthSessionsCount = async () => {
+    if (!profile?.id) return;
+    const start = startOfMonth(new Date()).toISOString();
+    const { count, error } = await supabase
+      .from("sessions")
+      .select("*", { count: "exact", head: true })
+      .eq("therapist_id", profile.id)
+      .gte("scheduled_start", start)
+      .eq("status", "Completed");
+    if (!error) setMonthSessionsCount(count || 0);
+  };
+
+  const profileId = profile?.id;
+
   useEffect(() => {
     fetchTodaySessions();
     fetchWaitlistCount();
-  }, [profile?.id]);
+    fetchAssignedClientsCount();
+    fetchMonthSessionsCount();
+  }, [profileId]);
+
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 5) return "Good Night";
+    if (hour < 12) return "Good Morning";
+    if (hour < 17) return "Good Afternoon";
+    if (hour < 22) return "Good Evening";
+    return "Good Night";
+  };
 
   return (
     <DashboardLayout role="consultant">
       <div className="space-y-6">
         <div>
           <h1 className="text-2xl font-display font-bold text-foreground">
-            Good Morning, {profile?.first_name ? `${profile.first_name}` : (profile?.profession || 'Staff')}
+            {getGreeting()}, {profile?.first_name ? `${profile.first_name}` : (profile?.profession || 'Staff')}
           </h1>
           <p className="text-sm font-medium text-primary/80 mb-1">{profile?.profession || 'Specialist Console'}</p>
           <p className="text-muted-foreground mt-1">
@@ -130,11 +167,11 @@ export default function ConsultantDashboard() {
 
         {/* Top Metrics Map */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-          <StatCard title="Assigned Clients" value={24} change="+3 this week" changeType="positive" icon={Users} />
+          <StatCard title="Assigned Clients" value={assignedClientsCount} change={assignedClientsCount > 0 ? "Active athlete portfolio" : "No assigned clients"} changeType="positive" icon={Users} />
           <StatCard title="Today's Sessions" value={liveSchedule.length} change={`${liveSchedule.filter(s => s.status !== 'completed').length} remaining`} changeType="neutral" icon={Calendar} />
           <StatCard title="Pending Waitlist" value={waitlistCount} change={waitlistCount > 0 ? "Potential fills" : "No queue"} changeType={waitlistCount > 0 ? "positive" : "neutral"} icon={Clock} className={waitlistCount > 0 ? "animate-pulse" : ""} />
-          <StatCard title="Sessions This Month" value={42} change="+15% vs last month" changeType="positive" icon={ClipboardList} />
-          <StatCard title="Avg. Improvement" value="18%" change="Pain score reduction" changeType="positive" icon={TrendingUp} />
+          <StatCard title="Sessions This Month" value={monthSessionsCount} change="Completed so far" changeType="positive" icon={ClipboardList} />
+          <StatCard title="Avg. Improvement" value="--" change="Tracking performance" changeType="positive" icon={TrendingUp} />
         </div>
 
         {/* Main Middle Content */}

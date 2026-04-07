@@ -184,7 +184,8 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess, initialDa
             .from("profiles")
             .select("id, first_name, last_name, ams_role, profession")
             .eq("organization_id", profile.organization_id)
-            .eq("is_approved", true);
+            .eq("is_approved", true)
+            .in("profession", ["Sports Physician", "Physiotherapist", "Sports Scientist"]);
 
         if (profilesError || !profilesData) {
             console.error("Fetch Profiles Error:", profilesError);

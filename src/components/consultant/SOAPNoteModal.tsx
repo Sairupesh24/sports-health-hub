@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import PerformanceSnapshot from "./PerformanceSnapshot";
+import SorenessHeatmap from "@/components/ams/SorenessHeatmap";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -46,6 +47,7 @@ export default function SOAPNoteModal({ open, onOpenChange, session, clientId, o
     const [strengthProgress, setStrengthProgress] = useState("");
     const [clinicalNotes, setClinicalNotes] = useState("");
     const [nextPlan, setNextPlan] = useState("");
+    const [sorenessData, setSorenessData] = useState<string[]>([]);
 
     const isCompleted = (session?.physio_session_details && (
         Array.isArray(session.physio_session_details)
@@ -75,6 +77,7 @@ export default function SOAPNoteModal({ open, onOpenChange, session, clientId, o
                 setStrengthProgress(data.strength_progress || "");
                 setClinicalNotes(data.clinical_notes || "");
                 setNextPlan(data.next_plan || "");
+                setSorenessData(data.soreness_data || []);
             } else {
                 setPainScore(0);
                 setSelectedModalities([]);
@@ -85,6 +88,7 @@ export default function SOAPNoteModal({ open, onOpenChange, session, clientId, o
                 setStrengthProgress("");
                 setClinicalNotes("");
                 setNextPlan("");
+                setSorenessData([]);
             }
         }
     }, [open, session, isCompleted]);
@@ -148,16 +152,20 @@ export default function SOAPNoteModal({ open, onOpenChange, session, clientId, o
         try {
             setFetchingPrevious(true);
             const { data, error } = await supabase
-                .from("physio_session_details")
-                .select(`*, sessions!inner(client_id, scheduled_start)`)
-                .eq("sessions.client_id", clientId)
-                .lt("sessions.scheduled_start", session.scheduled_start)
-                .order("sessions.scheduled_start" as any, { ascending: false })
+                .from("sessions")
+                .select(`
+                    scheduled_start,
+                    physio_session_details (*)
+                `)
+                .eq("client_id", clientId)
+                .lt("scheduled_start", session.scheduled_start)
+                .not("physio_session_details", "is", null)
+                .order("scheduled_start", { ascending: false })
                 .limit(1);
 
             if (error) throw error;
-            if (data?.length) {
-                const prev = data[0];
+            if (data?.length && (data[0] as any).physio_session_details) {
+                const prev = (data[0] as any).physio_session_details;
                 setPainScore(prev.pain_score || 0);
                 setSelectedModalities(prev.modality_used ? prev.modality_used.split(',').map((s: string) => s.trim()) : []);
                 setTreatmentType(prev.treatment_type || "");
@@ -167,6 +175,7 @@ export default function SOAPNoteModal({ open, onOpenChange, session, clientId, o
                 setStrengthProgress(prev.strength_progress || "");
                 setClinicalNotes(prev.clinical_notes || "");
                 setNextPlan(prev.next_plan || "");
+                setSorenessData(prev.soreness_data || []);
                 toast({ title: "Copied", description: "Copied data from previous session." });
             } else {
                 toast({ title: "No Previous Note", description: "No previous SOAP notes found.", variant: "destructive" });
@@ -194,7 +203,8 @@ export default function SOAPNoteModal({ open, onOpenChange, session, clientId, o
                 range_of_motion: rangeOfMotion,
                 strength_progress: strengthProgress,
                 clinical_notes: clinicalNotes,
-                next_plan: nextPlan
+                next_plan: nextPlan,
+                soreness_data: sorenessData
             };
 
             let error;
@@ -263,14 +273,14 @@ export default function SOAPNoteModal({ open, onOpenChange, session, clientId, o
                 <DialogHeader className="flex flex-row items-center justify-between border-b pb-4">
                     <div className="flex flex-col gap-1">
                         <DialogTitle className="flex items-center gap-2 text-xl font-display">
-                            SOAP Note — {format(new Date(session.scheduled_start), "MMM d, yyyy")}
+                            SOAP Note — {session?.scheduled_start ? format(new Date(session.scheduled_start), "MMM d, yyyy") : "Consultation"}
                             {isUnentitled && (
                                 <span className="ml-2 px-2 py-0.5 rounded bg-red-100 text-red-700 text-xs font-bold border border-red-300 flex items-center gap-1">
                                     <AlertTriangle className="w-3 h-3" /> UN-ENTITLED
                                 </span>
                             )}
                         </DialogTitle>
-                        <p className="text-sm text-muted-foreground">Athlete: <span className="font-semibold text-foreground">{session.client?.first_name} {session.client?.last_name}</span></p>
+                        <p className="text-sm text-muted-foreground">Athlete: <span className="font-semibold text-foreground">{session.client?.first_name || "Unknown"} {session.client?.last_name || "Athlete"}</span></p>
                     </div>
                     {!isCompleted && (
                         <Button variant="outline" size="sm" onClick={handleCopyPrevious} disabled={fetchingPrevious} className="mr-8">
@@ -325,6 +335,19 @@ export default function SOAPNoteModal({ open, onOpenChange, session, clientId, o
                                     <h3 className="font-bold text-base uppercase tracking-wider text-foreground">Subjective</h3>
                                 </div>
                                 <div className="space-y-6">
+                                    <div className="space-y-4">
+                                        <Label className="text-sm font-semibold text-primary uppercase tracking-widest">Athlete Soreness Map</Label>
+                                        <div className="p-4 bg-muted/10 rounded-2xl border border-dashed border-primary/20">
+                                            <SorenessHeatmap 
+                                                selectedZones={sorenessData} 
+                                                onZoneToggle={(zone) => {
+                                                    setSorenessData(prev => 
+                                                        prev.includes(zone) ? prev.filter(z => z !== zone) : [...prev, zone]
+                                                    );
+                                                }} 
+                                            />
+                                        </div>
+                                    </div>
                                     <div className="space-y-4">
                                         <div className="flex justify-between items-end">
                                             <Label className="text-sm font-semibold">Pain Intensity</Label>
