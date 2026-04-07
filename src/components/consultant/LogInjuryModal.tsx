@@ -10,7 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { PlusCircle } from "lucide-react";
 
 interface LogInjuryModalProps {
-    clientId: string;
+    clientId?: string;
     organizationId: string;
     onSuccess: () => void;
 }
@@ -21,7 +21,9 @@ export default function LogInjuryModal({ clientId, organizationId, onSuccess }: 
     const [regions, setRegions] = useState<string[]>([]);
     const [types, setTypes] = useState<string[]>([]);
     const [diagnoses, setDiagnoses] = useState<string[]>([]);
+    const [clients, setClients] = useState<any[]>([]);
 
+    const [selectedClient, setSelectedClient] = useState(clientId || "");
     const [selectedRegion, setSelectedRegion] = useState("");
     const [selectedType, setSelectedType] = useState("");
     const [selectedDiagnosis, setSelectedDiagnosis] = useState("");
@@ -31,8 +33,11 @@ export default function LogInjuryModal({ clientId, organizationId, onSuccess }: 
     useEffect(() => {
         if (open) {
             fetchRegions();
+            if (!clientId) {
+                fetchClients();
+            }
         }
-    }, [open]);
+    }, [open, clientId]);
 
     useEffect(() => {
         if (selectedRegion) {
@@ -52,8 +57,7 @@ export default function LogInjuryModal({ clientId, organizationId, onSuccess }: 
     const fetchRegions = async () => {
         const { data } = await supabase
             .from('injury_master_data')
-            .select('region')
-            .eq('organization_id', organizationId);
+            .select('region');
 
         if (data) {
             const unique = Array.from(new Set(data.map(d => d.region)));
@@ -61,11 +65,19 @@ export default function LogInjuryModal({ clientId, organizationId, onSuccess }: 
         }
     };
 
+    const fetchClients = async () => {
+        const { data } = await supabase
+            .from('clients')
+            .select('id, first_name, last_name')
+            .is('deleted_at', null)
+            .order('first_name');
+        if (data) setClients(data);
+    };
+
     const fetchTypes = async (region: string) => {
         const { data } = await supabase
             .from('injury_master_data')
             .select('injury_type')
-            .eq('organization_id', organizationId)
             .eq('region', region);
 
         if (data) {
@@ -78,7 +90,6 @@ export default function LogInjuryModal({ clientId, organizationId, onSuccess }: 
         const { data } = await supabase
             .from('injury_master_data')
             .select('diagnosis')
-            .eq('organization_id', organizationId)
             .eq('region', region)
             .eq('injury_type', type);
 
@@ -90,6 +101,10 @@ export default function LogInjuryModal({ clientId, organizationId, onSuccess }: 
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (!selectedClient) {
+            toast({ title: "Validation Error", description: "Please select a client.", variant: "destructive" });
+            return;
+        }
         if (!selectedRegion || !selectedType || !selectedDiagnosis) {
             toast({ title: "Validation Error", description: "Please complete the cascading selections.", variant: "destructive" });
             return;
@@ -103,7 +118,7 @@ export default function LogInjuryModal({ clientId, organizationId, onSuccess }: 
                 .from('injuries')
                 .insert({
                     organization_id: organizationId,
-                    client_id: clientId,
+                    client_id: selectedClient,
                     injury_date: new Date().toISOString().split('T')[0],
                     region: selectedRegion,
                     injury_type: selectedType,
@@ -139,6 +154,24 @@ export default function LogInjuryModal({ clientId, organizationId, onSuccess }: 
                     <DialogTitle>Log New Injury</DialogTitle>
                 </DialogHeader>
                 <form onSubmit={handleSubmit} className="space-y-4 pt-4">
+
+                    {!clientId && (
+                        <div className="space-y-2">
+                            <Label>Client</Label>
+                            <Select value={selectedClient} onValueChange={setSelectedClient} required>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select an athlete..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {clients.map(c => (
+                                        <SelectItem key={c.id} value={c.id}>
+                                            {c.first_name} {c.last_name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    )}
 
                     <div className="space-y-2">
                         <Label>Body Region</Label>

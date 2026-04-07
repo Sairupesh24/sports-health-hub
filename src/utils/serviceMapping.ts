@@ -15,7 +15,7 @@ export const ROLE_SERVICE_CATEGORY_MAP: Record<string, string[]> = {
   'Physiotherapist': ['Physiotherapy', 'Assessment', 'Therapy', 'Rehab'],
   'Sports Scientist': ['S&C', 'Strength & Conditioning', 'Testing', 'Training', 'Performance'],
   'Nutritionist': ['Nutrition', 'Dietary', 'Consultation', 'Nutritionist Consultation'],
-  'Sports Physician': ['Medical', 'Consultation', 'Doctor', 'Physician Consultation'],
+  'Sports Physician': ['Medical', 'Consultation', 'Doctor', 'Physician Consultation', 'Sports Medicine', 'Clinic'],
   'Massage therapist': ['Massage', 'Recovery', 'Manual Therapy', 'Massage Consultation'],
 };
 
@@ -151,6 +151,14 @@ export function resolveServiceId(
     const match = services.find(s => 
       ['nutrition', 'nutritionist', 'dietary']
       .includes(s.name.toLowerCase().trim())
+    );
+    if (match) return match.id;
+  }
+
+  if (effectiveProfession === 'Sports Physician') {
+    const match = services.find(s => 
+      ['medical', 'consultation', 'doctor', 'physician', 'sports medicine', 'clinic']
+      .some(keyword => s.name.toLowerCase().includes(keyword))
     );
     if (match) return match.id;
   }

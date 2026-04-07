@@ -6,7 +6,9 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Activity, User, Search, Filter } from "lucide-react";
 import InjuryDetailModal from "@/components/consultant/InjuryDetailModal";
+import LogInjuryModal from "@/components/consultant/LogInjuryModal";
 import { Input } from "@/components/ui/input";
+import { useAuth } from "@/contexts/AuthContext";
 
 export interface InjuryOverview {
     id: string;
@@ -37,15 +39,15 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 export default function InjuryRepoPage() {
+    const { profile } = useAuth();
     const [injuries, setInjuries] = useState<InjuryOverview[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedInjury, setSelectedInjury] = useState<InjuryOverview | null>(null);
     const [search, setSearch] = useState("");
 
-    useEffect(() => {
-        const fetchAllInjuries = async () => {
-            try {
-                const { data: { user } } = await supabase.auth.getUser();
+    const fetchAllInjuries = async () => {
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
                 if (!user) return;
 
                 const { data, error } = await supabase
@@ -80,6 +82,7 @@ export default function InjuryRepoPage() {
             }
         };
 
+    useEffect(() => {
         fetchAllInjuries();
     }, []);
 
@@ -117,14 +120,22 @@ export default function InjuryRepoPage() {
                             All recorded athlete injuries · Click any row to view clinical details
                         </p>
                     </div>
-                    <div className="relative">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-                        <Input
-                            value={search}
-                            onChange={e => setSearch(e.target.value)}
-                            placeholder="Search client, diagnosis, region…"
-                            className="pl-9 w-72 bg-card"
-                        />
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                        <div className="relative">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                            <Input
+                                value={search}
+                                onChange={e => setSearch(e.target.value)}
+                                placeholder="Search client, diagnosis, region…"
+                                className="pl-9 w-full sm:w-72 bg-card"
+                            />
+                        </div>
+                        {profile?.organization_id && (
+                            <LogInjuryModal 
+                                organizationId={profile.organization_id} 
+                                onSuccess={fetchAllInjuries}
+                            />
+                        )}
                     </div>
                 </div>
 

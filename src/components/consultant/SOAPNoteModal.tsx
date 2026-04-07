@@ -15,6 +15,7 @@ import { format } from "date-fns";
 import { filterServicesByRole, Service } from "@/utils/serviceMapping";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/contexts/AuthContext";
+import LogInjuryModal from "./LogInjuryModal";
 
 interface SOAPNoteModalProps {
     open: boolean;
@@ -48,6 +49,8 @@ export default function SOAPNoteModal({ open, onOpenChange, session, clientId, o
     const [clinicalNotes, setClinicalNotes] = useState("");
     const [nextPlan, setNextPlan] = useState("");
     const [sorenessData, setSorenessData] = useState<string[]>([]);
+    const [clientInjuries, setClientInjuries] = useState<any[]>([]);
+    const [selectedInjuryId, setSelectedInjuryId] = useState<string>("");
 
     const isCompleted = (session?.physio_session_details && (
         Array.isArray(session.physio_session_details)
@@ -78,6 +81,7 @@ export default function SOAPNoteModal({ open, onOpenChange, session, clientId, o
                 setClinicalNotes(data.clinical_notes || "");
                 setNextPlan(data.next_plan || "");
                 setSorenessData(data.soreness_data || []);
+                setSelectedInjuryId(data.injury_id || "");
             } else {
                 setPainScore(0);
                 setSelectedModalities([]);
@@ -89,9 +93,20 @@ export default function SOAPNoteModal({ open, onOpenChange, session, clientId, o
                 setClinicalNotes("");
                 setNextPlan("");
                 setSorenessData([]);
+                setSelectedInjuryId("");
             }
         }
     }, [open, session, isCompleted]);
+
+    const fetchInjuries = async () => {
+        if (!clientId) return;
+        const { data } = await supabase
+            .from("injuries")
+            .select("id, diagnosis, injury_type, region, status")
+            .eq("client_id", clientId)
+            .order("created_at", { ascending: false });
+        if (data) setClientInjuries(data);
+    };
 
     const fetchServices = async () => {
         if (!session?.organization_id) return;
@@ -140,6 +155,12 @@ export default function SOAPNoteModal({ open, onOpenChange, session, clientId, o
         fetchBalance();
     }, [open, session?.id, session?.status, clientId, session?.service_type, serviceId]);
 
+    useEffect(() => {
+        if (open && clientId) {
+            fetchInjuries();
+        }
+    }, [open, clientId]);
+
     const handleModalityToggle = (modality: string) => {
         setSelectedModalities(prev => {
             if (modality === "NONE") return ["NONE"];
@@ -176,6 +197,7 @@ export default function SOAPNoteModal({ open, onOpenChange, session, clientId, o
                 setClinicalNotes(prev.clinical_notes || "");
                 setNextPlan(prev.next_plan || "");
                 setSorenessData(prev.soreness_data || []);
+                setSelectedInjuryId(prev.injury_id || "");
                 toast({ title: "Copied", description: "Copied data from previous session." });
             } else {
                 toast({ title: "No Previous Note", description: "No previous SOAP notes found.", variant: "destructive" });
@@ -204,7 +226,8 @@ export default function SOAPNoteModal({ open, onOpenChange, session, clientId, o
                 strength_progress: strengthProgress,
                 clinical_notes: clinicalNotes,
                 next_plan: nextPlan,
-                soreness_data: sorenessData
+                soreness_data: sorenessData,
+                injury_id: selectedInjuryId === "none" || selectedInjuryId === "" ? null : selectedInjuryId
             };
 
             let error;
@@ -426,6 +449,36 @@ export default function SOAPNoteModal({ open, onOpenChange, session, clientId, o
                                                 ⚠️ Please select the session type before finalizing.
                                             </p>
                                         )}
+                                    </div>
+                                    <div className="space-y-2">
+                                        <div className="flex justify-between items-center mb-1">
+                                            {/* Linked injury section */}
+                                            <Label className="text-sm font-semibold">Linked Injury / Diagnosis</Label>
+                                            {!isCompleted && (
+                                                <LogInjuryModal 
+                                                    clientId={clientId} 
+                                                    organizationId={session.organization_id} 
+                                                    onSuccess={() => { fetchInjuries(); }} 
+                                                />
+                                            )}
+                                        </div>
+                                        <Select 
+                                            value={selectedInjuryId || "none"} 
+                                            onValueChange={v => setSelectedInjuryId(v === "none" ? "" : v)}
+                                            disabled={isCompleted}
+                                        >
+                                            <SelectTrigger className="bg-muted/20">
+                                                <SelectValue placeholder="Select target injury being treated..." />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="none">No specific injury / General session</SelectItem>
+                                                {clientInjuries.map(inj => (
+                                                    <SelectItem key={inj.id} value={inj.id}>
+                                                        {inj.diagnosis || inj.injury_type} ({inj.region}) - {inj.status}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
                                     </div>
                                     <div className="space-y-2">
                                         <Label className="text-sm font-semibold">Rehabilitation Plan</Label>

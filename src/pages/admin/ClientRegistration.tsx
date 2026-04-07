@@ -37,6 +37,7 @@ const clientSchema = z.object({
   alternate_mobile_no: z.string().optional(),
   occupation: z.string().optional(),
   sport: z.string().optional(),
+  athlete_type: z.string().optional(),
   org_name: z.string().optional(),
   address: z.string().optional(),
   locality: z.string().optional(),
@@ -67,6 +68,7 @@ const SPORTS = [
   "Table Tennis", "Shooting", "Archery", "Weightlifting", "Gymnastics",
   "Cycling", "Rugby", "Martial Arts", "Other",
 ];
+const ATHLETE_TYPES = ["Professional", "Semi-Professional", "Amateur", "Recreational", "Student Athlete", "Fitness Enthusiast", "Other"];
 const REFERRAL_SOURCES = [
   "Social Media", "Word of Mouth", "Doctor Referral", "Badminton Academy (PGBA)", "Walk-in", "Other"
 ];
@@ -89,6 +91,8 @@ export default function ClientRegistration() {
   const queryClient = useQueryClient();
   const [openOrg, setOpenOrg] = useState(false);
   const [orgSearch, setOrgSearch] = useState("");
+  const [openReferral, setOpenReferral] = useState(false);
+  const [referralSearch, setReferralSearch] = useState("");
 
   const { data: organizations = [] } = useQuery({
     queryKey: ["client_organizations"],
@@ -104,6 +108,45 @@ export default function ClientRegistration() {
     },
     enabled: !!profile?.organization_id,
   });
+
+  const { data: referralSources = [] } = useQuery({
+    queryKey: ["referral_sources"],
+    queryFn: async () => {
+      if (!profile?.organization_id) return [];
+      const { data, error } = await supabase
+        .from("referral_sources")
+        .select("name")
+        .eq("organization_id", profile.organization_id)
+        .order("name");
+      if (error) throw error;
+      return data.map(d => d.name);
+    },
+    enabled: !!profile?.organization_id,
+  });
+
+  const generateReferralMutation = useMutation({
+    mutationFn: async (newName: string) => {
+      const { data, error } = await supabase
+        .from("referral_sources")
+        .insert({ organization_id: profile!.organization_id, name: newName })
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["referral_sources"] });
+      setValue("referral_source", data.name);
+      setOpenReferral(false);
+      toast({ title: "Referral Source Added", description: `${data.name} is now available.` });
+    }
+  });
+
+  const handleCreateReferral = () => {
+    if (referralSearch && !referralSources.includes(referralSearch)) {
+      generateReferralMutation.mutate(referralSearch);
+    }
+  };
 
   const generateOrgMutation = useMutation({
     mutationFn: async (newName: string) => {
@@ -197,6 +240,7 @@ export default function ClientRegistration() {
         alternate_mobile_no: data.alternate_mobile_no || null,
         occupation: data.occupation || null,
         sport: data.sport || null,
+        athlete_type: data.athlete_type || null,
         org_name: data.org_name || null,
         address: data.address || null,
         locality: data.locality || null,
@@ -326,7 +370,7 @@ export default function ClientRegistration() {
                 </div>
               </div>
 
-              {/* Row 2: Gender, Mobile, Aadhaar, Blood Group */}
+              {/* Row 2: Gender, DOB, Age, Mobile */}
               <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
                 <div className="space-y-1.5">
                   <Label>Gender</Label>
@@ -337,68 +381,6 @@ export default function ClientRegistration() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-1.5">
-                  <Label>Mobile No <span className="text-destructive">*</span></Label>
-                  <Input className={inputClass} {...register("mobile_no")} placeholder="+91 9876543210" />
-                  {errors.mobile_no && <p className="text-xs text-destructive">{errors.mobile_no.message}</p>}
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Aadhaar No</Label>
-                  <Input className={inputClass} {...register("aadhaar_no")} placeholder="1234 5678 9012" maxLength={14} />
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Blood Group</Label>
-                  <Select onValueChange={(v) => setValue("blood_group", v)}>
-                    <SelectTrigger className={inputClass}><SelectValue placeholder="Select" /></SelectTrigger>
-                    <SelectContent>
-                      {BLOOD_GROUPS.map((bg) => <SelectItem key={bg} value={bg}>{bg}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              
-              {/* Referral Source Row */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-                <div className="space-y-1.5">
-                  <Label>How did you hear about us? (Referral Source)</Label>
-                  <Select onValueChange={(v) => setValue("referral_source", v)}>
-                    <SelectTrigger className={inputClass}><SelectValue placeholder="Select Source" /></SelectTrigger>
-                    <SelectContent>
-                      {REFERRAL_SOURCES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-                {(watch("referral_source") === "Doctor Referral" || watch("referral_source") === "Other") && (
-                  <div className="space-y-1.5 animate-in fade-in slide-in-from-top-2">
-                    <Label>Specify Source <span className="text-destructive">*</span></Label>
-                    <Input 
-                        className={inputClass} 
-                        {...register("referral_source_detail")} 
-                        placeholder={watch("referral_source") === "Doctor Referral" ? "Enter Doctor's Name" : "Please specify"} 
-                    />
-                  </div>
-                )}
-              </div>
-
-              {/* VIP Status */}
-              <div className="flex items-center justify-between p-3 rounded-lg bg-yellow-500/5 border border-yellow-500/20 mb-4">
-                  <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-yellow-500/10 flex items-center justify-center">
-                          <Plus className="w-5 h-5 text-yellow-600" />
-                      </div>
-                      <div>
-                          <Label className="text-sm font-bold text-yellow-800">VIP Client Tier</Label>
-                          <p className="text-xs text-yellow-600/80 font-medium">Mark this client for premium services and priority care</p>
-                      </div>
-                  </div>
-                  <Switch
-                      checked={watch("is_vip")}
-                      onCheckedChange={(v) => setValue("is_vip", v)}
-                  />
-              </div>
-
-              {/* Row 3: DOB, Age, Email, Alternate Mobile */}
-              <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
                 <div className="space-y-1.5 flex flex-col justify-end">
                   <Label>Date of Birth <span className="text-destructive">*</span></Label>
                   <Input
@@ -417,17 +399,35 @@ export default function ClientRegistration() {
                   <Input type="number" className={inputClass} {...register("age")} placeholder="Auto" readOnly />
                 </div>
                 <div className="space-y-1.5">
+                  <Label>Mobile No <span className="text-destructive">*</span></Label>
+                  <Input className={inputClass} {...register("mobile_no")} placeholder="+91 9876543210" />
+                  {errors.mobile_no && <p className="text-xs text-destructive">{errors.mobile_no.message}</p>}
+                </div>
+              </div>
+
+              {/* Row 3: Email, Aadhaar, Blood Group */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="space-y-1.5">
                   <Label>Email</Label>
                   <Input type="email" className={inputClass} {...register("email")} placeholder="email@example.com" />
                   {errors.email && <p className="text-xs text-destructive">{errors.email.message}</p>}
                 </div>
                 <div className="space-y-1.5">
-                  <Label>Alternate Mobile</Label>
-                  <Input className={inputClass} {...register("alternate_mobile_no")} placeholder="Optional" />
+                  <Label>Aadhaar No</Label>
+                  <Input className={inputClass} {...register("aadhaar_no")} placeholder="1234 5678 9012" maxLength={14} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Blood Group</Label>
+                  <Select onValueChange={(v) => setValue("blood_group", v)}>
+                    <SelectTrigger className={inputClass}><SelectValue placeholder="Select" /></SelectTrigger>
+                    <SelectContent>
+                      {BLOOD_GROUPS.map((bg) => <SelectItem key={bg} value={bg}>{bg}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 
-              {/* Row 4: Occupation, Org */}
+              {/* Row 4: Occupation, Sport, Athlete Type */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="space-y-1.5">
                   <Label>Occupation</Label>
@@ -442,6 +442,76 @@ export default function ClientRegistration() {
                     </SelectContent>
                   </Select>
                 </div>
+                <div className="space-y-1.5">
+                  <Label>Type of Athlete</Label>
+                  <Select onValueChange={(v) => setValue("athlete_type", v)}>
+                    <SelectTrigger className={inputClass}><SelectValue placeholder="Select type" /></SelectTrigger>
+                    <SelectContent>
+                      {ATHLETE_TYPES.map((a) => <SelectItem key={a} value={a}>{a}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Row 5: Referral Source, Organization Name */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5 flex flex-col">
+                  <Label>How did you hear about us? (Referral Source)</Label>
+                  <Popover open={openReferral} onOpenChange={setOpenReferral}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={openReferral}
+                        className={cn("w-full justify-between h-9 bg-muted/30 border-border hover:bg-muted font-normal", !watch("referral_source") && "text-muted-foreground")}
+                      >
+                        {watch("referral_source") || "Select source..."}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[300px] p-0" align="start">
+                      <Command>
+                        <CommandInput
+                          placeholder="Search source..."
+                          value={referralSearch}
+                          onValueChange={setReferralSearch}
+                        />
+                        <CommandList>
+                          <CommandEmpty className="py-6 text-center text-sm">
+                            <p className="text-muted-foreground mb-2">No source found.</p>
+                            {referralSearch && (
+                              <Button variant="secondary" size="sm" onClick={handleCreateReferral}>
+                                <Plus className="w-3 h-3 mr-1" />
+                                Add "{referralSearch}"
+                              </Button>
+                            )}
+                          </CommandEmpty>
+                          <CommandGroup>
+                            {referralSources.map((source) => (
+                              <CommandItem
+                                key={source}
+                                value={source}
+                                onSelect={(currentValue) => {
+                                  setValue("referral_source", currentValue);
+                                  setOpenReferral(false);
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    watch("referral_source") === source ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
+                                {source}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                </div>
+
                 <div className="space-y-1.5 flex flex-col">
                   <Label>Organization Name</Label>
                   <Popover open={openOrg} onOpenChange={setOpenOrg}>
@@ -498,6 +568,34 @@ export default function ClientRegistration() {
                     </PopoverContent>
                   </Popover>
                 </div>
+              </div>
+
+              {(watch("referral_source") === "Doctor Referral" || watch("referral_source") === "Other") && (
+                <div className="space-y-1.5 animate-in fade-in slide-in-from-top-2">
+                  <Label>Specify Source <span className="text-destructive">*</span></Label>
+                  <Input 
+                      className={inputClass} 
+                      {...register("referral_source_detail")} 
+                      placeholder={watch("referral_source") === "Doctor Referral" ? "Enter Doctor's Name" : "Please specify"} 
+                  />
+                </div>
+              )}
+
+              {/* VIP Status */}
+              <div className="flex items-center justify-between p-3 rounded-lg bg-yellow-500/5 border border-yellow-500/20 mb-4">
+                  <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-yellow-500/10 flex items-center justify-center">
+                          <Plus className="w-5 h-5 text-yellow-600" />
+                      </div>
+                      <div>
+                          <Label className="text-sm font-bold text-yellow-800">VIP Client Tier</Label>
+                          <p className="text-xs text-yellow-600/80 font-medium">Mark this client for premium services and priority care</p>
+                      </div>
+                  </div>
+                  <Switch
+                      checked={watch("is_vip")}
+                      onCheckedChange={(v) => setValue("is_vip", v)}
+                  />
               </div>
             </CardContent>
           </Card>
