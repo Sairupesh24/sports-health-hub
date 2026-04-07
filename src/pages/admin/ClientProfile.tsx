@@ -54,8 +54,12 @@ export default function ClientProfile() {
     const { roles, profile: currentUserProfile } = useAuth();
     const isAdmin = roles.includes('admin');
     const isFOE = roles.includes('foe');
-    const isSportsPhysician = currentUserProfile?.profession === 'Sports Physician' || roles.includes('sports_physician') || roles.includes('consultant');
-    const canAccessDocuments = (isAdmin && !isFOE) || isSportsPhysician;
+    const isClinicalSpecialist = currentUserProfile?.profession === 'Sports Physician' || 
+                                 currentUserProfile?.profession === 'Physiotherapist' ||
+                                 roles.includes('sports_physician') || 
+                                 roles.includes('physiotherapist') ||
+                                 roles.includes('consultant');
+    const canAccessDocuments = (isAdmin && !isFOE) || isClinicalSpecialist;
     
     const [adminRemarks, setAdminRemarks] = useState("");
     const [isUpdatingRemarks, setIsUpdatingRemarks] = useState(false);

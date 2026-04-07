@@ -13,12 +13,16 @@ import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 
-const stats = [
-  { title: "Assigned Clients", value: 24, change: "+3 this week", changeType: "positive" as const, icon: Users },
-  { title: "Today's Sessions", value: 6, change: "2 remaining", changeType: "neutral" as const, icon: Calendar },
-  { title: "Sessions This Month", value: 42, change: "+15% vs last month", changeType: "positive" as const, icon: ClipboardList },
-  { title: "Avg. Improvement", value: "18%", change: "Pain score reduction", changeType: "positive" as const, icon: TrendingUp },
-];
+interface SessionData {
+  id: string;
+  scheduled_start: string;
+  status: "Planned" | "Completed" | "Missed" | "Rescheduled";
+  service_type: string;
+  client: {
+    first_name: string;
+    last_name: string;
+  };
+}
 
 interface SessionData {
   id: string;
@@ -48,6 +52,7 @@ export default function ConsultantDashboard() {
   }[]>([]);
   const [assignedClientsCount, setAssignedClientsCount] = useState(0);
   const [monthSessionsCount, setMonthSessionsCount] = useState(0);
+  const [avgImprovement, setAvgImprovement] = useState("--");
 
   const [soapModalOpen, setSoapModalOpen] = useState(false);
   const [selectedSession, setSelectedSession] = useState<any>(null);
@@ -133,6 +138,58 @@ export default function ConsultantDashboard() {
       .eq("status", "Completed");
     if (!error) setMonthSessionsCount(count || 0);
   };
+  
+  const fetchAvgImprovement = async () => {
+    if (!profile?.id) return;
+    
+    // Get pain scores from sessions to calculate improvement
+    const { data: details, error } = await supabase
+      .from("physio_session_details")
+      .select(`
+        pain_score,
+        session:sessions(client_id, scheduled_start)
+      `)
+      .order("created_at", { ascending: true }); // Using created_at as proxy for session order if needed, but scheduled_start is better
+      
+    if (error || !details || details.length === 0) {
+      setAvgImprovement("0%");
+      return;
+    }
+    
+    // Group by client and find first/last pain score
+    const clientStats: Record<string, { first: number, last: number, count: number }> = {};
+    (details as any[]).forEach(d => {
+      const clientId = d.session?.client_id;
+      if (!clientId) return;
+      const score = d.pain_score;
+      if (score === null || score === undefined) return;
+      
+      if (!clientStats[clientId]) {
+        clientStats[clientId] = { first: score, last: score, count: 1 };
+      } else {
+        clientStats[clientId].last = score;
+        clientStats[clientId].count++;
+      }
+    });
+    
+    let totalReduction = 0;
+    let count = 0;
+    Object.values(clientStats).forEach(s => {
+      if (s.count > 1 && s.first > 0) {
+        const reduction = s.first - s.last;
+        // If pain increased, reduction is negative
+        totalReduction += (reduction / s.first) * 100;
+        count++;
+      }
+    });
+    
+    if (count === 0) {
+      setAvgImprovement("0%");
+    } else {
+      const avg = Math.round(totalReduction / count);
+      setAvgImprovement(`${avg}%`);
+    }
+  };
 
   const profileId = profile?.id;
 
@@ -141,6 +198,7 @@ export default function ConsultantDashboard() {
     fetchWaitlistCount();
     fetchAssignedClientsCount();
     fetchMonthSessionsCount();
+    fetchAvgImprovement();
   }, [profileId]);
 
   const getGreeting = () => {
@@ -171,7 +229,7 @@ export default function ConsultantDashboard() {
           <StatCard title="Today's Sessions" value={liveSchedule.length} change={`${liveSchedule.filter(s => s.status !== 'completed').length} remaining`} changeType="neutral" icon={Calendar} />
           <StatCard title="Pending Waitlist" value={waitlistCount} change={waitlistCount > 0 ? "Potential fills" : "No queue"} changeType={waitlistCount > 0 ? "positive" : "neutral"} icon={Clock} className={waitlistCount > 0 ? "animate-pulse" : ""} />
           <StatCard title="Sessions This Month" value={monthSessionsCount} change="Completed so far" changeType="positive" icon={ClipboardList} />
-          <StatCard title="Avg. Improvement" value="--" change="Tracking performance" changeType="positive" icon={TrendingUp} />
+          <StatCard title="Avg. Improvement" value={avgImprovement} change="Pain score reduction" changeType="positive" icon={TrendingUp} />
         </div>
 
         {/* Main Middle Content */}

@@ -36,8 +36,12 @@ export default function AthleteList({ athletes, dateRange }: AthleteListProps) {
   const toastedRef = useRef<Set<string>>(new Set());
 
   const isAdmin = roles.includes('admin');
-  const isSportsPhysician = currentUserProfile?.profession === 'Sports Physician' || roles.includes('sports_physician') || roles.includes('consultant');
-  const canAccessDocuments = isAdmin || isSportsPhysician;
+  const isClinicalSpecialist = currentUserProfile?.profession === 'Sports Physician' || 
+                                 currentUserProfile?.profession === 'Physiotherapist' ||
+                                 roles.includes('sports_physician') || 
+                                 roles.includes('physiotherapist') ||
+                                 roles.includes('consultant');
+  const canAccessDocuments = isAdmin || isClinicalSpecialist;
 
   useEffect(() => {
     if (!athletes) return;

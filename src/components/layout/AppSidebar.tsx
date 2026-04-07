@@ -103,6 +103,7 @@ const navMap: Record<string, NavItem[]> = {
   super_admin: superAdminNav,
   admin: adminNav,
   consultant: consultantNav,
+  physiotherapist: consultantNav,
   client: clientNav,
   foe: foeNav,
   sports_scientist: sportsScientistNav,

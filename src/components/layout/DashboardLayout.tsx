@@ -20,6 +20,7 @@ export default function DashboardLayout({ role, children }: DashboardLayoutProps
   if (roles?.includes("super_admin")) effectiveRole = "super_admin";
   else if (roles?.includes("admin")) effectiveRole = "admin";
   else if (roles?.includes("consultant")) effectiveRole = "consultant";
+  else if (roles?.includes("physiotherapist")) effectiveRole = "physiotherapist";
   else if (roles?.includes("foe")) effectiveRole = "foe";
   else if (roles?.includes("sports_scientist")) effectiveRole = "sports_scientist";
   else if (roles?.includes("manager")) effectiveRole = "manager";
