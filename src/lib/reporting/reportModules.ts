@@ -101,6 +101,26 @@ export const REPORT_STRUCTURE: Record<ReportModule, ReportTemplate[]> = {
     { id: "revenue_by_service", name: "Revenue by Service", description: "Financial breakdown by service type", columns: [
         { key: "service_type", label: "Service" },
         { key: "revenue", label: "Revenue" }
+    ]},
+    { id: "full_transaction_ledger", name: "Full Transaction Ledger", description: "All invoices and refunds merged in chronological order", columns: [
+        { key: "date", label: "Date" },
+        { key: "type", label: "Type" },
+        { key: "reference", label: "Reference #" },
+        { key: "client_name", label: "Client" },
+        { key: "amount", label: "Amount" },
+        { key: "mode", label: "Mode" },
+        { key: "status", label: "Status" },
+        { key: "entitlement_status", label: "Entitlements" }
+    ]},
+    { id: "refund_summary", name: "Refund Summary", description: "All processed refunds with proof and authorization details", columns: [
+        { key: "date", label: "Date" },
+        { key: "reference", label: "Refund #" },
+        { key: "client_name", label: "Client" },
+        { key: "original_invoice", label: "Invoice #" },
+        { key: "amount", label: "Amount" },
+        { key: "mode", label: "Mode" },
+        { key: "authorized_by", label: "Auth By" },
+        { key: "entitlements_reversed", label: "Entitlements" }
     ]}
   ],
   physio: [
@@ -180,31 +200,116 @@ export async function generateReportData(module: ReportModule, templateId: strin
     switch (module) {
         case "registration":
             if (templateId === "client_list") {
-                const { data, error } = await supabase
+                const { startDate, endDate } = filters;
+                let query = supabase
                     .from("clients")
                     .select("uhid, first_name, last_name, email, mobile_no, registered_on")
                     .is("deleted_at", null)
                     .order("registered_on", { ascending: false });
                 
+                if (startDate) query = query.gte('registered_on', startDate);
+                if (endDate) query = query.lte('registered_on', endDate);
+
+                const { data, error } = await query;
+                
                 if (error) throw error;
-                return data.map(c => ({
+                return (data || []).map(c => ({
                     ...c,
-                    full_name: `${c.first_name} ${c.last_name}`
+                    full_name: `${c.first_name} ${c.last_name}`,
+                    registered_on: c.registered_on ? format(new Date(c.registered_on), "dd-MM-yyyy HH:mm:ss") : "—"
                 }));
             }
             break;
         
         case "billing":
             if (templateId === "invoice_summary") {
-                const { data, error } = await supabase
+                const { startDate, endDate } = filters;
+                let query = supabase
                     .from("bills")
                     .select("id, total, status, transaction_id, created_at, clients(first_name, last_name)")
                     .order("created_at", { ascending: false });
                 
+                if (startDate) query = query.gte('created_at', startDate);
+                if (endDate) query = query.lte('created_at', endDate);
+
+                const { data, error } = await query;
+                
                 if (error) throw error;
                 return (data as any[]).map(b => ({
                     ...b,
-                    client_name: b.clients ? `${(b.clients as any).first_name} ${(b.clients as any).last_name}` : "Unknown"
+                    client_name: b.clients ? `${(b.clients as any).first_name} ${(b.clients as any).last_name}` : "Unknown",
+                    created_at: b.created_at ? format(new Date(b.created_at), "dd-MM-yyyy HH:mm:ss") : "—"
+                }));
+            }
+            if (templateId === "full_transaction_ledger") {
+                const { startDate, endDate } = filters;
+                
+                let bQuery = supabase.from("bills").select("id, total, status, payment_method, created_at, clients(first_name, last_name)").order("created_at", { ascending: false });
+                let rQuery = (supabase as any).from("refunds").select("id, amount, refund_mode, is_entitlement_reversed, created_at, bill_id, clients(first_name, last_name)").order("created_at", { ascending: false });
+
+                if (startDate) {
+                    bQuery = bQuery.gte('created_at', startDate);
+                    rQuery = rQuery.gte('created_at', startDate);
+                }
+                if (endDate) {
+                    bQuery = bQuery.lte('created_at', endDate);
+                    rQuery = rQuery.lte('created_at', endDate);
+                }
+
+                const [{ data: billsData, error: bErr }, { data: refundsData, error: rErr }] = await Promise.all([
+                    bQuery,
+                    rQuery
+                ]);
+                if (bErr) throw bErr;
+                if (rErr) throw rErr;
+
+                const bills = (billsData as any[]).map(b => ({
+                    date: format(new Date(b.created_at), "dd-MM-yyyy HH:mm:ss"),
+                    type: "INVOICE",
+                    reference: b.id.substring(0, 8).toUpperCase(),
+                    client_name: b.clients ? `${(b.clients as any).first_name} ${(b.clients as any).last_name}` : "Unknown",
+                    amount: `Rs. ${Number(b.total).toFixed(2)}`,
+                    mode: b.payment_method || "—",
+                    status: b.status,
+                    entitlement_status: "—",
+                    _date: new Date(b.created_at).getTime()
+                }));
+
+                const refunds = (refundsData as any[]).map(r => ({
+                    date: format(new Date(r.created_at), "dd-MM-yyyy HH:mm:ss"),
+                    type: "REFUND",
+                    reference: r.id.substring(0, 8).toUpperCase(),
+                    client_name: r.clients ? `${(r.clients as any).first_name} ${(r.clients as any).last_name}` : "Unknown",
+                    amount: `− Rs. ${Number(r.amount).toFixed(2)}`,
+                    mode: r.refund_mode,
+                    status: "Refunded",
+                    entitlement_status: r.is_entitlement_reversed ? "Reversed" : "Retained",
+                    _date: new Date(r.created_at).getTime()
+                }));
+
+                return [...bills, ...refunds].sort((a, b) => b._date - a._date);
+            }
+            if (templateId === "refund_summary") {
+                const { startDate, endDate } = filters;
+                let query = (supabase as any)
+                    .from("refunds")
+                    .select("id, amount, refund_mode, authorized_by, is_entitlement_reversed, created_at, bill_id, clients(first_name, last_name)")
+                    .order("created_at", { ascending: false });
+                
+                if (startDate) query = query.gte('created_at', startDate);
+                if (endDate) query = query.lte('created_at', endDate);
+
+                const { data, error } = await query;
+                if (error) throw error;
+                return (data as any[]).map(r => ({
+                    date: format(new Date(r.created_at), "dd-MM-yyyy HH:mm:ss"),
+                    reference: r.id.substring(0, 8).toUpperCase(),
+                    client_name: r.clients ? `${(r.clients as any).first_name} ${(r.clients as any).last_name}` : "Unknown",
+                    original_invoice: r.bill_id ? r.bill_id.substring(0, 8).toUpperCase() : "—",
+                    amount: `Rs. ${Number(r.amount).toFixed(2)}`,
+                    mode: r.refund_mode,
+                    authorized_by: r.authorized_by || "—",
+                    entitlements_reversed: r.is_entitlement_reversed ? "Yes — Reversed" : "No — Retained",
                 }));
             }
             break;
@@ -259,7 +364,7 @@ export async function generateReportData(module: ReportModule, templateId: strin
                             if (!lift) return;
                             
                             flattened.push({
-                                date: format(workoutDate, 'yyyy-MM-dd'),
+                                date: format(workoutDate, 'dd-MM-yyyy'),
                                 workout_title: day.title,
                                 exercise_name: lift.exercise?.name || 'Unknown',
                                 workout_grouping: lift.workout_grouping || '-',

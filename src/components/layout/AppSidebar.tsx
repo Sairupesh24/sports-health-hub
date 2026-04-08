@@ -16,6 +16,7 @@ import {
   Clock,
   CalendarDays,
   CalendarPlus,
+  MessageSquare,
 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
@@ -32,9 +33,9 @@ interface NavItem {
 const adminNav: NavItem[] = [
   { label: "Dashboard", icon: LayoutDashboard, href: "/admin" },
   { label: "Clients", icon: Users, href: "/admin/clients" },
+  { label: "Leads", icon: MessageSquare, href: "/admin/leads" },
   { label: "Calendar", icon: CalendarDays, href: "/admin/calendar" },
   { label: "Reports", icon: ClipboardList, href: "/admin/reports" },
-  { label: "Programs", icon: Dumbbell, href: "/admin/programs", isUnderDevelopment: true },
   { label: "Billing", icon: CreditCard, href: "/admin/billing" },
   { label: "Settings", icon: Settings, href: "/admin/settings", isUnderDevelopment: true },
   { label: "User Approval", icon: UserCheck, href: "/admin/users" },
@@ -61,9 +62,9 @@ const clientNav: NavItem[] = [
 const foeNav: NavItem[] = [
   { label: "Dashboard", icon: LayoutDashboard, href: "/admin" },
   { label: "Clients", icon: Users, href: "/admin/clients" },
+  { label: "Leads", icon: MessageSquare, href: "/admin/leads" },
   { label: "Calendar", icon: CalendarDays, href: "/admin/calendar" },
   { label: "Reports", icon: ClipboardList, href: "/admin/reports" },
-  { label: "Programs", icon: Dumbbell, href: "/admin/programs", isUnderDevelopment: true },
   { label: "Billing", icon: CreditCard, href: "/admin/billing" },
   { label: "Settings", icon: Settings, href: "/admin/settings", isUnderDevelopment: true },
 ];

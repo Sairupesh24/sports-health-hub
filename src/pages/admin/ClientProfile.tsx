@@ -171,7 +171,11 @@ export default function ClientProfile() {
                     notes,
                     transaction_id,
                     payment_method,
-                    packages(name, package_services(sessions_included, services(name)))
+                    bill_items(
+                        id,
+                        total,
+                        packages(name, package_services(sessions_included, services(name)))
+                    )
                 `)
                 .eq('client_id', id)
                 .order('created_at', { ascending: false });
@@ -306,8 +310,11 @@ export default function ClientProfile() {
         if (client.email) d.text(`Email : ${client.email}`, 14, 83);
 
         // Table
-        const pkgName = bill.packages ? bill.packages.name : "Custom Package";
-        const tableData = [["1", pkgName, `Rs. ${bill.total}`]];
+        const tableData = (bill.bill_items as any[])?.map((bi, index) => [
+            (index + 1).toString(),
+            bi.packages ? bi.packages.name : "Custom Package",
+            `Rs. ${bi.total}`
+        ]) || [];
 
         autoTable(d, {
             startY: 95,
@@ -325,13 +332,18 @@ export default function ClientProfile() {
 
         // Entitlements breakdown
         const entitlementsBody: any[] = [];
-        if (bill.packages && bill.packages.package_services) {
-            bill.packages.package_services.forEach((ps: any) => {
-                entitlementsBody.push([
-                    pkgName,
-                    ps.services?.name || 'Session',
-                    `${ps.sessions_included} Sessions`
-                ]);
+        if (bill.bill_items) {
+            bill.bill_items.forEach((bi: any) => {
+                const pkg = bi.packages;
+                if (pkg && pkg.package_services) {
+                    pkg.package_services.forEach((ps: any) => {
+                        entitlementsBody.push([
+                            pkg.name,
+                            ps.services?.name || 'Session',
+                            `${ps.sessions_included} Sessions`
+                        ]);
+                    });
+                }
             });
         }
 
@@ -360,15 +372,16 @@ export default function ClientProfile() {
         d.setTextColor(15, 23, 42);
         d.text(`Rs. ${bill.total}`, 185, finalY, { align: "right" });
 
-        d.setFontSize(10);
-        d.setFont("helvetica", "normal");
+        // Add Payment Status
+        d.setFontSize(11);
+        d.setFont("helvetica", "bold");
         if (bill.status === "Paid") {
             d.setTextColor(16, 185, 129); // emerald-500
             const payMethodStatus = `STATUS: PAID VIA ${bill.payment_method?.toUpperCase() || (bill.notes?.split('via ')[1]?.split(' (')[0]?.toUpperCase()) || 'N/A'}${bill.transaction_id ? ` (TXN: ${bill.transaction_id})` : ''}`;
             d.text(payMethodStatus, 14, finalY + 20);
         } else {
             d.setTextColor(245, 158, 11); // amber-500
-            d.text("STATUS: PENDING", 14, finalY + 20);
+            d.text("STATUS: PENDING PAYMENT", 14, finalY + 20);
         }
 
         d.save(`Invoice_${bill.id.substring(0, 8)}.pdf`);
@@ -804,7 +817,7 @@ export default function ClientProfile() {
                                                 <tr key={bill.id} className="border-b last:border-0 hover:bg-muted/20 transition-colors">
                                                     <td className="p-3 font-medium text-foreground">{bill.id.substring(0, 8)}...</td>
                                                     <td className="p-3 text-muted-foreground">{format(new Date(bill.created_at), "dd MMM yyyy")}</td>
-                                                    <td className="p-3 text-muted-foreground">{bill.packages ? bill.packages.name : "Custom"}</td>
+                                                    <td className="p-3 text-muted-foreground">{bill.bill_items?.map((bi: any) => bi.packages?.name).join(", ") || "Custom"}</td>
                                                     <td className="p-3 text-right font-medium">Rs. {bill.total}</td>
                                                     <td className="p-3 text-center">
                                                         <span className={`inline-block px-2 py-0.5 rounded text-xs font-semibold ${bill.status === 'Paid' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-amber-500/10 text-amber-600'}`}>

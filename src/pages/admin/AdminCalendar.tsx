@@ -42,18 +42,22 @@ type ViewMode = "day" | "week" | "month";
 
 interface SessionEvent {
     id: string;
-    client_id: string;
+    client_id: string | null;
     therapist_id: string;
     scheduled_start: string;
     scheduled_end: string;
     status: string;
     service_id?: string | null;
     service_type: string;
-    client: { first_name: string; last_name: string; is_vip?: boolean };
+    client: { first_name: string; last_name: string; is_vip?: boolean } | null;
     therapist: { first_name: string; last_name: string; role?: string };
     rawSession: any;
     is_unentitled?: boolean;
     is_pre_unentitled?: boolean;
+    is_guest?: boolean;
+    guest_name?: string;
+    guest_contact?: string;
+    enquiry_id?: string;
 }
 
 export default function AdminCalendar() {
@@ -242,6 +246,10 @@ export default function AdminCalendar() {
                      service_type,
                      is_unentitled,
                      organization_id,
+                     is_guest,
+                     guest_name,
+                     guest_contact,
+                     enquiry_id,
                      client:clients!sessions_client_id_fkey(first_name, last_name, is_vip),
                      therapist:profiles!sessions_therapist_id_fkey(first_name, last_name, ams_role, profession)
                  `)
@@ -383,9 +391,16 @@ export default function AdminCalendar() {
                                     <span className="font-semibold">{format(parseISO(event.scheduled_start), "HH:mm")}</span>
                                     {" "}
                                     <span className={event.client?.is_vip ? "text-[#D4AF37] font-bold" : ""}>
-                                        {event.client?.first_name} {event.client?.last_name}
+                                        {event.is_guest ? (
+                                            <span className="italic opacity-80 flex items-center gap-1">
+                                                G: {event.guest_name}
+                                                <span className="px-1 bg-orange-100 text-orange-600 rounded-[2px] text-[7px] font-bold uppercase tracking-tighter">Prov</span>
+                                            </span>
+                                        ) : (
+                                            `${event.client?.first_name} ${event.client?.last_name}`
+                                        )}
                                     </span>
-                                    <VIPBadge isVIP={event.client?.is_vip} iconOnly size="sm" className="ml-1 inline-flex" />
+                                    {!event.is_guest && <VIPBadge isVIP={event.client?.is_vip} iconOnly size="sm" className="ml-1 inline-flex" />}
                                     {event.is_unentitled && (
                                         <span className="ml-1 px-1 bg-red-500 text-white rounded-[2px] text-[8px] font-bold animate-pulse">
                                             UN
@@ -486,8 +501,12 @@ export default function AdminCalendar() {
                                                 >
                                                     <div className="text-xs font-semibold">{format(startD, "HH:mm")} - {format(endD, "HH:mm")}</div>
                                                     <div className={cn("text-[10px] truncate font-medium flex items-center gap-1", event.client?.is_vip && "text-[#D4AF37] font-bold")}>
-                                                        C: {event.client?.first_name} {event.client?.last_name}
-                                                        <VIPBadge isVIP={event.client?.is_vip} iconOnly size="sm" />
+                                                        {event.is_guest ? (
+                                                            <span className="italic">G: {event.guest_name} <span className="text-[8px] bg-orange-100 text-orange-600 px-1 rounded font-bold uppercase ml-1">PROV</span></span>
+                                                        ) : (
+                                                            <>C: {event.client?.first_name} {event.client?.last_name}</>
+                                                        )}
+                                                        {!event.is_guest && <VIPBadge isVIP={event.client?.is_vip} iconOnly size="sm" />}
                                                     </div>
                                                     {selectedConsultant === "all" && height > 40 && (
                                                         <div className="text-[10px] truncate opacity-80 mt-0.5 border-t border-current/20 pt-0.5">
@@ -584,8 +603,15 @@ export default function AdminCalendar() {
                                         {format(startD, "h:mm a")} - {format(endD, "h:mm a")}
                                     </div>
                                     <div className={cn("font-medium text-sm truncate flex items-center gap-2", event.client?.is_vip && "text-[#D4AF37] font-bold")}>
-                                        C: {event.client?.first_name} {event.client?.last_name}
-                                        <VIPBadge isVIP={event.client?.is_vip} size="sm" />
+                                        {event.is_guest ? (
+                                            <div className="flex items-center gap-2">
+                                                <span className="italic text-slate-600 font-bold">GUEST: {event.guest_name}</span>
+                                                <div className="bg-orange-500 text-white border-none text-[8px] h-4 uppercase tracking-widest font-extrabold flex items-center px-1 rounded">Provisional</div>
+                                            </div>
+                                        ) : (
+                                            <>C: {event.client?.first_name} {event.client?.last_name}</>
+                                        )}
+                                        {!event.is_guest && <VIPBadge isVIP={event.client?.is_vip} size="sm" />}
                                     </div>
                                     {selectedConsultant === "all" && (
                                         <div className="text-xs truncate opacity-80 mt-1 flex items-center gap-1">

@@ -1,4 +1,6 @@
 import { Toaster } from "@/components/ui/toaster";
+import PublicEnquiry from "./pages/PublicEnquiry";
+import LeadsDashboard from "./pages/admin/LeadsDashboard";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -78,6 +80,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/signup" element={<SignupPage />} />
+            <Route path="/enquiry" element={<PublicEnquiry />} />
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
             <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="/ams/athlete-portal" element={<ProtectedRoute><AthleteDashboard /></ProtectedRoute>} />
@@ -85,6 +88,7 @@ const App = () => (
             <Route path="/pending-approval" element={<PendingApprovalPage />} />
             <Route path="/setup" element={<SetupPage />} />
             <Route path="/admin" element={<ProtectedRoute requiredRole={["admin", "foe"]}><AdminDashboardRedirect /></ProtectedRoute>} />
+            <Route path="/admin/leads" element={<ProtectedRoute requiredRole={["admin", "foe"]}><LeadsDashboard /></ProtectedRoute>} />
             <Route path="/admin/clients" element={<ProtectedRoute requiredRole={["admin", "foe"]}><ClientList /></ProtectedRoute>} />
             <Route path="/admin/clients/register" element={<ProtectedRoute requiredRole={["admin", "foe"]}><ClientRegistration /></ProtectedRoute>} />
             <Route path="/admin/clients/:id" element={<ProtectedRoute requiredRole={["admin", "foe"]}><ClientProfile /></ProtectedRoute>} />

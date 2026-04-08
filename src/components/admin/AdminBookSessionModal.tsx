@@ -44,6 +44,10 @@ interface Props {
         sessionDate?: string;
         startTime?: string;
         preferenceType?: "Strict" | "Flexible";
+        isGuest?: boolean;
+        guestName?: string;
+        guestContact?: string;
+        enquiryId?: string;
     };
 }
 
@@ -65,6 +69,12 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess, initialDa
     const [startTime, setStartTime] = useState("09:00");
     const [endTime, setEndTime] = useState("10:00");
     const [isConflict, setIsConflict] = useState(false);
+
+    // Guest Mode State
+    const [isGuest, setIsGuest] = useState(false);
+    const [guestName, setGuestName] = useState("");
+    const [guestContact, setGuestContact] = useState("");
+    const [enquiryId, setEnquiryId] = useState("");
 
     // Recurring State
     const [isRecurring, setIsRecurring] = useState(false);
@@ -96,6 +106,10 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess, initialDa
                 if (initialData.sessionDate) setSessionDate(initialData.sessionDate);
                 if (initialData.startTime) setStartTime(initialData.startTime);
                 if (initialData.preferenceType) setPreferenceType(initialData.preferenceType);
+                if (initialData.isGuest !== undefined) setIsGuest(initialData.isGuest);
+                if (initialData.guestName) setGuestName(initialData.guestName);
+                if (initialData.guestContact) setGuestContact(initialData.guestContact);
+                if (initialData.enquiryId) setEnquiryId(initialData.enquiryId);
             }
         }
     }, [open, profile?.organization_id, initialData]);
@@ -362,7 +376,17 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess, initialDa
     }, [serviceId, services]);
 
     const handleSave = async () => {
-        if (!clientId || !consultantId || !sessionDate || !profile?.organization_id) {
+        if (!isGuest && !clientId) {
+            toast({ title: "Validation Error", description: "Please select a patient.", variant: "destructive" });
+            return;
+        }
+
+        if (isGuest && (!guestName || !guestContact)) {
+            toast({ title: "Validation Error", description: "Please enter guest name and contact.", variant: "destructive" });
+            return;
+        }
+
+        if (!consultantId || !sessionDate || !profile?.organization_id) {
             toast({ title: "Validation Error", description: "Please fill all required fields.", variant: "destructive" });
             return;
         }
@@ -418,7 +442,11 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess, initialDa
 
                 sessionsToCreate.push({
                     organization_id: profile.organization_id,
-                    client_id: clientId,
+                    client_id: isGuest ? null : clientId,
+                    is_guest: isGuest,
+                    guest_name: isGuest ? guestName : null,
+                    guest_contact: isGuest ? guestContact : null,
+                    enquiry_id: enquiryId || null,
                     therapist_id: consultantId,
                     service_id: serviceId || null,
                     service_type: serviceType,
@@ -433,6 +461,14 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess, initialDa
 
             const { error } = await supabase.from("sessions").insert(sessionsToCreate);
             if (error) throw error;
+
+            // If it was a guest booking from an enquiry, update the enquiry status
+            if (enquiryId) {
+                await supabase
+                    .from("enquiries")
+                    .update({ status: "guest_booked" })
+                    .eq("id", enquiryId);
+            }
 
             toast({ 
                 title: "Success", 
@@ -501,34 +537,71 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess, initialDa
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12">
                             <div className="space-y-8">
                                 <div className="space-y-3">
-                                    <Label className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Select Patient</Label>
-                                    <Popover>
-                                        <PopoverTrigger asChild>
-                                            <Button variant="outline" className={cn("w-full justify-between h-12", !clientId && "text-muted-foreground")}>
-                                                {clientId ? (() => {
-                                                    const c = clients.find(x => x.id === clientId);
-                                                    return c ? <VIPName name={`${c.first_name} ${c.last_name}`} isVIP={c.is_vip} /> : "Selected";
-                                                })() : "Search patients..."}
-                                                <ChevronsUpDown className="ml-2 h-4 w-4 opacity-50" />
-                                            </Button>
-                                        </PopoverTrigger>
-                                        <PopoverContent className="w-[300px] p-0" align="start">
-                                            <Command>
-                                                <CommandInput placeholder="Type name..." />
-                                                <CommandList>
-                                                    <CommandEmpty>No patient found.</CommandEmpty>
-                                                    <CommandGroup>
-                                                        {clients.map((c) => (
-                                                            <CommandItem key={c.id} value={`${c.first_name} ${c.last_name}`} onSelect={() => setClientId(c.id)}>
-                                                                <Check className={cn("mr-2 h-4 w-4", clientId === c.id ? "opacity-100" : "opacity-0")} />
-                                                                <VIPName name={`${c.first_name} ${c.last_name}`} isVIP={c.is_vip} />
-                                                            </CommandItem>
-                                                        ))}
-                                                    </CommandGroup>
-                                                </CommandList>
-                                            </Command>
-                                        </PopoverContent>
-                                    </Popover>
+                                    <div className="flex items-center justify-between">
+                                        <Label className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Client Information</Label>
+                                        <div className="flex items-center gap-2 bg-muted/30 px-2 py-1 rounded-md border border-border/40">
+                                            <Label className="text-[10px] font-bold uppercase cursor-pointer" htmlFor="guest-mode">
+                                                {isGuest ? "Guest Mode" : "Existing Client"}
+                                            </Label>
+                                            <Switch 
+                                                id="guest-mode" 
+                                                className="scale-75"
+                                                checked={isGuest} 
+                                                onCheckedChange={setIsGuest} 
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {!isGuest ? (
+                                        <Popover>
+                                            <PopoverTrigger asChild>
+                                                <Button variant="outline" className={cn("w-full justify-between h-12", !clientId && "text-muted-foreground")}>
+                                                    {clientId ? (() => {
+                                                        const c = clients.find(x => x.id === clientId);
+                                                        return c ? <VIPName name={`${c.first_name} ${c.last_name}`} isVIP={c.is_vip} /> : "Selected";
+                                                    })() : "Search patients..."}
+                                                    <ChevronsUpDown className="ml-2 h-4 w-4 opacity-50" />
+                                                </Button>
+                                            </PopoverTrigger>
+                                            <PopoverContent className="w-[300px] p-0" align="start">
+                                                <Command>
+                                                    <CommandInput placeholder="Type name..." />
+                                                    <CommandList>
+                                                        <CommandEmpty>No patient found.</CommandEmpty>
+                                                        <CommandGroup>
+                                                            {clients.map((c) => (
+                                                                <CommandItem key={c.id} value={`${c.first_name} ${c.last_name}`} onSelect={() => setClientId(c.id)}>
+                                                                    <Check className={cn("mr-2 h-4 w-4", clientId === c.id ? "opacity-100" : "opacity-0")} />
+                                                                    <VIPName name={`${c.first_name} ${c.last_name}`} isVIP={c.is_vip} />
+                                                                </CommandItem>
+                                                            ))}
+                                                        </CommandGroup>
+                                                    </CommandList>
+                                                </Command>
+                                            </PopoverContent>
+                                        </Popover>
+                                    ) : (
+                                        <div className="grid grid-cols-1 gap-4 animate-in fade-in slide-in-from-top-2">
+                                            <div className="space-y-1.5 focus-within:ring-1 focus-within:ring-primary rounded-md p-1 transition-all">
+                                                <Label className="text-[9px] font-bold uppercase text-primary ml-1">Guest Full Name</Label>
+                                                <Input 
+                                                    value={guestName} 
+                                                    onChange={e => setGuestName(e.target.value)} 
+                                                    placeholder="Enter name..." 
+                                                    className="h-10 bg-slate-50 border-slate-200"
+                                                />
+                                            </div>
+                                            <div className="space-y-1.5 focus-within:ring-1 focus-within:ring-primary rounded-md p-1 transition-all">
+                                                <Label className="text-[9px] font-bold uppercase text-primary ml-1">Contact Number</Label>
+                                                <Input 
+                                                    value={guestContact} 
+                                                    onChange={e => setGuestContact(e.target.value)} 
+                                                    placeholder="Enter phone..." 
+                                                    className="h-10 bg-slate-50 border-slate-200"
+                                                />
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
 
                                 <div className="space-y-3">
@@ -766,7 +839,14 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess, initialDa
                         <Button variant="ghost" onClick={() => onOpenChange(false)} className="flex-1 h-12 uppercase text-xs font-bold">Cancel</Button>
                         <Button 
                             onClick={handleSave} 
-                            disabled={loading || checkingAvailability || !clientId || !consultantId || isAvailable === null} 
+                            disabled={
+                                loading || 
+                                checkingAvailability || 
+                                (!isGuest && !clientId) || 
+                                (isGuest && (!guestName || !guestContact)) ||
+                                !consultantId || 
+                                isAvailable === null
+                            } 
                             className={cn("flex-1 h-12 uppercase text-xs font-bold", isAvailable === false ? "bg-orange-600 hover:bg-orange-700" : "bg-primary")}
                         >
                             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : isAvailable === false ? "Join Waitlist" : "Confirm Booking"}

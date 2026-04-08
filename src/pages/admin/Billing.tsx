@@ -10,7 +10,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Plus, Download, CheckCircle, CreditCard, Banknote, Smartphone, Trash2, ShoppingCart, Check, ChevronsUpDown, Receipt, Copy, User, MessageSquare, ShieldCheck, UserPlus, Eye, EyeOff } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Plus, Download, CheckCircle, CreditCard, Banknote, Smartphone, Trash2, ShoppingCart, Check, ChevronsUpDown, Receipt, Copy, User, MessageSquare, ShieldCheck, UserPlus, Eye, EyeOff, ArrowLeftRight, FileText } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -24,6 +25,7 @@ import { generateRefundVoucher } from "@/lib/refundActions";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { VIPBadge, VIPName } from "@/components/ui/VIPBadge";
+import { TransactionDetailDrawer, TransactionDetail } from "@/components/admin/TransactionDetailDrawer";
 
 type CartItem = {
     id: string; // unique cart item id
@@ -100,6 +102,12 @@ export default function BillingPage() {
     const [isRefundModalOpen, setIsRefundModalOpen] = useState(false);
     const [refundBillObj, setRefundBillObj] = useState<any>(null);
 
+    // Transaction Ledger State
+    const [refunds, setRefunds] = useState<any[]>([]);
+    const [selectedTransaction, setSelectedTransaction] = useState<TransactionDetail | null>(null);
+    const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+    const [ledgerSearch, setLedgerSearch] = useState("");
+
     const [openCombobox, setOpenCombobox] = useState(false);
     const [openReferralCombobox, setOpenReferralCombobox] = useState(false);
     const [referralSearch, setReferralSearch] = useState("");
@@ -108,6 +116,7 @@ export default function BillingPage() {
     useEffect(() => {
         if (profile?.organization_id) {
             fetchData();
+            fetchRefunds();
         }
     }, [profile]);
 
@@ -154,7 +163,7 @@ export default function BillingPage() {
                 organization_id,
                 organizations(id, name),
                 clients(id, first_name, last_name, uhid, email, mobile_no, is_vip), 
-                packages(id, name, price, package_services(sessions_included, services(name))),
+                bill_items(id, amount, total, packages(id, name, price, package_services(sessions_included, services(name)))),
                 referral_sources(id, name),
                 discount_authorized_by,
                 billing_staff_name,
@@ -166,14 +175,21 @@ export default function BillingPage() {
 
         if (billsData) {
             const formattedBills = billsData.map(b => {
-                const pkg = b.packages as any;
-                let entitlements: any[] = [];
-                if (pkg && pkg.package_services) {
-                    entitlements = pkg.package_services.map((ps: any) => ({
-                        service_type: ps.services?.name || 'Session',
-                        default_sessions: ps.sessions_included
-                    }));
-                }
+                const items = (b.bill_items as any[])?.map(bi => {
+                    const pkg = bi.packages as any;
+                    let entitlements: any[] = [];
+                    if (pkg && pkg.package_services) {
+                        entitlements = pkg.package_services.map((ps: any) => ({
+                            service_type: ps.services?.name || 'Session',
+                            default_sessions: ps.sessions_included
+                        }));
+                    }
+                    return {
+                        name: pkg ? pkg.name : "Custom",
+                        price: bi.total,
+                        entitlements
+                    };
+                }) || [];
 
                 const clientObj = b.clients as any;
                 const clientName = clientObj ? `${clientObj.first_name} ${clientObj.last_name}` : "Unknown";
@@ -187,11 +203,7 @@ export default function BillingPage() {
                     client_is_vip: clientObj?.is_vip,
                     client_uhid: clientObj?.uhid || "",
                     client_mobile: clientObj?.mobile_no || "",
-                    items: [{ 
-                        name: pkg ? pkg.name : "Custom", 
-                        price: b.total,
-                        entitlements
-                    }],
+                    items,
                     referral_source: (b as any).referral_sources?.name || "-",
                     referral_source_name: (b as any).referral_sources?.name || "-",
                     subtotal: b.amount,
@@ -209,6 +221,21 @@ export default function BillingPage() {
             }) as any[];
             setBills(formattedBills);
         }
+    };
+
+    const fetchRefunds = async () => {
+        if (!profile?.organization_id) return;
+        const { data, error } = await (supabase as any)
+            .from('refunds')
+            .select(`
+                id, amount, refund_mode, transaction_id, refund_proof_url,
+                notes, is_override, authorized_by, is_entitlement_reversed,
+                created_at, bill_id,
+                clients(id, first_name, last_name, uhid)
+            `)
+            .eq('organization_id', profile.organization_id)
+            .order('created_at', { ascending: false });
+        if (!error && data) setRefunds(data);
     };
 
     const handleAddReferral = () => {
@@ -235,6 +262,7 @@ export default function BillingPage() {
 
     const handleRefundSuccess = (refund: any) => {
         fetchData();
+        fetchRefunds();
         queryClient.invalidateQueries({ queryKey: ['client-refunds'] });
         queryClient.invalidateQueries({ queryKey: ['billing-stats'] });
         
@@ -242,9 +270,69 @@ export default function BillingPage() {
             generateRefundVoucher(
                 (refundBillObj.organization as any)?.name || orgName, 
                 refundBillObj.client_name, 
-                refund
+                refund,
+                refund.is_entitlement_reversed
             );
         }
+    };
+
+    // Helper to identify which bills have been refunded
+    const refundedBillMap = refunds.reduce((acc, r) => {
+        if (r.bill_id) acc[r.bill_id] = r;
+        return acc;
+    }, {} as Record<string, any>);
+
+    // Build merged ledger from bills + refunds
+    const ledgerEntries: TransactionDetail[] = [
+        ...bills.map(b => ({
+            id: b.id,
+            type: 'invoice' as const,
+            date: b.date,
+            client_name: b.client_name,
+            client_uhid: (b as any).client_uhid,
+            amount: b.total_amount,
+            status: b.status,
+            package_name: b.items?.map(i => i.name).join(", "),
+            payment_method: (b as any).payment_method,
+            transaction_id: b.transaction_id,
+            referral_source: b.referral_source_name,
+            billing_staff: b.billing_staff_name,
+            notes: b.notes,
+            discount_value: b.discount_value,
+            discount_authorized_by: b.discount_authorized_by,
+        })),
+        ...refunds.map(r => {
+            const client = r.clients as any;
+            return {
+                id: r.id,
+                type: 'refund' as const,
+                date: r.created_at,
+                client_name: client ? `${client.first_name} ${client.last_name}` : 'Unknown',
+                client_uhid: client?.uhid,
+                amount: r.amount,
+                refund_mode: r.refund_mode,
+                refund_transaction_id: r.transaction_id,
+                refund_proof_url: r.refund_proof_url,
+                authorized_by: r.authorized_by,
+                is_override: r.is_override,
+                is_entitlement_reversed: r.is_entitlement_reversed,
+                original_invoice_id: r.bill_id,
+            };
+        })
+    ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+    const filteredLedger = ledgerEntries.filter(t => {
+        const s = ledgerSearch.toLowerCase();
+        return (
+            t.client_name.toLowerCase().includes(s) ||
+            t.id.toLowerCase().includes(s) ||
+            (t.client_uhid || '').toLowerCase().includes(s)
+        );
+    });
+
+    const openTransactionDetail = (t: TransactionDetail) => {
+        setSelectedTransaction(t);
+        setIsDrawerOpen(true);
     };
 
     const addToCart = (pkgId: string) => {
@@ -319,30 +407,43 @@ export default function BillingPage() {
                 }
             }
 
-            for (const item of cart) {
+            // Create the main bill record
+            const { data: billRecord, error: billError } = await supabase.from('bills').insert({
+                organization_id: profile?.organization_id,
+                client_id: selectedClient,
+                amount: subtotal,
+                discount: calculatedDiscountAmount(),
+                total: totalPayable,
+                status: 'Pending',
+                referral_source_id: referralId || null,
+                notes: remarks,
+                include_notes_in_invoice: includeNotesInInvoice,
+                discount_authorized_by: (Number(discountValue) > 0) ? discountAuthorizedBy : null,
+                billing_staff_name: billingStaffName
+            }).select().single();
+
+            if (billError) throw billError;
+
+            // Create bill items
+            const billItems = cart.map(item => {
                 const itemRatio = item.price / subtotal;
                 const itemDiscount = discountType === "percentage" 
                     ? (item.price * (Number(discountValue) || 0) / 100) 
                     : ((Number(discountValue) || 0) * itemRatio);
                 const itemTotal = Math.max(0, item.price - itemDiscount);
 
-                const { error } = await supabase.from('bills').insert({
+                return {
                     organization_id: profile?.organization_id,
-                    client_id: selectedClient,
+                    bill_id: billRecord.id,
                     package_id: item.package_id,
                     amount: item.price,
                     discount: itemDiscount,
-                    total: itemTotal,
-                    status: 'Pending',
-                    referral_source_id: referralId || null,
-                    notes: remarks,
-                    include_notes_in_invoice: includeNotesInInvoice,
-                    discount_authorized_by: (Number(discountValue) > 0) ? discountAuthorizedBy : null,
-                    billing_staff_name: billingStaffName
-                });
+                    total: itemTotal
+                };
+            });
 
-                if (error) throw error;
-            }
+            const { error: itemsError } = await supabase.from('bill_items').insert(billItems);
+            if (itemsError) throw itemsError;
 
             toast({ title: "Bill Created Successfully" });
             window.location.reload();
@@ -385,7 +486,7 @@ export default function BillingPage() {
         }
     };
 
-    const handleDownloadInvoice = (bill: Bill) => {
+    const handleDownloadInvoice = (bill: any) => {
         const d = new jsPDF();
         const c = clients.find(x => x.id === bill.client_id);
         
@@ -394,10 +495,8 @@ export default function BillingPage() {
         
         const addHeader = (doc: jsPDF) => {
             try {
-                // Header Logo - Adjusted to aspect ratio 2.45:1 (60mm x 24.5mm)
                 doc.addImage(logoUrl, 'PNG', 14, 10, 60, 24.5);
             } catch (e) {
-                // Fallback if logo fails
                 doc.setFontSize(22);
                 doc.setTextColor(15, 23, 42); 
                 doc.text(orgName, 14, 25);
@@ -430,11 +529,11 @@ export default function BillingPage() {
             d.text(`Referral: ${bill.referral_source_name}`, 14, 100);
         }
 
-        const tableData = bill.items.map((item, index) => {
+        const tableData = bill.items.map((item: any, index: number) => {
             let description = item.name;
             if (item.entitlements && item.entitlements.length > 0) {
                 const entitlementList = item.entitlements
-                    .map(e => `  • ${e.service_type}: ${e.default_sessions} sessions`)
+                    .map((e: any) => `  • ${e.service_type}: ${e.default_sessions} sessions`)
                     .join('\n');
                 description += `\n${entitlementList}`;
             }
@@ -457,7 +556,7 @@ export default function BillingPage() {
             }
         });
 
-        const finalY = (d as any).lastAutoTable.finalY + 10;
+        let finalY = (d as any).lastAutoTable.finalY + 10;
         d.setFontSize(10);
         d.setTextColor(15, 23, 42);
         
@@ -466,21 +565,40 @@ export default function BillingPage() {
             if (bill.discount_authorized_by) {
                 d.text(`Auth By: ${bill.discount_authorized_by}`, 14, finalY + 6);
             }
+            finalY += 12;
         }
         
         d.setFontSize(12);
+        d.setFont("helvetica", "bold");
         d.text(`Total Amount: Rs. ${bill.total_amount.toFixed(2)}`, 140, finalY);
 
         if (bill.notes && bill.include_notes_in_invoice) {
             d.setFontSize(9);
             d.setTextColor(100, 116, 139);
-            d.text(`Remarks:`, 14, finalY + 15);
+            d.setFont("helvetica", "normal");
+            d.text(`Remarks:`, 14, finalY + 10);
             const splitRemarks = d.splitTextToSize(bill.notes, 180);
-            d.text(splitRemarks, 14, finalY + 20);
+            d.text(splitRemarks, 14, finalY + 16);
+            finalY += (splitRemarks.length * 5) + 15;
+        } else {
+            finalY += 15;
+        }
+
+        // Add Payment Status
+        d.setFontSize(11);
+        d.setFont("helvetica", "bold");
+        if (bill.status === "Paid") {
+            d.setTextColor(16, 185, 129); // emerald-500
+            const payMethodStatus = `STATUS: PAID ${bill.payment_method ? `VIA ${bill.payment_method.toUpperCase()}` : ""}${bill.transaction_id ? ` (TXN: ${bill.transaction_id})` : ""}`;
+            d.text(payMethodStatus, 14, finalY);
+        } else {
+            d.setTextColor(245, 158, 11); // amber-500
+            d.text("STATUS: PENDING PAYMENT", 14, finalY);
         }
 
         d.save(`Invoice_${bill.id.substring(0, 8)}.pdf`);
     };
+
 
     const filteredBills = bills.filter(bill => {
         const s = searchTerm.toLowerCase();
@@ -767,101 +885,203 @@ export default function BillingPage() {
 
                     <div>
                         <Card className="gradient-card border-border h-full">
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-7">
-                                <div className="space-y-1">
-                                    <CardTitle>Recent Invoices</CardTitle>
-                                    <CardDescription>Tracking your clinical revenue</CardDescription>
-                                </div>
-                                <div className="w-full max-w-sm">
-                                    <Input 
-                                        placeholder="Search by name, UHID, or mobile..." 
-                                        value={searchTerm}
-                                        onChange={(e) => setSearchTerm(e.target.value)}
-                                        className="h-9 bg-background shadow-sm"
-                                    />
-                                </div>
+                            <CardHeader className="pb-0">
+                                <Tabs defaultValue="invoices">
+                                    <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-4">
+                                        <div className="flex-1">
+                                            <CardTitle>Billing Ledger</CardTitle>
+                                            <CardDescription className="mt-1">Invoices, payments and refunds</CardDescription>
+                                        </div>
+                                    </div>
+                                    <TabsList className="mb-0 grid w-full max-w-sm grid-cols-2">
+                                        <TabsTrigger value="invoices" className="flex items-center gap-2">
+                                            <FileText className="w-3.5 h-3.5" /> Invoices
+                                        </TabsTrigger>
+                                        <TabsTrigger value="all_transactions" className="flex items-center gap-2">
+                                            <ArrowLeftRight className="w-3.5 h-3.5" /> All Transactions
+                                        </TabsTrigger>
+                                    </TabsList>
+
+                                    {/* ── INVOICES TAB ── */}
+                                    <TabsContent value="invoices" className="mt-0">
+                                        <CardContent className="px-0 pt-4">
+                                            <div className="flex justify-end mb-3">
+                                                <Input
+                                                    placeholder="Search by name, UHID, or mobile..."
+                                                    value={searchTerm}
+                                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                                    className="h-9 bg-background shadow-sm max-w-sm"
+                                                />
+                                            </div>
+                                            <div className="rounded-md border overflow-x-auto">
+                                                <Table>
+                                                    <TableHeader>
+                                                        <TableRow className="bg-muted/50">
+                                                            <TableHead>Invoice #</TableHead>
+                                                            <TableHead>Client</TableHead>
+                                                            <TableHead>Source</TableHead>
+                                                            <TableHead>Staff</TableHead>
+                                                            <TableHead>Status</TableHead>
+                                                            <TableHead className="text-right pr-4">Amount</TableHead>
+                                                            <TableHead className="text-center">Action</TableHead>
+                                                        </TableRow>
+                                                    </TableHeader>
+                                                    <TableBody>
+                                                        {filteredBills.length === 0 ? (
+                                                            <TableRow>
+                                                                <TableCell colSpan={7} className="text-center py-10 text-muted-foreground italic">No invoices found.</TableCell>
+                                                            </TableRow>
+                                                        ) : filteredBills.map((bill) => (
+                                                            <TableRow key={bill.id} className="hover:bg-muted/10 transition-colors cursor-pointer" onClick={() => openTransactionDetail(ledgerEntries.find(t => t.id === bill.id && t.type === 'invoice')!)}>
+                                                                <TableCell className="font-mono text-[10px]">{bill.id.substring(0, 8)}</TableCell>
+                                                                <TableCell>
+                                                                    <div className="font-medium text-xs truncate max-w-[150px]">
+                                                                        <VIPName name={bill.client_name} isVIP={(bill as any).client_is_vip} />
+                                                                    </div>
+                                                                    {bill.notes && (
+                                                                        <div className="text-[9px] text-muted-foreground italic truncate max-w-[120px]" title={bill.notes}>
+                                                                            "{bill.notes}"
+                                                                        </div>
+                                                                    )}
+                                                                </TableCell>
+                                                                <TableCell className="text-[10px] text-muted-foreground">{bill.referral_source_name || "-"}</TableCell>
+                                                                <TableCell className="text-[10px] text-muted-foreground">{bill.billing_staff_name || "-"}</TableCell>
+                                                                <TableCell>
+                                                                    {refundedBillMap[bill.id] ? (
+                                                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-600 text-[10px] font-bold border border-rose-500/20">
+                                                                            <ArrowLeftRight className="w-2.5 h-2.5" /> REFUNDED
+                                                                        </span>
+                                                                    ) : bill.status === "Paid" ? (
+                                                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 text-[10px] font-bold">
+                                                                            <CheckCircle className="w-3 h-3" /> PAID
+                                                                        </span>
+                                                                    ) : (
+                                                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 text-[10px] font-bold">
+                                                                            PENDING
+                                                                        </span>
+                                                                    )}
+                                                                </TableCell>
+                                                                <TableCell className="text-right pr-4 font-bold text-xs">Rs. {bill.total_amount.toFixed(2)}</TableCell>
+                                                                <TableCell className="text-center" onClick={e => e.stopPropagation()}>
+                                                                    <div className="flex items-center justify-center gap-1">
+                                                                        {bill.status === "Pending" && (
+                                                                            <Button
+                                                                                size="sm"
+                                                                                className="h-7 px-2 text-[10px] bg-primary hover:bg-primary/90"
+                                                                                onClick={() => { setPaymentBillId(bill.id); setIsPaymentModalOpen(true); }}
+                                                                            >
+                                                                                Collect
+                                                                            </Button>
+                                                                        )}
+                                                                        {bill.status === "Paid" && !refundedBillMap[bill.id] && (
+                                                                            <Button
+                                                                                size="sm"
+                                                                                variant="ghost"
+                                                                                className="h-7 px-2 text-[10px] text-amber-600 hover:text-amber-700 hover:bg-amber-50"
+                                                                                onClick={() => {
+                                                                                    setRefundBillObj(bill);
+                                                                                    setIsRefundModalOpen(true);
+                                                                                }}
+                                                                            >
+                                                                                <Receipt className="w-3 h-3 mr-1" /> Refund
+                                                                            </Button>
+                                                                        )}
+                                                                        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => handleDownloadInvoice(bill)}>
+                                                                            <Download className="w-3.5 h-3.5" />
+                                                                        </Button>
+                                                                    </div>
+                                                                </TableCell>
+                                                            </TableRow>
+                                                        ))}
+                                                    </TableBody>
+                                                </Table>
+                                            </div>
+                                        </CardContent>
+                                    </TabsContent>
+
+                                    {/* ── ALL TRANSACTIONS TAB ── */}
+                                    <TabsContent value="all_transactions" className="mt-0">
+                                        <CardContent className="px-0 pt-4">
+                                            <div className="flex justify-end mb-3">
+                                                <Input
+                                                    placeholder="Search by name, UHID, or ID..."
+                                                    value={ledgerSearch}
+                                                    onChange={(e) => setLedgerSearch(e.target.value)}
+                                                    className="h-9 bg-background shadow-sm max-w-sm"
+                                                />
+                                            </div>
+                                            <div className="rounded-md border overflow-x-auto">
+                                                <Table>
+                                                    <TableHeader>
+                                                        <TableRow className="bg-muted/50">
+                                                            <TableHead>Date</TableHead>
+                                                            <TableHead>Type</TableHead>
+                                                            <TableHead>Reference #</TableHead>
+                                                            <TableHead>Client</TableHead>
+                                                            <TableHead>Mode</TableHead>
+                                                            <TableHead className="text-right pr-4">Amount</TableHead>
+                                                            <TableHead>Entitlements</TableHead>
+                                                        </TableRow>
+                                                    </TableHeader>
+                                                    <TableBody>
+                                                        {filteredLedger.length === 0 ? (
+                                                            <TableRow>
+                                                                <TableCell colSpan={7} className="text-center py-10 text-muted-foreground italic">No transactions found.</TableCell>
+                                                            </TableRow>
+                                                        ) : filteredLedger.map((txn) => (
+                                                            <TableRow
+                                                                key={`${txn.type}-${txn.id}`}
+                                                                className="hover:bg-muted/10 transition-colors cursor-pointer"
+                                                                onClick={() => openTransactionDetail(txn)}
+                                                            >
+                                                                <TableCell className="text-[10px] text-muted-foreground whitespace-nowrap">
+                                                                    {format(new Date(txn.date), "dd MMM yy, HH:mm")}
+                                                                </TableCell>
+                                                                <TableCell>
+                                                                    {txn.type === 'refund' ? (
+                                                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-600 text-[10px] font-bold border border-rose-500/20">
+                                                                            <ArrowLeftRight className="w-2.5 h-2.5" /> REFUND
+                                                                        </span>
+                                                                    ) : (
+                                                                        <span className={cn(
+                                                                            "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border",
+                                                                            txn.status === 'Paid'
+                                                                                ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
+                                                                                : "bg-amber-500/10 text-amber-600 border-amber-500/20"
+                                                                        )}>
+                                                                            <FileText className="w-2.5 h-2.5" /> {txn.status === 'Paid' ? 'PAID' : 'PENDING'}
+                                                                        </span>
+                                                                    )}
+                                                                </TableCell>
+                                                                <TableCell className="font-mono text-[10px]">{txn.id.substring(0, 8).toUpperCase()}</TableCell>
+                                                                <TableCell>
+                                                                    <div className="font-medium text-xs truncate max-w-[140px]">{txn.client_name}</div>
+                                                                    {txn.client_uhid && <div className="text-[9px] text-muted-foreground">{txn.client_uhid}</div>}
+                                                                </TableCell>
+                                                                <TableCell className="text-[10px] text-muted-foreground">
+                                                                    {txn.type === 'refund' ? txn.refund_mode : (txn.payment_method || '—')}
+                                                                </TableCell>
+                                                                <TableCell className="text-right pr-4">
+                                                                    <span className={cn("font-bold text-xs", txn.type === 'refund' ? "text-rose-600" : "text-emerald-600")}>
+                                                                        {txn.type === 'refund' ? '−' : '+'} Rs. {txn.amount.toFixed(2)}
+                                                                    </span>
+                                                                </TableCell>
+                                                                <TableCell>
+                                                                    {txn.type === 'refund' ? (
+                                                                        txn.is_entitlement_reversed
+                                                                            ? <span className="text-[10px] text-emerald-600 font-bold">Reversed</span>
+                                                                            : <span className="text-[10px] text-amber-600 font-bold">Retained</span>
+                                                                    ) : <span className="text-[10px] text-muted-foreground">—</span>}
+                                                                </TableCell>
+                                                            </TableRow>
+                                                        ))}
+                                                    </TableBody>
+                                                </Table>
+                                            </div>
+                                        </CardContent>
+                                    </TabsContent>
+                                </Tabs>
                             </CardHeader>
-                            <CardContent>
-                                <div className="rounded-md border overflow-x-auto">
-                                    <Table>
-                                        <TableHeader>
-                                            <TableRow className="bg-muted/50">
-                                                <TableHead>Invoice #</TableHead>
-                                                <TableHead>Client</TableHead>
-                                                <TableHead>Source</TableHead>
-                                                <TableHead>Staff</TableHead>
-                                                <TableHead>Status</TableHead>
-                                                <TableHead className="text-right pr-4">Amount</TableHead>
-                                                <TableHead className="text-center">Action</TableHead>
-                                            </TableRow>
-                                        </TableHeader>
-                                        <TableBody>
-                                            {filteredBills.length === 0 ? (
-                                                <TableRow>
-                                                    <TableCell colSpan={7} className="text-center py-10 text-muted-foreground italic">No invoices found matching your search.</TableCell>
-                                                </TableRow>
-                                            ) : filteredBills.map((bill) => (
-                                                <TableRow key={bill.id} className="hover:bg-muted/10 transition-colors">
-                                                    <TableCell className="font-mono text-[10px]">{bill.id.substring(0, 8)}</TableCell>
-                                                    <TableCell>
-                                                        <div className="font-medium text-xs truncate max-w-[150px]">
-                                                            <VIPName name={bill.client_name} isVIP={(bill as any).client_is_vip} />
-                                                        </div>
-                                                        {bill.notes && (
-                                                            <div className="text-[9px] text-muted-foreground italic truncate max-w-[120px]" title={bill.notes}>
-                                                                "{bill.notes}"
-                                                            </div>
-                                                        )}
-                                                    </TableCell>
-                                                    <TableCell className="text-[10px] text-muted-foreground">{bill.referral_source_name || "-"}</TableCell>
-                                                    <TableCell className="text-[10px] text-muted-foreground">{bill.billing_staff_name || "-"}</TableCell>
-                                                    <TableCell>
-                                                        {bill.status === "Paid" ? (
-                                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 text-[10px] font-bold">
-                                                                <CheckCircle className="w-3 h-3" /> PAID
-                                                            </span>
-                                                        ) : (
-                                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 text-[10px] font-bold">
-                                                                PENDING
-                                                            </span>
-                                                        )}
-                                                    </TableCell>
-                                                    <TableCell className="text-right pr-4 font-bold text-xs">Rs. {bill.total_amount.toFixed(2)}</TableCell>
-                                                    <TableCell className="text-center">
-                                                        <div className="flex items-center justify-center gap-1">
-                                                            {bill.status === "Pending" && (
-                                                                <Button 
-                                                                    size="sm" 
-                                                                    className="h-7 px-2 text-[10px] bg-primary hover:bg-primary/90" 
-                                                                    onClick={() => { setPaymentBillId(bill.id); setIsPaymentModalOpen(true); }}
-                                                                >
-                                                                    Collect
-                                                                </Button>
-                                                            )}
-                                                            {bill.status === "Paid" && (
-                                                                <Button 
-                                                                    size="sm" 
-                                                                    variant="ghost" 
-                                                                    className="h-7 px-2 text-[10px] text-amber-600 hover:text-amber-700 hover:bg-amber-50"
-                                                                    onClick={() => {
-                                                                        setRefundBillObj(bill);
-                                                                        setIsRefundModalOpen(true);
-                                                                    }}
-                                                                >
-                                                                    <Receipt className="w-3 h-3 mr-1" /> Refund
-                                                                </Button>
-                                                            )}
-                                                            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => handleDownloadInvoice(bill)}>
-                                                                <Download className="w-3.5 h-3.5" />
-                                                            </Button>
-                                                        </div>
-                                                    </TableCell>
-                                                </TableRow>
-                                            ))}
-                                        </TableBody>
-                                    </Table>
-                                </div>
-                            </CardContent>
                         </Card>
                     </div>
                 </div>
@@ -879,6 +1099,13 @@ export default function BillingPage() {
                     onSuccess={handleRefundSuccess}
                 />
             )}
+
+            {/* Transaction Detail Drawer */}
+            <TransactionDetailDrawer
+                open={isDrawerOpen}
+                onOpenChange={setIsDrawerOpen}
+                transaction={selectedTransaction}
+            />
 
             {/* Payment Modal */}
             <Dialog open={isPaymentModalOpen} onOpenChange={setIsPaymentModalOpen}>

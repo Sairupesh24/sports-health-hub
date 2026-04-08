@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Banknote, Smartphone, CreditCard, Landmark, Receipt, Upload, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
+import { Banknote, Smartphone, CreditCard, Landmark, Receipt, Upload, Loader2, CheckCircle2, AlertCircle, Activity, Tag } from "lucide-react";
 import { calculateRefundAmount, processRefund, RefundBreakdown } from "@/lib/refundActions";
 import { toast } from "@/hooks/use-toast";
 import { Progress } from "@/components/ui/progress";
@@ -37,10 +37,15 @@ export const RefundModal = ({ isOpen, onOpenChange, billId, clientId, clientName
     const [uploadProgress, setUploadProgress] = useState(0);
     const [isUploading, setIsUploading] = useState(false);
 
-    const [showEntitlementPrompt, setShowEntitlementPrompt] = useState(false);
+    const [showSuccess, setShowSuccess] = useState(false);
     const [refundRecord, setRefundRecord] = useState<any>(null);
 
     const [isOverride, setIsOverride] = useState(false);
+    const [refundType, setRefundType] = useState<'automatic' | 'full' | 'percentage' | 'flat'>('automatic');
+    const [manualValue, setManualValue] = useState<number>(0);
+    const [internalRemarks, setInternalRemarks] = useState("");
+    
+    const [reverseEntitlements, setReverseEntitlements] = useState(true);
     const [authorizedBy, setAuthorizedBy] = useState("");
     const [billTotal, setBillTotal] = useState<number>(0);
     const [calculatedRefund, setCalculatedRefund] = useState<number>(0);
@@ -62,13 +67,33 @@ export const RefundModal = ({ isOpen, onOpenChange, billId, clientId, clientName
         setFile(null);
         setUploadProgress(0);
         setIsUploading(false);
-        setShowEntitlementPrompt(false);
+        setShowSuccess(false);
         setRefundRecord(null);
         setIsOverride(false);
+        setRefundType('automatic');
+        setManualValue(0);
+        setInternalRemarks("");
+        setReverseEntitlements(true);
         setAuthorizedBy("");
         setBillTotal(0);
         setCalculatedRefund(0);
     };
+
+    useEffect(() => {
+        let finalAmount = calculatedRefund;
+        if (refundType === 'full') {
+            finalAmount = billTotal;
+        } else if (refundType === 'percentage') {
+            finalAmount = (billTotal * (manualValue || 0)) / 100;
+        } else if (refundType === 'flat') {
+            finalAmount = manualValue || 0;
+        }
+
+        // Safety check to prevent UI crash (NaN/undefined)
+        const safeAmount = (typeof finalAmount === 'number' && !isNaN(finalAmount)) ? finalAmount : 0;
+        setRefundAmount(Number(safeAmount.toFixed(2)));
+        setIsOverride(refundType !== 'automatic');
+    }, [refundType, manualValue, billTotal, calculatedRefund]);
 
     const fetchCalculation = async () => {
         setCalculating(true);
@@ -93,29 +118,37 @@ export const RefundModal = ({ isOpen, onOpenChange, billId, clientId, clientName
         setUploadProgress(10);
         
         const fileExt = file.name.split('.').pop();
-        const fileName = `${organizationId}/${billId}_${Date.now()}.${fileExt}`;
+        const sanitizedName = file.name.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+        const fileName = `${organizationId}/${billId}_${Date.now()}_${sanitizedName}.${fileExt}`;
         const filePath = `refund-proofs/${fileName}`;
 
         setUploadProgress(30);
         
-        const { error: uploadError, data } = await supabase.storage
-            .from('client-documents') // Recalibrate: using existing bucket if specifically named one doesn't exist
-            .upload(filePath, file);
+        const { error: uploadError } = await supabase.storage
+            .from('client-documents')
+            .upload(filePath, file, {
+                cacheControl: '3600',
+                upsert: false
+            });
 
         if (uploadError) {
-            // If it's a bucket missing error, we just log and return null but let the refund proceed
-            console.error("Upload error:", uploadError);
+            console.error("Storage upload error:", uploadError);
+            toast({ 
+                title: "File upload failed", 
+                description: uploadError.message, 
+                variant: "destructive" 
+            });
             setIsUploading(false);
             return null;
         }
 
-        setUploadProgress(100);
-        setIsUploading(false);
-        
+        setUploadProgress(90);
         const { data: { publicUrl } } = supabase.storage
             .from('client-documents')
             .getPublicUrl(filePath);
-            
+        
+        setUploadProgress(100);
+        setIsUploading(false);
         return publicUrl;
     };
 
@@ -139,7 +172,6 @@ export const RefundModal = ({ isOpen, onOpenChange, billId, clientId, clientName
         try {
             const proofUrl = await handleFileUpload();
 
-            // We don't reverse entitlements yet, we'll ask in the second prompt
             const refund = await processRefund({
                 billId,
                 clientId,
@@ -148,14 +180,15 @@ export const RefundModal = ({ isOpen, onOpenChange, billId, clientId, clientName
                 refundMode,
                 transactionId,
                 refundProofUrl: proofUrl || undefined,
-                notes: refundMode === 'Cash' ? (notes ? `Handover Signature: ${notes}` : 'Cash Handover') : notes,
+                notes: internalRemarks || (refundMode === 'Cash' ? (notes ? `Handover Signature: ${notes}` : 'Cash Handover') : notes),
                 isOverride,
                 authorizedBy: isOverride ? authorizedBy : undefined,
-                reverseEntitlements: false
+                reverseEntitlements
             });
 
             setRefundRecord(refund);
-            setShowEntitlementPrompt(true);
+            setShowSuccess(true);
+            toast({ title: reverseEntitlements ? "Refund completed & entitlements reversed." : "Refund completed. Entitlements retained." });
         } catch (error: any) {
             toast({ title: "Refund failed", description: error.message, variant: "destructive" });
         } finally {
@@ -163,43 +196,16 @@ export const RefundModal = ({ isOpen, onOpenChange, billId, clientId, clientName
         }
     };
 
-    const handleEntitlementChoice = async (reverse: boolean) => {
-        if (reverse && refundRecord) {
-            setLoading(true);
-            try {
-                // Update the refund record and trigger reversal
-                const { error } = await supabase
-                    .from('refunds')
-                    .update({ is_entitlement_reversed: true })
-                    .eq('id', refundRecord.id);
-
-                if (error) throw error;
-
-                // Re-call processRefund logic specifically for reversal 
-                // (In a real app, this might be a single RPC call, 
-                // but here we manually update the entitlement status)
-                await supabase
-                    .from('client_entitlements')
-                    .update({ status: 'Cancelled', notes: `Refunded & Reversed on ${new Date().toLocaleDateString()}` })
-                    .eq('invoice_id', billId);
-
-                toast({ title: "Refund completed & entitlements reversed." });
-            } catch (error: any) {
-                toast({ title: "Error reversing entitlements", description: error.message, variant: "destructive" });
-            } finally {
-                setLoading(false);
-            }
-        } else {
-            toast({ title: "Refund completed. Entitlements retained." });
+    const handleClose = () => {
+        if (showSuccess && refundRecord) {
+            onSuccess({ ...refundRecord, is_entitlement_reversed: reverseEntitlements });
         }
-
-        onSuccess({ ...refundRecord, is_entitlement_reversed: reverse });
         onOpenChange(false);
     };
 
     return (
         <Dialog open={isOpen} onOpenChange={onOpenChange}>
-            {!showEntitlementPrompt ? (
+            {!showSuccess ? (
                 <DialogContent className="sm:max-w-[500px] max-h-[90vh] flex flex-col p-0 overflow-hidden">
                     <div className="p-6 pb-2 border-b">
                         <DialogHeader>
@@ -260,26 +266,72 @@ export const RefundModal = ({ isOpen, onOpenChange, billId, clientId, clientName
                                 )}
                             </div>
 
-                            {/* Administrative Override Toggle */}
-                            <div className="flex items-center justify-between p-3 rounded-lg border border-orange-500/30 bg-orange-500/10">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-8 h-8 rounded-full bg-orange-500/20 flex items-center justify-center">
-                                        <ShieldCheck className="w-4 h-4 text-orange-600" />
-                                    </div>
-                                    <div>
-                                        <Label className="text-sm font-bold text-orange-800">Force Full Refund</Label>
-                                        <p className="text-[10px] text-orange-600/80 font-medium">Bypass session checks & refund full invoice</p>
-                                    </div>
+                            {/* Refund Type Selection */}
+                            <div className="space-y-3">
+                                <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Refund Method</Label>
+                                <div className="grid grid-cols-2 gap-2">
+                                    <Button
+                                        type="button"
+                                        variant={refundType === 'automatic' ? "default" : "outline"}
+                                        onClick={() => setRefundType('automatic')}
+                                        className="h-10 text-xs justify-start px-3"
+                                    >
+                                        <Activity className="w-3.5 h-3.5 mr-2" />
+                                        Automatic (Session-based)
+                                    </Button>
+                                    <Button
+                                        type="button"
+                                        variant={refundType === 'full' ? "default" : "outline"}
+                                        onClick={() => setRefundType('full')}
+                                        className="h-10 text-xs justify-start px-3 border-orange-200"
+                                    >
+                                        <ShieldCheck className="w-3.5 h-3.5 mr-2 text-orange-500" />
+                                        Full Bill Refund
+                                    </Button>
+                                    <Button
+                                        type="button"
+                                        variant={refundType === 'percentage' ? "default" : "outline"}
+                                        onClick={() => setRefundType('percentage')}
+                                        className="h-10 text-xs justify-start px-3"
+                                    >
+                                        <Tag className="w-3.5 h-3.5 mr-2" />
+                                        Manual Percentage (%)
+                                    </Button>
+                                    <Button
+                                        type="button"
+                                        variant={refundType === 'flat' ? "default" : "outline"}
+                                        onClick={() => setRefundType('flat')}
+                                        className="h-10 text-xs justify-start px-3"
+                                    >
+                                        <Banknote className="w-3.5 h-3.5 mr-2" />
+                                        Manual Flat Amount (Rs)
+                                    </Button>
                                 </div>
-                                <Switch
-                                    checked={isOverride}
-                                    onCheckedChange={(v) => {
-                                        setIsOverride(v);
-                                        setRefundAmount(v ? billTotal : calculatedRefund);
-                                    }}
-                                    className="data-[state=checked]:bg-orange-500"
-                                />
                             </div>
+
+                            {/* Manual Value Input */}
+                            {(refundType === 'percentage' || refundType === 'flat') && (
+                                <div className="space-y-1.5 animate-in fade-in slide-in-from-top-2 p-3 bg-muted/30 rounded-lg border border-border/50">
+                                    <Label className="text-xs font-bold">
+                                        {refundType === 'percentage' ? "Enter Refund Percentage (%)" : "Enter Refund Amount (Rs)"}
+                                    </Label>
+                                    <div className="flex items-center gap-2">
+                                        <Input
+                                            type="number"
+                                            placeholder={refundType === 'percentage' ? "e.g. 50" : "e.g. 5000"}
+                                            value={manualValue || ""}
+                                            onChange={e => setManualValue(Number(e.target.value))}
+                                            className="h-9 font-bold"
+                                        />
+                                        <span className="text-sm font-bold text-muted-foreground w-12 text-center">
+                                            {refundType === 'percentage' ? "%" : "Rs"}
+                                        </span>
+                                    </div>
+                                    <p className="text-[10px] text-muted-foreground italic">
+                                        This will override the systematic calculation (Rs. {calculatedRefund.toFixed(2)}).
+                                    </p>
+                                </div>
+                            )}
 
                             {/* Authorization Field - Conditional */}
                             {isOverride && (
@@ -294,6 +346,24 @@ export const RefundModal = ({ isOpen, onOpenChange, billId, clientId, clientName
                                     <p className="text-[9px] text-orange-600">This name will be saved in the audit logs and refund history.</p>
                                 </div>
                             )}
+
+                            {/* Entitlement Reversal Choice (New Location) */}
+                            <div className="flex items-center justify-between p-3 rounded-lg border border-emerald-500/30 bg-emerald-500/10">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center">
+                                        <AlertCircle className="w-4 h-4 text-emerald-600" />
+                                    </div>
+                                    <div>
+                                        <Label className="text-sm font-bold text-emerald-800">Reverse Entitlements</Label>
+                                        <p className="text-[10px] text-emerald-600/80 font-medium">Cancel remaining sessions for this refund</p>
+                                    </div>
+                                </div>
+                                <Switch
+                                    checked={reverseEntitlements}
+                                    onCheckedChange={setReverseEntitlements}
+                                    className="data-[state=checked]:bg-emerald-500"
+                                />
+                            </div>
 
                             {/* Form Inputs */}
                             <div className="space-y-4">
@@ -341,11 +411,21 @@ export const RefundModal = ({ isOpen, onOpenChange, billId, clientId, clientName
                                             onChange={e => setNotes(e.target.value)}
                                             className="h-9"
                                         />
-                                        <p className="text-[10px] text-muted-foreground flex items-center gap-1">
-                                            <AlertCircle className="w-3 h-3" /> Audit trail: mention who signed for the cash.
-                                        </p>
                                     </div>
                                 )}
+
+                                <div className="space-y-1.5">
+                                    <Label className="text-xs">Internal Remarks (Will not show on PDF)</Label>
+                                    <textarea 
+                                        placeholder="Add any internal remarks or justification for this refund..."
+                                        value={internalRemarks}
+                                        onChange={e => setInternalRemarks(e.target.value)}
+                                        className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-xs ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                    />
+                                    <p className="text-[10px] text-muted-foreground italic">
+                                        These remarks are strictly for administrative audit records.
+                                    </p>
+                                </div>
 
                                 <div className="space-y-2 pt-2">
                                     <Label className="text-xs">Refund Proof (Receipt/Screenshot)</Label>
@@ -387,7 +467,7 @@ export const RefundModal = ({ isOpen, onOpenChange, billId, clientId, clientName
 
                     <div className="p-6 pt-2 border-t">
                         <DialogFooter>
-                            <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
+                            <Button variant="ghost" onClick={handleClose}>Cancel</Button>
                             <Button 
                                 className="bg-primary hover:bg-primary/90"
                                 onClick={handleConfirmRefund}
@@ -400,41 +480,28 @@ export const RefundModal = ({ isOpen, onOpenChange, billId, clientId, clientName
                     </div>
                 </DialogContent>
             ) : (
-                /* Post-Refund Entitlement Reversal Prompt */
+                /* Post-Refund Success Dialog */
                 <DialogContent className="sm:max-w-[400px] border-emerald-500/20">
                     <DialogHeader>
                         <div className="w-12 h-12 rounded-full bg-emerald-500/10 flex items-center justify-center mx-auto mb-4">
                             <CheckCircle2 className="w-6 h-6 text-emerald-500" />
                         </div>
-                        <DialogTitle className="text-center text-xl font-bold">Refund Successful!</DialogTitle>
+                        <DialogTitle className="text-center text-xl font-bold">Refund Processed!</DialogTitle>
                         <DialogDescription className="text-center pt-2 text-foreground">
                             The refund of <strong>Rs. {refundAmount.toFixed(2)}</strong> has been recorded.
                             <br /><br />
-                            Would you like to <strong>reverse the remaining entitlements</strong> from the client's account now?
+                            Entitlements: <strong>{reverseEntitlements ? "REVERSED" : "RETAINED"}</strong>
                         </DialogDescription>
                     </DialogHeader>
 
-                    <div className="flex flex-col gap-2 py-4">
+                    <div className="flex flex-col py-4">
                         <Button 
-                            variant="default" 
                             className="bg-emerald-600 hover:bg-emerald-700"
-                            onClick={() => handleEntitlementChoice(true)}
-                            disabled={loading}
+                            onClick={handleClose}
                         >
-                            {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                            Yes, Reverse Entitlements
-                        </Button>
-                        <Button 
-                            variant="outline"
-                            onClick={() => handleEntitlementChoice(false)}
-                            disabled={loading}
-                        >
-                            No, Keep Entitlements Active
+                            Close
                         </Button>
                     </div>
-                    <p className="text-[10px] text-center text-muted-foreground italic">
-                        The original Invoice status will remain "Paid" as per accounting rules.
-                    </p>
                 </DialogContent>
             )}
         </Dialog>

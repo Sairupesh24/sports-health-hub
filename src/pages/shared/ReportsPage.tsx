@@ -696,12 +696,6 @@ function LegacyReports({ role }: { role: ReportsPageProps['role'] }) {
                   <Input type="date" className="bg-background/50 h-9 text-xs" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
                 </div>
               </div>
-              <div className="space-y-2">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Client Selection</label>
-                <div onClick={() => { setIsAthleteModalOpen(true); fetchAthletes(); }} className="h-9 px-3 bg-background/50 border rounded-lg flex items-center justify-between cursor-pointer text-[10px]">
-                  {selectedAthlete ? selectedAthlete.name : "All Clients"}
-                </div>
-              </div>
             </CardContent>
           </Card>
         </div>
@@ -712,8 +706,18 @@ function LegacyReports({ role }: { role: ReportsPageProps['role'] }) {
               <div><CardTitle>{currentTemplate ? currentTemplate.name : "Report Results"}</CardTitle></div>
               {reportData.length > 0 && (
                 <div className="flex gap-2">
-                  <Button variant="outline" size="sm" onClick={exportToPDF}><FileText className="w-3.5 h-3.5" /></Button>
-                  <Button variant="outline" size="sm" onClick={exportToExcel}><FileSpreadsheet className="w-3.5 h-3.5" /></Button>
+                  <Button variant="outline" size="sm" onClick={exportToPDF} className="gap-2 border-slate-200 hover:bg-slate-50">
+                    <FileText className="w-4 h-4 text-rose-500" />
+                    <span className="text-xs font-bold">PDF</span>
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={exportToExcel} className="gap-2 border-slate-200 hover:bg-slate-50">
+                    <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+                    <span className="text-xs font-bold">Excel</span>
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={exportToCSV} className="gap-2 border-slate-200 hover:bg-slate-50">
+                    <Download className="w-4 h-4 text-blue-600" />
+                    <span className="text-xs font-bold">CSV</span>
+                  </Button>
                 </div>
               )}
             </CardHeader>

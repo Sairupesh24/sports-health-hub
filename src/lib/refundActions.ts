@@ -12,12 +12,15 @@ export interface RefundBreakdown {
 }
 
 export const calculateRefundAmount = async (billId: string, clientId: string) => {
-    // 1. Fetch Bill and Package Details
-    const { data: bill, error: billError } = await supabase
+    // 1. Fetch Bill and Package Details via bill_items
+    const { data: bill, error: billError } = await (supabase as any)
         .from('bills')
         .select(`
             id, total, amount, discount,
-            packages(id, name, price, package_services(service_id, sessions_included, services(name)))
+            bill_items(
+                id, total, amount, 
+                packages(id, name, price, package_services(service_id, sessions_included, services(name)))
+            )
         `)
         .eq('id', billId)
         .single();
@@ -31,47 +34,42 @@ export const calculateRefundAmount = async (billId: string, clientId: string) =>
 
     if (balanceError) throw new Error("Could not fetch entitlement balances.");
 
-    const pkg = bill.packages as any;
-    if (!pkg || !pkg.package_services) return { totalRefund: 0, breakdown: [] };
-
     let totalRefund = 0;
     const breakdown: RefundBreakdown[] = [];
 
-    // Calculate per-service refund
-    for (const ps of pkg.package_services) {
-        const serviceName = ps.services?.name || "Session";
+    const items = (bill.bill_items as any[]) || [];
+    
+    for (const item of items) {
+        const pkg = item.packages;
+        if (!pkg || !pkg.package_services) continue;
 
-        // Find match in balances (fn_compute_entitlement_balance returns service_name)
-        const balance = balances.find((b: any) => b.service_name === serviceName);
-        
-        // We only care about the sessions granted by THIS bill/package, 
-        // but the balance is global. This is a simplification. 
-        // To be exact, we'd need a specific bill-linked balance.
-        // For now, we take the minimum of (purchased sessions in this bill) and (remaining sessions globally).
-        const sessionsInThisBill = ps.sessions_included;
-        const globalRemaining = balance ? balance.sessions_remaining : sessionsInThisBill;
-        
-        const remainingForThisBill = Math.min(sessionsInThisBill, globalRemaining);
-        
-        // Effective price for this service (proportionally)
-        // Since packages can have multiple services, we assume uniform pricing or use total package price as base.
-        // If package price is 1000 and it has 10 sessions, each is 100.
-        // We calculate the proportional weight if there were individual prices, but here we use the package total.
-        const packagePrice = pkg.price;
-        const discountRatio = bill.total / bill.amount;
-        const totalSessionsInPackage = (pkg.package_services as any[]).reduce((sum, item) => sum + item.sessions_included, 0);
-        
-        const pricePerSession = (packagePrice * discountRatio) / totalSessionsInPackage;
-        
-        const refundForService = remainingForThisBill * pricePerSession;
-        totalRefund += refundForService;
-        
-        breakdown.push({
-            serviceName,
-            remaining: remainingForThisBill,
-            totalPurchased: sessionsInThisBill,
-            calculatedRefund: refundForService
-        });
+        const itemSubtotal = item.amount || 1;
+        const itemTotal = item.total || 0;
+        const itemDiscountRatio = itemTotal / itemSubtotal;
+
+        for (const ps of pkg.package_services) {
+            const serviceName = ps.services?.name || "Session";
+            const balance = balances.find((b: any) => b.service_name === serviceName);
+            
+            const sessionsInThisItem = ps.sessions_included;
+            const globalRemaining = balance ? balance.sessions_remaining : sessionsInThisItem;
+            
+            // Proportional sessions for this item
+            const remainingForThisItem = Math.min(sessionsInThisItem, globalRemaining);
+            
+            const totalSessionsInPackage = (pkg.package_services as any[]).reduce((sum, s) => sum + s.sessions_included, 0);
+            const pricePerSession = (itemTotal) / (totalSessionsInPackage || 1);
+            
+            const refundForService = remainingForThisItem * pricePerSession;
+            totalRefund += refundForService;
+            
+            breakdown.push({
+                serviceName: `${pkg.name}: ${serviceName}`,
+                remaining: remainingForThisItem,
+                totalPurchased: sessionsInThisItem,
+                calculatedRefund: refundForService
+            });
+        }
     }
 
     return { totalRefund, breakdown, billTotal: bill.total };
@@ -132,7 +130,7 @@ export const processRefund = async (refundData: {
     return refund;
 };
 
-export const generateRefundVoucher = (orgName: string, clientName: string, refund: any) => {
+export const generateRefundVoucher = (orgName: string, clientName: string, refund: any, isEntitlementReversed?: boolean) => {
     const d = new jsPDF();
 
     // Header
@@ -184,10 +182,23 @@ export const generateRefundVoucher = (orgName: string, clientName: string, refun
         finalY += 8;
     }
 
-    if (refund.notes) {
-        d.setFontSize(9);
-        d.setTextColor(71, 85, 105);
-        d.text(`Notes: ${refund.notes}`, 14, finalY);
+
+    // Entitlement Status Section
+    finalY += 4;
+    d.setDrawColor(226, 232, 240);
+    d.line(14, finalY, 196, finalY);
+    finalY += 6;
+    d.setFontSize(9);
+    d.setTextColor(71, 85, 105);
+    d.text(`Entitlement Status:`, 14, finalY);
+    
+    const entitlementReversed = isEntitlementReversed ?? refund.is_entitlement_reversed;
+    if (entitlementReversed) {
+        d.setTextColor(16, 185, 129); // emerald
+        d.text(`\u2713 Reversed — Remaining sessions cancelled upon refund`, 55, finalY);
+    } else {
+        d.setTextColor(245, 158, 11); // amber
+        d.text(`\u2014 Retained — Client session balance kept active`, 55, finalY);
     }
 
     // Footer
