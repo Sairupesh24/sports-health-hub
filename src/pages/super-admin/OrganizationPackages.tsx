@@ -69,21 +69,22 @@ export default function OrganizationPackages({ organizationId }: OrganizationPac
             if (error) throw error;
             
             // Map the nested relational structure back into the generic ServicePackage interface 
-            const formatted = (data || []).map((pkg: any) => ({
+            const formatted: ServicePackage[] = (data || []).map((pkg) => ({
                 id: pkg.id,
                 name: pkg.name,
-                description: pkg.description,
-                price: pkg.price,
-                items: pkg.items ? pkg.items.map((item: any) => ({
+                description: pkg.description || "",
+                price: pkg.price || 0,
+                items: pkg.items ? (Array.isArray(pkg.items) ? pkg.items : [pkg.items]).map((item) => ({
                     id: item.id,
-                    service_type: item.service?.name || "Unknown",
+                    service_type: ((item.service as unknown) as { name: string })?.name || "Unknown",
                     default_sessions: item.sessions_included
                 })) : []
             }));
             
             setPackages(formatted);
-        } catch (error: any) {
-            toast({ title: "Error", description: error.message, variant: "destructive" });
+        } catch (error: unknown) {
+            const err = error as Error;
+            toast({ title: "Error", description: err.message, variant: "destructive" });
         } finally {
             setLoading(false);
         }
@@ -142,13 +143,13 @@ export default function OrganizationPackages({ organizationId }: OrganizationPac
             const worksheet = workbook.Sheets[workbook.SheetNames[0]];
 
             // Parse as array of arrays, skip empty rows
-            const rows = XLSX.utils.sheet_to_json<any[]>(worksheet, { header: 1, blankrows: false });
+            const rows = XLSX.utils.sheet_to_json<(string | number)[]>(worksheet, { header: 1, blankrows: false });
 
             if (rows.length < 1) {
                 throw new Error("File must contain headers.");
             }
 
-            const headerRow = rows[0] as string[];
+            const headerRow = rows[0].map(h => (h || "").toString());
             if (headerRow.length < 3 || headerRow[0] !== "Package Name" || headerRow[1] !== "Description" || headerRow[2] !== "Price (Rs)") {
                 throw new Error("Invalid headers. The first 3 columns must be Package Name, Description, and Price (Rs).");
             }
@@ -156,7 +157,7 @@ export default function OrganizationPackages({ organizationId }: OrganizationPac
             // Extract dynamic service names from headers
             const serviceTypes: string[] = [];
             for (let col = 3; col < headerRow.length; col++) {
-                let headerName = headerRow[col]?.toString().trim() || "";
+                let headerName = headerRow[col]?.trim() || "";
                 if (headerName.endsWith(" Sessions")) {
                     headerName = headerName.substring(0, headerName.lastIndexOf(" Sessions")).trim();
                 }
@@ -171,7 +172,7 @@ export default function OrganizationPackages({ organizationId }: OrganizationPac
                 
             if (servicesError) throw servicesError;
             
-            let servicesMap: Record<string, string> = {};
+            const servicesMap: Record<string, string> = {};
             if (existingServicesData) {
                 existingServicesData.forEach((s) => servicesMap[s.name.toLowerCase()] = s.id);
             }
@@ -206,7 +207,8 @@ export default function OrganizationPackages({ organizationId }: OrganizationPac
 
                 const name = row[0]?.toString().trim();
                 const description = row[1]?.toString().trim() || null;
-                const price = parseFloat(row[2]?.toString() || "0");
+                const priceValue = row[2]?.toString() || "0";
+                const price = parseFloat(priceValue);
 
                 if (!name) {
                     throw new Error(`Row ${i + 1} is missing a Package Name.`);
@@ -227,6 +229,7 @@ export default function OrganizationPackages({ organizationId }: OrganizationPac
                     .single();
 
                 if (pkgError) throw pkgError;
+                if (!pkgData) continue;
 
                 const packageId = pkgData.id;
                 processedPackageIds.push(packageId);
@@ -282,8 +285,9 @@ export default function OrganizationPackages({ organizationId }: OrganizationPac
             toast({ title: "Success", description: `Successfully uploaded ${insertedCount} packages.` });
             fetchPackages();
 
-        } catch (error: any) {
-            toast({ title: "Upload Failed", description: error.message, variant: "destructive" });
+        } catch (error: unknown) {
+            const err = error as Error;
+            toast({ title: "Upload Failed", description: err.message, variant: "destructive" });
         } finally {
             setUploading(false);
             if (fileInputRef.current) fileInputRef.current.value = "";

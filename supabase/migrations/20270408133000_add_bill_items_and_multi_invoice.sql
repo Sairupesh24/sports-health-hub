@@ -15,9 +15,11 @@ CREATE TABLE IF NOT EXISTS public.bill_items (
 -- 2. Enable RLS and add basic policies
 ALTER TABLE public.bill_items ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Staff can view org bill items" ON public.bill_items;
 CREATE POLICY "Staff can view org bill items" ON public.bill_items
     FOR SELECT USING (organization_id = get_my_org_id());
 
+DROP POLICY IF EXISTS "Staff can insert org bill items" ON public.bill_items;
 CREATE POLICY "Staff can insert org bill items" ON public.bill_items
     FOR INSERT WITH CHECK (organization_id = get_my_org_id());
 
@@ -65,6 +67,7 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Create new trigger
+DROP TRIGGER IF EXISTS trg_bill_items_to_entitlements ON public.bill_items;
 CREATE TRIGGER trg_bill_items_to_entitlements
 AFTER INSERT ON public.bill_items
 FOR EACH ROW

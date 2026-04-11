@@ -86,21 +86,21 @@ CREATE INDEX IF NOT EXISTS idx_exercises_body_rehab ON exercises(body_region, is
 ALTER TABLE exercises ENABLE ROW LEVEL SECURITY;
 
 -- Policy: Allow all authenticated users to read exercises
+DROP POLICY IF EXISTS "Allow authenticated users to read exercises" ON exercises;
 CREATE POLICY "Allow authenticated users to read exercises"
     ON exercises FOR SELECT
     TO authenticated
     USING (true);
 
 -- Policy: Allow admins and consultants to insert/update/delete
+DROP POLICY IF EXISTS "Allow admins to modify exercises" ON exercises;
 CREATE POLICY "Allow admins to modify exercises"
     ON exercises FOR ALL
     TO authenticated
     USING (
-        EXISTS (
-            SELECT 1 FROM profiles 
-            WHERE id = auth.uid() 
-            AND role IN ('super_admin', 'admin', 'consultant')
-        )
+        public.has_role(auth.uid(), 'super_admin') 
+        OR public.has_role(auth.uid(), 'admin') 
+        OR public.has_role(auth.uid(), 'consultant')
     );
 
 -- Add comments for documentation

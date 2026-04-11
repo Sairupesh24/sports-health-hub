@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Search, Users, ClipboardList } from "lucide-react";
 import AdHocSessionModal from "@/components/consultant/AdHocSessionModal";
 import { VIPBadge, VIPName } from "@/components/ui/VIPBadge";
+import type { Database } from "@/integrations/supabase/types";
 
 export default function MyClients() {
     const navigate = useNavigate();
@@ -24,7 +25,7 @@ export default function MyClients() {
         queryFn: async () => {
             // For now, fetching all active clients in the consultant's organization.
             // In the future, this could be filtered by clients who have a session with this specific therapist.
-            let query = (supabase as any)
+            let query = supabase
                 .from("clients")
                 .select("*")
                 .is("deleted_at", null)
@@ -36,9 +37,9 @@ export default function MyClients() {
                 );
             }
 
-            const { data, error } = await (query as any).limit(50);
+            const { data, error } = await query.limit(50);
             if (error) throw error;
-            return data as any[];
+            return data;
         },
     });
 

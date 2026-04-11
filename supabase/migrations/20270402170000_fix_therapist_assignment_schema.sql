@@ -54,6 +54,7 @@ BEGIN
 END;
 $$;
 
+DROP TRIGGER IF EXISTS trg_log_client_therapist_assignment ON public.clients;
 CREATE TRIGGER trg_log_client_therapist_assignment
 AFTER UPDATE OF assigned_consultant_id ON public.clients
 FOR EACH ROW EXECUTE FUNCTION public.log_client_therapist_assignment_change();

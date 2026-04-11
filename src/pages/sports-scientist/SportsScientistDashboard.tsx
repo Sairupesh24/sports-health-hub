@@ -23,6 +23,8 @@ import { SportsScientistBookSessionModal } from "@/components/sports-scientist/S
 import { SportsScientistSessionStatusModal } from "@/components/sports-scientist/SportsScientistSessionStatusModal";
 import AmsStaffNav from "@/components/ams/AmsStaffNav";
 import { cn } from "@/lib/utils";
+import AttendanceMarker from "@/components/attendance/AttendanceMarker";
+
 
 export default function SportsScientistDashboard() {
     const { user } = useAuth();
@@ -87,6 +89,8 @@ export default function SportsScientistDashboard() {
                 <AmsStaffNav />
                 
                 <main className="container mx-auto p-4 sm:p-8 space-y-8 max-w-[1600px] animate-in fade-in duration-700">
+                    <AttendanceMarker />
+
                     <header className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
                         <div className="space-y-1">
                             <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-black">

@@ -1,2 +1,2 @@
 ALTER TABLE public.clients
-ADD COLUMN athlete_type TEXT;
+ADD COLUMN IF NOT EXISTS athlete_type TEXT;

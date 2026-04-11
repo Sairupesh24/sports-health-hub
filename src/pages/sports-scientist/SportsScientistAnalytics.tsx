@@ -101,7 +101,7 @@ export default function SportsScientistAnalytics() {
             // 1. Fetch Client Info
             const { data: client, error: clientErr } = await supabase
                 .from('clients')
-                .select('*')
+                .select('*, organizations(*)')
                 .eq('id', clientId)
                 .single();
             if (clientErr) throw clientErr;
@@ -184,6 +184,9 @@ export default function SportsScientistAnalytics() {
                            <PerformanceReportButton 
                                 athleteName={`${athleteData.client.first_name} ${athleteData.client.last_name}`}
                                 athleteId={clientId}
+                                orgName={(athleteData.client as any).organizations?.official_name || "ISHPO High Performance"}
+                                orgLogo={(athleteData.client as any).organizations?.logo_url}
+                                orgAddress={(athleteData.client as any).organizations?.official_address}
                            />
                         </div>
                     </div>
@@ -497,15 +500,29 @@ export default function SportsScientistAnalytics() {
     );
 }
 
-function PerformanceReportButton({ athleteName, athleteId }: { athleteName: string, athleteId: string }) {
+function PerformanceReportButton({ 
+    athleteName, 
+    athleteId, 
+    orgName, 
+    orgLogo, 
+    orgAddress 
+}: { 
+    athleteName: string, 
+    athleteId: string,
+    orgName: string,
+    orgLogo?: string,
+    orgAddress?: string
+}) {
     const { data: results } = usePerformanceResults(athleteId);
     const { personalBests } = usePersonalBests(athleteId);
 
-    const handleDownload = () => {
+    const handleDownload = async () => {
         if (!results) return;
-        generateAthletePerformanceReport({
+        await generateAthletePerformanceReport({
             athleteName,
-            organization: "ISHPO High Performance",
+            organization: orgName,
+            organizationLogo: orgLogo,
+            organizationAddress: orgAddress,
             assessments: results,
             personalBests
         });

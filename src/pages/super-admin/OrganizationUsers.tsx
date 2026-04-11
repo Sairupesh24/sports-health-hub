@@ -41,7 +41,7 @@ export default function OrganizationUsers({ organizationId }: OrganizationUsersP
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const downloadTemplate = () => {
-        let aoaData: any[][] = [EXPECTED_HEADERS];
+        const aoaData: (string | number)[][] = [EXPECTED_HEADERS];
 
         // Static examples
         aoaData.push(["John", "", "Admin", "+1234567890", "admin", "john.admin@ishpo.com", "TempPass123!"]);
@@ -73,14 +73,14 @@ export default function OrganizationUsers({ organizationId }: OrganizationUsersP
             const worksheet = workbook.Sheets[workbook.SheetNames[0]];
 
             // Use defval to ensure empty cells produce empty strings instead of being omitted
-            const rows = XLSX.utils.sheet_to_json<any[]>(worksheet, { header: 1, blankrows: false, defval: "" });
+            const rows = XLSX.utils.sheet_to_json<(string | number)[]>(worksheet, { header: 1, blankrows: false, defval: "" });
 
             if (rows.length < 2) {
                 throw new Error("File must contain headers and at least one user row.");
             }
 
             // Dynamically map column indices from the header row
-            const headerRow = (rows[0] as any[]).map(h => (h || "").toString().trim().toLowerCase());
+            const headerRow = rows[0].map(h => (h || "").toString().trim().toLowerCase());
 
             const findCol = (keywords: string[]): number => {
                 return headerRow.findIndex(h => keywords.some(kw => h.includes(kw)));
@@ -108,11 +108,11 @@ export default function OrganizationUsers({ organizationId }: OrganizationUsersP
 
             // Process data rows
             for (let i = 1; i < rows.length; i++) {
-                const row = rows[i] as any[];
+                const row = rows[i];
                 if (!row || row.length === 0) continue;
 
                 // Skip rows where all cells are empty (defval:"" produces ["","","",...""])
-                const hasAnyData = row.some((cell: any) => (cell || "").toString().trim() !== "");
+                const hasAnyData = row.some((cell) => (cell || "").toString().trim() !== "");
                 if (!hasAnyData) continue;
 
                 // Skip note/instruction rows (start with *)
@@ -122,7 +122,8 @@ export default function OrganizationUsers({ organizationId }: OrganizationUsersP
                 const roleRaw = (row[colRole] || "").toString();
                 const roleStr = roleRaw.toLowerCase().trim().replace(/[^a-z]/g, '');
 
-                if (!["admin", "consultant", "client"].includes(roleStr)) {
+                const validRoles: ("admin" | "consultant" | "client")[] = ["admin", "consultant", "client"];
+                if (!validRoles.includes(roleStr as any)) {
                     throw new Error(`Row ${i + 1}: Invalid or missing Role '${roleRaw.trim()}'. Must be admin, consultant, or client.`);
                 }
 
@@ -139,7 +140,7 @@ export default function OrganizationUsers({ organizationId }: OrganizationUsersP
                     middleName: colMiddle !== -1 && row[colMiddle] ? row[colMiddle].toString().trim() : undefined,
                     lastName,
                     phone: colPhone !== -1 && row[colPhone] ? row[colPhone].toString().trim() : "",
-                    role: roleStr as any,
+                    role: roleStr as "admin" | "consultant" | "client",
                     email,
                     password: colPassword !== -1 && row[colPassword] ? row[colPassword].toString().trim() : undefined,
                     status: "pending"
@@ -153,8 +154,9 @@ export default function OrganizationUsers({ organizationId }: OrganizationUsersP
             setParsedUsers(parsed);
             toast({ title: "Template Parsed", description: `Found ${parsed.length} valid users ready for import.` });
 
-        } catch (error: any) {
-            toast({ title: "Upload Failed", description: error.message, variant: "destructive" });
+        } catch (error: unknown) {
+            const err = error as Error;
+            toast({ title: "Upload Failed", description: err.message, variant: "destructive" });
         } finally {
             setUploading(false);
             if (fileInputRef.current) fileInputRef.current.value = "";
@@ -260,32 +262,37 @@ export default function OrganizationUsers({ organizationId }: OrganizationUsersP
             setParsedUsers(parsedUsers.map(u => ({ ...u, status: "success" })));
             toast({ title: "Import Successful", description: `All ${parsedUsers.length} users were created.` });
 
-        } catch (error: any) {
-            console.error("[BulkImport] Error during processing, rolling back:", error);
+        } catch (error: unknown) {
+            const err = error as Error;
+            console.error("[BulkImport] Error during processing, rolling back:", err);
             
             // Rollback: Delete all users created during this session
             if (createdUserIds.length > 0) {
-                const { createClient } = await import("@supabase/supabase-js");
-                const supabaseAdmin = createClient(
-                    import.meta.env.VITE_SUPABASE_URL,
-                    import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY,
-                    { auth: { autoRefreshToken: false, persistSession: false } }
-                );
+                const { createClient: createSupabaseClient } = await import("@supabase/supabase-js");
+                const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+                const serviceRoleKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
 
-                for (const id of createdUserIds) {
-                    try {
-                        const { error: delError } = await supabaseAdmin.auth.admin.deleteUser(id);
-                        if (delError && delError.message !== "User not found") {
-                            console.warn(`Rollback: Failed to delete user ${id}:`, delError.message);
+                if (supabaseUrl && serviceRoleKey) {
+                    const supabaseAdmin = createSupabaseClient(
+                        supabaseUrl,
+                        serviceRoleKey,
+                        { auth: { autoRefreshToken: false, persistSession: false } }
+                    );
+
+                    for (const id of createdUserIds) {
+                        try {
+                            const { error: delError } = await supabaseAdmin.auth.admin.deleteUser(id);
+                            if (delError && delError.message !== "User not found") {
+                                console.warn(`Rollback: Failed to delete user ${id}:`, delError.message);
+                            }
+                        } catch (e) {
+                            console.error(`Rollback: Exception deleting user ${id}:`, e);
                         }
-                    } catch (e) {
-                        console.error(`Rollback: Exception deleting user ${id}:`, e);
                     }
                 }
-
             }
 
-            toast({ title: "Import Failed & Reverted", description: `${error.message}. All partially created users have been rolled back.`, variant: "destructive" });
+            toast({ title: "Import Failed & Reverted", description: `${err.message}. All partially created users have been rolled back.`, variant: "destructive" });
         } finally {
             setProcessing(false);
         }

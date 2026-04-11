@@ -64,7 +64,7 @@ export default function DashboardLayout({ role, children }: DashboardLayoutProps
         </div>
 
         {/* Content Area */}
-        <div className="p-4 sm:p-6 lg:p-8 max-w-[1600px] w-full mx-auto flex-1 pb-24 md:pb-8">
+        <div className="p-4 sm:p-6 lg:p-8 max-w-[1600px] w-full mx-auto pb-24 md:pb-12">
           {children}
         </div>
       </main>

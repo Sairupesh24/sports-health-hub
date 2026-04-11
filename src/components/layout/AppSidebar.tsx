@@ -37,8 +37,8 @@ const adminNav: NavItem[] = [
   { label: "Calendar", icon: CalendarDays, href: "/admin/calendar" },
   { label: "Reports", icon: ClipboardList, href: "/admin/reports" },
   { label: "Billing", icon: CreditCard, href: "/admin/billing" },
+  { label: "User Approvals", icon: UserCheck, href: "/admin/users" },
   { label: "Settings", icon: Settings, href: "/admin/settings", isUnderDevelopment: true },
-  { label: "User Approval", icon: UserCheck, href: "/admin/users" },
 ];
 
 const consultantNav: NavItem[] = [
@@ -66,6 +66,7 @@ const foeNav: NavItem[] = [
   { label: "Calendar", icon: CalendarDays, href: "/admin/calendar" },
   { label: "Reports", icon: ClipboardList, href: "/admin/reports" },
   { label: "Billing", icon: CreditCard, href: "/admin/billing" },
+  { label: "User Approvals", icon: UserCheck, href: "/admin/users" },
   { label: "Settings", icon: Settings, href: "/admin/settings", isUnderDevelopment: true },
 ];
 
@@ -84,6 +85,14 @@ const managerNav: NavItem[] = [
   { label: "Clients", icon: Users, href: "/admin/clients" },
   { label: "Calendar", icon: CalendarDays, href: "/admin/calendar" },
   { label: "Reports", icon: ClipboardList, href: "/admin/reports" },
+];
+
+const hrNav: NavItem[] = [
+  { label: "HR Dashboard", icon: LayoutDashboard, href: "/hr" },
+  { label: "Directory", icon: Users, href: "/hr/employees" },
+  { label: "Contracts", icon: ClipboardList, href: "/hr/contracts" },
+  { label: "Leaves", icon: CalendarDays, href: "/hr/leaves" },
+  { label: "User Approvals", icon: UserCheck, href: "/hr/users" },
 ];
 
 const superAdminNav: NavItem[] = [
@@ -110,6 +119,7 @@ const navMap: Record<string, NavItem[]> = {
   sports_scientist: sportsScientistNav,
   manager: managerNav,
   athlete: athleteNav,
+  hr_manager: hrNav,
 };
 
 interface AppSidebarProps {

@@ -291,14 +291,14 @@ DECLARE
     t TEXT;
     all_tables TEXT[] := ARRAY[
         'exercise_categories', 'questionnaires', 'saved_warmups', 'training_programs',
-        'program_assignments', 'workout_days', 'workout_items', 'lift_items',
-        'saqc_items', 'circuit_items', 'sport_science_items', 'warmup_items',
-        'note_items', 'athlete_workout_completions', 'athlete_item_logs',
+        'program_assignments', 'workout_days', 'workout_items', 
+        'athlete_workout_completions', 'athlete_item_logs',
         'athlete_saqc_logs', 'athlete_circuit_logs', 'athlete_science_responses',
         'max_pr_records'
     ];
 BEGIN
     FOR t IN SELECT unnest(all_tables) LOOP
+        EXECUTE format('DROP POLICY IF EXISTS "Org access for %I" ON public.%I', t, t);
         EXECUTE format('CREATE POLICY "Org access for %I" ON public.%I FOR ALL USING (org_id = public.get_my_org_id())', t, t);
     END LOOP;
 END $$;

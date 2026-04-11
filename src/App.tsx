@@ -30,10 +30,14 @@ import FOEDashboard from "./pages/admin/FOEDashboard";
 import ClientList from "./pages/admin/ClientList";
 import ClientRegistration from "./pages/admin/ClientRegistration";
 import FieldConfig from "./pages/admin/FieldConfig";
-import UserApproval from "./pages/admin/UserApproval";
+import ConsultantDashboard from "./pages/consultant/ConsultantDashboard";
+import EmployeeManagement from "./pages/hr/EmployeeManagement";
+import HrDashboard from "./pages/hr/HrDashboard";
+import UserApproval from "./pages/hr/UserApproval";
+import DailyLogs from "./pages/hr/DailyLogs";
+
 import BillingPage from "./pages/admin/Billing";
 import ClientProfile from "./pages/admin/ClientProfile";
-import ConsultantDashboard from "./pages/consultant/ConsultantDashboard";
 import ConsultantAvailability from "./pages/consultant/ConsultantAvailability";
 import MyClients from "./pages/consultant/MyClients";
 import ConsultantClientProfile from "./pages/consultant/ClientProfile";
@@ -81,6 +85,7 @@ const App = () => (
             <Route path="/login" element={<LoginPage />} />
             <Route path="/signup" element={<SignupPage />} />
             <Route path="/enquiry" element={<PublicEnquiry />} />
+            <Route path="/enquiry/:orgSlug" element={<PublicEnquiry />} />
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
             <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="/ams/athlete-portal" element={<ProtectedRoute><AthleteDashboard /></ProtectedRoute>} />
@@ -93,8 +98,18 @@ const App = () => (
             <Route path="/admin/clients/register" element={<ProtectedRoute requiredRole={["admin", "foe"]}><ClientRegistration /></ProtectedRoute>} />
             <Route path="/admin/clients/:id" element={<ProtectedRoute requiredRole={["admin", "foe"]}><ClientProfile /></ProtectedRoute>} />
             <Route path="/admin/settings/fields" element={<ProtectedRoute requiredRole="admin"><FieldConfig /></ProtectedRoute>} />
-            <Route path="/admin/users" element={<ProtectedRoute requiredRole="admin"><UserApproval /></ProtectedRoute>} />
             <Route path="/admin/billing" element={<ProtectedRoute requiredRole={["admin", "foe"]}><BillingPage /></ProtectedRoute>} />
+            <Route path="/admin/users" element={<ProtectedRoute requiredRole={["admin", "foe"]}><UserApproval /></ProtectedRoute>} />
+            
+            {/* HRMS Console Routes */}
+            <Route path="/hr" element={<ProtectedRoute requiredRole="hr_manager"><HrDashboard /></ProtectedRoute>} />
+            <Route path="/hr/employees" element={<ProtectedRoute requiredRole="hr_manager"><EmployeeManagement /></ProtectedRoute>} />
+            <Route path="/hr/contracts" element={<ProtectedRoute requiredRole="hr_manager"><EmployeeManagement /></ProtectedRoute>} />
+            <Route path="/hr/leaves" element={<ProtectedRoute requiredRole="hr_manager"><EmployeeManagement /></ProtectedRoute>} />
+            <Route path="/hr/users" element={<ProtectedRoute requiredRole="hr_manager"><UserApproval /></ProtectedRoute>} />
+            <Route path="/hr/attendance-logs" element={<ProtectedRoute requiredRole="hr_manager"><DailyLogs /></ProtectedRoute>} />
+
+
             <Route path="/admin/calendar" element={<ProtectedRoute requiredRole={["admin", "foe"]}><AdminCalendar /></ProtectedRoute>} />
             <Route path="/admin/availability" element={<ProtectedRoute requiredRole="admin"><AdminAvailability /></ProtectedRoute>} />
             <Route path="/admin/reports" element={<ProtectedRoute requiredRole={["admin", "foe", "manager"]}><ReportsPage role="admin" /></ProtectedRoute>} />

@@ -52,6 +52,7 @@ ON CONFLICT (id) DO NOTHING;
 
 -- 5. Storage RLS Policies
 -- VIEW: All authenticated staff
+DROP POLICY IF EXISTS "Authorized staff can view report templates" ON storage.objects;
 CREATE POLICY "Authorized staff can view report templates" 
 ON storage.objects 
 FOR SELECT 
@@ -59,6 +60,7 @@ TO authenticated
 USING (bucket_id = 'report-templates');
 
 -- MANAGE: Only Sports Physicians and Admins
+DROP POLICY IF EXISTS "Authorized staff can manage report templates" ON storage.objects;
 CREATE POLICY "Authorized staff can manage report templates" 
 ON storage.objects 
 FOR ALL 
@@ -80,6 +82,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS update_report_templates_modified_timestamp ON public.report_templates;
 CREATE TRIGGER update_report_templates_modified_timestamp
 BEFORE UPDATE ON public.report_templates
 FOR EACH ROW

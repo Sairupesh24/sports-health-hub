@@ -9,27 +9,16 @@ import InjuryDetailModal from "@/components/consultant/InjuryDetailModal";
 import LogInjuryModal from "@/components/consultant/LogInjuryModal";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/contexts/AuthContext";
+import type { Database } from "@/integrations/supabase/types";
 
-export interface InjuryOverview {
-    id: string;
-    injury_date: string;
-    injury_type: string;
-    diagnosis: string;
-    status: string;
-    region: string;
-    severity: string;
-    injury_side: string;
-    mechanism_of_injury: string;
-    clinical_notes: string;
-    expected_return_date: string;
-    resolved_date: string;
-    client_id: string;
+type InjuryWithClient = Database['public']['Tables']['injuries']['Row'] & {
     client: {
         id: string;
         first_name: string;
         last_name: string;
-    };
-}
+    } | null;
+};
+
 
 const STATUS_COLORS: Record<string, string> = {
     Acute: "bg-red-100 text-red-700 border-red-200",
@@ -40,9 +29,9 @@ const STATUS_COLORS: Record<string, string> = {
 
 export default function InjuryRepoPage() {
     const { profile } = useAuth();
-    const [injuries, setInjuries] = useState<InjuryOverview[]>([]);
+    const [injuries, setInjuries] = useState<InjuryWithClient[]>([]);
     const [loading, setLoading] = useState(true);
-    const [selectedInjury, setSelectedInjury] = useState<InjuryOverview | null>(null);
+    const [selectedInjury, setSelectedInjury] = useState<InjuryWithClient | null>(null);
     const [search, setSearch] = useState("");
 
     const fetchAllInjuries = async () => {
@@ -73,7 +62,7 @@ export default function InjuryRepoPage() {
                 if (error) {
                     console.error("Error fetching injuries:", error);
                 } else {
-                    setInjuries(data as unknown as InjuryOverview[]);
+                    setInjuries(data as InjuryWithClient[]);
                 }
             } catch (err) {
                 console.error(err);
@@ -89,8 +78,9 @@ export default function InjuryRepoPage() {
     const filtered = injuries.filter(inj => {
         if (!search) return true;
         const q = search.toLowerCase();
+        const clientName = inj.client ? `${inj.client.first_name} ${inj.client.last_name}` : "";
         return (
-            (inj.client?.first_name + " " + inj.client?.last_name).toLowerCase().includes(q) ||
+            clientName.toLowerCase().includes(q) ||
             (inj.diagnosis || "").toLowerCase().includes(q) ||
             (inj.region || "").toLowerCase().includes(q) ||
             (inj.status || "").toLowerCase().includes(q)

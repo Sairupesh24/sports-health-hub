@@ -15,6 +15,7 @@ import { Separator } from "@/components/ui/separator";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import type { Database } from "@/integrations/supabase/types";
 import { ArrowLeft, UserPlus, Upload, Shield, X, Check, ChevronsUpDown, Plus } from "lucide-react";
 import { format } from "date-fns";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -266,10 +267,11 @@ export default function ClientRegistration() {
         .single();
 
       if (clientError) throw clientError;
+      if (!newClient) throw new Error("Failed to create client record");
 
       // Handle Admin Remarks if provided and user is admin
       if (data.admin_remarks && isAdmin) {
-          await (supabase as any).from("client_admin_notes").insert({
+          await supabase.from("client_admin_notes").insert({
               client_id: newClient.id,
               remarks: data.admin_remarks
           });
@@ -302,11 +304,12 @@ export default function ClientRegistration() {
       });
 
       navigate("/admin/clients");
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
+      const errorMessage = err instanceof Error ? err.message : "Something went wrong";
       toast({
         title: "Registration Failed",
-        description: err.message || "Something went wrong",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {

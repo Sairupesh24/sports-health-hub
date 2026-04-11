@@ -176,7 +176,6 @@ export default function UserApproval() {
     try {
       let prof = (profession as string) !== "none" ? (profession as string) : null;
       
-      // Auto-assign profession if role implies it
       if (!prof) {
           if (role === 'sports_physician') prof = 'Sports Physician';
           else if (role === 'physiotherapist') prof = 'Physiotherapist';
@@ -246,7 +245,6 @@ export default function UserApproval() {
       if (profession !== undefined) {
         let prof = (profession as string) !== "none" ? (profession as string) : null;
         
-        // Auto-assign profession if role implies it
         if (!prof) {
             if (newRole === 'sports_physician') prof = 'Sports Physician';
             else if (newRole === 'physiotherapist') prof = 'Physiotherapist';
@@ -372,7 +370,6 @@ export default function UserApproval() {
     setPendingAction({ type: "change_role", userId, role: newRole });
     setPendingActionUhid(currentUser?.uhid || "");
     
-    // Auto-detect profession for specialized roles
     let profession = currentUser?.profession || "none";
     if (profession === "none") {
         if (newRole === 'sports_physician') profession = 'Sports Physician';
@@ -420,20 +417,11 @@ export default function UserApproval() {
       toast({ title: "No UHID Link", description: "This user does not have a UHID assigned to their profile yet.", variant: "destructive" });
       return;
     }
-    try {
-      const { data, error } = await supabase.from("clients").select("id").eq("uhid", uhid).maybeSingle();
-      if (error || !data) {
-        toast({ title: "Client Not Found", description: "Clinical record for this UHID not found.", variant: "destructive" });
-        return;
-      }
-      navigate(`/admin/clients/${data.id}`);
-    } catch (err: any) {
-      toast({ title: "Error", description: err.message, variant: "destructive" });
-    }
+    toast({ title: "Information Only", description: "Client profiles are managed by the Clinical Administration team." });
   };
 
   return (
-    <DashboardLayout role="admin">
+    <DashboardLayout role="hr_manager">
       <div className="space-y-6 pb-10">
         <div>
           <h1 className="text-2xl font-display font-bold text-foreground">User Approval</h1>
@@ -512,7 +500,6 @@ export default function UserApproval() {
                             <SelectItem value="Massage therapist">Massage therapist</SelectItem>
                           </SelectContent>
                         </Select>
-                        <p className="text-xs text-muted-foreground">This determines which services they can manage in the calendar.</p>
                       </div>
                     )}
                     <Button onClick={confirmPendingAction} className="w-full">
@@ -583,6 +570,7 @@ export default function UserApproval() {
                             <SelectItem value="foe">Front Office Executive</SelectItem>
                             <SelectItem value="client">Client</SelectItem>
                             <SelectItem value="athlete">Athlete</SelectItem>
+                            <SelectItem value="hr_manager">HR Manager</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
@@ -590,7 +578,6 @@ export default function UserApproval() {
                         <div className="space-y-2 animate-in fade-in zoom-in duration-200">
                           <Label>Client UHID <span className="text-destructive">*</span></Label>
                           <Input value={newUhid} onChange={e => setNewUhid(e.target.value)} required placeholder="e.g. CSH03260001" />
-                          <p className="text-xs text-muted-foreground">Required to link this account to their clinical records.</p>
                         </div>
                       )}
                       <Button type="submit" disabled={isAdding} className="w-full">
@@ -634,7 +621,7 @@ export default function UserApproval() {
                           variant="outline"
                           onClick={() => handleViewClientDetails(u.uhid)}
                           className="h-9 w-9 shrink-0"
-                          title="View Client Details"
+                          title="View Data Status"
                         >
                           <ExternalLink className="w-4 h-4" />
                         </Button>
@@ -646,7 +633,7 @@ export default function UserApproval() {
                               <CheckCircle className="w-3 h-3 mr-1" /> Approved
                             </Badge>
                             <Select value={selectedRoles[u.id] || ""} onValueChange={(v) => handleRoleSelect(u.id, v)}>
-                              <SelectTrigger className="w-full md:w-[130px] h-9" aria-label="Change role">
+                              <SelectTrigger className="w-full md:w-[130px] h-9">
                                 <SelectValue placeholder="Role" />
                               </SelectTrigger>
                               <SelectContent>
@@ -658,6 +645,7 @@ export default function UserApproval() {
                                 <SelectItem value="foe">Front Office Executive</SelectItem>
                                 <SelectItem value="client">Client</SelectItem>
                                 <SelectItem value="athlete">Athlete</SelectItem>
+                                <SelectItem value="hr_manager">HR Manager</SelectItem>
                               </SelectContent>
                             </Select>
                           </div>
@@ -698,6 +686,7 @@ export default function UserApproval() {
                                 <SelectItem value="foe">Front Office Executive</SelectItem>
                                 <SelectItem value="client">Client</SelectItem>
                                 <SelectItem value="athlete">Athlete</SelectItem>
+                                <SelectItem value="hr_manager">HR Manager</SelectItem>
                               </SelectContent>
                             </Select>
                           </div>

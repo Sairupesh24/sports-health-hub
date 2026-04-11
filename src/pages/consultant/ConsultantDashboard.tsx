@@ -12,6 +12,9 @@ import { format, subDays, addDays, startOfDay, endOfDay, startOfMonth } from "da
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
+import type { Database } from "@/integrations/supabase/types";
+import AttendanceMarker from "@/components/attendance/AttendanceMarker";
+
 
 interface SessionData {
   id: string;
@@ -48,14 +51,14 @@ export default function ConsultantDashboard() {
     type: string;
     status: "pending" | "confirmed" | "completed";
     clientId?: string;
-    rawSession?: any;
+    rawSession?: Database['public']['Tables']['sessions']['Row'];
   }[]>([]);
   const [assignedClientsCount, setAssignedClientsCount] = useState(0);
   const [monthSessionsCount, setMonthSessionsCount] = useState(0);
   const [avgImprovement, setAvgImprovement] = useState("--");
 
   const [soapModalOpen, setSoapModalOpen] = useState(false);
-  const [selectedSession, setSelectedSession] = useState<any>(null);
+  const [selectedSession, setSelectedSession] = useState<Database['public']['Tables']['sessions']['Row'] | null>(null);
   const [selectedClientId, setSelectedClientId] = useState<string>("");
 
   const [adHocModalOpen, setAdHocModalOpen] = useState(false);
@@ -86,7 +89,7 @@ export default function ConsultantDashboard() {
       .order("scheduled_start", { ascending: true });
 
     if (!error && data) {
-      const formatted = (data as unknown as any[]).map(session => ({
+      const formatted = data.map(session => ({
         id: session.id,
         time: format(new Date(session.scheduled_start), "HH:mm"),
         clientName: `${session.client?.first_name || ""} ${session.client?.last_name || ""}`.trim(),
@@ -105,7 +108,7 @@ export default function ConsultantDashboard() {
     if (!profile?.id || !profile?.organization_id) return;
     
     const today = format(new Date(), "yyyy-MM-dd");
-    const { count, error } = await (supabase as any)
+    const { count, error } = await supabase
       .from("waitlist")
       .select("*", { count: "exact", head: true })
       .eq("organization_id", profile.organization_id)
@@ -212,8 +215,10 @@ export default function ConsultantDashboard() {
 
   return (
     <DashboardLayout role="consultant">
-      <div className="space-y-6">
+      <div className="space-y-6 max-w-7xl mx-auto px-4 sm:px-6">
+        <AttendanceMarker />
         <div>
+
           <h1 className="text-2xl font-display font-bold text-foreground">
             {getGreeting()}, {profile?.first_name ? `${profile.first_name}` : (profile?.profession || 'Staff')}
           </h1>

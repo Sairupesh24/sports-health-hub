@@ -90,14 +90,6 @@ export const REPORT_STRUCTURE: Record<ReportModule, ReportTemplate[]> = {
     ]}
   ],
   billing: [
-    { id: "invoice_summary", name: "Invoice Summary", description: "Summary of all generated invoices", columns: [
-        { key: "id", label: "Invoice #" },
-        { key: "client_name", label: "Client" },
-        { key: "total", label: "Amount" },
-        { key: "status", label: "Status" },
-        { key: "transaction_id", label: "Transaction ID" },
-        { key: "created_at", label: "Date" }
-    ]},
     { id: "revenue_by_service", name: "Revenue by Service", description: "Financial breakdown by service type", columns: [
         { key: "service_type", label: "Service" },
         { key: "revenue", label: "Revenue" }
@@ -107,6 +99,7 @@ export const REPORT_STRUCTURE: Record<ReportModule, ReportTemplate[]> = {
         { key: "type", label: "Type" },
         { key: "reference", label: "Reference #" },
         { key: "client_name", label: "Client" },
+        { key: "staff", label: "Staff" },
         { key: "amount", label: "Amount" },
         { key: "mode", label: "Mode" },
         { key: "status", label: "Status" },
@@ -121,6 +114,12 @@ export const REPORT_STRUCTURE: Record<ReportModule, ReportTemplate[]> = {
         { key: "mode", label: "Mode" },
         { key: "authorized_by", label: "Auth By" },
         { key: "entitlements_reversed", label: "Entitlements" }
+    ]},
+    { id: "user_revenue_summary", name: "User Revenue Summary", description: "Detailed revenue breakdowns by staff member and payment mode", columns: [
+        { key: "staff_member", label: "Staff Member" },
+        { key: "payment_mode", label: "Payment Mode" },
+        { key: "mode_total", label: "Sub-Total" },
+        { key: "staff_total", label: "Grand Total" }
     ]}
   ],
   physio: [
@@ -222,30 +221,12 @@ export async function generateReportData(module: ReportModule, templateId: strin
             break;
         
         case "billing":
-            if (templateId === "invoice_summary") {
-                const { startDate, endDate } = filters;
-                let query = supabase
-                    .from("bills")
-                    .select("id, total, status, transaction_id, created_at, clients(first_name, last_name)")
-                    .order("created_at", { ascending: false });
-                
-                if (startDate) query = query.gte('created_at', startDate);
-                if (endDate) query = query.lte('created_at', endDate);
 
-                const { data, error } = await query;
-                
-                if (error) throw error;
-                return (data as any[]).map(b => ({
-                    ...b,
-                    client_name: b.clients ? `${(b.clients as any).first_name} ${(b.clients as any).last_name}` : "Unknown",
-                    created_at: b.created_at ? format(new Date(b.created_at), "dd-MM-yyyy HH:mm:ss") : "—"
-                }));
-            }
             if (templateId === "full_transaction_ledger") {
                 const { startDate, endDate } = filters;
                 
-                let bQuery = supabase.from("bills").select("id, total, status, payment_method, created_at, clients(first_name, last_name)").order("created_at", { ascending: false });
-                let rQuery = (supabase as any).from("refunds").select("id, amount, refund_mode, is_entitlement_reversed, created_at, bill_id, clients(first_name, last_name)").order("created_at", { ascending: false });
+                let bQuery = supabase.from("bills").select("id, invoice_number, total, status, payment_method, created_at, billed_by_name, billing_staff_name, clients(first_name, last_name)").order("created_at", { ascending: false });
+                let rQuery = (supabase as any).from("refunds").select("id, amount, refund_mode, is_entitlement_reversed, created_at, authorized_by, bill_id, clients(first_name, last_name)").order("created_at", { ascending: false });
 
                 if (startDate) {
                     bQuery = bQuery.gte('created_at', startDate);
@@ -266,8 +247,9 @@ export async function generateReportData(module: ReportModule, templateId: strin
                 const bills = (billsData as any[]).map(b => ({
                     date: format(new Date(b.created_at), "dd-MM-yyyy HH:mm:ss"),
                     type: "INVOICE",
-                    reference: b.id.substring(0, 8).toUpperCase(),
+                    reference: b.invoice_number || b.id.substring(0, 8).toUpperCase(),
                     client_name: b.clients ? `${(b.clients as any).first_name} ${(b.clients as any).last_name}` : "Unknown",
+                    staff: b.billed_by_name || b.billing_staff_name || "System",
                     amount: `Rs. ${Number(b.total).toFixed(2)}`,
                     mode: b.payment_method || "—",
                     status: b.status,
@@ -280,6 +262,7 @@ export async function generateReportData(module: ReportModule, templateId: strin
                     type: "REFUND",
                     reference: r.id.substring(0, 8).toUpperCase(),
                     client_name: r.clients ? `${(r.clients as any).first_name} ${(r.clients as any).last_name}` : "Unknown",
+                    staff: r.authorized_by || "—",
                     amount: `− Rs. ${Number(r.amount).toFixed(2)}`,
                     mode: r.refund_mode,
                     status: "Refunded",
@@ -311,6 +294,80 @@ export async function generateReportData(module: ReportModule, templateId: strin
                     authorized_by: r.authorized_by || "—",
                     entitlements_reversed: r.is_entitlement_reversed ? "Yes — Reversed" : "No — Retained",
                 }));
+            }
+            if (templateId === "user_revenue_summary") {
+                const { startDate, endDate, paymentMode } = filters;
+                
+                let bQuery = supabase.from("bills").select("total, payment_method, billed_by_name, billing_staff_name, created_at").eq("status", "Paid");
+                let rQuery = (supabase as any).from("refunds").select("amount, refund_mode, created_at, bills(billed_by_name, billing_staff_name)");
+
+                if (startDate) {
+                    bQuery = bQuery.gte('created_at', startDate);
+                    rQuery = rQuery.gte('created_at', startDate);
+                }
+                if (endDate) {
+                    bQuery = bQuery.lte('created_at', endDate);
+                    rQuery = rQuery.lte('created_at', endDate);
+                }
+                if (paymentMode) {
+                    bQuery = bQuery.eq('payment_method', paymentMode);
+                    rQuery = rQuery.eq('refund_mode', paymentMode);
+                }
+
+                const [{ data: bills, error: bErr }, { data: refunds, error: rErr }] = await Promise.all([bQuery, rQuery]);
+                if (bErr) throw bErr;
+                if (rErr) throw rErr;
+
+                const staffMap: Record<string, Record<string, number>> = {};
+                
+                (bills || []).forEach(b => {
+                    const staff = b.billed_by_name || b.billing_staff_name || 'System';
+                    const mode = b.payment_method || 'Other';
+                    if (!staffMap[staff]) staffMap[staff] = {};
+                    staffMap[staff][mode] = (staffMap[staff][mode] || 0) + Number(b.total);
+                });
+
+                (refunds || []).forEach(r => {
+                    const staff = (r.bills as any)?.billed_by_name || (r.bills as any)?.billing_staff_name || 'System';
+                    const mode = r.refund_mode || 'Other';
+                    if (!staffMap[staff]) staffMap[staff] = {};
+                    staffMap[staff][mode] = (staffMap[staff][mode] || 0) - Number(r.amount);
+                });
+
+                const result: any[] = [];
+                let clinicTotal = 0;
+
+                Object.keys(staffMap).sort().forEach(staff => {
+                    let staffTotal = 0;
+                    const modes = staffMap[staff];
+                    const modeKeys = Object.keys(modes).sort();
+                    
+                    modeKeys.forEach((mode, index) => {
+                        const amount = modes[mode];
+                        staffTotal += amount;
+                        clinicTotal += amount;
+                        
+                        result.push({
+                            staff_member: staff,
+                            payment_mode: mode,
+                            mode_total: `Rs. ${amount.toFixed(2)}`,
+                            staff_total: index === modeKeys.length - 1 ? `Rs. ${staffTotal.toFixed(2)}` : "",
+                            _isStaffTotal: index === modeKeys.length - 1
+                        });
+                    });
+                });
+
+                if (result.length > 0) {
+                    result.push({
+                        staff_member: "CLINIC-WIDE TOTAL",
+                        payment_mode: "—",
+                        mode_total: "—",
+                        staff_total: `Rs. ${clinicTotal.toFixed(2)}`,
+                        _isGrandTotal: true
+                    });
+                }
+
+                return result;
             }
             break;
         case "clients":

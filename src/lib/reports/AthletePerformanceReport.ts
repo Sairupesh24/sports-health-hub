@@ -2,31 +2,64 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { format } from 'date-fns';
 import { PerformanceAssessment } from '@/hooks/usePerformanceResults';
+import { getImageDimensions } from '../utils';
 
 export interface ReportData {
     athleteName: string;
     organization: string;
+    organizationLogo?: string;
+    organizationAddress?: string;
     assessments: PerformanceAssessment[];
     personalBests: Record<string, PerformanceAssessment>;
 }
 
-export const generateAthletePerformanceReport = (data: ReportData) => {
+export const generateAthletePerformanceReport = async (data: ReportData) => {
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
     const dateStr = format(new Date(), 'dd MMM yyyy');
 
-    // Header
+    // Header Background
     doc.setFillColor(14, 165, 233); // Primary Sky Blue
-    doc.rect(0, 0, pageWidth, 40, 'F');
+    doc.rect(0, 0, pageWidth, 45, 'F');
     
+    let titleY = 25;
+
+    if (data.organizationLogo) {
+        try {
+            const { width, height, img } = await getImageDimensions(data.organizationLogo);
+            const aspectRatio = width / height;
+            const topMargin = 5; // 0.5cm from top
+            const maxLogoHeight = 20; 
+            
+            if (aspectRatio > 2) {
+                // Horizontal Header
+                const targetWidth = pageWidth - 40;
+                const targetHeight = targetWidth / aspectRatio;
+                const finalHeight = Math.min(targetHeight, maxLogoHeight);
+                const finalWidth = finalHeight * aspectRatio;
+                
+                doc.addImage(img, 'PNG', (pageWidth - finalWidth) / 2, topMargin, finalWidth, finalHeight);
+                titleY = topMargin + finalHeight + 10;
+            } else {
+                // Square/Portrait logo
+                const finalHeight = Math.min(25, maxLogoHeight);
+                const finalWidth = finalHeight * aspectRatio;
+                doc.addImage(img, 'PNG', (pageWidth - finalWidth) / 2, topMargin, finalWidth, finalHeight);
+                titleY = topMargin + finalHeight + 10;
+            }
+        } catch (e) {
+            console.error("Logo failed to load", e);
+        }
+    }
+
     doc.setTextColor(255, 255, 255);
-    doc.setFontSize(22);
+    doc.setFontSize(20);
     doc.setFont('helvetica', 'bold');
-    doc.text('ATHLETE PERFORMANCE REPORT', 20, 25);
+    doc.text('ATHLETE PERFORMANCE REPORT', 20, titleY + 10);
     
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
-    doc.text(`Generated on: ${dateStr}`, pageWidth - 20, 25, { align: 'right' });
+    doc.text(`Generated on: ${dateStr}`, pageWidth - 20, titleY + 10, { align: 'right' });
 
     // Athlete Info Section
     doc.setTextColor(50, 50, 50);
@@ -81,7 +114,13 @@ export const generateAthletePerformanceReport = (data: ReportData) => {
         doc.setPage(i);
         doc.setFontSize(8);
         doc.setTextColor(150, 150, 150);
-        doc.text(`ISHPO Performance Module - Confidential Athlete Data`, pageWidth / 2, doc.internal.pageSize.getHeight() - 10, { align: 'center' });
+        
+        if (data.organizationAddress) {
+            const splitAddress = doc.splitTextToSize(data.organizationAddress, 180);
+            doc.text(splitAddress, pageWidth / 2, doc.internal.pageSize.getHeight() - 20, { align: 'center' });
+        }
+        
+        doc.text(`ISHPO Performance Module - Confidential Athlete Data • Page ${i} of ${pageCount}`, pageWidth / 2, doc.internal.pageSize.getHeight() - 10, { align: 'center' });
     }
 
     doc.save(`${data.athleteName.replace(/\s+/g, '_')}_Performance_Report.pdf`);

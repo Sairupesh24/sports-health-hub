@@ -9,7 +9,7 @@ $$;
 
 -- Create refunds table
 CREATE TABLE IF NOT EXISTS refunds (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     bill_id UUID NOT NULL REFERENCES bills(id),
     client_id UUID NOT NULL REFERENCES clients(id),
     organization_id UUID NOT NULL REFERENCES organizations(id),
@@ -52,11 +52,9 @@ BEGIN
         CREATE POLICY "Admins and FOE can insert refunds"
         ON refunds FOR INSERT
         WITH CHECK (
-            EXISTS (
-                SELECT 1 FROM profiles 
-                WHERE id = auth.uid() 
-                AND ams_role IN ('admin', 'super_admin', 'foe')
-            )
+            public.has_role(auth.uid(), 'admin') OR
+            public.has_role(auth.uid(), 'super_admin') OR
+            public.has_role(auth.uid(), 'foe')
         );
     END IF;
 END

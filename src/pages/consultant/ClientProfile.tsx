@@ -25,6 +25,7 @@ import { Trophy, FileStack } from "lucide-react";
 import { DocumentManager } from "@/components/admin/documents/DocumentManager";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useAuth } from "@/contexts/AuthContext";
+import type { Database } from "@/integrations/supabase/types";
 
 
 
@@ -38,19 +39,19 @@ interface ClientProfile {
     age: number;
     organization_id: string;
     ams_role?: string;
-    is_vip?: boolean;
+    is_vip: boolean | null;
 }
 
 
 export default function ConsultantClientProfile() {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
-    const [client, setClient] = useState<ClientProfile | null>(null);
-    const [injuries, setInjuries] = useState<any[]>([]);
-    const [sessions, setSessions] = useState<any[]>([]);
+    const [client, setClient] = useState<Database['public']['Tables']['clients']['Row'] | null>(null);
+    const [injuries, setInjuries] = useState<Database['public']['Tables']['injuries']['Row'][]>([]);
+    const [sessions, setSessions] = useState<(Database['public']['Tables']['sessions']['Row'] & { physio_session_details: Database['public']['Tables']['physio_session_details']['Row'][] })[]>([]);
     const [loading, setLoading] = useState(true);
 
-    const [selectedSession, setSelectedSession] = useState<any>(null);
+    const [selectedSession, setSelectedSession] = useState<Database['public']['Tables']['sessions']['Row'] | null>(null);
     const [soapModalOpen, setSoapModalOpen] = useState(false);
 
     const [selectedInjuryToResolve, setSelectedInjuryToResolve] = useState<any>(null);
@@ -123,8 +124,9 @@ export default function ConsultantClientProfile() {
             if (sessionErr) throw sessionErr;
             setSessions(sessionData || []);
 
-        } catch (err: any) {
-            toast({ title: "Error", description: err.message, variant: "destructive" });
+        } catch (err: unknown) {
+            const error = err as Error;
+            toast({ title: "Error", description: error.message, variant: "destructive" });
         } finally {
             setLoading(false);
         }
@@ -141,8 +143,8 @@ export default function ConsultantClientProfile() {
             'Time': s.scheduled_start ? format(new Date(s.scheduled_start), "hh:mm a") : "-",
             'Type': s.service_type || "-",
             'Status': s.status,
-            'Pain Score': s.physio_session_details?.[0]?.pain_score ?? "-",
-            'Clinical Notes': s.physio_session_details?.[0]?.clinical_notes || "-"
+            'Pain Score': (s.physio_session_details as any)?.[0]?.pain_score ?? "-",
+            'Clinical Notes': (s.physio_session_details as any)?.[0]?.clinical_notes || "-"
         }));
 
         const worksheet = XLSX.utils.json_to_sheet(exportData);

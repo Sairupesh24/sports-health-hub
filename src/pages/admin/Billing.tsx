@@ -15,7 +15,7 @@ import { Plus, Download, CheckCircle, CreditCard, Banknote, Smartphone, Trash2, 
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
-import { cn } from "@/lib/utils";
+import { cn, getImageDimensions } from "@/lib/utils";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { format } from "date-fns";
@@ -26,6 +26,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { VIPBadge, VIPName } from "@/components/ui/VIPBadge";
 import { TransactionDetailDrawer, TransactionDetail } from "@/components/admin/TransactionDetailDrawer";
+import type { Database } from "@/integrations/supabase/types";
 
 type CartItem = {
     id: string; // unique cart item id
@@ -54,8 +55,14 @@ type Bill = {
     notes?: string;
     discount_authorized_by?: string;
     billing_staff_name?: string;
+    billed_by_id?: string;
+    billed_by_name?: string;
+    invoice_number?: string;
     referral_source_name?: string;
     include_notes_in_invoice?: boolean;
+    organization_logo?: string;
+    organization_address?: string;
+    organization_official_name?: string;
 };
 
 type Client = { id: string; first_name: string; last_name: string; uhid: string; email?: string; mobile_no?: string; is_vip?: boolean };
@@ -71,6 +78,7 @@ export default function BillingPage() {
     const [bills, setBills] = useState<Bill[]>([]);
     const [referralSources, setReferralSources] = useState<ReferralSource[]>([]);
     const [packages, setPackages] = useState<Package[]>([]);
+    const [orgDetails, setOrgDetails] = useState<any>(null);
 
     // Form States
     const [selectedClient, setSelectedClient] = useState("");
@@ -100,10 +108,10 @@ export default function BillingPage() {
 
     // Refund State
     const [isRefundModalOpen, setIsRefundModalOpen] = useState(false);
-    const [refundBillObj, setRefundBillObj] = useState<any>(null);
+    const [refundBillObj, setRefundBillObj] = useState<Bill | null>(null);
 
     // Transaction Ledger State
-    const [refunds, setRefunds] = useState<any[]>([]);
+    const [refunds, setRefunds] = useState<Database['public']['Tables']['refunds']['Row'][]>([]);
     const [selectedTransaction, setSelectedTransaction] = useState<TransactionDetail | null>(null);
     const [isDrawerOpen, setIsDrawerOpen] = useState(false);
     const [ledgerSearch, setLedgerSearch] = useState("");
@@ -124,7 +132,7 @@ export default function BillingPage() {
         if (!profile?.organization_id) return;
 
         // Fetch Clients
-        const { data: clientData } = await (supabase as any)
+        const { data: clientData } = await supabase
             .from("clients")
             .select("id, first_name, last_name, uhid, email, mobile_no, is_vip")
             .eq("organization_id", profile.organization_id);
@@ -148,8 +156,16 @@ export default function BillingPage() {
             .eq("organization_id", profile.organization_id);
         if (refData) setReferralSources(refData as ReferralSource[]);
 
+        // Fetch Org Details for Branding
+        const { data: orgData } = await supabase
+            .from("organizations")
+            .select("id, name, logo_url, official_name, official_address, contact_phone, contact_email")
+            .eq("id", profile.organization_id)
+            .single();
+        if (orgData) setOrgDetails(orgData);
+
         // Fetch Bills
-        const { data: billsData } = await (supabase as any)
+        const { data: billsData } = await supabase
             .from("bills")
             .select(`
                 id, 
@@ -167,6 +183,9 @@ export default function BillingPage() {
                 referral_sources(id, name),
                 discount_authorized_by,
                 billing_staff_name,
+                billed_by_id,
+                billed_by_name,
+                invoice_number,
                 notes,
                 include_notes_in_invoice
             `)
@@ -174,12 +193,12 @@ export default function BillingPage() {
             .order("created_at", { ascending: false });
 
         if (billsData) {
-            const formattedBills = billsData.map(b => {
-                const items = (b.bill_items as any[])?.map(bi => {
-                    const pkg = bi.packages as any;
-                    let entitlements: any[] = [];
-                    if (pkg && pkg.package_services) {
-                        entitlements = pkg.package_services.map((ps: any) => ({
+            const formattedBills: Bill[] = billsData.map(b => {
+                const items = b.bill_items?.map(bi => {
+                    const pkg = bi.packages;
+                    let entitlements: { service_type: string; default_sessions: number; }[] = [];
+                    if (pkg && (pkg as any).package_services) {
+                        entitlements = (pkg as any).package_services.map((ps: any) => ({
                             service_type: ps.services?.name || 'Session',
                             default_sessions: ps.sessions_included
                         }));
@@ -191,41 +210,47 @@ export default function BillingPage() {
                     };
                 }) || [];
 
-                const clientObj = b.clients as any;
+                const clientObj = b.clients;
                 const clientName = clientObj ? `${clientObj.first_name} ${clientObj.last_name}` : "Unknown";
 
                 return {
                     id: b.id,
                     client_id: b.client_id,
                     client: { id: b.client_id, full_name: clientName, is_vip: clientObj?.is_vip },
-                    organization: b.organizations,
+                    organization: b.organizations as { name: string; id: string },
                     client_name: clientName,
                     client_is_vip: clientObj?.is_vip,
                     client_uhid: clientObj?.uhid || "",
                     client_mobile: clientObj?.mobile_no || "",
                     items,
-                    referral_source: (b as any).referral_sources?.name || "-",
-                    referral_source_name: (b as any).referral_sources?.name || "-",
+                    referral_source: b.referral_sources?.name || "-",
+                    referral_source_name: b.referral_sources?.name || "-",
                     subtotal: b.amount,
                     discount_type: "flat",
                     discount_value: b.discount || 0,
                     total_amount: b.total,
                     status: b.status === "Paid" ? "Paid" : "Pending",
-                    transaction_id: b.transaction_id,
+                    transaction_id: b.transaction_id || undefined,
                     date: b.created_at,
-                    notes: b.notes,
-                    discount_authorized_by: b.discount_authorized_by,
-                    billing_staff_name: b.billing_staff_name,
-                    include_notes_in_invoice: (b as any).include_notes_in_invoice
+                    notes: b.notes || undefined,
+                    discount_authorized_by: b.discount_authorized_by || undefined,
+                    billing_staff_name: b.billing_staff_name || undefined,
+                    billed_by_id: b.billed_by_id || undefined,
+                    billed_by_name: b.billed_by_name || undefined,
+                    invoice_number: b.invoice_number || undefined,
+                    include_notes_in_invoice: b.include_notes_in_invoice || false,
+                    organization_logo: (b.organizations as any)?.logo_url,
+                    organization_address: (b.organizations as any)?.official_address,
+                    organization_official_name: (b.organizations as any)?.official_name || (b.organizations as any)?.name
                 };
-            }) as any[];
+            });
             setBills(formattedBills);
         }
     };
 
     const fetchRefunds = async () => {
         if (!profile?.organization_id) return;
-        const { data, error } = await (supabase as any)
+        const { data, error } = await supabase
             .from('refunds')
             .select(`
                 id, amount, refund_mode, transaction_id, refund_proof_url,
@@ -419,6 +444,8 @@ export default function BillingPage() {
                 notes: remarks,
                 include_notes_in_invoice: includeNotesInInvoice,
                 discount_authorized_by: (Number(discountValue) > 0) ? discountAuthorizedBy : null,
+                billed_by_id: profile?.id,
+                billed_by_name: billingStaffName,
                 billing_staff_name: billingStaffName
             }).select().single();
 
@@ -486,48 +513,111 @@ export default function BillingPage() {
         }
     };
 
-    const handleDownloadInvoice = (bill: any) => {
+    const handleDownloadInvoice = async (bill: any) => {
         const d = new jsPDF();
         const c = clients.find(x => x.id === bill.client_id);
         
-        // Load Logo
-        const logoUrl = "/logo.png";
+        const orgDisplayName = bill.organization_official_name || orgDetails?.official_name || orgDetails?.name || orgName;
+        const orgAddress = bill.organization_address || orgDetails?.official_address || "";
+        const logoUrl = bill.organization_logo || orgDetails?.logo_url || "/logo.png";
         
-        const addHeader = (doc: jsPDF) => {
-            try {
-                doc.addImage(logoUrl, 'PNG', 14, 10, 60, 24.5);
-            } catch (e) {
+        const addHeader = async (doc: jsPDF) => {
+            const topMargin = 5; // 0.5cm from top
+            const maxLogoHeight = 20; 
+            let contentStartY = topMargin;
+
+            if (logoUrl && logoUrl !== "/logo.png") {
+                try {
+                    const { width, height, img } = await getImageDimensions(logoUrl);
+                    const aspectRatio = width / height;
+                    
+                    if (aspectRatio > 2) {
+                        const targetWidth = 180;
+                        const targetHeight = targetWidth / aspectRatio;
+                        const finalHeight = Math.min(targetHeight, maxLogoHeight);
+                        const finalWidth = finalHeight * aspectRatio;
+                        
+                        doc.addImage(img, 'PNG', (210 - finalWidth) / 2, topMargin, finalWidth, finalHeight);
+                        contentStartY = topMargin + finalHeight + 8;
+                    } else {
+                        const finalHeight = Math.min(25, maxLogoHeight);
+                        const finalWidth = finalHeight * aspectRatio;
+                        doc.addImage(img, 'PNG', (210 - finalWidth) / 2, topMargin, finalWidth, finalHeight); // Centering small logo too as per user request for "center aligned"
+                        contentStartY = topMargin + finalHeight + 8;
+                    }
+                } catch (e) {
+                    doc.setFontSize(22);
+                    doc.setTextColor(15, 23, 42); 
+                    doc.text(orgDisplayName, 105, topMargin + 10, { align: "center" });
+                    contentStartY = topMargin + 20;
+                }
+            } else {
                 doc.setFontSize(22);
                 doc.setTextColor(15, 23, 42); 
-                doc.text(orgName, 14, 25);
+                doc.text(orgDisplayName, 105, topMargin + 10, { align: "center" });
+                contentStartY = topMargin + 20;
             }
 
-            doc.setFontSize(14);
-            doc.setTextColor(100, 116, 139); 
-            doc.text("INVOICE", 170, 25);
-
-            doc.setFontSize(10);
-            doc.setTextColor(71, 85, 105);
-            doc.text(`Invoice # : ${bill.id.substring(0, 8)}`, 14, 45);
-            doc.text(`Date : ${format(new Date(bill.date), "dd MMM yyyy, hh:mm a")}`, 14, 51);
-            if (bill.billing_staff_name) doc.text(`Billed By: ${bill.billing_staff_name}`, 14, 57);
+            // Centered INVOICE Label
+            doc.setFontSize(16);
+            doc.setFont("helvetica", "bold");
+            doc.setTextColor(15, 23, 42); 
+            doc.text("INVOICE", 105, contentStartY, { align: "center" });
+            
+            return contentStartY + 12; // Start for metadata
         };
 
-        addHeader(d);
+        const addFooter = (doc: jsPDF) => {
+            const pageCount = doc.internal.getNumberOfPages();
+            for (let i = 1; i <= pageCount; i++) {
+                doc.setPage(i);
+                doc.setFontSize(8);
+                doc.setTextColor(148, 163, 184); 
+                
+                if (orgAddress) {
+                    const splitAddress = doc.splitTextToSize(orgAddress, 180);
+                    doc.text(splitAddress, 105, 285, { align: "center" });
+                }
+                
+                doc.text(`Page ${i} of ${pageCount}`, 105, 292, { align: "center" });
+            }
+        };
 
+        const metadataTopY = await addHeader(d);
+
+        // Two Column Layout
         d.setFontSize(11);
+        d.setFont("helvetica", "bold");
         d.setTextColor(15, 23, 42);
-        d.text("Bill To:", 14, 75);
-
+        
+        // Left Column: Bill To
+        d.text("Bill To:", 14, metadataTopY);
+        d.setFont("helvetica", "normal");
         d.setFontSize(10);
         d.setTextColor(71, 85, 105);
-        d.text(bill.client_name, 14, 82);
-        if (c?.uhid) d.text(`UHID : ${c.uhid}`, 14, 88);
-        if (c?.mobile_no) d.text(`Mobile : ${c.mobile_no}`, 14, 94);
-        
+        d.text(bill.client_name, 14, metadataTopY + 7);
+        if (c?.uhid) d.text(`UHID : ${c.uhid}`, 14, metadataTopY + 13);
+        if (c?.mobile_no) d.text(`Mobile : ${c.mobile_no}`, 14, metadataTopY + 19);
         if (bill.referral_source_name && bill.referral_source_name !== "-") {
-            d.text(`Referral: ${bill.referral_source_name}`, 14, 100);
+            d.text(`Referral: ${bill.referral_source_name}`, 14, metadataTopY + 25);
         }
+
+        // Right Column: Invoice Details
+        d.setFontSize(11);
+        d.setFont("helvetica", "bold");
+        d.setTextColor(15, 23, 42);
+        d.text("Invoice Details:", 130, metadataTopY);
+        
+        d.setFont("helvetica", "normal");
+        d.setFontSize(10);
+        d.setTextColor(71, 85, 105);
+        d.text(`Invoice # : ${bill.invoice_number || bill.id.substring(0, 8).toUpperCase()}`, 130, metadataTopY + 7);
+        d.text(`Date : ${format(new Date(bill.date), "dd MMM yyyy")}`, 130, metadataTopY + 13);
+        if (bill.billed_by_name || bill.billing_staff_name) {
+            d.text(`Billed By: ${bill.billed_by_name || bill.billing_staff_name}`, 130, metadataTopY + 19);
+        }
+
+        const tableStartY = metadataTopY + 35;
 
         const tableData = bill.items.map((item: any, index: number) => {
             let description = item.name;
@@ -545,7 +635,7 @@ export default function BillingPage() {
         });
 
         autoTable(d, {
-            startY: 110,
+            startY: tableStartY,
             head: [["#", "Description", "Amount"]],
             body: tableData,
             theme: 'striped',
@@ -596,6 +686,7 @@ export default function BillingPage() {
             d.text("STATUS: PENDING PAYMENT", 14, finalY);
         }
 
+        addFooter(d);
         d.save(`Invoice_${bill.id.substring(0, 8)}.pdf`);
     };
 
@@ -933,7 +1024,7 @@ export default function BillingPage() {
                                                             </TableRow>
                                                         ) : filteredBills.map((bill) => (
                                                             <TableRow key={bill.id} className="hover:bg-muted/10 transition-colors cursor-pointer" onClick={() => openTransactionDetail(ledgerEntries.find(t => t.id === bill.id && t.type === 'invoice')!)}>
-                                                                <TableCell className="font-mono text-[10px]">{bill.id.substring(0, 8)}</TableCell>
+                                                                <TableCell className="font-mono text-[10px]">{bill.invoice_number || bill.id.substring(0, 8).toUpperCase()}</TableCell>
                                                                 <TableCell>
                                                                     <div className="font-medium text-xs truncate max-w-[150px]">
                                                                         <VIPName name={bill.client_name} isVIP={(bill as any).client_is_vip} />

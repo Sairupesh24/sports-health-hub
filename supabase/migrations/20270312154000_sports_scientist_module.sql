@@ -3,6 +3,7 @@
 -- 1. Add roles
 ALTER TYPE public.app_role ADD VALUE IF NOT EXISTS 'sports_scientist';
 ALTER TYPE public.app_role ADD VALUE IF NOT EXISTS 'manager';
+COMMIT;
 
 -- 2. Client Ownership Model
 ALTER TABLE public.clients ADD COLUMN IF NOT EXISTS primary_scientist_id UUID REFERENCES public.profiles(id);

@@ -15,27 +15,10 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import type { Database } from "@/integrations/supabase/types";
 
-interface OrgMetrics {
-    total_organizations: number;
-    active_organizations: number;
-    disabled_organizations: number;
-    total_locations: number;
-    total_consultants: number;
-}
-
-interface Organization {
-    id: string;
-    name: string;
-    org_code: string;
-    slug: string;
-    subscription_plan: string;
-    status: string;
-    created_at: string;
-    location_count: number;
-    consultant_count: number;
-    client_count: number;
-}
+type OrgMetrics = Database['public']['Functions']['get_platform_metrics']['Returns'];
+type Organization = Database['public']['Functions']['get_platform_organizations']['Returns'][number];
 
 export default function SuperAdminDashboard() {
     const [metrics, setMetrics] = useState<OrgMetrics | null>(null);
@@ -49,16 +32,17 @@ export default function SuperAdminDashboard() {
     const fetchData = async () => {
         try {
             setLoading(true);
-            const { data: metricsData, error: metricsErr } = await supabase.rpc('get_platform_metrics' as any);
+            const { data: metricsData, error: metricsErr } = await supabase.rpc('get_platform_metrics');
             if (metricsErr) throw metricsErr;
 
-            const { data: orgsData, error: orgsErr } = await supabase.rpc('get_platform_organizations' as any);
+            const { data: orgsData, error: orgsErr } = await supabase.rpc('get_platform_organizations');
             if (orgsErr) throw orgsErr;
 
-            setMetrics(metricsData as unknown as OrgMetrics);
-            setOrganizations((orgsData as unknown as Organization[]) || []);
-        } catch (err: any) {
-            toast({ title: "Error fetching data", description: err.message, variant: "destructive" });
+            setMetrics(metricsData);
+            setOrganizations(orgsData || []);
+        } catch (err: unknown) {
+            const error = err as Error;
+            toast({ title: "Error fetching data", description: error.message, variant: "destructive" });
         } finally {
             setLoading(false);
         }

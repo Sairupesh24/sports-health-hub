@@ -4,6 +4,7 @@ import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import type { Database } from "@/integrations/supabase/types";
 import { cn } from "@/lib/utils";
 import {
   Table,
@@ -47,7 +48,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { toast } from "@/hooks/use-toast";
 import { AdminBookSessionModal } from "@/components/admin/AdminBookSessionModal";
-import { format } from "date-fns";
+import { format, isAfter, isBefore, startOfDay } from "date-fns";
 import { 
   Dialog, 
   DialogContent, 
@@ -66,26 +67,9 @@ import {
   SheetTitle,
   SheetDescription,
 } from "@/components/ui/sheet";
-import { isAfter, isBefore, startOfDay } from "date-fns";
 
-type EnquiryStatus = 'new' | 'contacted' | 'guest_booked' | 'converted' | 'not_interested';
-
-interface Enquiry {
-  id: string;
-  name: string;
-  contact: string;
-  looking_for: string;
-  preferred_call_time: string;
-  referral_source: string;
-  status: EnquiryStatus;
-  notes: string;
-  created_at: string;
-  linked_client_id?: string;
-  next_follow_up_at?: string;
-  last_interaction_at?: string;
-  referral_details?: string;
-  work_place?: string;
-}
+type Enquiry = Database['public']['Tables']['enquiries']['Row'];
+type EnquiryStatus = Enquiry['status'];
 
 export default function LeadsDashboard() {
   const { profile } = useAuth();
@@ -98,7 +82,7 @@ export default function LeadsDashboard() {
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [selectedEnquiry, setSelectedEnquiry] = useState<Enquiry | null>(null);
   const [linkSearchTerm, setLinkSearchTerm] = useState("");
-  const [selectedClient, setSelectedClient] = useState<any>(null);
+  const [selectedClient, setSelectedClient] = useState<Database['public']['Tables']['clients']['Row'] | null>(null);
 
   const { data: enquiries = [], isLoading } = useQuery({
     queryKey: ["enquiries", profile?.organization_id, statusFilter],
@@ -172,7 +156,6 @@ export default function LeadsDashboard() {
 
   const linkMutation = useMutation({
     mutationFn: async ({ enquiryId, clientId }: { enquiryId: string, clientId: string }) => {
-      // 1. Update Enquiry
       const { data: enqData, error: enqError } = await supabase
         .from("enquiries")
         .update({ status: 'converted', linked_client_id: clientId })
@@ -181,7 +164,6 @@ export default function LeadsDashboard() {
         .single();
       if (enqError) throw enqError;
 
-      // Log interaction
       await supabase.from("enquiry_interactions").insert({
         enquiry_id: enquiryId,
         interaction_type: 'converted',
@@ -189,7 +171,6 @@ export default function LeadsDashboard() {
         created_by: profile?.id
       });
 
-      // 2. Migrate Notes to client_admin_notes
       if (enqData.notes) {
         await supabase.from("client_admin_notes").insert({
           client_id: clientId,
@@ -198,7 +179,6 @@ export default function LeadsDashboard() {
         });
       }
 
-      // 3. Update Existing Guest Sessions
       await supabase
         .from("sessions")
         .update({ client_id: clientId, is_guest: false })
@@ -267,19 +247,6 @@ export default function LeadsDashboard() {
           <div>
             <h1 className="text-3xl font-display font-bold text-slate-900 tracking-tight">Leads Dashboard</h1>
             <p className="text-slate-500 mt-1">Track and manage prospective physical therapy enquiries.</p>
-          </div>
-          <div className="flex items-center gap-2 bg-white p-1 rounded-lg border shadow-sm">
-            {(['all', 'new', 'contacted', 'guest_booked', 'converted'] as const).map(f => (
-              <Button 
-                key={f} 
-                variant={statusFilter === f ? "default" : "ghost"} 
-                size="sm" 
-                onClick={() => setStatusFilter(f)}
-                className="text-xs font-bold uppercase tracking-wider"
-              >
-                {f === 'guest_booked' ? 'Session Booked' : f}
-              </Button>
-            ))}
           </div>
         </div>
 
@@ -359,7 +326,6 @@ export default function LeadsDashboard() {
                       key={enq.id} 
                       className="group hover:bg-slate-50 transition-colors border-slate-100 h-20 cursor-pointer"
                       onClick={(e) => {
-                        // Prevent opening details if an action button is clicked
                         if ((e.target as HTMLElement).closest('button')) return;
                         setSelectedEnquiry(enq);
                         setIsDetailsOpen(true);
@@ -518,10 +484,10 @@ export default function LeadsDashboard() {
             </div>
 
             <div className="space-y-2 max-h-[200px] overflow-y-auto">
-              {searchResults.map((client: any) => (
+              {searchResults.map((client) => (
                 <div 
                   key={client.id} 
-                  onClick={() => setSelectedClient(client)}
+                  onClick={() => setSelectedClient(client as Database['public']['Tables']['clients']['Row'])}
                   className={cn(
                     "p-3 rounded-lg border cursor-pointer transition-all flex justify-between items-center",
                     selectedClient?.id === client.id ? "bg-primary/5 border-primary shadow-sm" : "hover:bg-slate-50 border-transparent"
