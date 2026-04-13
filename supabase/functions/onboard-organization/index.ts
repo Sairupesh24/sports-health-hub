@@ -157,12 +157,12 @@ serve(async (req) => {
     } catch (error: any) {
         console.error("Onboarding crash:", error.message);
         return new Response(JSON.stringify({ 
+            success: false,
             error: error.message,
-            stack: error.stack,
             timestamp: new Date().toISOString()
         }), {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            status: 400, // Returning 400 instead of 500 to see if client handles it better
+            status: 200, // Return 200 so the client doesn't throw and can read the JSON body
         })
     }
 })

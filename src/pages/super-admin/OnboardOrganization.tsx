@@ -48,21 +48,19 @@ export default function OnboardOrganization() {
             if (error) {
                 console.error("Supabase function invocation error:", error);
                 
-                // Try to extract the error message from the error object or data
-                let errorMessage = "Failed to connect to the onboarding service.";
+                let errorMessage = error.message || "Failed to connect to the onboarding service.";
                 
-                if (data?.error) {
-                    errorMessage = data.error;
-                } else if (error.message) {
-                    errorMessage = error.message;
+                // If the message is the generic one, add more context
+                if (errorMessage.includes("non-2xx status code")) {
+                    errorMessage = "The onboarding service encountered a server error. This usually means a record already exists or a database function is missing.";
                 }
                 
                 throw new Error(errorMessage);
             }
 
-            if (data?.error) {
-                console.error("Onboarding logic error:", data.error);
-                throw new Error(data.error);
+            if (data?.success === false || data?.error) {
+                console.error("Onboarding logic error:", data?.error);
+                throw new Error(data?.error || "An unknown error occurred during onboarding.");
             }
 
             setSuccessData(data);
