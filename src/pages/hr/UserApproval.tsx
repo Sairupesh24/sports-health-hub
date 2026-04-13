@@ -136,14 +136,24 @@ export default function UserApproval() {
 
       if (error) {
         console.error("Edge function error context:", error);
-        // Try to extract the specific error message from the response body
         let errMsg = error.message;
+        
         try {
-          // In some versions of supabase-js, the body is available in error.context
           const context = (error as any).context;
-          if (context && typeof context === 'object') {
-            const body = await (context as Response).json();
-            if (body && body.error) errMsg = body.error;
+          if (context) {
+            if (typeof context.json === 'function') {
+              const body = await context.json();
+              if (body && body.error) errMsg = body.error;
+            } else if (typeof context === 'object' && context.error) {
+              errMsg = context.error;
+            } else if (typeof context === 'string') {
+              try {
+                const parsed = JSON.parse(context);
+                if (parsed.error) errMsg = parsed.error;
+              } catch {
+                errMsg = context;
+              }
+            }
           }
         } catch (e) {
           console.warn("Could not parse error context:", e);

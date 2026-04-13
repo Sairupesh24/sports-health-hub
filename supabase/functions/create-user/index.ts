@@ -98,12 +98,15 @@ serve(async (req) => {
       user_metadata: { first_name: firstName, last_name: lastName }
     });
 
-    checkLog += `Create:${!!authData},Err:${authCreateError?.message}|`;
-    if (authCreateError) throw new Error("Auth Create: " + authCreateError.message);
+    if (authCreateError) {
+       checkLog += `AuthCreateErr:${authCreateError.message}|`;
+       throw new Error(`Account Creation Failed: ${authCreateError.message}`);
+    }
 
-    const newUserId = authData.user.id;
-    await new Promise(resolve => setTimeout(resolve, 1500));
-
+    checkLog += `CreateSuccess:${authData.user.id}|`;
+    
+    // Reduced wait time for trigger to create profile
+    await new Promise(resolve => setTimeout(resolve, 500));
     checkLog += `WaitDone|`;
 
     const { error: profileUpdateErr } = await supabaseAdmin
@@ -115,15 +118,24 @@ serve(async (req) => {
         last_name: lastName,
         ...(uhid ? { uhid } : {})
       })
-      .eq("id", newUserId);
+      .eq("id", authData.user.id);
 
-    checkLog += `ProfUpdateErr:${profileUpdateErr?.message}|`;
+    if (profileUpdateErr) {
+       checkLog += `ProfUpdateErr:${profileUpdateErr.message}|`;
+       // Don't throw here, prioritize returning credentials
+    } else {
+       checkLog += `ProfUpdateSuccess|`;
+    }
 
     const { error: roleInsertErr } = await supabaseAdmin
       .from("user_roles")
-      .insert({ user_id: newUserId, role: role });
+      .insert({ user_id: authData.user.id, role: role });
 
-    checkLog += `RoleInsertErr:${roleInsertErr?.message}|`;
+    if (roleInsertErr) {
+      checkLog += `RoleInsertErr:${roleInsertErr.message}|`;
+    } else {
+      checkLog += `RoleInsertSuccess|`;
+    }
 
     return new Response(JSON.stringify({
       success: true,
@@ -137,7 +149,7 @@ serve(async (req) => {
     return new Response(JSON.stringify({ 
       error: err.message, 
       stack: err.stack,
-      debug: checkLog 
+      debug: checkLog || "Internal Error before log start"
     }), {
       status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
