@@ -126,41 +126,72 @@ export default function UserApproval() {
 
     setIsAdding(true);
     try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const token = sessionData.session?.access_token;
+      const { createClient } = await import("@supabase/supabase-js");
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const serviceRoleKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
 
-      const { data, error } = await supabase.functions.invoke("create-user", {
-        headers: { Authorization: `Bearer ${token}` },
-        body: { email: newEmail, firstName: newFirst, lastName: newLast, role: newRole, uhid: newUhid }
+      if (!supabaseUrl || !serviceRoleKey) {
+        throw new Error("Missing Supabase URL or Service Role Key in environment variables.");
+      }
+
+      const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
+        auth: { autoRefreshToken: false, persistSession: false }
       });
 
-      if (error) {
-        console.error("Edge function level error:", error);
-        let errMsg = error.message;
-        
-        try {
-          const context = (error as any).context;
-          if (context) {
-            if (typeof context.json === 'function') {
-              const body = await context.json();
-              if (body && body.error) errMsg = body.error;
-            } else if (typeof context === 'object' && context.error) {
-              errMsg = context.error;
-            }
-          }
-        } catch (e) {
-          console.warn("Could not parse error context:", e);
-        }
-        throw new Error(errMsg);
-      }
-      
-      if (data && data.success === false) {
-          throw new Error(data.error || "Failed to create user");
-      }
-      
-      if (data && data.error) throw new Error(data.error);
+      const userOrgId = profile?.organization_id;
+      if (!userOrgId) throw new Error("You are not associated with any organization.");
 
-      setGeneratedCreds(data.user);
+      if (newRole === "client" && newUhid.trim()) {
+        const { data: clientCheck, error: clientCheckError } = await supabaseAdmin
+          .from("clients")
+          .select("id")
+          .eq("organization_id", userOrgId)
+          .eq("uhid", newUhid.trim())
+          .maybeSingle();
+
+        if (clientCheckError) throw clientCheckError;
+        if (!clientCheck) {
+          throw new Error(`The UHID '${newUhid}' was not found in your clinic's records.`);
+        }
+      }
+
+      const tempPassword = `${Math.random().toString(36).slice(-6)}${Math.random().toString(36).slice(-6).toUpperCase()}!8z`;
+
+      const { data: authData, error: authCreateError } = await supabaseAdmin.auth.admin.createUser({
+        email: newEmail,
+        password: tempPassword,
+        email_confirm: true,
+        user_metadata: { first_name: newFirst, last_name: newLast }
+      });
+
+      if (authCreateError) throw new Error(`Account Creation Failed: ${authCreateError.message}`);
+
+      const newUserId = authData.user.id;
+
+      await new Promise(resolve => setTimeout(resolve, 800)); // Wait for handle_new_user trigger
+
+      const profileUpdate: any = {
+        organization_id: userOrgId,
+        is_approved: true,
+        first_name: newFirst,
+        last_name: newLast,
+      };
+      if (newUhid.trim()) profileUpdate.uhid = newUhid.trim();
+
+      const { error: profileUpdateErr } = await supabaseAdmin
+        .from("profiles")
+        .update(profileUpdate)
+        .eq("id", newUserId);
+
+      if (profileUpdateErr) console.warn("Profile update warning:", profileUpdateErr);
+
+      const { error: roleInsertErr } = await supabaseAdmin
+        .from("user_roles")
+        .insert({ user_id: newUserId, role: newRole as any });
+
+      if (roleInsertErr) console.warn("Role insert warning:", roleInsertErr);
+
+      setGeneratedCreds({ email: newEmail, password: tempPassword });
       toast({ title: "User created", description: "Successfully created user and bypassed email verification." });
       fetchUsers();
     } catch (err: any) {
