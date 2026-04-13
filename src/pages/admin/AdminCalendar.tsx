@@ -153,40 +153,46 @@ export default function AdminCalendar() {
         async function fetchConsultants() {
             if (!profile?.organization_id) return;
 
-            // 1. Get user IDs that have clinical roles
+            // 1. Fetch approved profiles in the same org
+            const { data: profilesData, error: profileError } = await supabase
+                .from("profiles")
+                .select("id, first_name, last_name, profession, ams_role")
+                .eq("organization_id", profile.organization_id)
+                .eq("is_approved", true);
+
+            if (profileError || !profilesData) {
+                console.error("Error fetching consultant profiles:", profileError);
+                return;
+            }
+
+            const userIds = profilesData.map((p) => p.id);
+            if (userIds.length === 0) return;
+
+            // 2. Fetch all roles for these users
             const { data: roleData, error: roleError } = await supabase
                 .from("user_roles")
-                .select("user_id")
-                .in("role", ["consultant", "sports_physician", "physiotherapist", "nutritionist", "sports_scientist", "massage_therapist"] as any);
+                .select("user_id, role")
+                .in("user_id", userIds);
 
             if (roleError) {
                 console.error("Error fetching consultant roles:", roleError);
                 return;
             }
 
-            if (roleData && roleData.length > 0) {
-                const consultantIds = roleData.map(r => r.user_id);
+            if (roleData) {
+                const validRoles = ["consultant", "sports_physician", "physiotherapist", "nutritionist", "sports_scientist", "massage_therapist"];
+                
+                const specialistProfiles = profilesData.filter(p => {
+                    const r = roleData.find(role => role.user_id === p.id);
+                    // Match valid roles or include admins with a designated clinical profession
+                    return r && (validRoles.includes(r.role) || (r.role === 'admin' && p.profession));
+                });
 
-                // 2. Fetch profiles for those IDs within the same org, checking for approval
-                const { data: profilesData, error: profileError } = await supabase
-                    .from("profiles")
-                    .select("id, first_name, last_name, profession")
-                    .eq("organization_id", profile.organization_id)
-                    .in("id", consultantIds)
-                    .eq("is_approved", true);
-
-                if (profileError) {
-                    console.error("Error fetching consultant profiles:", profileError);
-                    return;
-                }
-
-                if (profilesData) {
-                    setConsultants(profilesData.map(p => ({
-                        id: p.id,
-                        name: `${p.first_name} ${p.last_name}`,
-                        profession: p.profession
-                    })));
-                }
+                setConsultants(specialistProfiles.map(p => ({
+                    id: p.id,
+                    name: `${p.first_name} ${p.last_name}`,
+                    profession: p.profession
+                })));
             }
         }
         fetchConsultants();
