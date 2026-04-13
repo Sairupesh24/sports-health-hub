@@ -143,15 +143,17 @@ serve(async (req) => {
       debug: checkLog
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 200
     });
   } catch (err: any) {
     console.error("Function error:", err.message);
     return new Response(JSON.stringify({ 
+      success: false,
       error: err.message, 
       stack: err.stack,
       debug: checkLog || "Internal Error before log start"
     }), {
-      status: 400,
+      status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }

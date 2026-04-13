@@ -135,7 +135,7 @@ export default function UserApproval() {
       });
 
       if (error) {
-        console.error("Edge function error context:", error);
+        console.error("Edge function level error:", error);
         let errMsg = error.message;
         
         try {
@@ -146,19 +146,16 @@ export default function UserApproval() {
               if (body && body.error) errMsg = body.error;
             } else if (typeof context === 'object' && context.error) {
               errMsg = context.error;
-            } else if (typeof context === 'string') {
-              try {
-                const parsed = JSON.parse(context);
-                if (parsed.error) errMsg = parsed.error;
-              } catch {
-                errMsg = context;
-              }
             }
           }
         } catch (e) {
           console.warn("Could not parse error context:", e);
         }
         throw new Error(errMsg);
+      }
+      
+      if (data && data.success === false) {
+          throw new Error(data.error || "Failed to create user");
       }
       
       if (data && data.error) throw new Error(data.error);
