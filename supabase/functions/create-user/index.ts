@@ -48,8 +48,8 @@ serve(async (req) => {
 
     checkLog += `Role:${requestorRole?.role},Err:${roleError?.message}|`;
 
-    if (!requestorRole || requestorRole.role !== "admin") {
-      throw new Error("Only administrators can create new users directly");
+    if (!requestorRole || !["admin", "hr_manager", "super_admin"].includes(requestorRole.role)) {
+      throw new Error("Only administrators or HR managers can create new users directly");
     }
 
     const { data: requestorProfile, error: profileError } = await supabaseAdmin
@@ -133,8 +133,13 @@ serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err: any) {
-    return new Response(JSON.stringify({ error: err.message, stack: err.stack }), {
-      status: 200,
+    console.error("Function error:", err.message);
+    return new Response(JSON.stringify({ 
+      error: err.message, 
+      stack: err.stack,
+      debug: checkLog 
+    }), {
+      status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }

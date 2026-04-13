@@ -134,7 +134,23 @@ export default function UserApproval() {
         body: { email: newEmail, firstName: newFirst, lastName: newLast, role: newRole, uhid: newUhid }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Edge function error context:", error);
+        // Try to extract the specific error message from the response body
+        let errMsg = error.message;
+        try {
+          // In some versions of supabase-js, the body is available in error.context
+          const context = (error as any).context;
+          if (context && typeof context === 'object') {
+            const body = await (context as Response).json();
+            if (body && body.error) errMsg = body.error;
+          }
+        } catch (e) {
+          console.warn("Could not parse error context:", e);
+        }
+        throw new Error(errMsg);
+      }
+      
       if (data && data.error) throw new Error(data.error);
 
       setGeneratedCreds(data.user);
