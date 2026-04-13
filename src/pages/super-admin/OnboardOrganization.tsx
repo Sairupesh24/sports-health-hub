@@ -39,27 +39,32 @@ export default function OnboardOrganization() {
         setLoading(true);
 
         try {
-            const { data: session } = await supabase.auth.getSession();
-
-            const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL || 'http://127.0.0.1:54321'}/functions/v1/onboard-organization`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${session.session?.access_token}`
-                },
-                body: JSON.stringify(formData)
+            console.log("Starting onboarding for:", formData.organization_name);
+            
+            const { data, error } = await supabase.functions.invoke('onboard-organization', {
+                body: formData
             });
 
-            const result = await response.json();
-
-            if (!response.ok) {
-                throw new Error(result.error || "Failed to onboard organization");
+            if (error) {
+                console.error("Supabase function invocation error:", error);
+                // "Failed to fetch" often happens here if the function is not deployed or URL is wrong
+                throw new Error(error.message || "Failed to connect to the onboarding service. Please verify the function is deployed.");
             }
 
-            setSuccessData(result);
+            if (data?.error) {
+                console.error("Onboarding logic error:", data.error);
+                throw new Error(data.error);
+            }
+
+            setSuccessData(data);
             toast({ title: "Organization Onboarded", description: `${formData.organization_name} has been successfully created.` });
         } catch (err: any) {
-            toast({ title: "Onboarding Failed", description: err.message, variant: "destructive" });
+            console.error("Onboarding submission failed:", err);
+            toast({ 
+                title: "Onboarding Failed", 
+                description: err.message || "An unexpected network error occurred. Please check your internet connection and verify that Supabase Edge Functions are deployed.", 
+                variant: "destructive" 
+            });
         } finally {
             setLoading(false);
         }
