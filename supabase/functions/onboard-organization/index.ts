@@ -12,6 +12,8 @@ serve(async (req) => {
     }
 
     try {
+        console.log("Onboarding request received");
+        
         const supabaseAdmin = createClient(
             Deno.env.get('SUPABASE_URL') ?? '',
             Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
@@ -24,9 +26,11 @@ serve(async (req) => {
         const token = authHeader.replace('Bearer ', '')
 
         // Verify caller is super admin
+        console.log("Verifying super admin status...");
         const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(token)
         if (userError || !user) {
-            throw new Error('Unauthorized')
+            console.error("Auth error:", userError);
+            throw new Error('Unauthorized: ' + (userError?.message || 'No user found'))
         }
 
         const { data: isSuperAdmin, error: superAdminError } = await supabaseAdmin.rpc('has_role', {
@@ -35,12 +39,13 @@ serve(async (req) => {
         })
 
         if (superAdminError || !isSuperAdmin) {
+            console.error("Role check error or not super admin:", superAdminError);
             throw new Error('Forbidden: Super Admin role required')
         }
 
-
-
-        const { organization_name, organization_slug, contact_email, contact_phone, subscription_plan } = await req.json()
+        const body = await req.json()
+        const { organization_name, organization_slug, contact_email, subscription_plan } = body
+        console.log("Onboarding data for:", organization_name);
 
         if (!organization_name || !organization_slug || !contact_email) {
             return new Response(JSON.stringify({ error: 'Missing required fields' }), {
@@ -49,11 +54,16 @@ serve(async (req) => {
             })
         }
 
-        // 1. Generate Org Code using the existing DB function
+        // 1. Generate Org Code
+        console.log("Generating org code...");
         const { data: orgCode, error: orgCodeError } = await supabaseAdmin.rpc('generate_org_code')
-        if (orgCodeError) throw new Error('Failed to generate organization code: ' + orgCodeError.message)
+        if (orgCodeError) {
+            console.error("Org code generation failed:", orgCodeError);
+            throw new Error('Failed to generate organization code: ' + orgCodeError.message)
+        }
 
         // 2. Create the Organization
+        console.log("Creating organization record...");
         const { data: org, error: orgError } = await supabaseAdmin
             .from('organizations')
             .insert({
@@ -66,9 +76,13 @@ serve(async (req) => {
             .select()
             .single()
 
-        if (orgError) throw new Error('Failed to create organization: ' + orgError.message)
+        if (orgError) {
+            console.error("Organization creation failed:", orgError);
+            throw new Error('Failed to create organization: ' + orgError.message)
+        }
 
         // 3. Create Default Location
+        console.log("Creating default location...");
         const { error: locError } = await supabaseAdmin
             .from('locations')
             .insert({
@@ -76,14 +90,16 @@ serve(async (req) => {
                 name: 'Main Location'
             })
 
-        if (locError) throw new Error('Failed to create default location: ' + locError.message)
+        if (locError) {
+            console.error("Location creation failed:", locError);
+            // Critical enough to fail? Yes, keep it clean
+            throw new Error('Failed to create default location: ' + locError.message)
+        }
 
-        // 4. Create the Admin User in auth.users
-        // We create the user, they will have to perform password reset or click the invite link to set their password.
-        // Or we generate a random password
+        // 4. Create the Admin User
+        console.log("Creating admin user in auth...");
         const tempPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8) + 'A1!'
 
-        // We can also just send an invite link but creating the user is more robust if we want to return the temp password.
         const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
             email: contact_email,
             password: tempPassword,
@@ -94,23 +110,27 @@ serve(async (req) => {
         })
 
         if (authError) {
-            // Rollback org creation (in a real world scenario we'd use a transaction or saga)
+            console.error("Admin user creation failed:", authError);
+            // Rollback org creation
             await supabaseAdmin.from('organizations').delete().eq('id', org.id)
             throw new Error('Failed to create admin user: ' + authError.message)
         }
 
         const newUserId = authData.user.id
+        console.log("Admin user created with ID:", newUserId);
 
-        // The trigger handle_new_user should have created the profile.
-        // Let's update it with some defaults and the correct org ID (just in case)
-        await supabaseAdmin
+        // Update profile
+        const { error: profileError } = await supabaseAdmin
             .from('profiles')
             .update({
                 organization_id: org.id
             })
             .eq('id', newUserId)
+        
+        if (profileError) console.error("Profile update warning:", profileError);
 
-        // 5. Assign admin role to the new user
+        // 5. Assign admin role
+        console.log("Assigning admin role...");
         const { error: roleError } = await supabaseAdmin
             .from('user_roles')
             .insert({
@@ -118,22 +138,31 @@ serve(async (req) => {
                 role: 'admin'
             })
 
-        if (roleError) throw new Error('Failed to assign admin role: ' + roleError.message)
+        if (roleError) {
+            console.error("Role assignment failed:", roleError);
+            throw new Error('Failed to assign admin role: ' + roleError.message)
+        }
 
+        console.log("Onboarding successful!");
         return new Response(JSON.stringify({
             success: true,
             organization: org,
             admin_email: contact_email,
-            temp_password: tempPassword // We return this to the super admin to communicate it, or they can trigger a password reset securely
+            temp_password: tempPassword
         }), {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
             status: 200,
         })
 
     } catch (error: any) {
-        return new Response(JSON.stringify({ error: error.message }), {
+        console.error("Onboarding crash:", error.message);
+        return new Response(JSON.stringify({ 
+            error: error.message,
+            stack: error.stack,
+            timestamp: new Date().toISOString()
+        }), {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            status: 500,
+            status: 400, // Returning 400 instead of 500 to see if client handles it better
         })
     }
 })

@@ -47,8 +47,17 @@ export default function OnboardOrganization() {
 
             if (error) {
                 console.error("Supabase function invocation error:", error);
-                // "Failed to fetch" often happens here if the function is not deployed or URL is wrong
-                throw new Error(error.message || "Failed to connect to the onboarding service. Please verify the function is deployed.");
+                
+                // Try to extract the error message from the error object or data
+                let errorMessage = "Failed to connect to the onboarding service.";
+                
+                if (data?.error) {
+                    errorMessage = data.error;
+                } else if (error.message) {
+                    errorMessage = error.message;
+                }
+                
+                throw new Error(errorMessage);
             }
 
             if (data?.error) {
@@ -60,9 +69,17 @@ export default function OnboardOrganization() {
             toast({ title: "Organization Onboarded", description: `${formData.organization_name} has been successfully created.` });
         } catch (err: any) {
             console.error("Onboarding submission failed:", err);
+            
+            let displayMessage = err.message || "An unexpected error occurred.";
+            
+            // If the message is the generic one, add more context
+            if (displayMessage.includes("non-2xx status code")) {
+                displayMessage = "The onboarding service encountered an error. This usually means a record already exists or a database function is missing.";
+            }
+
             toast({ 
                 title: "Onboarding Failed", 
-                description: err.message || "An unexpected network error occurred. Please check your internet connection and verify that Supabase Edge Functions are deployed.", 
+                description: displayMessage, 
                 variant: "destructive" 
             });
         } finally {
