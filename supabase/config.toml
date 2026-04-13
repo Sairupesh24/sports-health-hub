@@ -1,4 +1,8 @@
 project_id = "fbjlgepxbyoyradaacvd"
+
+[functions.onboard-organization]
+verify_jwt = false
+
 [functions.create-user]
 enabled = true
 verify_jwt = true
