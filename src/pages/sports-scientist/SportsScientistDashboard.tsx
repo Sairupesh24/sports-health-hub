@@ -24,6 +24,8 @@ import { SportsScientistSessionStatusModal } from "@/components/sports-scientist
 import AmsStaffNav from "@/components/ams/AmsStaffNav";
 import { cn } from "@/lib/utils";
 import AttendanceMarker from "@/components/attendance/AttendanceMarker";
+import EmergencyLeaveModal from "@/components/shared/EmergencyLeaveModal";
+import { AlertCircle } from "lucide-react";
 
 
 export default function SportsScientistDashboard() {
@@ -31,6 +33,7 @@ export default function SportsScientistDashboard() {
     const navigate = useNavigate();
     const [isBookModalOpen, setIsBookModalOpen] = useState(false);
     const [selectedSession, setSelectedSession] = useState<any>(null);
+    const [isEmergencyModalOpen, setIsEmergencyModalOpen] = useState(false);
 
     const { data: dashboardData, isLoading, refetch } = useQuery({
         queryKey: ["sports-scientist-dashboard-stats", user?.id],
@@ -253,6 +256,12 @@ export default function SportsScientistDashboard() {
                                     icon={Calendar} 
                                     onClick={() => navigate("/sports-scientist/schedule")} 
                                 />
+                                <QuickActionButton 
+                                    label="Emergency Leave" 
+                                    icon={AlertCircle} 
+                                    onClick={() => setIsEmergencyModalOpen(true)}
+                                    color="text-destructive"
+                                />
                             </div>
                         </div>
                     </div>
@@ -270,6 +279,11 @@ export default function SportsScientistDashboard() {
                 onOpenChange={(open) => !open && setSelectedSession(null)}
                 session={selectedSession}
                 onSuccess={refetch}
+            />
+
+            <EmergencyLeaveModal 
+                open={isEmergencyModalOpen}
+                onOpenChange={setIsEmergencyModalOpen}
             />
         </DashboardLayout>
     );
@@ -292,15 +306,24 @@ function KPICard({ title, value, description, icon: Icon, color = "text-primary"
     );
 }
 
-function QuickActionButton({ label, icon: Icon, onClick }: { label: string, icon: LucideIcon, onClick: () => void }) {
+function QuickActionButton({ label, icon: Icon, onClick, color = "" }: { label: string, icon: LucideIcon, onClick: () => void, color?: string }) {
     return (
         <Button 
             variant="ghost" 
-            className="h-28 flex flex-col gap-3 rounded-[24px] border-2 border-dashed border-slate-200 hover:border-primary/30 hover:bg-primary/5 hover:text-primary transition-all group"
+            className={cn(
+                "h-28 flex flex-col gap-3 rounded-[24px] border-2 border-dashed border-slate-200 hover:border-primary/30 hover:bg-primary/5 hover:text-primary transition-all group",
+                color === "text-destructive" && "border-destructive/20 hover:border-destructive/40 hover:bg-destructive/5 hover:text-destructive"
+            )}
             onClick={onClick}
         >
-            <Icon className="w-7 h-7 text-muted-foreground group-hover:text-primary transition-colors" />
-            <span className="text-[10px] font-black uppercase tracking-widest">{label}</span>
+            <Icon className={cn(
+                "w-7 h-7 text-muted-foreground group-hover:text-primary transition-colors",
+                color === "text-destructive" && "text-destructive group-hover:text-destructive"
+            )} />
+            <span className={cn(
+                "text-[10px] font-black uppercase tracking-widest",
+                color === "text-destructive" && "text-destructive"
+            )}>{label}</span>
         </Button>
     );
 }

@@ -19,7 +19,10 @@ WHERE organization_id IS NOT NULL;
 -- 4. Update RLS policies to allow all authenticated users to see global data
 DROP POLICY IF EXISTS "Users can view injury master data for their organization" ON public.injury_master_data;
 
-CREATE POLICY "Users can view global or organization-specific injury master data" 
+DROP POLICY IF EXISTS "Users can view global or organization-specific injury master da" ON public.injury_master_data;
+DROP POLICY IF EXISTS "Users can view global or organization-specific injury master data" ON public.injury_master_data;
+
+CREATE POLICY "Users can view global or organization-specific injury master da" 
 ON public.injury_master_data
 FOR SELECT
 TO authenticated

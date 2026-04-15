@@ -175,6 +175,8 @@ export default function OrganizationDetails() {
                     clinic_longitude: updatedOrg.clinic_longitude ?? org.clinic_longitude,
                     geofence_radius: updatedOrg.geofence_radius ?? org.geofence_radius,
                     enable_geofencing: updatedOrg.enable_geofencing ?? org.enable_geofencing,
+                    enable_ip_locking: updatedOrg.enable_ip_locking ?? org.enable_ip_locking,
+                    allowed_ips: updatedOrg.allowed_ips ?? org.allowed_ips,
                     official_name: updatedOrg.official_name ?? org.official_name,
                     official_address: updatedOrg.official_address ?? org.official_address,
                     contact_email: updatedOrg.contact_email ?? org.contact_email,
@@ -391,7 +393,7 @@ export default function OrganizationDetails() {
                             <Users className="w-4 h-4" /> Users
                         </TabsTrigger>
                         <TabsTrigger value="security" className="flex gap-2 items-center px-5 py-2.5 rounded-lg data-[state=active]:shadow-sm">
-                            <ShieldCheck className="w-4 h-4" /> Geofencing
+                            <ShieldCheck className="w-4 h-4" /> Security
                         </TabsTrigger>
                         <TabsTrigger value="enquiry" className="flex gap-2 items-center px-5 py-2.5 rounded-lg data-[state=active]:shadow-sm">
                             <MessageSquare className="w-4 h-4" /> Enquiry Form
@@ -845,7 +847,7 @@ export default function OrganizationDetails() {
                                 <div className="rounded-xl border border-border bg-card p-6">
                                     <h3 className="font-display font-semibold text-lg mb-4 flex items-center gap-2">
                                         <ShieldCheck className="w-5 h-5 text-primary" />
-                                        Geofencing Policy
+                                        Attendance Security Policy
                                     </h3>
                                     
                                     <div className="space-y-6">
@@ -860,7 +862,7 @@ export default function OrganizationDetails() {
                                             />
                                         </div>
 
-                                        <div className="space-y-2">
+                                        <div className="space-y-2 pb-4 border-b border-border/50">
                                             <Label htmlFor="radius">Check-in Radius (Meters)</Label>
                                             <div className="flex items-center gap-3">
                                                 <Input 
@@ -874,6 +876,46 @@ export default function OrganizationDetails() {
                                             </div>
                                             <p className="text-xs text-muted-foreground">
                                                 Staff must be within this distance from the clinic center to check in.
+                                            </p>
+                                        </div>
+
+                                        <div className="flex items-center justify-between pt-2">
+                                            <div className="space-y-0.5">
+                                                <Label className="text-base">Enable IP Locking</Label>
+                                                <p className="text-sm text-muted-foreground">Restrict check-in to specific Wi-Fi networks.</p>
+                                            </div>
+                                            <Switch 
+                                                checked={org.enable_ip_locking || false}
+                                                onCheckedChange={(checked) => setOrg({ ...org, enable_ip_locking: checked })}
+                                            />
+                                        </div>
+
+                                        <div className="space-y-2 pb-4 border-b border-border/50">
+                                            <Label htmlFor="allowed_ips">Allowed IP Addresses</Label>
+                                            <Input 
+                                                id="allowed_ips" 
+                                                value={org.allowed_ips || ''}
+                                                onChange={(e) => setOrg({ ...org, allowed_ips: e.target.value })}
+                                                placeholder="e.g. 192.168.1.5, 203.0.113.1"
+                                            />
+                                            <p className="text-xs text-muted-foreground">
+                                                Comma-separated list of allowed IPv4 addresses. Users must be connected to these networks to check in.
+                                            </p>
+                                        </div>
+
+                                        <div className="space-y-2 pt-2">
+                                            <Label htmlFor="shift_end">Default Shift End Time</Label>
+                                            <div className="flex items-center gap-3">
+                                                <Input 
+                                                    id="shift_end" 
+                                                    type="time" 
+                                                    value={org.default_shift_end_time || '18:00'}
+                                                    onChange={(e) => setOrg({ ...org, default_shift_end_time: e.target.value })}
+                                                    className="w-40"
+                                                />
+                                            </div>
+                                            <p className="text-xs text-muted-foreground">
+                                                Used as a fallback for calculating work hours if a staff member misses a check-out.
                                             </p>
                                         </div>
 
@@ -892,7 +934,7 @@ export default function OrganizationDetails() {
                                         <Globe className="w-4 h-4" /> Quick Info
                                     </h4>
                                     <p className="text-xs text-muted-foreground leading-relaxed">
-                                        Once enabled, physicians and scientists will only be able to check-in if their device GPS is within the {org.geofence_radius}m authorized zone.
+                                        Once enabled, physicians and scientists will only be able to check-in if they satisfy the enabled security policies (Geofencing within {org.geofence_radius}m and/or matching IP addresses).
                                     </p>
                                 </div>
                             </div>

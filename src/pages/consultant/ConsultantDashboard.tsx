@@ -14,6 +14,9 @@ import { useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import type { Database } from "@/integrations/supabase/types";
 import AttendanceMarker from "@/components/attendance/AttendanceMarker";
+import EmergencyLeaveModal from "@/components/shared/EmergencyLeaveModal";
+import { AlertCircle } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 
 interface SessionData {
@@ -24,17 +27,7 @@ interface SessionData {
   client: {
     first_name: string;
     last_name: string;
-  };
-}
-
-interface SessionData {
-  id: string;
-  scheduled_start: string;
-  status: "Planned" | "Completed" | "Missed" | "Rescheduled";
-  service_type: string;
-  client: {
-    first_name: string;
-    last_name: string;
+    is_vip?: boolean;
   };
 }
 
@@ -62,6 +55,7 @@ export default function ConsultantDashboard() {
   const [selectedClientId, setSelectedClientId] = useState<string>("");
 
   const [adHocModalOpen, setAdHocModalOpen] = useState(false);
+  const [emergencyModalOpen, setEmergencyModalOpen] = useState(false);
 
   const fetchTodaySessions = async () => {
     if (!profile?.id) return;
@@ -286,14 +280,29 @@ export default function ConsultantDashboard() {
                   navigate("/consultant/clients");
                 }
               },
-            ].map((action) => (
+              {
+                label: "Emergency Leave", icon: AlertCircle, action: () => {
+                  setEmergencyModalOpen(true);
+                },
+                isCritical: true
+              },
+            ].map((action: any) => (
               <button
                 key={action.label}
                 onClick={action.action}
-                className="p-4 rounded-lg border border-border bg-muted/30 hover:bg-primary/10 hover:border-primary/30 transition-all text-center group"
+                className={cn(
+                  "p-4 rounded-lg border border-border bg-muted/30 hover:bg-primary/10 hover:border-primary/30 transition-all text-center group",
+                  action.isCritical && "bg-destructive/5 border-destructive/20 hover:bg-destructive/10 hover:border-destructive/40"
+                )}
               >
-                <action.icon className="w-5 h-5 mx-auto mb-2 text-muted-foreground group-hover:text-primary transition-colors" />
-                <p className="text-sm font-medium text-card-foreground">{action.label}</p>
+                <action.icon className={cn(
+                  "w-5 h-5 mx-auto mb-2 text-muted-foreground group-hover:text-primary transition-colors",
+                  action.isCritical && "text-destructive group-hover:text-destructive"
+                )} />
+                <p className={cn(
+                  "text-sm font-medium text-card-foreground",
+                  action.isCritical && "text-destructive font-bold"
+                )}>{action.label}</p>
               </button>
             ))}
           </div>
@@ -312,6 +321,11 @@ export default function ConsultantDashboard() {
         open={adHocModalOpen}
         onOpenChange={setAdHocModalOpen}
         onSuccess={fetchTodaySessions}
+      />
+
+      <EmergencyLeaveModal
+        open={emergencyModalOpen}
+        onOpenChange={setEmergencyModalOpen}
       />
     </DashboardLayout>
   );

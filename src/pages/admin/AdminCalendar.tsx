@@ -26,7 +26,7 @@ import { cn } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Filter, Layers, Clock, Plus, Download, Bell } from "lucide-react";
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Filter, Layers, Clock, Plus, Download, Bell, AlertCircle } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
@@ -35,6 +35,7 @@ import AdminAvailability from "./AdminAvailability";
 import AppointmentList from "../shared/AppointmentList";
 import { AdminBookSessionModal } from "@/components/admin/AdminBookSessionModal";
 import { AdminSessionStatusModal } from "@/components/admin/AdminSessionStatusModal";
+import EmergencyResponseModal from "@/components/admin/EmergencyResponseModal";
 import { VIPBadge } from "@/components/ui/VIPBadge";
 import { WaitlistSidebar } from "@/components/admin/WaitlistSidebar";
 
@@ -65,6 +66,8 @@ export default function AdminCalendar() {
     const [activeTab, setActiveTab] = useState("master");
     const [isBookModalOpen, setIsBookModalOpen] = useState(false);
     const [selectedSession, setSelectedSession] = useState<any>(null);
+    const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
+    const [isEmergencyModalOpen, setIsEmergencyModalOpen] = useState(false);
     const [waitlistInitialData, setWaitlistInitialData] = useState<any>(null);
 
     // Master Schedule States
@@ -234,6 +237,20 @@ export default function AdminCalendar() {
         enabled: !!profile?.organization_id
     });
 
+    const { data: emergencyAlerts } = useQuery({
+        queryKey: ['admin-calendar-emergencies', profile?.organization_id],
+        queryFn: async () => {
+            const { data, error } = await (supabase as any)
+                .from('emergency_alerts')
+                .select('staff_id, created_at, status')
+                .eq('organization_id', profile?.organization_id)
+                .eq('status', 'unresolved');
+            if (error) throw error;
+            return data;
+        },
+        enabled: !!profile?.organization_id
+    });
+
     const { data: allSessions = [], isLoading, refetch } = useQuery({
         queryKey: ["admin-master-sessions", profile?.organization_id, dateRange.start, dateRange.end],
         queryFn: async () => {
@@ -376,6 +393,12 @@ export default function AdminCalendar() {
                                 : "bg-card"
                             }`}
                     >
+                        {emergencyAlerts?.some(a => isSameDay(parseISO(a.created_at), cloneDay)) && isSameMonth(cloneDay, monthStart) && (
+                            <div 
+                                className="absolute bottom-2 right-2 w-3 h-3 bg-destructive rounded-full animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.8)] z-10" 
+                                title="Staff Emergency Reported" 
+                            />
+                        )}
                         {hasWaitlist && isSameMonth(cloneDay, monthStart) && (
                             <div 
                                 className="absolute top-2 right-2 w-2 h-2 bg-orange-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(249,115,22,0.8)] z-10" 
@@ -547,7 +570,7 @@ export default function AdminCalendar() {
         const dayEvents = sessions.filter(s => isSameDay(parseISO(s.scheduled_start), currentDate));
 
         return (
-            <div className="border border-border/50 rounded-lg overflow-hidden bg-card flex flex-col">
+            <div className="bg-card rounded-xl border border-border/50 overflow-hidden shadow-sm animate-in fade-in duration-500">
                 <div className="p-4 border-b border-border/50 bg-muted/30 flex justify-between items-center">
                     <div>
                         <div className="text-lg font-semibold text-primary">{format(currentDate, "EEEE")}</div>
@@ -674,6 +697,27 @@ export default function AdminCalendar() {
                     </div>
 
                     <TabsContent value="master" className="space-y-6 mt-0">
+                        {emergencyAlerts && emergencyAlerts.length > 0 && (
+                            <div className="bg-destructive/10 border border-destructive/20 rounded-xl p-4 flex items-center justify-between mb-6 shadow-sm animate-in zoom-in-95 duration-300">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-full bg-destructive/20 flex items-center justify-center text-destructive">
+                                        <AlertCircle className="w-6 h-6 animate-pulse" />
+                                    </div>
+                                    <div>
+                                        <h4 className="text-sm font-black text-destructive uppercase tracking-widest">Clinician Emergency Reported</h4>
+                                        <p className="text-xs text-destructive/70 font-medium leading-tight">There are active client sessions requiring immediate response.</p>
+                                    </div>
+                                </div>
+                                <Button 
+                                    variant="destructive" 
+                                    size="sm" 
+                                    className="font-bold text-[10px] uppercase tracking-widest h-8"
+                                    onClick={() => setIsEmergencyModalOpen(true)}
+                                >
+                                    Open Command Center
+                                </Button>
+                            </div>
+                        )}
                             <div className="flex flex-col lg:flex-row gap-6">
                                 <div className="flex-1 space-y-6">
                                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-muted/20 p-4 rounded-xl border border-border/50">
@@ -769,6 +813,12 @@ export default function AdminCalendar() {
                 onOpenChange={(open) => !open && setSelectedSession(null)}
                 session={selectedSession}
                 onSuccess={refetch}
+            />
+
+            <EmergencyResponseModal
+                open={isEmergencyModalOpen}
+                onOpenChange={setIsEmergencyModalOpen}
+                organizationId={profile?.organization_id || ""}
             />
         </DashboardLayout>
     );

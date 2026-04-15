@@ -15,7 +15,7 @@ import {
     ArrowRight,
     MapPin,
     Activity,
-    CreditCard
+    CreditCard,
 } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -133,25 +133,43 @@ export default function FOEDashboard() {
   const { data: consultants, isLoading: consultantsLoading } = useQuery({
     queryKey: ['foe-consultant-availability', organizationId],
     queryFn: async () => {
-        // First get all consultants
-        const { data: roleData } = await supabase.from("user_roles").select("user_id").eq("role", "consultant");
-        if (!roleData || roleData.length === 0) return [];
-        const consultantIds = roleData.map(r => r.user_id);
-
+        // Skip user_roles lookup — query profiles directly filtered by org
+        // This is more reliable since user_roles may not always have all clinical staff
         const { data: profiles, error: pError } = await supabase
             .from("profiles")
             .select(`
                 id, 
                 first_name, 
                 last_name,
+                profession,
                 consultant_availability(*)
             `)
             .eq("organization_id", organizationId)
-            .in("id", consultantIds)
-            .eq("is_approved", true);
+            .eq("is_approved", true)
+            .not("profession", "is", null)
+            .not("profession", "eq", "");
             
         if (pError) throw pError;
-        return profiles || [];
+        if (!profiles || profiles.length === 0) return [];
+
+        const profileIds = profiles.map(p => p.id);
+
+        // Fetch unresolved alerts separately to avoid join cache issues
+        const { data: alerts, error: aError } = await (supabase as any)
+            .from("emergency_alerts")
+            .select("id, staff_id, status")
+            .in("staff_id", profileIds)
+            .eq("status", "unresolved");
+
+        if (aError) {
+          console.error("Alerts fetch error:", aError);
+          return profiles.map(p => ({ ...p, emergency_alerts: [] }));
+        }
+
+        return profiles.map(profile => ({
+            ...profile,
+            emergency_alerts: alerts?.filter(a => a.staff_id === profile.id) ?? []
+        }));
     },
     enabled: !!organizationId
   });
@@ -169,10 +187,12 @@ export default function FOEDashboard() {
     const dayOfSelected = getDay(parseISO(selectedDate));
     return consultants?.map(c => {
         const schedule = c.consultant_availability?.find((a: any) => a.day_of_week === dayOfSelected);
+        const hasEmergency = c.emergency_alerts?.some((a: any) => a.status === 'unresolved');
         return {
             ...c,
             is_available: !!schedule,
-            schedule: schedule
+            schedule: schedule,
+            has_emergency: hasEmergency
         };
     }) || [];
   }, [consultants, selectedDate]);
@@ -436,6 +456,7 @@ export default function FOEDashboard() {
                             <div className="space-y-3">
                                 {availabilityForSelectedDate.map((c: any) => (
                                     <div key={c.id} className={`flex items-center justify-between p-3 rounded-xl border transition-all ${
+                                        c.has_emergency ? 'bg-destructive/5 border-destructive/20' :
                                         c.is_available ? 'bg-emerald-50/30 border-emerald-100 hover:border-emerald-300' : 'bg-rose-50/30 border-rose-100 hover:border-rose-300'
                                     }`}>
                                         <div className="flex items-center gap-3">
@@ -454,7 +475,11 @@ export default function FOEDashboard() {
                                             </div>
                                         </div>
                                         <div>
-                                            {c.is_available ? (
+                                            {c.has_emergency ? (
+                                                <div className="flex items-center gap-1.5 px-2 py-1 bg-destructive rounded-lg text-white font-black text-[8px] uppercase tracking-tighter animate-pulse">
+                                                    <AlertCircle className="w-2.5 h-2.5" /> Emergency
+                                                </div>
+                                            ) : c.is_available ? (
                                                 <div className="flex items-center gap-1.5 px-2 py-1 bg-emerald-500 rounded-lg text-white font-black text-[8px] uppercase tracking-tighter">
                                                     <CheckCircle2 className="w-2.5 h-2.5" /> Available
                                                 </div>

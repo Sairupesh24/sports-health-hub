@@ -17,6 +17,8 @@ import {
   CalendarDays,
   CalendarPlus,
   MessageSquare,
+  CalendarClock,
+  CheckSquare,
 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
@@ -48,6 +50,7 @@ const consultantNav: NavItem[] = [
   { label: "Availability", icon: Clock, href: "/consultant/availability" },
   { label: "Reports", icon: ClipboardList, href: "/consultant/reports" },
   { label: "Injury Repo", icon: Activity, href: "/consultant/injuries" },
+  { label: "Attendance", icon: CalendarClock, href: "/my-attendance" },
 ];
 
 const clientNav: NavItem[] = [
@@ -67,6 +70,7 @@ const foeNav: NavItem[] = [
   { label: "Reports", icon: ClipboardList, href: "/admin/reports" },
   { label: "Billing", icon: CreditCard, href: "/admin/billing" },
   { label: "User Approvals", icon: UserCheck, href: "/admin/users" },
+  { label: "Attendance", icon: CalendarClock, href: "/my-attendance" },
   { label: "Settings", icon: Settings, href: "/admin/settings", isUnderDevelopment: true },
 ];
 
@@ -78,6 +82,7 @@ const sportsScientistNav: NavItem[] = [
   { label: "Reports", icon: ClipboardList, href: "/sports-scientist/reports" },
   { label: "Templates", icon: ClipboardList, href: "/sports-scientist/templates" },
   { label: "Analytics", icon: Activity, href: "/sports-scientist/analytics" },
+  { label: "Attendance", icon: CalendarClock, href: "/my-attendance" },
 ];
 
 const managerNav: NavItem[] = [
@@ -91,7 +96,8 @@ const hrNav: NavItem[] = [
   { label: "HR Dashboard", icon: LayoutDashboard, href: "/hr" },
   { label: "Directory", icon: Users, href: "/hr/employees" },
   { label: "Contracts", icon: ClipboardList, href: "/hr/contracts" },
-  { label: "Leaves", icon: CalendarDays, href: "/hr/leaves" },
+  { label: "Leave Approvals", icon: CheckSquare, href: "/hr/leave-approvals" },
+  { label: "Attendance Log", icon: CalendarClock, href: "/hr/attendance-logs" },
   { label: "User Approvals", icon: UserCheck, href: "/hr/users" },
 ];
 

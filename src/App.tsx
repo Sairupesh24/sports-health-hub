@@ -35,6 +35,8 @@ import EmployeeManagement from "./pages/hr/EmployeeManagement";
 import HrDashboard from "./pages/hr/HrDashboard";
 import UserApproval from "./pages/hr/UserApproval";
 import DailyLogs from "./pages/hr/DailyLogs";
+import LeaveApprovals from "./pages/hr/LeaveApprovals";
+import MyAttendancePage from "./pages/shared/MyAttendancePage";
 
 import BillingPage from "./pages/admin/Billing";
 import ClientProfile from "./pages/admin/ClientProfile";
@@ -108,7 +110,10 @@ const App = () => (
             <Route path="/hr/leaves" element={<ProtectedRoute requiredRole="hr_manager"><EmployeeManagement /></ProtectedRoute>} />
             <Route path="/hr/users" element={<ProtectedRoute requiredRole="hr_manager"><UserApproval /></ProtectedRoute>} />
             <Route path="/hr/attendance-logs" element={<ProtectedRoute requiredRole="hr_manager"><DailyLogs /></ProtectedRoute>} />
+            <Route path="/hr/leave-approvals" element={<ProtectedRoute requiredRole="hr_manager"><LeaveApprovals /></ProtectedRoute>} />
 
+            {/* Shared Attendance Page — all clinical staff roles */}
+            <Route path="/my-attendance" element={<ProtectedRoute><MyAttendancePage /></ProtectedRoute>} />
 
             <Route path="/admin/calendar" element={<ProtectedRoute requiredRole={["admin", "foe"]}><AdminCalendar /></ProtectedRoute>} />
             <Route path="/admin/availability" element={<ProtectedRoute requiredRole="admin"><AdminAvailability /></ProtectedRoute>} />

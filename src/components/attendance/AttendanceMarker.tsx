@@ -24,10 +24,16 @@ export default function AttendanceMarker() {
     }
   }, [profile?.organization_id]);
 
+  useEffect(() => {
+    const handleUpdate = () => fetchTodayStatus();
+    window.addEventListener("attendance_updated", handleUpdate);
+    return () => window.removeEventListener("attendance_updated", handleUpdate);
+  }, [profile?.id]);
+
   const fetchOrgSettings = async () => {
     const { data, error } = await supabase
       .from("organizations")
-      .select("clinic_latitude, clinic_longitude, geofence_radius, enable_geofencing, name")
+      .select("clinic_latitude, clinic_longitude, geofence_radius, enable_geofencing, enable_ip_locking, allowed_ips, name")
       .eq("id", profile?.organization_id)
       .single();
     
@@ -48,7 +54,7 @@ export default function AttendanceMarker() {
       setLastLog(data[0]);
       // Only set status based on successful/enforced actions
       // Ignore 'missed_check_out' for UI status calculation
-      const lastStatusLog = data.find((l: any) => l.type === 'check_in' || l.type === 'check_out');
+      const lastStatusLog = data.find((l: any) => l.type === 'check_in' || l.type === 'check_out' || l.type === 'emergency_leave');
       if (lastStatusLog?.type === 'check_in') {
         setStatus('checked_in');
       } else {
@@ -66,7 +72,7 @@ export default function AttendanceMarker() {
       // 0. Refetch latest settings to avoid stale geofence data
       const { data: freshSettings, error: settingsErr } = await supabase
         .from("organizations")
-        .select("clinic_latitude, clinic_longitude, geofence_radius, enable_geofencing, name")
+        .select("clinic_latitude, clinic_longitude, geofence_radius, enable_geofencing, enable_ip_locking, allowed_ips, name")
         .eq("id", profile?.organization_id)
         .single();
       
@@ -81,6 +87,16 @@ export default function AttendanceMarker() {
       const position = await getCurrentLocation();
       const { latitude, longitude } = position.coords;
 
+      // 1b. Capture IP Address
+      let publicIp = "Unknown";
+      try {
+        const ipRes = await fetch('https://api.ipify.org?format=json');
+        const ipData = await ipRes.json();
+        publicIp = ipData.ip;
+      } catch (e) {
+        console.error("IP Fetch error:", e);
+      }
+
       // 2. Security Check: Mock Location Detection
       const mockDetection = detectMockLocation(position);
       if (mockDetection.isMocked) {
@@ -89,12 +105,12 @@ export default function AttendanceMarker() {
           description: "Mock location detected. Please use your real device GPS.",
           variant: "destructive"
         });
-        // We log it anyway but mark it in metadata
       }
 
       // 3. Validation Logic
       let distance = null;
       let isWithinGeofence = true;
+      let isIpAllowed = true;
 
       if (activeSettings.clinic_latitude && activeSettings.clinic_longitude) {
         distance = calculateDistance(
@@ -105,52 +121,65 @@ export default function AttendanceMarker() {
         );
         setCurrentDistance(distance);
         
-        // Always calculate if they are within range, regardless of enforcement
         if (distance > activeSettings.geofence_radius) {
           isWithinGeofence = false;
         }
+      }
 
-        // Block BOTH check-in and check-out if explicitly enabled
-        if (activeSettings.enable_geofencing && !isWithinGeofence) {
-          // Log the missed attempt first
-          const missedType = type === 'check_out' ? 'missed_check_out' : 'check_in'; // We'll keep check_in as is for now as it was already blocking
-          
-          if (type === 'check_out') {
-            await supabase.from("hr_attendance_logs").insert({
-              organization_id: profile.organization_id,
-              profile_id: profile.id,
-              type: 'missed_check_out',
-              latitude,
-              longitude,
-              distance_from_center: distance,
-              is_within_geofence: false,
-              metadata: {
-                accuracy: position.coords.accuracy,
-                mock_detected: mockDetection.isMocked,
-                user_agent: navigator.userAgent,
-                note: "Blocked check-out attempt while away"
-              }
-            });
+      // IP Validation
+      if (activeSettings.enable_ip_locking && activeSettings.allowed_ips) {
+        const allowedList = activeSettings.allowed_ips.split(',').map((s: any) => s.trim()).filter(Boolean);
+        if (allowedList.length > 0 && !allowedList.includes(publicIp)) {
+          isIpAllowed = false;
+        }
+      }
 
-            toast({
-              title: "Check-out Blocked",
-              description: `You are outside the authorized zone. Your attempt has been logged as a missed check-out.`,
-              variant: "destructive"
-            });
-            setLoading(false);
-            fetchTodayStatus();
-            return;
-          }
+      // 3.1 Enforcement Logic
+      const geofenceBlocked = activeSettings.enable_geofencing && !isWithinGeofence;
+      const ipBlocked = activeSettings.enable_ip_locking && !isIpAllowed;
 
-          if (type === 'check_in') {
-            toast({
-              title: "Check-in Blocked",
-              description: `You are outside the authorized zone for ${activeSettings.name}. Dist: ${Math.round(distance)}m`,
-              variant: "destructive"
-            });
-            setLoading(false);
-            return;
-          }
+      if (geofenceBlocked || ipBlocked) {
+        const blockReason = geofenceBlocked 
+          ? `Outside authorized zone (${Math.round(distance || 0)}m)` 
+          : `Unauthorized network IP: ${publicIp}`;
+        
+        if (type === 'check_out') {
+          await supabase.from("hr_attendance_logs").insert({
+            organization_id: profile.organization_id,
+            profile_id: profile.id,
+            type: 'missed_check_out',
+            latitude,
+            longitude,
+            distance_from_center: distance,
+            is_within_geofence: isWithinGeofence,
+            metadata: {
+              accuracy: position.coords.accuracy,
+              mock_detected: mockDetection.isMocked,
+              user_agent: navigator.userAgent,
+              ip_address: publicIp,
+              is_ip_allowed: isIpAllowed,
+              note: `Blocked check-out attempt: ${blockReason}`
+            }
+          });
+
+          toast({
+            title: "Check-out Blocked",
+            description: blockReason,
+            variant: "destructive"
+          });
+          setLoading(false);
+          fetchTodayStatus();
+          return;
+        }
+
+        if (type === 'check_in') {
+          toast({
+            title: "Check-in Blocked",
+            description: blockReason,
+            variant: "destructive"
+          });
+          setLoading(false);
+          return;
         }
       }
 
@@ -167,7 +196,9 @@ export default function AttendanceMarker() {
           accuracy: position.coords.accuracy,
           mock_detected: mockDetection.isMocked,
           mock_reason: mockDetection.reason,
-          user_agent: navigator.userAgent
+          user_agent: navigator.userAgent,
+          ip_address: publicIp,
+          is_ip_allowed: isIpAllowed
         }
       });
 

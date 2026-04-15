@@ -11,6 +11,8 @@ import { startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth,
 import { useAuth } from "@/contexts/AuthContext";
 import type { Database } from "@/integrations/supabase/types";
 import { cn } from "@/lib/utils";
+import EmergencyAlertIcon from "@/components/admin/EmergencyAlertIcon";
+import EmergencyResponseModal from "@/components/admin/EmergencyResponseModal";
 
 type WaitlistItem = Database['public']['Tables']['waitlist']['Row'] & {
     client: {
@@ -25,6 +27,7 @@ export default function AdminDashboard() {
   const [timeRange, setTimeRange] = useState<'daily' | 'weekly' | 'monthly'>('monthly');
   const { profile } = useAuth();
   const organizationId = profile?.organization_id;
+  const [emergencyModalOpen, setEmergencyModalOpen] = useState(false);
 
   const today = new Date();
   const todayStart = startOfDay(today);
@@ -344,13 +347,17 @@ export default function AdminDashboard() {
             <p className="text-muted-foreground mt-1">Overview of your organization's performance</p>
           </div>
 
-          <Tabs value={timeRange} onValueChange={(v) => setTimeRange(v as 'daily' | 'weekly' | 'monthly')} className="w-[300px]">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="daily">Daily</TabsTrigger>
-              <TabsTrigger value="weekly">Weekly</TabsTrigger>
-              <TabsTrigger value="monthly">Monthly</TabsTrigger>
-            </TabsList>
-          </Tabs>
+          <div className="flex items-center gap-4">
+            <EmergencyAlertIcon onClick={() => setEmergencyModalOpen(true)} />
+            
+            <Tabs value={timeRange} onValueChange={(v) => setTimeRange(v as 'daily' | 'weekly' | 'monthly')} className="w-[300px]">
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="daily">Daily</TabsTrigger>
+                <TabsTrigger value="weekly">Weekly</TabsTrigger>
+                <TabsTrigger value="monthly">Monthly</TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </div>
         </div>
 
         {sessionsLoading || billsLoading || todaysSessionsLoading || recentClientsLoading || recentBillsLoading ? (
@@ -458,6 +465,14 @@ export default function AdminDashboard() {
           </>
         )}
       </div>
+
+      {organizationId && (
+        <EmergencyResponseModal
+          open={emergencyModalOpen}
+          onOpenChange={setEmergencyModalOpen}
+          organizationId={organizationId}
+        />
+      )}
     </DashboardLayout>
   );
 }
