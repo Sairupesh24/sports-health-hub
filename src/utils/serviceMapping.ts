@@ -39,11 +39,25 @@ export function filterServicesByRole(
     return services;
   }
 
+  // Sports Physician should see ALL services per user request
+  const prof = profession?.toLowerCase().trim();
+  const r = role?.toLowerCase().trim();
+  if (prof === 'sports physician' || r === 'sports physician' || prof === 'sports_physician' || r === 'sports_physician') {
+    return services;
+  }
+
   // Use profession for granular filtering, fall back to role if profession is missing
   const effectiveCategoryKey = profession || role;
   if (!effectiveCategoryKey) return services;
 
-  const allowedCategories = ROLE_SERVICE_CATEGORY_MAP[effectiveCategoryKey] || [];
+  // Normalize effectiveCategoryKey for better matching (lowercase, replace underscores with spaces)
+  const normalizedKey = effectiveCategoryKey.toLowerCase().replace(/_/g, ' ').trim();
+  
+  // Find matching categories with robust key lookup
+  const matchingKey = Object.keys(ROLE_SERVICE_CATEGORY_MAP).find(k => 
+    k.toLowerCase().trim() === normalizedKey
+  );
+  const allowedCategories = matchingKey ? ROLE_SERVICE_CATEGORY_MAP[matchingKey] : [];
   
   // If no categories mapped for this profession/role, return all as fallback
   if (allowedCategories.length === 0) return services;

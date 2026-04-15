@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { format } from "date-fns";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -22,6 +22,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { filterServicesByRole, Service } from "@/utils/serviceMapping";
 import LogInjuryModal from "./LogInjuryModal";
 
 interface AdHocSessionModalProps {
@@ -36,12 +37,15 @@ const MODALITIES = [
 ];
 
 export default function AdHocSessionModal({ open, onOpenChange, onSuccess, preselectedClientId }: AdHocSessionModalProps) {
-    const { profile } = useAuth();
+    const { profile, roles } = useAuth();
     const { toast } = useToast();
 
     const [loading, setLoading] = useState(false);
     const [clients, setClients] = useState<any[]>([]);
     const [activeInjuries, setActiveInjuries] = useState<any[]>([]);
+    const [services, setServices] = useState<Service[]>([]);
+    const [serviceId, setServiceId] = useState<string>("");
+    const [servicesLoading, setServicesLoading] = useState(false);
 
     // Form State
     const [selectedClientId, setSelectedClientId] = useState<string>("");
@@ -84,6 +88,7 @@ export default function AdHocSessionModal({ open, onOpenChange, onSuccess, prese
             setSessionDate(format(new Date(), 'yyyy-MM-dd'));
             setStartTime(format(new Date(), 'HH:mm'));
             setEndTime(getDefaultEndTime());
+            fetchServices();
         }
     }, [open, profile?.organization_id, preselectedClientId]);
 
@@ -129,6 +134,25 @@ export default function AdHocSessionModal({ open, onOpenChange, onSuccess, prese
         }
     };
 
+    const fetchServices = async () => {
+        if (!profile?.organization_id) return;
+        setServicesLoading(true);
+        try {
+            const { data } = await supabase
+                .from("services")
+                .select("id, name, category, organization_id")
+                .eq("organization_id", profile.organization_id)
+                .eq("is_active", true);
+            if (data) setServices(data as Service[]);
+        } finally {
+            setServicesLoading(false);
+        }
+    };
+
+    const filteredServices = useMemo(() => {
+        return filterServicesByRole(services, profile?.profession, roles?.[0]);
+    }, [services, profile?.profession, roles]);
+
     const handleModalityToggle = (modality: string) => {
         setSelectedModalities(prev => {
             if (prev.includes(modality)) {
@@ -153,6 +177,8 @@ export default function AdHocSessionModal({ open, onOpenChange, onSuccess, prese
             const localStart = new Date(`${sessionDate}T${startTime}:00`);
             const localEnd = new Date(`${sessionDate}T${endTime}:00`);
 
+            const selectedService = services.find(s => s.id === serviceId);
+
             // 1. Create the Ad-Hoc Session Record
             const { data: sessionData, error: sessionErr } = await supabase
                 .from('sessions')
@@ -160,7 +186,8 @@ export default function AdHocSessionModal({ open, onOpenChange, onSuccess, prese
                     organization_id: profile!.organization_id,
                     client_id: selectedClientId,
                     therapist_id: profile!.id,
-                    service_type: 'Physiotherapy',
+                    service_id: serviceId || null,
+                    service_type: selectedService?.name || 'Physiotherapy',
                     status: 'Completed', // Instant creation implies it happened
                     scheduled_start: localStart.toISOString(),
                     scheduled_end: localEnd.toISOString(),
@@ -212,9 +239,44 @@ export default function AdHocSessionModal({ open, onOpenChange, onSuccess, prese
                 <ScrollArea className="flex-1 px-6 py-4">
                     <div className="space-y-8">
 
-                        {/* 1. Client & Time Setup */}
+                        {/* 1. Session Configuration */}
+                        <div className="space-y-4 rounded-xl border bg-primary/5 p-4 border-primary/20">
+                            <h3 className="font-semibold text-base text-primary flex items-center gap-2">
+                                <div className="w-1 h-4 bg-primary rounded-full" />
+                                Session Configuration
+                            </h3>
+
+                            <div className="space-y-4">
+                                <div className="space-y-2">
+                                    <Label>Service / Session Type Done</Label>
+                                    <Select 
+                                        value={serviceId} 
+                                        onValueChange={setServiceId}
+                                    >
+                                        <SelectTrigger className="bg-white border-primary/20">
+                                            <SelectValue placeholder="Select type of session done..." />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {filteredServices.map(s => (
+                                                <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                                            ))}
+                                            {filteredServices.length === 0 && (
+                                                <SelectItem value="none" disabled>No matching services for your role</SelectItem>
+                                            )}
+                                        </SelectContent>
+                                    </Select>
+                                    {!serviceId && (
+                                        <p className="text-[10px] text-red-500 font-medium animate-pulse">
+                                            ⚠️ Service selection is required for correct entitlement deduction.
+                                        </p>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* 2. Client & Time Setup */}
                         <div className="space-y-4">
-                            <h3 className="font-semibold text-lg border-b pb-2">Session Details</h3>
+                            <h3 className="font-semibold text-lg border-b pb-2">Client & Time</h3>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="space-y-2">

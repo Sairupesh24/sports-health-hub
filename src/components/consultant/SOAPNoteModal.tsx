@@ -109,13 +109,15 @@ export default function SOAPNoteModal({ open, onOpenChange, session, clientId, o
     };
 
     const fetchServices = async () => {
-        if (!session?.organization_id) return;
+        const orgId = session?.organization_id || profile?.organization_id;
+        if (!orgId) return;
+        
         setServicesLoading(true);
         try {
             const { data } = await supabase
                 .from("services")
                 .select("id, name, category, organization_id")
-                .eq("organization_id", session.organization_id)
+                .eq("organization_id", orgId)
                 .eq("is_active", true);
             if (data) setServices(data as Service[]);
         } finally {
@@ -351,6 +353,81 @@ export default function SOAPNoteModal({ open, onOpenChange, session, clientId, o
                         )}
 
                         <form onSubmit={handleSubmit} className="space-y-8 pb-8">
+                            {/* Session Configuration Section */}
+                            <div className="space-y-6 rounded-2xl border bg-primary/5 p-6 shadow-sm border-primary/20">
+                                <div className="flex items-center gap-2 border-b border-primary/10 pb-4">
+                                    <div className="w-1 h-4 bg-primary rounded-full" />
+                                    <h3 className="font-bold text-base uppercase tracking-wider text-primary">Session Configuration</h3>
+                                </div>
+                                <div className="space-y-4">
+                                    <div className="space-y-2">
+                                        <Label className="text-sm font-semibold">Service / Session Type Done</Label>
+                                        <Select 
+                                            value={serviceId} 
+                                            onValueChange={setServiceId}
+                                            disabled={isCompleted}
+                                        >
+                                            <SelectTrigger className="bg-white border-primary/20">
+                                                <SelectValue placeholder="Select the type of session done..." />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {filteredServices.map(s => (
+                                                    <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                                                ))}
+                                                {/* Ensure the currently selected service is always visible even if filtered out */}
+                                                {(serviceId && !filteredServices.find(s => s.id === serviceId)) && (
+                                                    <SelectItem value={serviceId}>
+                                                        {services.find(s => s.id === serviceId)?.name || session.service_type}
+                                                    </SelectItem>
+                                                )}
+                                                {filteredServices.length === 0 && !serviceId && (
+                                                    <SelectItem value="none" disabled>No matching services for your role</SelectItem>
+                                                )}
+                                            </SelectContent>
+                                        </Select>
+                                        {!serviceId && !isCompleted && (
+                                            <p className="text-[10px] text-red-500 font-medium animate-pulse">
+                                                ⚠️ Please select the session type before finalizing.
+                                            </p>
+                                        )}
+                                    </div>
+                                    <div className="space-y-2">
+                                        <div className="flex justify-between items-center mb-1">
+                                            {/* Linked injury section */}
+                                            <Label className="text-sm font-semibold">Linked Injury / Diagnosis</Label>
+                                            {!isCompleted && (
+                                                <LogInjuryModal 
+                                                    clientId={clientId} 
+                                                    organizationId={session.organization_id || profile?.organization_id} 
+                                                    onSuccess={() => { fetchInjuries(); }} 
+                                                />
+                                            )}
+                                        </div>
+                                        <Select 
+                                            value={selectedInjuryId || "none"} 
+                                            onValueChange={v => setSelectedInjuryId(v === "none" ? "" : v)}
+                                            disabled={isCompleted}
+                                        >
+                                            <SelectTrigger className="bg-white border-primary/20">
+                                                <SelectValue placeholder="Select target injury being treated..." />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="none">No specific injury / General session</SelectItem>
+                                                {clientInjuries.map(inj => (
+                                                    <SelectItem key={inj.id} value={inj.id}>
+                                                        {inj.diagnosis || inj.injury_type} ({inj.region}) - {inj.status}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label className="text-sm font-semibold">Rehabilitation Plan</Label>
+                                        <Textarea value={nextPlan} onChange={e => setNextPlan(e.target.value)} placeholder="Next session goals..." className="bg-white border-primary/20" />
+                                    </div>
+                                </div>
+                            </div>
+
                             {/* Subjective Section */}
                             <div className="space-y-6 rounded-2xl border bg-card p-6 shadow-sm">
                                 <div className="flex items-center gap-2 border-b pb-4">
@@ -412,80 +489,6 @@ export default function SOAPNoteModal({ open, onOpenChange, session, clientId, o
                                 </div>
                             </div>
 
-                             {/* Plan Section */}
-                            <div className="space-y-6 rounded-2xl border bg-card p-6 shadow-sm">
-                                <div className="flex items-center gap-2 border-b pb-4">
-                                    <div className="w-1 h-4 bg-primary rounded-full" />
-                                    <h3 className="font-bold text-base uppercase tracking-wider text-foreground">Session Configuration</h3>
-                                </div>
-                                <div className="space-y-4">
-                                    <div className="space-y-2">
-                                        <Label className="text-sm font-semibold">Service / Session Type Done</Label>
-                                        <Select 
-                                            value={serviceId} 
-                                            onValueChange={setServiceId}
-                                            disabled={isCompleted}
-                                        >
-                                            <SelectTrigger className="bg-muted/20">
-                                                <SelectValue placeholder="Select the type of session done..." />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {filteredServices.map(s => (
-                                                    <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                                                ))}
-                                                {/* Ensure the currently selected service is always visible even if filtered out */}
-                                                {(serviceId && !filteredServices.find(s => s.id === serviceId)) && (
-                                                    <SelectItem value={serviceId}>
-                                                        {services.find(s => s.id === serviceId)?.name || session.service_type}
-                                                    </SelectItem>
-                                                )}
-                                                {filteredServices.length === 0 && !serviceId && (
-                                                    <SelectItem value="none" disabled>No matching services for your role</SelectItem>
-                                                )}
-                                            </SelectContent>
-                                        </Select>
-                                        {!serviceId && !isCompleted && (
-                                            <p className="text-[10px] text-red-500 font-medium animate-pulse">
-                                                ⚠️ Please select the session type before finalizing.
-                                            </p>
-                                        )}
-                                    </div>
-                                    <div className="space-y-2">
-                                        <div className="flex justify-between items-center mb-1">
-                                            {/* Linked injury section */}
-                                            <Label className="text-sm font-semibold">Linked Injury / Diagnosis</Label>
-                                            {!isCompleted && (
-                                                <LogInjuryModal 
-                                                    clientId={clientId} 
-                                                    organizationId={session.organization_id} 
-                                                    onSuccess={() => { fetchInjuries(); }} 
-                                                />
-                                            )}
-                                        </div>
-                                        <Select 
-                                            value={selectedInjuryId || "none"} 
-                                            onValueChange={v => setSelectedInjuryId(v === "none" ? "" : v)}
-                                            disabled={isCompleted}
-                                        >
-                                            <SelectTrigger className="bg-muted/20">
-                                                <SelectValue placeholder="Select target injury being treated..." />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="none">No specific injury / General session</SelectItem>
-                                                {clientInjuries.map(inj => (
-                                                    <SelectItem key={inj.id} value={inj.id}>
-                                                        {inj.diagnosis || inj.injury_type} ({inj.region}) - {inj.status}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label className="text-sm font-semibold">Rehabilitation Plan</Label>
-                                        <Textarea value={nextPlan} onChange={e => setNextPlan(e.target.value)} placeholder="Next session goals..." className="bg-muted/20" />
-                                    </div>
-                                </div>
-                            </div>
 
                             <div className="flex justify-end gap-4 pt-4 sticky bottom-0 bg-background/80 backdrop-blur-sm border-t p-4 -mx-6 rounded-b-2xl">
                                 <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>Discard</Button>
