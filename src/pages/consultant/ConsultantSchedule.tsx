@@ -268,7 +268,7 @@ export default function ConsultantSchedule() {
                 days.push(
                     <div
                         key={day.toString()}
-                        className={`min-h-[120px] p-2 border border-border/50 transition-colors ${!isSameMonth(day, monthStart)
+                        className={`min-h-[100px] sm:min-h-[120px] p-2 border border-border/50 transition-colors ${!isSameMonth(day, monthStart)
                             ? "bg-muted/30 text-muted-foreground opacity-50"
                             : isSameDay(day, new Date())
                                 ? "bg-primary/5"
@@ -281,7 +281,7 @@ export default function ConsultantSchedule() {
                                 {formattedDate}
                             </span>
                         </div>
-                        <div className="mt-2 space-y-1 overflow-y-auto max-h-[80px] no-scrollbar">
+                        <div className="mt-2 space-y-1 overflow-y-auto max-h-[60px] sm:max-h-[80px] no-scrollbar">
                             {dayEvents.map(event => (
                                 <div
                                     key={event.id}
@@ -335,7 +335,7 @@ export default function ConsultantSchedule() {
             <div className="flex flex-col border border-border/50 rounded-lg overflow-hidden bg-card">
                 {/* Header row */}
                 <div className="flex border-b border-border/50 bg-muted/50">
-                    <div className="w-16 border-r border-border/50 shrink-0"></div> {/* Time column spacer */}
+                    <div className="w-12 sm:w-16 border-r border-border/50 shrink-0"></div> {/* Time column spacer */}
                     {weekDays.map(day => (
                         <div key={day.toString()} className={`flex-1 p-3 text-center border-r border-border/50 last:border-r-0 ${isSameDay(day, new Date()) ? "bg-primary/5" : ""}`}>
                             <div className="text-xs uppercase text-muted-foreground font-medium">{format(day, 'EEE')}</div>
@@ -349,7 +349,7 @@ export default function ConsultantSchedule() {
                 {/* Grid body */}
                 <div className="relative overflow-y-auto max-h-[600px] flex">
                     {/* Time column */}
-                    <div className="w-16 shrink-0 border-r border-border/50 bg-muted/10 relative z-10">
+                    <div className="w-12 sm:w-16 shrink-0 border-r border-border/50 bg-muted/10 relative z-10">
                         {hours.map(hour => (
                             <div key={hour} className="h-20 border-b border-border/50 text-xs text-muted-foreground text-center pt-2 font-medium">
                                 {hour}:00
@@ -445,7 +445,7 @@ export default function ConsultantSchedule() {
 
                 <div className="relative overflow-y-auto max-h-[600px] flex p-4">
                     {/* Time column */}
-                    <div className="w-20 shrink-0 border-r border-border/50 relative z-10 pr-4">
+                    <div className="w-16 sm:w-20 shrink-0 border-r border-border/50 relative z-10 pr-4">
                         {hours.map(hour => (
                             <div key={hour} className="h-24 border-b border-border/50 text-sm text-muted-foreground text-right pt-2 font-medium pr-2">
                                 {hour}:00
@@ -480,29 +480,29 @@ export default function ConsultantSchedule() {
                                 <div
                                     key={event.id}
                                     onClick={() => handleEventClick(event)}
-                                    className={`absolute left-6 right-4 rounded-lg border p-3 flex flex-col sm:flex-row gap-2 sm:items-center justify-between shadow-sm hover:shadow hover:z-20 cursor-pointer transition-all ${getStatusColor(event.status)}`}
+                                    className={`absolute left-2 sm:left-6 right-2 sm:right-4 rounded-lg border p-3 flex flex-col sm:flex-row gap-2 sm:items-center justify-between shadow-sm hover:shadow hover:z-20 cursor-pointer transition-all ${getStatusColor(event.status)}`}
                                     style={{ top: `${topPos + 8}px`, height: `${height - 16}px`, minHeight: '60px' }}
                                 >
-                                    <div className="flex flex-col h-full justify-center">
-                                        <div className="font-semibold flex items-center gap-2">
-                                            {format(startD, "h:mm a")} - {format(endD, "h:mm a")}
-                                            <span className="text-xs font-normal border px-1.5 py-0.5 rounded-full border-current opacity-70">
-                                                {event.status}
-                                            </span>
-                                        </div>
-                                        <div className="font-display font-medium text-lg mt-1 flex items-center gap-2">
-                                            <User className="w-4 h-4 opacity-70" />
-                                            <VIPName name={`${event.client?.first_name} ${event.client?.last_name}`} isVIP={event.client?.is_vip} />
-                                        </div>
-                                        {event.is_unentitled && (
-                                            <div className="mt-1 px-2 py-0.5 bg-red-600 text-white text-[11px] font-bold rounded-md flex items-center gap-1.5 animate-pulse w-fit">
-                                                UN-ENTITLED SESSION
-                                            </div>
-                                        )}
-                                    </div>
-                                    <div className="text-sm opacity-90 hidden md:block">
-                                        {event.service_type}
-                                    </div>
+                                     <div className="flex flex-col h-full justify-center">
+                                         <div className="font-medium text-sm flex items-center gap-2">
+                                             {format(startD, "h:mm a")} - {format(endD, "h:mm a")}
+                                             <span className="text-[10px] font-normal border px-1 py-0.5 rounded-full border-current opacity-70">
+                                                 {event.status}
+                                             </span>
+                                         </div>
+                                         <div className="font-display font-medium text-sm mt-1 flex items-center gap-2 overflow-hidden">
+                                             <User className="w-3 h-3 opacity-70 flex-shrink-0" />
+                                             <VIPName name={`${event.client?.first_name} ${event.client?.last_name}`} isVIP={event.client?.is_vip} className="truncate" />
+                                         </div>
+                                         <div className="text-xs opacity-80 mt-0.5 truncate">
+                                             {event.service_type}
+                                         </div>
+                                         {event.is_unentitled && (
+                                             <div className="mt-1 px-1.5 py-0.5 bg-red-600 text-white text-[10px] font-bold rounded-md flex items-center gap-1 animate-pulse w-fit">
+                                                 UN-ENTITLED
+                                             </div>
+                                         )}
+                                     </div>
                                 </div>
                             )
                         })}
@@ -584,7 +584,7 @@ export default function ConsultantSchedule() {
                     <CardHeader className="py-4 px-6 border-b border-border/50 bg-muted/20 pb-0">
                         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
                             <CardTitle className="text-xl">{getHeaderTitle()}</CardTitle>
-                            <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as ViewMode)} className="w-[400px]">
+                             <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as ViewMode)} className="w-full sm:w-[400px]">
                                 <TabsList className="grid w-full grid-cols-3">
                                     <TabsTrigger value="day">Day</TabsTrigger>
                                     <TabsTrigger value="week">Week</TabsTrigger>

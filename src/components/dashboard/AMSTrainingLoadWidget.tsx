@@ -77,7 +77,7 @@ export default function AMSTrainingLoadWidget({ clientId }: { clientId?: string 
 
     return (
         <Card className="h-full border-border shadow-sm">
-            <CardHeader className="pb-3 border-b">
+            <CardHeader className="pb-2 border-b">
                 <div className="flex justify-between items-start">
                     <div>
                         <CardTitle className="text-lg font-display flex items-center gap-2">
@@ -99,7 +99,7 @@ export default function AMSTrainingLoadWidget({ clientId }: { clientId?: string 
             </CardHeader>
             <CardContent className="pt-4 divide-y">
                 {loading ? (
-                    <div className="space-y-4">
+                    <div className="space-y-3">
                         {[1, 2, 3].map(i => (
                             <div key={i} className="flex gap-4">
                                 <div className="space-y-2 flex-1">

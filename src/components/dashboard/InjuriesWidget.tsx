@@ -73,18 +73,18 @@ export default function InjuriesWidget() {
 
     return (
         <Card className="h-full border-border shadow-sm">
-            <CardHeader className="pb-3 border-b">
+            <CardHeader className="pb-2 border-b">
                 <CardTitle className="text-lg font-display flex items-center gap-2">
                     <Activity className="w-5 h-5 text-primary" /> Active Rehab Cases
                 </CardTitle>
                 <CardDescription>Track clinical progress and active injury phases</CardDescription>
             </CardHeader>
-            <CardContent className="pt-4 divide-y">
+            <CardContent className="pt-3 divide-y">
                 {loading ? (
-                    <div className="space-y-4">
+                    <div className="space-y-3">
                         {[1, 2, 3].map(i => (
                             <div key={i} className="flex gap-4">
-                                <Skeleton className="h-10 w-10 rounded-full" />
+                                <Skeleton className="h-8 w-8 rounded-full" />
                                 <div className="space-y-2 flex-1">
                                     <Skeleton className="h-4 w-3/4" />
                                     <Skeleton className="h-3 w-1/2" />
@@ -98,10 +98,10 @@ export default function InjuriesWidget() {
                         <p className="text-sm">No active rehab cases found.</p>
                     </div>
                 ) : (
-                    <div className="space-y-4">
+                    <div className="space-y-3">
                         {injuries.map((injury) => (
-                            <div key={injury.id} className="flex items-start gap-4 pt-4 first:pt-0">
-                                <div className="h-10 w-10 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                            <div key={injury.id} className="flex items-start gap-4 pt-3 first:pt-0">
+                                <div className="h-8 w-8 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0">
                                     <User className="w-5 h-5" />
                                 </div>
                                 <div className="flex-1 min-w-0">

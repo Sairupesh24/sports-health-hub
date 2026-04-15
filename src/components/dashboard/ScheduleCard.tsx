@@ -27,22 +27,22 @@ interface ScheduleCardProps {
 
 export default function ScheduleCard({ items, title = "Today's Schedule", onItemClick }: ScheduleCardProps) {
   return (
-    <div className="rounded-xl border border-border bg-card p-5 gradient-card">
-      <div className="flex items-center gap-2 mb-4">
+    <div className="rounded-xl border border-border bg-card p-4 gradient-card">
+      <div className="flex items-center gap-2 mb-3">
         <Clock className="w-4 h-4 text-primary" />
         <h3 className="font-display font-semibold text-card-foreground">{title}</h3>
       </div>
-      <div className="space-y-2">
+      <div className="space-y-1">
         {items.map((item) => (
           <div
             key={item.id}
             onClick={() => onItemClick?.(item)}
             className={cn(
-              "flex items-center gap-3 p-3 rounded-lg bg-muted/50 animate-fade-in",
+              "flex items-center gap-3 p-2 rounded-lg bg-muted/50 animate-fade-in",
               onItemClick && "cursor-pointer hover:bg-muted transition-colors"
             )}
           >
-            <span className="text-sm font-mono font-medium text-primary w-14">{item.time}</span>
+            <span className="text-sm font-mono font-medium text-primary w-12">{item.time}</span>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-card-foreground truncate">
                 <VIPName name={item.clientName} isVIP={item.isVIP} />

@@ -160,24 +160,24 @@ export default function ConsultantClientProfile() {
         <DashboardLayout role="consultant">
             <div className="space-y-6">
                 {/* Header */}
-                <div className="flex items-center gap-4">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-4">
                     <Button variant="ghost" size="icon" onClick={() => navigate("/consultant/clients")}>
                         <ArrowLeft className="w-5 h-5" />
                     </Button>
-                    <div>
-                        <div className="flex items-center gap-3">
+                    <div className="flex-1">
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
                             <h1 className="text-2xl font-display font-bold text-foreground">
                                 <VIPName name={`${client.first_name} ${client.last_name}`} isVIP={client.is_vip} />
                             </h1>
                             <Badge variant="outline" className="font-mono">{client.uhid}</Badge>
                         </div>
-                        <div className="flex items-center gap-6 mt-2 text-sm text-muted-foreground">
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6 mt-2 text-sm text-muted-foreground">
                             <span className="flex items-center gap-1"><User className="w-4 h-4" /> {client.gender || "Unknown"} • {client.age || "--"} yrs</span>
                             <span className="flex items-center gap-1"><Phone className="w-4 h-4" /> {client.mobile_no || "No phone"}</span>
                         </div>
                     </div>
                     {/* Header Actions */}
-                    <div className="ml-auto flex items-center gap-2">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
                         {canAccessDocuments && (
                             <Button 
                               variant="outline" 
@@ -197,7 +197,7 @@ export default function ConsultantClientProfile() {
                     {/* Left Column: Clinical Info */}                    <div className="lg:col-span-2 space-y-6">
                         {/* Active Injuries */}
                         <Card className="border-border shadow-sm">
-                            <CardHeader className="flex flex-row items-center justify-between pb-3">
+                            <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3">
                                 <CardTitle className="text-lg flex items-center gap-2">
                                     <Activity className="w-5 h-5 text-red-500" /> Clinical Diagnoses
                                 </CardTitle>
@@ -268,18 +268,18 @@ export default function ConsultantClientProfile() {
                                     <ClipboardList className="w-5 h-5 text-primary" /> Session History & SOAP Notes
                                 </CardTitle>
                                 <div className="mt-4 flex flex-wrap gap-3 items-end">
-                                    <div className="space-y-1">
+                                    <div className="space-y-1 flex-1 min-w-[140px]">
                                         <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Start Date</span>
-                                        <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="h-9 w-[140px] text-xs bg-muted/30" />
+                                        <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="h-9 w-full text-xs bg-muted/30" />
                                     </div>
-                                    <div className="space-y-1">
+                                    <div className="space-y-1 flex-1 min-w-[140px]">
                                         <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">End Date</span>
-                                        <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="h-9 w-[140px] text-xs bg-muted/30" />
+                                        <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="h-9 w-full text-xs bg-muted/30" />
                                     </div>
-                                    <div className="space-y-1">
+                                    <div className="space-y-1 flex-1 min-w-[160px]">
                                         <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Type</span>
                                         <Select value={sessionTypeFilter} onValueChange={setSessionTypeFilter}>
-                                            <SelectTrigger className="h-9 w-[160px] text-xs bg-muted/30">
+                                            <SelectTrigger className="h-9 w-full text-xs bg-muted/30">
                                                 <SelectValue placeholder="All Types" />
                                             </SelectTrigger>
                                             <SelectContent>
@@ -304,7 +304,7 @@ export default function ConsultantClientProfile() {
                                         No sessions found matching filters.
                                     </div>
                                 ) : (
-                                    <div className="rounded-md border overflow-hidden">
+                                     <div className="rounded-md border overflow-x-auto">
                                         <Table>
                                             <TableHeader className="bg-muted/50">
                                                 <TableRow>
@@ -369,13 +369,13 @@ export default function ConsultantClientProfile() {
                 {/* Athlete Performance Section Phase 6 */}
                 {id && (
                     <Card className="border-border shadow-md">
-                        <CardHeader className="bg-muted/30">
+                        <CardHeader className="bg-muted/30 pb-4">
                             <CardTitle className="flex items-center gap-2">
                                 <Trophy className="w-5 h-5 text-primary" />
                                 Athlete Performance & Benchmarking
                             </CardTitle>
                         </CardHeader>
-                        <CardContent className="pt-6">
+                        <CardContent className="pt-8">
                              <PerformanceAnalytics athleteId={id} />
                         </CardContent>
                     </Card>

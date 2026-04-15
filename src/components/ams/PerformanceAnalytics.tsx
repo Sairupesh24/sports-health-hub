@@ -91,13 +91,13 @@ export default function PerformanceAnalytics({ athleteId }: PerformanceAnalytics
     <Tabs defaultValue="overview" className="space-y-6">
       <div className="flex items-center justify-center pb-2">
         <TabsList className="bg-muted/50 p-1 border border-border/30 rounded-xl">
-          <TabsTrigger value="overview" className="gap-2 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm">
+          <TabsTrigger value="overview" className="gap-2 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm px-4 py-2 min-h-[44px]">
             <Activity className="w-3.5 h-3.5" /> Overview
           </TabsTrigger>
-          <TabsTrigger value="strength" className="gap-2 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm">
+          <TabsTrigger value="strength" className="gap-2 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm px-4 py-2 min-h-[44px]">
             <TrendingUp className="w-3.5 h-3.5" /> Strength
           </TabsTrigger>
-          <TabsTrigger value="history" className="gap-2 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm">
+          <TabsTrigger value="history" className="gap-2 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm px-4 py-2 min-h-[44px]">
             <History className="w-3.5 h-3.5" /> History
           </TabsTrigger>
         </TabsList>

@@ -263,7 +263,7 @@ export default function ConsultantDashboard() {
         {/* Quick Actions */}
         <div className="rounded-xl border border-border bg-card p-5 gradient-card mt-6">
           <h3 className="font-display font-semibold text-card-foreground mb-4">Quick Actions</h3>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
             {[
               {
                 label: "Start Session", icon: ClipboardList, action: () => {

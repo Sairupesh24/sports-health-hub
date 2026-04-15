@@ -68,7 +68,7 @@ export default function PerformanceSnapshot({ clientId }: PerformanceSnapshotPro
                 </CardTitle>
             </CardHeader>
             <CardContent className="p-4 pt-0 space-y-4">
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                     <div className="text-center p-2 rounded-lg bg-background border border-border/50">
                         <Moon className="w-3 h-3 mx-auto mb-1 text-blue-500" />
                         <span className={cn("text-lg font-bold font-display", getScoreColor(avgSleep))}>{avgSleep.toFixed(1)}</span>

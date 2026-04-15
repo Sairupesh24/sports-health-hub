@@ -280,7 +280,7 @@ export default function AmsCalendar() {
         
         <div className="flex flex-1 overflow-hidden bg-[#F2F4F7]">
         {/* LEFT SIDEBAR - Mini Calendar & Actions */}
-        <aside className="w-80 bg-[#1A1F26] text-white flex flex-col border-r border-white/5 shadow-2xl z-20 shrink-0">
+        <aside className="w-full sm:w-80 bg-[#1A1F26] text-white flex flex-col border-r border-white/5 shadow-2xl z-20 shrink-0">
           {/* Mini Calendar Header */}
           <div className="p-6 border-b border-white/5 bg-white/[0.02]">
             <div className="flex items-center justify-between mb-6">

@@ -189,9 +189,9 @@ export default function WorkoutBuilder() {
         </header>
 
         <main className="flex-1 overflow-x-auto overflow-y-hidden bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[#1d222b] via-[#0f1115] to-[#0f1115]">
-          <div className="flex h-full p-8 gap-8 min-w-max items-start">
+          <div className="flex flex-col md:flex-row h-full p-4 md:p-8 gap-8 min-w-0 items-start">
             {days.map((day) => (
-              <div key={day.id} className="w-[400px] flex flex-col max-h-full group">
+              <div key={day.id} className="w-full md:w-[400px] flex flex-col max-h-full group">
                 <div className="flex items-center justify-between mb-4 px-2">
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center font-black text-xs text-primary border border-white/10 shadow-xl group-hover:border-primary/50 transition-colors">
@@ -233,7 +233,7 @@ export default function WorkoutBuilder() {
                     />
                   ))}
                   
-                  <div className="grid grid-cols-3 gap-2 p-2 rounded-2xl bg-white/[0.02] border border-dashed border-white/10">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 p-2 rounded-2xl bg-white/[0.02] border border-dashed border-white/10">
                     <AddActionButton icon={Dumbbell} label="Lift" color="blue" onClick={() => openAddItemModal(day.id, "lift")} />
                     <AddActionButton icon={Zap} label="SAQC" color="amber" onClick={() => openAddItemModal(day.id, "saqc")} />
                     <AddActionButton icon={RotateCw} label="Circuit" color="purple" onClick={() => openAddItemModal(day.id, "circuit")} />
