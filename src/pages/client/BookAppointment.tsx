@@ -1,20 +1,26 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { format, addDays, isSameDay } from "date-fns";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calendar as CalendarIcon, Clock, User, CheckCircle2, ArrowRight, ArrowLeft, Star, Sparkles } from "lucide-react";
+import { Calendar as CalendarIcon, Clock, User, CheckCircle2, ArrowRight, ArrowLeft, Star, Sparkles, Loader2, AlertCircle, Repeat, Bookmark } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { filterConsultantsByService, type Service } from "@/utils/serviceMapping";
 
 type Consultant = {
     id: string;
     first_name: string;
     last_name: string;
+    profession?: string;
+    ams_role?: string;
 };
 
 type TimeSlot = {
@@ -22,13 +28,7 @@ type TimeSlot = {
     slot_end: string;
 };
 
-const SERVICES = [
-    "Physiotherapy Initial Consultation",
-    "Physiotherapy Follow-up",
-    "Sports Massage",
-    "Rehabilitation Session",
-    "Strength & Conditioning"
-];
+// SERVICES list removed in favor of dynamic fetch
 
 export default function BookAppointment() {
     const { profile, clientId } = useAuth();
@@ -37,45 +37,83 @@ export default function BookAppointment() {
     const [consultants, setConsultants] = useState<Consultant[]>([]);
 
     // Booking State
-    const [selectedService, setSelectedService] = useState<string>("");
+    const [services, setServices] = useState<Service[]>([]);
+    const [selectedServiceId, setSelectedServiceId] = useState<string>("");
+    const [selectedServiceType, setSelectedServiceType] = useState<string>("");
     const [selectedConsultant, setSelectedConsultant] = useState<string>("");
+    const [preferenceType, setPreferenceType] = useState<"Strict" | "Flexible">("Flexible");
     const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
     const [availableSlots, setAvailableSlots] = useState<TimeSlot[]>([]);
     const [selectedSlot, setSelectedSlot] = useState<TimeSlot | null>(null);
     const [booking, setBooking] = useState(false);
 
     useEffect(() => {
+        async function fetchServices() {
+            if (!profile?.organization_id) return;
+            const { data, error } = await supabase
+                .from("services")
+                .select("id, name, category, organization_id")
+                .eq("organization_id", profile.organization_id)
+                .eq("is_active", true);
+            if (!error && data) setServices(data as Service[]);
+        }
+        fetchServices();
+    }, [profile?.organization_id]);
+
+    useEffect(() => {
         async function loadConsultants() {
             if (!profile?.organization_id) return;
             try {
-                const { data: rolesData, error: rolesError } = await (supabase as any)
-                    .from("user_roles")
-                    .select("user_id")
-                    .eq("role", "consultant");
+                // Fetch specialists by profession and role
+                const { data: profilesData, error: profilesError } = await (supabase as any)
+                    .from("profiles")
+                    .select("id, first_name, last_name, profession, ams_role")
+                    .eq("organization_id", profile.organization_id)
+                    .eq("is_approved", true)
+                    .in("profession", ["Sports Physician", "Physiotherapist", "Sports Scientist", "Massage therapist", "Nutritionist"]);
 
-                if (rolesError) throw rolesError;
+                if (profilesError) throw profilesError;
 
-                const consultantIds = rolesData?.map((r: any) => r.user_id) || [];
-
-                if (consultantIds.length === 0) {
+                const userIds = profilesData?.map(p => p.id) || [];
+                if (userIds.length === 0) {
                     setConsultants([]);
                     return;
                 }
 
-                const { data, error } = await (supabase as any)
-                    .from("profiles")
-                    .select("id, first_name, last_name")
-                    .eq("organization_id", profile.organization_id)
-                    .in("id", consultantIds);
+                const { data: roleData, error: roleError } = await (supabase as any)
+                    .from("user_roles")
+                    .select("user_id, role")
+                    .in("user_id", userIds);
 
-                if (error) throw error;
-                setConsultants(data || []);
+                if (roleError) throw roleError;
+
+                const specialists = (profilesData || [])
+                    .filter(p => {
+                        const r = roleData?.find(role => role.user_id === p.id);
+                        return r && !["client", "athlete"].includes(r.role);
+                    })
+                    .map(p => ({
+                        ...p,
+                        ams_role: roleData?.find(r => r.user_id === p.id)?.role
+                    }));
+
+                setConsultants(specialists);
             } catch (err: any) {
                 toast({ title: "Error loading consultants", description: err.message, variant: "destructive" });
             }
         }
         loadConsultants();
-    }, [profile]);
+    }, [profile?.organization_id]);
+
+    const filteredConsultants = useMemo(() => {
+        const selectedService = services.find(s => s.id === selectedServiceId);
+        return filterConsultantsByService(consultants, selectedService);
+    }, [consultants, selectedServiceId, services]);
+
+    useEffect(() => {
+        const selected = services.find(s => s.id === selectedServiceId);
+        if (selected) setSelectedServiceType(selected.name);
+    }, [selectedServiceId, services]);
 
     useEffect(() => {
         async function fetchSlots() {
@@ -115,8 +153,8 @@ export default function BookAppointment() {
 
         try {
             const formattedDate = format(selectedDate, "yyyy-MM-dd");
-            const scheduledStart = `${formattedDate}T${selectedSlot.slot_start}`;
-            const scheduledEnd = `${formattedDate}T${selectedSlot.slot_end}`;
+            const scheduledStart = `${formattedDate}T${selectedSlot.slot_start}:00`;
+            const scheduledEnd = `${formattedDate}T${selectedSlot.slot_end}:00`;
 
             const { data: newSession, error: sessionError } = await (supabase as any)
                 .from('sessions')
@@ -124,11 +162,15 @@ export default function BookAppointment() {
                     organization_id: profile.organization_id,
                     client_id: clientId,
                     therapist_id: selectedConsultant,
-                    service_type: selectedService,
-                    scheduled_start: scheduledStart,
-                    scheduled_end: scheduledEnd,
+                    service_id: selectedServiceId || null,
+                    service_type: selectedServiceType,
+                    scheduled_start: new Date(scheduledStart).toISOString(),
+                    scheduled_end: new Date(scheduledEnd).toISOString(),
                     status: 'Planned',
-                    created_by: profile.id
+                    created_by: profile.id,
+                    session_mode: 'Individual',
+                    preference_type: preferenceType,
+                    is_flexible_routing: preferenceType === "Flexible"
                 })
                 .select()
                 .single();
@@ -147,6 +189,35 @@ export default function BookAppointment() {
             if (err.message.includes('timeslot')) {
                 setStep(2);
             }
+        } finally {
+            setBooking(false);
+        }
+    };
+
+    const handleJoinWaitlist = async () => {
+        if (!profile?.organization_id || !selectedDate || !clientId || !selectedConsultant) {
+            toast({ title: "Validation Error", description: "Please ensure all fields are selected.", variant: "destructive" });
+            return;
+        }
+        setBooking(true);
+        try {
+            const { error } = await (supabase as any).from("waitlist").insert({
+                organization_id: profile?.organization_id,
+                client_id: clientId,
+                therapist_id: selectedConsultant,
+                service_id: selectedServiceId || null,
+                preferred_date: format(selectedDate, "yyyy-MM-dd"),
+                preferred_time_slot: "09:00", // Default or first available
+                preference_type: preferenceType,
+                status: "Waiting"
+            });
+
+            if (error) throw error;
+
+            toast({ title: "Added to Waitlist", description: "We will notify you if a slot becomes available." });
+            setStep(3);
+        } catch (err: any) {
+            toast({ title: "Waitlist Failed", description: err.message, variant: "destructive" });
         } finally {
             setBooking(false);
         }
@@ -218,22 +289,22 @@ export default function BookAppointment() {
                                 </CardHeader>
                                 <CardContent className="p-10 pt-4 space-y-10">
                                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                                        {SERVICES.map(service => (
+                                        {services.map(service => (
                                             <div
-                                                key={service}
-                                                onClick={() => setSelectedService(service)}
+                                                key={service.id}
+                                                onClick={() => setSelectedServiceId(service.id)}
                                                 className={cn(
                                                     "p-8 rounded-[32px] border-2 cursor-pointer transition-all duration-300 group relative overflow-hidden",
-                                                    selectedService === service
+                                                    selectedServiceId === service.id
                                                         ? 'border-primary bg-primary/5 shadow-2xl shadow-primary/10'
                                                         : 'border-slate-50 hover:border-primary/20 hover:bg-slate-50'
                                                 )}
                                             >
                                                 <div className="relative z-10">
-                                                    <h3 className="font-black text-lg text-slate-900 group-hover:text-primary transition-colors">{service}</h3>
-                                                    <p className="text-xs font-bold text-slate-400 mt-2 uppercase tracking-tight">Physiotherapy Elite</p>
+                                                    <h3 className="font-black text-lg text-slate-900 group-hover:text-primary transition-colors">{service.name}</h3>
+                                                    <p className="text-xs font-bold text-slate-400 mt-2 uppercase tracking-tight">{service.category || "Physiotherapy Elite"}</p>
                                                 </div>
-                                                {selectedService === service && (
+                                                {selectedServiceId === service.id && (
                                                     <div className="absolute top-4 right-4 text-primary">
                                                         <CheckCircle2 className="w-6 h-6 fill-primary/10" />
                                                     </div>
@@ -243,14 +314,19 @@ export default function BookAppointment() {
                                     </div>
 
                                     <div className="space-y-6 pt-6">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center text-amber-500">
-                                                <User className="w-5 h-5" />
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center text-amber-500">
+                                                    <User className="w-5 h-5" />
+                                                </div>
+                                                <h3 className="text-2xl font-black italic tracking-tighter">Select Specialist</h3>
                                             </div>
-                                            <h3 className="text-2xl font-black italic tracking-tighter">Select Specialist</h3>
+                                            {selectedServiceId && (
+                                                <Badge variant="secondary" className="font-black text-[10px] px-3">{filteredConsultants.length} QUALIFIED</Badge>
+                                            )}
                                         </div>
                                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                                            {consultants.map(consultant => (
+                                            {filteredConsultants.map(consultant => (
                                                 <div
                                                     key={consultant.id}
                                                     onClick={() => setSelectedConsultant(consultant.id)}
@@ -269,17 +345,23 @@ export default function BookAppointment() {
                                                     </div>
                                                     <div className="text-center">
                                                         <p className="font-black text-slate-900 leading-tight">Dr. {consultant.last_name}</p>
-                                                        <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest mt-1">Consultant</p>
+                                                        <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest mt-1">{consultant.profession || "Consultant"}</p>
                                                     </div>
                                                 </div>
                                             ))}
+                                            {selectedServiceId && filteredConsultants.length === 0 && (
+                                                <div className="col-span-full p-10 bg-slate-50 border-2 border-dashed border-slate-200 rounded-[32px] text-center">
+                                                    <Bookmark className="w-10 h-10 text-slate-300 mx-auto mb-4" />
+                                                    <p className="text-slate-400 font-bold italic text-sm">No specialists assigned to this service category.</p>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 </CardContent>
                                 <CardFooter className="p-10 bg-slate-50 flex justify-end">
                                     <Button
                                         onClick={() => setStep(2)}
-                                        disabled={!selectedService || !selectedConsultant}
+                                        disabled={!selectedServiceId || !selectedConsultant}
                                         className="h-14 px-10 rounded-2xl bg-slate-900 text-white font-black text-lg gap-3"
                                     >
                                         Browse Times <ArrowRight className="w-5 h-5" />
@@ -328,8 +410,36 @@ export default function BookAppointment() {
                                         {availableSlots.length > 0 && <Badge variant="secondary" className="font-black text-[10px] px-3">{availableSlots.length} SLOTS</Badge>}
                                     </div>
 
+                                    {/* Preference Type Selector */}
+                                    <div className="p-6 bg-primary/5 rounded-[32px] border border-primary/10 space-y-4">
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-primary shadow-sm">
+                                                    <Repeat className="w-5 h-5" />
+                                                </div>
+                                                <div>
+                                                    <p className="text-[10px] font-black uppercase tracking-widest text-primary">Routing Preference</p>
+                                                    <p className="text-lg font-black italic text-slate-900">
+                                                        {preferenceType === "Flexible" ? "Flexible Specialist" : "Strict Specialist"}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <Switch 
+                                                checked={preferenceType === "Flexible"} 
+                                                onCheckedChange={(checked) => setPreferenceType(checked ? "Flexible" : "Strict")} 
+                                                className="scale-125"
+                                            />
+                                        </div>
+                                        <p className="text-xs font-medium text-slate-500 leading-relaxed italic">
+                                            {preferenceType === "Flexible" 
+                                                ? "If your chosen specialist is busy, we can route you to another highly qualified expert to ensure you get care sooner." 
+                                                : "You will only be booked with your selected specialist. This may limit available time slots."
+                                            }
+                                        </p>
+                                    </div>
+
                                     {loading ? (
-                                        <div className="flex flex-col items-center justify-center h-60 space-y-4">
+                                        <div className="flex flex-col items-center justify-center h-48 space-y-4">
                                             <Loader2 className="animate-spin w-10 h-10 text-primary" />
                                             <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 animate-pulse">Syncing Calendar...</p>
                                         </div>
@@ -348,15 +458,23 @@ export default function BookAppointment() {
                                                                 : 'bg-white text-slate-600 border-slate-50 hover:border-primary/30 hover:bg-slate-50'
                                                         )}
                                                     >
-                                                        {slot.slot_start.substring(0, 5)}
+                                                        {slot.slot_start?.substring(0, 5) ?? ""}
                                                     </button>
                                                 );
                                             })}
                                         </div>
                                     ) : (
                                         <div className="flex flex-col items-center justify-center p-12 bg-slate-50 rounded-[32px] border-2 border-dashed border-slate-200">
-                                            <CalendarIcon className="w-10 h-10 text-slate-200 mb-4" />
-                                            <p className="text-slate-400 font-bold italic">No slots available for this date.</p>
+                                            <AlertCircle className="w-10 h-10 text-amber-500 mb-4" />
+                                            <p className="text-slate-900 font-black italic mb-2">No Available Slots</p>
+                                            <p className="text-slate-400 font-medium italic text-sm text-center mb-6">Dr. {selectedConsultantObj?.last_name} is fully booked on this day.</p>
+                                            <Button 
+                                                variant="outline" 
+                                                onClick={handleJoinWaitlist}
+                                                className="rounded-2xl border-2 border-primary text-primary font-black uppercase text-[10px] tracking-widest px-8 hover:bg-primary hover:text-white transition-all"
+                                            >
+                                                Join the Active Waitlist
+                                            </Button>
                                         </div>
                                     )}
                                 </div>
@@ -365,7 +483,7 @@ export default function BookAppointment() {
                                 <div className="text-slate-300">
                                     {selectedSlot && (
                                         <p className="flex items-center gap-2">
-                                            Booking: <span className="font-black italic text-white text-lg">{format(selectedDate!, "MMM d")} at {selectedSlot.slot_start.substring(0, 5)}</span>
+                                            Booking: <span className="font-black italic text-white text-lg">{selectedDate ? format(selectedDate, "MMM d") : ""} at {selectedSlot?.slot_start?.substring(0, 5) ?? ""}</span>
                                         </p>
                                     )}
                                 </div>
@@ -392,7 +510,7 @@ export default function BookAppointment() {
                             <div className="space-y-4">
                                 <h2 className="text-4xl font-black italic tracking-tighter">Confirmation!</h2>
                                 <p className="text-slate-500 font-medium">
-                                    Your <span className="text-primary font-black uppercase text-xs">{selectedService}</span> with <span className="font-black text-slate-800 underline decoration-primary underline-offset-4">Dr. {selectedConsultantObj?.last_name}</span> has been confirmed.
+                                    Your <span className="text-primary font-black uppercase text-xs">{selectedServiceType}</span> with <span className="font-black text-slate-800 underline decoration-primary underline-offset-4">Dr. {selectedConsultantObj?.last_name}</span> has been confirmed.
                                 </p>
                             </div>
 
@@ -400,12 +518,12 @@ export default function BookAppointment() {
                                 <div className="flex items-center justify-center gap-8">
                                     <div className="text-center">
                                        <p className="text-[10px] font-black uppercase text-slate-400 mb-1">Date</p>
-                                       <p className="font-black text-slate-900">{format(selectedDate!, "EEE, MMM d")}</p>
+                                       <p className="font-black text-slate-900">{selectedDate ? format(selectedDate, "EEE, MMM d") : "N/A"}</p>
                                     </div>
                                     <div className="w-px h-8 bg-slate-100" />
                                     <div className="text-center">
                                        <p className="text-[10px] font-black uppercase text-slate-400 mb-1">Time</p>
-                                       <p className="font-black text-slate-900">{selectedSlot?.slot_start.substring(0, 5)}</p>
+                                       <p className="font-black text-slate-900">{selectedSlot?.slot_start?.substring(0, 5) ?? "N/A"}</p>
                                     </div>
                                 </div>
                             </div>

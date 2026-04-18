@@ -127,71 +127,21 @@ export default function UserApproval() {
     setIsAdding(true);
     try {
       const { createClient } = await import("@supabase/supabase-js");
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const serviceRoleKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
-
-      if (!supabaseUrl || !serviceRoleKey) {
-        throw new Error("Missing Supabase URL or Service Role Key in environment variables.");
-      }
-
-      const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
-        auth: { autoRefreshToken: false, persistSession: false }
-      });
-
-      const userOrgId = profile?.organization_id;
-      if (!userOrgId) throw new Error("You are not associated with any organization.");
-
-      if (newRole === "client" && newUhid.trim()) {
-        const { data: clientCheck, error: clientCheckError } = await supabaseAdmin
-          .from("clients")
-          .select("id")
-          .eq("organization_id", userOrgId)
-          .eq("uhid", newUhid.trim())
-          .maybeSingle();
-
-        if (clientCheckError) throw clientCheckError;
-        if (!clientCheck) {
-          throw new Error(`The UHID '${newUhid}' was not found in your clinic's records.`);
+      const { data, error: functionError } = await supabase.functions.invoke('create-user', {
+        body: { 
+          email: newEmail, 
+          firstName: newFirst, 
+          lastName: newLast, 
+          role: newRole, 
+          uhid: newUhid.trim() 
         }
-      }
-
-      const tempPassword = `${Math.random().toString(36).slice(-6)}${Math.random().toString(36).slice(-6).toUpperCase()}!8z`;
-
-      const { data: authData, error: authCreateError } = await supabaseAdmin.auth.admin.createUser({
-        email: newEmail,
-        password: tempPassword,
-        email_confirm: true,
-        user_metadata: { first_name: newFirst, last_name: newLast }
       });
 
-      if (authCreateError) throw new Error(`Account Creation Failed: ${authCreateError.message}`);
+      if (functionError) throw functionError;
+      if (!data?.success) throw new Error(data?.error || "Failed to create user account");
 
-      const newUserId = authData.user.id;
-
-      await new Promise(resolve => setTimeout(resolve, 800)); // Wait for handle_new_user trigger
-
-      const profileUpdate: any = {
-        organization_id: userOrgId,
-        is_approved: true,
-        first_name: newFirst,
-        last_name: newLast,
-      };
-      if (newUhid.trim()) profileUpdate.uhid = newUhid.trim();
-
-      const { error: profileUpdateErr } = await supabaseAdmin
-        .from("profiles")
-        .update(profileUpdate)
-        .eq("id", newUserId);
-
-      if (profileUpdateErr) console.warn("Profile update warning:", profileUpdateErr);
-
-      const { error: roleInsertErr } = await supabaseAdmin
-        .from("user_roles")
-        .insert({ user_id: newUserId, role: newRole as any });
-
-      if (roleInsertErr) console.warn("Role insert warning:", roleInsertErr);
-
-      setGeneratedCreds({ email: newEmail, password: tempPassword });
+      const authData = data.user;
+      setGeneratedCreds({ email: authData.email, password: authData.password });
       toast({ title: "User created", description: "Successfully created user and bypassed email verification." });
       fetchUsers();
     } catch (err: any) {
@@ -379,29 +329,12 @@ export default function UserApproval() {
     if (!confirm("Are you sure you want to PERMANENTLY delete this user account? This cannot be undone.")) return;
 
     try {
-      const { createClient } = await import("@supabase/supabase-js");
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const serviceRoleKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
-
-      if (!supabaseUrl || !serviceRoleKey) {
-        throw new Error("Missing Supabase URL or Service Role Key in environment variables.");
-      }
-
-      const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
-        auth: { autoRefreshToken: false, persistSession: false }
+      const { data, error: functionError } = await supabase.functions.invoke('delete-user', {
+        body: { userId }
       });
-
-      const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(userId);
       
-      if (authError) {
-        if (authError.message === "User not found") {
-          console.warn("Auth user not found, cleaning up database records anyway...");
-          const { error: dbError } = await supabaseAdmin.from("profiles").delete().eq("id", userId);
-          if (dbError) throw dbError;
-        } else {
-          throw authError;
-        }
-      }
+      if (functionError) throw functionError;
+      if (!data?.success) throw new Error(data?.error || "Failed to delete user account");
 
       toast({ title: "User Deleted", description: "User account and all related data have been removed." });
       fetchUsers();

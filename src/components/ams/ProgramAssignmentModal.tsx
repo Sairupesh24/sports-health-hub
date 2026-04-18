@@ -244,6 +244,7 @@ export default function ProgramAssignmentModal({
               sets: item.sets,
               reps: item.reps,
               load_value: item.weight,
+              load_type: item.load_type || 'absolute',
               tempo: item.tempo,
               rest_time_secs: item.rest_time_secs,
               workout_grouping: item.workout_grouping,
@@ -314,6 +315,7 @@ export default function ProgramAssignmentModal({
               sets: item.sets,
               reps: item.reps,
               load_value: item.weight,
+              load_type: item.load_type || 'absolute',
               tempo: item.tempo,
               rest_time_secs: item.rest_time_secs,
               workout_grouping: item.workout_grouping,
@@ -375,62 +377,62 @@ export default function ProgramAssignmentModal({
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className={cn(
-        "bg-[#1A1F26] border-white/20 text-white rounded-[3rem] overflow-hidden shadow-2xl p-0 transition-all duration-500 ring-1 ring-white/10",
-        step === 'selection' ? "max-w-xl" : "max-w-4xl"
+        "bg-[#1A1F26] border-white/10 text-white rounded-2xl overflow-hidden shadow-2xl p-0 transition-all duration-300",
+        step === 'selection' ? "max-w-md" : "max-w-4xl"
       )}>
-        <DialogHeader className="p-8 bg-white/[0.04] border-b border-white/10">
+        <DialogHeader className="px-6 py-4 bg-white/[0.02] border-b border-white/5">
           <div className="flex items-center justify-between">
-            <DialogTitle className="text-2xl font-black uppercase tracking-tight flex items-center gap-3">
-               <div className="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shadow-lg shadow-primary/20">
-                  <Sparkles className="w-5 h-5" />
+            <DialogTitle className="text-lg font-bold uppercase tracking-tight flex items-center gap-3">
+               <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+                  <Sparkles className="w-4 h-4" />
                </div>
-               {step === 'selection' ? "Select Recipients" : "Build Training Plan"}
+               {step === 'selection' ? "Recipients" : "Build Plan"}
             </DialogTitle>
-            <div className="flex items-center gap-2">
-               <div className={cn("w-2 h-2 rounded-full transition-all", step === 'selection' ? "bg-primary" : "bg-white/10")} />
-               <div className={cn("w-2 h-2 rounded-full transition-all", step === 'builder' ? "bg-primary" : "bg-white/10")} />
+            <div className="flex items-center gap-1.5">
+               <div className={cn("w-1.5 h-1.5 rounded-full transition-all", step === 'selection' ? "bg-primary" : "bg-white/10")} />
+               <div className={cn("w-1.5 h-1.5 rounded-full transition-all", step === 'builder' ? "bg-primary" : "bg-white/10")} />
             </div>
           </div>
         </DialogHeader>
 
         <div className={cn(
-          "p-8 space-y-8 no-scrollbar",
-          step === 'selection' ? "max-h-[70vh] overflow-y-auto" : "max-h-[85vh] overflow-y-auto"
+          "p-6 space-y-6 no-scrollbar",
+          step === 'selection' ? "max-h-[60vh] overflow-y-auto" : "max-h-[85vh] overflow-y-auto"
         )}>
           {step === 'selection' ? (
             <>
-              <div className="space-y-4">
-                <Label className="text-[10px] uppercase font-black tracking-[0.2em] text-[#FF6B35] opacity-80 pl-1">Target Start Date</Label>
+              <div className="space-y-3">
+                <Label className="text-[10px] uppercase font-bold tracking-widest text-primary opacity-80">Start Date</Label>
                 <div className="relative group">
-                  <CalendarIcon className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-primary group-focus-within:scale-110 transition-transform" />
+                  <CalendarIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-primary" />
                   <Input 
                     type="date" 
                     value={startDate} 
                     onChange={(e) => setStartDate(e.target.value)}
-                    className="h-16 bg-white/[0.08] border-white/20 rounded-[1.5rem] pl-14 font-black italic text-lg focus:ring-primary/60 ring-1 ring-transparent transition-all text-white"
+                    className="h-12 bg-white/[0.04] border-white/10 rounded-xl pl-12 font-bold focus:ring-primary/40 text-white"
                   />
                 </div>
               </div>
 
               {/* Athlete Search & List */}
-              <div className="space-y-4">
-                <div className="flex justify-between items-center mb-1 px-1">
-                  <Label className="text-[10px] uppercase font-black tracking-[0.2em] text-[#FF6B35] opacity-80">Selected Athletes ({selectedAthleteIds.length})</Label>
+              <div className="space-y-3">
+                <div className="flex justify-between items-center px-1">
+                  <Label className="text-[10px] uppercase font-bold tracking-widest text-primary opacity-80">Athletes ({selectedAthleteIds.length})</Label>
                   <button 
                     onClick={() => setSelectedAthleteIds(selectedAthleteIds.length === athletes.length ? [] : athletes.map(a => a.id))}
-                    className="text-[9px] font-black uppercase text-slate-300 hover:text-primary transition-colors"
+                    className="text-[9px] font-bold uppercase text-white/40 hover:text-primary transition-colors"
                   >
-                    {selectedAthleteIds.length === athletes.length ? "Deselect All" : "Select All"}
+                    {selectedAthleteIds.length === athletes.length ? "Clear" : "Select All"}
                   </button>
                 </div>
                 
-                <div className="relative mb-3 group">
-                  <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 opacity-40 group-focus-within:text-primary group-focus-within:opacity-100 transition-all" />
+                <div className="relative group">
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 opacity-40 group-focus-within:text-primary transition-all" />
                   <Input 
-                    placeholder="Search by name or UHID..." 
+                    placeholder="Search athletes..." 
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="h-14 bg-white/[0.08] border-white/20 rounded-2xl pl-14 text-sm font-bold text-white placeholder:opacity-30 focus:ring-primary/40 focus:border-primary/40 transition-all ring-1 ring-transparent"
+                    className="h-11 bg-white/[0.04] border-white/10 rounded-xl pl-11 text-xs font-medium text-white placeholder:opacity-20 focus:ring-primary/40 transition-all"
                   />
                 </div>
 
@@ -445,29 +447,29 @@ export default function ProgramAssignmentModal({
                           key={athlete.id}
                           onClick={() => toggleAthlete(athlete.id)}
                           className={cn(
-                            "flex items-center justify-between p-4 rounded-[1.5rem] border transition-all cursor-pointer group shadow-sm",
+                            "flex items-center justify-between p-3 rounded-xl border transition-all cursor-pointer group",
                             isSelected 
-                              ? "bg-primary/20 border-primary/40" 
-                              : "bg-white/[0.05] border-white/10 hover:border-primary/30"
+                              ? "bg-primary/10 border-primary/30" 
+                              : "bg-white/[0.02] border-white/5 hover:border-white/10"
                           )}
                         >
-                          <div className="flex items-center gap-4">
+                          <div className="flex items-center gap-3">
                             <div className={cn(
-                              "w-12 h-12 rounded-2xl flex items-center justify-center font-black text-[10px] transition-all uppercase",
-                              isSelected ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20" : "bg-white/5 border border-white/10 group-hover:border-primary/20"
+                              "w-10 h-10 rounded-lg flex items-center justify-center font-bold text-[10px] transition-all uppercase",
+                              isSelected ? "bg-primary text-primary-foreground" : "bg-white/5 border border-white/10"
                             )}>
                               {athlete.first_name?.[0]}{athlete.last_name?.[0]}
                             </div>
                             <div>
-                              <div className="font-black text-slate-100 uppercase tracking-tight">{athlete.last_name}, {athlete.first_name}</div>
-                              <div className="text-[9px] opacity-40 font-black uppercase tracking-widest">{athlete.uhid || "CLIENT RECORD"}</div>
+                              <div className="font-bold text-sm text-slate-100 uppercase tracking-tight">{athlete.last_name}, {athlete.first_name}</div>
+                              <div className="text-[9px] opacity-20 font-bold uppercase tracking-widest">{athlete.uhid || "CLIENT"}</div>
                             </div>
                           </div>
                           <div className={cn(
-                            "w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all",
-                            isSelected ? "bg-primary border-primary shadow-lg shadow-primary/40" : "border-white/10 group-hover:border-primary/40"
+                            "w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all",
+                            isSelected ? "bg-primary border-primary" : "border-white/10"
                           )}>
-                             {isSelected && <Check className="w-3.5 h-3.5 text-white stroke-[4px]" />}
+                             {isSelected && <Check className="w-3 h-3 text-white stroke-[4px]" />}
                           </div>
                         </div>
                       );
@@ -481,14 +483,14 @@ export default function ProgramAssignmentModal({
                 </div>
               </div>
 
-              <DialogFooter className="pt-4 gap-3 bg-transparent border-none">
-                 <Button variant="ghost" onClick={onClose} className="rounded-2xl h-14 px-8 font-black uppercase tracking-widest text-[11px] opacity-40 hover:opacity-100">Cancel</Button>
+              <DialogFooter className="pt-4 gap-2 bg-transparent border-none">
+                 <Button variant="ghost" onClick={onClose} className="h-11 px-6 font-bold uppercase tracking-widest text-[10px] opacity-40">Cancel</Button>
                  <Button 
                    onClick={() => setStep('builder')} 
                    disabled={selectedAthleteIds.length === 0}
-                   className="rounded-2xl h-14 px-12 font-black uppercase tracking-[0.2em] text-[11px] bg-primary hover:bg-primary/90 shadow-xl shadow-primary/20 gap-3"
+                   className="h-11 flex-1 font-bold uppercase tracking-widest text-[10px] bg-primary hover:bg-primary/90 gap-2"
                  >
-                   Next: Build Workout <MoveRight className="w-4 h-4" />
+                   Continue <MoveRight className="w-3.5 h-3.5" />
                  </Button>
               </DialogFooter>
             </>

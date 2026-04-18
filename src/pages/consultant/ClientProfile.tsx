@@ -21,8 +21,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Download, FileText } from "lucide-react";
 import PerformanceSnapshot from "@/components/consultant/PerformanceSnapshot";
 import PerformanceAnalytics from "@/components/ams/PerformanceAnalytics";
-import { Trophy, FileStack } from "lucide-react";
+import { Trophy, FileStack, Microscope } from "lucide-react";
 import { DocumentManager } from "@/components/admin/documents/DocumentManager";
+import { ScientificResourcesManager } from "@/components/sports-scientist/resources/ScientificResourcesManager";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useAuth } from "@/contexts/AuthContext";
 import type { Database } from "@/integrations/supabase/types";
@@ -59,6 +60,7 @@ export default function ConsultantClientProfile() {
 
     const [adHocModalOpen, setAdHocModalOpen] = useState(false);
     const [isDocumentModalOpen, setIsDocumentModalOpen] = useState(false);
+    const [isScientificModalOpen, setIsScientificModalOpen] = useState(false);
 
     const { roles, profile: currentUserProfile } = useAuth();
     const isAdmin = roles.includes('admin');
@@ -67,6 +69,7 @@ export default function ConsultantClientProfile() {
                                  roles.includes('sports_physician') || 
                                  roles.includes('physiotherapist') ||
                                  roles.includes('consultant');
+    const isSportsScientist = currentUserProfile?.profession === 'Sports Scientist' || roles.includes('sports_scientist');
     const canAccessDocuments = isAdmin || isClinicalSpecialist;
 
     // Filters
@@ -185,6 +188,15 @@ export default function ConsultantClientProfile() {
                               onClick={() => setIsDocumentModalOpen(true)}
                             >
                                 <FileStack className="w-4 h-4 text-primary" /> Documents
+                            </Button>
+                        )}
+                        {isSportsScientist && (
+                            <Button 
+                                variant="outline" 
+                                className="border-slate-300 hover:bg-slate-50 gap-2 font-black text-[11px] uppercase tracking-widest bg-slate-50 shadow-sm"
+                                onClick={() => setIsScientificModalOpen(true)}
+                            >
+                                <Microscope className="w-4 h-4 text-slate-900" /> Scientific Hub
                             </Button>
                         )}
                         <Button onClick={() => setAdHocModalOpen(true)}>
@@ -418,6 +430,26 @@ export default function ConsultantClientProfile() {
                                 </DialogHeader>
                                 <div className="mt-4">
                                     <DocumentManager clientId={client.id} isVIP={client.is_vip} />
+                                </div>
+                            </DialogContent>
+                        </Dialog>
+
+                        {/* Scientific Resources Modal for Sports Scientists ONLY */}
+                        <Dialog open={isScientificModalOpen} onOpenChange={setIsScientificModalOpen}>
+                            <DialogContent className="max-w-6xl max-h-[95vh] overflow-y-auto rounded-[40px] p-0 border-none bg-[#f8fafc]">
+                                <DialogHeader className="p-8 pb-0">
+                                    <DialogTitle className="flex items-center gap-4 text-2xl font-black">
+                                        <div className="p-3 bg-slate-900 rounded-2xl shadow-lg">
+                                            <Microscope className="w-6 h-6 text-white" />
+                                        </div>
+                                        <div>
+                                            <p className="text-[10px] uppercase font-black tracking-widest text-slate-400">Secure Scientist Repository</p>
+                                            Scientist Hub - {client.first_name} {client.last_name}
+                                        </div>
+                                    </DialogTitle>
+                                </DialogHeader>
+                                <div className="p-8">
+                                    <ScientificResourcesManager athleteId={client.id} />
                                 </div>
                             </DialogContent>
                         </Dialog>

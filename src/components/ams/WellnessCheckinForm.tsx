@@ -94,7 +94,7 @@ export default function WellnessCheckinForm({ onComplete }: { onComplete?: () =>
                   name="sleep_score"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Sleep Quality (1-10)</FormLabel>
+                      <FormLabel className="text-slate-200 font-bold text-[10px] uppercase tracking-widest">Sleep Quality (1-10)</FormLabel>
                       <FormControl>
                         <Slider
                           min={1}
@@ -104,7 +104,11 @@ export default function WellnessCheckinForm({ onComplete }: { onComplete?: () =>
                           onValueChange={(vals) => field.onChange(vals[0])}
                         />
                       </FormControl>
-                      <div className="text-right text-sm text-muted-foreground">{field.value}/10</div>
+                      <div className="flex justify-between items-center mt-1">
+                        <span className="text-[9px] font-bold text-slate-500 uppercase">Poor</span>
+                        <div className="text-sm font-black text-primary italic">{field.value}/10</div>
+                        <span className="text-[9px] font-bold text-slate-500 uppercase">Excellent</span>
+                      </div>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -114,7 +118,7 @@ export default function WellnessCheckinForm({ onComplete }: { onComplete?: () =>
                   name="stress_level"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Stress Level (1-10)</FormLabel>
+                      <FormLabel className="text-slate-200 font-bold text-[10px] uppercase tracking-widest">Stress Level (1-10)</FormLabel>
                       <FormControl>
                         <Slider
                           min={1}
@@ -124,7 +128,11 @@ export default function WellnessCheckinForm({ onComplete }: { onComplete?: () =>
                           onValueChange={(vals) => field.onChange(vals[0])}
                         />
                       </FormControl>
-                      <div className="text-right text-sm text-muted-foreground">{field.value}/10</div>
+                      <div className="flex justify-between items-center mt-1">
+                        <span className="text-[9px] font-bold text-slate-500 uppercase">Low</span>
+                        <div className="text-sm font-black text-primary italic">{field.value}/10</div>
+                        <span className="text-[9px] font-bold text-slate-500 uppercase">High</span>
+                      </div>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -142,7 +150,7 @@ export default function WellnessCheckinForm({ onComplete }: { onComplete?: () =>
                   name="soreness_level"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Muscle Soreness (1-10)</FormLabel>
+                      <FormLabel className="text-slate-200 font-bold text-[10px] uppercase tracking-widest">Muscle Soreness (1-10)</FormLabel>
                       <FormControl>
                         <Slider
                           min={1}
@@ -152,7 +160,11 @@ export default function WellnessCheckinForm({ onComplete }: { onComplete?: () =>
                           onValueChange={(vals) => field.onChange(vals[0])}
                         />
                       </FormControl>
-                      <div className="text-right text-sm text-muted-foreground">{field.value}/10</div>
+                      <div className="flex justify-between items-center mt-1">
+                        <span className="text-[9px] font-bold text-slate-500 uppercase">None</span>
+                        <div className="text-sm font-black text-primary italic">{field.value}/10</div>
+                        <span className="text-[9px] font-bold text-slate-500 uppercase">Severe</span>
+                      </div>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -188,7 +200,7 @@ export default function WellnessCheckinForm({ onComplete }: { onComplete?: () =>
                   name="fatigue_level"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Fatigue Level (1-10)</FormLabel>
+                      <FormLabel className="text-slate-200 font-bold text-[10px] uppercase tracking-widest">Fatigue Level (1-10)</FormLabel>
                       <FormControl>
                         <Slider
                           min={1}
@@ -198,13 +210,17 @@ export default function WellnessCheckinForm({ onComplete }: { onComplete?: () =>
                           onValueChange={(vals) => field.onChange(vals[0])}
                         />
                       </FormControl>
-                      <div className="text-right text-sm text-muted-foreground">{field.value}/10</div>
+                      <div className="flex justify-between items-center mt-1">
+                        <span className="text-[9px] font-bold text-slate-500 uppercase">Fresh</span>
+                        <div className="text-sm font-black text-primary italic">{field.value}/10</div>
+                        <span className="text-[9px] font-bold text-slate-500 uppercase">Exhausted</span>
+                      </div>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
                 <div className="flex gap-4">
-                  <Button type="button" variant="outline" onClick={() => setStep(1)} className="w-full">
+                  <Button type="button" variant="outline" onClick={() => setStep(1)} className="w-full text-slate-900 font-bold">
                     Back
                   </Button>
                   <Button type="submit" disabled={submitWellness.isPending} className="w-full">

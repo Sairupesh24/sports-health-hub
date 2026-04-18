@@ -19,5 +19,11 @@ export default defineConfig(({ mode }) => ({
   },
   preview: {
     allowedHosts: true
-  }
+  },
+  build: {
+    minify: 'esbuild',
+  },
+  esbuild: {
+    drop: mode === 'production' ? ['console', 'debugger'] : [],
+  },
 }));

@@ -166,133 +166,46 @@ export default function OrganizationUsers({ organizationId }: OrganizationUsersP
     const processUsers = async () => {
         if (parsedUsers.length === 0) return;
 
-        const createdUserIds: string[] = [];
         try {
             setProcessing(true);
 
-            // Create an admin client using the service role key to bypass RLS
-            const { createClient } = await import("@supabase/supabase-js");
-            const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-            const serviceRoleKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
-
-            if (!supabaseUrl || !serviceRoleKey) {
-                throw new Error("Missing Supabase URL or Service Role Key in environment variables.");
-            }
-
-            const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
-                auth: { autoRefreshToken: false, persistSession: false }
+            const { data, error: functionError } = await supabase.functions.invoke('bulk-create-users', {
+                body: { 
+                    users: parsedUsers, 
+                    organizationId: organizationId 
+                }
             });
 
-            // Start Transaction-like processing
-            // Phase 1: Create all Auth Users
-            for (let i = 0; i < parsedUsers.length; i++) {
-                const user = parsedUsers[i];
-                const tempPassword = user.password || `${Math.random().toString(36).slice(-6)}${Math.random().toString(36).slice(-6).toUpperCase()}!8z`;
-                const combinedFirstName = user.middleName ? `${user.firstName} ${user.middleName}`.trim() : user.firstName;
+            if (functionError) throw functionError;
+            if (!data?.success) throw new Error(data?.error || "Bulk import failed");
 
-                const { data: authData, error: authCreateError } = await supabaseAdmin.auth.admin.createUser({
-                    email: user.email,
-                    password: tempPassword,
-                    email_confirm: true,
-                    user_metadata: { first_name: combinedFirstName, last_name: user.lastName, organization_id: organizationId }
+            const results = data.data;
+            setResultsSummary({ successful: results.successful, failed: results.failed });
+            
+            // Map status back to the rows
+            setParsedUsers(prev => prev.map(u => {
+                const errorItem = results.errors.find((e: any) => e.email === u.email);
+                return {
+                    ...u,
+                    status: errorItem ? "error" : "success",
+                    errorMsg: errorItem ? errorItem.error : undefined
+                };
+            }));
+
+            if (results.failed === 0) {
+                toast({ title: "Import Successful", description: `All ${results.successful} users were created.` });
+            } else {
+                toast({ 
+                    title: "Import Partially Complete", 
+                    description: `${results.successful} created, ${results.failed} failed.`,
+                    variant: results.successful === 0 ? "destructive" : "default"
                 });
-
-                if (authCreateError) {
-                    throw new Error(`Failed to create user ${user.email}: ${authCreateError.message}`);
-                }
-
-                createdUserIds.push(authData.user.id);
             }
-
-            // Phase 2: Setup profiles, roles and client records
-            for (let i = 0; i < parsedUsers.length; i++) {
-                const user = parsedUsers[i];
-                const newUserId = createdUserIds[i];
-                const combinedFirstName = user.middleName ? `${user.firstName} ${user.middleName}`.trim() : user.firstName;
-
-                // Wait briefly for triggers to potentially finish their initial handle_new_user work
-                await new Promise(resolve => setTimeout(resolve, 800));
-
-                // 2. Update Profile
-                const { error: profileUpdateErr } = await supabaseAdmin
-                    .from("profiles")
-                    .update({
-                        organization_id: organizationId,
-                        is_approved: true,
-                        first_name: combinedFirstName,
-                        last_name: user.lastName
-                    })
-                    .eq("id", newUserId);
-
-                if (profileUpdateErr) throw new Error(`Profile setup failed for ${user.email}: ${profileUpdateErr.message}`);
-
-                // 3. Assign Role
-                const { error: roleInsertErr } = await supabaseAdmin
-                    .from("user_roles")
-                    .insert({ user_id: newUserId, role: user.role.toLowerCase() });
-
-                if (roleInsertErr) throw new Error(`Role assignment failed for ${user.email}: ${roleInsertErr.message}`);
-
-                // 4. Generate UHID and create client record if Client
-                if (user.role.toLowerCase() === "client") {
-                    const { data: uhid, error: uhidError } = await supabaseAdmin.rpc("generate_uhid", { p_organization_id: organizationId });
-
-                    if (uhidError) throw new Error(`UHID generation failed for ${user.email}: ${uhidError.message}`);
-
-                    const { error: clientInsertErr } = await supabaseAdmin
-                        .from("clients")
-                        .insert({
-                            uhid: uhid,
-                            organization_id: organizationId,
-                            first_name: combinedFirstName,
-                            last_name: user.lastName,
-                            email: user.email,
-                            mobile_no: user.phone || "",
-                            status: "active"
-                        });
-
-                    if (clientInsertErr) throw new Error(`Client record failed for ${user.email}: ${clientInsertErr.message}`);
-
-                    // Link UHID to profile
-                    await supabaseAdmin.from("profiles").update({ uhid: uhid }).eq("id", newUserId);
-                }
-            }
-
-            setResultsSummary({ successful: parsedUsers.length, failed: 0 });
-            setParsedUsers(parsedUsers.map(u => ({ ...u, status: "success" })));
-            toast({ title: "Import Successful", description: `All ${parsedUsers.length} users were created.` });
 
         } catch (error: unknown) {
             const err = error as Error;
-            console.error("[BulkImport] Error during processing, rolling back:", err);
-            
-            // Rollback: Delete all users created during this session
-            if (createdUserIds.length > 0) {
-                const { createClient: createSupabaseClient } = await import("@supabase/supabase-js");
-                const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-                const serviceRoleKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
-
-                if (supabaseUrl && serviceRoleKey) {
-                    const supabaseAdmin = createSupabaseClient(
-                        supabaseUrl,
-                        serviceRoleKey,
-                        { auth: { autoRefreshToken: false, persistSession: false } }
-                    );
-
-                    for (const id of createdUserIds) {
-                        try {
-                            const { error: delError } = await supabaseAdmin.auth.admin.deleteUser(id);
-                            if (delError && delError.message !== "User not found") {
-                                console.warn(`Rollback: Failed to delete user ${id}:`, delError.message);
-                            }
-                        } catch (e) {
-                            console.error(`Rollback: Exception deleting user ${id}:`, e);
-                        }
-                    }
-                }
-            }
-
-            toast({ title: "Import Failed & Reverted", description: `${err.message}. All partially created users have been rolled back.`, variant: "destructive" });
+            console.error("[BulkImport] Error:", err);
+            toast({ title: "Import Failed", description: err.message, variant: "destructive" });
         } finally {
             setProcessing(false);
         }

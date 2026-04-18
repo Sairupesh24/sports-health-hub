@@ -23,9 +23,11 @@ async function deepClean() {
   const orgId = orgIds[0];
 
   // Find ALL profiles linked to this org
-  const { data: profiles } = await supabase.from('profiles').select('id, email, role').eq('organization_id', orgId);
+  const { data: profiles } = await supabase.from('profiles').select('id, email, ams_role, profession').eq('organization_id', orgId);
+
   console.log(`\nProfiles in org (${(profiles||[]).length}):`);
-  (profiles || []).forEach(p => console.log(`  - ${p.email || 'no email'} [${p.role}] id=${p.id}`));
+  (profiles || []).forEach(p => console.log(`  - ${p.email || 'no email'} [${p.ams_role}/${p.profession}] id=${p.id}`));
+
 
   // Find ALL clients linked to this org
   const { data: clients } = await supabase.from('clients').select('id, first_name, last_name').eq('organization_id', orgId);

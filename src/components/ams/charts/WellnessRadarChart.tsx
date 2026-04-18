@@ -39,28 +39,26 @@ export default function WellnessRadarChart({ logs }: WellnessRadarChartProps) {
   ];
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Wellness Analysis</CardTitle>
-        <CardDescription>Today vs 7-day Average</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="h-[300px] w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <RadarChart cx="50%" cy="50%" outerRadius="60%" data={data} style={{ fontSize: '12px' }}>
-              <PolarGrid stroke="hsl(var(--border))" />
-              <PolarAngleAxis dataKey="metric" tick={{ fill: 'hsl(var(--foreground))', fontSize: 11, fontWeight: 700 }} />
-              <PolarRadiusAxis angle={30} domain={[0, 10]} tick={false} axisLine={false} />
-              <Tooltip 
-                contentStyle={{ backgroundColor: 'hsl(var(--background))', borderColor: 'hsl(var(--border))', borderRadius: '8px' }}
-              />
-              <Legend wrapperStyle={{ paddingTop: '20px' }} />
-              <Radar name="Today" dataKey="today" stroke="hsl(var(--primary))" fill="hsl(var(--primary))" fillOpacity={0.5} />
-              <Radar name="7d Average" dataKey="average" stroke="hsl(var(--muted-foreground))" fill="hsl(var(--muted-foreground))" fillOpacity={0.3} />
-            </RadarChart>
-          </ResponsiveContainer>
-        </div>
-      </CardContent>
-    </Card>
+    <div className="h-full w-full flex flex-col items-center justify-center -mt-4 animate-in fade-in duration-1000">
+      <div className="text-center mb-2">
+         <h4 className="text-[10px] font-bold text-white/20 uppercase tracking-[0.2em] italic">Trend Analysis</h4>
+      </div>
+      <div className="h-[300px] w-full max-w-[400px]">
+        <ResponsiveContainer width="100%" height="100%">
+          <RadarChart cx="50%" cy="50%" outerRadius="65%" data={data} style={{ fontSize: '10px' }}>
+            <PolarGrid stroke="rgba(255,255,255,0.05)" />
+            <PolarAngleAxis dataKey="metric" tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 9, fontWeight: 700, letterSpacing: '0.1em' }} />
+            <PolarRadiusAxis angle={30} domain={[0, 10]} tick={false} axisLine={false} />
+            <Tooltip 
+              contentStyle={{ backgroundColor: 'rgb(26, 31, 38)', borderColor: 'rgba(255,255,255,0.1)', borderRadius: '12px', fontSize: '10px', color: 'white' }}
+              itemStyle={{ color: 'white' }}
+            />
+            <Legend wrapperStyle={{ paddingTop: '10px', fontSize: '9px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }} />
+            <Radar name="Today" dataKey="today" stroke="hsl(var(--primary))" fill="hsl(var(--primary))" fillOpacity={0.6} />
+            <Radar name="7d Avg" dataKey="average" stroke="rgba(255,255,255,0.2)" fill="rgba(255,255,255,0.1)" fillOpacity={0.3} />
+          </RadarChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
   );
 }

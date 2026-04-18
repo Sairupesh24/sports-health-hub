@@ -150,8 +150,6 @@ serve(async (req) => {
     return new Response(JSON.stringify({ 
       success: false,
       error: err.message, 
-      stack: err.stack,
-      debug: checkLog || "Internal Error before log start"
     }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },

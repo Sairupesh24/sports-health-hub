@@ -41,14 +41,40 @@ export default function ClientPerformancePage() {
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [isManualLogOpen, setIsManualLogOpen] = useState(false);
+  const [isWellnessDialogOpen, setIsWellnessDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
 
   const firstName = profile?.first_name || "Athlete";
   const hasAmsAccess = profile?.ams_role === "athlete" || profile?.ams_role === "client";
 
+  const fetchPrs = async () => {
+    if (!session?.user?.id) return;
+    try {
+      const { data } = await (supabase as any)
+        .from('max_pr_records')
+        .select(`
+          exercise_id,
+          value,
+          exercise:exercises(name)
+        `)
+        .eq('athlete_id', session.user.id)
+        .eq('is_current', true)
+        .order('updated_at', { ascending: false });
+      
+      setPrs(data?.reduce((acc: any, pr: any) => ({
+        ...acc,
+        [pr.exercise_id]: { value: pr.value, name: pr.exercise?.name }
+      }), {}) || {});
+    } catch (error) {
+      console.error("Fetch PRs Error:", error);
+    }
+  };
+
+  const [prs, setPrs] = useState<Record<string, any>>({});
+
   useEffect(() => {
     if (session?.user?.id && hasAmsAccess) {
-      Promise.all([fetchAssignments(), fetchWellnessLogs()]).finally(() => setLoading(false));
+      Promise.all([fetchAssignments(), fetchWellnessLogs(), fetchPrs()]).finally(() => setLoading(false));
     } else if (!authLoading) {
       setLoading(false);
     }
@@ -57,9 +83,6 @@ export default function ClientPerformancePage() {
   const fetchAssignments = async () => {
     if (!session?.user?.id) return;
     try {
-      console.log("PerformanceHub: Initiating Serialized Sync...");
-
-      // 1. Get current user's identity
       const { data: currentProfile } = await supabase
         .from('profiles')
         .select('email, uhid')
@@ -67,9 +90,7 @@ export default function ClientPerformancePage() {
         .single();
 
       if (!currentProfile?.email) throw new Error("User email not found");
-      console.log("PerformanceHub: Syncing via context:", currentProfile.email);
 
-      // 2. Fetch ALL athlete IDs for this identity (Email or UHID)
       const profileFilters = [`email.eq.${currentProfile.email}`];
       if (currentProfile.uhid) profileFilters.push(`uhid.eq.${currentProfile.uhid}`);
 
@@ -80,7 +101,6 @@ export default function ClientPerformancePage() {
 
       const profileIds = linkedProfiles?.map(p => p.id) || [session.user.id];
 
-      // 3. Serialized Fetch Phase 1: Individual Assignments
       const { data: individualAssignments, error: err1 } = await supabase
         .from('program_assignments' as any)
         .select(`
@@ -91,7 +111,7 @@ export default function ClientPerformancePage() {
               *,
               items:workout_items(
                 *,
-                lift_items(*, exercise:exercises(name))
+                lift:lift_items(*, exercise:exercises(name))
               )
             )
           )
@@ -101,7 +121,6 @@ export default function ClientPerformancePage() {
 
       if (err1) throw err1;
 
-      // 4. Serialized Fetch Phase 2: Batch Assignments
       const { data: batchMemberships } = await supabase
         .from('batch_members' as any)
         .select('batch_id')
@@ -121,7 +140,7 @@ export default function ClientPerformancePage() {
                 *,
                 items:workout_items(
                   *,
-                  lift_items(*, exercise:exercises(name))
+                  lift:lift_items(*, exercise:exercises(name))
                 )
               )
             )
@@ -133,35 +152,20 @@ export default function ClientPerformancePage() {
         batchAssignments = bData || [];
       }
 
-      // Final JS Consolidation
       const consolidated = [...(individualAssignments || []), ...batchAssignments];
-
-      // Deduplicate by assignment ID
       const uniqueConsolidated = consolidated.filter((item, index, self) =>
         index === self.findIndex((t) => t.id === item.id)
       );
 
-      console.log("PerformanceHub: Serialized sync complete. Found unique protocols:", uniqueConsolidated.length);
       setAssignedWorkouts(uniqueConsolidated);
-
-      // Update Debug Trace
-      (window as any).debugPerformanceHub = {
-        email: currentProfile.email,
-        profileIds,
-        batchIds,
-        protocols: uniqueConsolidated
-      };
-
     } catch (error) {
-      console.error("PerformanceHub: Serialized Sync Error:", error);
+      console.error("PerformanceHub Sync Error:", error);
     }
   };
 
-  // Logic to determine which days have workouts for the current month/view
   const getWorkoutDaysMap = () => {
     const map: Record<string, boolean> = {};
     assignedWorkouts.forEach((w: any) => {
-      // Robustly parse the start_date to local midnight
       const startLocal = startOfDay(parseISO(w.start_date));
       w.program?.days?.forEach((d: any) => {
         const workoutDate = addDays(startLocal, d.display_order);
@@ -229,37 +233,55 @@ export default function ClientPerformancePage() {
       <div className="max-w-[1600px] mx-auto space-y-8 animate-in fade-in duration-700 pb-20">
 
         {/* REFINED HUD HEADER */}
-        <header className="bg-slate-900 text-white p-8 sm:p-10 rounded-[45px] shadow-2xl relative overflow-hidden group">
-          <div className="absolute top-0 right-0 p-12 opacity-5 scale-150 rotate-12">
-             <TrendingUp className="w-64 h-64" />
-          </div>
-
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-8 relative z-10">
-            <div className="space-y-3">
-              <div className="flex items-center gap-4">
-                <span className="bg-primary/20 text-primary text-[10px] font-black uppercase tracking-[0.4em] px-4 py-1.5 rounded-full border border-primary/20">Elite Performance</span>
-                <span className="text-white/40 font-black text-[10px] uppercase tracking-widest">{format(new Date(), 'EEEE, MMMM do')}</span>
+        <header className="bg-[#1A1F26] text-white p-6 sm:p-8 rounded-2xl border border-white/5 relative overflow-hidden group">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 relative z-10">
+            <div className="space-y-2">
+              <div className="flex items-center gap-3">
+                <span className="text-[9px] font-bold text-primary uppercase tracking-[0.2em]">Elite Performance</span>
+                <span className="text-white/20 font-bold text-[9px] uppercase tracking-wider">{format(new Date(), 'EEEE, MMMM do')}</span>
               </div>
-              <h1 className="text-5xl sm:text-6xl font-black tracking-tighter italic uppercase leading-none">
-                PULSE <span className="text-primary">CONSOLE</span> <span className="text-white/10 font-thin">/</span> <span className="text-white/60">{firstName}</span>
+              <h1 className="text-3xl font-bold tracking-tight text-white/90">
+                PULSE <span className="text-primary italic">CONSOLE</span> <span className="text-white/20 font-light mx-2">/</span> <span className="text-white/60">{firstName}</span>
               </h1>
             </div>
 
-            <div className="flex items-center gap-4">
-               <Dialog open={isManualLogOpen} onOpenChange={setIsManualLogOpen}>
+            <div className="flex items-center gap-3">
+               <Dialog open={isWellnessDialogOpen} onOpenChange={setIsWellnessDialogOpen}>
                   <DialogTrigger asChild>
-                    <Button className="h-14 bg-white text-slate-900 hover:bg-white/90 rounded-2xl font-black uppercase text-[11px] tracking-[0.2em] px-8 gap-3 shadow-xl group/btn">
-                      <Plus className="w-5 h-5 transition-transform group-hover/btn:rotate-90" /> Log Session
+                    <Button variant="outline" className="h-11 border-white/10 bg-white/5 hover:bg-white/10 text-white rounded-xl font-bold uppercase text-[10px] tracking-wider px-6 gap-2">
+                      <Heart className="w-4 h-4 text-red-500 fill-red-500" /> Check-in
                     </Button>
                   </DialogTrigger>
-                  <DialogContent className="max-w-2xl bg-white rounded-[40px] p-0 overflow-hidden border-none shadow-2xl">
-                     <DialogHeader className="p-8 bg-slate-900 text-white">
-                        <DialogTitle className="text-2xl font-black flex items-center gap-3 italic uppercase italic">
-                          <Dumbbell className="w-6 h-6 text-primary" />
+                  <DialogContent className="max-w-xl bg-slate-950 rounded-2xl p-0 overflow-hidden border border-white/10 shadow-2xl">
+                     <DialogHeader className="p-6 bg-[#1A1F26] text-white border-b border-white/5">
+                        <DialogTitle className="text-lg font-bold flex items-center gap-2 uppercase italic">
+                          <Activity className="w-5 h-5 text-primary" />
+                          Elite Health Check-in
+                        </DialogTitle>
+                     </DialogHeader>
+                     <div className="p-6 max-h-[80vh] overflow-y-auto no-scrollbar scroll-smooth">
+                        <WellnessCheckinForm onComplete={() => {
+                          setIsWellnessDialogOpen(false);
+                          fetchWellnessLogs();
+                        }} />
+                     </div>
+                  </DialogContent>
+               </Dialog>
+
+               <Dialog open={isManualLogOpen} onOpenChange={setIsManualLogOpen}>
+                  <DialogTrigger asChild>
+                    <Button className="h-11 bg-primary text-white hover:bg-primary/90 shadow-lg shadow-primary/20 rounded-xl font-bold uppercase text-[10px] tracking-wider px-6 gap-2 border-none">
+                      <Plus className="w-4 h-4" /> Log Session
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-xl bg-white rounded-2xl p-0 overflow-hidden border-none shadow-2xl text-slate-900">
+                     <DialogHeader className="p-6 bg-slate-900 text-white">
+                        <DialogTitle className="text-lg font-bold flex items-center gap-2 uppercase italic">
+                          <Dumbbell className="w-5 h-5 text-primary" />
                           Log Manual Activity
                         </DialogTitle>
                      </DialogHeader>
-                     <div className="p-8 max-h-[70vh] overflow-y-auto no-scrollbar">
+                     <div className="p-6 max-h-[70vh] overflow-y-auto no-scrollbar">
                         <LogSessionForm onComplete={() => setIsManualLogOpen(false)} />
                      </div>
                   </DialogContent>
@@ -269,28 +291,28 @@ export default function ClientPerformancePage() {
         </header>
 
         {/* MODULAR SUB-NAVIGATION */}
-        <div className="bg-slate-100 p-2 rounded-[32px] flex flex-wrap gap-2 w-fit border border-slate-200 shadow-sm mx-auto">
+        <div className="bg-slate-900 p-1.5 rounded-2xl flex flex-wrap gap-1.5 w-fit border border-white/5 mx-auto shadow-2xl">
            {[
              { id: 'overview', label: 'Overview', icon: Layout },
-             { id: 'body', label: 'Body Status', icon: Map },
-             { id: 'schedule', label: 'Training Schedule', icon: CalendarIcon },
-             { id: 'analytics', label: 'Deep Analytics', icon: Activity }
+             { id: 'body', label: 'Body', icon: Map },
+             { id: 'schedule', label: 'Schedule', icon: CalendarIcon },
+             { id: 'analytics', label: 'Analytics', icon: Activity }
            ].map((tab) => (
              <button
                key={tab.id}
                onClick={() => setActiveTab(tab.id)}
                className={cn(
-                 "flex items-center gap-3 px-8 py-4 rounded-3xl font-black text-[11px] uppercase tracking-widest transition-all duration-300",
+                 "flex items-center gap-2.5 px-6 py-2.5 rounded-xl font-bold text-[10px] uppercase tracking-wider transition-all",
                  activeTab === tab.id
-                  ? "bg-slate-900 text-white shadow-2xl scale-105"
-                  : "text-slate-500 hover:bg-slate-200"
+                  ? "bg-primary text-white shadow-lg shadow-primary/20"
+                  : "text-white/50 hover:text-white hover:bg-white/5"
                )}
              >
-               <tab.icon className={cn("w-4 h-4", activeTab === tab.id ? "text-primary" : "text-slate-400")} />
+               <tab.icon className={cn("w-4 h-4", activeTab === tab.id ? "text-white" : "text-primary/60")} />
                {tab.label}
              </button>
            ))}
-        </div>
+         </div>
 
         {/* CONTENT AREA */}
         <main className="animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -298,6 +320,8 @@ export default function ClientPerformancePage() {
              <PulseOverview
                 readinessScore={calculateReadiness()}
                 wellnessLogs={wellnessLogs}
+                prs={prs}
+                onStartCheckin={() => setIsWellnessDialogOpen(true)}
                  todayWorkout={assignedWorkouts.flatMap(w => {
                    const start = parseISO(w.start_date);
                    const diffDays = differenceInCalendarDays(startOfDay(new Date()), startOfDay(start));
@@ -307,7 +331,6 @@ export default function ClientPerformancePage() {
                    }
                    return [];
                  })[0]}
-                onStartCheckin={() => setActiveTab('analytics')} // Analytics tab has the form or I should put it in Overview
              />
            )}
            {activeTab === 'body' && <BodyStatusView clientId={session?.user?.id} />}
@@ -320,20 +343,20 @@ export default function ClientPerformancePage() {
              />
            )}
            {activeTab === 'analytics' && (
-             <div className="space-y-8">
-               <div className="bg-white rounded-[45px] p-10 shadow-2xl border border-slate-50">
-                  <div className="flex items-center justify-between mb-12">
+             <div className="space-y-6">
+               <div className="bg-[#1A1F26] rounded-2xl p-8 border border-white/5 shadow-xl">
+                  <div className="flex items-center justify-between mb-8">
                      <div>
-                        <h3 className="text-4xl font-black italic uppercase tracking-tighter text-slate-900">Health Check-in</h3>
-                        <p className="text-slate-400 font-bold uppercase text-[10px] tracking-widest mt-1">Status Calibration</p>
+                        <h3 className="text-2xl font-bold italic uppercase tracking-tight text-white">Health Check-in</h3>
+                        <p className="text-white/20 font-bold uppercase text-[9px] tracking-widest mt-1">Status Calibration</p>
                      </div>
-                     <div className="w-16 h-16 bg-slate-900 rounded-[28px] flex items-center justify-center">
-                        <Activity className="w-8 h-8 text-primary" />
+                     <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center">
+                        <Activity className="w-6 h-6 text-primary" />
                      </div>
                   </div>
                   <WellnessCheckinForm onComplete={fetchAssignments} />
                </div>
-               <div className="bg-white rounded-[45px] p-10 shadow-2xl border border-slate-100">
+               <div className="bg-[#1A1F26] rounded-2xl p-8 border border-white/5 shadow-xl">
                   {session?.user?.id && <PerformanceAnalytics athleteId={session.user.id} />}
                </div>
              </div>
@@ -347,56 +370,50 @@ export default function ClientPerformancePage() {
 
 /* SUB-COMPONENTS */
 
-function PulseOverview({ readinessScore, wellnessLogs, todayWorkout, onStartCheckin }: any) {
+ function PulseOverview({ readinessScore, wellnessLogs, todayWorkout, onStartCheckin, prs }: any) {
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
        {/* Readiness Gauge */}
-       <div className="lg:col-span-8 glass-card bg-white rounded-[45px] p-10 border-none shadow-xl flex flex-col justify-between group overflow-hidden relative min-h-[450px]">
-          <div className="absolute top-0 right-0 p-12 opacity-[0.02] group-hover:scale-110 transition-transform duration-700">
-             <Zap className="w-64 h-64" />
-          </div>
-
-          <div className="flex items-center justify-between mb-4 relative z-10">
-             <h3 className="text-[12px] font-black uppercase tracking-[0.3em] text-slate-400 italic">Daily Readiness</h3>
-             <div className="flex items-center gap-2 px-4 py-2 bg-primary/5 rounded-full border border-primary/10">
-                <Activity className="w-4 h-4 text-primary animate-pulse" />
-                <span className="text-[10px] font-black text-primary uppercase tracking-widest">Live Sync</span>
+       <div className="lg:col-span-8 bg-[#1A1F26] rounded-2xl p-8 border border-white/5 shadow-xl flex flex-col justify-between group overflow-hidden relative min-h-[400px]">
+          <div className="flex items-center justify-between mb-2 relative z-10">
+             <h3 className="text-[10px] font-bold uppercase tracking-widest text-white/20 italic">Daily Readiness</h3>
+             <div className="flex items-center gap-2 px-3 py-1.5 bg-primary/5 rounded-lg border border-primary/10">
+                <Activity className="w-3.5 h-3.5 text-primary" />
+                <span className="text-[9px] font-bold text-primary uppercase tracking-widest">Live</span>
              </div>
           </div>
 
-          <div className="flex flex-col md:flex-row items-center gap-12 flex-1 relative z-10">
+          <div className="flex flex-col md:flex-row items-center gap-8 flex-1 relative z-10">
              <div className="relative flex items-center justify-center shrink-0">
-                <div className="absolute inset-0 bg-primary/20 blur-[80px] rounded-full scale-50 group-hover:scale-100 transition-transform duration-1000 opacity-40" />
-                <div className="w-56 h-56 rounded-full border-[14px] border-slate-50 flex flex-col items-center justify-center relative shadow-inner">
-                   <svg className="absolute inset-[-14px] rotate-[-90deg] w-[252px] h-[252px] drop-shadow-[0_0_15px_rgba(20,184,166,0.4)]">
+                <div className="w-44 h-44 rounded-full border-8 border-white/5 flex flex-col items-center justify-center relative shadow-inner">
+                   <svg className="absolute inset-[-8px] rotate-[-90deg] w-[192px] h-[192px]">
                       <circle
-                        cx="126"
-                        cy="126"
-                        r="112"
+                        cx="96"
+                        cy="96"
+                        r="84"
                         fill="transparent"
                         stroke="currentColor"
-                        strokeWidth="14"
-                        strokeDasharray={2 * Math.PI * 112}
-                        strokeDashoffset={2 * Math.PI * 112 * (1 - readinessScore / 100)}
+                        strokeWidth="8"
+                        strokeDasharray={2 * Math.PI * 84}
+                        strokeDashoffset={2 * Math.PI * 84 * (1 - readinessScore / 100)}
                         className="text-primary transition-all duration-1000 ease-out"
                         strokeLinecap="round"
                       />
                    </svg>
-                   <span className="text-7xl font-black text-slate-900 italic tracking-tighter leading-none">{readinessScore}</span>
-                   <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest mt-1">Percent</span>
+                   <span className="text-5xl font-bold text-white italic tracking-tighter leading-none">{readinessScore}</span>
+                   <span className="text-[10px] font-bold text-white/20 uppercase tracking-widest mt-1">Percent</span>
                 </div>
              </div>
 
-             <div className="flex-1 w-full flex flex-col justify-center gap-8">
+             <div className="flex-1 w-full flex flex-col justify-center gap-4">
                 {wellnessLogs.length > 0 ? (
-                  <div className="h-[280px] w-full bg-slate-50/50 rounded-[40px] p-6 border border-slate-100/50">
+                  <div className="h-[320px] w-full flex items-center justify-center">
                      <WellnessRadarChart logs={wellnessLogs} />
                   </div>
                 ) : (
-                  <div className="bg-slate-50 rounded-[40px] p-10 text-center space-y-4 border border-dashed border-slate-200">
-                     <Info className="w-10 h-10 text-slate-200 mx-auto" />
-                     <p className="text-sm font-bold text-slate-400 leading-relaxed">No data recorded for today yet. Complete your performance pulse.</p>
-                     <Button onClick={onStartCheckin} className="bg-slate-900 text-white rounded-2xl h-12 px-8 font-black uppercase text-[10px] tracking-[0.2em]">Start Check-in</Button>
+                  <div className="bg-white/5 rounded-2xl p-8 text-center space-y-4 border border-dashed border-white/10">
+                     <p className="text-xs font-medium text-white/20 leading-relaxed">No data for today yet.</p>
+                     <Button onClick={onStartCheckin} className="bg-primary text-white rounded-xl h-10 px-6 font-bold uppercase text-[9px] tracking-wider">Start Check-in</Button>
                   </div>
                 )}
              </div>
@@ -405,70 +422,81 @@ function PulseOverview({ readinessScore, wellnessLogs, todayWorkout, onStartChec
 
        {/* Protocol Sidebar */}
        <div className="lg:col-span-4 flex flex-col gap-6">
-          <div className="bg-slate-900 rounded-[45px] p-10 text-white flex flex-col justify-between group overflow-hidden relative shadow-2xl flex-1 border border-white/5">
-             <div className="absolute top-0 right-0 p-10 opacity-10 group-hover:scale-110 transition-transform duration-1000">
-                <Dumbbell className="w-40 h-40" />
-             </div>
-
+          <div className="bg-[#1A1F26] rounded-2xl p-8 text-white flex flex-col justify-between group relative shadow-xl flex-1 border border-white/5">
              <div className="relative z-10">
-               <span className="text-primary font-black uppercase tracking-[0.3em] text-[10px] mb-6 block">Current Protocol</span>
-               <h2 className="text-4xl font-black italic tracking-tighter leading-tight mb-6 uppercase">
+               <span className="text-primary font-bold uppercase tracking-wider text-[9px] mb-4 block">Current Protocol</span>
+               <h2 className="text-2xl font-bold italic tracking-tight leading-tight mb-4 uppercase text-white/90">
                   {todayWorkout ? todayWorkout.title : "Recovery State"}
                </h2>
-               <p className="text-white/40 text-lg font-medium leading-relaxed max-w-[280px]">
+               <p className="text-white/40 text-sm font-medium leading-relaxed">
                   {todayWorkout
-                    ? "Your coach has assigned a high-intensity protocol today."
+                    ? "Assigned high-intensity protocol for today."
                     : "Focus on active tissue health and mobility metrics."}
                </p>
              </div>
-
-             <div className="relative z-10 pt-10">
+ 
+             <div className="relative z-10 pt-6">
                {todayWorkout ? (
                  <Button
                     onClick={() => window.location.href = `/ams/athlete/workout/${todayWorkout.id}`}
-                    className="w-full h-20 bg-primary hover:bg-primary/90 text-white rounded-[30px] font-black text-xl gap-3 shadow-[0_15px_50px_-5px_rgba(20,184,166,0.4)] group-hover:translate-y-[-6px] transition-all italic uppercase tracking-tighter"
+                    className="w-full h-14 bg-primary hover:bg-primary/90 text-white rounded-xl font-bold text-lg gap-2 transition-all italic uppercase tracking-tight shadow-lg shadow-primary/20"
                  >
-                    Launch <ArrowRight className="w-8 h-8" />
+                    Launch <ArrowRight className="w-5 h-5" />
                  </Button>
                ) : (
                  <Button
                     onClick={onStartCheckin}
-                    className="w-full h-16 bg-white/10 hover:bg-white/20 text-white rounded-[28px] font-black text-[12px] uppercase tracking-[0.2em] gap-4 transition-all"
+                    className="w-full h-12 bg-white/5 hover:bg-white/10 text-white rounded-xl font-bold text-[10px] uppercase tracking-wider gap-3 transition-all"
                  >
-                    Perform Check-in <Heart className="w-5 h-5 text-red-500 fill-red-500" />
+                    Check-in <Heart className="w-4 h-4 text-red-500 fill-red-500" />
                  </Button>
                )}
              </div>
           </div>
 
-      </div>
+          <div className="bg-[#1A1F26] rounded-2xl p-8 text-white border border-white/5 shadow-xl flex-1">
+             <div className="flex items-center justify-between mb-6">
+                <span className="text-primary font-bold uppercase tracking-wider text-[9px]">Personal Records</span>
+                <TrendingUp className="w-4 h-4 text-white/20" />
+             </div>
+             <div className="space-y-4 max-h-[160px] overflow-y-auto no-scrollbar">
+                {Object.entries(prs).length > 0 ? (
+                  Object.entries(prs).map(([id, pr]: any) => (
+                    <div key={id} className="flex items-center justify-between border-b border-white/5 pb-3">
+                       <span className="text-xs font-bold text-white/60 tracking-tight uppercase">{pr.name || "Lift"}</span>
+                       <span className="text-sm font-black italic text-primary">{pr.value} <small className="text-[10px] uppercase opacity-40 not-italic ml-1">KG</small></span>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-[10px] text-white/20 font-medium italic">No PRs recorded yet.</p>
+                )}
+             </div>
+          </div>
+       </div>
     </div>
   );
 }
 
 function BodyStatusView({ clientId }: any) {
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-in zoom-in-95 duration-500">
-       <div className="lg:col-span-12 glass-card bg-white rounded-[45px] p-10 border-none shadow-2xl relative overflow-hidden">
-          <div className="absolute top-0 right-0 p-12 opacity-[0.03]">
-             <Map className="w-64 h-64" />
-          </div>
-          <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-12 gap-6 relative z-10">
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 animate-in zoom-in-95 duration-500">
+       <div className="lg:col-span-12 bg-[#1A1F26] rounded-2xl p-8 border border-white/5 shadow-xl relative overflow-hidden">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 gap-6 relative z-10">
              <div>
-                <h3 className="text-4xl font-black italic uppercase tracking-tighter text-slate-900 underline decoration-primary/30 decoration-8 underline-offset-8">Physical Status</h3>
-                <p className="text-slate-400 font-bold uppercase text-[11px] tracking-[0.3em] mt-2">Latest Hotspots & Soreness Calibration</p>
+                <h3 className="text-2xl font-bold italic uppercase tracking-tight text-white mb-1">Physical Status</h3>
+                <p className="text-white/20 font-bold uppercase text-[9px] tracking-widest">Latest Hotspots & Soreness Calibration</p>
              </div>
              <div className="flex items-center gap-3">
-                <Badge variant="outline" className="border-red-200 text-red-500 bg-red-50 px-4 py-2 font-black uppercase text-[10px]">High Sensitivity Detected</Badge>
-                <div className="w-14 h-14 bg-slate-900 rounded-2xl flex items-center justify-center">
-                   <AlertTriangle className="w-7 h-7 text-amber-500" />
+                <Badge variant="outline" className="border-red-500/20 text-red-400 bg-red-500/5 px-3 py-1 font-bold uppercase text-[9px]">Sensitivity Detected</Badge>
+                <div className="w-10 h-10 bg-white/5 rounded-xl flex items-center justify-center">
+                   <AlertTriangle className="w-5 h-5 text-amber-500" />
                 </div>
              </div>
           </div>
 
-          <div className="flex flex-col xl:flex-row gap-12 items-start relative z-10">
-             <div className="flex-1 w-full bg-slate-50 rounded-[40px] p-10 flex flex-col items-center justify-center border border-slate-100 min-h-[500px]">
-                <div className="scale-125 origin-center">
+          <div className="flex flex-col xl:flex-row gap-8 items-start relative z-10">
+             <div className="flex-1 w-full bg-white/[0.02] rounded-2xl p-8 flex flex-col items-center justify-center border border-white/5 min-h-[400px]">
+                <div className="scale-110 origin-center">
                    <PerformanceSnapshot clientId={clientId} />
                 </div>
              </div>
@@ -482,7 +510,6 @@ function TrainingScheduleView({ assignedWorkouts, selectedDate, setSelectedDate,
   const getDayWorkouts = (day: Date) => {
     const normalizedDay = startOfDay(day);
     return assignedWorkouts.flatMap((w: any) => {
-      // Use local-time normalization for both to avoid timezone shift
       const startLocal = startOfDay(parseISO(w.start_date));
       const targetLocal = startOfDay(day);
       const diffDays = differenceInCalendarDays(targetLocal, startLocal);
@@ -498,66 +525,75 @@ function TrainingScheduleView({ assignedWorkouts, selectedDate, setSelectedDate,
   const selectedDayWorkouts = getDayWorkouts(selectedDate);
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 animate-in slide-in-from-right-8 duration-500 pb-20">
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-in slide-in-from-right-8 duration-500 pb-20">
        
        {/* TIMELINE (6 Cols) */}
-       <div className="lg:col-span-6 space-y-6">
-          <div className="bg-white rounded-[45px] border border-slate-100 shadow-2xl p-10 space-y-10 relative group min-h-[600px] overflow-hidden">
-             <div className="absolute left-10 top-24 bottom-24 w-px bg-slate-100 z-0" />
-             
-             <div className="flex items-center justify-between relative z-10 px-4">
+       <div className="lg:col-span-7 space-y-4">
+          <div className="bg-[#1A1F26] rounded-2xl border border-white/5 shadow-xl p-8 space-y-8 relative group min-h-[500px] overflow-hidden">
+             <div className="flex items-center justify-between relative z-10">
                 <div className="flex items-center gap-4">
-                   <div className="w-14 h-14 rounded-2xl bg-slate-900 flex items-center justify-center text-primary shadow-xl">
-                      <CalendarIcon className="w-7 h-7" />
+                   <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary border border-primary/20">
+                      <CalendarIcon className="w-5 h-5" />
                    </div>
                    <div>
-                      <h3 className="text-4xl font-black italic uppercase tracking-tighter text-slate-900">Training Timeline</h3>
-                      <p className="text-slate-400 font-bold uppercase text-[10px] tracking-[0.3em] mt-1">Prescribed Protocols</p>
+                      <h3 className="text-xl font-bold italic uppercase tracking-tight text-white">Timeline</h3>
+                      <p className="text-white/20 font-bold uppercase text-[9px] tracking-widest mt-1">Protocols</p>
                    </div>
                 </div>
-                <div className="flex items-center gap-4 bg-slate-50 p-2 rounded-2xl border border-slate-100">
-                    <Button variant="ghost" size="icon" onClick={() => setSelectedDate(subDays(selectedDate, 1))} className="rounded-xl"><ChevronLeft className="w-5 h-5" /></Button>
-                    <span className="text-sm font-black uppercase tracking-widest px-4 italic">{format(selectedDate, 'MMMM do')}</span>
-                    <Button variant="ghost" size="icon" onClick={() => setSelectedDate(addDays(selectedDate, 1))} className="rounded-xl"><ChevronRight className="w-5 h-5" /></Button>
+                <div className="flex items-center gap-2 bg-slate-900/50 p-1 rounded-xl border border-white/10 shadow-inner">
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      onClick={() => setSelectedDate(subDays(selectedDate, 1))} 
+                      className="h-8 w-8 rounded-lg text-white hover:text-primary hover:bg-white/5 transition-colors"
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                    </Button>
+                    <span className="text-[10px] font-black uppercase tracking-widest px-3 italic text-white/90">
+                      {format(selectedDate, 'MMM do')}
+                    </span>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      onClick={() => setSelectedDate(addDays(selectedDate, 1))} 
+                      className="h-8 w-8 rounded-lg text-white hover:text-primary hover:bg-white/5 transition-colors"
+                    >
+                      <ChevronRight className="w-4 h-4" />
+                    </Button>
                 </div>
              </div>
 
              {selectedDayWorkouts.length > 0 ? (
                 selectedDayWorkouts.map((workout, wIdx) => (
-                  <div key={wIdx} className="relative z-10 pl-16 space-y-10">
-                     <div className="absolute left-[-5px] top-4 w-3 h-3 rounded-full bg-primary shadow-[0_0_15px_rgba(20,184,166,1)] ring-4 ring-white" />
-                     
-                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-slate-50/50 p-8 rounded-[40px] border border-slate-100">
-                        <div>
-                           <div className="flex items-center gap-3 mb-2">
-                              <Badge className="bg-primary text-white border-none font-black text-[9px] uppercase tracking-widest px-3">Performance Phase</Badge>
-                              <span className="text-slate-300 font-black text-[10px] uppercase tracking-widest">Protocol {wIdx + 1}</span>
+                  <div key={wIdx} className="relative z-10 space-y-6">
+                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-white/[0.02] p-6 rounded-2xl border border-white/5">
+                        <div className="space-y-1">
+                           <div className="flex items-center gap-2 mb-1">
+                              <Badge className="bg-primary/20 text-primary border border-primary/20 font-bold text-[8px] uppercase tracking-widest px-2">Performance Phase</Badge>
                            </div>
-                           <h4 className="text-3xl font-black italic uppercase tracking-tighter text-slate-900 leading-none">{workout.title}</h4>
-                           <p className="text-slate-400 font-bold uppercase text-[11px] tracking-[0.4em] mt-3">{workout.programName}</p>
+                           <h4 className="text-xl font-bold italic uppercase tracking-tight text-white/90">{workout.title}</h4>
+                           <p className="text-white/20 font-bold uppercase text-[9px] tracking-widest italic">{workout.programName}</p>
                         </div>
                         <Button 
                            onClick={() => window.location.href = `/ams/athlete/workout/${workout.id}`}
-                           className="bg-slate-900 text-white hover:bg-slate-800 rounded-3xl h-14 px-10 font-black text-xs uppercase tracking-[0.2em] gap-3 shadow-2xl group/link"
+                           className="bg-white text-slate-900 hover:bg-white/90 rounded-xl h-11 px-6 font-bold text-[10px] uppercase tracking-wider gap-2 shadow-xl"
                         >
-                           Open Protocol <ArrowRight className="w-5 h-5 transition-transform group-hover/link:translate-x-2" />
+                           Start Protocol <ArrowRight className="w-4 h-4" />
                         </Button>
                      </div>
 
-                     <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         {workout.items?.map((item: any, i: number) => {
                            const exerciseName = item[item.item_type]?.exercise?.name || "Movement";
-                           const details = item.item_type === 'lift' ? `${item.lift_items.sets} x ${item.lift_items.reps}` : "Tactical Flow";
+                           const details = item.item_type === 'lift' ? `${item.lift_items?.sets || 0} x ${item.lift_items?.reps || 0}` : "Tactical Flow";
                            return (
-                             <div key={item.id} className="p-6 bg-white rounded-[32px] border border-slate-100 hover:border-primary/30 hover:shadow-2xl transition-all group/item">
-                                <div className="flex items-center gap-5">
-                                   <div className="w-14 h-14 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-200 group-hover/item:text-primary group-hover/item:bg-primary/5 transition-all text-sm font-black border border-slate-100">
-                                      {i + 1}
-                                   </div>
-                                   <div>
-                                      <p className="text-xs font-black text-slate-900 leading-tight mb-1.5 uppercase tracking-tighter">{exerciseName}</p>
-                                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{details}</p>
-                                   </div>
+                             <div key={item.id} className="p-4 bg-white/5 rounded-xl border border-white/5 hover:border-primary/30 transition-all flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-[10px] font-bold border border-white/5 text-white/20">
+                                   {i + 1}
+                                </div>
+                                <div>
+                                   <p className="text-[10px] font-bold text-white uppercase tracking-tighter truncate w-32">{exerciseName}</p>
+                                   <p className="text-[9px] font-bold text-white/20 uppercase tracking-widest">{details}</p>
                                 </div>
                              </div>
                            );
@@ -566,57 +602,52 @@ function TrainingScheduleView({ assignedWorkouts, selectedDate, setSelectedDate,
                   </div>
                 ))
              ) : (
-                <div className="flex flex-col items-center justify-center h-[500px] text-center space-y-8 group/empty">
-                   <div className="w-32 h-32 rounded-[45px] bg-slate-50 flex items-center justify-center text-slate-200 scale-110 rotate-6 group-hover/empty:rotate-0 transition-all duration-1000 shadow-inner">
-                      <Heart className="w-16 h-16 opacity-20" />
+                <div className="flex flex-col items-center justify-center h-[300px] text-center space-y-6">
+                   <div className="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center text-white/10 shadow-inner">
+                      <Heart className="w-8 h-8" />
                    </div>
-                   <div className="space-y-3">
-                      <h4 className="text-4xl font-black italic uppercase tracking-tighter text-slate-900">Rest Calibration</h4>
-                      <p className="text-slate-400 font-bold uppercase text-[11px] tracking-[0.2em] max-w-[300px] mx-auto leading-relaxed">No protocols prescribed for {format(selectedDate, 'MMM do')}. Priority: Biometric Recovery.</p>
+                   <div className="space-y-1">
+                      <h4 className="text-lg font-bold italic uppercase tracking-tight text-white/40">Rest & Recovery</h4>
+                      <p className="text-white/20 font-bold uppercase text-[9px] tracking-widest max-w-[200px] mx-auto">No protocols prescribed for this date.</p>
                    </div>
                 </div>
              )}
           </div>
        </div>
 
-       {/* CALENDAR SIDEBAR (6 Cols) */}
-       <div className="lg:col-span-6 space-y-6">
-          <div className="glass-card bg-white rounded-[45px] p-8 shadow-2xl space-y-8 border-none relative overflow-hidden group">
-             <div className="absolute top-0 left-0 p-10 opacity-[0.03] scale-150 rotate-[-12deg]">
-                <CalendarIcon className="w-48 h-48 text-slate-900" />
-             </div>
-             
-             <div className="flex justify-between items-center relative z-10">
-                <h4 className="text-[12px] font-black uppercase tracking-[0.4em] text-slate-400 italic">Schedule Sync</h4>
-                <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center border border-slate-100">
+       {/* CALENDAR SIDEBAR (5 Cols) */}
+       <div className="lg:col-span-5 space-y-4">
+          <div className="bg-[#1A1F26] rounded-2xl p-6 shadow-xl space-y-6 border border-white/5 flex flex-col items-center justify-center">
+             <div className="w-full flex justify-between items-center px-2">
+                <h4 className="text-[10px] font-bold uppercase tracking-widest text-white/20 italic">Sync</h4>
+                <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center border border-white/5">
                    <CalendarIcon className="w-4 h-4 text-primary" />
                 </div>
              </div>
 
-             <div className="bg-slate-50/50 rounded-[40px] p-2 border border-slate-100 relative z-10 shadow-inner flex justify-center">
+             <div className="bg-white/5 rounded-2xl p-3 border border-white/5 w-fit">
                 <MiniCalendar
                   mode="single"
                   selected={selectedDate}
                   onSelect={(date) => date && setSelectedDate(date)}
-                  className="rounded-md border-none"
+                  className="rounded-md border-none text-white"
                   modifiers={{ hasWorkout: (date) => workoutDaysMap[format(date, 'yyyy-MM-dd')] }}
                   modifiersClassNames={{
-                    hasWorkout: "relative after:absolute after:bottom-1 after:left-1/2 after:-translate-x-1/2 after:w-1 after:h-1 after:bg-primary after:rounded-full after:shadow-[0_0_5px_rgba(20,184,166,0.8)]"
+                    hasWorkout: "relative after:absolute after:bottom-1 after:left-1/2 after:-translate-x-1/2 after:w-1 after:h-1 after:bg-primary after:rounded-full"
                   }}
                   classNames={{
-                    head_cell: "text-slate-400 font-black text-[10px] uppercase w-9",
-                    cell: "text-center text-xs p-0 relative focus-within:relative focus-within:z-20 w-9 h-9",
-                    day: "h-9 w-9 p-0 font-bold aria-selected:opacity-100 hover:bg-slate-200 rounded-full transition-all text-slate-600",
-                    day_selected: "bg-slate-900 text-white hover:bg-slate-800 focus:bg-slate-900 shadow-2xl",
+                    head_cell: "text-white/20 font-bold text-[10px] uppercase w-8",
+                    cell: "text-center text-xs p-0 relative focus-within:relative focus-within:z-20 w-8 h-8",
+                    day: "h-8 w-8 p-0 font-bold aria-selected:opacity-100 hover:bg-white/10 rounded-lg transition-all text-white/60",
+                    day_selected: "bg-primary text-white hover:bg-primary shadow-lg shadow-primary/20",
                     day_today: "text-primary border border-primary/20",
-                    nav: "text-slate-900 flex items-center justify-between mb-6",
-                    caption: "text-sm font-black uppercase tracking-widest mb-6 flex justify-center italic text-slate-900"
+                    nav: "text-white flex items-center justify-between mb-4",
+                    caption: "text-[10px] font-bold uppercase tracking-widest mb-4 flex justify-center italic text-white/40"
                   }}
                 />
              </div>
           </div>
        </div>
-
     </div>
   );
 }

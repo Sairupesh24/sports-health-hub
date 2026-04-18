@@ -24,9 +24,10 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Plus, Loader2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, ClipboardList, Plus, Loader2 } from "lucide-react";
 import { SportsScientistBookSessionModal } from "@/components/sports-scientist/SportsScientistBookSessionModal";
 import { SportsScientistSessionStatusModal } from "@/components/sports-scientist/SportsScientistSessionStatusModal";
+import { SportsScientistSessionLog } from "@/components/sports-scientist/SportsScientistSessionLog";
 
 type ViewMode = "day" | "week" | "month";
 
@@ -36,6 +37,7 @@ export default function SportsScientistSchedule() {
     const [viewMode, setViewMode] = useState<ViewMode>("week");
     const [isBookModalOpen, setIsBookModalOpen] = useState(false);
     const [selectedSession, setSelectedSession] = useState<any>(null);
+    const [activeTab, setActiveTab] = useState("calendar");
 
     const dateRange = useMemo(() => {
         let start, end;
@@ -83,7 +85,7 @@ export default function SportsScientistSchedule() {
             if (error) throw error;
             return data;
         },
-        enabled: !!user
+        enabled: !!user && activeTab === "calendar"
     });
 
     const handlePrev = () => {
@@ -265,10 +267,6 @@ export default function SportsScientistSchedule() {
     const renderDayView = () => {
         const hours = Array.from({ length: 14 }, (_, i) => i + 7); // 7 AM to 8 PM
         const dayEvents = (sessions as any[]).filter(s => isSameDay(startOfDay(parseISO(s.scheduled_start)), startOfDay(currentDate)));
-        
-        console.log("Day View - Current Date:", currentDate.toISOString());
-        console.log("Day View - Total sessions:", sessions.length);
-        console.log("Day View - Filtered sessions for today:", dayEvents.length);
 
         return (
             <div className="flex border border-border/50 rounded-xl overflow-hidden bg-card shadow-sm h-[700px]">
@@ -357,70 +355,87 @@ export default function SportsScientistSchedule() {
                     <div>
                         <h1 className="text-3xl font-display font-bold text-foreground flex items-center gap-3">
                             <CalendarIcon className="w-8 h-8 text-primary" />
-                            Schedule
+                            Sessions & Schedule
                         </h1>
-                        <p className="text-muted-foreground mt-1">Manage your training blocks and sessions</p>
+                        <p className="text-muted-foreground mt-1">Manage your training blocks and review all logged sessions</p>
                     </div>
                     <Button onClick={() => setIsBookModalOpen(true)} className="h-11 px-6 shadow-md hover:shadow-lg transition-all rounded-xl gap-2">
                         <Plus className="w-5 h-5" /> Schedule Session
                     </Button>
                 </div>
 
-                <Card className="border-border shadow-md rounded-2xl overflow-hidden glass-card">
-                    <CardHeader className="py-6 px-6 border-b border-border/50 bg-muted/10">
-                        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
-                            <div className="flex items-center gap-4">
-                                <div className="flex items-center gap-1 bg-background rounded-xl border border-border p-1 shadow-sm">
-                                    <Button variant="ghost" size="icon" onClick={handlePrev} className="h-9 w-9 rounded-lg">
-                                        <ChevronLeft className="w-5 h-5" />
-                                    </Button>
-                                    <Button variant="ghost" size="sm" onClick={handleToday} className="h-9 px-4 font-bold text-xs uppercase tracking-widest text-primary">
-                                        Today
-                                    </Button>
-                                    <Button variant="ghost" size="icon" onClick={handleNext} className="h-9 w-9 rounded-lg">
-                                        <ChevronRight className="w-5 h-5" />
-                                    </Button>
-                                </div>
-                                <CardTitle className="text-xl font-display font-bold min-w-[200px] text-primary">{getHeaderTitle()}</CardTitle>
-                            </div>
+                <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                    <TabsList className="grid w-full grid-cols-2 max-w-[400px] mb-6 p-1 bg-muted/30 rounded-xl border border-border/50">
+                        <TabsTrigger value="calendar" className="rounded-lg gap-2">
+                            <CalendarIcon className="w-4 h-4" /> Calendar View
+                        </TabsTrigger>
+                        <TabsTrigger value="log" className="rounded-lg gap-2">
+                            <ClipboardList className="w-4 h-4" /> Sessions Log
+                        </TabsTrigger>
+                    </TabsList>
 
-                            <div className="flex items-center gap-3 bg-muted/30 p-1 rounded-xl border border-border/50">
-                                <Button 
-                                    variant={viewMode === "day" ? "default" : "ghost"} 
-                                    size="sm" 
-                                    onClick={() => setViewMode("day")} 
-                                    className="h-8 rounded-lg text-xs font-bold"
-                                >Day</Button>
-                                <Button 
-                                    variant={viewMode === "week" ? "default" : "ghost"} 
-                                    size="sm" 
-                                    onClick={() => setViewMode("week")} 
-                                    className="h-8 rounded-lg text-xs font-bold"
-                                >Week</Button>
-                                <Button 
-                                    variant={viewMode === "month" ? "default" : "ghost"} 
-                                    size="sm" 
-                                    onClick={() => setViewMode("month")} 
-                                    className="h-8 rounded-lg text-xs font-bold"
-                                >Month</Button>
-                            </div>
-                        </div>
-                    </CardHeader>
-                    <CardContent className="p-0">
-                        {isLoading ? (
-                            <div className="h-[500px] flex flex-col items-center justify-center p-8 text-muted-foreground animate-pulse">
-                                <Loader2 className="w-10 h-10 animate-spin mb-4 text-primary" />
-                                <p className="font-medium">Loading your schedule...</p>
-                            </div>
-                        ) : (
-                            <div className="p-6">
-                                {viewMode === "month" && renderMonthView()}
-                                {viewMode === "week" && renderWeekView()}
-                                {viewMode === "day" && renderDayView()}
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
+                    <TabsContent value="calendar" className="mt-0">
+                        <Card className="border-border shadow-md rounded-2xl overflow-hidden glass-card">
+                            <CardHeader className="py-6 px-6 border-b border-border/50 bg-muted/10">
+                                <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
+                                    <div className="flex items-center gap-4">
+                                        <div className="flex items-center gap-1 bg-background rounded-xl border border-border p-1 shadow-sm">
+                                            <Button variant="ghost" size="icon" onClick={handlePrev} className="h-9 w-9 rounded-lg">
+                                                <ChevronLeft className="w-5 h-5" />
+                                            </Button>
+                                            <Button variant="ghost" size="sm" onClick={handleToday} className="h-9 px-4 font-bold text-xs uppercase tracking-widest text-primary">
+                                                Today
+                                            </Button>
+                                            <Button variant="ghost" size="icon" onClick={handleNext} className="h-9 w-9 rounded-lg">
+                                                <ChevronRight className="w-5 h-5" />
+                                            </Button>
+                                        </div>
+                                        <CardTitle className="text-xl font-display font-bold min-w-[200px] text-primary">{getHeaderTitle()}</CardTitle>
+                                    </div>
+
+                                    <div className="flex items-center gap-3 bg-muted/30 p-1 rounded-xl border border-border/50">
+                                        <Button 
+                                            variant={viewMode === "day" ? "default" : "ghost"} 
+                                            size="sm" 
+                                            onClick={() => setViewMode("day")} 
+                                            className="h-8 rounded-lg text-xs font-bold"
+                                        >Day</Button>
+                                        <Button 
+                                            variant={viewMode === "week" ? "default" : "ghost"} 
+                                            size="sm" 
+                                            onClick={() => setViewMode("week")} 
+                                            className="h-8 rounded-lg text-xs font-bold"
+                                        >Week</Button>
+                                        <Button 
+                                            variant={viewMode === "month" ? "default" : "ghost"} 
+                                            size="sm" 
+                                            onClick={() => setViewMode("month")} 
+                                            className="h-8 rounded-lg text-xs font-bold"
+                                        >Month</Button>
+                                    </div>
+                                </div>
+                            </CardHeader>
+                            <CardContent className="p-0">
+                                {isLoading ? (
+                                    <div className="h-[500px] flex flex-col items-center justify-center p-8 text-muted-foreground animate-pulse">
+                                        <Loader2 className="w-10 h-10 animate-spin mb-4 text-primary" />
+                                        <p className="font-medium">Loading your schedule...</p>
+                                    </div>
+                                ) : (
+                                    <div className="p-6">
+                                        {viewMode === "month" && renderMonthView()}
+                                        {viewMode === "week" && renderWeekView()}
+                                        {viewMode === "day" && renderDayView()}
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+                    </TabsContent>
+
+                    <TabsContent value="log" className="mt-0">
+                        <SportsScientistSessionLog />
+                    </TabsContent>
+                </Tabs>
 
                 <SportsScientistBookSessionModal
                     open={isBookModalOpen}

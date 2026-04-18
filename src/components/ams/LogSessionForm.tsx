@@ -69,7 +69,7 @@ const workoutSchema = z.object({
 type WorkoutFormValues = z.infer<typeof workoutSchema>;
 
 export default function LogSessionForm({ onComplete }: { onComplete?: () => void }) {
-  const { clientId } = useAuth();
+  const { clientId, profile } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [gymEnvironment, setGymEnvironment] = useState<string>("heavy_gym");
@@ -81,7 +81,7 @@ export default function LogSessionForm({ onComplete }: { onComplete?: () => void
   const { data: exerciseLibrary = [] } = useQuery<Exercise[]>({
     queryKey: ['exercise-library', gymEnvironment],
     queryFn: async () => {
-      let query = supabase
+      let query = (supabase as any)
         .from('exercises')
         .select('id, name, category, equipment_type')
         .order('name');
@@ -95,9 +95,9 @@ export default function LogSessionForm({ onComplete }: { onComplete?: () => void
         query = query.eq('equipment_type', 'calisthenics');
       }
       
-      const { data, error } = await query;
+      const { data, error } = await (query as any);
       if (error) throw error;
-      return data;
+      return data as Exercise[];
     }
   });
 
@@ -229,28 +229,28 @@ export default function LogSessionForm({ onComplete }: { onComplete?: () => void
       <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-8 animate-in fade-in duration-500">
         <div className="px-6 pt-6 space-y-4">
           <div className="space-y-2">
-            <label className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-black">Gym Environment</label>
+            <label className="text-[10px] uppercase tracking-[0.2em] text-slate-300 font-black">Gym Environment</label>
             <ToggleGroup 
               type="single" 
               value={gymEnvironment}
               onValueChange={(val) => val && setGymEnvironment(val)}
-              className="justify-start gap-2"
+              className="grid grid-cols-4 gap-2 w-full"
             >
-              <ToggleGroupItem value="heavy_gym" className="rounded-xl px-4 py-2 h-auto flex flex-col items-center gap-1 border-2 border-transparent data-[state=on]:border-primary data-[state=on]:bg-primary/5">
+              <ToggleGroupItem value="heavy_gym" className="rounded-xl h-20 flex flex-col items-center justify-center gap-1 border-2 border-transparent data-[state=on]:border-primary data-[state=on]:bg-primary/10 data-[state=on]:text-primary text-slate-500 transition-all px-1">
                 <Dumbbell className="w-4 h-4" />
-                <span className="text-[9px] font-black uppercase">Heavy Gym</span>
+                <span className="text-[8px] font-black uppercase leading-tight text-center">Heavy Gym</span>
               </ToggleGroupItem>
-              <ToggleGroupItem value="average_gym" className="rounded-xl px-4 py-2 h-auto flex flex-col items-center gap-1 border-2 border-transparent data-[state=on]:border-primary data-[state=on]:bg-primary/5">
+              <ToggleGroupItem value="average_gym" className="rounded-xl h-20 flex flex-col items-center justify-center gap-1 border-2 border-transparent data-[state=on]:border-primary data-[state=on]:bg-primary/10 data-[state=on]:text-primary text-slate-500 transition-all px-1">
                 <Scale className="w-4 h-4" />
-                <span className="text-[9px] font-black uppercase">Average Gym</span>
+                <span className="text-[8px] font-black uppercase leading-tight text-center">Average Gym</span>
               </ToggleGroupItem>
-              <ToggleGroupItem value="minimal_equipment" className="rounded-xl px-4 py-2 h-auto flex flex-col items-center gap-1 border-2 border-transparent data-[state=on]:border-primary data-[state=on]:bg-primary/5">
+              <ToggleGroupItem value="minimal_equipment" className="rounded-xl h-20 flex flex-col items-center justify-center gap-1 border-2 border-transparent data-[state=on]:border-primary data-[state=on]:bg-primary/10 data-[state=on]:text-primary text-slate-500 transition-all px-1">
                 <Zap className="w-4 h-4" />
-                <span className="text-[9px] font-black uppercase">Minimal</span>
+                <span className="text-[8px] font-black uppercase leading-tight text-center">Minimal</span>
               </ToggleGroupItem>
-              <ToggleGroupItem value="calisthenics" className="rounded-xl px-4 py-2 h-auto flex flex-col items-center gap-1 border-2 border-transparent data-[state=on]:border-primary data-[state=on]:bg-primary/5">
+              <ToggleGroupItem value="calisthenics" className="rounded-xl h-20 flex flex-col items-center justify-center gap-1 border-2 border-transparent data-[state=on]:border-primary data-[state=on]:bg-primary/10 data-[state=on]:text-primary text-slate-500 transition-all px-1">
                 <Activity className="w-4 h-4" />
-                <span className="text-[9px] font-black uppercase">Bodyweight</span>
+                <span className="text-[8px] font-black uppercase leading-tight text-center">Bodyweight</span>
               </ToggleGroupItem>
             </ToggleGroup>
           </div>
@@ -261,8 +261,8 @@ export default function LogSessionForm({ onComplete }: { onComplete?: () => void
               name="duration_mins"
               render={({ field }) => (
                 <FormItem className="flex-1">
-                  <FormLabel className="text-xs uppercase tracking-widest text-muted-foreground font-bold flex items-center gap-2">
-                    <Clock className="w-3 h-3" /> Duration (min)
+                  <FormLabel className="text-xs uppercase tracking-widest text-slate-300 font-bold flex items-center gap-2">
+                    <Clock className="w-3 h-3 text-primary" /> Duration (min)
                   </FormLabel>
                   <FormControl>
                     <Input type="number" {...field} className="glass-card border-none h-12 text-lg font-bold italic" />
@@ -276,7 +276,7 @@ export default function LogSessionForm({ onComplete }: { onComplete?: () => void
               name="rpe"
               render={({ field }) => (
                 <FormItem className="flex-1">
-                  <FormLabel className="text-xs uppercase tracking-widest text-muted-foreground font-bold flex items-center gap-2">
+                  <FormLabel className="text-xs uppercase tracking-widest text-slate-300 font-bold flex items-center gap-2">
                     <Zap className="w-3 h-3 text-amber-500" /> Overall RPE (1-10)
                   </FormLabel>
                   <FormControl>
@@ -326,14 +326,14 @@ export default function LogSessionForm({ onComplete }: { onComplete?: () => void
 
             <Button 
                 type="submit" 
-                className="w-full h-16 rounded-2xl bg-gradient-to-r from-primary to-primary/80 text-primary-foreground font-black text-xl uppercase tracking-widest shadow-[0_8px_30px_rgb(20,184,166,0.3)] hover:scale-[1.01] active:scale-[0.98] transition-all disabled:opacity-50"
+                className="w-full h-14 rounded-2xl bg-gradient-to-r from-primary to-primary/80 text-primary-foreground font-black text-sm uppercase tracking-widest shadow-[0_8px_30px_rgb(20,184,166,0.3)] hover:scale-[1.01] active:scale-[0.98] transition-all disabled:opacity-50"
                 disabled={isSubmitting}
             >
                 {isSubmitting ? (
-                    <RotateCcw className="w-6 h-6 animate-spin" />
+                    <RotateCcw className="w-5 h-5 animate-spin" />
                 ) : (
-                    <span className="flex items-center gap-3">
-                        <CheckCircle2 className="w-6 h-6" /> Finish & Log Workout
+                    <span className="flex items-center gap-2 truncate">
+                        <CheckCircle2 className="w-5 h-5 shrink-0" /> Finish &amp; Log Workout
                     </span>
                 )}
             </Button>
@@ -458,34 +458,34 @@ function ExerciseField({
                 <label htmlFor={`each-side-${index}`} className="text-[10px] uppercase font-black tracking-widest text-muted-foreground">Each Side</label>
              </div>
              <div className="flex items-center gap-2">
-                <span className="text-[10px] uppercase font-black tracking-widest text-muted-foreground opacity-40">Group:</span>
-                <input 
-                  type="text" 
-                  value={form.watch(`exercises.${index}.workout_grouping`)}
-                  onChange={(e) => form.setValue(`exercises.${index}.workout_grouping`, e.target.value)}
-                  placeholder="A1"
-                  className="bg-transparent border-none text-[10px] font-black w-8 outline-none text-primary"
-                />
-             </div>
-             <div className="flex items-center gap-2 border-l border-white/10 pl-4">
-                <span className="text-[10px] uppercase font-black tracking-widest text-muted-foreground opacity-40">Tempo:</span>
-                <input 
-                  type="text" 
-                  value={form.watch(`exercises.${index}.tempo`)}
-                  onChange={(e) => form.setValue(`exercises.${index}.tempo`, e.target.value)}
-                  placeholder="0-0-0-0"
-                  className="bg-transparent border-none text-[10px] font-black w-14 outline-none text-primary"
-                />
-             </div>
-             <div className="flex items-center gap-2 border-l border-white/10 pl-4">
-                <span className="text-[10px] uppercase font-black tracking-widest text-muted-foreground opacity-40">Rest:</span>
-                <input 
-                  type="number" 
-                  value={form.watch(`exercises.${index}.rest_time_secs`)}
-                  onChange={(e) => form.setValue(`exercises.${index}.rest_time_secs`, parseInt(e.target.value) || 0)}
-                  className="bg-transparent border-none text-[10px] font-black w-8 outline-none text-primary"
-                />
-                <span className="text-[10px] font-black opacity-20 uppercase">s</span>
+                 <span className="text-[10px] uppercase font-black tracking-widest text-slate-700 opacity-60">Group:</span>
+                 <input 
+                   type="text" 
+                   value={form.watch(`exercises.${index}.workout_grouping`)}
+                   onChange={(e) => form.setValue(`exercises.${index}.workout_grouping`, e.target.value)}
+                   placeholder="A1"
+                   className="bg-transparent border-none text-[10px] font-black w-8 outline-none text-primary"
+                 />
+              </div>
+              <div className="flex items-center gap-2 border-l border-slate-200 pl-4">
+                 <span className="text-[10px] uppercase font-black tracking-widest text-slate-700 opacity-60">Tempo:</span>
+                 <input 
+                   type="text" 
+                   value={form.watch(`exercises.${index}.tempo`)}
+                   onChange={(e) => form.setValue(`exercises.${index}.tempo`, e.target.value)}
+                   placeholder="0-0-0-0"
+                   className="bg-transparent border-none text-[10px] font-black w-14 outline-none text-primary"
+                 />
+              </div>
+              <div className="flex items-center gap-2 border-l border-slate-200 pl-4">
+                 <span className="text-[10px] uppercase font-black tracking-widest text-slate-700 opacity-60">Rest:</span>
+                 <input 
+                   type="number" 
+                   value={form.watch(`exercises.${index}.rest_time_secs`)}
+                   onChange={(e) => form.setValue(`exercises.${index}.rest_time_secs`, parseInt(e.target.value) || 0)}
+                   className="bg-transparent border-none text-[10px] font-black w-8 outline-none text-primary"
+                 />
+                 <span className="text-[10px] font-black opacity-40 uppercase">s</span>
              </div>
           </div>
         </div>
@@ -516,11 +516,11 @@ function ExerciseField({
         </div>
       )}
 
-      <div className="space-y-3">
-        <div className="grid grid-cols-12 gap-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 px-2 transition-opacity">
-          <div className="col-span-1 text-center">Set</div>
-          <div className="col-span-4 pl-4 flex items-center gap-1"><Scale className="w-2.5 h-2.5" /> Weight</div>
-          <div className="col-span-4 pl-4 flex items-center gap-1"><Hash className="w-2.5 h-2.5" /> Reps</div>
+       <div className="space-y-3">
+        <div className="grid grid-cols-12 gap-2 text-[10px] font-black uppercase tracking-widest text-slate-500/80 px-2 transition-opacity">
+          <div className="col-span-1 text-center font-black">Set</div>
+          <div className="col-span-4 pl-4 flex items-center gap-1 font-black"><Scale className="w-2.5 h-2.5" /> Weight</div>
+          <div className="col-span-4 pl-4 flex items-center gap-1 font-black"><Hash className="w-2.5 h-2.5" /> Reps</div>
           <div className="col-span-3"></div>
         </div>
 
@@ -577,9 +577,9 @@ function SetRow({
     return (
         <div className={cn(
             "grid grid-cols-12 gap-2 items-center group/row p-2 rounded-2xl transition-all duration-300",
-            isCompleted ? "bg-primary/5 opacity-70" : "hover:bg-muted/30"
+            isCompleted ? "bg-primary/5 opacity-70" : "hover:bg-white/5"
         )}>
-            <div className="col-span-1 text-center font-black text-xs text-muted-foreground">{setIndex + 1}</div>
+            <div className="col-span-1 text-center font-black text-xs text-slate-400">{setIndex + 1}</div>
             
             <div className="col-span-4 relative">
                 <Input 

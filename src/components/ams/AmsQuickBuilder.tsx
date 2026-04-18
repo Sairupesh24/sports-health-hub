@@ -47,6 +47,7 @@ interface ExerciseItem {
   sets: number;
   reps: string;
   weight: number;
+  load_type: 'absolute' | 'percentage';
   tempo?: string;
   rest_time_secs?: number;
   workout_grouping?: string;
@@ -147,6 +148,7 @@ export default function AmsQuickBuilder({ startDate, onSave, onCancel, loading, 
             sets: 3,
             reps: '10',
             weight: 0,
+            load_type: 'absolute',
             tempo: '0-0-0-0',
             rest_time_secs: 60,
             workout_grouping: `${groupLetter}${exerciseNumber}`,
@@ -182,6 +184,7 @@ export default function AmsQuickBuilder({ startDate, onSave, onCancel, loading, 
             sets: lift?.sets || 3,
             reps: lift?.reps || '10',
             weight: lift?.load_value || 0,
+            load_type: lift?.load_type || 'absolute',
             tempo: lift?.tempo || '0-0-0-0',
             rest_time_secs: lift?.rest_time_secs || 60,
             workout_grouping: lift?.workout_grouping || `${groupLetter}${d.items.length + iIdx + 1}`,
@@ -228,9 +231,9 @@ export default function AmsQuickBuilder({ startDate, onSave, onCancel, loading, 
     <div className="space-y-8 animate-in fade-in duration-500">
       {!hideTitle && (
         <div className="flex flex-col">
-          <h3 className="text-2xl font-black uppercase tracking-tight text-white flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shadow-lg shadow-primary/20">
-              <Dumbbell className="w-5 h-5" />
+          <h3 className="text-xl font-bold text-white flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+              <Dumbbell className="w-4 h-4" />
             </div>
             {templateMode ? "Create Template" : "Build Training Plan"}
           </h3>
@@ -245,11 +248,10 @@ export default function AmsQuickBuilder({ startDate, onSave, onCancel, loading, 
       )}
       <div className="space-y-6">
         {days.map((day, dayIdx) => (
-          <div key={day.id} className="rounded-[2.5rem] border border-white/10 overflow-hidden bg-[#1A1F26] shadow-2xl relative">
-            {/* Header Section with subtle gradient */}
-            <div className="p-8 border-b border-white/5 bg-gradient-to-r from-white/[0.04] to-transparent flex items-center justify-between">
-              <div className="flex items-center gap-6 flex-1 min-w-0 pr-4">
-                <div className="w-14 h-14 rounded-2xl bg-primary/20 flex items-center justify-center shrink-0 text-primary font-black border border-primary/40 shadow-lg shadow-primary/10 text-xl italic uppercase">
+          <div key={day.id} className="rounded-2xl border border-white/10 overflow-hidden bg-[#1A1F26] shadow-xl relative">
+            <div className="px-6 py-4 border-b border-white/5 bg-white/[0.02] flex items-center justify-between">
+              <div className="flex items-center gap-4 flex-1 min-w-0 pr-4">
+                <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 text-primary font-bold border border-primary/20 text-sm">
                   {String.fromCharCode(65 + dayIdx)}
                 </div>
                 <div className="flex-1 min-w-0">
@@ -261,12 +263,12 @@ export default function AmsQuickBuilder({ startDate, onSave, onCancel, loading, 
                       setDays(days.map(d => d.id === day.id ? { ...d, title: newTitle } : d));
                     }}
                     placeholder="UNTITLED WORKOUT"
-                    className="font-black uppercase tracking-tight text-xl text-white italic bg-transparent border-b border-transparent hover:border-white/20 focus:border-[#FF6B35]/50 focus:outline-none transition-all w-full max-w-2xl px-1 py-0.5 placeholder:text-white/20 placeholder:normal-case placeholder:font-black placeholder:italic truncate"
+                    className="font-bold uppercase tracking-tight text-lg text-white bg-transparent border-none focus:outline-none transition-all w-full max-w-2xl placeholder:text-white/20 truncate"
                   />
-                  <div className="flex items-center gap-3 mt-1.5">
-                    <div className="flex items-center gap-1.5 text-[10px] font-black text-white/30 uppercase tracking-[0.2em] bg-white/5 px-2.5 py-1 rounded-lg border border-white/5">
-                      <CalendarIcon className="w-3 h-3 text-[#FF6B35]" />
-                      {format(new Date(day.date), 'EEEE, MMM do')}
+                  <div className="flex items-center gap-3 mt-1">
+                    <div className="flex items-center gap-1.5 text-[10px] font-bold text-white/30 uppercase tracking-wider">
+                      <CalendarIcon className="w-3 h-3" />
+                      {format(new Date(day.date), 'EEE, MMM do')}
                     </div>
                   </div>
                 </div>
@@ -274,22 +276,22 @@ export default function AmsQuickBuilder({ startDate, onSave, onCancel, loading, 
               <div className="flex items-center gap-2">
                   <Popover>
                     <PopoverTrigger asChild>
-                      <Button variant="ghost" size="sm" className="h-10 border-white/10 hover:bg-white/5 text-white/50 hover:text-white font-bold uppercase tracking-wider text-[10px] gap-2 rounded-xl border">
-                        <LayoutTemplate className="w-3.5 h-3.5" /> Preset Templates <ChevronDown className="w-3 h-3" />
+                      <Button variant="outline" size="sm" className="h-8 border-white/10 bg-transparent text-white/50 hover:text-white hover:bg-white/5 text-[10px] gap-2 rounded-lg">
+                        <LayoutTemplate className="w-3 h-3" /> Templates <ChevronDown className="w-3 h-3" />
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-64 p-2 bg-[#1A1F26] border-white/10 rounded-2xl shadow-2xl" align="end">
+                    <PopoverContent className="w-64 p-2 bg-[#1A1F26] border-white/10 rounded-xl shadow-2xl" align="end">
                       <div className="mb-2 px-2 pt-1">
-                        <p className="text-[10px] font-black uppercase text-white/40 tracking-wider">Select a Template</p>
+                        <p className="text-[10px] font-bold uppercase text-white/40 tracking-wider">Select a Template</p>
                       </div>
                       <div className="space-y-1 max-h-[300px] overflow-y-auto">
                         {templates?.map((t: any) => (
                           <div 
                             key={t.id}
                             onClick={() => applyTemplate(day.id, t)}
-                            className="p-3 hover:bg-white/5 rounded-xl cursor-pointer transition-colors group/templ flex flex-col gap-1"
+                            className="p-2.5 hover:bg-white/5 rounded-lg cursor-pointer transition-colors group/templ flex flex-col gap-1"
                           >
-                            <p className="text-sm font-bold text-white group-hover/templ:text-[#FF6B35] transition-colors">{t.name}</p>
+                            <p className="text-sm font-semibold text-white group-hover/templ:text-primary transition-colors">{t.name}</p>
                             <p className="text-[10px] text-white/40 uppercase tracking-wider">{t.days?.[0]?.items?.length || 0} Exercises</p>
                           </div>
                         ))}
@@ -316,198 +318,178 @@ export default function AmsQuickBuilder({ startDate, onSave, onCancel, loading, 
                     variant="ghost" 
                     size="icon" 
                     onClick={() => removeDay(day.id)} 
-                    className="h-10 w-10 text-destructive hover:bg-destructive/10 rounded-xl transition-all border border-transparent hover:border-destructive/20 ml-2"
+                    className="h-8 w-8 text-destructive/50 hover:text-destructive hover:bg-destructive/10 rounded-lg transition-all"
                   >
-                    <Trash2 className="w-4 h-4" />
+                    <Trash2 className="w-3.5 h-3.5" />
                   </Button>
                 )}
               </div>
             </div>
 
-            <div className="p-8 space-y-6 bg-white/[0.01]">
-              {/* Items List */}
-              <div className="space-y-4">
+            <div className="p-6 space-y-4 bg-white/[0.01]">
+              <div className="space-y-2">
                 {day.items.map((item, itemIdx) => (
                   <div 
                     key={item.id} 
                     className={cn(
-                      "group bg-[#242933] p-7 rounded-[2rem] border transition-all shadow-2xl relative overflow-hidden ring-1 ring-white/5 space-y-6",
-                      expandedItems[item.id] ? "border-[#FF6B35]/40 ring-[#FF6B35]/10" : "border-white/5 hover:border-[#FF6B35]/20"
+                      "group bg-[#242933]/50 p-4 rounded-xl border transition-all relative overflow-hidden",
+                      expandedItems[item.id] ? "border-primary/40 bg-[#242933]" : "border-white/5 hover:border-white/10"
                     )}
                   >
-                    <div className="grid grid-cols-12 gap-6 items-center">
-                      <div className="col-span-1 text-center">
-                         <span className="text-[14px] font-black text-white/20 italic tracking-tighter">#{itemIdx + 1}</span>
+                    <div className="flex items-center gap-4">
+                      <div className="w-6 text-center">
+                         <span className="text-xs font-bold text-white/20">#{itemIdx + 1}</span>
                       </div>
                       
-                      <div className="col-span-4 min-w-0">
-                        <p className="font-black text-lg text-white uppercase tracking-tighter truncate italic">{item.exerciseName}</p>
-                        <div className="flex items-center gap-2 mt-1">
-                          <Badge variant="outline" className="text-[8px] uppercase font-black tracking-[0.2em] border-[#FF6B35]/30 bg-[#FF6B35]/10 text-[#FF6B35] px-2 py-0.5">Strength</Badge>
-                          {expandedItems[item.id] && <Badge variant="outline" className="text-[8px] uppercase font-black tracking-[0.2em] border-emerald-500/20 bg-emerald-500/5 text-emerald-500 px-2 py-0.5 animate-pulse">Editing</Badge>}
+                      <div className="flex-1 min-w-0">
+                        <p className="font-bold text-sm text-white uppercase tracking-tight truncate">{item.exerciseName}</p>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <span className="text-[9px] font-bold text-primary uppercase tracking-widest">{item.workout_grouping || '—'}</span>
+                          <span className="text-[9px] font-medium text-white/20 uppercase">Strength</span>
                         </div>
                       </div>
                       
-                      <div className="col-span-2 space-y-2">
-                         <Label className="text-[9px] font-black text-center uppercase tracking-[0.2em] text-[#FF6B35] opacity-60 block">Sets</Label>
-                         <div className="relative group/input" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex items-center gap-4">
+                        <div className="flex flex-col items-center">
+                           <span className="text-[8px] font-bold uppercase tracking-wider text-white/30 mb-1">Sets</span>
                            <input 
                             type="number" 
                             value={item.sets}
                             onChange={(e) => updateItem(day.id, item.id, 'sets', parseInt(e.target.value) || 0)}
-                            className="w-full bg-[#1A1F26] border border-white/10 text-center text-2xl font-black italic rounded-xl h-14 focus:ring-2 focus:ring-[#FF6B35]/60 focus:border-transparent outline-none text-white shadow-2xl transition-all group-hover/input:border-[#FF6B35]/30"
+                            className="w-10 bg-white/5 border border-white/10 text-center text-sm font-bold rounded-md h-8 focus:border-primary/50 outline-none text-white transition-all"
                           />
-                         </div>
-                      </div>
+                        </div>
 
-                      <div className="col-span-2 space-y-2">
-                         <Label className="text-[9px] font-black text-center uppercase tracking-[0.2em] text-[#FF6B35] opacity-60 block">Reps</Label>
-                         <div className="relative group/input" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex flex-col items-center">
+                           <span className="text-[8px] font-bold uppercase tracking-wider text-white/30 mb-1">Reps</span>
                            <input 
                             type="text" 
                             value={item.reps}
                             onChange={(e) => updateItem(day.id, item.id, 'reps', e.target.value)}
-                            className="w-full bg-[#1A1F26] border border-white/10 text-center text-2xl font-black italic rounded-xl h-14 focus:ring-2 focus:ring-[#FF6B35]/60 focus:border-transparent outline-none text-white shadow-2xl transition-all group-hover/input:border-[#FF6B35]/30"
+                            className="w-12 bg-white/5 border border-white/10 text-center text-sm font-bold rounded-md h-8 focus:border-primary/50 outline-none text-white transition-all"
                           />
-                         </div>
-                      </div>
+                        </div>
 
-                      <div className="col-span-2 space-y-2">
-                         <Label className="text-[9px] font-black text-center uppercase tracking-[0.2em] text-[#FF6B35] opacity-60 block">Load (KG)</Label>
-                         <div className="relative group/input" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex flex-col items-center">
+                           <div className="flex items-center gap-1 mb-1">
+                             <span className="text-[8px] font-bold uppercase tracking-wider text-white/30">{item.load_type === 'absolute' ? 'Load' : '% 1RM'}</span>
+                             <button 
+                               onClick={() => updateItem(day.id, item.id, 'load_type', item.load_type === 'absolute' ? 'percentage' : 'absolute')}
+                               className="text-[8px] font-bold text-primary hover:underline"
+                             >
+                               {item.load_type === 'absolute' ? '(KG)' : '(%)'}
+                             </button>
+                           </div>
                            <input 
                             type="number" 
                             value={item.weight}
                             onChange={(e) => updateItem(day.id, item.id, 'weight', parseFloat(e.target.value) || 0)}
-                            className="w-full bg-[#1A1F26] border border-white/10 text-center text-2xl font-black italic rounded-xl h-14 focus:ring-2 focus:ring-[#FF6B35]/60 focus:border-transparent outline-none text-white shadow-2xl transition-all group-hover/input:border-[#FF6B35]/30"
+                            className="w-14 bg-white/5 border border-white/10 text-center text-sm font-bold rounded-md h-8 focus:border-primary/50 outline-none text-white transition-all"
                           />
-                         </div>
-                      </div>
+                        </div>
 
-                      <div className="col-span-1 flex justify-center gap-2">
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            e.preventDefault();
-                            setExpandedItems(prev => ({ ...prev, [item.id]: !prev[item.id] }));
-                          }} 
-                          className={cn(
-                            "h-10 w-10 rounded-xl transition-all border border-transparent shadow-lg",
-                            expandedItems[item.id] 
-                              ? "bg-[#FF6B35] text-white ring-4 ring-[#FF6B35]/20 scale-110" 
-                              : "bg-white/5 text-[#FF6B35] hover:bg-[#FF6B35]/10 hover:text-[#FF6B35] hover:border-[#FF6B35]/20"
-                          )}
-                        >
-                          <Pencil className="w-4 h-4" />
-                        </Button>
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            e.preventDefault();
-                            removeItem(day.id, item.id);
-                          }} 
-                          className="h-10 w-10 text-destructive/40 hover:text-destructive hover:bg-destructive/10 rounded-xl transition-all border border-transparent hover:border-destructive/20"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
+                        <div className="flex items-center gap-1 ml-2">
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            onClick={() => setExpandedItems(prev => ({ ...prev, [item.id]: !prev[item.id] }))} 
+                            className={cn(
+                              "h-8 w-8 rounded-lg transition-all",
+                              expandedItems[item.id] ? "bg-primary/20 text-primary" : "text-white/30 hover:text-white hover:bg-white/5"
+                            )}
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            onClick={() => removeItem(day.id, item.id)} 
+                            className="h-8 w-8 text-white/20 hover:text-destructive hover:bg-destructive/10 rounded-lg transition-all"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
                       </div>
                     </div>
 
                     {/* Advanced parameters section - collapsible */}
                     {expandedItems[item.id] && (
-                      <div className="animate-in slide-in-from-top-4 duration-300 space-y-6" onClick={(e) => e.stopPropagation()}>
-                        <div className="pt-6 border-t border-white/5 grid grid-cols-1 md:grid-cols-4 gap-6">
-                          <div className="space-y-2">
-                            <Label className="text-[9px] font-black uppercase tracking-[0.2em] text-white/40 block pl-1">Grouping</Label>
+                      <div className="animate-in slide-in-from-top-2 duration-200 mt-4 pt-4 border-t border-white/5 space-y-4">
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                          <div className="space-y-1.5">
+                            <Label className="text-[10px] font-semibold uppercase tracking-wider text-white/40 block">Grouping</Label>
                             <Input 
                               placeholder="e.g. A1"
                               value={item.workout_grouping}
                               onChange={(e) => updateItem(day.id, item.id, 'workout_grouping', e.target.value)}
-                              className="bg-[#1A1F26] border-white/10 rounded-xl h-12 font-bold focus:ring-[#FF6B35]/40"
+                              className="bg-white/5 border-white/10 rounded-lg h-9 text-xs focus:ring-primary/40"
                             />
                           </div>
-                          <div className="space-y-2">
-                            <Label className="text-[9px] font-black uppercase tracking-[0.2em] text-white/40 block pl-1">Tempo</Label>
+                          <div className="space-y-1.5">
+                            <Label className="text-[10px] font-semibold uppercase tracking-wider text-white/40 block">Tempo</Label>
                             <Input 
                               placeholder="5-0-1-0"
                               value={item.tempo}
                               onChange={(e) => updateItem(day.id, item.id, 'tempo', e.target.value)}
-                              className="bg-[#1A1F26] border-white/10 rounded-xl h-12 font-bold focus:ring-[#FF6B35]/40"
+                              className="bg-white/5 border-white/10 rounded-lg h-9 text-xs focus:ring-primary/40"
                             />
                           </div>
-                          <div className="space-y-2">
-                            <Label className="text-[9px] font-black uppercase tracking-[0.2em] text-white/40 block pl-1">Rest (Secs)</Label>
+                          <div className="space-y-1.5">
+                            <Label className="text-[10px] font-semibold uppercase tracking-wider text-white/40 block">Rest (s)</Label>
                             <Input 
                               type="number"
                               placeholder="60"
                               value={item.rest_time_secs}
                               onChange={(e) => updateItem(day.id, item.id, 'rest_time_secs', parseInt(e.target.value) || 0)}
-                              className="bg-[#1A1F26] border-white/10 rounded-xl h-12 font-bold focus:ring-[#FF6B35]/40"
+                              className="bg-white/5 border-white/10 rounded-lg h-9 text-xs focus:ring-primary/40"
                             />
                           </div>
-                          <div className="flex flex-col justify-center gap-2 pt-4 md:pt-4">
-                            <div className="flex items-center gap-3">
-                              <Checkbox 
-                                id={`each-side-${item.id}`} 
-                                checked={item.each_side} 
-                                onCheckedChange={(checked) => updateItem(day.id, item.id, 'each_side', checked)}
-                                className="border-white/20 data-[state=checked]:bg-[#FF6B35] data-[state=checked]:border-[#FF6B35]"
-                              />
-                              <Label htmlFor={`each-side-${item.id}`} className="text-[10px] font-black uppercase tracking-widest text-white/60 cursor-pointer">Each Side</Label>
-                            </div>
+                          <div className="flex items-center gap-2 pt-5">
+                            <Checkbox 
+                              id={`each-side-${item.id}`} 
+                              checked={item.each_side} 
+                              onCheckedChange={(checked) => updateItem(day.id, item.id, 'each_side', checked)}
+                              className="border-white/20 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+                            />
+                            <Label htmlFor={`each-side-${item.id}`} className="text-[10px] font-bold uppercase tracking-wider text-white/60 cursor-pointer">Each Side</Label>
                           </div>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-1 gap-6">
-                          <div className="space-y-2">
-                            <Label className="text-[9px] font-black uppercase tracking-[0.2em] text-white/40 block pl-1">Additional Information</Label>
-                            <Textarea 
-                              placeholder="Special instructions for this exercise..."
-                              value={item.additional_info}
-                              onChange={(e) => updateItem(day.id, item.id, 'additional_info', e.target.value)}
-                              className="bg-[#1A1F26] border-white/10 rounded-xl h-24 font-medium focus:ring-[#FF6B35]/40 text-xs py-3"
-                            />
-                          </div>
+                        <div className="space-y-1.5">
+                          <Label className="text-[10px] font-semibold uppercase tracking-wider text-white/40 block">Coaching Cues</Label>
+                          <Textarea 
+                            placeholder="Add exercise notes..."
+                            value={item.additional_info}
+                            onChange={(e) => updateItem(day.id, item.id, 'additional_info', e.target.value)}
+                            className="bg-white/5 border-white/10 rounded-lg h-16 text-xs focus:ring-primary/40 min-h-[40px]"
+                          />
                         </div>
                       </div>
                     )}
-
-                    {/* Right Accent Glow */}
-                    <div className="absolute right-0 top-0 h-full w-1 bg-gradient-to-b from-transparent via-[#FF6B35]/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                   </div>
                 ))}
               </div>
 
-              {/* Add Exercise Action */}
               <Popover open={searchOpen[day.id]} onOpenChange={(open) => setSearchOpen({ ...searchOpen, [day.id]: open })}>
                 <PopoverTrigger asChild>
-                  <Button variant="ghost" className="w-full h-20 rounded-[1.5rem] border-2 border-dashed border-white/5 bg-white/[0.02] font-black uppercase tracking-[0.3em] text-[10px] text-white/20 hover:border-[#FF6B35]/40 hover:bg-[#FF6B35]/5 hover:text-[#FF6B35] transition-all group mt-4">
-                    <Plus className="w-5 h-5 mr-3 group-hover:rotate-90 transition-transform duration-500" /> Add Exercise to Plan
+                  <Button variant="ghost" className="w-full h-12 rounded-xl border-2 border-dashed border-white/5 bg-white/[0.02] font-bold uppercase tracking-widest text-[10px] text-white/20 hover:border-primary/40 hover:bg-primary/5 hover:text-primary transition-all mt-2">
+                    <Plus className="w-4 h-4 mr-2" /> Add Exercise
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-[350px] md:w-[500px] p-0 border-white/20 bg-[#1A1F26] overflow-hidden rounded-3xl shadow-2xl ring-1 ring-white/10">
+                <PopoverContent className="w-[300px] md:w-[400px] p-0 border-white/10 bg-[#1A1F26] overflow-hidden rounded-xl shadow-2xl ring-1 ring-white/5">
                   <Command className="bg-transparent">
-                    <CommandInput placeholder="Search exercises..." className="h-14 font-bold border-none text-white focus:ring-0" />
-                    <CommandList 
-                      className="max-h-[300px] overflow-y-auto"
-                      onWheel={(e) => e.stopPropagation()}
-                    >
-                      <CommandEmpty className="p-8 text-center text-sm opacity-40">No exercises found.</CommandEmpty>
+                    <CommandInput placeholder="Search exercises..." className="h-11 border-none focus:ring-0" />
+                    <CommandList className="max-h-[300px] overflow-y-auto">
+                      <CommandEmpty className="p-4 text-center text-xs opacity-40">No results found.</CommandEmpty>
                       <CommandGroup>
                         {exercises.map((ex) => (
                           <CommandItem
                             key={ex.id}
-                            onSelect={() => {
-                              addExercise(day.id, ex); // Reverted to original function call as `addItem` is not defined
-                            }}
-                            className="flex items-center justify-between p-4 cursor-pointer data-[selected=true]:bg-primary/30 hover:bg-white/10 transition-all text-white font-bold"
+                            onSelect={() => addExercise(day.id, ex)}
+                            className="flex items-center justify-between p-3 cursor-pointer hover:bg-white/5 transition-all"
                           >
-                            <span className="text-white text-sm font-black">{ex.name}</span>
-                            <Badge variant="outline" className="text-[8px] uppercase font-black opacity-60 text-white/80 border-white/20">{ex.equipment_type?.replace('_', ' ')}</Badge> {/* Reverted to original property as `category` is not defined */}
+                            <span className="text-white text-xs font-bold">{ex.name}</span>
+                            <span className="text-[8px] uppercase font-bold text-white/20">{ex.equipment_type?.replace('_', ' ')}</span>
                           </CommandItem>
                         ))}
                       </CommandGroup>
@@ -519,23 +501,23 @@ export default function AmsQuickBuilder({ startDate, onSave, onCancel, loading, 
           </div>
         ))}
 
-          <Button 
-            onClick={addGroup} 
-            variant="outline" 
-            className="w-full h-14 rounded-[2rem] border-white/5 bg-white/[0.02] hover:bg-white/5 font-black uppercase tracking-widest text-[10px] text-primary"
-          >
-            <Plus className="w-4 h-4 mr-2" /> Add Workout Group
-          </Button>
+        <Button 
+          onClick={addGroup} 
+          variant="outline" 
+          className="w-full h-12 rounded-xl border-white/5 bg-white/[0.02] hover:bg-white/5 font-bold uppercase tracking-widest text-[10px] text-primary"
+        >
+          <Plus className="w-4 h-4 mr-2" /> Add Workout Group
+        </Button>
       </div>
 
-      <div className="flex gap-4 pt-4 border-t border-white/5">
-        <Button variant="ghost" onClick={onCancel} className="h-14 flex-1 rounded-2xl font-black uppercase tracking-widest text-[11px] opacity-40">Back to Selection</Button>
+      <div className="flex gap-4 pt-6 mt-8 border-t border-white/5">
+        <Button variant="ghost" onClick={onCancel} className="h-12 flex-1 rounded-xl font-bold uppercase tracking-widest text-[10px] opacity-40">Cancel</Button>
         <Button 
           onClick={() => onSave(days)} 
           disabled={loading || days.some(d => d.items.length === 0)}
-          className="h-14 flex-[2] rounded-2xl bg-primary hover:bg-primary/90 text-primary-foreground font-black uppercase tracking-[0.2em] text-[11px] shadow-xl shadow-primary/20"
+          className="h-12 flex-[2] rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold uppercase tracking-[0.15em] text-[10px]"
         >
-          {loading ? (templateMode ? "Saving..." : "Assigning...") : (templateMode ? "Save Template" : "Publish Workout Plan")}
+          {loading ? "Saving..." : (templateMode ? "Save Template" : "Publish Plan")}
         </Button>
       </div>
     </div>

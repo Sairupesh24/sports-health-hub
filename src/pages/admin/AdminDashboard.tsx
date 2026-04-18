@@ -13,6 +13,8 @@ import type { Database } from "@/integrations/supabase/types";
 import { cn } from "@/lib/utils";
 import EmergencyAlertIcon from "@/components/admin/EmergencyAlertIcon";
 import EmergencyResponseModal from "@/components/admin/EmergencyResponseModal";
+import { AnnouncementsManager } from "@/components/shared/AnnouncementsManager";
+import { Megaphone } from "lucide-react";
 
 type WaitlistItem = Database['public']['Tables']['waitlist']['Row'] & {
     client: {
@@ -28,6 +30,7 @@ export default function AdminDashboard() {
   const { profile } = useAuth();
   const organizationId = profile?.organization_id;
   const [emergencyModalOpen, setEmergencyModalOpen] = useState(false);
+  const [announcementModalOpen, setAnnouncementModalOpen] = useState(false);
 
   const today = new Date();
   const todayStart = startOfDay(today);
@@ -348,6 +351,13 @@ export default function AdminDashboard() {
           </div>
 
           <div className="flex items-center gap-4">
+            <button 
+                onClick={() => setAnnouncementModalOpen(true)}
+                className="p-2 rounded-xl bg-primary/10 text-primary hover:bg-primary/20 transition-all border border-primary/20 shadow-sm"
+                title="Broadcast Announcement"
+            >
+                <Megaphone className="w-5 h-5" />
+            </button>
             <EmergencyAlertIcon onClick={() => setEmergencyModalOpen(true)} />
             
             <Tabs value={timeRange} onValueChange={(v) => setTimeRange(v as 'daily' | 'weekly' | 'monthly')} className="w-[300px]">
@@ -473,6 +483,11 @@ export default function AdminDashboard() {
           organizationId={organizationId}
         />
       )}
+
+      <AnnouncementsManager 
+        open={announcementModalOpen}
+        onOpenChange={setAnnouncementModalOpen}
+      />
     </DashboardLayout>
   );
 }

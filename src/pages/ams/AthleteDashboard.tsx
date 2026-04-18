@@ -18,16 +18,18 @@ import { cn } from "@/lib/utils";
 
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { ScientificResourcesManager } from "@/components/sports-scientist/resources/ScientificResourcesManager";
 
 export default function AthleteDashboard() {
-  const { session, profile } = useAuth();
+  const { session, profile: currentUserProfile, roles, clientId } = useAuth();
   const [assignedProgram, setAssignedProgram] = useState<any>(null);
   const [todayWorkout, setTodayWorkout] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
   
   const todayDate = format(new Date(), 'EEEE, MMMM do');
-  const firstName = profile?.first_name || "Athlete";
+  const firstName = currentUserProfile?.first_name || "Athlete";
+  const isSportsScientist = currentUserProfile?.profession === 'Sports Scientist' || roles.includes('sports_scientist');
 
   useEffect(() => {
     if (session?.user?.id) {
@@ -98,7 +100,7 @@ export default function AthleteDashboard() {
 
   const navigateToLogging = () => {
     if (todayWorkout) {
-      window.location.href = `/ams/workout/${todayWorkout.id}`;
+      window.location.href = `/ams/athlete/workout/${todayWorkout.id}`;
     }
   };
 
@@ -205,6 +207,11 @@ export default function AthleteDashboard() {
                 <TabsTrigger value="analytics" className="gap-2 px-6 rounded-2xl data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-lg shadow-primary/20 font-black text-[11px] uppercase tracking-widest">
                   Performance
                 </TabsTrigger>
+                {isSportsScientist && (
+                  <TabsTrigger value="documents" className="gap-2 px-6 rounded-2xl data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-lg shadow-slate-900/20 font-black text-[11px] uppercase tracking-widest">
+                    Documents
+                  </TabsTrigger>
+                )}
               </TabsList>
 
               <TabsContent value="training" className="mt-0 animate-in slide-in-from-left-4 duration-500">
@@ -292,6 +299,14 @@ export default function AthleteDashboard() {
                   {session?.user?.id && <PerformanceAnalytics athleteId={session.user.id} />}
                 </div>
               </TabsContent>
+
+              {isSportsScientist && (
+                <TabsContent value="documents" className="mt-0 animate-in slide-in-from-left-4 duration-500">
+                  <div className="glass-card rounded-[32px] p-8 border-none shadow-sm bg-white/40">
+                    {clientId && <ScientificResourcesManager athleteId={clientId} />}
+                  </div>
+                </TabsContent>
+              )}
             </Tabs>
           </div>
 

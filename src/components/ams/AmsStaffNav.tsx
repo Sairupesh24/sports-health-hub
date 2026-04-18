@@ -56,12 +56,9 @@ export default function AmsStaffNav() {
               <div className="p-3 border-b border-slate-100 mb-1 bg-slate-50/50">
                 <p className="text-[10px] font-black uppercase tracking-tighter text-slate-400 px-2 italic">Management Tools</p>
               </div>
-              <ToolItem label="Manage Calendars" icon={CalendarIcon} />
-              <ToolItem label="The Planner" icon={LayoutDashboard} />
               <ToolItem label="Exercises" icon={Dumbbell} to="/ams/exercises" />
-              <ToolItem label="Templates" icon={LayoutTemplate} to="/sports-scientist/templates" />
-              <ToolItem label="Goals" icon={Target} />
-              <ToolItem label="Documents & Links" icon={ClipboardList} />
+              <ToolItem label="Workout Templates" icon={LayoutTemplate} to="/sports-scientist/templates" />
+              <ToolItem label="Documents & Links" icon={ClipboardList} to="/sports-scientist/resources" />
               <ToolItem label="Reporting" icon={Activity} to="/sports-scientist/reports" />
             </DropdownMenuContent>
           </DropdownMenu>
@@ -107,11 +104,11 @@ function ToolItem({ label, icon: Icon, to }: { label: string; icon: any; to?: st
 
   if (to) {
     return (
-      <Link to={to} className="w-full focus:outline-none">
-        <DropdownMenuItem className="group flex items-center gap-3 p-2 cursor-pointer data-[highlighted]:bg-green-50/50 rounded-xl transition-all outline-none">
+      <DropdownMenuItem asChild className="group flex items-center gap-3 p-2 cursor-pointer data-[highlighted]:bg-green-50/50 rounded-xl transition-all outline-none">
+        <Link to={to} className="w-full h-full flex items-center gap-3">
           {content}
-        </DropdownMenuItem>
-      </Link>
+        </Link>
+      </DropdownMenuItem>
     );
   }
 

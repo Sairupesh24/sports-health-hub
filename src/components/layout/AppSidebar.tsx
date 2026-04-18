@@ -55,8 +55,7 @@ const consultantNav: NavItem[] = [
 
 const clientNav: NavItem[] = [
   { label: "Dashboard", icon: LayoutDashboard, href: "/client" },
-  { label: "Book Session", icon: CalendarPlus, href: "/client/book" },
-  { label: "Appointments", icon: Calendar, href: "/client/appointments" },
+  { label: "Schedule", icon: Calendar, href: "/client/appointments" },
   { label: "My Reports", icon: ClipboardList, href: "/client/reports" },
   { label: "Performance", icon: Activity, href: "/client/performance" },
   { label: "Billing", icon: CreditCard, href: "/client/billing" },
@@ -77,13 +76,13 @@ const foeNav: NavItem[] = [
 const sportsScientistNav: NavItem[] = [
   { label: "Dashboard", icon: LayoutDashboard, href: "/sports-scientist" },
   { label: "Schedule", icon: Calendar, href: "/sports-scientist/schedule" },
-  { label: "Sessions Log", icon: ClipboardList, href: "/sports-scientist/sessions" },
   { label: "My Clients", icon: Users, href: "/sports-scientist/clients" },
   { label: "Reports", icon: ClipboardList, href: "/sports-scientist/reports" },
-  { label: "Templates", icon: ClipboardList, href: "/sports-scientist/templates" },
   { label: "Analytics", icon: Activity, href: "/sports-scientist/analytics" },
   { label: "Attendance", icon: CalendarClock, href: "/my-attendance" },
 ];
+
+
 
 const managerNav: NavItem[] = [
   { label: "Dashboard", icon: LayoutDashboard, href: "/admin" },
@@ -109,8 +108,7 @@ const superAdminNav: NavItem[] = [
 const athleteNav: NavItem[] = [
   { label: "Dashboard", icon: LayoutDashboard, href: "/ams/athlete-portal" },
   { label: "Performance", icon: Activity, href: "/client/performance" },
-  { label: "Book Session", icon: CalendarPlus, href: "/client/book" },
-  { label: "Appointments", icon: Calendar, href: "/client/appointments" },
+  { label: "Schedule", icon: Calendar, href: "/client/appointments" },
   { label: "My Reports", icon: ClipboardList, href: "/client/reports" },
   { label: "Billing", icon: CreditCard, href: "/client/billing" },
 ];

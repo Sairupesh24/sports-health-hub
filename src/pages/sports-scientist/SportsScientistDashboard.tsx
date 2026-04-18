@@ -25,7 +25,8 @@ import AmsStaffNav from "@/components/ams/AmsStaffNav";
 import { cn } from "@/lib/utils";
 import AttendanceMarker from "@/components/attendance/AttendanceMarker";
 import EmergencyLeaveModal from "@/components/shared/EmergencyLeaveModal";
-import { AlertCircle } from "lucide-react";
+import { AnnouncementsManager } from "@/components/shared/AnnouncementsManager";
+import { AlertCircle, Megaphone } from "lucide-react";
 
 
 export default function SportsScientistDashboard() {
@@ -34,6 +35,7 @@ export default function SportsScientistDashboard() {
     const [isBookModalOpen, setIsBookModalOpen] = useState(false);
     const [selectedSession, setSelectedSession] = useState<any>(null);
     const [isEmergencyModalOpen, setIsEmergencyModalOpen] = useState(false);
+    const [isAnnouncementModalOpen, setIsAnnouncementModalOpen] = useState(false);
 
     const { data: dashboardData, isLoading, refetch } = useQuery({
         queryKey: ["sports-scientist-dashboard-stats", user?.id],
@@ -89,7 +91,6 @@ export default function SportsScientistDashboard() {
     return (
         <DashboardLayout role="sports_scientist">
             <div className="min-h-screen bg-[#f8fafc]">
-                <AmsStaffNav />
                 
                 <main className="container mx-auto p-4 sm:p-8 space-y-8 max-w-[1600px] animate-in fade-in duration-700">
                     <AttendanceMarker />
@@ -262,6 +263,11 @@ export default function SportsScientistDashboard() {
                                     onClick={() => setIsEmergencyModalOpen(true)}
                                     color="text-destructive"
                                 />
+                                <QuickActionButton 
+                                    label="Broadcast" 
+                                    icon={Megaphone} 
+                                    onClick={() => setIsAnnouncementModalOpen(true)} 
+                                />
                             </div>
                         </div>
                     </div>
@@ -284,6 +290,11 @@ export default function SportsScientistDashboard() {
             <EmergencyLeaveModal 
                 open={isEmergencyModalOpen}
                 onOpenChange={setIsEmergencyModalOpen}
+            />
+
+            <AnnouncementsManager 
+                open={isAnnouncementModalOpen}
+                onOpenChange={setIsAnnouncementModalOpen}
             />
         </DashboardLayout>
     );
