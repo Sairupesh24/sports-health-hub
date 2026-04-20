@@ -41,7 +41,26 @@ export default function ClientDetail() {
         .is("deleted_at", null)
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return data;
+
+      // Fetch payments for these bills
+      const billIds = data.map((b: any) => b.id);
+      const { data: payments, error: payError } = await supabase
+        .from("bill_payments")
+        .select("bill_id, amount")
+        .in("bill_id", billIds);
+      
+      if (payError) throw payError;
+
+      const paymentMap: Record<string, number> = {};
+      payments?.forEach((p: any) => {
+        paymentMap[p.bill_id] = (paymentMap[p.bill_id] || 0) + (Number(p.amount) || 0);
+      });
+
+      return data.map((b: any) => ({
+        ...b,
+        paid_amount: paymentMap[b.id] || 0,
+        remaining_due: Math.max(0, Number(b.total) - (paymentMap[b.id] || 0))
+      }));
     },
     enabled: !!id,
   });
@@ -74,8 +93,8 @@ export default function ClientDetail() {
     .join(", ");
 
   const totalBilled = bills?.reduce((sum, b) => sum + Number(b.total), 0) ?? 0;
-  const totalPaid = bills?.filter((b) => b.status === "paid").reduce((sum, b) => sum + Number(b.total), 0) ?? 0;
-  const pendingAmount = totalBilled - totalPaid;
+  const totalPaid = bills?.reduce((sum, b) => sum + (Number((b as any).paid_amount) || 0), 0) ?? 0;
+  const pendingAmount = Math.max(0, totalBilled - totalPaid);
 
   const InfoRow = ({ label, value, icon: Icon }: { label: string; value: string | null | undefined; icon?: React.ElementType }) => {
     if (!value) return null;
@@ -234,6 +253,7 @@ export default function ClientDetail() {
                       <TableHead className="text-right">Amount</TableHead>
                       <TableHead className="text-right">Discount</TableHead>
                       <TableHead className="text-right">Total</TableHead>
+                      <TableHead className="text-right">Paid</TableHead>
                       <TableHead>Payment</TableHead>
                       <TableHead>Transaction ID</TableHead>
                       <TableHead>Status</TableHead>
@@ -256,6 +276,9 @@ export default function ClientDetail() {
                         <TableCell className="text-right font-semibold">
                           ₹{Number(bill.total).toLocaleString("en-IN")}
                         </TableCell>
+                        <TableCell className="text-right text-emerald-600 font-medium">
+                          ₹{Number(bill.paid_amount || 0).toLocaleString("en-IN")}
+                        </TableCell>
                         <TableCell>
                           {bill.payment_method ? (
                             <Badge variant="outline" className="capitalize">{bill.payment_method}</Badge>
@@ -274,8 +297,10 @@ export default function ClientDetail() {
                           <Badge
                             variant="secondary"
                             className={
-                              bill.status === "paid"
+                              bill.status?.toLowerCase() === "paid"
                                 ? "bg-green-500/10 text-green-600"
+                                : bill.status?.toLowerCase() === "partially paid"
+                                ? "bg-blue-500/10 text-blue-600"
                                 : "bg-yellow-500/10 text-yellow-600"
                             }
                           >

@@ -30,6 +30,8 @@ export interface TransactionDetail {
     notes?: string;
     discount_value?: number;
     discount_authorized_by?: string;
+    paid_amount?: number;
+    remaining_due?: number;
     // Refund-specific
     refund_mode?: string;
     refund_transaction_id?: string;
@@ -72,8 +74,11 @@ export function TransactionDetailDrawer({ open, onOpenChange, transaction }: Tra
     const accentBg = isRefund ? "bg-rose-500/10 border-rose-500/20" : "bg-emerald-500/10 border-emerald-500/20";
     const badgeClass = isRefund
         ? "bg-rose-500/10 text-rose-600 border-rose-500/20"
-        : "bg-emerald-500/10 text-emerald-600 border-emerald-500/20";
-
+        : transaction.status === "Paid"
+            ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
+            : transaction.status === "Partially Paid"
+                ? "bg-blue-500/10 text-blue-600 border-blue-500/20"
+                : "bg-amber-500/10 text-amber-600 border-amber-500/20";
     const isImageUrl = (url: string) => /\.(jpg|jpeg|png|gif|webp)(\?|$)/i.test(url);
 
     return (
@@ -99,7 +104,7 @@ export function TransactionDetailDrawer({ open, onOpenChange, transaction }: Tra
                             </div>
                             <div className="ml-auto">
                                 <Badge className={cn("border text-[10px] font-bold px-2 py-0.5", badgeClass)}>
-                                    {isRefund ? "REFUND" : (transaction.status === "Paid" ? "PAID" : "PENDING")}
+                                    {isRefund ? "REFUND" : transaction.status?.toUpperCase() || "PENDING"}
                                 </Badge>
                             </div>
                         </div>
@@ -113,6 +118,11 @@ export function TransactionDetailDrawer({ open, onOpenChange, transaction }: Tra
                                 <p className={cn("text-2xl font-black", accentColor)}>
                                     {isRefund ? "−" : "+"}Rs. {transaction.amount.toFixed(2)}
                                 </p>
+                                {!isRefund && transaction.paid_amount! > 0 && transaction.status !== 'Paid' && (
+                                    <p className="text-[10px] text-muted-foreground font-semibold mt-1">
+                                        Remaining: Rs. {transaction.remaining_due?.toFixed(2)}
+                                    </p>
+                                )}
                             </div>
                             <div className={cn("w-10 h-10 rounded-full flex items-center justify-center", accentBg)}>
                                 {modeIcon(isRefund ? transaction.refund_mode : transaction.payment_method)}

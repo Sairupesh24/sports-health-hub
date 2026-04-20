@@ -63,6 +63,8 @@ type Bill = {
     organization_logo?: string;
     organization_address?: string;
     organization_official_name?: string;
+    paid_amount?: number;
+    remaining_due?: number;
 };
 
 type Client = { id: string; first_name: string; last_name: string; uhid: string; email?: string; mobile_no?: string; is_vip?: boolean };
@@ -193,6 +195,17 @@ export default function BillingPage() {
             .eq("organization_id", profile.organization_id)
             .order("created_at", { ascending: false });
 
+        // Fetch Payments to calculate remaining balances
+        const { data: paymentsData } = await supabase
+            .from("bill_payments")
+            .select("bill_id, amount")
+            .in("bill_id", billsData?.map(b => b.id) || []);
+
+        const paymentMap: Record<string, number> = {};
+        paymentsData?.forEach(p => {
+            paymentMap[p.bill_id] = (paymentMap[p.bill_id] || 0) + (Number(p.amount) || 0);
+        });
+
         if (billsData) {
             const formattedBills: Bill[] = billsData.map(b => {
                 const items = b.bill_items?.map(bi => {
@@ -242,7 +255,9 @@ export default function BillingPage() {
                     include_notes_in_invoice: b.include_notes_in_invoice || false,
                     organization_logo: (b.organizations as any)?.logo_url,
                     organization_address: (b.organizations as any)?.official_address,
-                    organization_official_name: (b.organizations as any)?.official_name || (b.organizations as any)?.name
+                    organization_official_name: (b.organizations as any)?.official_name || (b.organizations as any)?.name,
+                    paid_amount: paymentMap[b.id] || 0,
+                    remaining_due: Math.max(0, b.total - (paymentMap[b.id] || 0))
                 };
             });
             setBills(formattedBills);
@@ -326,6 +341,8 @@ export default function BillingPage() {
             notes: b.notes,
             discount_value: b.discount_value,
             discount_authorized_by: b.discount_authorized_by,
+            paid_amount: b.paid_amount,
+            remaining_due: b.remaining_due
         })),
         ...refunds.map(r => {
             const client = r.clients as any;
@@ -486,8 +503,16 @@ export default function BillingPage() {
         
         if (!bill) return;
         
-        if (Math.abs(totalPaid - bill.total_amount) > 0.01) {
-            toast({ title: "Amount mismatch", description: `Total payments (Rs. ${totalPaid}) must equal bill total (Rs. ${bill.total_amount})`, variant: "destructive" });
+        const totalAlreadyPaid = bill.paid_amount || 0;
+        const remainingDue = bill.remaining_due ?? bill.total_amount;
+        
+        if (totalPaid <= 0) {
+            toast({ title: "Invalid amount", description: "Payment amount must be greater than zero", variant: "destructive" });
+            return;
+        }
+
+        if (totalPaid > remainingDue + 0.01) {
+            toast({ title: "Amount mismatch", description: `Total payments (Rs. ${totalPaid}) exceeds remaining due (Rs. ${remainingDue.toFixed(2)})`, variant: "destructive" });
             return;
         }
 
@@ -514,9 +539,10 @@ export default function BillingPage() {
             }
 
             // 2. Update Bill status
+            const isFullyPaid = Math.abs(totalPaid - remainingDue) < 0.01;
             const { error: billError } = await supabase.from('bills')
                 .update({ 
-                    status: 'Paid', 
+                    status: isFullyPaid ? 'Paid' : 'Partially Paid', 
                     updated_at: new Date().toISOString()
                 })
                 .eq('id', paymentBillId);
@@ -1068,16 +1094,27 @@ export default function BillingPage() {
                                                                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 text-[10px] font-bold">
                                                                             <CheckCircle className="w-3 h-3" /> PAID
                                                                         </span>
+                                                                    ) : bill.status === "Partially Paid" ? (
+                                                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-600 text-[10px] font-bold">
+                                                                            PARTIAL
+                                                                        </span>
                                                                     ) : (
                                                                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 text-[10px] font-bold">
                                                                             PENDING
                                                                         </span>
                                                                     )}
                                                                 </TableCell>
-                                                                <TableCell className="text-right pr-4 font-bold text-xs">Rs. {bill.total_amount.toFixed(2)}</TableCell>
+                                                                <TableCell className="text-right pr-4 font-bold text-xs whitespace-nowrap">
+                                                                    <div className="flex flex-col items-end">
+                                                                        <span>Rs. {bill.total_amount.toFixed(2)}</span>
+                                                                        {bill.paid_amount! > 0 && bill.status !== 'Paid' && (
+                                                                            <span className="text-[10px] text-muted-foreground font-normal">Remaining: Rs. {bill.remaining_due?.toFixed(2)}</span>
+                                                                        )}
+                                                                    </div>
+                                                                </TableCell>
                                                                 <TableCell className="text-center" onClick={e => e.stopPropagation()}>
                                                                     <div className="flex items-center justify-center gap-1">
-                                                                        {bill.status === "Pending" && (
+                                                                        {(bill.status === "Pending" || bill.status === "Partially Paid") && (
                                                                             <Button
                                                                                 size="sm"
                                                                                 className="h-7 px-2 text-[10px] bg-primary hover:bg-primary/90"
@@ -1124,7 +1161,7 @@ export default function BillingPage() {
                                                         <div>
                                                             <p className="text-xs font-bold text-amber-800 uppercase tracking-widest">Total Outstanding</p>
                                                             <p className="text-xl font-black text-amber-600">
-                                                                Rs. {filteredBills.filter(b => b.status === 'Pending').reduce((acc, b) => acc + b.total_amount, 0).toLocaleString()}
+                                                                Rs. {filteredBills.filter(b => b.status !== 'Paid' && !refundedBillMap[b.id]).reduce((acc, b) => acc + (b.remaining_due || 0), 0).toLocaleString()}
                                                             </p>
                                                         </div>
                                                     </div>
@@ -1143,11 +1180,11 @@ export default function BillingPage() {
                                                         </TableRow>
                                                     </TableHeader>
                                                     <TableBody>
-                                                        {filteredBills.filter(b => b.status === "Pending").length === 0 ? (
+                                                        {filteredBills.filter(b => (b.status === "Pending" || b.status === "Partially Paid") && !refundedBillMap[b.id]).length === 0 ? (
                                                             <TableRow>
                                                                 <TableCell colSpan={5} className="text-center py-10 text-muted-foreground italic">No payments currently due.</TableCell>
                                                             </TableRow>
-                                                        ) : filteredBills.filter(b => b.status === "Pending").map((bill) => (
+                                                        ) : filteredBills.filter(b => (b.status === "Pending" || b.status === "Partially Paid") && !refundedBillMap[b.id]).map((bill) => (
                                                             <TableRow key={bill.id} className="hover:bg-muted/10 transition-colors">
                                                                 <TableCell>
                                                                     <div className="font-bold text-xs truncate max-w-[150px]">
@@ -1160,7 +1197,10 @@ export default function BillingPage() {
                                                                     {format(new Date(bill.date), "dd MMM yyyy")}
                                                                 </TableCell>
                                                                 <TableCell className="text-right font-black text-rose-600 text-xs">
-                                                                    Rs. {bill.total_amount.toFixed(2)}
+                                                                    Rs. {bill.remaining_due?.toFixed(2)}
+                                                                    {bill.paid_amount! > 0 && (
+                                                                        <div className="text-[9px] text-muted-foreground font-normal">Paid: Rs. {bill.paid_amount?.toFixed(2)}</div>
+                                                                    )}
                                                                 </TableCell>
                                                                 <TableCell className="text-center">
                                                                     <Button
@@ -1168,7 +1208,7 @@ export default function BillingPage() {
                                                                         className="h-7 px-3 text-[10px] font-bold bg-primary hover:bg-primary/90"
                                                                         onClick={() => { 
                                                                             setPaymentBillId(bill.id); 
-                                                                            setPaymentRows([{ id: Math.random().toString(), method: "Cash", amount: bill.total_amount, transactionId: "" }]);
+                                                                            setPaymentRows([{ id: Math.random().toString(), method: "Cash", amount: bill.remaining_due || bill.total_amount, transactionId: "" }]);
                                                                             setIsPaymentModalOpen(true); 
                                                                         }}
                                                                     >
@@ -1298,7 +1338,9 @@ export default function BillingPage() {
                         <DialogTitle>Collect Payment</DialogTitle>
                         <p className="text-xs text-muted-foreground">
                             Invoice: {bills.find(b => b.id === paymentBillId)?.invoice_number || "..."} | 
-                            Total Due: <span className="font-bold text-primary">Rs. {bills.find(b => b.id === paymentBillId)?.total_amount.toFixed(2)}</span>
+                            Total: <span className="font-bold">Rs. {bills.find(b => b.id === paymentBillId)?.total_amount.toFixed(2)}</span> |
+                            Already Paid: <span className="font-bold text-emerald-600">Rs. {bills.find(b => b.id === paymentBillId)?.paid_amount?.toFixed(2)}</span> |
+                            Balance Due: <span className="font-bold text-primary">Rs. {bills.find(b => b.id === paymentBillId)?.remaining_due?.toFixed(2)}</span>
                         </p>
                     </DialogHeader>
                     
@@ -1385,7 +1427,7 @@ export default function BillingPage() {
                             <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">Total Collected</p>
                             <p className={cn(
                                 "text-lg font-black",
-                                Math.abs(paymentRows.reduce((a, b) => a + (Number(b.amount) || 0), 0) - (bills.find(b => b.id === paymentBillId)?.total_amount || 0)) < 0.01 
+                                Math.abs(paymentRows.reduce((a, b) => a + (Number(b.amount) || 0), 0) - (bills.find(b => b.id === paymentBillId)?.remaining_due || 0)) < 0.01 
                                     ? "text-emerald-600" 
                                     : "text-rose-600"
                             )}>
@@ -1393,9 +1435,9 @@ export default function BillingPage() {
                             </p>
                         </div>
                         <div className="text-right">
-                            <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">Balance</p>
+                            <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">Balance After</p>
                             <p className="text-sm font-bold">
-                                Rs. {((bills.find(b => b.id === paymentBillId)?.total_amount || 0) - paymentRows.reduce((a, b) => a + (Number(b.amount) || 0), 0)).toFixed(2)}
+                                Rs. {((bills.find(b => b.id === paymentBillId)?.remaining_due || 0) - paymentRows.reduce((a, b) => a + (Number(b.amount) || 0), 0)).toFixed(2)}
                             </p>
                         </div>
                     </div>

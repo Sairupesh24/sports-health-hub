@@ -39,6 +39,7 @@ const adminNav: NavItem[] = [
   { label: "Calendar", icon: CalendarDays, href: "/admin/calendar" },
   { label: "Reports", icon: ClipboardList, href: "/admin/reports" },
   { label: "Billing", icon: CreditCard, href: "/admin/billing" },
+  { label: "Questionnaires", icon: ClipboardList, href: "/ams/questionnaires" },
   { label: "User Approvals", icon: UserCheck, href: "/admin/users" },
   { label: "Settings", icon: Settings, href: "/admin/settings", isUnderDevelopment: true },
 ];
@@ -50,6 +51,7 @@ const consultantNav: NavItem[] = [
   { label: "Availability", icon: Clock, href: "/consultant/availability" },
   { label: "Reports", icon: ClipboardList, href: "/consultant/reports" },
   { label: "Injury Repo", icon: Activity, href: "/consultant/injuries" },
+  { label: "Questionnaires", icon: ClipboardList, href: "/ams/questionnaires" },
   { label: "Attendance", icon: CalendarClock, href: "/my-attendance" },
 ];
 
@@ -68,6 +70,7 @@ const foeNav: NavItem[] = [
   { label: "Calendar", icon: CalendarDays, href: "/admin/calendar" },
   { label: "Reports", icon: ClipboardList, href: "/admin/reports" },
   { label: "Billing", icon: CreditCard, href: "/admin/billing" },
+  { label: "Questionnaires", icon: ClipboardList, href: "/ams/questionnaires" },
   { label: "User Approvals", icon: UserCheck, href: "/admin/users" },
   { label: "Attendance", icon: CalendarClock, href: "/my-attendance" },
   { label: "Settings", icon: Settings, href: "/admin/settings", isUnderDevelopment: true },
@@ -79,6 +82,7 @@ const sportsScientistNav: NavItem[] = [
   { label: "My Clients", icon: Users, href: "/sports-scientist/clients" },
   { label: "Reports", icon: ClipboardList, href: "/sports-scientist/reports" },
   { label: "Analytics", icon: Activity, href: "/sports-scientist/analytics" },
+  { label: "Questionnaires", icon: ClipboardList, href: "/ams/questionnaires" },
   { label: "Attendance", icon: CalendarClock, href: "/my-attendance" },
 ];
 

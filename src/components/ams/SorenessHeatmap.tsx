@@ -26,6 +26,8 @@ const bodyParts: BodyPart[] = [
     { id: "hip_flexor_r", label: "Hip Flexor (R)", view: "front", path: "M128,155 L115,155 L118,175 L130,170 Z" },
     { id: "quad_l", label: "Quads (L)", view: "front", path: "M75,180 L98,180 L95,230 L70,230 Z" },
     { id: "quad_r", label: "Quads (R)", view: "front", path: "M125,180 L102,180 L105,230 L130,230 Z" },
+    { id: "groin_l", label: "Groin (L)", view: "front", path: "M88,155 L99,155 L98,180 L90,180 Z" },
+    { id: "groin_r", label: "Groin (R)", view: "front", path: "M112,155 L101,155 L102,180 L110,180 Z" },
     { id: "shin_l", label: "Shin (L)", view: "front", path: "M75,235 L95,235 L90,285 L80,285 Z" },
     { id: "shin_r", label: "Shin (R)", view: "front", path: "M125,235 L105,235 L110,285 L120,285 Z" },
 
@@ -44,8 +46,8 @@ const bodyParts: BodyPart[] = [
     { id: "hip_abductor_r", label: "Hip Abductor (R)", view: "back", path: "M130,155 L122,155 L125,175 L132,170 Z" },
     { id: "glute_l", label: "Glutes (L)", view: "back", path: "M78,155 L100,155 L100,185 L75,185 C72,175 72,165 78,155 Z" },
     { id: "glute_r", label: "Glutes (R)", view: "back", path: "M122,155 L100,155 L100,185 L125,185 C128,175 128,165 122,155 Z" },
-    { id: "hip_adductor_l", label: "Hip Adductor (L)", view: "back", path: "M95,188 L100,188 L100,225 L92,225 Z" },
-    { id: "hip_adductor_r", label: "Hip Adductor (R)", view: "back", path: "M105,188 L100,188 L100,225 L108,225 Z" },
+    { id: "groin_l", label: "Groin (L)", view: "back", path: "M95,188 L100,188 L100,225 L92,225 Z" },
+    { id: "groin_r", label: "Groin (R)", view: "back", path: "M105,188 L100,188 L100,225 L108,225 Z" },
     { id: "hamstring_l", label: "Hamstrings (L)", view: "back", path: "M72,188 L92,188 L88,235 L70,235 Z" },
     { id: "hamstring_r", label: "Hamstrings (R)", view: "back", path: "M128,188 L108,188 L112,235 L130,235 Z" },
     { id: "calf_l", label: "Calves (L)", view: "back", path: "M75,240 L95,240 L90,285 L80,285 Z" },
@@ -75,6 +77,8 @@ export default function SorenessHeatmap({ onZoneToggle, selectedZones, readOnly 
         if (id === "neck") return ["neck_ant", "neck_post"];
         if (id === "shin_l" || id === "left_shin") return ["shin_l"];
         if (id === "shin_r" || id === "right_shin") return ["shin_r"];
+        if (id === "hip_adductor_l" || id === "left_groin") return ["groin_l"];
+        if (id === "hip_adductor_r" || id === "right_groin") return ["groin_r"];
         return [id];
     }).flat();
 

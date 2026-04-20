@@ -183,7 +183,26 @@ export default function ClientProfile() {
                 .eq('client_id', id)
                 .order('created_at', { ascending: false });
             if (error) throw error;
-            return data;
+
+            // Fetch payments for these bills
+            const billIds = data.map(b => b.id);
+            const { data: payments, error: payError } = await supabase
+                .from('bill_payments')
+                .select('bill_id, amount')
+                .in('bill_id', billIds);
+            
+            if (payError) throw payError;
+
+            const paymentMap: Record<string, number> = {};
+            payments?.forEach(p => {
+                paymentMap[p.bill_id] = (paymentMap[p.bill_id] || 0) + (Number(p.amount) || 0);
+            });
+
+            return data.map(b => ({
+                ...b,
+                paid_amount: paymentMap[b.id] || 0,
+                remaining_due: Math.max(0, Number(b.total) - (paymentMap[b.id] || 0))
+            }));
         },
         enabled: !!id
     });
@@ -253,8 +272,16 @@ export default function ClientProfile() {
         
         if (!bill) return;
 
-        if (Math.abs(totalPaid - bill.total) > 0.01) {
-            toast({ title: "Amount mismatch", description: `Total payments (Rs. ${totalPaid}) must equal bill total (Rs. ${bill.total})`, variant: "destructive" });
+        const paidAmount = bill.paid_amount || 0;
+        const remainingDue = bill.remaining_due ?? bill.total;
+
+        if (totalPaid <= 0) {
+            toast({ title: "Invalid amount", description: "Payment amount must be greater than zero", variant: "destructive" });
+            return;
+        }
+
+        if (totalPaid > remainingDue + 0.01) {
+            toast({ title: "Amount mismatch", description: `Total payments (Rs. ${totalPaid}) exceeds remaining due (Rs. ${remainingDue.toFixed(2)})`, variant: "destructive" });
             return;
         }
 
@@ -281,9 +308,10 @@ export default function ClientProfile() {
             }
 
             // 2. Update Bill status
+            const isFullyPaid = Math.abs(totalPaid - remainingDue) < 0.01;
             const { error: billError } = await supabase.from('bills')
                 .update({ 
-                    status: 'Paid', 
+                    status: isFullyPaid ? 'Paid' : 'Partially Paid', 
                     updated_at: new Date().toISOString()
                 })
                 .eq('id', paymentBillId);
@@ -842,18 +870,33 @@ export default function ClientProfile() {
                                                     <td className="p-3 text-muted-foreground">{bill.bill_items?.map((bi: any) => bi.packages?.name).join(", ") || "Custom"}</td>
                                                     <td className="p-3 text-right font-medium">Rs. {bill.total}</td>
                                                     <td className="p-3 text-center">
-                                                        <span className={`inline-block px-2 py-0.5 rounded text-xs font-semibold ${bill.status === 'Paid' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-amber-500/10 text-amber-600'}`}>
-                                                            {bill.status}
-                                                        </span>
+                                                        {bill.status === "Paid" ? (
+                                                            <Badge variant="secondary" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20 font-bold uppercase text-[10px]">
+                                                                PAID
+                                                            </Badge>
+                                                        ) : bill.status === "Partially Paid" ? (
+                                                            <Badge variant="secondary" className="bg-blue-500/10 text-blue-600 border-blue-500/20 font-bold uppercase text-[10px]">
+                                                                PARTIAL
+                                                            </Badge>
+                                                        ) : (
+                                                            <Badge variant="secondary" className="bg-amber-500/10 text-amber-600 border-amber-500/20 font-bold uppercase text-[10px]">
+                                                                PENDING
+                                                            </Badge>
+                                                        )}
                                                     </td>
                                                     <td className="p-3 text-right">
                                                         <div className="flex justify-end gap-2">
-                                                            {bill.status === "Pending" && (
-                                                                <Button size="sm" variant="outline" onClick={() => {
-                                                                    setPaymentBillId(bill.id);
-                                                                    setIsPaymentModalOpen(true);
-                                                                }}>
-                                                                    Mark Paid
+                                                            {(bill.status === "Pending" || bill.status === "Partially Paid") && (
+                                                                <Button 
+                                                                    size="sm" 
+                                                                    className="h-7 px-3 text-[10px] font-bold"
+                                                                    onClick={() => {
+                                                                        setPaymentBillId(bill.id);
+                                                                        setPaymentRows([{ id: Math.random().toString(), method: "Cash", amount: bill.remaining_due || bill.total, transactionId: "" }]);
+                                                                        setIsPaymentModalOpen(true);
+                                                                    }}
+                                                                >
+                                                                    Collect
                                                                 </Button>
                                                             )}
                                                             {bill.status === "Paid" && (
@@ -982,8 +1025,10 @@ export default function ClientProfile() {
                     <DialogHeader>
                         <DialogTitle>Collect Payment</DialogTitle>
                         <p className="text-xs text-muted-foreground">
-                            Invoice: {bills?.find(b => b.id === paymentBillId)?.id.substring(0,8) || "..."} | 
-                            Total Due: <span className="font-bold text-primary">Rs. {bills?.find(b => b.id === paymentBillId)?.total.toFixed(2)}</span>
+                            Invoice: {paymentBillId.substring(0, 8).toUpperCase()} | 
+                            Total: <span className="font-bold">Rs. {bills?.find(b => b.id === paymentBillId)?.total}</span> |
+                            Already Paid: <span className="font-bold text-emerald-600">Rs. {bills?.find(b => b.id === paymentBillId)?.paid_amount}</span> |
+                            Balance Due: <span className="font-bold text-primary">Rs. {bills?.find(b => b.id === paymentBillId)?.remaining_due}</span>
                         </p>
                     </DialogHeader>
                     
@@ -1070,7 +1115,7 @@ export default function ClientProfile() {
                             <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">Total Collected</p>
                             <p className={cn(
                                 "text-lg font-black",
-                                Math.abs(paymentRows.reduce((a, b) => a + (Number(b.amount) || 0), 0) - (bills?.find(b => b.id === paymentBillId)?.total || 0)) < 0.01 
+                                Math.abs(paymentRows.reduce((a, b) => a + (Number(b.amount) || 0), 0) - (bills?.find(b => b.id === paymentBillId)?.remaining_due || 0)) < 0.01 
                                     ? "text-emerald-600" 
                                     : "text-rose-600"
                             )}>
@@ -1078,9 +1123,9 @@ export default function ClientProfile() {
                             </p>
                         </div>
                         <div className="text-right">
-                            <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">Balance</p>
+                            <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">Balance After</p>
                             <p className="text-sm font-bold">
-                                Rs. {((bills?.find(b => b.id === paymentBillId)?.total || 0) - paymentRows.reduce((a, b) => a + (Number(b.amount) || 0), 0)).toFixed(2)}
+                                Rs. {((bills?.find(b => b.id === paymentBillId)?.remaining_due || 0) - paymentRows.reduce((a, b) => a + (Number(b.amount) || 0), 0)).toFixed(2)}
                             </p>
                         </div>
                     </div>

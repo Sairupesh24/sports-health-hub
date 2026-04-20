@@ -28,7 +28,14 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Link, useLocation } from "react-router-dom";
 
+import { useAuth } from "@/contexts/AuthContext";
+
 export default function AmsStaffNav() {
+  const { roles } = useAuth();
+  const isClinical = roles.some(r => ["coach", "sports_scientist", "sports_physician", "physiotherapist", "nutritionist"].includes(r));
+  
+  if (!isClinical) return null;
+
   return (
     <nav className="h-16 border-b border-slate-200 bg-white sticky top-0 z-40 px-4 flex items-center justify-between text-slate-900 transition-all duration-300 hover:shadow-md group/nav">
       <div className="flex items-center gap-6">
@@ -60,6 +67,8 @@ export default function AmsStaffNav() {
               <ToolItem label="Workout Templates" icon={LayoutTemplate} to="/sports-scientist/templates" />
               <ToolItem label="Documents & Links" icon={ClipboardList} to="/sports-scientist/resources" />
               <ToolItem label="Reporting" icon={Activity} to="/sports-scientist/reports" />
+              <DropdownMenuSeparator className="bg-slate-100" />
+              <ToolItem label="Questionnaire Library" icon={ClipboardList} to="/ams/questionnaires" />
             </DropdownMenuContent>
           </DropdownMenu>
 
