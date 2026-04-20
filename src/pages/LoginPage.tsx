@@ -60,7 +60,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex">
+    <div className="h-screen overflow-y-auto flex">
       {/* Left - Branding */}
       <div className="hidden lg:flex lg:w-1/2 gradient-dark items-center justify-center p-12 relative overflow-hidden">
         <div className="absolute inset-0 opacity-10">

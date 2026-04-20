@@ -65,7 +65,7 @@ export default function SetupPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-8">
+    <div className="h-screen overflow-y-auto flex items-center justify-center bg-background p-8">
       <form onSubmit={handleSetup} className="w-full max-w-md space-y-6">
         <div className="flex items-center gap-3 mb-4">
           <div className="w-12 h-12 rounded-xl gradient-primary flex items-center justify-center shadow-glow">

@@ -166,7 +166,7 @@ export default function PublicEnquiry() {
 
   if (isSubmitted) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+      <div className="h-screen overflow-y-auto bg-slate-50 flex items-center justify-center p-4">
         <Card className="max-w-md w-full shadow-2xl border-none animate-in fade-in zoom-in duration-500">
           <CardContent className="pt-12 pb-12 flex flex-col items-center text-center space-y-6">
             <div className="w-20 h-20 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 animate-bounce">
@@ -191,7 +191,7 @@ export default function PublicEnquiry() {
 
   if (fetchingOrg) {
     return (
-      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4">
+      <div className="h-screen overflow-y-auto bg-slate-50 flex flex-col items-center justify-center p-4">
         <Loader2 className="w-10 h-10 animate-spin text-primary mb-4" />
         <p className="text-sm font-bold uppercase tracking-widest text-slate-400">Loading Enquiry Form...</p>
       </div>
@@ -199,7 +199,7 @@ export default function PublicEnquiry() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col items-center p-4 py-12">
+    <div className="h-screen overflow-y-auto bg-slate-50 flex flex-col items-center p-4 py-12">
       {/* Background decoration */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none -z-10">
         <div className="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] rounded-full bg-primary/5 blur-[120px]" />

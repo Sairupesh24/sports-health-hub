@@ -20,7 +20,7 @@ export default function AppointmentList({ role, hideLayout = false }: { role: 'a
         if (!profile?.organization_id || !profile?.id) return;
         try {
             let query = (supabase as any).from("sessions").select(`
-          id, scheduled_start, scheduled_end, service_type, status,
+          id, scheduled_start, scheduled_end, service_type, status, is_unentitled,
           client:clients!sessions_client_id_fkey(first_name, last_name, uhid, is_vip),
         therapist:profiles!sessions_therapist_id_fkey(first_name, last_name)
         `).eq("organization_id", profile.organization_id)
@@ -135,8 +135,13 @@ export default function AppointmentList({ role, hideLayout = false }: { role: 'a
                                     )}
                                 </div>
 
-                                <div className="flex flex-row md:flex-col items-center md:items-end justify-between md:justify-center gap-4 mt-6 md:mt-0 pt-6 md:pt-0 border-t md:border-t-0 border-slate-50">
+                                <div className="flex flex-row md:flex-col items-center md:items-end justify-between md:justify-center gap-2 mt-6 md:mt-0 pt-6 md:pt-0 border-t md:border-t-0 border-slate-50">
                                     {getStatusBadge(apt.status)}
+                                    {apt.is_unentitled && (
+                                        <Badge variant="destructive" className="text-[8px] h-4 px-1 font-black animate-pulse uppercase">
+                                            UN-ENTITLED
+                                        </Badge>
+                                    )}
                                     {(role === 'admin' || role === 'consultant') && (
                                         <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-primary transition-transform group-hover:translate-x-1" />
                                     )}

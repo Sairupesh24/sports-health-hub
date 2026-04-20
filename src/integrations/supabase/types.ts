@@ -44,6 +44,12 @@ export interface Database {
           updated_at: string
           deleted_at: string | null
           org_code: string | null
+          uhid_prefix: string | null
+          logo_url: string | null
+          official_name: string | null
+          official_address: string | null
+          contact_email: string | null
+          contact_phone: string | null
         }
         Insert: {
           id?: string
@@ -52,6 +58,12 @@ export interface Database {
           updated_at?: string
           deleted_at?: string | null
           org_code?: string | null
+          uhid_prefix?: string | null
+          logo_url?: string | null
+          official_name?: string | null
+          official_address?: string | null
+          contact_email?: string | null
+          contact_phone?: string | null
         }
         Update: {
           id?: string
@@ -60,6 +72,12 @@ export interface Database {
           updated_at?: string
           deleted_at?: string | null
           org_code?: string | null
+          uhid_prefix?: string | null
+          logo_url?: string | null
+          official_name?: string | null
+          official_address?: string | null
+          contact_email?: string | null
+          contact_phone?: string | null
         }
         Relationships: []
       }
@@ -76,6 +94,7 @@ export interface Database {
           ams_role: string | null
           profession: string | null
           ams_enabled: boolean | null
+          is_approved: boolean
         }
         Insert: {
           id: string
@@ -89,6 +108,7 @@ export interface Database {
           ams_role?: string | null
           profession?: string | null
           ams_enabled?: boolean | null
+          is_approved?: boolean
         }
         Update: {
           id?: string
@@ -102,6 +122,7 @@ export interface Database {
           ams_role?: string | null
           profession?: string | null
           ams_enabled?: boolean | null
+          is_approved?: boolean
         }
         Relationships: []
       }
@@ -165,6 +186,7 @@ export interface Database {
           is_vip: boolean | null
           referral_source: string | null
           referral_source_detail: string | null
+          sport: string | null
         }
         Insert: {
           id?: string
@@ -207,6 +229,7 @@ export interface Database {
           is_vip?: boolean | null
           referral_source?: string | null
           referral_source_detail?: string | null
+          sport?: string | null
         }
         Update: {
           id?: string
@@ -249,6 +272,7 @@ export interface Database {
           is_vip?: boolean | null
           referral_source?: string | null
           referral_source_detail?: string | null
+          sport?: string | null
         }
         Relationships: []
       }
@@ -471,6 +495,7 @@ export interface Database {
           updated_at: string
           is_guest: boolean | null
           enquiry_id: string | null
+          is_unentitled: boolean
         }
         Insert: {
           id?: string
@@ -490,6 +515,7 @@ export interface Database {
           updated_at?: string
           is_guest?: boolean | null
           enquiry_id?: string | null
+          is_unentitled?: boolean
         }
         Update: {
           id?: string
@@ -509,6 +535,7 @@ export interface Database {
           updated_at?: string
           is_guest?: boolean | null
           enquiry_id?: string | null
+          is_unentitled?: boolean
         }
         Relationships: [
           {
@@ -1127,6 +1154,234 @@ export interface Database {
           updated_at?: string
         }
         Relationships: []
+      }
+      organization_settings: {
+        Row: {
+          organization_id: string
+          allow_custom_duration: boolean | null
+          default_slot_duration: number | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          organization_id: string
+          allow_custom_duration?: boolean | null
+          default_slot_duration?: number | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          organization_id?: string
+          allow_custom_duration?: boolean | null
+          default_slot_duration?: number | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_settings_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: true
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      consultant_availability: {
+        Row: {
+          id: string
+          organization_id: string
+          consultant_id: string
+          day_of_week: number
+          start_time: string
+          end_time: string
+          service_type: string | null
+          slot_duration_interval: number | null
+          buffer_time: number
+          max_daily_appointments: number | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          organization_id: string
+          consultant_id: string
+          day_of_week: number
+          start_time: string
+          end_time: string
+          service_type?: string | null
+          slot_duration_interval?: number | null
+          buffer_time?: number
+          max_daily_appointments?: number | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          organization_id?: string
+          consultant_id?: string
+          day_of_week?: number
+          start_time?: string
+          end_time?: string
+          service_type?: string | null
+          slot_duration_interval?: number | null
+          buffer_time?: number
+          max_daily_appointments?: number | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "consultant_availability_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "consultant_availability_consultant_id_fkey"
+            columns: ["consultant_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      availability_exceptions: {
+        Row: {
+          id: string
+          organization_id: string
+          consultant_id: string
+          exception_date: string
+          is_blocked: boolean | null
+          start_time: string | null
+          end_time: string | null
+          reason: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          organization_id: string
+          consultant_id: string
+          exception_date: string
+          is_blocked?: boolean | null
+          start_time?: string | null
+          end_time?: string | null
+          reason?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          organization_id?: string
+          consultant_id?: string
+          exception_date?: string
+          is_blocked?: boolean | null
+          start_time?: string | null
+          end_time?: string | null
+          reason?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "availability_exceptions_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "availability_exceptions_consultant_id_fkey"
+            columns: ["consultant_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      appointment_history: {
+        Row: {
+          id: string
+          appointment_id: string
+          previous_status: Database["public"]["Enums"]["appointment_status"] | null
+          new_status: Database["public"]["Enums"]["appointment_status"]
+          changed_by: string | null
+          change_reason: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          appointment_id: string
+          previous_status?: Database["public"]["Enums"]["appointment_status"] | null
+          new_status: Database["public"]["Enums"]["appointment_status"]
+          changed_by?: string | null
+          change_reason?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          appointment_id?: string
+          previous_status?: Database["public"]["Enums"]["appointment_status"] | null
+          new_status?: Database["public"]["Enums"]["appointment_status"]
+          changed_by?: string | null
+          change_reason?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "appointment_history_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      bill_payments: {
+        Row: {
+          id: string
+          organization_id: string
+          bill_id: string
+          client_id: string
+          amount: number
+          payment_method: string
+          transaction_id: string | null
+          recorded_by: string | null
+          payment_date: string
+          notes: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          organization_id: string
+          bill_id: string
+          client_id: string
+          amount: number
+          payment_method: string
+          transaction_id?: string | null
+          recorded_by?: string | null
+          payment_date?: string
+          notes?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          organization_id?: string
+          bill_id?: string
+          client_id?: string
+          amount?: number
+          payment_method?: string
+          transaction_id?: string | null
+          recorded_by?: string | null
+          payment_date?: string
+          notes?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bill_payments_bill_id_fkey"
+            columns: ["bill_id"]
+            isOneToOne: false
+            referencedRelation: "bills"
+            referencedColumns: ["id"]
+          }
+        ]
       }
     }
     Views: {

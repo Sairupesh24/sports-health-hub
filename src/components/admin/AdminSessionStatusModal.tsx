@@ -230,6 +230,20 @@ export function AdminSessionStatusModal({ open, onOpenChange, session, onSuccess
         if (!session?.id) return;
         setReconciling(true);
         try {
+            // 1. If service changed in UI, persist it first so RPC can use it
+            if (serviceId && serviceId !== session.service_id) {
+                const selectedService = services.find(s => s.id === serviceId);
+                const { error: updateError } = await supabase
+                    .from("sessions")
+                    .update({ 
+                        service_id: serviceId,
+                        service_type: selectedService?.name || session.service_type
+                    })
+                    .eq("id", session.id);
+                
+                if (updateError) throw updateError;
+            }
+
             const { data: { user } } = await supabase.auth.getUser();
             const { error } = await (supabase as any).rpc("reconcile_session", {
                 p_session_id: session.id,
@@ -329,7 +343,11 @@ export function AdminSessionStatusModal({ open, onOpenChange, session, onSuccess
                         <p><strong>Scheduled:</strong> {format(new Date(session.scheduled_start), "MMM d, yyyy h:mm a")}</p>
                         <div className="flex items-center gap-2">
                              <strong>Service:</strong>
-                             <Select value={serviceId} onValueChange={setServiceId} disabled={isLocked || session.status === "Completed"}>
+                             <Select 
+                                value={serviceId} 
+                                onValueChange={setServiceId} 
+                                disabled={isLocked || (session.status === "Completed" && !isUnentitled)}
+                             >
                                  <SelectTrigger className="h-7 text-xs bg-transparent border-none p-0 focus:ring-0">
                                      <SelectValue placeholder="Select Service" />
                                  </SelectTrigger>

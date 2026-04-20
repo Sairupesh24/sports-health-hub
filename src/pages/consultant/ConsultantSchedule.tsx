@@ -27,7 +27,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, User, ClipboardList, AlertTriangle } from "lucide-react";
 import SOAPNoteModal from "@/components/consultant/SOAPNoteModal";
-import { Loader2 } from "lucide-react";
+import { PatientAlertSummaryIcon } from "@/components/consultant/PatientAlertSummaryIcon";
+import { Loader2, BadgeIndianRupee } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { VIPBadge, VIPName } from "@/components/ui/VIPBadge";
 
@@ -291,6 +292,11 @@ export default function ConsultantSchedule() {
                                     <span className="font-semibold">{format(parseISO(event.scheduled_start), "HH:mm")}</span>
                                     {" "}
                                     <VIPName name={`${event.client?.first_name} ${event.client?.last_name}`} isVIP={event.client?.is_vip} />
+                                    {event.client_id && (
+                                        <div className="inline-block ml-1 align-middle">
+                                            <PatientAlertSummaryIcon clientId={event.client_id} isVIP={event.client?.is_vip} />
+                                        </div>
+                                    )}
                                     {event.is_unentitled && (
                                         <span className="ml-1 px-1 bg-red-500 text-white rounded-[2px] text-[8px] font-bold animate-pulse">
                                             UN
@@ -399,8 +405,9 @@ export default function ConsultantSchedule() {
                                                     style={{ top: `${topPos}px`, height: `${height}px`, minHeight: '24px' }}
                                                 >
                                                     <div className="text-xs font-semibold">{format(startD, "HH:mm")} - {format(endD, "HH:mm")}</div>
-                                                    <div className="text-xs truncate font-medium">
+                                                    <div className="text-xs truncate font-medium flex items-center gap-1">
                                                         <VIPName name={`${event.client?.first_name} ${event.client?.last_name}`} isVIP={event.client?.is_vip} />
+                                                        {event.client_id && <PatientAlertSummaryIcon clientId={event.client_id} isVIP={event.client?.is_vip} />}
                                                     </div>
                                                     {height > 40 && <div className="text-xs truncate opacity-80 mt-0.5">{event.service_type}</div>}
                                                     {event.is_unentitled && (
@@ -493,6 +500,7 @@ export default function ConsultantSchedule() {
                                          <div className="font-display font-medium text-sm mt-1 flex items-center gap-2 overflow-hidden">
                                              <User className="w-3 h-3 opacity-70 flex-shrink-0" />
                                              <VIPName name={`${event.client?.first_name} ${event.client?.last_name}`} isVIP={event.client?.is_vip} className="truncate" />
+                                             {event.client_id && <PatientAlertSummaryIcon clientId={event.client_id} isVIP={event.client?.is_vip} />}
                                          </div>
                                          <div className="text-xs opacity-80 mt-0.5 truncate">
                                              {event.service_type}

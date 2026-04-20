@@ -49,7 +49,7 @@ export default function SignupPage() {
 
   if (sent) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background p-8">
+      <div className="h-screen overflow-y-auto flex items-center justify-center bg-background p-8">
         <div className="max-w-md text-center space-y-4">
           <div className="w-12 h-12 rounded-xl gradient-primary flex items-center justify-center mx-auto">
             <Activity className="w-6 h-6 text-primary-foreground" />
@@ -68,7 +68,7 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="min-h-screen flex">
+    <div className="h-screen overflow-y-auto flex">
       {/* Left Branding */}
       <div className="hidden lg:flex lg:w-1/2 gradient-dark items-center justify-center p-12 relative overflow-hidden">
         <div className="absolute inset-0 opacity-10">

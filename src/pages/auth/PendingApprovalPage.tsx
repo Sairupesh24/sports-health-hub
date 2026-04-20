@@ -33,14 +33,14 @@ export default function PendingApprovalPage() {
   // Show a simple loading state while AuthContext hydrates
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="h-screen overflow-y-auto flex items-center justify-center bg-background">
         <div className="animate-pulse text-muted-foreground">Loading...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-8">
+    <div className="h-screen overflow-y-auto flex items-center justify-center bg-background p-8">
       <div className="max-w-md text-center space-y-6">
         <div className="w-16 h-16 rounded-2xl bg-warning/10 flex items-center justify-center mx-auto">
           <Clock className="w-8 h-8 text-warning" />

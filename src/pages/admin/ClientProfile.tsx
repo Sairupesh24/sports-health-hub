@@ -5,13 +5,13 @@ import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, User, Phone, MapPin, Shield, Activity, CalendarDays, FileText, Download, Users, Banknote, Smartphone, Landmark, CreditCard } from "lucide-react";
+import { ArrowLeft, User, Phone, MapPin, Shield, Activity, CalendarDays, FileText, Download, Users, Banknote, Smartphone, Landmark, CreditCard, Plus, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { Textarea } from "@/components/ui/textarea";
 import { ClientEntitlements } from "./ClientEntitlements";
 import { DocumentManager } from "@/components/admin/documents/DocumentManager";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,6 +20,7 @@ import { toast } from "@/hooks/use-toast";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import * as XLSX from 'xlsx';
+import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { RefundModal } from "@/components/admin/RefundModal";
 import { generateRefundVoucher } from "@/lib/refundActions";
@@ -46,8 +47,9 @@ export default function ClientProfile() {
     const [loading, setLoading] = useState(true);
     const [paymentBillId, setPaymentBillId] = useState<string>("");
     const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
-    const [paymentMethod, setPaymentMethod] = useState("");
-    const [transactionId, setTransactionId] = useState("");
+    const [paymentRows, setPaymentRows] = useState<Array<{ id: string, method: string, amount: number, transactionId: string }>>([
+        { id: Math.random().toString(), method: "Cash", amount: 0, transactionId: "" }
+    ]);
 
     const [amsRole, setAmsRole] = useState<string | null>(null);
     const [profileId, setProfileId] = useState<string | null>(null);
@@ -136,7 +138,8 @@ export default function ClientProfile() {
                 .select(`
                     *,
                     therapist:profiles!sessions_therapist_id_fkey(first_name, last_name),
-                    physio_session_details(*)
+                    physio_session_details(*),
+                    is_unentitled
                 `)
                 .eq('client_id', id);
 
@@ -245,34 +248,53 @@ export default function ClientProfile() {
     };
 
     const markAsPaid = async () => {
-        if (!paymentMethod) {
-            toast({ title: "Select a payment method", variant: "destructive" });
+        const totalPaid = paymentRows.reduce((a, b) => a + (Number(b.amount) || 0), 0);
+        const bill = bills?.find(b => b.id === paymentBillId);
+        
+        if (!bill) return;
+
+        if (Math.abs(totalPaid - bill.total) > 0.01) {
+            toast({ title: "Amount mismatch", description: `Total payments (Rs. ${totalPaid}) must equal bill total (Rs. ${bill.total})`, variant: "destructive" });
             return;
         }
 
-        if ((paymentMethod === "UPI" || paymentMethod === "Card") && !transactionId.trim()) {
-            toast({ title: "Transaction ID is mandatory for UPI/Card payments", variant: "destructive" });
+        const invalidRow = paymentRows.find(r => (r.method === 'UPI' || r.method === 'Card') && !r.transactionId?.trim());
+        if (invalidRow) {
+            toast({ title: "Missing Transaction ID", description: `Please provide a transaction ID for the ${invalidRow.method} payment line.`, variant: "destructive" });
             return;
         }
 
         try {
-            const { error } = await supabase.from('bills')
+            // 1. Record each payment row
+            for (const row of paymentRows) {
+                const { error: payError } = await supabase.from('bill_payments').insert({
+                    organization_id: client?.organization_id!,
+                    bill_id: paymentBillId,
+                    client_id: id!,
+                    amount: row.amount,
+                    payment_method: row.method as any,
+                    transaction_id: row.transactionId,
+                    recorded_by: currentUserProfile?.id!,
+                    notes: `Collect payment via Client Profile`
+                });
+                if (payError) throw payError;
+            }
+
+            // 2. Update Bill status
+            const { error: billError } = await supabase.from('bills')
                 .update({ 
                     status: 'Paid', 
-                    notes: `Paid via ${paymentMethod}${transactionId ? ` (TXN: ${transactionId})` : ''}`,
-                    transaction_id: transactionId
+                    updated_at: new Date().toISOString()
                 })
                 .eq('id', paymentBillId);
 
-            if (error) throw error;
+            if (billError) throw billError;
 
             queryClient.invalidateQueries({ queryKey: ['client-bills', id] });
 
             setIsPaymentModalOpen(false);
-            setPaymentMethod("");
-            setTransactionId("");
-            setPaymentBillId("");
-            toast({ title: "Payment Recorded!" });
+            setPaymentRows([{ id: Math.random().toString(), method: "Cash", amount: 0, transactionId: "" }]);
+            toast({ title: "Payment Recorded Successfully" });
         } catch (err: any) {
             toast({ title: "Failed to record payment", description: err.message, variant: "destructive" });
         }
@@ -955,52 +977,122 @@ export default function ClientProfile() {
             )}
 
             {/* Payment Modal */}
-            <Dialog open={isPaymentModalOpen} onOpenChange={(open) => {
-                setIsPaymentModalOpen(open);
-                if (!open) {
-                    setPaymentMethod("");
-                    setTransactionId("");
-                }
-            }}>
-                <DialogContent>
+            <Dialog open={isPaymentModalOpen} onOpenChange={setIsPaymentModalOpen}>
+                <DialogContent className="sm:max-w-[480px]">
                     <DialogHeader>
-                        <DialogTitle>Record Payment</DialogTitle>
+                        <DialogTitle>Collect Payment</DialogTitle>
+                        <p className="text-xs text-muted-foreground">
+                            Invoice: {bills?.find(b => b.id === paymentBillId)?.id.substring(0,8) || "..."} | 
+                            Total Due: <span className="font-bold text-primary">Rs. {bills?.find(b => b.id === paymentBillId)?.total.toFixed(2)}</span>
+                        </p>
                     </DialogHeader>
-                    <div className="space-y-4 py-4">
-                        <Select onValueChange={setPaymentMethod} value={paymentMethod}>
-                            <SelectTrigger>
-                                <SelectValue placeholder="Select Payment Method" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="Cash">Cash</SelectItem>
-                                <SelectItem value="Card">Card / POS</SelectItem>
-                                <SelectItem value="UPI">UPI / Digital</SelectItem>
-                                <SelectItem value="Bank Transfer">Bank Transfer</SelectItem>
-                            </SelectContent>
-                        </Select>
-
-                        {(paymentMethod === "UPI" || paymentMethod === "Card") && (
-                            <div className="space-y-2 pt-2 animate-in fade-in slide-in-from-top-2">
-                                <Label htmlFor="transactionId" className="text-xs font-semibold">Transaction ID <span className="text-destructive">*</span></Label>
-                                <Input 
-                                    id="transactionId"
-                                    placeholder="Enter transaction/reference ID" 
-                                    value={transactionId}
-                                    onChange={(e) => setTransactionId(e.target.value)}
-                                    className="h-9 text-sm"
-                                    required
-                                />
+                    
+                    <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto pr-2">
+                        {paymentRows.map((row, index) => (
+                            <div key={row.id} className="p-4 rounded-xl border bg-muted/20 space-y-3 relative">
+                                {paymentRows.length > 1 && (
+                                    <Button 
+                                        variant="ghost" 
+                                        size="icon" 
+                                        className="h-6 w-6 absolute top-2 right-2 text-muted-foreground hover:text-destructive"
+                                        onClick={() => setPaymentRows(paymentRows.filter(r => r.id !== row.id))}
+                                    >
+                                        <X className="w-3 h-3" />
+                                    </Button>
+                                )}
+                                
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div className="space-y-1.5">
+                                        <Label className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground">Mode</Label>
+                                        <Select 
+                                            value={row.method} 
+                                            onValueChange={(val) => {
+                                                const newRows = [...paymentRows];
+                                                newRows[index].method = val;
+                                                setPaymentRows(newRows);
+                                            }}
+                                        >
+                                            <SelectTrigger className="h-9 text-xs">
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="Cash">Cash</SelectItem>
+                                                <SelectItem value="UPI">UPI / Digital</SelectItem>
+                                                <SelectItem value="Card">Card</SelectItem>
+                                                <SelectItem value="Online Bank Transfer">Bank Transfer</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <Label className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground">Amount (Rs.)</Label>
+                                        <Input 
+                                            type="number" 
+                                            className="h-9 text-xs font-bold"
+                                            value={row.amount}
+                                            onChange={(e) => {
+                                                const newRows = [...paymentRows];
+                                                newRows[index].amount = Number(e.target.value);
+                                                setPaymentRows(newRows);
+                                            }}
+                                        />
+                                    </div>
+                                </div>
+                                
+                                {(row.method === 'UPI' || row.method === 'Card' || row.method === 'Online Bank Transfer') && (
+                                    <div className="space-y-1.5 pt-1">
+                                        <Label className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground">Transaction ID / Ref</Label>
+                                        <Input 
+                                            placeholder="Mandatory for digital payments"
+                                            className="h-9 text-xs"
+                                            value={row.transactionId}
+                                            onChange={(e) => {
+                                                const newRows = [...paymentRows];
+                                                newRows[index].transactionId = e.target.value;
+                                                setPaymentRows(newRows);
+                                            }}
+                                        />
+                                    </div>
+                                )}
                             </div>
-                        )}
-
+                        ))}
+                        
                         <Button 
-                            onClick={markAsPaid} 
-                            className="w-full"
-                            disabled={!paymentMethod || ((paymentMethod === "UPI" || paymentMethod === "Card") && !transactionId.trim())}
+                            variant="outline" 
+                            className="w-full h-9 border-dashed gap-2 text-xs"
+                            onClick={() => setPaymentRows([...paymentRows, { id: Math.random().toString(), method: "UPI", amount: 0, transactionId: "" }])}
                         >
-                            Confirm Payment
+                            <Plus className="w-3 h-3" /> Add Split Payment Mode
                         </Button>
                     </div>
+
+                    <div className="bg-primary/5 p-4 rounded-xl border border-primary/10 flex items-center justify-between">
+                        <div>
+                            <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">Total Collected</p>
+                            <p className={cn(
+                                "text-lg font-black",
+                                Math.abs(paymentRows.reduce((a, b) => a + (Number(b.amount) || 0), 0) - (bills?.find(b => b.id === paymentBillId)?.total || 0)) < 0.01 
+                                    ? "text-emerald-600" 
+                                    : "text-rose-600"
+                            )}>
+                                Rs. {paymentRows.reduce((a, b) => a + (Number(b.amount) || 0), 0).toFixed(2)}
+                            </p>
+                        </div>
+                        <div className="text-right">
+                            <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">Balance</p>
+                            <p className="text-sm font-bold">
+                                Rs. {((bills?.find(b => b.id === paymentBillId)?.total || 0) - paymentRows.reduce((a, b) => a + (Number(b.amount) || 0), 0)).toFixed(2)}
+                            </p>
+                        </div>
+                    </div>
+
+                    <DialogFooter>
+                        <Button 
+                            className="w-full font-bold" 
+                            onClick={markAsPaid}
+                        >
+                            Confirm & Post Payment
+                        </Button>
+                    </DialogFooter>
                 </DialogContent>
             </Dialog>
         </DashboardLayout>

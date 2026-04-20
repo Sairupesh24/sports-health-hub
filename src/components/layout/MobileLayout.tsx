@@ -73,7 +73,7 @@ export default function MobileLayout({ children, showBack }: MobileLayoutProps) 
   }, [profile?.organization_id, queryClient]);
 
   return (
-    <div className="flex flex-col min-h-screen bg-slate-950 text-white selection:bg-primary/30 antialiased overflow-x-hidden">
+    <div className="flex flex-col h-screen overflow-y-auto bg-slate-950 text-white selection:bg-primary/30 antialiased overflow-x-hidden">
       {/* Premium Glass Header */}
       <header className="fixed top-0 left-0 right-0 z-40 px-3 sm:px-6 py-4 flex items-center justify-between bg-slate-950/80 backdrop-blur-xl border-b border-white/5">
         <div className="flex items-center gap-3">

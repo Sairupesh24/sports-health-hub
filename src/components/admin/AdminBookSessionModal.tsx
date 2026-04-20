@@ -31,6 +31,7 @@ import {
 import { VIPName } from "@/components/ui/VIPBadge";
 import { filterServicesByRole, filterConsultantsByService, type Service } from "@/utils/serviceMapping";
 import { Calendar } from "@/components/ui/calendar";
+import { Checkbox } from "@/components/ui/checkbox";
 import { addDays, isSameDay, startOfDay as startOfDateDay, parseISO } from "date-fns";
 
 interface Props {
@@ -92,12 +93,19 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess, initialDa
     const [allConsultantAvailability, setAllConsultantAvailability] = useState<any[]>([]);
     const [allBookedSessions, setAllBookedSessions] = useState<any[]>([]);
 
+    const [outstandingBalance, setOutstandingBalance] = useState<number>(0);
+    const [adminRemarks, setAdminRemarks] = useState("");
+    const [isAcknowledged, setIsAcknowledged] = useState(false);
+    const [clientData, setClientData] = useState<any>(null);
+    const [orgLogoUrl, setOrgLogoUrl] = useState<string | null>(null);
+
     useEffect(() => {
         if (open && profile?.organization_id) {
             fetchClients();
             fetchConsultants();
             fetchServices();
             fetchOrgSettings();
+            fetchOrganizationBranding();
 
             if (initialData) {
                 if (initialData.clientId) setClientId(initialData.clientId);
@@ -113,6 +121,60 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess, initialDa
             }
         }
     }, [open, profile?.organization_id, initialData]);
+
+    useEffect(() => {
+        if (clientId && !isGuest) {
+            fetchClientUnifiedAlerts();
+            const selectedClient = clients.find(c => c.id === clientId);
+            setClientData(selectedClient);
+        } else {
+            setOutstandingBalance(0);
+            setAdminRemarks("");
+            setIsAcknowledged(false);
+            setClientData(null);
+        }
+    }, [clientId, isGuest, clients]);
+
+    const fetchClientUnifiedAlerts = async () => {
+        if (!clientId) return;
+
+        // Fetch Outstanding Balance
+        const { data: billsData } = await supabase
+            .from("bills")
+            .select("total")
+            .eq("client_id", clientId)
+            .neq("status", "Paid");
+        
+        const totalDues = (billsData || []).reduce((sum, bill) => sum + (bill.total || 0), 0);
+        setOutstandingBalance(totalDues);
+
+        // Fetch Admin Remarks - restricted to admin roles
+        const isAdmin = roles.includes('admin') || roles.includes('super_admin') || roles.includes('clinic_admin');
+        if (isAdmin) {
+            const { data: remarksData } = await supabase
+                .from("client_admin_notes")
+                .select("remarks")
+                .eq("client_id", clientId)
+                .maybeSingle();
+            if (remarksData) {
+                setAdminRemarks(remarksData.remarks);
+            } else {
+                setAdminRemarks("");
+            }
+        }
+    };
+
+    const fetchOrganizationBranding = async () => {
+        if (!profile?.organization_id) return;
+        const { data } = await supabase
+            .from("organizations")
+            .select("logo_url")
+            .eq("id", profile.organization_id)
+            .single();
+        if (data?.logo_url) {
+            setOrgLogoUrl(data.logo_url);
+        }
+    };
 
     const fetchOrgSettings = async () => {
         const { data } = await supabase
@@ -401,6 +463,8 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess, initialDa
             const sessionsToCreate: any[] = [];
             const seriesId = isRecurring ? `Series-${Date.now()}` : null;
 
+            const auditFooter = (outstandingBalance > 0 && isAcknowledged) ? `\n--- Acknowledged by: ${profile?.first_name} ${profile?.last_name} ---` : "";
+
             if (isRecurring) {
                 let sessionsCreated = 0;
                 let currentDate = parse(sessionDate, "yyyy-MM-dd", new Date());
@@ -428,7 +492,8 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess, initialDa
                             status: "Planned",
                             group_name: seriesId,
                             preference_type: preferenceType,
-                            is_flexible_routing: preferenceType === "Flexible"
+                            is_flexible_routing: preferenceType === "Flexible",
+                            notes: auditFooter
                         });
                         sessionsCreated++;
                     }
@@ -456,6 +521,7 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess, initialDa
                     status: "Planned",
                     preference_type: preferenceType,
                     is_flexible_routing: preferenceType === "Flexible",
+                    notes: auditFooter
                 });
             }
 
@@ -527,13 +593,18 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess, initialDa
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="max-w-4xl p-0 overflow-hidden bg-background border-none shadow-2xl rounded-xl sm:rounded-2xl">
-                <div className="flex flex-col h-[90vh] sm:h-auto max-h-[90vh]">
-                    <div className="p-6 pb-4 border-b border-border bg-muted/5">
+                <div className="flex flex-col h-[90vh] sm:h-auto max-h-[90vh] relative">
+                    {orgLogoUrl && (
+                        <div className="absolute inset-0 z-0 pointer-events-none flex items-center justify-center opacity-[0.03]">
+                            <img src={orgLogoUrl} alt="Clinic Watermark" className="w-[300px] grayscale" />
+                        </div>
+                    )}
+                    <div className="p-6 pb-4 border-b border-border bg-muted/5 z-10">
                         <DialogTitle className="text-2xl sm:text-3xl font-display font-bold tracking-tight text-foreground">New Appointment</DialogTitle>
                         <DialogDescription className="text-sm sm:text-base text-muted-foreground mt-1">Schedule a manual session or join the active waitlist.</DialogDescription>
                     </div>
 
-                    <ScrollArea className="flex-1 p-6">
+                    <ScrollArea className="flex-1 p-6 z-10">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12">
                             <div className="space-y-8">
                                 <div className="space-y-3">
@@ -553,33 +624,83 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess, initialDa
                                     </div>
 
                                     {!isGuest ? (
-                                        <Popover>
-                                            <PopoverTrigger asChild>
-                                                <Button variant="outline" className={cn("w-full justify-between h-12", !clientId && "text-muted-foreground")}>
-                                                    {clientId ? (() => {
-                                                        const c = clients.find(x => x.id === clientId);
-                                                        return c ? <VIPName name={`${c.first_name} ${c.last_name}`} isVIP={c.is_vip} /> : "Selected";
-                                                    })() : "Search patients..."}
-                                                    <ChevronsUpDown className="ml-2 h-4 w-4 opacity-50" />
-                                                </Button>
-                                            </PopoverTrigger>
-                                            <PopoverContent className="w-[300px] p-0" align="start">
-                                                <Command>
-                                                    <CommandInput placeholder="Type name..." />
-                                                    <CommandList>
-                                                        <CommandEmpty>No patient found.</CommandEmpty>
-                                                        <CommandGroup>
-                                                            {clients.map((c) => (
-                                                                <CommandItem key={c.id} value={`${c.first_name} ${c.last_name}`} onSelect={() => setClientId(c.id)}>
-                                                                    <Check className={cn("mr-2 h-4 w-4", clientId === c.id ? "opacity-100" : "opacity-0")} />
-                                                                    <VIPName name={`${c.first_name} ${c.last_name}`} isVIP={c.is_vip} />
-                                                                </CommandItem>
-                                                            ))}
-                                                        </CommandGroup>
-                                                    </CommandList>
-                                                </Command>
-                                            </PopoverContent>
-                                        </Popover>
+                                        <div className="space-y-4">
+                                            <Popover>
+                                                <PopoverTrigger asChild>
+                                                    <Button variant="outline" className={cn("w-full justify-between h-12", !clientId && "text-muted-foreground")}>
+                                                        {clientId ? (() => {
+                                                            const c = clients.find(x => x.id === clientId);
+                                                            return c ? <VIPName name={`${c.first_name} ${c.last_name}`} isVIP={c.is_vip} /> : "Selected";
+                                                        })() : "Search patients..."}
+                                                        <ChevronsUpDown className="ml-2 h-4 w-4 opacity-50" />
+                                                    </Button>
+                                                </PopoverTrigger>
+                                                <PopoverContent className="w-[300px] p-0" align="start">
+                                                    <Command>
+                                                        <CommandInput placeholder="Type name..." />
+                                                        <CommandList>
+                                                            <CommandEmpty>No patient found.</CommandEmpty>
+                                                            <CommandGroup>
+                                                                {clients.map((c) => (
+                                                                    <CommandItem key={c.id} value={`${c.first_name} ${c.last_name}`} onSelect={() => setClientId(c.id)}>
+                                                                        <Check className={cn("mr-2 h-4 w-4", clientId === c.id ? "opacity-100" : "opacity-0")} />
+                                                                        <VIPName name={`${c.first_name} ${c.last_name}`} isVIP={c.is_vip} />
+                                                                    </CommandItem>
+                                                                ))}
+                                                            </CommandGroup>
+                                                        </CommandList>
+                                                    </Command>
+                                                </PopoverContent>
+                                            </Popover>
+
+                                            {clientId && (outstandingBalance > 0 || adminRemarks) && (
+                                                <div className={cn(
+                                                    "rounded-lg overflow-hidden border animate-in fade-in slide-in-from-top-2 duration-300",
+                                                    clientData?.is_vip ? "border-yellow-500 shadow-sm" : "border-amber-200"
+                                                )}>
+                                                    <div className="bg-amber-50/80 backdrop-blur-sm p-4 flex flex-col md:flex-row divide-y md:divide-y-0 md:divide-x divide-amber-200/50">
+                                                        <div className="flex-1 pb-3 md:pb-0 md:pr-4 flex items-start gap-3">
+                                                            <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                                                            <div>
+                                                                <p className="text-[10px] uppercase font-bold text-amber-800 tracking-wider">Financial Alert</p>
+                                                                <p className={cn(
+                                                                    "text-sm font-semibold mt-0.5",
+                                                                    outstandingBalance > 0 ? "text-red-600" : "text-amber-700"
+                                                                )}>
+                                                                    Outstanding Balance: ₹{outstandingBalance.toLocaleString()}
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        {(roles.includes('admin') || roles.includes('super_admin') || roles.includes('clinic_admin')) && adminRemarks && (
+                                                            <div className="flex-1 pt-3 md:pt-0 md:pl-4 flex items-start gap-3">
+                                                                <Bookmark className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                                                                <div>
+                                                                    <p className="text-[10px] uppercase font-bold text-amber-800 tracking-wider">Strategic Note</p>
+                                                                    <p className="text-[0.75rem] leading-relaxed text-amber-900 mt-1 font-medium italic">
+                                                                        {adminRemarks}
+                                                                    </p>
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    
+                                                    {outstandingBalance > 0 && (
+                                                        <div className="bg-amber-100/50 px-4 py-2 border-t border-amber-200/50 flex items-center gap-3">
+                                                            <Checkbox 
+                                                                id="acknowledge" 
+                                                                checked={isAcknowledged} 
+                                                                onCheckedChange={(checked) => setIsAcknowledged(checked as boolean)}
+                                                                className="h-4 w-4 border-amber-400 data-[state=checked]:bg-amber-600 data-[state=checked]:border-amber-600"
+                                                            />
+                                                            <Label htmlFor="acknowledge" className="text-[11px] font-semibold text-amber-900 cursor-pointer">
+                                                                I acknowledge the outstanding balance and administrative remarks.
+                                                            </Label>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
                                     ) : (
                                         <div className="grid grid-cols-1 gap-4 animate-in fade-in slide-in-from-top-2">
                                             <div className="space-y-1.5 focus-within:ring-1 focus-within:ring-primary rounded-md p-1 transition-all">
@@ -845,7 +966,8 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess, initialDa
                                 (!isGuest && !clientId) || 
                                 (isGuest && (!guestName || !guestContact)) ||
                                 !consultantId || 
-                                isAvailable === null
+                                isAvailable === null ||
+                                (outstandingBalance > 0 && !isAcknowledged)
                             } 
                             className={cn("flex-1 h-12 uppercase text-xs font-bold", isAvailable === false ? "bg-orange-600 hover:bg-orange-700" : "bg-primary")}
                         >

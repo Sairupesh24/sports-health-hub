@@ -33,6 +33,7 @@ export default function UserApproval() {
   const [selectedRoles, setSelectedRoles] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
 
   const filteredUsers = users.filter((u) => {
     if (!searchQuery.trim()) return true;
@@ -86,18 +87,18 @@ export default function UserApproval() {
       }
 
       if (profiles) {
-        const merged = profiles.map(p => {
+        const filtered = profiles.map(p => {
           const userRole = rolesData.find(r => r.user_id === p.id);
           return {
             ...p,
             current_role: userRole ? userRole.role : undefined
           };
-        });
+        }).filter(u => u.current_role !== 'super_admin' && u.current_role !== undefined);
 
-        setUsers(merged as PendingUser[]);
+        setUsers(filtered as PendingUser[]);
 
         const initialRoles: Record<string, string> = {};
-        merged.forEach(u => {
+        filtered.forEach(u => {
           if (u.current_role) {
             initialRoles[u.id] = u.current_role;
           }
@@ -328,23 +329,37 @@ export default function UserApproval() {
   const deleteUserAtAuth = async (userId: string) => {
     if (!confirm("Are you sure you want to PERMANENTLY delete this user account? This cannot be undone.")) return;
 
+    setDeletingUserId(userId);
     try {
       const { data, error: functionError } = await supabase.functions.invoke('delete-user', {
         body: { userId }
       });
       
-      if (functionError) throw functionError;
+      if (functionError) {
+        console.error("Invoke error:", functionError);
+        throw new Error(functionError.message || "Failed to reach the deletion service. Make sure Edge Functions are deployed.");
+      }
+
       if (!data?.success) throw new Error(data?.error || "Failed to delete user account");
 
       toast({ title: "User Deleted", description: "User account and all related data have been removed." });
       fetchUsers();
     } catch (err: any) {
       console.error("Error deleting user:", err);
-      let errMsg = err.message || "Unknown error";
-      if (errMsg.toLowerCase().includes("foreign key constraint")) {
+      let errMsg = err.message || "An unexpected error occurred while contacting the server.";
+      
+      if (errMsg.toLowerCase().includes("failed to fetch") || errMsg.toLowerCase().includes("failed to send")) {
+        errMsg = "Could not contact the User Management service. This usually means the Edge Function is not deployed or is unreachable.";
+      } else if (errMsg.toLowerCase().includes("foreign key constraint")) {
         errMsg = "This user cannot be deleted because they are referenced by other records (e.g. sessions, clients, or audits). Consider revoking access instead.";
+      } else if (errMsg.toLowerCase().includes("user not found")) {
+        errMsg = "This user account could not be found in the authentication system (it may have been already deleted). Refreshing list...";
+        fetchUsers();
       }
+      
       toast({ title: "Error deleting user", description: errMsg, variant: "destructive" });
+    } finally {
+      setDeletingUserId(null);
     }
   };
 
@@ -650,10 +665,11 @@ export default function UserApproval() {
                               size="icon"
                               variant="destructive"
                               onClick={() => deleteUserAtAuth(u.id)}
+                              disabled={deletingUserId === u.id}
                               className="h-9 w-9 shrink-0 opacity-80 hover:opacity-100 bg-red-600 hover:bg-red-700"
                               title="Delete Permanently"
                             >
-                              <Trash2 className="w-4 h-4" />
+                              <Trash2 className={`w-4 h-4 ${deletingUserId === u.id ? 'animate-pulse' : ''}`} />
                             </Button>
                           </div>
                         </>
@@ -684,10 +700,11 @@ export default function UserApproval() {
                             size="icon" 
                             variant="destructive" 
                             onClick={() => deleteUserAtAuth(u.id)}
+                            disabled={deletingUserId === u.id}
                             className="h-9 w-9 shrink-0 bg-red-600 hover:bg-red-700"
                             title="Delete Permanently"
                           >
-                            <Trash2 className="w-4 h-4" />
+                            <Trash2 className={`w-4 h-4 ${deletingUserId === u.id ? 'animate-pulse' : ''}`} />
                           </Button>
                         </>
                       )}

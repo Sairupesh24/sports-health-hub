@@ -14,10 +14,12 @@ CREATE TABLE IF NOT EXISTS public.scientist_resources (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 2. Enable RLS
-ALTER TABLE public.scientist_resources ENABLE ROW LEVEL SECURITY;
-
 -- 3. Create strictly-enforced RLS policies
+DROP POLICY IF EXISTS "Strict Sports Scientist View" ON public.scientist_resources;
+DROP POLICY IF EXISTS "Strict Sports Scientist Insert" ON public.scientist_resources;
+DROP POLICY IF EXISTS "Strict Sports Scientist Update" ON public.scientist_resources;
+DROP POLICY IF EXISTS "Strict Sports Scientist Delete" ON public.scientist_resources;
+
 -- NO ONE except Sports Scientists can see these (not even Admins, as requested)
 CREATE POLICY "Strict Sports Scientist View" 
 ON public.scientist_resources 
@@ -80,7 +82,13 @@ VALUES ('scientist-resources', 'scientist-resources', false)
 ON CONFLICT (id) DO NOTHING;
 
 -- Storage RLS Policies
-CREATE POLICY "Scientists can upload to scientist-resources" 
+DROP POLICY IF EXISTS "Scientists can upload to scientist-resources" ON storage.objects;
+DROP POLICY IF EXISTS "Scientists can view scientist-resources" ON storage.objects;
+DROP POLICY IF EXISTS "Scientists can delete from scientist-resources" ON storage.objects;
+DROP POLICY IF EXISTS "Scientist Resources Upload Access" ON storage.objects;
+DROP POLICY IF EXISTS "Scientist Resources View Access" ON storage.objects;
+
+CREATE POLICY "Scientist Resources Upload Access" 
 ON storage.objects 
 FOR INSERT 
 TO authenticated 

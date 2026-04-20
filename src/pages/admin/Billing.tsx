@@ -11,7 +11,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Download, CheckCircle, CreditCard, Banknote, Smartphone, Trash2, ShoppingCart, Check, ChevronsUpDown, Receipt, Copy, User, MessageSquare, ShieldCheck, UserPlus, Eye, EyeOff, ArrowLeftRight, FileText } from "lucide-react";
+import { Plus, Download, CheckCircle, CreditCard, Banknote, Smartphone, Trash2, ShoppingCart, Check, ChevronsUpDown, Receipt, Copy, User, MessageSquare, ShieldCheck, UserPlus, Eye, EyeOff, ArrowLeftRight, FileText, X } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -102,8 +102,9 @@ export default function BillingPage() {
     const [isPkgModalOpen, setIsPkgModalOpen] = useState(false);
 
     const [paymentBillId, setPaymentBillId] = useState("");
-    const [paymentMethod, setPaymentMethod] = useState("");
-    const [transactionId, setTransactionId] = useState("");
+    const [paymentRows, setPaymentRows] = useState<Array<{ id: string, method: string, amount: number, transactionId: string }>>([
+        { id: Math.random().toString(), method: "Cash", amount: 0, transactionId: "" }
+    ]);
     const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
 
     // Refund State
@@ -480,34 +481,52 @@ export default function BillingPage() {
     };
 
     const markAsPaid = async () => {
-        if (!paymentMethod) {
-            toast({ title: "Select a payment method", variant: "destructive" });
+        const totalPaid = paymentRows.reduce((a, b) => a + (Number(b.amount) || 0), 0);
+        const bill = bills.find(b => b.id === paymentBillId);
+        
+        if (!bill) return;
+        
+        if (Math.abs(totalPaid - bill.total_amount) > 0.01) {
+            toast({ title: "Amount mismatch", description: `Total payments (Rs. ${totalPaid}) must equal bill total (Rs. ${bill.total_amount})`, variant: "destructive" });
             return;
         }
 
-        if ((paymentMethod === "UPI" || paymentMethod === "Card") && !transactionId.trim()) {
-            toast({ title: "Transaction ID is mandatory for UPI/Card payments", variant: "destructive" });
+        const invalidRow = paymentRows.find(r => (r.method === 'UPI' || r.method === 'Card') && !r.transactionId?.trim());
+        if (invalidRow) {
+            toast({ title: "Missing Transaction ID", description: `Please provide a transaction ID for the ${invalidRow.method} payment line.`, variant: "destructive" });
             return;
         }
-        
+
         try {
-            const { error } = await supabase.from('bills')
+            // 1. Record each payment row
+            for (const row of paymentRows) {
+                const { error: payError } = await supabase.from('bill_payments').insert({
+                    organization_id: profile?.organization_id!,
+                    bill_id: paymentBillId,
+                    client_id: bill.client_id,
+                    amount: row.amount,
+                    payment_method: row.method as any,
+                    transaction_id: row.transactionId,
+                    recorded_by: profile?.id!,
+                    notes: `Part of split payment for invoice ${bill.invoice_number || bill.id}`
+                });
+                if (payError) throw payError;
+            }
+
+            // 2. Update Bill status
+            const { error: billError } = await supabase.from('bills')
                 .update({ 
                     status: 'Paid', 
-                    notes: `Paid via ${paymentMethod}${transactionId ? ` (TXN: ${transactionId})` : ''}`,
-                    transaction_id: transactionId,
-                    payment_method: paymentMethod
+                    updated_at: new Date().toISOString()
                 })
                 .eq('id', paymentBillId);
-                
-            if (error) throw error;
-            
+
+            if (billError) throw billError;
+
             fetchData();
             setIsPaymentModalOpen(false);
-            setPaymentMethod("");
-            setTransactionId("");
-            setPaymentBillId("");
-            toast({ title: "Payment Recorded!" });
+            setPaymentRows([{ id: Math.random().toString(), method: "Cash", amount: 0, transactionId: "" }]);
+            toast({ title: "Payment Recorded Successfully" });
         } catch (err: any) {
             toast({ title: "Failed to record payment", description: err.message, variant: "destructive" });
         }
@@ -984,9 +1003,12 @@ export default function BillingPage() {
                                             <CardDescription className="mt-1">Invoices, payments and refunds</CardDescription>
                                         </div>
                                     </div>
-                                    <TabsList className="mb-0 grid w-full max-w-sm grid-cols-2">
+                                    <TabsList className="mb-0 grid w-full max-w-md grid-cols-3">
                                         <TabsTrigger value="invoices" className="flex items-center gap-2">
                                             <FileText className="w-3.5 h-3.5" /> Invoices
+                                        </TabsTrigger>
+                                        <TabsTrigger value="payments_due" className="flex items-center gap-2">
+                                            <Banknote className="w-3.5 h-3.5" /> Payments Due
                                         </TabsTrigger>
                                         <TabsTrigger value="all_transactions" className="flex items-center gap-2">
                                             <ArrowLeftRight className="w-3.5 h-3.5" /> All Transactions
@@ -1081,6 +1103,77 @@ export default function BillingPage() {
                                                                             <Download className="w-3.5 h-3.5" />
                                                                         </Button>
                                                                     </div>
+                                                                </TableCell>
+                                                            </TableRow>
+                                                        ))}
+                                                    </TableBody>
+                                                </Table>
+                                            </div>
+                                        </CardContent>
+                                    </TabsContent>
+                                    
+                                    {/* ── PAYMENTS DUE TAB ── */}
+                                    <TabsContent value="payments_due" className="mt-0">
+                                        <CardContent className="px-0 pt-4">
+                                            <div className="flex flex-col gap-4 mb-4">
+                                                <div className="flex items-center justify-between p-4 bg-amber-500/10 border border-amber-500/20 rounded-xl">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center text-amber-600">
+                                                            <Banknote className="w-5 h-5" />
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-xs font-bold text-amber-800 uppercase tracking-widest">Total Outstanding</p>
+                                                            <p className="text-xl font-black text-amber-600">
+                                                                Rs. {filteredBills.filter(b => b.status === 'Pending').reduce((acc, b) => acc + b.total_amount, 0).toLocaleString()}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div className="rounded-md border overflow-x-auto">
+                                                <Table>
+                                                    <TableHeader>
+                                                        <TableRow className="bg-muted/50">
+                                                            <TableHead>Client</TableHead>
+                                                            <TableHead>Invoice #</TableHead>
+                                                            <TableHead>Created</TableHead>
+                                                            <TableHead className="text-right">Balance</TableHead>
+                                                            <TableHead className="text-center">Action</TableHead>
+                                                        </TableRow>
+                                                    </TableHeader>
+                                                    <TableBody>
+                                                        {filteredBills.filter(b => b.status === "Pending").length === 0 ? (
+                                                            <TableRow>
+                                                                <TableCell colSpan={5} className="text-center py-10 text-muted-foreground italic">No payments currently due.</TableCell>
+                                                            </TableRow>
+                                                        ) : filteredBills.filter(b => b.status === "Pending").map((bill) => (
+                                                            <TableRow key={bill.id} className="hover:bg-muted/10 transition-colors">
+                                                                <TableCell>
+                                                                    <div className="font-bold text-xs truncate max-w-[150px]">
+                                                                        <VIPName name={bill.client_name} isVIP={(bill as any).client_is_vip} />
+                                                                    </div>
+                                                                    <div className="text-[10px] text-muted-foreground">UHID: {bill.client_uhid || '-'}</div>
+                                                                </TableCell>
+                                                                <TableCell className="font-mono text-[10px]">{bill.invoice_number || bill.id.substring(0, 8).toUpperCase()}</TableCell>
+                                                                <TableCell className="text-[10px] text-muted-foreground">
+                                                                    {format(new Date(bill.date), "dd MMM yyyy")}
+                                                                </TableCell>
+                                                                <TableCell className="text-right font-black text-rose-600 text-xs">
+                                                                    Rs. {bill.total_amount.toFixed(2)}
+                                                                </TableCell>
+                                                                <TableCell className="text-center">
+                                                                    <Button
+                                                                        size="sm"
+                                                                        className="h-7 px-3 text-[10px] font-bold bg-primary hover:bg-primary/90"
+                                                                        onClick={() => { 
+                                                                            setPaymentBillId(bill.id); 
+                                                                            setPaymentRows([{ id: Math.random().toString(), method: "Cash", amount: bill.total_amount, transactionId: "" }]);
+                                                                            setIsPaymentModalOpen(true); 
+                                                                        }}
+                                                                    >
+                                                                        Collect Payment
+                                                                    </Button>
                                                                 </TableCell>
                                                             </TableRow>
                                                         ))}
@@ -1198,44 +1291,121 @@ export default function BillingPage() {
                 transaction={selectedTransaction}
             />
 
-            {/* Payment Modal */}
+            {/* Payment Modal (Split Payments) */}
             <Dialog open={isPaymentModalOpen} onOpenChange={setIsPaymentModalOpen}>
-                <DialogContent className="sm:max-w-[400px]">
-                    <DialogHeader><DialogTitle>Record Payment</DialogTitle></DialogHeader>
-                    <div className="space-y-4 py-4">
-                        <Label>Payment Mode</Label>
-                        <div className="grid grid-cols-3 gap-2">
-                            {[
-                                { id: 'Cash', icon: Banknote },
-                                { id: 'UPI', icon: Smartphone },
-                                { id: 'Card', icon: CreditCard }
-                            ].map(m => (
-                                <Button 
-                                    key={m.id} 
-                                    variant={paymentMethod === m.id ? "default" : "outline"}
-                                    onClick={() => setPaymentMethod(m.id)}
-                                    className="h-16 flex flex-col gap-1"
-                                >
-                                    <m.icon className="w-5 h-5" />
-                                    <span className="text-[10px]">{m.id}</span>
-                                </Button>
-                            ))}
-                        </div>
-                        {(paymentMethod === "UPI" || paymentMethod === "Card") && (
-                            <div className="space-y-1.5 pt-2 animate-in fade-in slide-in-from-top-2">
-                                <Label className="text-xs">Transaction ID <span className="text-destructive">*</span></Label>
-                                <Input 
-                                    placeholder="Reference ID" 
-                                    className="h-9"
-                                    value={transactionId}
-                                    onChange={e => setTransactionId(e.target.value)}
-                                />
+                <DialogContent className="sm:max-w-[480px]">
+                    <DialogHeader>
+                        <DialogTitle>Collect Payment</DialogTitle>
+                        <p className="text-xs text-muted-foreground">
+                            Invoice: {bills.find(b => b.id === paymentBillId)?.invoice_number || "..."} | 
+                            Total Due: <span className="font-bold text-primary">Rs. {bills.find(b => b.id === paymentBillId)?.total_amount.toFixed(2)}</span>
+                        </p>
+                    </DialogHeader>
+                    
+                    <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto pr-2">
+                        {paymentRows.map((row, index) => (
+                            <div key={row.id} className="p-4 rounded-xl border bg-muted/20 space-y-3 relative">
+                                {paymentRows.length > 1 && (
+                                    <Button 
+                                        variant="ghost" 
+                                        size="icon" 
+                                        className="h-6 w-6 absolute top-2 right-2 text-muted-foreground hover:text-destructive"
+                                        onClick={() => setPaymentRows(paymentRows.filter(r => r.id !== row.id))}
+                                    >
+                                        <X className="w-3 h-3" />
+                                    </Button>
+                                )}
+                                
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div className="space-y-1.5">
+                                        <Label className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground">Mode</Label>
+                                        <Select 
+                                            value={row.method} 
+                                            onValueChange={(val) => {
+                                                const newRows = [...paymentRows];
+                                                newRows[index].method = val;
+                                                setPaymentRows(newRows);
+                                            }}
+                                        >
+                                            <SelectTrigger className="h-9 text-xs">
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="Cash">Cash</SelectItem>
+                                                <SelectItem value="UPI">UPI / Digital</SelectItem>
+                                                <SelectItem value="Card">Card</SelectItem>
+                                                <SelectItem value="Online Bank Transfer">Bank Transfer</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <Label className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground">Amount (Rs.)</Label>
+                                        <Input 
+                                            type="number" 
+                                            className="h-9 text-xs font-bold"
+                                            value={row.amount}
+                                            onChange={(e) => {
+                                                const newRows = [...paymentRows];
+                                                newRows[index].amount = Number(e.target.value);
+                                                setPaymentRows(newRows);
+                                            }}
+                                        />
+                                    </div>
+                                </div>
+                                
+                                {(row.method === 'UPI' || row.method === 'Card' || row.method === 'Online Bank Transfer') && (
+                                    <div className="space-y-1.5 pt-1">
+                                        <Label className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground">Transaction ID / Ref</Label>
+                                        <Input 
+                                            placeholder="Mandatory for digital payments"
+                                            className="h-9 text-xs"
+                                            value={row.transactionId}
+                                            onChange={(e) => {
+                                                const newRows = [...paymentRows];
+                                                newRows[index].transactionId = e.target.value;
+                                                setPaymentRows(newRows);
+                                            }}
+                                        />
+                                    </div>
+                                )}
                             </div>
-                        )}
+                        ))}
+                        
+                        <Button 
+                            variant="outline" 
+                            className="w-full h-9 border-dashed gap-2 text-xs"
+                            onClick={() => setPaymentRows([...paymentRows, { id: Math.random().toString(), method: "UPI", amount: 0, transactionId: "" }])}
+                        >
+                            <Plus className="w-3 h-3" /> Add Split Payment Mode
+                        </Button>
                     </div>
+
+                    <div className="bg-primary/5 p-4 rounded-xl border border-primary/10 flex items-center justify-between">
+                        <div>
+                            <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">Total Collected</p>
+                            <p className={cn(
+                                "text-lg font-black",
+                                Math.abs(paymentRows.reduce((a, b) => a + (Number(b.amount) || 0), 0) - (bills.find(b => b.id === paymentBillId)?.total_amount || 0)) < 0.01 
+                                    ? "text-emerald-600" 
+                                    : "text-rose-600"
+                            )}>
+                                Rs. {paymentRows.reduce((a, b) => a + (Number(b.amount) || 0), 0).toFixed(2)}
+                            </p>
+                        </div>
+                        <div className="text-right">
+                            <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">Balance</p>
+                            <p className="text-sm font-bold">
+                                Rs. {((bills.find(b => b.id === paymentBillId)?.total_amount || 0) - paymentRows.reduce((a, b) => a + (Number(b.amount) || 0), 0)).toFixed(2)}
+                            </p>
+                        </div>
+                    </div>
+
                     <DialogFooter>
-                        <Button className="w-full" onClick={markAsPaid} disabled={!paymentMethod || ((paymentMethod === "UPI" || paymentMethod === "Card") && !transactionId.trim())}>
-                            Confirm Payment
+                        <Button 
+                            className="w-full font-bold" 
+                            onClick={markAsPaid}
+                        >
+                            Confirm & Post Payment
                         </Button>
                     </DialogFooter>
                 </DialogContent>
