@@ -101,9 +101,9 @@ export default function QuestionnaireLibrary() {
   };
 
   return (
-    <DashboardLayout role="coach">
+    <DashboardLayout role={profile?.role || "coach"}>
       <div className="min-h-screen bg-[#F8FAFC] flex flex-col font-sans">
-        <AmsStaffNav />
+        {profile?.ams_role === 'coach' && <AmsStaffNav />}
         
         <main className="flex-1 p-6 md:p-10 space-y-10 max-w-[1600px] mx-auto w-full">
           {/* Hero Header */}

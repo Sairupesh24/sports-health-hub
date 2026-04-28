@@ -11,9 +11,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { Calendar as CalendarIcon, Clock, Users, User, Plus, Loader2, Check, ChevronsUpDown, X } from "lucide-react";
-import { format, parse, addHours, differenceInCalendarDays, startOfDay } from "date-fns";
+import { format, parse, addHours, differenceInCalendarDays, startOfDay, addWeeks, addDays } from "date-fns";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface Props {
     open: boolean;
@@ -31,7 +32,7 @@ export function SportsScientistBookSessionModal({ open, onOpenChange, onSuccess 
     const [sessionTypes, setSessionTypes] = useState<any[]>([]);
 
     // Form state
-    const [sessionMode, setSessionMode] = useState<"Individual" | "Group">("Individual");
+    const [sessionMode, setSessionMode] = useState<"Individual" | "Group" | "Other">("Individual");
     const [groupName, setGroupName] = useState("");
     const [selectedClientIds, setSelectedClientIds] = useState<string[]>([]);
     const [sessionTypeId, setSessionTypeId] = useState("");
@@ -41,6 +42,11 @@ export function SportsScientistBookSessionModal({ open, onOpenChange, onSuccess 
     const [notes, setNotes] = useState("");
     const [status, setStatus] = useState<"Planned" | "Completed" | "Missed" | "Cancelled">("Planned");
     const [cancellationReason, setCancellationReason] = useState("");
+    const [isRecurring, setIsRecurring] = useState(false);
+    const [recurringEndDate, setRecurringEndDate] = useState(format(addWeeks(new Date(), 4), "yyyy-MM-dd"));
+    const [recurringSlots, setRecurringSlots] = useState<Array<{ day: string, startTime: string, endTime: string }>>([
+        { day: format(new Date(), "EEEE"), startTime: "09:00", endTime: "10:00" }
+    ]);
 
     useEffect(() => {
         if (open && profile?.organization_id) {
@@ -129,8 +135,13 @@ export function SportsScientistBookSessionModal({ open, onOpenChange, onSuccess 
             toast({ title: "Validation Error", description: "Please provide a group name and select at least one athlete.", variant: "destructive" });
             return;
         }
-        if (!sessionTypeId || !sessionDate || !startTime || !endTime) {
+        if (!sessionTypeId || !sessionDate) {
             toast({ title: "Validation Error", description: "Please fill all required fields.", variant: "destructive" });
+            return;
+        }
+
+        if (!isRecurring && (!startTime || !endTime)) {
+            toast({ title: "Validation Error", description: "Please set the session time.", variant: "destructive" });
             return;
         }
 
@@ -146,77 +157,115 @@ export function SportsScientistBookSessionModal({ open, onOpenChange, onSuccess 
             });
             return;
         }
+        
+        if (isRecurring && new Date(recurringEndDate) < new Date(sessionDate)) {
+            toast({ title: "Validation Error", description: "End date must be after the start date.", variant: "destructive" });
+            return;
+        }
 
         setLoading(true);
         try {
-            const dateStr = sessionDate;
-            const startTimestamp = `${dateStr}T${startTime}:00`;
-            const endTimestamp = `${dateStr}T${endTime}:00`;
+            const startDate = new Date(`${sessionDate}T00:00:00`);
+            const sessionsToInsert: any[] = [];
 
-            const sessionData: any = {
-                organization_id: profile!.organization_id,
-                scientist_id: user!.id,
-                session_mode: sessionMode,
-                session_type_id: sessionTypeId,
-                scheduled_start: new Date(startTimestamp).toISOString(),
-                scheduled_end: new Date(endTimestamp).toISOString(),
-                status: status,
-                session_notes: notes,
-                cancellation_reason: (status === "Missed" || status === "Cancelled") ? cancellationReason : null,
-            };
+            if (!isRecurring) {
+                // Single session logic
+                const startTimestamp = `${sessionDate}T${startTime}:00`;
+                const endTimestamp = `${sessionDate}T${endTime}:00`;
+                
+                const sessionData: any = {
+                    organization_id: profile!.organization_id,
+                    scientist_id: user!.id,
+                    session_mode: sessionMode,
+                    session_type_id: sessionTypeId,
+                    scheduled_start: new Date(startTimestamp).toISOString(),
+                    scheduled_end: new Date(endTimestamp).toISOString(),
+                    status: status,
+                    session_notes: notes,
+                    cancellation_reason: (status === "Missed" || status === "Cancelled") ? cancellationReason : null,
+                };
 
-            // If marking as completed immediately, set actual times
-            if (status === "Completed") {
-                sessionData.actual_start = sessionData.scheduled_start;
-                sessionData.actual_end = sessionData.scheduled_end;
-            }
+                if (status === "Completed") {
+                    sessionData.actual_start = sessionData.scheduled_start;
+                    sessionData.actual_end = sessionData.scheduled_end;
+                }
 
-            if (sessionMode === "Individual") {
-                sessionData.client_id = selectedClientIds[0];
+                if (sessionMode === "Individual") {
+                    sessionData.client_id = selectedClientIds[0];
+                } else if (sessionMode === "Group") {
+                    sessionData.group_name = groupName;
+                }
+                
+                sessionsToInsert.push(sessionData);
             } else {
-                sessionData.group_name = groupName;
+                // Multi-slot recurring logic
+                const limitDate = new Date(`${recurringEndDate}T23:59:59`);
+                const daysOfWeekMap: Record<string, number> = {
+                    "Sunday": 0, "Monday": 1, "Tuesday": 2, "Wednesday": 3, "Thursday": 4, "Friday": 5, "Saturday": 6
+                };
+
+                for (const slot of recurringSlots) {
+                    const targetDay = daysOfWeekMap[slot.day];
+                    let currentDate = new Date(startDate);
+                    
+                    // Align currentDate to the first occurrence of targetDay
+                    while (currentDate.getDay() !== targetDay) {
+                        currentDate = addDays(currentDate, 1);
+                    }
+
+                    while (currentDate <= limitDate) {
+                        const dStr = format(currentDate, "yyyy-MM-dd");
+                        const startTimestamp = `${dStr}T${slot.startTime}:00`;
+                        const endTimestamp = `${dStr}T${slot.endTime}:00`;
+
+                        const sessionData: any = {
+                            organization_id: profile!.organization_id,
+                            scientist_id: user!.id,
+                            session_mode: sessionMode,
+                            session_type_id: sessionTypeId,
+                            scheduled_start: new Date(startTimestamp).toISOString(),
+                            scheduled_end: new Date(endTimestamp).toISOString(),
+                            status: status,
+                            session_notes: notes,
+                            cancellation_reason: (status === "Missed" || status === "Cancelled") ? cancellationReason : null,
+                        };
+
+                        if (sessionMode === "Individual") {
+                            sessionData.client_id = selectedClientIds[0];
+                        } else if (sessionMode === "Group") {
+                            sessionData.group_name = groupName;
+                        }
+
+                        sessionsToInsert.push(sessionData);
+                        currentDate = addDays(currentDate, 7);
+                    }
+                }
             }
 
-            // 1. Create the session
-            const { data: session, error: sessionError } = await (supabase as any)
+            // 1. Create the sessions
+            const { data: insertedSessions, error: sessionError } = await (supabase as any)
                 .from("sessions")
-                .insert(sessionData)
-                .select()
-                .single();
+                .insert(sessionsToInsert)
+                .select();
 
             if (sessionError) throw sessionError;
 
             // 2. If Group mode, create attendance rows
             if (sessionMode === "Group" && selectedClientIds.length > 0) {
-                const attendanceData = selectedClientIds.map(clientId => ({
-                    session_id: session.id,
-                    client_id: clientId, // Wait, group_attendance.client_id references profiles.id in my migration? 
-                    // Let me check if clients.id is same as profiles.id or if I should join.
-                    // Actually, clients.id is usually a separate UUID but linked. 
-                    // Let me check the migration again: 20260228072114_2a75aca5-5bc1-46f7-9056-6344882ee4b6.sql
-                    // Line 68: CREATE TABLE public.clients (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), ...)
-                    // Line 26: CREATE TABLE public.profiles (id PRIMARY KEY REFERENCES auth.users(id), ...)
-                    // Wait, group_attendance.client_id references profiles(id)? 
-                    // Let me check my migration: 20270312154000_sports_scientist_module.sql:
-                    // client_id UUID NOT NULL REFERENCES public.profiles(id)
-                    // This might be a mistake if I want to link to clients table. 
-                    // Most other tables in this codebase reference profiles(id) for "users" but clients have their own IDs.
-                    // Let me check sessions table client_id: 20260306153003_unified_sessions_schema.sql
-                    // client_id UUID NOT NULL REFERENCES public.profiles(id)
-                    // Ah, so clients are treated as profiles too? No, usually they are separate.
-                    // Wait, let's check App.tsx or a profile fetch.
-                    // Step 38: Profiles references auth.users(id).
-                    // In many systems, clients are also auth.users. 
-                    // Let's assume client_id in sessions references what the system uses.
-                }));
-                // For now I'll assume selectedClientIds are the correct IDs.
+                const attendanceData = [];
+                for (const session of insertedSessions) {
+                    for (const clientId of selectedClientIds) {
+                        attendanceData.push({
+                            session_id: session.id,
+                            client_id: clientId,
+                            attendance_status: 'Present'
+                        });
+                    }
+                }
+                
                 const { error: attendError } = await supabase
                     .from("group_attendance")
-                    .insert(selectedClientIds.map(cid => ({
-                        session_id: session.id,
-                        client_id: cid, // Wait, if cid is from clients table, but migration says profiles(id)
-                        attendance_status: 'Present'
-                    })));
+                    .insert(attendanceData);
                 if (attendError) console.error("Attendance Error:", attendError);
             }
 
@@ -242,6 +291,11 @@ export function SportsScientistBookSessionModal({ open, onOpenChange, onSuccess 
         setEndTime("10:00");
         setStatus("Planned");
         setCancellationReason("");
+        setIsRecurring(false);
+        setRecurringEndDate(format(addWeeks(new Date(), 4), "yyyy-MM-dd"));
+        setRecurringSlots([
+            { day: format(new Date(), "EEEE"), startTime: "09:00", endTime: "10:00" }
+        ]);
     };
 
     const toggleClient = (id: string) => {
@@ -278,6 +332,13 @@ export function SportsScientistBookSessionModal({ open, onOpenChange, onSuccess 
                             >
                                 <Users className="w-4 h-4 mr-2" /> Group
                             </Button>
+                            <Button 
+                                variant={sessionMode === "Other" ? "default" : "ghost"} 
+                                className="flex-1 rounded-md"
+                                onClick={() => { setSessionMode("Other"); setSelectedClientIds([]); }}
+                            >
+                                <Plus className="w-4 h-4 mr-2" /> Other
+                            </Button>
                         </div>
 
                         {/* Group Name */}
@@ -294,60 +355,62 @@ export function SportsScientistBookSessionModal({ open, onOpenChange, onSuccess 
                         )}
 
                         {/* Client Selection */}
-                        <div className="grid gap-2">
-                            <Label>{sessionMode === "Individual" ? "Select Athlete" : "Select Athletes"}</Label>
-                            <Popover>
-                                <PopoverTrigger asChild>
-                                    <Button
-                                        variant="outline"
-                                        role="combobox"
-                                        className={cn("w-full justify-between h-auto py-2", selectedClientIds.length === 0 && "text-muted-foreground")}
-                                    >
-                                        <div className="flex flex-wrap gap-1 items-center">
-                                            {selectedClientIds.length === 0 ? (
-                                                <span>Search or select athletes...</span>
-                                            ) : (
-                                                selectedClientIds.map(id => {
-                                                    const c = clients.find(x => x.id === id);
-                                                    return (
-                                                        <Badge key={id} variant="secondary" className="flex items-center gap-1">
-                                                            {c ? `${c.first_name} ${c.last_name}` : id}
-                                                            {sessionMode === "Group" && (
-                                                                <X className="w-3 h-3 cursor-pointer" onClick={(e) => { e.stopPropagation(); toggleClient(id); }} />
-                                                            )}
-                                                        </Badge>
-                                                    );
-                                                })
-                                            )}
-                                        </div>
-                                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                    </Button>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-[450px] p-0" align="start">
-                                    <Command>
-                                        <CommandInput placeholder="Search athlete by name or UHID..." />
-                                        <CommandList>
-                                            <CommandEmpty>No athlete found.</CommandEmpty>
-                                            <CommandGroup>
-                                                {clients.map((c) => (
-                                                    <CommandItem
-                                                        key={c.id}
-                                                        value={`${c.first_name} ${c.last_name} ${c.uhid}`}
-                                                        onSelect={() => toggleClient(c.id)}
-                                                    >
-                                                        <Check className={cn("mr-2 h-4 w-4", selectedClientIds.includes(c.id) ? "opacity-100" : "opacity-0")} />
-                                                        <div className="flex flex-col">
-                                                            <span>{c.first_name} {c.last_name}</span>
-                                                            <span className="text-xs text-muted-foreground">{c.uhid}</span>
-                                                        </div>
-                                                    </CommandItem>
-                                                ))}
-                                            </CommandGroup>
-                                        </CommandList>
-                                    </Command>
-                                </PopoverContent>
-                            </Popover>
-                        </div>
+                        {sessionMode !== "Other" && (
+                            <div className="grid gap-2 animate-in fade-in slide-in-from-top-2">
+                                <Label>{sessionMode === "Individual" ? "Select Athlete" : "Select Athletes"}</Label>
+                                <Popover>
+                                    <PopoverTrigger asChild>
+                                        <Button
+                                            variant="outline"
+                                            role="combobox"
+                                            className={cn("w-full justify-between h-auto py-2", selectedClientIds.length === 0 && "text-muted-foreground")}
+                                        >
+                                            <div className="flex flex-wrap gap-1 items-center">
+                                                {selectedClientIds.length === 0 ? (
+                                                    <span>Search or select athletes...</span>
+                                                ) : (
+                                                    selectedClientIds.map(id => {
+                                                        const c = clients.find(x => x.id === id);
+                                                        return (
+                                                            <Badge key={id} variant="secondary" className="flex items-center gap-1">
+                                                                {c ? `${c.first_name} ${c.last_name}` : id}
+                                                                {sessionMode === "Group" && (
+                                                                    <X className="w-3 h-3 cursor-pointer" onClick={(e) => { e.stopPropagation(); toggleClient(id); }} />
+                                                                )}
+                                                            </Badge>
+                                                        );
+                                                    })
+                                                )}
+                                            </div>
+                                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                        </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-[450px] p-0" align="start">
+                                        <Command>
+                                            <CommandInput placeholder="Search athlete by name or UHID..." />
+                                            <CommandList>
+                                                <CommandEmpty>No athlete found.</CommandEmpty>
+                                                <CommandGroup>
+                                                    {clients.map((c) => (
+                                                        <CommandItem
+                                                            key={c.id}
+                                                            value={`${c.first_name} ${c.last_name} ${c.uhid}`}
+                                                            onSelect={() => toggleClient(c.id)}
+                                                        >
+                                                            <Check className={cn("mr-2 h-4 w-4", selectedClientIds.includes(c.id) ? "opacity-100" : "opacity-0")} />
+                                                            <div className="flex flex-col">
+                                                                <span>{c.first_name} {c.last_name}</span>
+                                                                <span className="text-xs text-muted-foreground">{c.uhid}</span>
+                                                            </div>
+                                                        </CommandItem>
+                                                    ))}
+                                                </CommandGroup>
+                                            </CommandList>
+                                        </Command>
+                                    </PopoverContent>
+                                </Popover>
+                            </div>
+                        )}
 
                         {/* Session Type */}
                         <div className="grid gap-2">
@@ -423,25 +486,137 @@ export function SportsScientistBookSessionModal({ open, onOpenChange, onSuccess 
                                     className="resize-none h-20"
                                 />
                             </div>
+                        )}                        {/* Date & Time / Multi-Slot Scheduler */}
+                        {!isRecurring ? (
+                            <div className="grid grid-cols-2 gap-4 animate-in fade-in slide-in-from-top-1">
+                                <div className="grid gap-2">
+                                    <Label>Date</Label>
+                                    <div className="relative">
+                                        <CalendarIcon className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                                        <Input type="date" className="pl-9" value={sessionDate} onChange={e => setSessionDate(e.target.value)} />
+                                    </div>
+                                </div>
+                                <div className="grid gap-2">
+                                    <Label>Select Time</Label>
+                                    <div className="flex items-center gap-2">
+                                        <Input type="time" value={startTime} onChange={e => setStartTime(e.target.value)} />
+                                        <span className="text-muted-foreground text-xs">to</span>
+                                        <Input type="time" value={endTime} onChange={e => setEndTime(e.target.value)} />
+                                    </div>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="grid gap-4 p-4 bg-muted/30 rounded-xl border border-border/50 animate-in fade-in slide-in-from-top-2">
+                                <div className="flex items-center justify-between">
+                                    <Label className="font-bold flex items-center gap-2">
+                                        <Clock className="w-4 h-4 text-primary" /> Weekly Schedule
+                                    </Label>
+                                    <Button 
+                                        type="button" 
+                                        variant="outline" 
+                                        size="sm" 
+                                        className="h-8 gap-1"
+                                        onClick={() => setRecurringSlots([...recurringSlots, { day: "Monday", startTime: "09:00", endTime: "10:00" }])}
+                                    >
+                                        <Plus className="w-3 h-3" /> Add Slot
+                                    </Button>
+                                </div>
+                                <div className="grid gap-3">
+                                    {recurringSlots.map((slot, index) => (
+                                        <div key={index} className="flex items-center gap-2 group">
+                                            <Select 
+                                                value={slot.day} 
+                                                onValueChange={(v) => {
+                                                    const newSlots = [...recurringSlots];
+                                                    newSlots[index].day = v;
+                                                    setRecurringSlots(newSlots);
+                                                }}
+                                            >
+                                                <SelectTrigger className="w-[140px]">
+                                                    <SelectValue />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].map(d => (
+                                                        <SelectItem key={d} value={d}>{d}</SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                            <div className="flex items-center gap-1 flex-1">
+                                                <Input 
+                                                    type="time" 
+                                                    className="h-9" 
+                                                    value={slot.startTime} 
+                                                    onChange={e => {
+                                                        const newSlots = [...recurringSlots];
+                                                        newSlots[index].startTime = e.target.value;
+                                                        setRecurringSlots(newSlots);
+                                                    }} 
+                                                />
+                                                <span className="text-[10px] text-muted-foreground px-0.5">to</span>
+                                                <Input 
+                                                    type="time" 
+                                                    className="h-9" 
+                                                    value={slot.endTime} 
+                                                    onChange={e => {
+                                                        const newSlots = [...recurringSlots];
+                                                        newSlots[index].endTime = e.target.value;
+                                                        setRecurringSlots(newSlots);
+                                                    }} 
+                                                />
+                                            </div>
+                                            {recurringSlots.length > 1 && (
+                                                <Button 
+                                                    variant="ghost" 
+                                                    size="icon" 
+                                                    className="h-9 w-9 text-muted-foreground hover:text-destructive"
+                                                    onClick={() => setRecurringSlots(recurringSlots.filter((_, i) => i !== index))}
+                                                >
+                                                    <X className="w-4 h-4" />
+                                                </Button>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
                         )}
-
-                        {/* Date & Time */}
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="grid gap-2">
-                                <Label>Date</Label>
-                                <div className="relative">
-                                    <CalendarIcon className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                                    <Input type="date" className="pl-9" value={sessionDate} onChange={e => setSessionDate(e.target.value)} />
+                        
+                        {/* Recurring Toggle & End Date */}
+                        <div className="grid gap-4 bg-muted/20 p-4 rounded-xl border border-border/50">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center space-x-2">
+                                    <Checkbox id="recurring" checked={isRecurring} onCheckedChange={(checked) => setIsRecurring(checked as boolean)} />
+                                    <Label htmlFor="recurring" className="text-sm font-medium leading-none cursor-pointer">
+                                        Make this a recurring schedule
+                                    </Label>
                                 </div>
+                                {isRecurring && (
+                                    <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20">
+                                        {recurringSlots.length} Slots/Week
+                                    </Badge>
+                                )}
                             </div>
-                            <div className="grid gap-2">
-                                <Label>Select Time</Label>
-                                <div className="flex items-center gap-2">
-                                    <Input type="time" value={startTime} onChange={e => setStartTime(e.target.value)} />
-                                    <span className="text-muted-foreground text-xs">to</span>
-                                    <Input type="time" value={endTime} onChange={e => setEndTime(e.target.value)} />
+                            
+                            {isRecurring && (
+                                <div className="grid grid-cols-2 gap-4 animate-in slide-in-from-top-1">
+                                    <div className="grid gap-2">
+                                        <Label>Starts From</Label>
+                                        <div className="relative">
+                                            <CalendarIcon className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                                            <Input type="date" className="pl-9 h-9" value={sessionDate} onChange={e => setSessionDate(e.target.value)} />
+                                        </div>
+                                    </div>
+                                    <div className="grid gap-2">
+                                        <Label>Recurring Until</Label>
+                                        <div className="relative">
+                                            <CalendarIcon className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                                            <Input type="date" className="pl-9 h-9" value={recurringEndDate} onChange={e => setRecurringEndDate(e.target.value)} />
+                                        </div>
+                                    </div>
+                                    <p className="col-span-2 text-[10px] text-muted-foreground italic px-1">
+                                        Sessions will be automatically generated for all selected time slots until the end date.
+                                    </p>
                                 </div>
-                            </div>
+                            )}
                         </div>
 
                         {/* Notes */}

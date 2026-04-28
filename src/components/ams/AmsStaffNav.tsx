@@ -31,10 +31,11 @@ import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 
 export default function AmsStaffNav() {
-  const { roles } = useAuth();
+  const { roles, profile } = useAuth();
   const isClinical = roles.some(r => ["coach", "sports_scientist", "sports_physician", "physiotherapist", "nutritionist"].includes(r));
+  const hasAmsAccess = profile?.ams_role === 'coach';
   
-  if (!isClinical) return null;
+  if (!isClinical || !hasAmsAccess) return null;
 
   return (
     <nav className="h-16 border-b border-slate-200 bg-white sticky top-0 z-40 px-4 flex items-center justify-between text-slate-900 transition-all duration-300 hover:shadow-md group/nav">

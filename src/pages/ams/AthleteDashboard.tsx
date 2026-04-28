@@ -25,6 +25,7 @@ export default function AthleteDashboard() {
   const [assignedProgram, setAssignedProgram] = useState<any>(null);
   const [todayWorkout, setTodayWorkout] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [subscription, setSubscription] = useState<any>(null);
   const { toast } = useToast();
   
   const todayDate = format(new Date(), 'EEEE, MMMM do');
@@ -34,6 +35,7 @@ export default function AthleteDashboard() {
   useEffect(() => {
     if (session?.user?.id) {
       fetchAssignment();
+      fetchSubscription();
     }
   }, [session?.user?.id]);
 
@@ -98,6 +100,17 @@ export default function AthleteDashboard() {
     }
   };
 
+  const fetchSubscription = async () => {
+    const { data } = await supabase
+      .from('subscriptions')
+      .select('status, dunning_step')
+      .eq('client_id', clientId || session?.user?.id)
+      .eq('status', 'Active')
+      .maybeSingle();
+    
+    if (data) setSubscription(data);
+  };
+
   const navigateToLogging = () => {
     if (todayWorkout) {
       window.location.href = `/ams/athlete/workout/${todayWorkout.id}`;
@@ -121,6 +134,14 @@ export default function AthleteDashboard() {
             <p className="text-slate-500 font-bold flex items-center gap-2 uppercase text-[10px] tracking-widest">
               <Calendar className="w-3.5 h-3.5 text-primary" />
               {todayDate}
+              {subscription && (
+                <Badge className={cn(
+                  "ml-2 text-[8px] font-black uppercase tracking-tighter h-4 px-2",
+                  subscription.status === 'Active' ? "bg-emerald-500 hover:bg-emerald-600" : "bg-rose-500 hover:bg-rose-600"
+                )}>
+                  {subscription.status} Member
+                </Badge>
+              )}
             </p>
           </div>
           

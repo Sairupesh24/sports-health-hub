@@ -83,6 +83,7 @@ const sportsScientistNav: NavItem[] = [
   { label: "Reports", icon: ClipboardList, href: "/sports-scientist/reports" },
   { label: "Analytics", icon: Activity, href: "/sports-scientist/analytics" },
   { label: "Questionnaires", icon: ClipboardList, href: "/ams/questionnaires" },
+  { label: "Manage Memberships", icon: CreditCard, href: "/sports-scientist/billing" },
   { label: "Attendance", icon: CalendarClock, href: "/my-attendance" },
 ];
 
@@ -128,6 +129,8 @@ const navMap: Record<string, NavItem[]> = {
   manager: managerNav,
   athlete: athleteNav,
   hr_manager: hrNav,
+  sports_physician: consultantNav,
+  nutritionist: consultantNav,
 };
 
 interface AppSidebarProps {

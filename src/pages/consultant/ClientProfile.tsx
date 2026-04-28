@@ -4,7 +4,7 @@ import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, User, Phone, Calendar, Activity, ClipboardList } from "lucide-react";
+import { ArrowLeft, User, Phone, Calendar, Activity, ClipboardList, History } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import AMSTrainingLoadWidget from "@/components/dashboard/AMSTrainingLoadWidget";
@@ -23,6 +23,8 @@ import PerformanceSnapshot from "@/components/consultant/PerformanceSnapshot";
 import PerformanceAnalytics from "@/components/ams/PerformanceAnalytics";
 import { Trophy, FileStack, Microscope } from "lucide-react";
 import { DocumentManager } from "@/components/admin/documents/DocumentManager";
+import { EnquiryContextWindow } from "@/components/admin/EnquiryContextWindow";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { ScientificResourcesManager } from "@/components/sports-scientist/resources/ScientificResourcesManager";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useAuth } from "@/contexts/AuthContext";
@@ -61,6 +63,7 @@ export default function ConsultantClientProfile() {
     const [adHocModalOpen, setAdHocModalOpen] = useState(false);
     const [isDocumentModalOpen, setIsDocumentModalOpen] = useState(false);
     const [isScientificModalOpen, setIsScientificModalOpen] = useState(false);
+    const [isEnquiryOpen, setIsEnquiryOpen] = useState(false);
 
     const { roles, profile: currentUserProfile } = useAuth();
     const isAdmin = roles.includes('admin');
@@ -70,6 +73,7 @@ export default function ConsultantClientProfile() {
                                  roles.includes('physiotherapist') ||
                                  roles.includes('consultant');
     const isSportsScientist = currentUserProfile?.profession === 'Sports Scientist' || roles.includes('sports_scientist');
+    const isAdminOrFoe = roles?.some(r => ["admin", "super_admin", "clinic_admin", "foe"].includes(r));
     const canAccessDocuments = isAdmin || isClinicalSpecialist;
 
     // Filters
@@ -199,6 +203,13 @@ export default function ConsultantClientProfile() {
                                 <Microscope className="w-4 h-4 text-slate-900" /> Scientific Hub
                             </Button>
                         )}
+                        <Button 
+                            variant="outline" 
+                            className="border-[#8b7e66]/30 hover:bg-[#8b7e66]/5 gap-2 text-[#8b7e66] font-bold"
+                            onClick={() => setIsEnquiryOpen(true)}
+                        >
+                            <History className="w-4 h-4" /> Inquiry Context
+                        </Button>
                         <Button onClick={() => setAdHocModalOpen(true)}>
                             <ClipboardList className="w-4 h-4 mr-2" /> Add SOAP Note
                         </Button>
@@ -340,7 +351,7 @@ export default function ConsultantClientProfile() {
                                                              <Badge variant={session.status === 'Completed' ? 'default' : 'secondary'} className="text-[10px] uppercase font-bold">
                                                                  {session.status}
                                                              </Badge>
-                                                             {session.is_unentitled && (
+                                                             {session.is_unentitled && isAdminOrFoe && (
                                                                  <Badge variant="destructive" className="ml-2 text-[8px] h-4 px-1 font-black animate-pulse">
                                                                      UN-ENTITLED
                                                                  </Badge>
@@ -453,6 +464,12 @@ export default function ConsultantClientProfile() {
                                 </div>
                             </DialogContent>
                         </Dialog>
+                        {/* Enquiry Context Sheet */}
+                        <Sheet open={isEnquiryOpen} onOpenChange={setIsEnquiryOpen}>
+                            <SheetContent className="sm:max-w-xl p-0 border-none">
+                                <EnquiryContextWindow clientId={client.id} isMobile={true} />
+                            </SheetContent>
+                        </Sheet>
                     </>
                 )}
             </div>

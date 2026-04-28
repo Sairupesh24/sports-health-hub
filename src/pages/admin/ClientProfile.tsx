@@ -28,7 +28,8 @@ import { Copy, Receipt, Save, RefreshCw } from "lucide-react";
 import { VIPBadge, VIPName } from "@/components/ui/VIPBadge";
 import { useAuth } from "@/contexts/AuthContext";
 import { TherapistAssignmentCard } from "@/components/client/TherapistAssignmentCard";
-import { ShieldCheck } from "lucide-react";
+import { ShieldCheck, History } from "lucide-react";
+import { EnquiryContextWindow } from "@/components/admin/EnquiryContextWindow";
 
 
 
@@ -61,6 +62,7 @@ export default function ClientProfile() {
                                  roles.includes('sports_physician') || 
                                  roles.includes('physiotherapist') ||
                                  roles.includes('consultant');
+    const isAdminOrFoe = roles?.some(r => ["admin", "super_admin", "clinic_admin", "foe"].includes(r));
     const canAccessDocuments = (isAdmin && !isFOE) || isClinicalSpecialist;
     
     const [adminRemarks, setAdminRemarks] = useState("");
@@ -583,9 +585,9 @@ export default function ClientProfile() {
                 <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
                     <TabsList className={`mb-6 grid w-full ${canAccessDocuments ? 'max-w-3xl grid-cols-5' : 'max-w-2xl grid-cols-4'}`}>
                         <TabsTrigger value="profile">Profile Details</TabsTrigger>
-                        <TabsTrigger value="entitlements">Entitlements</TabsTrigger>
                         <TabsTrigger value="sessions">Session History</TabsTrigger>
-                        <TabsTrigger value="billing">Billing History</TabsTrigger>
+                        {isAdminOrFoe && <TabsTrigger value="entitlements">Entitlements</TabsTrigger>}
+                        {isAdminOrFoe && <TabsTrigger value="billing">Billing History</TabsTrigger>}
                         {canAccessDocuments && <TabsTrigger value="documents">Documents</TabsTrigger>}
                     </TabsList>
 
@@ -663,48 +665,122 @@ export default function ClientProfile() {
                                 </CardContent>
                             </Card>
 
-                            {/* Admin Remarks Section - ONLY FOR ADMINS (NOT FOE) */}
-                            {isAdmin && !isFOE && (
-                                <Card className="gradient-card border-border md:col-span-2 border-l-4 border-l-yellow-500">
-                                    <CardHeader className="pb-3 flex-row items-center justify-between space-y-0">
-                                        <div className="space-y-1">
-                                            <CardTitle className="text-lg flex items-center gap-2">
-                                                <Shield className="w-5 h-5 text-yellow-600" />
-                                                Administrative Remarks & VIP Management
-                                            </CardTitle>
-                                            <CardDescription>Private notes visible only to system administrators.</CardDescription>
-                                        </div>
-                                        <div className="flex items-center gap-4 bg-yellow-500/5 px-4 py-2 rounded-full border border-yellow-500/20">
-                                            <Label htmlFor="vip-toggle" className="text-sm font-bold text-yellow-800 cursor-pointer">
-                                                VIP Status
-                                            </Label>
-                                            <Switch 
-                                                id="vip-toggle"
-                                                checked={client.is_vip}
-                                                onCheckedChange={handleToggleVIP}
-                                                className="data-[state=checked]:bg-yellow-500"
-                                            />
-                                        </div>
-                                    </CardHeader>
-                                    <CardContent className="space-y-4">
-                                        <Textarea
-                                            value={adminRemarks}
-                                            onChange={(e) => setAdminRemarks(e.target.value)}
-                                            placeholder="Write strategic internal notes here..."
-                                            className="min-h-[120px] bg-muted/20 font-medium"
-                                        />
-                                        <div className="flex justify-end">
-                                            <Button 
-                                                onClick={handleUpdateAdminRemarks} 
-                                                disabled={isUpdatingRemarks}
-                                                className="gap-2 bg-yellow-600 hover:bg-yellow-700 text-white"
-                                            >
-                                                {isUpdatingRemarks ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                                                Save Internal Notes
-                                            </Button>
-                                        </div>
-                                    </CardContent>
-                                </Card>
+                            {/* Dual-Insight Panel System - Admin & FOE Access */}
+                            {isAdminOrFoe && (
+                                <div className="md:col-span-2 space-y-6">
+                                    <div className="flex items-center gap-3 mb-2">
+                                        <div className="h-px flex-1 bg-slate-200" />
+                                        <span className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 bg-background px-4">Dual-Insight Profile System</span>
+                                        <div className="h-px flex-1 bg-slate-200" />
+                                    </div>
+
+                                    {/* Desktop: Side-by-Side Layout */}
+                                    <div className="hidden lg:grid grid-cols-2 gap-6 items-stretch">
+                                        {/* Panel A: Admin Remarks (Strategic Notes) */}
+                                        <Card className="gradient-card border-border border-l-4 border-l-yellow-500 h-full flex flex-col">
+                                            <CardHeader className="pb-3 flex-row items-center justify-between space-y-0">
+                                                <div className="space-y-1">
+                                                    <CardTitle className="text-lg flex items-center gap-2">
+                                                        <Shield className="w-5 h-5 text-yellow-600" />
+                                                        Admin Remarks
+                                                    </CardTitle>
+                                                    <CardDescription className="text-[10px]">Strategic notes for long-term management.</CardDescription>
+                                                </div>
+                                                {isAdmin && (
+                                                    <div className="flex items-center gap-2 bg-yellow-500/5 px-3 py-1 rounded-full border border-yellow-500/20">
+                                                        <Label htmlFor="vip-toggle-desktop" className="text-[10px] font-bold text-yellow-800 cursor-pointer">
+                                                            VIP
+                                                        </Label>
+                                                        <Switch 
+                                                            id="vip-toggle-desktop"
+                                                            checked={client.is_vip}
+                                                            onCheckedChange={handleToggleVIP}
+                                                            className="h-4 w-7 data-[state=checked]:bg-yellow-500"
+                                                        />
+                                                    </div>
+                                                )}
+                                            </CardHeader>
+                                            <CardContent className="space-y-4 flex-1 flex flex-col">
+                                                <Textarea
+                                                    value={adminRemarks}
+                                                    onChange={(e) => setAdminRemarks(e.target.value)}
+                                                    placeholder="Write strategic internal notes here (e.g. Sponsored athlete, Payment via corporate)..."
+                                                    className="flex-1 min-h-[150px] bg-muted/20 font-medium text-sm leading-relaxed"
+                                                    disabled={isFOE}
+                                                />
+                                                {!isFOE && (
+                                                    <div className="flex justify-end pt-2">
+                                                        <Button 
+                                                            onClick={handleUpdateAdminRemarks} 
+                                                            disabled={isUpdatingRemarks}
+                                                            className="gap-2 bg-yellow-600 hover:bg-yellow-700 text-white h-9 text-xs"
+                                                        >
+                                                            {isUpdatingRemarks ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                                                            Update Admin Remarks
+                                                        </Button>
+                                                    </div>
+                                                )}
+                                            </CardContent>
+                                        </Card>
+
+                                        {/* Panel B: Enquiry Context (Historical Notes) */}
+                                        <EnquiryContextWindow clientId={id!} />
+                                    </div>
+
+                                    {/* Mobile: Tabbed Overlay Layout */}
+                                    <div className="lg:hidden">
+                                        <Tabs defaultValue="admin" className="w-full">
+                                            <TabsList className="grid w-full grid-cols-2 mb-4 bg-muted/50 p-1">
+                                                <TabsTrigger value="admin" className="text-xs font-bold gap-2">
+                                                    <Shield className="w-3.5 h-3.5" /> Admin Remarks
+                                                </TabsTrigger>
+                                                <TabsTrigger value="enquiry" className="text-xs font-bold gap-2">
+                                                    <History className="w-3.5 h-3.5" /> Enquiry Context
+                                                </TabsTrigger>
+                                            </TabsList>
+                                            
+                                            <TabsContent value="admin">
+                                                <Card className="gradient-card border-border border-l-4 border-l-yellow-500">
+                                                    <CardHeader className="pb-3 flex-row items-center justify-between space-y-0">
+                                                        <CardTitle className="text-md flex items-center gap-2">
+                                                            <Shield className="w-4 h-4 text-yellow-600" />
+                                                            Admin Remarks
+                                                        </CardTitle>
+                                                        {isAdmin && (
+                                                            <Switch 
+                                                                checked={client.is_vip}
+                                                                onCheckedChange={handleToggleVIP}
+                                                                className="data-[state=checked]:bg-yellow-500 scale-75"
+                                                            />
+                                                        )}
+                                                    </CardHeader>
+                                                    <CardContent className="space-y-4">
+                                                        <Textarea
+                                                            value={adminRemarks}
+                                                            onChange={(e) => setAdminRemarks(e.target.value)}
+                                                            placeholder="Internal notes..."
+                                                            className="min-h-[120px] bg-muted/20 font-medium text-sm"
+                                                            disabled={isFOE}
+                                                        />
+                                                        {!isFOE && (
+                                                            <Button 
+                                                                onClick={handleUpdateAdminRemarks} 
+                                                                disabled={isUpdatingRemarks}
+                                                                className="w-full gap-2 bg-yellow-600 text-white"
+                                                            >
+                                                                Save Notes
+                                                            </Button>
+                                                        )}
+                                                    </CardContent>
+                                                </Card>
+                                            </TabsContent>
+                                            
+                                            <TabsContent value="enquiry">
+                                                <EnquiryContextWindow clientId={id!} isMobile={true} />
+                                            </TabsContent>
+                                        </Tabs>
+                                    </div>
+                                </div>
                             )}
                         </div>
                     </TabsContent>
@@ -800,7 +876,7 @@ export default function ClientProfile() {
                                                                                 'bg-gray-500/10 text-gray-500'}`}>
                                                                     {session.status}
                                                                 </span>
-                                                                {session.is_unentitled && (
+                                                                {session.is_unentitled && isAdminOrFoe && (
                                                                     <Badge variant="destructive" className="ml-2 text-[8px] h-4 px-1 font-black animate-pulse">
                                                                         UN-ENTITLED
                                                                     </Badge>

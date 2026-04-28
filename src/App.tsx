@@ -66,6 +66,7 @@ import SportsScientistClients from "./pages/sports-scientist/SportsScientistClie
 import SportsScientistTemplates from "./pages/sports-scientist/SportsScientistTemplates";
 import SportsScientistAnalytics from "./pages/sports-scientist/SportsScientistAnalytics";
 import SportsScientistResources from "./pages/sports-scientist/SportsScientistResources";
+import SportsScientistBilling from "./pages/sports-scientist/SportsScientistBilling";
 
 // Mobile Client Pages
 import MobileGuard from "./components/auth/MobileGuard";
@@ -158,6 +159,7 @@ const App = () => (
               <Route path="/ams/athlete/workout/:id" element={<ProtectedRoute requiredRole={["client", "athlete"]}><WorkoutLogging /></ProtectedRoute>} />
               <Route path="/ams/batch-tests" element={<ProtectedRoute requiredRole={["coach", "sports_scientist", "admin", "sports_physician", "physiotherapist", "nutritionist"]}><BatchTestEntry /></ProtectedRoute>} />
               <Route path="/sports-scientist/analytics" element={<ProtectedRoute requiredRole={["sports_scientist", "admin"]}><SportsScientistAnalytics /></ProtectedRoute>} />
+              <Route path="/sports-scientist/billing" element={<ProtectedRoute requiredRole={["sports_scientist", "admin"]}><SportsScientistBilling /></ProtectedRoute>} />
 
               {/* Client Console - Wrapped in MobileGuard for redirection */}
               <Route path="/client" element={<MobileGuard><ProtectedRoute requiredRole={["client", "athlete"]}><ClientDashboard /></ProtectedRoute></MobileGuard>} />

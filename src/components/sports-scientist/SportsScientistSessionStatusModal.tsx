@@ -14,7 +14,7 @@ interface Props {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     session: any;
-    onSuccess: () => void;
+    onSuccess: () => void | Promise<any>;
 }
 
 /**
@@ -123,6 +123,81 @@ export function SportsScientistSessionStatusModal({ open, onOpenChange, session,
         }
     }, [session]);
 
+    const handleQuickAction = async (action: "Start" | "End" | "Missed") => {
+        if (!session?.id) return;
+        setLoading(true);
+        try {
+            if (action === "Start") {
+                const nowTime = format(new Date(), "HH:mm");
+                const dateStr = format(parseISO(session.scheduled_start), "yyyy-MM-dd");
+                const actualStartIso = new Date(`${dateStr}T${nowTime}:00`).toISOString();
+                
+                let updateError;
+                try {
+                    const { error } = await supabase.from("sessions").update({
+                        status: "Checked In",
+                        actual_start: actualStartIso,
+                        updated_at: new Date().toISOString()
+                    }).eq("id", session.id);
+                    updateError = error;
+                } catch (e) {
+                    updateError = e;
+                }
+                
+                if (updateError) {
+                    // Aggressive Fallback: Just update actual_start and keep status as is
+                    const { error: fallbackError } = await supabase.from("sessions").update({
+                        actual_start: actualStartIso,
+                        updated_at: new Date().toISOString()
+                    }).eq("id", session.id);
+                    
+                    if (fallbackError) throw fallbackError;
+                    // If fallback succeeds, we stay as "Planned" but with actual_start set, 
+                    // which our UI now recognizes as "IN PROGRESS"
+                    setStatus(session.status || "Planned");
+                } else {
+                    setStatus("Checked In");
+                }
+                
+                toast({ title: "Session Started", description: "Athlete has arrived." });
+                await onSuccess();
+            } else if (action === "End") {
+                const nowTime = format(new Date(), "HH:mm");
+                const dateStr = format(parseISO(session.scheduled_start), "yyyy-MM-dd");
+                const actualEndIso = new Date(`${dateStr}T${nowTime}:00`).toISOString();
+                
+                const { error: updateError } = await supabase.from("sessions").update({
+                    status: "Completed",
+                    actual_end: actualEndIso,
+                    updated_at: new Date().toISOString()
+                }).eq("id", session.id);
+                
+                if (updateError) throw updateError;
+                
+                const { data: { user } } = await supabase.auth.getUser();
+                const { error: rpcError } = await supabase.rpc("complete_session", {
+                    p_session_id: session.id,
+                    p_user_id: user?.id,
+                });
+                if (rpcError) throw new Error(rpcError.message || "Failed to complete session");
+                
+                toast({ title: "Session Ended", description: "Session completed successfully." });
+                await onSuccess();
+                onOpenChange(false);
+            } else if (action === "Missed") {
+                setStatus("Missed");
+                setTimeout(() => {
+                    const textarea = document.getElementById("cancellationReason");
+                    if (textarea) textarea.focus();
+                }, 100);
+            }
+        } catch (error: any) {
+            toast({ title: "Error", description: error.message, variant: "destructive" });
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const handleSave = async () => {
         if (!session?.id) return;
 
@@ -212,8 +287,8 @@ export function SportsScientistSessionStatusModal({ open, onOpenChange, session,
                 await (supabase as any).from("sessions").update({ session_notes: sessionNotes }).eq("id", session.id);
             }
 
-            toast({ title: "Saved", description: "Session status updated." });
-            onSuccess();
+            toast({ title: "Saved", description: "Session notes updated." });
+            await onSuccess();
             onOpenChange(false);
         } catch (error: any) {
             toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -230,7 +305,7 @@ export function SportsScientistSessionStatusModal({ open, onOpenChange, session,
     const getStatusStyle = (s: string) => {
         switch (s) {
             case "Completed": return "bg-emerald-100 text-emerald-800 border-emerald-300";
-            case "Planned": return "bg-blue-100 text-blue-800 border-blue-300";
+            case "Planned": return session?.actual_start ? "bg-emerald-100 text-emerald-800 border-emerald-300" : "bg-blue-100 text-blue-800 border-blue-300";
             case "Missed": return "bg-rose-100 text-rose-800 border-rose-300";
             case "Checked In": return "bg-emerald-100 text-emerald-800 border-emerald-300";
             case "Cancelled": return "bg-slate-100 text-slate-600 border-slate-300";
@@ -268,7 +343,7 @@ export function SportsScientistSessionStatusModal({ open, onOpenChange, session,
                                 <span>Future session — scheduled for <strong>{format(scheduledDate, "MMM d, yyyy h:mm a")}</strong>. You may only change this to Planned or Cancelled.</span>
                             </div>
                         )}
-                        {(editInfo.isToday || editInfo.isYesterday) && (
+                        {(editInfo.isToday || editInfo.isYesterday) && !editInfo.isLocked && (
                             <div className="flex items-start gap-2 w-full rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800">
                                 <Info className="w-4 h-4 mt-0.5 shrink-0" />
                                 <span>{editInfo.isToday ? "Today's session" : "Yesterday's session"} — fully editable until midnight tonight.</span>
@@ -287,6 +362,8 @@ export function SportsScientistSessionStatusModal({ open, onOpenChange, session,
                             <span className="font-semibold">
                                 {session.session_mode === "Group"
                                     ? `👥 Group: ${session.group_name}`
+                                    : session.session_mode === "Other"
+                                    ? `🏢 Internal: ${session.session_type?.name}`
                                     : session.client?.first_name
                                     ? `${session.client.first_name} ${session.client.last_name}`
                                     : "N/A"}
@@ -299,90 +376,74 @@ export function SportsScientistSessionStatusModal({ open, onOpenChange, session,
                         <div className="flex justify-between items-center">
                             <span className="text-muted-foreground font-medium">Current Status</span>
                             <span className={`px-2 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wide border ${getStatusStyle(status)}`}>
-                                {status}
+                                {(status === "Checked In" || (status === "Planned" && session?.actual_start)) ? "IN PROGRESS" : status}
                             </span>
                         </div>
+                        {session?.actual_start && (
+                            <div className="flex justify-between items-center text-[11px]">
+                                <span className="text-muted-foreground font-medium uppercase tracking-wider">Recorded Start</span>
+                                <span className="font-bold text-emerald-600">{format(parseISO(session.actual_start), "h:mm a")}</span>
+                            </div>
+                        )}
+                        {session?.actual_end && (
+                            <div className="flex justify-between items-center text-[11px]">
+                                <span className="text-muted-foreground font-medium uppercase tracking-wider">Recorded End</span>
+                                <span className="font-bold text-emerald-600">{format(parseISO(session.actual_end), "h:mm a")}</span>
+                            </div>
+                        )}
                     </div>
 
-                    {/* Status selector */}
-                    <div className="grid gap-2">
-                        <Label className="font-semibold">Change Status</Label>
-                        <Select value={status} onValueChange={setStatus} disabled={editInfo.isLocked || autoMissing}>
-                            <SelectTrigger className="h-11">
-                                <SelectValue placeholder="Select Status" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {availableStatuses.map(s => (
-                                    <SelectItem key={s} value={s}>
-                                        <div className="flex items-center gap-2">
-                                            {s === "Completed" && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />}
-                                            {s === "Checked In" && <Clock className="w-3.5 h-3.5 text-emerald-500" />}
-                                            {s === "Cancelled" && <XCircle className="w-3.5 h-3.5 text-slate-400" />}
-                                            {s === "Planned" && <Clock className="w-3.5 h-3.5 text-blue-500" />}
-                                            {s === "Rescheduled" && <Clock className="w-3.5 h-3.5 text-amber-500" />}
-                                            {s}
+                    {/* Quick Actions */}
+                    {!editInfo.isLocked && !editInfo.isFuture && (status === "Planned" || status === "Checked In" || (status === "Planned" && session?.actual_start)) && (
+                        <div className="grid gap-3 pt-2">
+                            <Label className="font-semibold text-muted-foreground">Quick Actions</Label>
+                            <div className="flex gap-2">
+                                {(status === "Planned" && !session?.actual_start) && (
+                                    <>
+                                        <Button 
+                                            className="flex-1 bg-emerald-600 hover:bg-emerald-700 font-bold" 
+                                            onClick={() => handleQuickAction("Start")}
+                                            disabled={loading}
+                                        >
+                                            Start Session
+                                        </Button>
+                                        <Button 
+                                            variant="outline" 
+                                            className="flex-1 border-rose-200 text-rose-700 hover:bg-rose-50 font-bold"
+                                            onClick={() => handleQuickAction("Missed")}
+                                            disabled={loading}
+                                        >
+                                            Mark as Missed
+                                        </Button>
+                                    </>
+                                )}
+                                {(status === "Checked In" || (status === "Planned" && session?.actual_start)) && (
+                                    <div className="flex flex-col gap-2 w-full">
+                                        <div className="flex items-center justify-center gap-2 text-emerald-700 bg-emerald-50 py-2 rounded-lg font-bold border border-emerald-200">
+                                            <Loader2 className="w-4 h-4 animate-spin" />
+                                            Session In Progress
                                         </div>
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
-
-                    {/* Actual times — only shown when marking Completed */}
-                    {status === "Completed" && !editInfo.isLocked && (
-                        <div className="grid gap-3 animate-in slide-in-from-top-2 p-4 bg-emerald-50/50 rounded-xl border border-emerald-200">
-                            <Label className="text-sm font-semibold text-emerald-800">Actual Performance Times</Label>
-                            <div className="flex items-center gap-3">
-                                <div className="grid gap-1.5 flex-1">
-                                    <Label className="text-xs text-muted-foreground">Start</Label>
-                                    <Input type="time" value={actualStart} onChange={e => setActualStart(e.target.value)} className="h-9 bg-white" />
-                                </div>
-                                <span className="text-muted-foreground text-xs pt-5">to</span>
-                                <div className="grid gap-1.5 flex-1">
-                                    <Label className="text-xs text-muted-foreground">End</Label>
-                                    <Input type="time" value={actualEnd} onChange={e => setActualEnd(e.target.value)} className="h-9 bg-white" />
-                                </div>
+                                        <Button 
+                                            className="w-full bg-blue-600 hover:bg-blue-700 font-bold" 
+                                            onClick={() => handleQuickAction("End")}
+                                            disabled={loading}
+                                        >
+                                            End Session
+                                        </Button>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     )}
 
-                    {/* Rescheduling Logic */}
-                    {status === "Rescheduled" && !editInfo.isLocked && (
-                        <div className="grid gap-3 animate-in slide-in-from-top-2 p-4 bg-amber-50/50 rounded-xl border border-amber-200">
-                            <Label className="text-sm font-semibold text-amber-800 flex items-center gap-2">
-                                🗓️ Reschedule Details
-                            </Label>
-                            <div className="grid grid-cols-2 gap-3">
-                                <div className="grid gap-1.5">
-                                    <Label className="text-xs text-muted-foreground">New Date</Label>
-                                    <Input 
-                                        type="date" 
-                                        value={rescheduledDate} 
-                                        onChange={e => setRescheduledDate(e.target.value)}
-                                        className="h-9 bg-white"
-                                    />
-                                </div>
-                                <div className="grid gap-1.5">
-                                    <Label className="text-xs text-muted-foreground">New Time</Label>
-                                    <Input 
-                                        type="time" 
-                                        value={rescheduledTime} 
-                                        onChange={e => setRescheduledTime(e.target.value)}
-                                        className="h-9 bg-white"
-                                    />
-                                </div>
-                            </div>
-                            <p className="text-[10px] text-muted-foreground italic">
-                                Note: This will mark the current slot as 'Rescheduled' and create a new 'Planned' session.
-                            </p>
-                        </div>
-                    )}
+
 
                     {/* Cancellation/Missed Reason */}
                     {(status === "Missed" || status === "Cancelled") && (
                         <div className="grid gap-2 animate-in slide-in-from-top-2 p-4 bg-rose-50/50 rounded-xl border border-rose-200">
                             <Label className="font-semibold text-rose-800">Reason for {status}</Label>
                             <Textarea
+                                id="cancellationReason"
                                 placeholder={`Please provide a reason why this session was ${status.toLowerCase()}...`}
                                 value={cancellationReason}
                                 onChange={e => setCancellationReason(e.target.value)}
@@ -410,7 +471,7 @@ export function SportsScientistSessionStatusModal({ open, onOpenChange, session,
                         className="w-full h-11 font-bold"
                     >
                         {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        {editInfo.isLocked ? "Session Locked" : "Save Changes"}
+                        {editInfo.isLocked ? "Session Locked" : "Save Notes"}
                     </Button>
                 </div>
             </DialogContent>

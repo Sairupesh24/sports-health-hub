@@ -12,6 +12,7 @@ interface Props {
 
 export function PatientAlertSummaryIcon({ clientId, isVIP }: Props) {
   const { roles } = useAuth();
+  const isAdminOrFoe = roles?.some(r => ["admin", "super_admin", "clinic_admin", "foe"].includes(r));
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<{ dues: number; remarks: string } | null>(null);
   const [open, setOpen] = useState(false);
@@ -57,6 +58,8 @@ export function PatientAlertSummaryIcon({ clientId, isVIP }: Props) {
     }
   };
 
+  if (!isAdminOrFoe) return null;
+
   return (
     <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
@@ -73,7 +76,7 @@ export function PatientAlertSummaryIcon({ clientId, isVIP }: Props) {
           <BadgeIndianRupee 
             className={cn(
               "w-3.5 h-3.5",
-               data?.dues && data.dues > 0 ? "text-red-500 animate-pulse" : "text-amber-600"
+               (data?.dues && data.dues > 0 && isAdminOrFoe) ? "text-red-500 animate-pulse" : "text-amber-600"
             )} 
           />
         </button>
@@ -95,18 +98,20 @@ export function PatientAlertSummaryIcon({ clientId, isVIP }: Props) {
             </div>
           ) : (
             <>
-              <div className="flex items-start gap-3">
-                <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-[9px] uppercase font-bold text-amber-800">Outstanding Balance</p>
-                  <p className={cn(
-                      "text-sm font-bold",
-                      (data?.dues || 0) > 0 ? "text-red-600" : "text-emerald-600"
-                  )}>
-                    ₹{(data?.dues || 0).toLocaleString()}
-                  </p>
+              {isAdminOrFoe && (
+                <div className="flex items-start gap-3">
+                  <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-[9px] uppercase font-bold text-amber-800">Outstanding Balance</p>
+                    <p className={cn(
+                        "text-sm font-bold",
+                        (data?.dues || 0) > 0 ? "text-red-600" : "text-emerald-600"
+                    )}>
+                      ₹{(data?.dues || 0).toLocaleString()}
+                    </p>
+                  </div>
                 </div>
-              </div>
+              )}
 
               {data?.remarks && (
                 <div className="flex items-start gap-3">

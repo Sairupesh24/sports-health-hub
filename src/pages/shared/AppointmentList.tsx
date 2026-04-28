@@ -11,7 +11,8 @@ import { cn } from "@/lib/utils";
 import { VIPBadge, VIPName } from "@/components/ui/VIPBadge";
 
 export default function AppointmentList({ role, hideLayout = false }: { role: 'admin' | 'consultant' | 'client', hideLayout?: boolean }) {
-    const { profile, clientId } = useAuth();
+    const { profile, clientId, roles } = useAuth();
+    const isAdminOrFoe = roles?.some(r => ["admin", "super_admin", "clinic_admin", "foe"].includes(r));
     const [appointments, setAppointments] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedSession, setSelectedSession] = useState<any>(null);
@@ -137,7 +138,7 @@ export default function AppointmentList({ role, hideLayout = false }: { role: 'a
 
                                 <div className="flex flex-row md:flex-col items-center md:items-end justify-between md:justify-center gap-2 mt-6 md:mt-0 pt-6 md:pt-0 border-t md:border-t-0 border-slate-50">
                                     {getStatusBadge(apt.status)}
-                                    {apt.is_unentitled && (
+                                    {apt.is_unentitled && isAdminOrFoe && (
                                         <Badge variant="destructive" className="text-[8px] h-4 px-1 font-black animate-pulse uppercase">
                                             UN-ENTITLED
                                         </Badge>

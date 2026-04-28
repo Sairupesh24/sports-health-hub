@@ -29,6 +29,7 @@ const MODALITIES = ["IFT", "UST", "TENS", "STIMULATION", "CRYOTHERAPY", "HC", "N
 
 export default function SOAPNoteModal({ open, onOpenChange, session, clientId, onSuccess }: SOAPNoteModalProps) {
     const { profile, roles } = useAuth();
+    const isAdminOrFoe = roles?.some(r => ["admin", "super_admin", "clinic_admin", "foe"].includes(r));
     const [loading, setLoading] = useState(false);
     const [fetchingPrevious, setFetchingPrevious] = useState(false);
     const [reconciling, setReconciling] = useState(false);
@@ -299,7 +300,7 @@ export default function SOAPNoteModal({ open, onOpenChange, session, clientId, o
                     <div className="flex flex-col gap-1">
                         <DialogTitle className="flex items-center gap-2 text-xl font-display">
                             SOAP Note — {session?.scheduled_start ? format(new Date(session.scheduled_start), "MMM d, yyyy") : "Consultation"}
-                            {isUnentitled && (
+                            {isUnentitled && isAdminOrFoe && (
                                 <span className="ml-2 px-2 py-0.5 rounded bg-red-100 text-red-700 text-xs font-bold border border-red-300 flex items-center gap-1">
                                     <AlertTriangle className="w-3 h-3" /> UN-ENTITLED
                                 </span>
@@ -319,7 +320,7 @@ export default function SOAPNoteModal({ open, onOpenChange, session, clientId, o
                     {/* Main Entry Area */}
                     <div className="lg:col-span-3 space-y-6">
                         {/* Status Banners */}
-                        {session.status === "Planned" && !balanceLoading && remainingSessions === 0 && (
+                        {session.status === "Planned" && !balanceLoading && remainingSessions === 0 && isAdminOrFoe && (
                             <div className="flex items-start gap-3 rounded-xl border border-orange-200 bg-orange-50 p-4 text-sm text-orange-800 shadow-sm">
                                 <AlertTriangle className="w-5 h-5 text-orange-500 shrink-0" />
                                 <div>
@@ -339,7 +340,7 @@ export default function SOAPNoteModal({ open, onOpenChange, session, clientId, o
                             </div>
                         )}
 
-                        {isUnentitled && (
+                        {isUnentitled && isAdminOrFoe && (
                             <div className="rounded-xl border border-red-200 bg-red-50 p-4 space-y-3 shadow-sm">
                                 <div className="flex items-center gap-3">
                                     <AlertTriangle className="w-5 h-5 text-red-600 shrink-0" />

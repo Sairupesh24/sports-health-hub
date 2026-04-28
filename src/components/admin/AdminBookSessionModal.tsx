@@ -283,8 +283,8 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess, initialDa
             const specialists = profilesData
                 .filter(p => {
                     const r = roleData.find(role => role.user_id === p.id);
-                    // Exclude clients and athletes from the specialist list
-                    return r && !["client", "athlete"].includes(r.role);
+                    // Exclude administrative roles, clients, and athletes from the specialist list
+                    return r && !['admin', 'super_admin', 'clinic_admin', 'foe', 'front_office', 'client', 'athlete'].includes(r.role);
                 })
                 .map(p => {
                     const userRole = roleData.find(r => r.user_id === p.id)?.role;

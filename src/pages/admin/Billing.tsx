@@ -11,7 +11,9 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Download, CheckCircle, CreditCard, Banknote, Smartphone, Trash2, ShoppingCart, Check, ChevronsUpDown, Receipt, Copy, User, MessageSquare, ShieldCheck, UserPlus, Eye, EyeOff, ArrowLeftRight, FileText, X } from "lucide-react";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Plus, Download, CheckCircle, CreditCard, Banknote, Smartphone, Trash2, ShoppingCart, Check, ChevronsUpDown, Receipt, Copy, User, MessageSquare, ShieldCheck, UserPlus, Eye, EyeOff, ArrowLeftRight, FileText, X, TrendingUp, AlertCircle, Users, History, CalendarClock } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -19,13 +21,15 @@ import { cn, getImageDimensions } from "@/lib/utils";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { format } from "date-fns";
-import { useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 import { RefundModal } from "@/components/admin/RefundModal";
 import { generateRefundVoucher } from "@/lib/refundActions";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { VIPBadge, VIPName } from "@/components/ui/VIPBadge";
 import { TransactionDetailDrawer, TransactionDetail } from "@/components/admin/TransactionDetailDrawer";
+import { SubscriptionModal } from "@/components/sports-scientist/SubscriptionModal";
+import { SubscriptionDetailDrawer } from "@/components/billing/SubscriptionDetailDrawer";
 import type { Database } from "@/integrations/supabase/types";
 
 type CartItem = {
@@ -73,8 +77,23 @@ type ReferralSource = { id: string; name: string };
 
 export default function BillingPage() {
     const { profile } = useAuth();
+    const navigate = useNavigate();
     const queryClient = useQueryClient();
     const orgName = "Integration Sports Clinic";
+
+    // 1. Fetch Billing Stats
+    const { data: stats } = useQuery({
+        queryKey: ["admin-billing-stats", profile?.organization_id],
+        queryFn: async () => {
+            if (!profile?.organization_id) return null;
+            const { data, error } = await supabase.rpc('fn_get_admin_billing_stats', {
+                p_org_id: profile.organization_id
+            });
+            if (error) throw error;
+            return data;
+        },
+        enabled: !!profile?.organization_id
+    });
 
     const [clients, setClients] = useState<Client[]>([]);
     const [bills, setBills] = useState<Bill[]>([]);
@@ -108,6 +127,98 @@ export default function BillingPage() {
         { id: Math.random().toString(), method: "Cash", amount: 0, transactionId: "" }
     ]);
     const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+    const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState(false);
+    const [selectedSub, setSelectedSub] = useState<any>(null);
+    const [isSubDrawerOpen, setIsSubDrawerOpen] = useState(false);
+
+    // Fetch subscriptions for the new tab
+    const { data: subscriptions } = useQuery({
+        queryKey: ["admin-subscriptions", profile?.organization_id],
+        queryFn: async () => {
+            if (!profile?.organization_id) return [];
+            const { data, error } = await supabase
+                .from("subscriptions")
+                .select(`
+                    *,
+                    client:clients(first_name, last_name, uhid),
+                    package:packages(name, price)
+                `)
+                .eq("organization_id", profile.organization_id)
+                .order("created_at", { ascending: false });
+            
+            if (error) throw error;
+            return data;
+        },
+        enabled: !!profile?.organization_id
+    });
+
+    // Fetch subscription history
+    const { data: subHistory, isLoading: isLoadingHistory } = useQuery({
+        queryKey: ["subscription-history", selectedSub?.id],
+        queryFn: async () => {
+            if (!selectedSub?.id) return [];
+            const { data, error } = await supabase
+                .from("bills")
+                .select(`
+                    *,
+                    payments:bill_payments(
+                        amount,
+                        payment_method,
+                        created_at,
+                        staff:profiles(first_name, last_name)
+                    )
+                `)
+                .eq("subscription_id", selectedSub.id)
+                .order("created_at", { ascending: false });
+            
+            if (error) throw error;
+            return data;
+        },
+        enabled: !!selectedSub?.id
+    });
+
+    const generateEarlyInvoice = useMutation({
+        mutationFn: async (subId: string) => {
+            const { data, error } = await supabase.rpc('fn_generate_subscription_invoice', {
+                p_subscription_id: subId
+            });
+            if (error) throw error;
+            return data;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["admin-subscriptions"] }).then(() => {
+                const updatedSubs: any = queryClient.getQueryData(["admin-subscriptions", profile?.organization_id]);
+                if (updatedSubs && selectedSub) {
+                    const found = updatedSubs.find((s: any) => s.id === selectedSub.id);
+                    if (found) setSelectedSub(found);
+                }
+            });
+            queryClient.invalidateQueries({ queryKey: ["subscription-history", selectedSub?.id] });
+            queryClient.invalidateQueries({ queryKey: ["bills"] });
+            toast.success("Early invoice generated successfully");
+        },
+        onError: (err: any) => toast.error(err.message)
+    });
+
+    const cancelSubscription = useMutation({
+        mutationFn: async (subId: string) => {
+            const { error } = await supabase.rpc('fn_cancel_subscription', {
+                p_subscription_id: subId
+            });
+            if (error) throw error;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["admin-subscriptions"] }).then(() => {
+                const updatedSubs: any = queryClient.getQueryData(["admin-subscriptions", profile?.organization_id]);
+                if (updatedSubs && selectedSub) {
+                    const found = updatedSubs.find((s: any) => s.id === selectedSub.id);
+                    if (found) setSelectedSub(found);
+                }
+            });
+            toast.success("Membership cancelled successfully");
+        },
+        onError: (err: any) => toast.error(err.message)
+    });
 
     // Refund State
     const [isRefundModalOpen, setIsRefundModalOpen] = useState(false);
@@ -122,6 +233,7 @@ export default function BillingPage() {
     const [openCombobox, setOpenCombobox] = useState(false);
     const [openReferralCombobox, setOpenReferralCombobox] = useState(false);
     const [referralSearch, setReferralSearch] = useState("");
+    const [statusFilter, setStatusFilter] = useState<string>("All");
     const [searchTerm, setSearchTerm] = useState("");
 
     useEffect(() => {
@@ -748,13 +860,63 @@ export default function BillingPage() {
 
     return (
         <DashboardLayout role="admin">
-            <div className="p-6 space-y-6">
-                <div className="flex justify-between items-center">
-                    <div>
-                        <h1 className="text-3xl font-bold tracking-tight text-foreground">Billing & Invoicing</h1>
-                        <p className="text-muted-foreground mt-1">Generate invoices and record payments for packages</p>
+            <div className="p-6 space-y-8 max-w-[1600px] mx-auto animate-in fade-in duration-700">
+                
+                <header className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
+                    <div className="flex items-center gap-4">
+                        <Button 
+                            variant="outline" 
+                            size="icon" 
+                            className="rounded-xl h-12 w-12 shadow-sm border-slate-200"
+                            onClick={() => navigate("/sports-scientist/billing")}
+                        >
+                            <CreditCard className="w-5 h-5 text-primary" />
+                        </Button>
+                        <div className="space-y-1">
+                            <h1 className="text-3xl font-black tracking-tight text-slate-900">Billing & Invoicing</h1>
+                            <p className="text-muted-foreground text-sm font-medium">Record payments and manage invoices</p>
+                        </div>
                     </div>
-                </div>
+                    <div className="flex gap-3">
+                         <Button 
+                            className="h-11 rounded-xl bg-primary text-primary-foreground font-bold shadow-lg shadow-primary/20 gap-2 px-6"
+                            onClick={() => setIsSubscriptionModalOpen(true)}
+                        >
+                            <CreditCard className="w-4 h-4" /> Memberships & Subscriptions
+                        </Button>
+                    </div>
+                </header>
+
+                {profile?.role === 'Admin' && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                        <KPICard 
+                            title="Total Revenue" 
+                            value={`₹${(stats?.total_revenue || 0).toLocaleString()}`} 
+                            description="Cumulative collections" 
+                            icon={Banknote} 
+                        />
+                        <KPICard 
+                            title="Monthly Recurring" 
+                            value={`₹${(stats?.mrr || 0).toLocaleString()}`} 
+                            description="Active subscriptions" 
+                            icon={TrendingUp} 
+                            color="text-emerald-500"
+                        />
+                        <KPICard 
+                            title="Active Members" 
+                            value={stats?.active_members || 0} 
+                            description="Athlete subscriptions" 
+                            icon={Users} 
+                        />
+                        <KPICard 
+                            title="Outstanding" 
+                            value={`₹${(stats?.outstanding || 0).toLocaleString()}`} 
+                            description="Pending invoices" 
+                            icon={AlertCircle} 
+                            color="text-amber-500"
+                        />
+                    </div>
+                )}
 
                 <div className="flex flex-col gap-8">
                     <div>
@@ -1029,17 +1191,95 @@ export default function BillingPage() {
                                             <CardDescription className="mt-1">Invoices, payments and refunds</CardDescription>
                                         </div>
                                     </div>
-                                    <TabsList className="mb-0 grid w-full max-w-md grid-cols-3">
+                                    <TabsList className="mb-0 grid w-full max-w-lg grid-cols-4">
                                         <TabsTrigger value="invoices" className="flex items-center gap-2">
                                             <FileText className="w-3.5 h-3.5" /> Invoices
                                         </TabsTrigger>
                                         <TabsTrigger value="payments_due" className="flex items-center gap-2">
-                                            <Banknote className="w-3.5 h-3.5" /> Payments Due
+                                            <Banknote className="w-3.5 h-3.5" /> Due
+                                        </TabsTrigger>
+                                        <TabsTrigger value="memberships" className="flex items-center gap-2">
+                                            <Users className="w-3.5 h-3.5" /> Memberships
                                         </TabsTrigger>
                                         <TabsTrigger value="all_transactions" className="flex items-center gap-2">
-                                            <ArrowLeftRight className="w-3.5 h-3.5" /> All Transactions
+                                            <ArrowLeftRight className="w-3.5 h-3.5" /> Ledger
                                         </TabsTrigger>
                                     </TabsList>
+
+                                    {/* ── MEMBERSHIPS TAB ── */}
+                                    <TabsContent value="memberships" className="mt-0">
+                                        <CardContent className="px-0 pt-4">
+                                            <div className="flex justify-end gap-3 mb-3">
+                                                <DropdownMenu>
+                                                    <DropdownMenuTrigger asChild>
+                                                        <Button variant="outline" className={cn(
+                                                            "h-9 gap-2 rounded-xl border-slate-200 font-bold text-xs",
+                                                            statusFilter !== "All" && "bg-primary/5 border-primary/20 text-primary"
+                                                        )}>
+                                                            <Filter className="w-3.5 h-3.5" />
+                                                            {statusFilter === "All" ? "Filter Status" : statusFilter}
+                                                        </Button>
+                                                    </DropdownMenuTrigger>
+                                                    <DropdownMenuContent align="end" className="w-48 rounded-2xl p-2">
+                                                        <DropdownMenuItem onClick={() => setStatusFilter("All")} className="rounded-xl font-medium">All Memberships</DropdownMenuItem>
+                                                        <DropdownMenuItem onClick={() => setStatusFilter("Active")} className="rounded-xl font-medium text-emerald-600">Active Only</DropdownMenuItem>
+                                                        <DropdownMenuItem onClick={() => setStatusFilter("Overdue")} className="rounded-xl font-medium text-rose-600">Overdue Only</DropdownMenuItem>
+                                                        <DropdownMenuItem onClick={() => setStatusFilter("Cancelled")} className="rounded-xl font-medium text-slate-500">Cancelled Only</DropdownMenuItem>
+                                                    </DropdownMenuContent>
+                                                </DropdownMenu>
+                                            </div>
+                                            <div className="rounded-md border overflow-x-auto">
+                                                <Table>
+                                                    <TableHeader>
+                                                        <TableRow className="bg-muted/50">
+                                                            <TableHead>Athlete</TableHead>
+                                                            <TableHead>Plan</TableHead>
+                                                            <TableHead>Cycle</TableHead>
+                                                            <TableHead>Status</TableHead>
+                                                            <TableHead className="text-right">Next Billing</TableHead>
+                                                            <TableHead className="text-right pr-4">Amount</TableHead>
+                                                        </TableRow>
+                                                    </TableHeader>
+                                                    <TableBody>
+                                                        {(!subscriptions || subscriptions.filter((s: any) => statusFilter === "All" || s.status === statusFilter).length === 0) ? (
+                                                            <TableRow>
+                                                                <TableCell colSpan={6} className="text-center py-10 text-muted-foreground italic">No memberships found matching the filter.</TableCell>
+                                                            </TableRow>
+                                                        ) : subscriptions.filter((s: any) => statusFilter === "All" || s.status === statusFilter).map((sub: any) => (
+                                                            <TableRow 
+                                                                key={sub.id} 
+                                                                className="hover:bg-muted/10 transition-colors cursor-pointer"
+                                                                onClick={() => { setSelectedSub(sub); setIsSubDrawerOpen(true); }}
+                                                            >
+                                                                <TableCell>
+                                                                    <div className="font-bold text-xs">
+                                                                        {sub.client?.first_name} {sub.client?.last_name}
+                                                                    </div>
+                                                                    <div className="text-[10px] text-muted-foreground">{sub.client?.uhid}</div>
+                                                                </TableCell>
+                                                                <TableCell className="text-[10px] font-bold text-primary uppercase">{sub.package?.name}</TableCell>
+                                                                <TableCell className="text-[10px]">{sub.billing_cycle}</TableCell>
+                                                                <TableCell>
+                                                                    <span className={cn(
+                                                                        "inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest border",
+                                                                        sub.status === 'Active' ? "bg-emerald-50 text-emerald-600 border-emerald-100" : "bg-rose-50 text-rose-600 border-rose-100"
+                                                                    )}>
+                                                                        {sub.status}
+                                                                    </span>
+                                                                </TableCell>
+                                                                <TableCell className="text-right text-[10px]">
+                                                                    {sub.next_billing_date ? format(new Date(sub.next_billing_date), "dd MMM yyyy") : '-'}
+                                                                </TableCell>
+                                                                <TableCell className="text-right pr-4 font-black text-xs">
+                                                                    ₹{sub.amount || sub.package?.price}
+                                                                </TableCell>
+                                                            </TableRow>
+                                                        ))}
+                                                    </TableBody>
+                                                </Table>
+                                            </div>
+                                        </CardContent>
+                                    </TabsContent>
 
                                     {/* ── INVOICES TAB ── */}
                                     <TabsContent value="invoices" className="mt-0">
@@ -1452,6 +1692,44 @@ export default function BillingPage() {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+            <SubscriptionModal 
+                open={isSubscriptionModalOpen}
+                onOpenChange={setIsSubscriptionModalOpen}
+                orgId={profile?.organization_id || ""}
+            />
+            <SubscriptionDetailDrawer 
+                open={isSubDrawerOpen}
+                onOpenChange={setIsSubDrawerOpen}
+                subscription={selectedSub}
+                history={subHistory || []}
+                onGenerateEarlyInvoice={() => generateEarlyInvoice.mutate(selectedSub.id)}
+                onCancelSubscription={() => cancelSubscription.mutate(selectedSub.id)}
+                onCollectPayment={(billId: string) => {
+                    setPaymentBillId(billId);
+                    setIsPaymentModalOpen(true);
+                }}
+                isGenerating={generateEarlyInvoice.isPending}
+                isCancelling={cancelSubscription.isPending}
+            />
         </DashboardLayout>
+    );
+}
+
+
+
+function KPICard({ title, value, description, icon: Icon, color = "text-primary" }: { title: string, value: any, description: string, icon: any, color?: string }) {
+    return (
+        <Card className="border-none shadow-sm rounded-[32px] overflow-hidden group hover:shadow-md transition-all bg-white p-6">
+            <div className="flex justify-between items-start mb-4">
+                <div className={cn("p-3 rounded-2xl bg-slate-50 border border-slate-100 group-hover:bg-primary/5 transition-colors")}>
+                    <Icon className={cn("w-6 h-6", color)} />
+                </div>
+            </div>
+            <div className="space-y-1">
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60">{title}</p>
+                <h3 className="text-3xl font-black tabular-nums text-slate-900">{value}</h3>
+                <p className="text-[10px] font-bold text-muted-foreground/40 italic">{description}</p>
+            </div>
+        </Card>
     );
 }

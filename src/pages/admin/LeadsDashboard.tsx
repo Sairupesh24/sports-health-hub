@@ -38,8 +38,10 @@ import {
   ArrowRight,
   Loader2,
   ExternalLink,
-  Briefcase
+  Briefcase,
+  Plus
 } from "lucide-react";
+import { LogEnquiryModal } from "@/components/admin/LogEnquiryModal";
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -83,6 +85,7 @@ export default function LeadsDashboard() {
   const [selectedEnquiry, setSelectedEnquiry] = useState<Enquiry | null>(null);
   const [linkSearchTerm, setLinkSearchTerm] = useState("");
   const [selectedClient, setSelectedClient] = useState<Database['public']['Tables']['clients']['Row'] | null>(null);
+  const [isLogModalOpen, setIsLogModalOpen] = useState(false);
 
   const { data: enquiries = [], isLoading } = useQuery({
     queryKey: ["enquiries", profile?.organization_id, statusFilter],
@@ -248,6 +251,12 @@ export default function LeadsDashboard() {
             <h1 className="text-3xl font-display font-bold text-slate-900 tracking-tight">Leads Dashboard</h1>
             <p className="text-slate-500 mt-1">Track and manage prospective physical therapy enquiries.</p>
           </div>
+          <Button 
+            onClick={() => setIsLogModalOpen(true)} 
+            className="gap-2 bg-slate-900 hover:bg-slate-800 text-white shadow-lg"
+          >
+            <Plus className="w-4 h-4" /> Log Manual Enquiry
+          </Button>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -309,134 +318,136 @@ export default function LeadsDashboard() {
                   </div>
                </div>
             ) : (
-              <Table>
-                <TableHeader className="bg-slate-50/50">
-                  <TableRow className="hover:bg-transparent border-slate-100">
-                    <TableHead className="font-bold text-xs uppercase tracking-wider h-12">Leads</TableHead>
-                    <TableHead className="font-bold text-xs uppercase tracking-wider h-12">Requirement</TableHead>
-                    <TableHead className="font-bold text-xs uppercase tracking-wider h-12">Preferred Time</TableHead>
-                    <TableHead className="font-bold text-xs uppercase tracking-wider h-12 text-center">Follow-up</TableHead>
-                    <TableHead className="font-bold text-xs uppercase tracking-wider h-12">Status</TableHead>
-                    <TableHead className="font-bold text-xs uppercase tracking-wider h-12 text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredEnquiries.map((enq) => (
-                    <TableRow 
-                      key={enq.id} 
-                      className="group hover:bg-slate-50 transition-colors border-slate-100 h-20 cursor-pointer"
-                      onClick={(e) => {
-                        if ((e.target as HTMLElement).closest('button')) return;
-                        setSelectedEnquiry(enq);
-                        setIsDetailsOpen(true);
-                      }}
-                    >
-                      <TableCell>
-                        <div className="flex flex-col">
-                          <span className="font-bold text-slate-900 flex items-center gap-2">
-                             {enq.name}
-                             {enq.status === 'new' && <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />}
-                          </span>
-                          <span className="text-xs font-medium text-slate-500 flex items-center gap-1">
-                             <PhoneCall className="w-3 h-3" /> {enq.contact}
-                          </span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex flex-col">
-                          <span className="text-sm font-semibold text-slate-700">{enq.looking_for}</span>
-                          <span className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Source: {enq.referral_source || 'Direct'}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                         <div className="flex items-center gap-2 text-xs font-medium text-slate-600">
-                            <Clock className="w-3.5 h-3.5 text-primary/60" />
-                            {enq.preferred_call_time || 'Anytime'}
-                         </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex justify-center">
-                          {enq.next_follow_up_at ? (
-                            <div className={cn(
-                              "flex flex-col items-center p-1 rounded min-w-[80px]",
-                              isBefore(new Date(enq.next_follow_up_at), startOfDay(new Date())) 
-                                ? "bg-red-50 text-red-600 border border-red-100" 
-                                : "bg-orange-50 text-orange-600 border border-orange-100"
-                            )}>
-                              <span className="text-[9px] font-bold uppercase tracking-tight">
-                                {isBefore(new Date(enq.next_follow_up_at), startOfDay(new Date())) ? "Overdue" : "Next Call"}
-                              </span>
-                              <span className="text-xs font-bold leading-none mt-0.5">
-                                {format(new Date(enq.next_follow_up_at), "MMM d")}
-                              </span>
-                            </div>
-                          ) : (
-                            <span className="text-[10px] text-slate-300">--</span>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell>{getStatusBadge(enq.status)}</TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-2 pr-2">
-                          {enq.linked_client_id ? (
-                            <Link to={`/admin/clients/${enq.linked_client_id}`}>
-                              <Button 
-                                variant="outline" 
-                                size="sm" 
-                                className="h-8 gap-1 text-blue-600 border-blue-200 hover:bg-blue-50"
-                              >
-                                <ExternalLink className="w-3.5 h-3.5" />
-                                <span className="text-[10px] font-bold uppercase">Profile</span>
-                              </Button>
-                            </Link>
-                          ) : (
-                            <>
-                              <Button 
-                                variant="secondary" 
-                                size="sm" 
-                                className="h-8 gap-1 bg-blue-100 text-blue-700 hover:bg-blue-200 border-none"
-                                onClick={() => handleStatusChange(enq.id, 'contacted')}
-                              >
-                                <PhoneCall className="w-3.5 h-3.5" />
-                                <span className="text-[10px] font-bold uppercase">Called</span>
-                              </Button>
-                              <Button 
-                                variant="secondary" 
-                                size="sm" 
-                                className="h-8 gap-1 bg-orange-100 text-orange-700 hover:bg-orange-200 border-none"
-                                onClick={() => handleScheduleGuest(enq)}
-                              >
-                                <Calendar className="w-3.5 h-3.5" />
-                                <span className="text-[10px] font-bold uppercase">Schedule</span>
-                              </Button>
-                            </>
-                          )}
-                          
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-8 w-8"><MoreVertical className="w-4 h-4" /></Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-48">
-                              <DropdownMenuItem onClick={() => handleStatusChange(enq.id, 'converted')} className="gap-2">
-                                <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                                <span>Mark as Converted</span>
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleStatusChange(enq.id, 'not_interested')} className="gap-2">
-                                <XCircle className="w-4 h-4 text-slate-400" />
-                                <span>Not Interested</span>
-                              </DropdownMenuItem>
-                              <DropdownMenuItem className="gap-2" onClick={() => { setSelectedEnquiry(enq); setIsLinkModalOpen(true); }}>
-                                <UserPlus className="w-4 h-4 text-blue-500" />
-                                <span>Link to Client</span>
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </div>
-                      </TableCell>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader className="bg-slate-50/50">
+                    <TableRow className="hover:bg-transparent border-slate-100">
+                      <TableHead className="font-bold text-xs uppercase tracking-wider h-12">Leads</TableHead>
+                      <TableHead className="font-bold text-xs uppercase tracking-wider h-12">Requirement</TableHead>
+                      <TableHead className="font-bold text-xs uppercase tracking-wider h-12">Preferred Time</TableHead>
+                      <TableHead className="font-bold text-xs uppercase tracking-wider h-12 text-center">Follow-up</TableHead>
+                      <TableHead className="font-bold text-xs uppercase tracking-wider h-12">Status</TableHead>
+                      <TableHead className="font-bold text-xs uppercase tracking-wider h-12 text-right">Actions</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredEnquiries.map((enq) => (
+                      <TableRow 
+                        key={enq.id} 
+                        className="group hover:bg-slate-50 transition-colors border-slate-100 h-20 cursor-pointer"
+                        onClick={(e) => {
+                          if ((e.target as HTMLElement).closest('button')) return;
+                          setSelectedEnquiry(enq);
+                          setIsDetailsOpen(true);
+                        }}
+                      >
+                        <TableCell>
+                          <div className="flex flex-col">
+                            <span className="font-bold text-slate-900 flex items-center gap-2">
+                               {enq.name}
+                               {enq.status === 'new' && <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />}
+                            </span>
+                            <span className="text-xs font-medium text-slate-500 flex items-center gap-1">
+                               <PhoneCall className="w-3 h-3" /> {enq.contact}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex flex-col">
+                            <span className="text-sm font-semibold text-slate-700">{enq.looking_for}</span>
+                            <span className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Source: {enq.referral_source || 'Direct'}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                           <div className="flex items-center gap-2 text-xs font-medium text-slate-600">
+                              <Clock className="w-3.5 h-3.5 text-primary/60" />
+                              {enq.preferred_call_time || 'Anytime'}
+                           </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex justify-center">
+                            {enq.next_follow_up_at ? (
+                              <div className={cn(
+                                "flex flex-col items-center p-1 rounded min-w-[80px]",
+                                isBefore(new Date(enq.next_follow_up_at), startOfDay(new Date())) 
+                                  ? "bg-red-50 text-red-600 border border-red-100" 
+                                  : "bg-orange-50 text-orange-600 border border-orange-100"
+                              )}>
+                                <span className="text-[9px] font-bold uppercase tracking-tight">
+                                  {isBefore(new Date(enq.next_follow_up_at), startOfDay(new Date())) ? "Overdue" : "Next Call"}
+                                </span>
+                                <span className="text-xs font-bold leading-none mt-0.5">
+                                  {format(new Date(enq.next_follow_up_at), "MMM d")}
+                                </span>
+                              </div>
+                            ) : (
+                              <span className="text-[10px] text-slate-300">--</span>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>{getStatusBadge(enq.status)}</TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end gap-2 pr-2">
+                            {enq.linked_client_id ? (
+                              <Link to={`/admin/clients/${enq.linked_client_id}`}>
+                                <Button 
+                                  variant="outline" 
+                                  size="sm" 
+                                  className="h-8 gap-1 text-blue-600 border-blue-200 hover:bg-blue-50"
+                                >
+                                  <ExternalLink className="w-3.5 h-3.5" />
+                                  <span className="text-[10px] font-bold uppercase">Profile</span>
+                                </Button>
+                              </Link>
+                            ) : (
+                              <>
+                                <Button 
+                                  variant="secondary" 
+                                  size="sm" 
+                                  className="h-8 gap-1 bg-blue-100 text-blue-700 hover:bg-blue-200 border-none"
+                                  onClick={() => handleStatusChange(enq.id, 'contacted')}
+                                >
+                                  <PhoneCall className="w-3.5 h-3.5" />
+                                  <span className="text-[10px] font-bold uppercase">Called</span>
+                                </Button>
+                                <Button 
+                                  variant="secondary" 
+                                  size="sm" 
+                                  className="h-8 gap-1 bg-orange-100 text-orange-700 hover:bg-orange-200 border-none"
+                                  onClick={() => handleScheduleGuest(enq)}
+                                >
+                                  <Calendar className="w-3.5 h-3.5" />
+                                  <span className="text-[10px] font-bold uppercase">Schedule</span>
+                                </Button>
+                              </>
+                            )}
+                            
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8"><MoreVertical className="w-4 h-4" /></Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="w-48">
+                                <DropdownMenuItem onClick={() => handleStatusChange(enq.id, 'converted')} className="gap-2">
+                                  <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                                  <span>Mark as Converted</span>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleStatusChange(enq.id, 'not_interested')} className="gap-2">
+                                  <XCircle className="w-4 h-4 text-slate-400" />
+                                  <span>Not Interested</span>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem className="gap-2" onClick={() => { setSelectedEnquiry(enq); setIsLinkModalOpen(true); }}>
+                                  <UserPlus className="w-4 h-4 text-blue-500" />
+                                  <span>Link to Client</span>
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             )}
           </CardContent>
           <div className="bg-slate-50/50 p-4 border-t border-slate-100 text-center">
@@ -529,6 +540,11 @@ export default function LeadsDashboard() {
         onScheduleGuest={() => {
           setIsBookModalOpen(true);
         }}
+      />
+
+      <LogEnquiryModal 
+        isOpen={isLogModalOpen} 
+        onClose={() => setIsLogModalOpen(false)} 
       />
 
       <Sheet open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>

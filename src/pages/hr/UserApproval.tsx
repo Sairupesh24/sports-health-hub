@@ -93,7 +93,15 @@ export default function UserApproval() {
             ...p,
             current_role: userRole ? userRole.role : undefined
           };
-        }).filter(u => u.current_role !== 'super_admin' && u.current_role !== undefined);
+        }).filter(u => {
+          // Exclude super admins
+          if (u.current_role === 'super_admin') return false;
+          // Exclude ghost profiles (those that were renamed during cleanup attempts)
+          if (u.email?.startsWith('deleted_')) return false;
+          // Exclude orphans (profiles with no role that aren't pending approval)
+          // (Wait, keep new users who don't have roles yet but are not approved)
+          return true;
+        });
 
         setUsers(filtered as PendingUser[]);
 

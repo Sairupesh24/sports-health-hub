@@ -16,7 +16,9 @@ import {
     MapPin,
     Activity,
     CreditCard,
+    Plus,
 } from "lucide-react";
+import { LogEnquiryModal } from "@/components/admin/LogEnquiryModal";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -52,6 +54,7 @@ export default function FOEDashboard() {
   const { profile } = useAuth();
   const organizationId = profile?.organization_id;
   const [selectedDate, setSelectedDate] = useState(format(new Date(), "yyyy-MM-dd"));
+  const [isLogModalOpen, setIsLogModalOpen] = useState(false);
   
   const today = new Date();
   const todayStart = startOfDay(today);
@@ -174,6 +177,27 @@ export default function FOEDashboard() {
     enabled: !!organizationId
   });
 
+  // 5. Dunning Alerts Query
+  const { data: dunningSubscriptions } = useQuery({
+    queryKey: ['foe-dunning-alerts', organizationId],
+    queryFn: async () => {
+        const { data, error } = await supabase
+            .from('subscriptions')
+            .select(`
+                id, 
+                status, 
+                dunning_step,
+                client:clients(id, first_name, last_name, uhid)
+            `)
+            .eq('organization_id', organizationId)
+            .in('status', ['Past Due', 'Suspended'])
+            .order('dunning_step', { ascending: false });
+        if (error) throw error;
+        return data;
+    },
+    enabled: !!organizationId
+  });
+
   // Derived Values
   const availableToday = useMemo(() => {
     const dayOfToday = getDay(new Date());
@@ -216,6 +240,50 @@ export default function FOEDashboard() {
   return (
     <DashboardLayout role="foe">
       <div className="space-y-6 pb-12">
+        {/* Dunning Sticky Alerts */}
+        {dunningSubscriptions && dunningSubscriptions.length > 0 && (
+          <div className="space-y-3 animate-in fade-in slide-in-from-top-4 duration-700">
+            {dunningSubscriptions.map((sub: any) => (
+              <div 
+                key={sub.id} 
+                className={cn(
+                  "flex items-center justify-between p-4 rounded-2xl border shadow-lg border-l-8",
+                  sub.status === 'Suspended' 
+                    ? "bg-rose-50 border-rose-200 border-l-rose-600" 
+                    : "bg-amber-50 border-amber-200 border-l-amber-600"
+                )}
+              >
+                <div className="flex items-center gap-4">
+                  <div className={cn(
+                    "w-12 h-12 rounded-2xl flex items-center justify-center shadow-sm",
+                    sub.status === 'Suspended' ? "bg-rose-100 text-rose-600" : "bg-amber-100 text-amber-600"
+                  )}>
+                    <AlertCircle className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h3 className={cn("font-black text-sm", sub.status === 'Suspended' ? "text-rose-950" : "text-amber-950")}>
+                      {sub.status === 'Suspended' ? "MEMBERSHIP SUSPENDED" : "PAYMENT OVERDUE"}
+                    </h3>
+                    <p className="text-xs font-bold opacity-70">
+                      {sub.client?.first_name} {sub.client?.last_name} ({sub.client?.uhid}) — {sub.status === 'Suspended' ? "Service access blocked due to non-payment." : `Payment reminder sent (Step ${sub.dunning_step})`}
+                    </p>
+                  </div>
+                </div>
+                <Button 
+                  size="sm" 
+                  className={cn(
+                    "font-bold rounded-xl",
+                    sub.status === 'Suspended' ? "bg-rose-600 hover:bg-rose-700" : "bg-amber-600 hover:bg-amber-700"
+                  )}
+                  onClick={() => navigate(`/admin/clients/${sub.client?.id}?tab=billing`)}
+                >
+                  Resolve Billing
+                </Button>
+              </div>
+            ))}
+          </div>
+        )}
+
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
@@ -229,6 +297,12 @@ export default function FOEDashboard() {
              <Clock className="w-4 h-4 text-primary animate-pulse" />
              <span className="text-sm font-bold">{format(new Date(), "PPP")}</span>
           </div>
+          <Button 
+            onClick={() => setIsLogModalOpen(true)}
+            className="bg-primary hover:bg-primary/90 text-white shadow-lg gap-2"
+          >
+            <Plus className="w-4 h-4" /> Quick Log Enquiry
+          </Button>
         </div>
 
         {/* Stats */}
@@ -501,8 +575,11 @@ export default function FOEDashboard() {
           </div>
 
         </div>
-
       </div>
+      <LogEnquiryModal 
+        isOpen={isLogModalOpen} 
+        onClose={() => setIsLogModalOpen(false)} 
+      />
     </DashboardLayout>
   );
 }

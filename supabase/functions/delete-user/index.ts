@@ -69,25 +69,39 @@ serve(async (req: Request) => {
     if (userId === requestor.id) throw new Error("Self-deletion is prohibited");
 
     // Explicitly delete from public tables first to ensure no dangling data
-    // (Even if ON DELETE CASCADE is set, explicit deletion is safer in some multi-schema setups)
     checkLog.push("CleanupPublic");
     
     const { error: rolesDeleteError } = await supabaseAdmin
       .from("user_roles")
       .delete()
       .eq("user_id", userId);
-    if (rolesDeleteError) checkLog.push(`RolesDeleteErr:${rolesDeleteError.message}`);
+    if (rolesDeleteError) {
+      throw new Error(`Failed to delete user roles: ${rolesDeleteError.message}`);
+    }
 
     const { error: profileDeleteError } = await supabaseAdmin
       .from("profiles")
       .delete()
       .eq("id", userId);
-    if (profileDeleteError) checkLog.push(`ProfileDeleteErr:${profileDeleteError.message}`);
+      
+    if (profileDeleteError) {
+      if (profileDeleteError.message.includes("foreign key")) {
+        throw new Error("This user cannot be deleted because they are referenced by other records (e.g. sessions, injuries, or audits). Consider revoking their access instead.");
+      }
+      throw new Error(`Failed to delete profile: ${profileDeleteError.message}`);
+    }
 
     // Deletion from Auth
+    checkLog.push("AuthDeletion");
     const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(userId);
+    
     if (deleteError) {
-      throw new Error("Auth Deletion Failed: " + deleteError.message);
+      // If user is already gone from Auth, we consider it a partial success (since we cleaned the DB)
+      if (deleteError.message.toLowerCase().includes("user not found")) {
+        checkLog.push("AuthUserAlreadyMissing");
+      } else {
+        throw new Error("Auth Deletion Failed: " + deleteError.message);
+      }
     }
 
     checkLog.push("Success");

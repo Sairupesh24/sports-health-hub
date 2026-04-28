@@ -1,8 +1,8 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
     format,
     addDays,
@@ -39,6 +39,9 @@ export default function SportsScientistSchedule() {
     const [selectedSession, setSelectedSession] = useState<any>(null);
     const [activeTab, setActiveTab] = useState("calendar");
 
+
+    const queryClient = useQueryClient();
+
     const dateRange = useMemo(() => {
         let start, end;
         if (viewMode === "day") {
@@ -74,6 +77,8 @@ export default function SportsScientistSchedule() {
                      status,
                      session_mode,
                      group_name,
+                     actual_start,
+                     actual_end,
                      client:clients(first_name, last_name, uhid),
                      session_type:session_types(name)
                  `)
@@ -87,6 +92,18 @@ export default function SportsScientistSchedule() {
         },
         enabled: !!user && activeTab === "calendar"
     });
+
+
+
+    // Keep selected session in sync if data refetches
+    useEffect(() => {
+        if (selectedSession && sessions) {
+            const updated = (sessions as any[]).find(s => s.id === selectedSession.id);
+            if (updated && (updated.status !== selectedSession.status || updated.actual_start !== selectedSession.actual_start || updated.actual_end !== selectedSession.actual_end)) {
+                setSelectedSession(updated);
+            }
+        }
+    }, [sessions, selectedSession]);
 
     const handlePrev = () => {
         if (viewMode === "day") setCurrentDate(prev => subDays(prev, 1));
@@ -112,10 +129,17 @@ export default function SportsScientistSchedule() {
         return format(currentDate, "MMMM yyyy");
     };
 
-    const getStatusColor = (status: string) => {
+    const getStatusColor = (event: any) => {
+        if (!event) return 'bg-primary/5 text-primary border-primary/20';
+        const status = event.status;
+        const hasStarted = !!event.actual_start;
+        const hasEnded = !!event.actual_end;
+
+        if (status === 'Completed') return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+        if (status === 'Checked In' || (status === 'Planned' && hasStarted && !hasEnded)) return 'bg-emerald-50 text-emerald-700 border-emerald-300 ring-2 ring-emerald-500/20';
+        
         switch (status) {
             case 'Planned': return 'bg-blue-50 text-blue-700 border-blue-200';
-            case 'Completed': return 'bg-emerald-50 text-emerald-700 border-emerald-200';
             case 'Missed': return 'bg-rose-50 text-rose-700 border-rose-200';
             case 'Rescheduled': return 'bg-amber-50 text-amber-700 border-amber-200';
             case 'Cancelled': return 'bg-slate-50 text-slate-500 border-slate-200';
@@ -159,13 +183,13 @@ export default function SportsScientistSchedule() {
                                     <div
                                         key={event.id}
                                         onClick={() => setSelectedSession(event)}
-                                        className={`text-[10px] p-1.5 rounded-md border truncate cursor-pointer hover:shadow-sm transition-all font-medium ${getStatusColor(event.status)}`}
+                                        className={`text-[10px] p-1.5 rounded-md border truncate cursor-pointer hover:shadow-sm transition-all font-medium ${getStatusColor(event)}`}
                                     >
                                         <div className="flex justify-between items-center mb-0.5">
                                             <span className="font-bold opacity-80">{format(parseISO(event.scheduled_start), "HH:mm")}</span>
                                         </div>
                                         <span className="truncate block">
-                                            {event.session_mode === 'Group' ? `👥 ${event.group_name}` : `${event.client?.first_name} ${event.client?.last_name}`}
+                                            {event.session_mode === 'Group' ? `👥 ${event.group_name}` : event.session_mode === 'Other' ? `🏢 ${event.session_type?.name}` : `${event.client?.first_name} ${event.client?.last_name}`}
                                         </span>
                                     </div>
                                 ))}
@@ -238,7 +262,7 @@ export default function SportsScientistSchedule() {
                                                 <div
                                                     key={event.id}
                                                     onClick={() => setSelectedSession(event)}
-                                                    className={`absolute left-1 right-1 rounded-lg border-2 p-2 overflow-hidden shadow-sm hover:shadow-lg cursor-pointer transition-all hover:scale-[1.02] hover:z-30 ${(getStatusColor(event.status))}`}
+                                                    className={`absolute left-1 right-1 rounded-lg border-2 p-2 overflow-hidden shadow-sm hover:shadow-lg cursor-pointer transition-all hover:scale-[1.02] hover:z-30 ${(getStatusColor(event))}`}
                                                     style={{ top: `${topPos + 4}px`, height: `${height - 8}px` }}
                                                 >
                                                     <div className="text-[10px] font-bold mb-0.5 flex justify-between">
@@ -246,7 +270,7 @@ export default function SportsScientistSchedule() {
                                                         {event.session_mode === 'Group' && <span className="text-[9px] bg-white/50 px-1 rounded uppercase">Group</span>}
                                                     </div>
                                                     <div className="text-xs font-bold truncate">
-                                                        {event.session_mode === 'Group' ? event.group_name : `${event.client?.first_name} ${event.client?.last_name}`}
+                                                        {event.session_mode === 'Group' ? event.group_name : event.session_mode === 'Other' ? event.session_type?.name : `${event.client?.first_name} ${event.client?.last_name}`}
                                                     </div>
                                                     <div className="text-[10px] opacity-80 font-medium truncate mt-0.5">
                                                         {event.session_type?.name || "Sports Science"}
@@ -307,7 +331,7 @@ export default function SportsScientistSchedule() {
                                     <div
                                         key={event.id}
                                         onClick={() => setSelectedSession(event)}
-                                        className={`absolute left-4 right-4 rounded-2xl border-2 p-4 overflow-hidden shadow-md hover:shadow-xl cursor-pointer transition-all hover:scale-[1.01] hover:z-30 group ${getStatusColor(event.status)}`}
+                                        className={`absolute left-4 right-4 rounded-2xl border-2 p-4 overflow-hidden shadow-md hover:shadow-xl cursor-pointer transition-all hover:scale-[1.01] hover:z-30 group ${getStatusColor(event)}`}
                                         style={{ top: `${topPos + 8}px`, height: `${height - 16}px` }}
                                     >
                                         <div className="flex justify-between items-start">
@@ -321,7 +345,7 @@ export default function SportsScientistSchedule() {
                                                     )}
                                                 </div>
                                                 <h3 className="text-lg font-display font-bold leading-tight mt-1 group-hover:text-primary transition-colors">
-                                                    {event.session_mode === 'Group' ? `👥 ${event.group_name}` : `${event.client?.first_name} ${event.client?.last_name}`}
+                                                    {event.session_mode === 'Group' ? `👥 ${event.group_name}` : event.session_mode === 'Other' ? `🏢 ${event.session_type?.name}` : `${event.client?.first_name} ${event.client?.last_name}`}
                                                 </h3>
                                                 <div className="flex items-center gap-4 text-xs font-medium opacity-70">
                                                     <span className="flex items-center gap-1.5 capitalize">
@@ -330,7 +354,7 @@ export default function SportsScientistSchedule() {
                                                     </span>
                                                     <span className="flex items-center gap-1.5">
                                                         <div className="w-1.5 h-1.5 rounded-full bg-current" />
-                                                        {event.status}
+                                                        {(event.status === "Checked In" || (event.status === "Planned" && event.actual_start)) ? "In Progress" : event.status}
                                                     </span>
                                                 </div>
                                             </div>
@@ -447,7 +471,9 @@ export default function SportsScientistSchedule() {
                     open={!!selectedSession}
                     onOpenChange={(open) => !open && setSelectedSession(null)}
                     session={selectedSession}
-                    onSuccess={refetch}
+                    onSuccess={async () => {
+                        await queryClient.invalidateQueries({ queryKey: ["sports-scientist-sessions"] });
+                    }}
                 />
             </div>
         </DashboardLayout>

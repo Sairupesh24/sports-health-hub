@@ -174,7 +174,8 @@ export default function SportsScientistDashboard() {
                                     {dashboardData?.todaySessions.map((session: any) => (
                                         <div 
                                             key={session.id} 
-                                            className="bg-white border hover:border-primary/30 transition-all p-5 rounded-[24px] flex items-center justify-between shadow-sm group"
+                                            className="bg-white border hover:border-primary/30 transition-all p-5 rounded-[24px] flex items-center justify-between shadow-sm group cursor-pointer"
+                                            onClick={() => setSelectedSession(session)}
                                         >
                                             <div className="flex items-center gap-5">
                                                 <div className="h-14 w-14 rounded-2xl bg-slate-50 flex flex-col items-center justify-center border border-slate-100">
@@ -182,15 +183,14 @@ export default function SportsScientistDashboard() {
                                                 </div>
                                                 <div>
                                                     <h4 className="font-black text-lg group-hover:text-primary transition-colors">
-                                                        {session.session_mode === 'Group' ? `Group: ${session.group_name}` : `${session.client?.first_name} ${session.client?.last_name}`}
+                                                        {session.session_mode === 'Group' ? `Group: ${session.group_name}` : session.session_mode === 'Other' ? session.session_type?.name : `${session.client?.first_name} ${session.client?.last_name}`}
                                                     </h4>
                                                     <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground/60">{session.session_type?.name || "Sports Science Session"}</p>
                                                 </div>
                                             </div>
                                             <div className="flex items-center gap-4">
-                                                <button
-                                                    onClick={() => setSelectedSession(session)}
-                                                    className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest cursor-pointer transition-all hover:scale-105 active:scale-95 ${
+                                                <div
+                                                    className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${
                                                         session.status === 'Completed' 
                                                             ? 'bg-emerald-500/10 text-emerald-600' 
                                                             : session.status === 'Cancelled' || session.status === 'Missed'
@@ -199,8 +199,8 @@ export default function SportsScientistDashboard() {
                                                     }`}
                                                 >
                                                     {session.status}
-                                                </button>
-                                                <Button variant="ghost" size="icon" className="rounded-full hover:bg-primary/5 text-primary" onClick={() => navigate("/sports-scientist/sessions")}>
+                                                </div>
+                                                <Button variant="ghost" size="icon" className="rounded-full hover:bg-primary/5 text-primary">
                                                     <ArrowRight className="w-5 h-5" />
                                                 </Button>
                                             </div>

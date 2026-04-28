@@ -108,20 +108,42 @@ export function TherapistAssignmentCard({ clientId, orgId }: { clientId: string,
   const fetchConsultants = async () => {
     if (!orgId) return;
     try {
-      const { data, error } = await supabase
+      const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
         .select('id, first_name, last_name, profession')
         .eq('organization_id', orgId)
         .eq('is_approved', true)
         .in('profession', ['Sports Physician', 'Physiotherapist', 'Sports Scientist']);
         
-      if (error) throw error;
-      setConsultants((data as any[]).map((d: any) => ({
-        id: d.id,
-        name: `${d.first_name} ${d.last_name}`,
-        role: 'consultant',
-        profession: d.profession
-      })));
+      if (profilesError) throw profilesError;
+
+      const userIds = profilesData?.map(p => p.id) || [];
+      if (userIds.length === 0) {
+        setConsultants([]);
+        return;
+      }
+
+      const { data: roleData, error: roleError } = await supabase
+        .from('user_roles')
+        .select('user_id, role')
+        .in('user_id', userIds);
+
+      if (roleError) throw roleError;
+
+      const specialists = (profilesData || [])
+        .filter(p => {
+          const r = roleData?.find(role => role.user_id === p.id);
+          // Exclude administrative roles and non-staff roles
+          return r && !['admin', 'super_admin', 'clinic_admin', 'foe', 'front_office', 'client', 'athlete'].includes(r.role);
+        })
+        .map(p => ({
+          id: p.id,
+          name: `${p.first_name} ${p.last_name}`,
+          role: roleData?.find(r => r.user_id === p.id)?.role || 'consultant',
+          profession: p.profession
+        }));
+
+      setConsultants(specialists);
     } catch (err: any) {
       toast({ title: "Failed to load consultants", description: err.message, variant: "destructive" });
     }

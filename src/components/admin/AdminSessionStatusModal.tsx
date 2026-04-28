@@ -341,6 +341,16 @@ export function AdminSessionStatusModal({ open, onOpenChange, session, onSuccess
                         <p><strong>Client:</strong> {session.client?.first_name} {session.client?.last_name}</p>
                         <p><strong>Consultant:</strong> Dr. {session.therapist?.last_name}</p>
                         <p><strong>Scheduled:</strong> {format(new Date(session.scheduled_start), "MMM d, yyyy h:mm a")}</p>
+                        {session?.actual_start && (
+                            <p className="text-emerald-700 text-xs font-bold">
+                                <strong>Recorded Start:</strong> {format(new Date(session.actual_start), "h:mm a")}
+                            </p>
+                        )}
+                        {session?.actual_end && (
+                            <p className="text-emerald-700 text-xs font-bold">
+                                <strong>Recorded End:</strong> {format(new Date(session.actual_end), "h:mm a")}
+                            </p>
+                        )}
                         <div className="flex items-center gap-2">
                              <strong>Service:</strong>
                              <Select 

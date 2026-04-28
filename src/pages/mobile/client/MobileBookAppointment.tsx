@@ -84,7 +84,8 @@ export default function MobileBookAppointment() {
                 const specialists = (profilesData || [])
                     .filter(p => {
                         const r = roleData?.find(role => role.user_id === p.id);
-                        return r && !["client", "athlete"].includes(r.role);
+                        // Exclude administrative roles and non-staff roles
+                        return r && !['admin', 'super_admin', 'clinic_admin', 'foe', 'front_office', 'client', 'athlete'].includes(r.role);
                     })
                     .map(p => ({
                         ...p,

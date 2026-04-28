@@ -49,7 +49,8 @@ interface SessionEvent {
 }
 
 export default function ConsultantSchedule() {
-    const { profile } = useAuth();
+    const { profile, roles } = useAuth();
+    const isAdminOrFoe = roles?.some(r => ["admin", "super_admin", "clinic_admin", "foe"].includes(r));
     const [currentDate, setCurrentDate] = useState(new Date());
     const [viewMode, setViewMode] = useState<ViewMode>("month");
 
@@ -292,17 +293,17 @@ export default function ConsultantSchedule() {
                                     <span className="font-semibold">{format(parseISO(event.scheduled_start), "HH:mm")}</span>
                                     {" "}
                                     <VIPName name={`${event.client?.first_name} ${event.client?.last_name}`} isVIP={event.client?.is_vip} />
-                                    {event.client_id && (
+                                    {event.client_id && isAdminOrFoe && (
                                         <div className="inline-block ml-1 align-middle">
                                             <PatientAlertSummaryIcon clientId={event.client_id} isVIP={event.client?.is_vip} />
                                         </div>
                                     )}
-                                    {event.is_unentitled && (
+                                    {event.is_unentitled && isAdminOrFoe && (
                                         <span className="ml-1 px-1 bg-red-500 text-white rounded-[2px] text-[8px] font-bold animate-pulse">
                                             UN
                                         </span>
                                     )}
-                                    {(event as any).is_pre_unentitled && (
+                                    {(event as any).is_pre_unentitled && isAdminOrFoe && (
                                         <span className="ml-1 px-1 bg-orange-400 text-white rounded-[2px] text-[8px] font-bold" title="No entitlement for this service">
                                             ⚠
                                         </span>
@@ -407,19 +408,19 @@ export default function ConsultantSchedule() {
                                                     <div className="text-xs font-semibold">{format(startD, "HH:mm")} - {format(endD, "HH:mm")}</div>
                                                     <div className="text-xs truncate font-medium flex items-center gap-1">
                                                         <VIPName name={`${event.client?.first_name} ${event.client?.last_name}`} isVIP={event.client?.is_vip} />
-                                                        {event.client_id && <PatientAlertSummaryIcon clientId={event.client_id} isVIP={event.client?.is_vip} />}
+                                                        {event.client_id && isAdminOrFoe && <PatientAlertSummaryIcon clientId={event.client_id} isVIP={event.client?.is_vip} />}
+                                                        {event.is_unentitled && isAdminOrFoe && (
+                                                            <div className="mt-1 px-1 py-0.5 bg-red-600 text-white text-[9px] font-bold rounded flex items-center gap-1 animate-pulse">
+                                                                UN-ENTITLED
+                                                            </div>
+                                                        )}
+                                                        {(event as any).is_pre_unentitled && isAdminOrFoe && (
+                                                            <div className="mt-1 px-1 py-0.5 bg-orange-400 text-white text-[9px] font-bold rounded flex items-center gap-1">
+                                                                ⚠ NO ENT
+                                                            </div>
+                                                        )}
                                                     </div>
                                                     {height > 40 && <div className="text-xs truncate opacity-80 mt-0.5">{event.service_type}</div>}
-                                                    {event.is_unentitled && (
-                                                        <div className="mt-1 px-1 py-0.5 bg-red-600 text-white text-[9px] font-bold rounded flex items-center gap-1 animate-pulse">
-                                                            UN-ENTITLED
-                                                        </div>
-                                                    )}
-                                                    {(event as any).is_pre_unentitled && (
-                                                        <div className="mt-1 px-1 py-0.5 bg-orange-400 text-white text-[9px] font-bold rounded flex items-center gap-1">
-                                                            ⚠ NO ENT
-                                                        </div>
-                                                    )}
                                                 </div>
                                             )
                                         })}
@@ -500,12 +501,12 @@ export default function ConsultantSchedule() {
                                          <div className="font-display font-medium text-sm mt-1 flex items-center gap-2 overflow-hidden">
                                              <User className="w-3 h-3 opacity-70 flex-shrink-0" />
                                              <VIPName name={`${event.client?.first_name} ${event.client?.last_name}`} isVIP={event.client?.is_vip} className="truncate" />
-                                             {event.client_id && <PatientAlertSummaryIcon clientId={event.client_id} isVIP={event.client?.is_vip} />}
+                                             {event.client_id && isAdminOrFoe && <PatientAlertSummaryIcon clientId={event.client_id} isVIP={event.client?.is_vip} />}
                                          </div>
                                          <div className="text-xs opacity-80 mt-0.5 truncate">
                                              {event.service_type}
                                          </div>
-                                         {event.is_unentitled && (
+                                          {event.is_unentitled && isAdminOrFoe && (
                                              <div className="mt-1 px-1.5 py-0.5 bg-red-600 text-white text-[10px] font-bold rounded-md flex items-center gap-1 animate-pulse w-fit">
                                                  UN-ENTITLED
                                              </div>

@@ -78,7 +78,8 @@ export default function SportsScientistAnalytics() {
 
             const modeCounts = {
                 Individual: sessions?.filter(s => s.session_mode === 'Individual').length || 0,
-                Group: sessions?.filter(s => s.session_mode === 'Group').length || 0
+                Group: sessions?.filter(s => s.session_mode === 'Group').length || 0,
+                Other: sessions?.filter(s => s.session_mode === 'Other').length || 0
             };
 
             return {
