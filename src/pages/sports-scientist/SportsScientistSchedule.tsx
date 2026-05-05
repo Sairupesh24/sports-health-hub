@@ -29,16 +29,26 @@ import { SportsScientistBookSessionModal } from "@/components/sports-scientist/S
 import { SportsScientistSessionStatusModal } from "@/components/sports-scientist/SportsScientistSessionStatusModal";
 import { SportsScientistSessionLog } from "@/components/sports-scientist/SportsScientistSessionLog";
 
+import { useLocation } from "react-router-dom";
+
 type ViewMode = "day" | "week" | "month";
 
 export default function SportsScientistSchedule() {
     const { user } = useAuth();
+    const location = useLocation();
     const [currentDate, setCurrentDate] = useState(new Date());
     const [viewMode, setViewMode] = useState<ViewMode>("week");
     const [isBookModalOpen, setIsBookModalOpen] = useState(false);
     const [selectedSession, setSelectedSession] = useState<any>(null);
-    const [activeTab, setActiveTab] = useState("calendar");
+    const [activeTab, setActiveTab] = useState(location.pathname.includes("/sessions") ? "log" : "calendar");
 
+    useEffect(() => {
+        if (location.pathname.includes("/sessions")) {
+            setActiveTab("log");
+        } else if (location.pathname.includes("/schedule")) {
+            setActiveTab("calendar");
+        }
+    }, [location.pathname]);
 
     const queryClient = useQueryClient();
 

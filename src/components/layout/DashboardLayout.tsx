@@ -48,21 +48,24 @@ export default function DashboardLayout({ role, children }: DashboardLayoutProps
             </span>
           </div>
 
-          <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-            <SheetTrigger asChild>
-              <Button variant="ghost" size="icon">
-                <Menu className="h-6 w-6" />
-                <span className="sr-only">Toggle Menu</span>
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="left" className="p-0 w-72 border-r-0">
-              <AppSidebar
-                role={effectiveRole}
-                isMobile
-                onNavigate={() => setMobileMenuOpen(false)}
-              />
-            </SheetContent>
-          </Sheet>
+          {/* Hide hamburger if role has a dedicated mobile console with bottom nav */}
+          {!(effectiveRole === "client" || effectiveRole === "athlete" || effectiveRole === "sports_scientist") && (
+            <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon">
+                  <Menu className="h-6 w-6" />
+                  <span className="sr-only">Toggle Menu</span>
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left" className="p-0 w-72 border-r-0">
+                <AppSidebar
+                  role={effectiveRole}
+                  isMobile
+                  onNavigate={() => setMobileMenuOpen(false)}
+                />
+              </SheetContent>
+            </Sheet>
+          )}
         </div>
 
         {/* Content Area */}

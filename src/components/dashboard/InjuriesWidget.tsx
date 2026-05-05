@@ -43,7 +43,7 @@ export default function InjuriesWidget() {
                     injury_type,
                     diagnosis,
                     status,
-                    client:profiles!injuries_client_id_fkey(id, first_name, last_name),
+                    client:clients!injuries_client_id_fkey(id, first_name, last_name),
                     latest_rehab:rehab_progress(milestone)
                 `)
                 .in("status", ["Acute", "Rehab", "RTP"])

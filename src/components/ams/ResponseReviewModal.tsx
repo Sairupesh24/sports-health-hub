@@ -110,9 +110,16 @@ export default function ResponseReviewModal({ isOpen, onClose, response, assignm
                 <DialogTitle className="text-2xl font-black text-slate-900 uppercase italic tracking-tight">
                   Clinical <span className="text-primary">Review</span>
                 </DialogTitle>
-                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mt-1">
-                  {assignmentName}
-                </p>
+                <div className="flex items-center gap-2 mt-1">
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
+                    {assignmentName}
+                  </p>
+                  {questions.some((q: any) => q.score !== undefined) && (
+                    <Badge className="bg-slate-900 text-primary border-none rounded-lg px-2 py-0.5 text-[9px] font-black tracking-widest ml-2">
+                       TOTAL SCORE: {questions.reduce((acc: number, q: any) => acc + (q.score || 0), 0)}
+                    </Badge>
+                  )}
+                </div>
               </div>
             </div>
             

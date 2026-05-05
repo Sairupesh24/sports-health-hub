@@ -114,12 +114,12 @@
     height: 100%;
     margin: 0;
     padding: 0;
-    overflow: hidden;
   }
 
   body {
     @apply bg-background text-foreground;
     font-family: var(--font-body);
+    overflow: hidden;
   }
 
   h1, h2, h3, h4, h5, h6 {
@@ -293,8 +293,28 @@
   }
   
   /* Space out main clinical sections */
-  .clinical-form-container p {
-    margin-bottom: 12px !important;
+  /* VIP Athlete Highlighting */
+  .vip-border {
+    @apply border-amber-500/50 shadow-[0_0_15px_rgba(245,158,11,0.3)];
+    position: relative;
+  }
+  .vip-border::after {
+    content: '';
+    @apply absolute inset-0 rounded-[inherit] border border-amber-500/20 pointer-events-none;
+  }
+
+  /* Mobile-First Font Scaling & Inputs */
+  .mobile-label {
+    @apply text-[0.85em] font-black uppercase tracking-widest text-muted-foreground/60;
+  }
+  
+  input, select, textarea {
+    @apply text-[16px] !important; /* Prevent iOS zoom on focus */
+  }
+
+  /* Success Glow for Haptic/Visual Feedback */
+  .success-glow {
+    @apply shadow-[0_0_20px_rgba(var(--success-rgb),0.4)] border-success/50 transition-all duration-300;
   }
 }
 

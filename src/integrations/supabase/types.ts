@@ -20,6 +20,7 @@ export type AppRole =
   | "massage_therapist"
   | "coach"
   | "athlete"
+  | "hr_manager"
 
 export type AppointmentStatus =
   | "requested"
@@ -50,6 +51,12 @@ export interface Database {
           official_address: string | null
           contact_email: string | null
           contact_phone: string | null
+          clinic_latitude: number | null
+          clinic_longitude: number | null
+          geofence_radius: number | null
+          enable_geofencing: boolean | null
+          enable_ip_locking: boolean | null
+          allowed_ips: string | null
         }
         Insert: {
           id?: string
@@ -64,6 +71,12 @@ export interface Database {
           official_address?: string | null
           contact_email?: string | null
           contact_phone?: string | null
+          clinic_latitude?: number | null
+          clinic_longitude?: number | null
+          geofence_radius?: number | null
+          enable_geofencing?: boolean | null
+          enable_ip_locking?: boolean | null
+          allowed_ips?: string | null
         }
         Update: {
           id?: string
@@ -78,6 +91,12 @@ export interface Database {
           official_address?: string | null
           contact_email?: string | null
           contact_phone?: string | null
+          clinic_latitude?: number | null
+          clinic_longitude?: number | null
+          geofence_radius?: number | null
+          enable_geofencing?: boolean | null
+          enable_ip_locking?: boolean | null
+          allowed_ips?: string | null
         }
         Relationships: []
       }
@@ -143,6 +162,80 @@ export interface Database {
           role?: AppRole
         }
         Relationships: []
+      }
+      client_groups: {
+        Row: {
+          id: string
+          organization_id: string
+          name: string
+          description: string | null
+          created_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          organization_id: string
+          name: string
+          description?: string | null
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          organization_id?: string
+          name?: string
+          description?: string | null
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_groups_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      client_group_members: {
+        Row: {
+          group_id: string
+          client_id: string
+          added_by: string | null
+          added_at: string
+        }
+        Insert: {
+          group_id: string
+          client_id: string
+          added_by?: string | null
+          added_at?: string
+        }
+        Update: {
+          group_id?: string
+          client_id?: string
+          added_by?: string | null
+          added_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_group_members_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "client_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_group_members_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          }
+        ]
       }
       clients: {
         Row: {
@@ -1379,6 +1472,114 @@ export interface Database {
             columns: ["bill_id"]
             isOneToOne: false
             referencedRelation: "bills"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      hr_attendance_logs: {
+        Row: {
+          id: string
+          organization_id: string
+          profile_id: string
+          type: string
+          latitude: number
+          longitude: number
+          distance_from_center: number | null
+          is_within_geofence: boolean
+          metadata: Json | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          organization_id: string
+          profile_id: string
+          type: string
+          latitude: number
+          longitude: number
+          distance_from_center?: number | null
+          is_within_geofence?: boolean
+          metadata?: Json | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          organization_id?: string
+          profile_id?: string
+          type?: string
+          latitude?: number
+          longitude?: number
+          distance_from_center?: number | null
+          is_within_geofence?: boolean
+          metadata?: Json | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hr_attendance_logs_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_attendance_logs_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      hr_leaves: {
+        Row: {
+          id: string
+          organization_id: string
+          employee_id: string
+          leave_type: string
+          start_date: string
+          end_date: string
+          reason: string | null
+          status: string
+          approved_by: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          organization_id: string
+          employee_id: string
+          leave_type: string
+          start_date: string
+          end_date: string
+          reason?: string | null
+          status?: string
+          approved_by?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          organization_id?: string
+          employee_id?: string
+          leave_type?: string
+          start_date?: string
+          end_date?: string
+          reason?: string | null
+          status?: string
+          approved_by?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hr_leaves_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_leaves_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           }
         ]

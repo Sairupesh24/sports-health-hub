@@ -82,11 +82,11 @@ export default function PublicEnquiry() {
       const { data, error } = await query.maybeSingle();
 
       if (error) {
-        console.error("Error fetching org:", error);
+
       }
       
       if (data) {
-        console.log("Public Enquiry - Fetched Organization:", data);
+
         setOrg(data);
         
         if (data.enquiry_form_config) {
@@ -102,7 +102,7 @@ export default function PublicEnquiry() {
         }
       }
     } catch (err) {
-      console.error("Fetch error:", err);
+
     } finally {
       setFetchingOrg(false);
     }
@@ -153,7 +153,7 @@ export default function PublicEnquiry() {
       });
       reset();
     } catch (error: any) {
-      console.error("Enquiry submission error:", error);
+
       toast({
         title: "Submission Failed",
         description: error.message || "Something went wrong. Please try again.",

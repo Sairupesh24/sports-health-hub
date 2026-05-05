@@ -22,6 +22,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const clientSchema = z.object({
   honorific: z.string().optional(),
@@ -36,9 +37,10 @@ const clientSchema = z.object({
   age: z.coerce.number().optional(),
   email: z.string().email("Invalid email").optional().or(z.literal("")),
   alternate_mobile_no: z.string().optional(),
-  occupation: z.string().optional(),
+  occupation: z.string().optional(), // Used for Status
+  is_recreational: z.boolean().optional(),
   sport: z.string().optional(),
-  athlete_type: z.string().optional(),
+  athlete_type: z.string().optional(), // Used for Level of Play
   org_name: z.string().optional(),
   address: z.string().optional(),
   locality: z.string().optional(),
@@ -56,6 +58,35 @@ const clientSchema = z.object({
   referral_source: z.string().optional(),
   referral_source_detail: z.string().optional(),
   admin_remarks: z.string().optional(),
+}).superRefine((data, ctx) => {
+  // If Status is Athlete, org_name and sport are mandatory
+  if (data.occupation === "Athlete") {
+    if (!data.org_name) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Organization name is required for athletes",
+        path: ["org_name"],
+      });
+    }
+    if (!data.sport) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Sport is required for athletes",
+        path: ["sport"],
+      });
+    }
+  }
+
+  // If Status is General Population and is_recreational is true, sport is mandatory
+  if (data.occupation === "General Population" && data.is_recreational) {
+    if (!data.sport) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Sport is required for recreational athletes",
+        path: ["sport"],
+      });
+    }
+  }
 });
 
 type ClientFormData = z.infer<typeof clientSchema>;
@@ -239,7 +270,9 @@ export default function ClientRegistration() {
         age: data.age || null,
         email: data.email || null,
         alternate_mobile_no: data.alternate_mobile_no || null,
-        occupation: data.occupation || null,
+        occupation: data.occupation === "General Population" && data.is_recreational 
+          ? "General Population (Recreational)" 
+          : (data.occupation || null),
         sport: data.sport || null,
         athlete_type: data.athlete_type || null,
         org_name: data.org_name || null,
@@ -430,29 +463,52 @@ export default function ClientRegistration() {
                 </div>
               </div>
 
-              {/* Row 4: Occupation, Sport, Athlete Type */}
+              {/* Row 4: Status + Recreational Checkbox, Sport, Level of Play */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="space-y-1.5">
-                  <Label>Occupation</Label>
-                  <Input className={inputClass} {...register("occupation")} placeholder="e.g. Athlete, Student" />
+                  <div className="flex items-center justify-between">
+                    <Label>Status</Label>
+                    {watch("occupation") === "General Population" && (
+                      <div className="flex items-center gap-1.5 animate-in fade-in zoom-in duration-200">
+                        <Checkbox 
+                          id="recreational" 
+                          checked={watch("is_recreational")}
+                          onCheckedChange={(v) => setValue("is_recreational", !!v)}
+                        />
+                        <Label htmlFor="recreational" className="text-[10px] font-medium leading-none cursor-pointer">Recreational?</Label>
+                      </div>
+                    )}
+                  </div>
+                  <Select onValueChange={(v) => setValue("occupation", v)} value={watch("occupation")}>
+                    <SelectTrigger className={inputClass}><SelectValue placeholder="Select status" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Athlete">Athlete</SelectItem>
+                      <SelectItem value="General Population">General Population</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-1.5">
-                  <Label>Sport</Label>
-                  <Select onValueChange={(v) => setValue("sport", v)}>
+                  <Label>
+                    Sport 
+                    {(watch("occupation") === "Athlete" || (watch("occupation") === "General Population" && watch("is_recreational"))) && (
+                      <span className="text-destructive ml-1">*</span>
+                    )}
+                  </Label>
+                  <Select onValueChange={(v) => setValue("sport", v)} value={watch("sport")}>
                     <SelectTrigger className={inputClass}><SelectValue placeholder="Select sport" /></SelectTrigger>
                     <SelectContent>
                       {SPORTS.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
                     </SelectContent>
                   </Select>
+                  {errors.sport && <p className="text-xs text-destructive">{errors.sport.message}</p>}
                 </div>
                 <div className="space-y-1.5">
-                  <Label>Type of Athlete</Label>
-                  <Select onValueChange={(v) => setValue("athlete_type", v)}>
-                    <SelectTrigger className={inputClass}><SelectValue placeholder="Select type" /></SelectTrigger>
-                    <SelectContent>
-                      {ATHLETE_TYPES.map((a) => <SelectItem key={a} value={a}>{a}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
+                  <Label>Level of Play</Label>
+                  <Input 
+                    className={inputClass} 
+                    {...register("athlete_type")} 
+                    placeholder="e.g. National, Club, etc." 
+                  />
                 </div>
               </div>
 
@@ -516,7 +572,10 @@ export default function ClientRegistration() {
                 </div>
 
                 <div className="space-y-1.5 flex flex-col">
-                  <Label>Organization Name</Label>
+                  <Label>
+                    Organization Name
+                    {watch("occupation") === "Athlete" && <span className="text-destructive ml-1">*</span>}
+                  </Label>
                   <Popover open={openOrg} onOpenChange={setOpenOrg}>
                     <PopoverTrigger asChild>
                       <Button
@@ -570,6 +629,7 @@ export default function ClientRegistration() {
                       </Command>
                     </PopoverContent>
                   </Popover>
+                  {errors.org_name && <p className="text-xs text-destructive">{errors.org_name.message}</p>}
                 </div>
               </div>
 

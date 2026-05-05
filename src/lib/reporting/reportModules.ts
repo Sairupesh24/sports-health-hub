@@ -194,7 +194,6 @@ export const REPORT_STRUCTURE: Record<ReportModule, ReportTemplate[]> = {
 };
 
 export async function generateReportData(module: ReportModule, templateId: string, filters: any) {
-    console.log(`Generating report for ${module}:${templateId}`, filters);
     
     switch (module) {
         case "registration":

@@ -133,9 +133,11 @@ export default function FOEDashboard() {
   });
 
   // 4. Consultant Availability Query
-  const { data: consultants, isLoading: consultantsLoading } = useQuery({
+  const { data: consultants, isLoading: consultantsLoading, error: consultantsError } = useQuery({
     queryKey: ['foe-consultant-availability', organizationId],
     queryFn: async () => {
+        if (!organizationId) return [];
+        
         // Skip user_roles lookup — query profiles directly filtered by org
         // This is more reliable since user_roles may not always have all clinical staff
         const { data: profiles, error: pError } = await supabase
@@ -152,7 +154,11 @@ export default function FOEDashboard() {
             .not("profession", "is", null)
             .not("profession", "eq", "");
             
-        if (pError) throw pError;
+        if (pError) {
+            console.error("Consultant profiles fetch error:", pError);
+            throw pError;
+        }
+        
         if (!profiles || profiles.length === 0) return [];
 
         const profileIds = profiles.map(p => p.id);
@@ -174,7 +180,8 @@ export default function FOEDashboard() {
             emergency_alerts: alerts?.filter(a => a.staff_id === profile.id) ?? []
         }));
     },
-    enabled: !!organizationId
+    enabled: !!organizationId,
+    retry: 1
   });
 
   // 5. Dunning Alerts Query
@@ -220,6 +227,15 @@ export default function FOEDashboard() {
         };
     }) || [];
   }, [consultants, selectedDate]);
+
+  if (consultantsError) {
+    console.error("FOEDashboard Critical Error:", consultantsError);
+    toast({
+        title: "Data Sync Warning",
+        description: "Some clinical data could not be synchronized. Please refresh the page.",
+        variant: "destructive"
+    });
+  }
 
   const stats: { title: string; value: string | number; icon: any; change: string; changeType: "neutral" | "negative" | "positive" }[] = [
     { title: "Today's Appts", value: todaysSessions?.length || 0, icon: Calendar, change: "Planned Sessions", changeType: "neutral" },

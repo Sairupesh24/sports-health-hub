@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import AmsStaffNav from "@/components/ams/AmsStaffNav";
+
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -81,9 +81,13 @@ export default function QuestionnaireLibrary() {
     enabled: !!profile?.organization_id
   });
 
-  const filteredForms = forms?.filter(f => 
-    f.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const [filter, setFilter] = useState<'all' | 'performance' | 'clinical'>("all");
+
+  const filteredForms = forms?.filter(f => {
+    const matchesSearch = f.name.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesFilter = filter === "all" || f.classification === filter;
+    return matchesSearch && matchesFilter;
+  });
 
   const handleAssign = (form: any) => {
     setSelectedForm(form);
@@ -103,7 +107,7 @@ export default function QuestionnaireLibrary() {
   return (
     <DashboardLayout role={profile?.role || "coach"}>
       <div className="min-h-screen bg-[#F8FAFC] flex flex-col font-sans">
-        {profile?.ams_role === 'coach' && <AmsStaffNav />}
+
         
         <main className="flex-1 p-6 md:p-10 space-y-10 max-w-[1600px] mx-auto w-full">
           {/* Hero Header */}
@@ -148,12 +152,20 @@ export default function QuestionnaireLibrary() {
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                 {/* Main Library Area */}
                 <div className="lg:col-span-8 space-y-6">
-                  <div className="flex items-center justify-between bg-white p-2 rounded-3xl border border-slate-200 shadow-sm">
-                    <div className="relative flex-1 group">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-white p-4 md:p-6 rounded-[2.5rem] border border-slate-200 shadow-sm">
+                    <Tabs value={filter} onValueChange={(val) => setFilter(val as any)} className="w-full md:w-auto">
+                      <TabsList className="bg-slate-100 p-1 rounded-xl">
+                        <TabsTrigger value="all" className="rounded-lg px-6 font-black uppercase text-[9px] tracking-widest data-[state=active]:bg-white shadow-sm">All</TabsTrigger>
+                        <TabsTrigger value="performance" className="rounded-lg px-6 font-black uppercase text-[9px] tracking-widest data-[state=active]:bg-white data-[state=active]:text-primary shadow-sm">Performance</TabsTrigger>
+                        <TabsTrigger value="clinical" className="rounded-lg px-6 font-black uppercase text-[9px] tracking-widest data-[state=active]:bg-white data-[state=active]:text-rose-500 shadow-sm">Clinical</TabsTrigger>
+                      </TabsList>
+                    </Tabs>
+
+                    <div className="relative flex-1 group max-w-md">
                       <Search className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300 group-focus-within:text-primary transition-colors" />
                       <Input 
-                        placeholder="Search forms by name..." 
-                        className="border-none bg-transparent h-14 pl-16 text-slate-900 placeholder:text-slate-500 font-bold focus-visible:ring-0"
+                        placeholder="Search forms..." 
+                        className="border-none bg-slate-50 h-12 pl-16 rounded-xl text-slate-900 placeholder:text-slate-400 font-bold focus-visible:ring-primary/20"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                       />
@@ -184,8 +196,13 @@ export default function QuestionnaireLibrary() {
                           
                           <CardContent className="p-8">
                             <div className="flex justify-between items-start mb-6">
-                              <Badge variant="outline" className="bg-primary/5 text-primary border-primary/10 rounded-full px-4 py-1 text-[10px] font-black uppercase tracking-widest">
-                                {form.org_id ? "SQUAD-READY" : "GLOBAL"}
+                              <Badge className={cn(
+                                "rounded-full px-4 py-1 text-[8px] font-black uppercase tracking-[0.15em] border-none shadow-sm",
+                                form.classification === 'clinical' 
+                                  ? "bg-rose-50 text-rose-500 shadow-rose-500/5" 
+                                  : "bg-blue-50 text-blue-500 shadow-blue-500/5"
+                              )}>
+                                {form.classification === 'clinical' ? "Clinical Assessment" : "Performance Protocol"}
                               </Badge>
                             </div>
 

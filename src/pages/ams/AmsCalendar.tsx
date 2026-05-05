@@ -106,7 +106,7 @@ export default function AmsCalendar() {
         .order('last_name', { ascending: true });
       
       if (profileError) {
-        console.error("Error fetching profiles:", profileError);
+
       }
 
       // 2. Fetch batches (Resiliently)
@@ -119,13 +119,13 @@ export default function AmsCalendar() {
         
         if (error) {
           if (!error.message.includes("does not exist")) {
-            console.error("Error fetching batches:", error);
+
           }
         } else {
           batchData = data || [];
         }
       } catch (err) {
-        console.warn("Batches fetch exception:", err);
+
       }
 
       // 3. Combine results
@@ -136,7 +136,7 @@ export default function AmsCalendar() {
       
       setAthletes(combined);
     } catch (error) {
-      console.error("Critical error in fetchAthletes:", error);
+
     }
   };
 
@@ -167,7 +167,7 @@ export default function AmsCalendar() {
       if (error) throw error;
       setWorkouts(data || []);
     } catch (error) {
-      console.error("Error fetching workouts:", error);
+
     } finally {
       setLoading(false);
     }
@@ -185,7 +185,7 @@ export default function AmsCalendar() {
       toast({ title: "Assignment deleted" });
       fetchAthleteWorkouts();
     } catch (error: any) {
-      console.error("Error deleting workout:", error);
+
     } finally {
       setLoading(false);
     }
@@ -204,7 +204,7 @@ export default function AmsCalendar() {
       toast({ title: "Exercise removed from schedule" });
       fetchAthleteWorkouts();
     } catch (error: any) {
-      console.error("Error deleting item:", error);
+
       toast({ title: "Failed to delete exercise", variant: "destructive" });
     } finally {
       setLoading(false);
@@ -267,7 +267,7 @@ export default function AmsCalendar() {
       if (error) throw error;
       fetchAthleteWorkouts();
     } catch (error) {
-      console.error("Error deleting daily workouts:", error);
+
     } finally {
       setLoading(false);
     }

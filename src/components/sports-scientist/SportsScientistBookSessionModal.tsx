@@ -43,19 +43,53 @@ export function SportsScientistBookSessionModal({ open, onOpenChange, onSuccess 
     const [status, setStatus] = useState<"Planned" | "Completed" | "Missed" | "Cancelled">("Planned");
     const [cancellationReason, setCancellationReason] = useState("");
     const [isRecurring, setIsRecurring] = useState(false);
+    const [groupNameOpen, setGroupNameOpen] = useState(false);
+    const [groupNameSearch, setGroupNameSearch] = useState("");
+
     const [recurringEndDate, setRecurringEndDate] = useState(format(addWeeks(new Date(), 4), "yyyy-MM-dd"));
     const [recurringSlots, setRecurringSlots] = useState<Array<{ day: string, startTime: string, endTime: string }>>([
         { day: format(new Date(), "EEEE"), startTime: "09:00", endTime: "10:00" }
     ]);
 
+    const [recentGroups, setRecentGroups] = useState<{id: string, name: string}[]>([]);
+    const [groupMembers, setGroupMembers] = useState<Record<string, string[]>>({});
+    const [isCreatingGroup, setIsCreatingGroup] = useState(false);
+
     useEffect(() => {
         if (open && profile?.organization_id) {
             fetchClients();
             fetchSessionTypes();
+            fetchGroups();
+            setIsCreatingGroup(false);
         }
     }, [open, profile?.organization_id]);
 
+    const fetchGroups = async () => {
+        const { data: groups } = await supabase
+            .from("client_groups")
+            .select("id, name")
+            .eq("organization_id", profile?.organization_id);
+            
+        if (groups) {
+            setRecentGroups(groups);
+            
+            const { data: members } = await supabase
+                .from("client_group_members")
+                .select("group_id, client_id");
+                
+            if (members) {
+                const map: Record<string, string[]> = {};
+                members.forEach(m => {
+                    if (!map[m.group_id]) map[m.group_id] = [];
+                    map[m.group_id].push(m.client_id);
+                });
+                setGroupMembers(map);
+            }
+        }
+    };
+
     const fetchClients = async () => {
+
         const { data } = await supabase
             .from("clients")
             .select("id, first_name, last_name, uhid")
@@ -112,7 +146,7 @@ export function SportsScientistBookSessionModal({ open, onOpenChange, onSuccess 
 
             if (insertError) {
                 // If seeding fails (e.g. duplicate), try fetching again
-                console.warn("Could not seed session types, re-fetching:", insertError.message);
+
                 const { data: retry } = await (supabase as any)
                     .from("session_types")
                     .select("*")
@@ -122,7 +156,7 @@ export function SportsScientistBookSessionModal({ open, onOpenChange, onSuccess 
                 setSessionTypes(inserted);
             }
         } catch (error) {
-            console.error("Error fetching/seeding session types:", error);
+
         }
     };
 
@@ -250,7 +284,7 @@ export function SportsScientistBookSessionModal({ open, onOpenChange, onSuccess 
 
             if (sessionError) throw sessionError;
 
-            // 2. If Group mode, create attendance rows
+            // 2. If Group mode, create attendance rows and sync group architecture
             if (sessionMode === "Group" && selectedClientIds.length > 0) {
                 const attendanceData = [];
                 for (const session of insertedSessions) {
@@ -266,7 +300,27 @@ export function SportsScientistBookSessionModal({ open, onOpenChange, onSuccess 
                 const { error: attendError } = await supabase
                     .from("group_attendance")
                     .insert(attendanceData);
-                if (attendError) console.error("Attendance Error:", attendError);
+
+
+                // Sync group architecture
+                const { data: groupData, error: groupError } = await supabase
+                    .from("client_groups")
+                    .upsert({ 
+                        organization_id: profile!.organization_id,
+                        name: groupName,
+                        created_by: user!.id 
+                    }, { onConflict: 'organization_id,name' })
+                    .select("id")
+                    .single();
+                    
+                if (groupData && !groupError) {
+                    const groupMembersData = selectedClientIds.map(clientId => ({
+                        group_id: groupData.id,
+                        client_id: clientId,
+                        added_by: user!.id
+                    }));
+                    await supabase.from("client_group_members").upsert(groupMembersData, { onConflict: 'group_id,client_id' });
+                }
             }
 
             toast({ title: "Success", description: "Session booked successfully." });
@@ -274,7 +328,7 @@ export function SportsScientistBookSessionModal({ open, onOpenChange, onSuccess 
             onOpenChange(false);
             resetForm();
         } catch (error: any) {
-            console.error(error);
+
             toast({ title: "Error", description: error.message, variant: "destructive" });
         } finally {
             setLoading(false);
@@ -308,74 +362,186 @@ export function SportsScientistBookSessionModal({ open, onOpenChange, onSuccess 
         }
     };
 
+    const matchedGroup = recentGroups.find(g => g.name === groupName);
+    const displayedClients = sessionMode === "Group" && matchedGroup && groupMembers[matchedGroup.id]
+        ? clients.filter(c => groupMembers[matchedGroup.id].includes(c.id))
+        : clients;
+
+    const selectAllDisplayed = () => {
+        const displayedIds = displayedClients.map(c => c.id);
+        const allSelected = displayedIds.length > 0 && displayedIds.every(id => selectedClientIds.includes(id));
+        if (allSelected) {
+            setSelectedClientIds(prev => prev.filter(id => !displayedIds.includes(id)));
+        } else {
+            setSelectedClientIds(prev => Array.from(new Set([...prev, ...displayedIds])));
+        }
+    };
+
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[550px]">
-                <DialogHeader>
-                    <DialogTitle>Schedule Sports Science Session</DialogTitle>
+            <DialogContent className="sm:max-w-[500px] p-0 overflow-hidden border-none bg-slate-50 dark:bg-slate-950 rounded-[2.5rem]">
+                <DialogHeader className="p-6 pb-0">
+                    <DialogTitle className="text-xl font-black italic tracking-tight text-slate-900 dark:text-white">
+                       Schedule Session
+                    </DialogTitle>
                 </DialogHeader>
-                <ScrollArea className="max-h-[85vh] pr-4">
-                    <div className="grid gap-6 py-4">
-                        {/* Mode Selection */}
-                        <div className="flex p-1 bg-muted rounded-lg w-full">
-                            <Button 
-                                variant={sessionMode === "Individual" ? "default" : "ghost"} 
-                                className="flex-1 rounded-md"
+                
+                <div className="max-h-[85vh] overflow-y-auto px-6 py-4 custom-scrollbar">
+                    <div className="space-y-6">
+                        {/* Mode Selection - Premium Segmented Control */}
+                        <div className="p-1.5 bg-slate-200/50 dark:bg-slate-900/50 rounded-2xl flex items-center gap-1">
+                            <button 
                                 onClick={() => { setSessionMode("Individual"); setSelectedClientIds(selectedClientIds.slice(0, 1)); }}
+                                className={cn(
+                                    "flex-1 flex items-center justify-center gap-2 h-10 rounded-xl transition-all font-black uppercase tracking-widest text-[10px]",
+                                    sessionMode === "Individual" ? "bg-white dark:bg-slate-800 text-primary shadow-sm" : "text-slate-500"
+                                )}
                             >
-                                <User className="w-4 h-4 mr-2" /> Individual
-                            </Button>
-                            <Button 
-                                variant={sessionMode === "Group" ? "default" : "ghost"} 
-                                className="flex-1 rounded-md"
-                                onClick={() => setSessionMode("Group")}
+                                <User className="w-3.5 h-3.5" /> Individual
+                            </button>
+                            <button 
+                                onClick={() => { setSessionMode("Group"); }}
+                                className={cn(
+                                    "flex-1 flex items-center justify-center gap-2 h-10 rounded-xl transition-all font-black uppercase tracking-widest text-[10px]",
+                                    sessionMode === "Group" ? "bg-white dark:bg-slate-800 text-primary shadow-sm" : "text-slate-500"
+                                )}
                             >
-                                <Users className="w-4 h-4 mr-2" /> Group
-                            </Button>
-                            <Button 
-                                variant={sessionMode === "Other" ? "default" : "ghost"} 
-                                className="flex-1 rounded-md"
+                                <Users className="w-3.5 h-3.5" /> Group
+                            </button>
+                            <button 
                                 onClick={() => { setSessionMode("Other"); setSelectedClientIds([]); }}
+                                className={cn(
+                                    "flex-1 flex items-center justify-center gap-2 h-10 rounded-xl transition-all font-black uppercase tracking-widest text-[10px]",
+                                    sessionMode === "Other" ? "bg-white dark:bg-slate-800 text-primary shadow-sm" : "text-slate-500"
+                                )}
                             >
-                                <Plus className="w-4 h-4 mr-2" /> Other
-                            </Button>
+                                <Plus className="w-3.5 h-3.5" /> Other
+                            </button>
                         </div>
 
-                        {/* Group Name */}
+                        {/* Group Name Section */}
                         {sessionMode === "Group" && (
-                            <div className="grid gap-2 animate-in fade-in slide-in-from-top-2">
-                                <Label htmlFor="groupName">Group Name</Label>
-                                <Input 
-                                    id="groupName" 
-                                    placeholder="e.g. U19 Squad, Defensive Line" 
-                                    value={groupName}
-                                    onChange={e => setGroupName(e.target.value)}
-                                />
+                            <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
+                                <div className="flex items-center justify-between ml-1">
+                                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Group Identifier</Label>
+                                    <Button 
+                                        variant="ghost" 
+                                        size="sm" 
+                                        onClick={() => { 
+                                            setIsCreatingGroup(!isCreatingGroup);
+                                            setGroupName("");
+                                            setGroupNameSearch("");
+                                        }}
+                                        className="h-6 px-2 text-[9px] font-black uppercase tracking-widest text-primary hover:bg-primary/10 rounded-full border border-primary/20"
+                                    >
+                                        {isCreatingGroup ? (
+                                            <><Users className="w-2.5 h-2.5 mr-1" /> Use Existing</>
+                                        ) : (
+                                            <><Plus className="w-2.5 h-2.5 mr-1" /> New Group</>
+                                        )}
+                                    </Button>
+                                </div>
+                                
+                                {isCreatingGroup ? (
+                                    <div className="space-y-3 p-4 bg-primary/5 rounded-2xl border border-primary/10 animate-in zoom-in-95">
+                                        <Input 
+                                            placeholder="Enter new group name (e.g. U-19 Elite)" 
+                                            className="h-12 rounded-xl border-primary/20 font-black italic bg-white dark:bg-slate-900 focus-visible:ring-primary"
+                                            value={groupName}
+                                            onChange={(e) => setGroupName(e.target.value)}
+                                        />
+                                        <p className="text-[9px] font-bold text-slate-400 italic px-1">
+                                            Creating a new group will also save it for future use. Select athletes below to add them.
+                                        </p>
+                                    </div>
+                                ) : (
+                                    <Popover open={groupNameOpen} onOpenChange={setGroupNameOpen}>
+                                        <PopoverTrigger asChild>
+                                            <Button
+                                                variant="outline"
+                                                role="combobox"
+                                                className={cn("w-full justify-between h-12 rounded-2xl border-border/50 font-black", !groupName && "text-muted-foreground")}
+                                            >
+                                                <span className="truncate">{groupName || "Search or select group..."}</span>
+                                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                            </Button>
+                                        </PopoverTrigger>
+                                        <PopoverContent 
+                                            className="w-[calc(100vw-3rem)] sm:w-[450px] p-0 rounded-2xl overflow-hidden shadow-2xl" 
+                                            align="start"
+                                            onWheel={(e) => e.stopPropagation()}
+                                        >
+                                            <Command>
+                                                <CommandInput 
+                                                    placeholder="Type group name..." 
+                                                    value={groupNameSearch}
+                                                    onValueChange={setGroupNameSearch}
+                                                />
+                                                <CommandList>
+                                                    <CommandEmpty>
+                                                        {groupNameSearch ? (
+                                                            <Button 
+                                                                variant="ghost" 
+                                                                className="w-full justify-start font-bold text-primary px-3 py-4 h-auto"
+                                                                onClick={() => {
+                                                                    setGroupName(groupNameSearch);
+                                                                    setGroupNameOpen(false);
+                                                                    setGroupNameSearch("");
+                                                                }}
+                                                            >
+                                                                <Plus className="mr-2 h-4 w-4" /> Create "{groupNameSearch}"
+                                                            </Button>
+                                                        ) : "No groups found."}
+                                                    </CommandEmpty>
+                                                    <CommandGroup>
+                                                        {recentGroups.filter(g => g.name.toLowerCase().includes(groupNameSearch.toLowerCase())).map((g) => (
+                                                            <CommandItem
+                                                                key={g.id}
+                                                                value={g.name}
+                                                                onSelect={() => {
+                                                                    setGroupName(g.name);
+                                                                    setGroupNameOpen(false);
+                                                                    setGroupNameSearch("");
+                                                                }}
+                                                                className="py-3 px-4"
+                                                            >
+                                                                <Check className={cn("mr-2 h-4 w-4 text-primary", groupName === g.name ? "opacity-100" : "opacity-0")} />
+                                                                <span className="font-bold">{g.name}</span>
+                                                            </CommandItem>
+                                                        ))}
+                                                    </CommandGroup>
+                                                </CommandList>
+                                            </Command>
+                                        </PopoverContent>
+                                    </Popover>
+                                )}
                             </div>
                         )}
 
                         {/* Client Selection */}
                         {sessionMode !== "Other" && (
-                            <div className="grid gap-2 animate-in fade-in slide-in-from-top-2">
-                                <Label>{sessionMode === "Individual" ? "Select Athlete" : "Select Athletes"}</Label>
+                            <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
+                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">
+                                   {sessionMode === "Individual" ? "Athlete Profile" : "Participating Athletes"}
+                                </Label>
                                 <Popover>
                                     <PopoverTrigger asChild>
                                         <Button
                                             variant="outline"
                                             role="combobox"
-                                            className={cn("w-full justify-between h-auto py-2", selectedClientIds.length === 0 && "text-muted-foreground")}
+                                            className={cn("w-full justify-between h-auto min-h-[48px] py-2 px-3 rounded-2xl border-border/50", selectedClientIds.length === 0 && "text-muted-foreground")}
                                         >
-                                            <div className="flex flex-wrap gap-1 items-center">
+                                            <div className="flex flex-wrap gap-1.5 items-center">
                                                 {selectedClientIds.length === 0 ? (
-                                                    <span>Search or select athletes...</span>
+                                                    <span className="font-bold">Search or select athletes...</span>
                                                 ) : (
                                                     selectedClientIds.map(id => {
                                                         const c = clients.find(x => x.id === id);
                                                         return (
-                                                            <Badge key={id} variant="secondary" className="flex items-center gap-1">
+                                                            <Badge key={id} variant="secondary" className="bg-primary/10 text-primary border-none py-1 px-2 font-black italic tracking-tighter">
                                                                 {c ? `${c.first_name} ${c.last_name}` : id}
                                                                 {sessionMode === "Group" && (
-                                                                    <X className="w-3 h-3 cursor-pointer" onClick={(e) => { e.stopPropagation(); toggleClient(id); }} />
+                                                                    <X className="w-3 h-3 ml-1.5 cursor-pointer opacity-50 hover:opacity-100" onClick={(e) => { e.stopPropagation(); toggleClient(id); }} />
                                                                 )}
                                                             </Badge>
                                                         );
@@ -385,22 +551,42 @@ export function SportsScientistBookSessionModal({ open, onOpenChange, onSuccess 
                                             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                         </Button>
                                     </PopoverTrigger>
-                                    <PopoverContent className="w-[450px] p-0" align="start">
+                                    <PopoverContent 
+                                        className="w-[calc(100vw-3rem)] sm:w-[450px] p-0 rounded-2xl overflow-hidden shadow-2xl" 
+                                        align="start"
+                                        onWheel={(e) => e.stopPropagation()}
+                                    >
                                         <Command>
-                                            <CommandInput placeholder="Search athlete by name or UHID..." />
+                                            <CommandInput placeholder="Search by name or UHID..." />
                                             <CommandList>
                                                 <CommandEmpty>No athlete found.</CommandEmpty>
                                                 <CommandGroup>
-                                                    {clients.map((c) => (
+                                                    {sessionMode === "Group" && displayedClients.length > 0 && (
+                                                        <div className="p-2 border-b">
+                                                            <Button 
+                                                                variant="secondary" 
+                                                                size="sm" 
+                                                                className="w-full text-[10px] font-black uppercase tracking-widest h-8 rounded-xl"
+                                                                onClick={selectAllDisplayed}
+                                                            >
+                                                                {displayedClients.every(c => selectedClientIds.includes(c.id)) 
+                                                                    ? "Deselect All" 
+                                                                    : "Select All Visible"
+                                                                }
+                                                            </Button>
+                                                        </div>
+                                                    )}
+                                                    {displayedClients.map((c) => (
                                                         <CommandItem
                                                             key={c.id}
                                                             value={`${c.first_name} ${c.last_name} ${c.uhid}`}
                                                             onSelect={() => toggleClient(c.id)}
+                                                            className="py-3 px-4"
                                                         >
-                                                            <Check className={cn("mr-2 h-4 w-4", selectedClientIds.includes(c.id) ? "opacity-100" : "opacity-0")} />
+                                                            <Check className={cn("mr-2 h-4 w-4 text-primary", selectedClientIds.includes(c.id) ? "opacity-100" : "opacity-0")} />
                                                             <div className="flex flex-col">
-                                                                <span>{c.first_name} {c.last_name}</span>
-                                                                <span className="text-xs text-muted-foreground">{c.uhid}</span>
+                                                                <span className="font-bold">{c.first_name} {c.last_name}</span>
+                                                                <span className="text-[10px] text-muted-foreground uppercase font-black">{c.uhid}</span>
                                                             </div>
                                                         </CommandItem>
                                                     ))}
@@ -412,230 +598,140 @@ export function SportsScientistBookSessionModal({ open, onOpenChange, onSuccess 
                             </div>
                         )}
 
-                        {/* Session Type */}
-                        <div className="grid gap-2">
-                            <Label>Session Type</Label>
-                            <Popover>
-                                <PopoverTrigger asChild>
-                                    <Button
-                                        variant="outline"
-                                        role="combobox"
-                                        className={cn("w-full justify-between h-10", !sessionTypeId && "text-muted-foreground")}
+                        {/* Session Type & Status - Grid for better spacing */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Session Type</Label>
+                                <Popover>
+                                    <PopoverTrigger asChild>
+                                        <Button
+                                            variant="outline"
+                                            role="combobox"
+                                            className={cn("w-full justify-between h-12 rounded-2xl border-border/50 font-bold", !sessionTypeId && "text-muted-foreground")}
+                                        >
+                                            <span className="truncate">
+                                                {sessionTypeId 
+                                                    ? sessionTypes.find(t => t.id === sessionTypeId)?.name 
+                                                    : "Select Type..."}
+                                            </span>
+                                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                        </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent 
+                                        className="w-[calc(100vw-3rem)] sm:w-[450px] p-0 rounded-2xl overflow-hidden shadow-2xl" 
+                                        align="start"
+                                        onWheel={(e) => e.stopPropagation()}
                                     >
-                                        {sessionTypeId 
-                                            ? sessionTypes.find(t => t.id === sessionTypeId)?.name 
-                                            : "Select Session Category..."}
-                                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                    </Button>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-[450px] p-0" align="start">
-                                    <Command>
-                                        <CommandInput placeholder="Search session type..." />
-                                        <CommandList>
-                                            <CommandEmpty>No session type found.</CommandEmpty>
-                                            <CommandGroup>
-                                                <ScrollArea className="h-72">
+                                        <Command>
+                                            <CommandInput placeholder="Search types..." />
+                                            <CommandList>
+                                                <CommandEmpty>No session type found.</CommandEmpty>
+                                                <CommandGroup>
                                                     {sessionTypes.map((t) => (
                                                         <CommandItem
                                                             key={t.id}
                                                             value={t.name}
-                                                            onSelect={() => {
-                                                                setSessionTypeId(t.id);
-                                                            }}
-                                                            className="flex items-center gap-2"
+                                                            onSelect={() => setSessionTypeId(t.id)}
+                                                            className="py-3 px-4"
                                                         >
-                                                            <Check className={cn("h-4 w-4", sessionTypeId === t.id ? "opacity-100" : "opacity-0")} />
-                                                            {t.name}
+                                                            <Check className={cn("mr-2 h-4 w-4 text-primary", sessionTypeId === t.id ? "opacity-100" : "opacity-0")} />
+                                                            <span className="font-bold">{t.name}</span>
                                                         </CommandItem>
                                                     ))}
-                                                </ScrollArea>
-                                            </CommandGroup>
-                                        </CommandList>
-                                    </Command>
-                                </PopoverContent>
-                            </Popover>
-                        </div>
+                                                </CommandGroup>
+                                            </CommandList>
+                                        </Command>
+                                    </PopoverContent>
+                                </Popover>
+                            </div>
 
-                        {/* Session Status */}
-                        <div className="grid gap-2">
-                            <Label>Session Status</Label>
-                            <Select value={status} onValueChange={(v: any) => setStatus(v)}>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Select status" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="Planned">Planned (Upcoming)</SelectItem>
-                                    <SelectItem value="Completed">Completed (Logged Retroactively)</SelectItem>
-                                    <SelectItem value="Missed">Missed (Athlete didn't show)</SelectItem>
-                                    <SelectItem value="Cancelled">Cancelled (Prior notice)</SelectItem>
-                                </SelectContent>
-                            </Select>
-                            <p className="text-[10px] text-muted-foreground italic">
-                                Use "Completed" only for sessions that have already occurred.
-                            </p>
+                            <div className="space-y-2">
+                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Current Status</Label>
+                                <Select value={status} onValueChange={(v: any) => setStatus(v)}>
+                                    <SelectTrigger className="h-12 rounded-2xl border-border/50 font-bold">
+                                        <SelectValue placeholder="Status" />
+                                    </SelectTrigger>
+                                    <SelectContent className="rounded-2xl shadow-2xl border-none">
+                                        <SelectItem value="Planned" className="py-3">Planned (Upcoming)</SelectItem>
+                                        <SelectItem value="Completed" className="py-3">Completed (Logged)</SelectItem>
+                                        <SelectItem value="Missed" className="py-3">Missed (No-show)</SelectItem>
+                                        <SelectItem value="Cancelled" className="py-3">Cancelled</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
                         </div>
 
                         {/* Cancellation Reason */}
                         {(status === "Missed" || status === "Cancelled") && (
-                            <div className="grid gap-2 animate-in slide-in-from-top-1">
-                                <Label>Reason for {status}</Label>
+                            <div className="space-y-2 animate-in slide-in-from-top-1">
+                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Reason for {status}</Label>
                                 <Textarea 
-                                    placeholder={`Why was the session ${status.toLowerCase()}?`} 
+                                    placeholder="Brief explanation..." 
                                     value={cancellationReason}
                                     onChange={(e) => setCancellationReason(e.target.value)}
-                                    className="resize-none h-20"
+                                    className="resize-none h-20 rounded-2xl border-border/50 p-4 focus-visible:ring-primary"
                                 />
                             </div>
-                        )}                        {/* Date & Time / Multi-Slot Scheduler */}
-                        {!isRecurring ? (
-                            <div className="grid grid-cols-2 gap-4 animate-in fade-in slide-in-from-top-1">
-                                <div className="grid gap-2">
-                                    <Label>Date</Label>
-                                    <div className="relative">
-                                        <CalendarIcon className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                                        <Input type="date" className="pl-9" value={sessionDate} onChange={e => setSessionDate(e.target.value)} />
-                                    </div>
-                                </div>
-                                <div className="grid gap-2">
-                                    <Label>Select Time</Label>
-                                    <div className="flex items-center gap-2">
-                                        <Input type="time" value={startTime} onChange={e => setStartTime(e.target.value)} />
-                                        <span className="text-muted-foreground text-xs">to</span>
-                                        <Input type="time" value={endTime} onChange={e => setEndTime(e.target.value)} />
-                                    </div>
-                                </div>
-                            </div>
-                        ) : (
-                            <div className="grid gap-4 p-4 bg-muted/30 rounded-xl border border-border/50 animate-in fade-in slide-in-from-top-2">
-                                <div className="flex items-center justify-between">
-                                    <Label className="font-bold flex items-center gap-2">
-                                        <Clock className="w-4 h-4 text-primary" /> Weekly Schedule
-                                    </Label>
-                                    <Button 
-                                        type="button" 
-                                        variant="outline" 
-                                        size="sm" 
-                                        className="h-8 gap-1"
-                                        onClick={() => setRecurringSlots([...recurringSlots, { day: "Monday", startTime: "09:00", endTime: "10:00" }])}
-                                    >
-                                        <Plus className="w-3 h-3" /> Add Slot
-                                    </Button>
-                                </div>
-                                <div className="grid gap-3">
-                                    {recurringSlots.map((slot, index) => (
-                                        <div key={index} className="flex items-center gap-2 group">
-                                            <Select 
-                                                value={slot.day} 
-                                                onValueChange={(v) => {
-                                                    const newSlots = [...recurringSlots];
-                                                    newSlots[index].day = v;
-                                                    setRecurringSlots(newSlots);
-                                                }}
-                                            >
-                                                <SelectTrigger className="w-[140px]">
-                                                    <SelectValue />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].map(d => (
-                                                        <SelectItem key={d} value={d}>{d}</SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
-                                            <div className="flex items-center gap-1 flex-1">
-                                                <Input 
-                                                    type="time" 
-                                                    className="h-9" 
-                                                    value={slot.startTime} 
-                                                    onChange={e => {
-                                                        const newSlots = [...recurringSlots];
-                                                        newSlots[index].startTime = e.target.value;
-                                                        setRecurringSlots(newSlots);
-                                                    }} 
-                                                />
-                                                <span className="text-[10px] text-muted-foreground px-0.5">to</span>
-                                                <Input 
-                                                    type="time" 
-                                                    className="h-9" 
-                                                    value={slot.endTime} 
-                                                    onChange={e => {
-                                                        const newSlots = [...recurringSlots];
-                                                        newSlots[index].endTime = e.target.value;
-                                                        setRecurringSlots(newSlots);
-                                                    }} 
-                                                />
-                                            </div>
-                                            {recurringSlots.length > 1 && (
-                                                <Button 
-                                                    variant="ghost" 
-                                                    size="icon" 
-                                                    className="h-9 w-9 text-muted-foreground hover:text-destructive"
-                                                    onClick={() => setRecurringSlots(recurringSlots.filter((_, i) => i !== index))}
-                                                >
-                                                    <X className="w-4 h-4" />
-                                                </Button>
-                                            )}
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
                         )}
-                        
-                        {/* Recurring Toggle & End Date */}
-                        <div className="grid gap-4 bg-muted/20 p-4 rounded-xl border border-border/50">
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center space-x-2">
-                                    <Checkbox id="recurring" checked={isRecurring} onCheckedChange={(checked) => setIsRecurring(checked as boolean)} />
-                                    <Label htmlFor="recurring" className="text-sm font-medium leading-none cursor-pointer">
-                                        Make this a recurring schedule
-                                    </Label>
-                                </div>
-                                {isRecurring && (
-                                    <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20">
-                                        {recurringSlots.length} Slots/Week
-                                    </Badge>
-                                )}
+
+                        {/* Date & Time Section - Redesigned Grid */}
+                        <div className="p-4 bg-white dark:bg-slate-900 rounded-[2rem] border border-border/50 shadow-sm space-y-4">
+                            <div className="space-y-2">
+                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1 flex items-center gap-2">
+                                   <CalendarIcon className="w-3 h-3" /> Event Date
+                                </Label>
+                                <Input 
+                                    type="date" 
+                                    className="h-12 rounded-xl border-slate-100 dark:border-slate-800 font-bold bg-slate-50 dark:bg-slate-950 focus-visible:ring-primary" 
+                                    value={sessionDate} 
+                                    onChange={e => setSessionDate(e.target.value)} 
+                                />
                             </div>
                             
-                            {isRecurring && (
-                                <div className="grid grid-cols-2 gap-4 animate-in slide-in-from-top-1">
-                                    <div className="grid gap-2">
-                                        <Label>Starts From</Label>
-                                        <div className="relative">
-                                            <CalendarIcon className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                                            <Input type="date" className="pl-9 h-9" value={sessionDate} onChange={e => setSessionDate(e.target.value)} />
-                                        </div>
+                            <div className="space-y-2">
+                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1 flex items-center gap-2">
+                                   <Clock className="w-3 h-3" /> Time Window
+                                </Label>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div className="relative">
+                                        <Input type="time" className="h-12 rounded-xl border-slate-100 dark:border-slate-800 font-bold bg-slate-50 dark:bg-slate-950 pr-8" value={startTime} onChange={e => setStartTime(e.target.value)} />
+                                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] font-black text-slate-400">IN</span>
                                     </div>
-                                    <div className="grid gap-2">
-                                        <Label>Recurring Until</Label>
-                                        <div className="relative">
-                                            <CalendarIcon className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                                            <Input type="date" className="pl-9 h-9" value={recurringEndDate} onChange={e => setRecurringEndDate(e.target.value)} />
-                                        </div>
+                                    <div className="relative">
+                                        <Input type="time" className="h-12 rounded-xl border-slate-100 dark:border-slate-800 font-bold bg-slate-50 dark:bg-slate-950 pr-8" value={endTime} onChange={e => setEndTime(e.target.value)} />
+                                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] font-black text-slate-400">OUT</span>
                                     </div>
-                                    <p className="col-span-2 text-[10px] text-muted-foreground italic px-1">
-                                        Sessions will be automatically generated for all selected time slots until the end date.
-                                    </p>
                                 </div>
-                            )}
+                            </div>
                         </div>
 
                         {/* Notes */}
-                        <div className="grid gap-2">
-                            <Label htmlFor="notes">Session Plan / Notes</Label>
-                            <Input 
+                        <div className="space-y-2">
+                            <Label htmlFor="notes" className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Session Plan & Notes</Label>
+                            <Textarea 
                                 id="notes" 
-                                placeholder="Core objectives for the session..." 
+                                placeholder="What's the core focus of this session? (Optional)" 
                                 value={notes}
                                 onChange={e => setNotes(e.target.value)}
+                                className="resize-none h-24 rounded-[1.5rem] border-border/50 p-4 focus-visible:ring-primary"
                             />
                         </div>
 
-                        <Button onClick={handleSave} disabled={loading} className="w-full h-11">
-                            {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
-                            Schedule Session
+                        <Button 
+                            onClick={handleSave} 
+                            disabled={loading} 
+                            className="w-full h-14 rounded-2xl bg-primary text-white font-black uppercase tracking-[0.2em] text-xs shadow-xl shadow-primary/20 active:scale-95 transition-all group overflow-hidden relative mt-2"
+                        >
+                            {loading ? (
+                                <Loader2 className="w-5 h-5 animate-spin" />
+                            ) : (
+                                <div className="flex items-center gap-2">
+                                   <Plus className="w-4 h-4" /> Create Session
+                                </div>
+                            )}
                         </Button>
                     </div>
-                </ScrollArea>
+                </div>
             </DialogContent>
         </Dialog>
     );

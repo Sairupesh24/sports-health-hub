@@ -463,7 +463,6 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess, initialDa
             const sessionsToCreate: any[] = [];
             const seriesId = isRecurring ? `Series-${Date.now()}` : null;
 
-            const auditFooter = (outstandingBalance > 0 && isAcknowledged) ? `\n--- Acknowledged by: ${profile?.first_name} ${profile?.last_name} ---` : "";
 
             if (isRecurring) {
                 let sessionsCreated = 0;
@@ -492,8 +491,7 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess, initialDa
                             status: "Planned",
                             group_name: seriesId,
                             preference_type: preferenceType,
-                            is_flexible_routing: preferenceType === "Flexible",
-                            notes: auditFooter
+                            is_flexible_routing: preferenceType === "Flexible"
                         });
                         sessionsCreated++;
                     }
@@ -520,8 +518,7 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess, initialDa
                     scheduled_end: new Date(endTimestamp).toISOString(),
                     status: "Planned",
                     preference_type: preferenceType,
-                    is_flexible_routing: preferenceType === "Flexible",
-                    notes: auditFooter
+                    is_flexible_routing: preferenceType === "Flexible"
                 });
             }
 

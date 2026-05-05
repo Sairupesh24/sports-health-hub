@@ -176,7 +176,7 @@ export default function WorkoutItemModal({
       onSave({ ...baseItem, [activeTab]: { ...detailPayload, exercise: selectedExercise } });
       onClose();
     } catch (error: any) {
-      console.error("Save Error:", error);
+
     } finally {
       setSaving(false);
     }

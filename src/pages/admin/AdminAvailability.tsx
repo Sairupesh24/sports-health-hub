@@ -53,7 +53,7 @@ export default function AdminAvailability({ hideLayout = false }: { hideLayout?:
     const { data: consultants } = useQuery({
         queryKey: ['org-consultants', profile?.organization_id],
         queryFn: async () => {
-            console.log("Fetching Specialists for Admin Availability: org =", profile?.organization_id);
+
             
             // Step 1: Get all approved profiles for this organization
             const { data: profilesData, error: profileError } = await supabase
@@ -63,12 +63,12 @@ export default function AdminAvailability({ hideLayout = false }: { hideLayout?:
                 .eq("is_approved", true);
 
             if (profileError) {
-                console.error("Profile fetch error:", profileError);
+
                 return [];
             }
 
             if (!profilesData || profilesData.length === 0) {
-                console.log("No approved profiles found for this organization");
+
                 return [];
             }
 
@@ -80,7 +80,7 @@ export default function AdminAvailability({ hideLayout = false }: { hideLayout?:
                 .in("user_id", profileIds);
 
             if (roleError) {
-                console.error("Role fetch error:", roleError);
+
                 return [];
             }
 
@@ -95,7 +95,7 @@ export default function AdminAvailability({ hideLayout = false }: { hideLayout?:
                 profession: p.profession
             }));
 
-            console.log("Final Valid Specialists for Dropdown:", validSpecialists);
+
             return validSpecialists;
         },
         enabled: !!profile?.organization_id
@@ -458,7 +458,7 @@ function SessionTypeManager({ organizationId }: { organizationId?: string }) {
                     .order("name");
 
                 if (error) {
-                    console.warn("DB unavailable for session_types, using local storage:", error.message);
+
                     return getLocalTypes();
                 }
 
@@ -478,7 +478,7 @@ function SessionTypeManager({ organizationId }: { organizationId?: string }) {
                 .insert({ organization_id: organizationId, name });
             if (error) {
                 // DB unavailable — add locally instead
-                console.warn("DB insert failed, saving locally:", error.message);
+
                 const current = getLocalTypes();
                 if (current.some(t => t.name.toLowerCase() === name.toLowerCase())) {
                     throw new Error("A session type with that name already exists.");
@@ -512,7 +512,7 @@ function SessionTypeManager({ organizationId }: { organizationId?: string }) {
                 .eq("id", id);
             if (error) {
                 // DB unavailable — remove locally
-                console.warn("DB delete failed, removing locally:", error.message);
+
                 const current = getLocalTypes();
                 saveLocalTypes(current.filter(t => t.id !== id));
             }

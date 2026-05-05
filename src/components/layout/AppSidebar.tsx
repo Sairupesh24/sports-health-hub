@@ -41,6 +41,7 @@ const adminNav: NavItem[] = [
   { label: "Billing", icon: CreditCard, href: "/admin/billing" },
   { label: "Questionnaires", icon: ClipboardList, href: "/ams/questionnaires" },
   { label: "User Approvals", icon: UserCheck, href: "/admin/users" },
+  { label: "Attendance", icon: CalendarClock, href: "/my-attendance" },
   { label: "Settings", icon: Settings, href: "/admin/settings", isUnderDevelopment: true },
 ];
 

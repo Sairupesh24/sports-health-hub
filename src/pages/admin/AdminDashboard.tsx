@@ -15,6 +15,7 @@ import EmergencyAlertIcon from "@/components/admin/EmergencyAlertIcon";
 import EmergencyResponseModal from "@/components/admin/EmergencyResponseModal";
 import { AnnouncementsManager } from "@/components/shared/AnnouncementsManager";
 import { Megaphone } from "lucide-react";
+import AttendanceMarker from "@/components/attendance/AttendanceMarker";
 
 type WaitlistItem = Database['public']['Tables']['waitlist']['Row'] & {
     client: {
@@ -376,6 +377,11 @@ export default function AdminDashboard() {
           </div>
         ) : (
           <>
+            {/* Attendance Marker */}
+            <div className="animate-in fade-in slide-in-from-bottom-2 duration-500 mb-6">
+              <AttendanceMarker />
+            </div>
+
             {/* Stats */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 animate-in fade-in slide-in-from-bottom-2 duration-500">
               {stats.map((stat) => (

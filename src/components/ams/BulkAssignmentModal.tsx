@@ -238,18 +238,20 @@ export default function BulkAssignmentModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="bg-[#0F172A] border-white/10 text-white rounded-[3rem] overflow-hidden shadow-2xl p-0 max-w-4xl ring-1 ring-white/5 h-[90vh] flex flex-col">
-        <DialogHeader className="p-4 bg-white/[0.02] border-b border-white/10 flex-shrink-0">
+      <DialogContent className="bg-[#0F172A] border-white/10 text-white rounded-[2rem] sm:rounded-[3rem] overflow-hidden shadow-2xl p-0 sm:max-w-4xl max-w-[95vw] ring-1 ring-white/5 h-[90vh] sm:h-[80vh] flex flex-col">
+        <DialogHeader className="p-2 sm:p-4 bg-white/[0.02] border-b border-white/10 flex-shrink-0">
           <div className="flex items-center justify-between">
-            <div>
-              <DialogTitle className="text-2xl font-black uppercase tracking-tight flex items-center gap-3 italic">
-                 <div className="w-10 h-10 rounded-2xl bg-primary/20 flex items-center justify-center text-primary shadow-lg shadow-primary/20">
-                    <Sparkles className="w-5 h-5" />
+            <div className="max-w-[70%]">
+              <DialogTitle className="text-xl sm:text-2xl font-black uppercase tracking-tight flex items-center gap-2 sm:gap-3 italic leading-tight">
+                 <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-primary/20 flex items-center justify-center text-primary shadow-lg shadow-primary/20 shrink-0">
+                    <Sparkles className="w-4 h-4 sm:w-5 sm:h-5" />
                  </div>
-                 <span className="text-primary">Assign</span> Questionnaire
+                 <div className="truncate">
+                    <span className="text-primary">Assign</span> Questionnaire
+                 </div>
               </DialogTitle>
-              <p className="text-white/40 font-bold uppercase text-[9px] tracking-widest mt-1 ml-1 leading-none">
-                Distributing: {form.name}
+              <p className="text-[9px] sm:text-[10px] font-black uppercase tracking-[0.2em] text-white/40 mt-1 ml-1 truncate">
+                 Distributing: {form.name}
               </p>
             </div>
             
@@ -261,50 +263,50 @@ export default function BulkAssignmentModal({
         </DialogHeader>
 
         {/* Filters Area */}
-        <div className="px-8 py-3 bg-white/[0.01] border-b border-white/5 flex flex-wrap gap-4 items-end flex-shrink-0">
-            <div className="space-y-1.5 flex-shrink-0">
+        <div className="px-4 sm:px-8 py-2 sm:py-3 bg-white/[0.01] border-b border-white/5 flex flex-wrap gap-2 sm:gap-4 items-end flex-shrink-0">
+            <div className="space-y-1.5 flex-1 sm:flex-none sm:shrink-0">
               <Label className="text-[8px] uppercase font-black tracking-widest text-white/40 pl-1">Sport</Label>
               <Select value={sportFilter} onValueChange={setSportFilter}>
-                <SelectTrigger className="w-[140px] h-10 bg-white/[0.05] border-white/10 rounded-xl text-[10px] font-black uppercase text-white hover:bg-white/[0.08] transition-all">
+                <SelectTrigger className="w-full sm:w-[140px] h-12 sm:h-10 bg-white/[0.05] border-white/10 rounded-xl text-[12px] sm:text-[10px] font-black uppercase text-white hover:bg-white/[0.08] transition-all">
                   <SelectValue placeholder="All Sports" />
                 </SelectTrigger>
-                <SelectContent className="bg-[#0F172A] border border-white/20 text-white shadow-2xl z-[100]">
+                <SelectContent className="bg-[#0F172A] border border-white/20 text-white shadow-2xl z-[100] max-w-[90vw]">
                   <SelectItem value="all" className="font-black uppercase text-[10px] tracking-widest !text-white focus:bg-primary focus:!text-white">All Sports</SelectItem>
-                  {sports.map(s => <SelectItem key={s} value={s} className="font-black uppercase text-[10px] tracking-widest !text-white focus:bg-primary focus:!text-white">{s}</SelectItem>)}
+                  {sports.map(s => <SelectItem key={s} value={s} className="font-black uppercase text-[10px] tracking-widest !text-white focus:bg-primary focus:!text-white truncate">{s}</SelectItem>)}
                 </SelectContent>
              </Select>
             </div>
 
-            <div className="space-y-1.5 flex-shrink-0">
+            <div className="space-y-1.5 flex-1 sm:flex-none sm:shrink-0">
               <Label className="text-[8px] uppercase font-black tracking-widest text-white/40 pl-1">Squad / Team</Label>
               <Select value={teamFilter} onValueChange={setTeamFilter}>
-                <SelectTrigger className="w-[150px] h-10 bg-white/[0.05] border-white/10 rounded-xl text-[10px] font-black uppercase text-white hover:bg-white/[0.08] transition-all">
+                <SelectTrigger className="w-full sm:w-[150px] h-12 sm:h-10 bg-white/[0.05] border-white/10 rounded-xl text-[12px] sm:text-[10px] font-black uppercase text-white hover:bg-white/[0.08] transition-all">
                   <SelectValue placeholder="All Squads" />
                 </SelectTrigger>
-                <SelectContent className="bg-[#0F172A] border border-white/20 text-white shadow-2xl z-[100]">
+                <SelectContent className="bg-[#0F172A] border border-white/20 text-white shadow-2xl z-[100] max-w-[90vw]">
                   <SelectItem value="all" className="font-black uppercase text-[10px] tracking-widest !text-white focus:bg-primary focus:!text-white">All Squads</SelectItem>
-                  {teams.map(t => <SelectItem key={t} value={t} className="font-black uppercase text-[10px] tracking-widest !text-white focus:bg-primary focus:!text-white">{t}</SelectItem>)}
+                  {teams.map(t => <SelectItem key={t} value={t} className="font-black uppercase text-[10px] tracking-widest !text-white focus:bg-primary focus:!text-white truncate">{t}</SelectItem>)}
                 </SelectContent>
              </Select>
             </div>
 
 
-            <div className="flex-1 min-w-[150px] space-y-1.5">
-              <Label className="text-[8px] uppercase font-black tracking-widest text-white/40 pl-1 leading-none">Search Clients</Label>
+            <div className="w-full sm:flex-1 sm:min-w-[150px] space-y-1 mt-1 sm:mt-0">
+              <Label className="text-[10px] sm:text-[8px] uppercase font-black tracking-widest text-white/40 pl-1 leading-none">Search Clients</Label>
               <div className="relative group">
                 <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/20 group-focus-within:text-primary transition-colors" />
                 <Input 
                   placeholder="Name or UHID..." 
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="h-10 bg-white/[0.05] border-white/10 rounded-xl pl-10 text-[11px] font-bold placeholder:text-white/10 shadow-none focus-visible:ring-0"
+                  className="h-10 sm:h-10 bg-white/[0.05] border-white/10 rounded-xl pl-10 text-[13px] sm:text-[11px] font-bold placeholder:text-white/20 shadow-none focus-visible:ring-0"
                 />
               </div>
             </div>
         </div>
 
         {/* Selection Area */}
-        <div className="flex-1 overflow-hidden flex flex-col px-8 pb-3 pt-2">
+        <div className="flex-1 overflow-hidden flex flex-col px-4 sm:px-8 pb-2 pt-1">
           <div className="flex items-center justify-between mb-2 px-2">
             <div className="flex items-center gap-3">
                <h4 className="text-[10px] uppercase font-black tracking-widest text-white/60">Matching Clients ({filteredClients.length})</h4>
@@ -333,7 +335,7 @@ export default function BulkAssignmentModal({
                     key={client.id}
                     onClick={() => toggleClient(client.id)}
                     className={cn(
-                      "flex items-center justify-between p-2.5 rounded-2xl border transition-all cursor-pointer group",
+                      "flex items-center justify-between p-2 sm:p-2.5 rounded-2xl border transition-all cursor-pointer group",
                       isSelected 
                         ? "bg-primary/10 border-primary/30" 
                         : "bg-white/[0.02] border-white/5 hover:border-white/10"
@@ -355,7 +357,7 @@ export default function BulkAssignmentModal({
                            <span className="text-[8px] font-bold text-white/20 uppercase tracking-widest">{client.uhid}</span>
                            <span className="text-[8px] font-black text-primary/60 uppercase">{client.sport || "General"}</span>
                            <span className="text-[8px] font-bold text-white/20 uppercase">/</span>
-                           <span className="text-[8px] font-bold text-white/20 uppercase truncate max-w-[100px]">{client.org_name || "Unassigned Squad"}</span>
+                           <span className="text-[8px] font-bold text-white/20 uppercase truncate max-w-[150px] sm:max-w-[250px]">{client.org_name || "Unassigned Squad"}</span>
                         </div>
                       </div>
                     </div>
@@ -379,7 +381,7 @@ export default function BulkAssignmentModal({
         </div>
 
         {/* Static Bottom Action Bar */}
-        <DialogFooter className="px-8 py-3 bg-white/[0.02] border-t border-white/10 flex-shrink-0 gap-4">
+        <DialogFooter className="px-4 sm:px-8 py-2 sm:py-3 bg-white/[0.02] border-t border-white/10 flex-shrink-0 flex-row gap-2 sm:gap-4">
           <div className="flex-1 flex items-center gap-4 text-white/40 hidden md:flex">
              <div className="flex items-center gap-2">
                <Info className="w-4 h-4" />
@@ -387,14 +389,14 @@ export default function BulkAssignmentModal({
              </div>
           </div>
           
-          <Button variant="ghost" onClick={onClose} className="h-10 px-6 rounded-2xl font-black uppercase text-[10px] tracking-widest text-white/40 hover:bg-white/5 hover:text-white transition-all">
+          <Button variant="ghost" onClick={onClose} className="h-10 px-4 sm:px-6 rounded-xl sm:rounded-2xl font-black uppercase text-[9px] sm:text-[10px] tracking-widest text-white/40 hover:bg-white/5 hover:text-white transition-all shrink-0">
             Cancel
           </Button>
           
           <Button 
             disabled={loading || selectedClientIds.length === 0}
             onClick={handleBulkAssign}
-            className="h-10 px-10 rounded-2xl bg-primary hover:bg-primary/90 text-white font-black uppercase text-[10px] tracking-[0.2em] shadow-2xl shadow-primary/20 gap-3 min-w-[180px]"
+            className="flex-1 h-10 px-4 rounded-xl sm:rounded-2xl bg-primary hover:bg-primary/90 text-white font-black uppercase text-[9px] sm:text-[10px] tracking-widest sm:tracking-[0.2em] shadow-2xl shadow-primary/20 gap-2 sm:gap-3"
           >
             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : (
               <>

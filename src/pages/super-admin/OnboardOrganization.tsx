@@ -39,14 +39,14 @@ export default function OnboardOrganization() {
         setLoading(true);
 
         try {
-            console.log("Starting onboarding for:", formData.organization_name);
+
             
             const { data, error } = await supabase.functions.invoke('onboard-organization', {
                 body: formData
             });
 
             if (error) {
-                console.error("Supabase function invocation error:", error);
+
                 
                 let errorMessage = error.message || "Failed to connect to the onboarding service.";
                 
@@ -59,14 +59,14 @@ export default function OnboardOrganization() {
             }
 
             if (data?.success === false || data?.error) {
-                console.error("Onboarding logic error:", data?.error);
+
                 throw new Error(data?.error || "An unknown error occurred during onboarding.");
             }
 
             setSuccessData(data);
             toast({ title: "Organization Onboarded", description: `${formData.organization_name} has been successfully created.` });
         } catch (err: any) {
-            console.error("Onboarding submission failed:", err);
+
             
             let displayMessage = err.message || "An unexpected error occurred.";
             

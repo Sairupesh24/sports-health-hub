@@ -78,6 +78,16 @@ import MobileWorkoutLogging from "./pages/mobile/client/MobileWorkoutLogging";
 import MobileUnifiedSchedule from "./pages/mobile/client/MobileUnifiedSchedule";
 import MobileNotifications from "./pages/mobile/client/MobileNotifications";
 
+// Mobile Specialist Pages
+import MobileSpecialistDashboard from "./pages/mobile/specialist/MobileSpecialistDashboard";
+import MobileTestingAssessments from "./pages/mobile/specialist/MobileTestingAssessments";
+import MobileBulkAssignment from "./pages/mobile/specialist/MobileBulkAssignment";
+import MobileAttendance from "./pages/mobile/specialist/MobileAttendance";
+import MobileSessionManager from "./pages/mobile/specialist/MobileSessionManager";
+import MobileMemberships from "./pages/mobile/specialist/MobileMemberships";
+import MobileQuestionnaires from "./pages/mobile/specialist/MobileQuestionnaires";
+import MobileClients from "./pages/mobile/specialist/MobileClients";
+
 const queryClient = new QueryClient();
 
 const AdminDashboardRedirect = () => {
@@ -141,25 +151,26 @@ const App = () => (
               <Route path="/consultant/schedule" element={<ProtectedRoute requiredRole={["consultant", "sports_physician", "physiotherapist", "nutritionist", "massage_therapist"]}><ConsultantSchedule /></ProtectedRoute>} />
               <Route path="/consultant/injuries" element={<ProtectedRoute requiredRole={["consultant", "sports_physician", "physiotherapist", "nutritionist", "massage_therapist"]}><InjuryRepoPage /></ProtectedRoute>} />
               
-              <Route path="/sports-scientist" element={<ProtectedRoute requiredRole={["sports_scientist", "admin"]}><SportsScientistDashboard /></ProtectedRoute>} />
-              <Route path="/sports-scientist/schedule" element={<ProtectedRoute requiredRole={["sports_scientist", "admin"]}><SportsScientistSchedule /></ProtectedRoute>} />
+              <Route path="/sports-scientist" element={<MobileGuard><ProtectedRoute requiredRole={["sports_scientist", "admin"]}><SportsScientistDashboard /></ProtectedRoute></MobileGuard>} />
+              <Route path="/sports-scientist/schedule" element={<MobileGuard><ProtectedRoute requiredRole={["sports_scientist", "admin"]}><SportsScientistSchedule /></ProtectedRoute></MobileGuard>} />
+              <Route path="/sports-scientist/sessions" element={<MobileGuard><ProtectedRoute requiredRole={["sports_scientist", "admin"]}><SportsScientistSchedule /></ProtectedRoute></MobileGuard>} />
 
-              <Route path="/sports-scientist/clients" element={<ProtectedRoute requiredRole={["sports_scientist", "admin"]}><SportsScientistClients /></ProtectedRoute>} />
-              <Route path="/sports-scientist/reports" element={<ProtectedRoute requiredRole={["sports_scientist", "admin"]}><ReportsPage role="sports_scientist" /></ProtectedRoute>} />
-              <Route path="/sports-scientist/templates" element={<ProtectedRoute requiredRole={["sports_scientist", "admin"]}><SportsScientistTemplates /></ProtectedRoute>} />
-              <Route path="/sports-scientist/resources" element={<ProtectedRoute requiredRole={["sports_scientist", "admin"]}><SportsScientistResources /></ProtectedRoute>} />
+              <Route path="/sports-scientist/clients" element={<MobileGuard><ProtectedRoute requiredRole={["sports_scientist", "admin"]}><SportsScientistClients /></ProtectedRoute></MobileGuard>} />
+              <Route path="/sports-scientist/reports" element={<MobileGuard><ProtectedRoute requiredRole={["sports_scientist", "admin"]}><ReportsPage role="sports_scientist" /></ProtectedRoute></MobileGuard>} />
+              <Route path="/sports-scientist/templates" element={<MobileGuard><ProtectedRoute requiredRole={["sports_scientist", "admin"]}><SportsScientistTemplates /></ProtectedRoute></MobileGuard>} />
+              <Route path="/sports-scientist/resources" element={<MobileGuard><ProtectedRoute requiredRole={["sports_scientist", "admin"]}><SportsScientistResources /></ProtectedRoute></MobileGuard>} />
 
-              <Route path="/ams/programs" element={<ProtectedRoute requiredRole={["coach", "sports_scientist", "admin", "sports_physician", "physiotherapist", "nutritionist"]}><ProgramsPage /></ProtectedRoute>} />
+              <Route path="/ams/programs" element={<MobileGuard><ProtectedRoute requiredRole={["coach", "sports_scientist", "admin", "sports_physician", "physiotherapist", "nutritionist"]}><ProgramsPage /></ProtectedRoute></MobileGuard>} />
               <Route path="/ams/programs/:id/builder" element={<ProtectedRoute requiredRole={["coach", "sports_scientist", "admin", "sports_physician", "physiotherapist", "nutritionist"]}><WorkoutBuilder /></ProtectedRoute>} />
               <Route path="/ams/feed" element={<ProtectedRoute requiredRole={["coach", "sports_scientist", "admin", "sports_physician", "physiotherapist", "nutritionist"]}><AmsFeed /></ProtectedRoute>} />
               <Route path="/ams/calendar" element={<ProtectedRoute requiredRole={["coach", "sports_scientist", "admin", "sports_physician", "physiotherapist", "nutritionist"]}><AmsCalendar /></ProtectedRoute>} />
               <Route path="/ams/exercises" element={<ProtectedRoute requiredRole={["coach", "sports_scientist", "admin", "sports_physician", "physiotherapist", "nutritionist"]}><ExerciseLibrary /></ProtectedRoute>} />
-              <Route path="/ams/questionnaires" element={<ProtectedRoute requiredRole={["coach", "sports_scientist", "admin", "sports_physician", "physiotherapist", "nutritionist", "foe"]}><QuestionnaireLibrary /></ProtectedRoute>} />
+              <Route path="/ams/questionnaires" element={<MobileGuard><ProtectedRoute requiredRole={["coach", "sports_scientist", "admin", "sports_physician", "physiotherapist", "nutritionist", "foe"]}><QuestionnaireLibrary /></ProtectedRoute></MobileGuard>} />
               <Route path="/ams/athlete/calendar" element={<ProtectedRoute requiredRole={["client", "athlete"]}><AthleteDashboard /></ProtectedRoute>} />
               <Route path="/ams/athlete/workout/:id" element={<ProtectedRoute requiredRole={["client", "athlete"]}><WorkoutLogging /></ProtectedRoute>} />
-              <Route path="/ams/batch-tests" element={<ProtectedRoute requiredRole={["coach", "sports_scientist", "admin", "sports_physician", "physiotherapist", "nutritionist"]}><BatchTestEntry /></ProtectedRoute>} />
-              <Route path="/sports-scientist/analytics" element={<ProtectedRoute requiredRole={["sports_scientist", "admin"]}><SportsScientistAnalytics /></ProtectedRoute>} />
-              <Route path="/sports-scientist/billing" element={<ProtectedRoute requiredRole={["sports_scientist", "admin"]}><SportsScientistBilling /></ProtectedRoute>} />
+              <Route path="/ams/batch-tests" element={<MobileGuard><ProtectedRoute requiredRole={["coach", "sports_scientist", "admin", "sports_physician", "physiotherapist", "nutritionist"]}><BatchTestEntry /></ProtectedRoute></MobileGuard>} />
+              <Route path="/sports-scientist/analytics" element={<MobileGuard><ProtectedRoute requiredRole={["sports_scientist", "admin"]}><SportsScientistAnalytics /></ProtectedRoute></MobileGuard>} />
+              <Route path="/sports-scientist/billing" element={<MobileGuard><ProtectedRoute requiredRole={["sports_scientist", "admin"]}><SportsScientistBilling /></ProtectedRoute></MobileGuard>} />
 
               {/* Client Console - Wrapped in MobileGuard for redirection */}
               <Route path="/client" element={<MobileGuard><ProtectedRoute requiredRole={["client", "athlete"]}><ClientDashboard /></ProtectedRoute></MobileGuard>} />
@@ -175,6 +186,14 @@ const App = () => (
               <Route path="/mobile/client/notifications" element={<MobileGuard><ProtectedRoute requiredRole={["client", "athlete"]}><MobileNotifications /></ProtectedRoute></MobileGuard>} />
               <Route path="/mobile/client/workout/:id" element={<MobileGuard><ProtectedRoute requiredRole={["client", "athlete"]}><MobileWorkoutLogging /></ProtectedRoute></MobileGuard>} />
               
+              {/* Mobile-Specific Specialist Console Routes */}
+              <Route path="/mobile/specialist" element={<MobileGuard><ProtectedRoute requiredRole={["sports_scientist", "admin"]}><MobileSpecialistDashboard /></ProtectedRoute></MobileGuard>} />
+              <Route path="/mobile/specialist/sessions" element={<MobileGuard><ProtectedRoute requiredRole={["sports_scientist", "admin"]}><MobileSessionManager /></ProtectedRoute></MobileGuard>} />
+              <Route path="/mobile/specialist/clients" element={<MobileGuard><ProtectedRoute requiredRole={["sports_scientist", "admin"]}><MobileClients /></ProtectedRoute></MobileGuard>} />
+              <Route path="/mobile/specialist/memberships" element={<MobileGuard><ProtectedRoute requiredRole={["sports_scientist", "admin"]}><MobileMemberships /></ProtectedRoute></MobileGuard>} />
+              <Route path="/mobile/specialist/forms" element={<MobileGuard><ProtectedRoute requiredRole={["sports_scientist", "admin"]}><MobileQuestionnaires /></ProtectedRoute></MobileGuard>} />
+              <Route path="/mobile/specialist/attendance" element={<MobileGuard><ProtectedRoute requiredRole={["sports_scientist", "admin"]}><MobileAttendance /></ProtectedRoute></MobileGuard>} />
+
               <Route path="/super-admin" element={<ProtectedRoute requiredRole="super_admin"><SuperAdminDashboard /></ProtectedRoute>} />
               <Route path="/super-admin/organizations/new" element={<ProtectedRoute requiredRole="super_admin"><OnboardOrganization /></ProtectedRoute>} />
               <Route path="/super-admin/organizations/:id" element={<ProtectedRoute requiredRole="super_admin"><OrganizationDetails /></ProtectedRoute>} />
