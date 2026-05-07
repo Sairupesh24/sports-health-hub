@@ -78,14 +78,17 @@ export default function MobileQuestionnaires() {
       <div className="space-y-6 pb-24">
         
         <Tabs defaultValue="library" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 bg-slate-100 dark:bg-slate-900 rounded-2xl p-1 h-14">
-            <TabsTrigger value="library" className="rounded-xl font-black uppercase text-[10px] tracking-widest data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 shadow-none border-none">
-              Library
-            </TabsTrigger>
-            <TabsTrigger value="status" className="rounded-xl font-black uppercase text-[10px] tracking-widest data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 shadow-none border-none">
-              Live Status
-            </TabsTrigger>
-          </TabsList>
+          {/* Sticky Header for Tabs */}
+          <div className="sticky top-[-24px] z-30 -mx-6 px-6 py-4 bg-white/70 dark:bg-black/70 backdrop-blur-2xl border-b border-border/30">
+            <TabsList className="grid w-full grid-cols-2 bg-slate-100 dark:bg-slate-900/50 rounded-2xl p-1 h-14 shadow-sm">
+              <TabsTrigger value="library" className="rounded-xl font-black uppercase text-[10px] tracking-widest data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 shadow-none border-none">
+                Library
+              </TabsTrigger>
+              <TabsTrigger value="status" className="rounded-xl font-black uppercase text-[10px] tracking-widest data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 shadow-none border-none">
+                Live Status
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
           <TabsContent value="library" className="space-y-6 mt-6">
             {/* Filters & Search */}

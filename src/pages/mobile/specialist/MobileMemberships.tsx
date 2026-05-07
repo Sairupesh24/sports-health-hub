@@ -99,15 +99,15 @@ export default function MobileMemberships() {
     <MobileSpecialistLayout title="Memberships">
       <div className="space-y-6 pb-20">
         
-        {/* Search Header */}
-        <div className="sticky top-16 z-30 -mx-4 px-4 py-3 bg-[#f8fafc]/80 dark:bg-[#020617]/80 backdrop-blur-md border-b border-border/30">
+        {/* Search Header - Sticks to the top of the scrollable area */}
+        <div className="sticky top-[-24px] z-30 -mx-6 px-6 py-4 bg-white/70 dark:bg-black/70 backdrop-blur-2xl border-b border-border/30">
           <div className="relative group">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
             <Input 
               placeholder="Search Athlete Compliance..." 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="h-14 bg-white dark:bg-slate-900 border-border/50 rounded-2xl pl-12 shadow-sm"
+              className="h-14 bg-slate-50 dark:bg-slate-900 border-none rounded-2xl pl-12 shadow-inner font-bold"
             />
           </div>
         </div>

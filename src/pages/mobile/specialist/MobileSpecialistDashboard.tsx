@@ -24,6 +24,7 @@ import MobileAthleteDrawer from "@/components/sports-scientist/MobileAthleteDraw
 import { haptic } from "@/utils/haptic";
 import { useNavigate } from "react-router-dom";
 import AttendanceMarker from "@/components/attendance/AttendanceMarker";
+import { format } from "date-fns";
 
 export default function MobileSpecialistDashboard() {
   const { user, profile } = useAuth();
@@ -75,13 +76,13 @@ export default function MobileSpecialistDashboard() {
       // 3. Active Clients
       const { count: activeClientsCount } = await supabase
         .from('clients')
-        .select('*', { count: 'exact', head: true })
+        .select('id')
         .eq('primary_scientist_id', user.id)
         .is('deleted_at', null);
 
       // 4. Pending Tasks (Questionnaires)
       const { count: pendingTasks } = await supabase
-        .from("form_responses")
+        .from("form_responses" as any)
         .select("id", { count: 'exact', head: true })
         .eq("specialist_id", user.id)
         .eq("status", "completed")
@@ -105,16 +106,33 @@ export default function MobileSpecialistDashboard() {
 
       return {
         isCheckedIn,
-        totalSessions,
-        remainingSessions,
-        activeClientsCount: activeClientsCount || 0,
+        todaySessions: sessionsToday?.length || 0,
+        inProgressSessions: sessionsToday?.filter(s => s.status === 'In Progress').length || 0,
+        activeClients: activeClients?.length || 0,
         pendingTasks: pendingTasks || 0,
         activeSessions: activeSessions || []
       };
     },
-    enabled: !!user,
+    enabled: !!user?.id,
     staleTime: 30000,
   });
+
+  if (isLoading) {
+    return (
+      <MobileSpecialistLayout title="Dashboard">
+        <div className="space-y-8 pb-20">
+          <div className="space-y-4">
+             <div className="h-10 w-48 bg-slate-100 dark:bg-slate-900 rounded-lg animate-pulse" />
+             <div className="h-4 w-32 bg-slate-50 dark:bg-slate-800 rounded-lg animate-pulse" />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+             {[1,2,3,4].map(i => <div key={i} className="h-32 bg-slate-100 dark:bg-slate-900 rounded-[2rem] animate-pulse" />)}
+          </div>
+          <div className="h-64 bg-slate-100 dark:bg-slate-900 rounded-[2.5rem] animate-pulse" />
+        </div>
+      </MobileSpecialistLayout>
+    );
+  }
 
   const handleAthleteClick = (athlete: any) => {
     haptic.light();
@@ -123,27 +141,28 @@ export default function MobileSpecialistDashboard() {
   };
 
   return (
-    <MobileSpecialistLayout title="ISHPO">
-      <div className="space-y-6">
+    <MobileSpecialistLayout title="Dashboard">
+      <div className="space-y-8 pb-20">
         
         {/* Welcome Section & Attendance Action */}
-        <section className="space-y-4">
-          <div className="bg-white dark:bg-[#0F172A] p-6 rounded-[2rem] border border-border/50 shadow-sm relative overflow-hidden">
+        <section className="relative overflow-hidden pt-4">
+           <div className="relative z-10">
+              <h3 className="text-[11px] font-black uppercase tracking-[0.3em] text-primary/70 mb-1 ml-1 animate-in fade-in slide-in-from-left duration-500">Welcome Back</h3>
+              <h1 className="text-3xl font-black text-slate-900 dark:text-white italic tracking-tight leading-none animate-in fade-in slide-in-from-bottom duration-700">
+                {greeting}, <span className="text-primary">{profile?.first_name || 'Specialist'}</span>!
+              </h1>
+              <p className="text-[10px] font-bold text-slate-400 mt-2 ml-1 flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                SYSTEM OPERATIONAL • {format(new Date(), "EEEE, MMM do")}
+              </p>
+           </div>
+
+          <div className="bg-white dark:bg-[#0F172A] p-6 mt-6 rounded-[2rem] border border-border/50 shadow-sm relative overflow-hidden">
             <div className="absolute -top-10 -right-10 opacity-5 dark:opacity-10 pointer-events-none">
               <Sparkles className="w-40 h-40" />
             </div>
             
             <div className="relative z-10 space-y-4">
-              <div>
-                <h2 className="text-2xl font-black tracking-tight text-slate-800 dark:text-white leading-tight">
-                  {greeting}, <span className="text-primary italic">{profile?.first_name || "Specialist"}!</span>
-                </h2>
-                <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mt-1">
-                  Ready to elevate performance on the field today?
-                </p>
-              </div>
-
-              {/* Functional Attendance Marker for Direct Action */}
               <div className="pt-2">
                 <AttendanceMarker />
               </div>
@@ -182,8 +201,8 @@ export default function MobileSpecialistDashboard() {
                    <TrendingUp className="w-4 h-4" />
                 </div>
                 <div>
-                   <h3 className="text-2xl font-black tracking-tight">{dashboardData?.totalSessions || 0}</h3>
-                   <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Total Sessions</p>
+                    <h3 className="text-2xl font-black tracking-tight">{dashboardData?.todaySessions || 0}</h3>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Today's Sessions</p>
                 </div>
              </CardContent>
           </Card>
@@ -198,8 +217,8 @@ export default function MobileSpecialistDashboard() {
                      <Users className="w-5 h-5" />
                   </div>
                   <div>
-                     <h3 className="text-xl font-black tracking-tight">{dashboardData?.activeClientsCount || 0}</h3>
-                     <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Active Clients</p>
+                     <h3 className="text-xl font-black tracking-tight">{dashboardData?.activeClients || 0}</h3>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Active Clients</p>
                   </div>
                 </div>
                 <div className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-400">

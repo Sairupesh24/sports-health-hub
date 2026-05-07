@@ -8,6 +8,7 @@ import {
   Clock, 
   AlertCircle, 
   ShieldCheck, 
+  ShieldAlert,
   ChevronRight,
   Loader2,
   Calendar as CalendarIcon,

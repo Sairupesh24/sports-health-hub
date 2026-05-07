@@ -6,6 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+import { haptic } from "@/utils/haptic";
 import { AnnouncementsManager } from "../shared/AnnouncementsManager";
 
 interface MobileSpecialistLayoutProps {
@@ -65,52 +66,54 @@ export default function MobileSpecialistLayout({ children, title = "ISHPO" }: Mo
   }, [profile?.organization_id, queryClient]);
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] dark:bg-[#020617] flex flex-col pb-20">
-      {/* Premium Sticky Header */}
-      <header className="sticky top-0 z-40 bg-white/70 dark:bg-black/70 backdrop-blur-xl border-b border-border/50 px-5 h-16 flex items-center justify-between shadow-sm">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl gradient-primary flex items-center justify-center shadow-lg shadow-primary/20">
-            <Activity className="w-5 h-5 text-white" />
+    <div className="h-screen flex flex-col bg-slate-50/50 dark:bg-[#020617] antialiased selection:bg-primary/30 overflow-hidden">
+      {/* Header - Fixed Height with Glassmorphism */}
+      <header className="flex-shrink-0 z-40 bg-white/70 dark:bg-black/70 backdrop-blur-2xl border-b border-slate-200/50 dark:border-white/5 safe-area-top">
+        <div className="h-16 px-6 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="w-10 h-10 rounded-2xl bg-slate-900 dark:bg-white flex items-center justify-center shadow-lg shadow-slate-900/10 dark:shadow-white/5">
+              <Activity className="w-5 h-5 text-white dark:text-slate-900" />
+            </div>
+            <div className="flex flex-col">
+              {profile?.organization && (
+                <p className="text-[8px] font-black uppercase tracking-[0.2em] text-primary/80 leading-none mb-0.5">
+                  {profile.organization.name}
+                </p>
+              )}
+              <h1 className="text-lg font-black tracking-tight text-slate-900 dark:text-white leading-tight italic">
+                {title || "ISHPO"}
+              </h1>
+            </div>
           </div>
-          <div>
-            <h1 className="text-lg font-display font-black tracking-tight text-slate-900 dark:text-white leading-tight">
-            {title || "ISHPO"}
-            </h1>
-            {profile?.organization && (
-              <p className="text-[9px] font-black uppercase tracking-widest text-primary/70 leading-none">
-                {profile.organization.name}
-              </p>
-            )}
+          <div className="flex items-center gap-3">
+             <button 
+              type="button"
+              onClick={() => {
+                haptic.light();
+                setShowAnnouncements(true);
+              }}
+              className="relative p-2 rounded-xl bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-300 transition-transform active:scale-90"
+            >
+              <Bell className={cn("w-5 h-5", unreadCount > 0 ? "text-primary" : "")} />
+              {unreadCount > 0 && (
+                <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-white dark:border-black animate-pulse" />
+              )}
+            </button>
+            <button onClick={() => { haptic.light(); window.location.href = '/profile'; }} className="focus:outline-none transition-transform active:scale-95">
+              <Avatar className="h-9 w-9 border-2 border-white dark:border-slate-800 shadow-md">
+                <AvatarImage src={profile?.avatar_url} />
+                <AvatarFallback className="bg-primary text-white font-black text-[10px]">
+                  {profile?.first_name?.[0]}{profile?.last_name?.[0]}
+                </AvatarFallback>
+              </Avatar>
+            </button>
           </div>
-        </div>
-
-        <div className="flex items-center gap-4">
-          <button 
-            type="button"
-            onClick={() => {
-              setShowAnnouncements(true);
-            }}
-            className="relative p-2 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 transition-transform active:scale-90 z-50"
-          >
-            <Bell className={cn("w-5 h-5", unreadCount > 0 ? "text-primary" : "")} />
-            {unreadCount > 0 && (
-              <span className="absolute top-1 right-1 w-3 h-3 bg-rose-500 rounded-full border-2 border-white dark:border-black animate-pulse" />
-            )}
-          </button>
-          <button onClick={() => window.location.href = '/profile'} className="focus:outline-none transition-transform active:scale-95">
-            <Avatar className="h-9 w-9 border-2 border-white dark:border-slate-800 shadow-md">
-              <AvatarImage src={profile?.avatar_url} />
-              <AvatarFallback className="bg-primary text-white font-black text-xs">
-                {profile?.first_name?.[0]}{profile?.last_name?.[0]}
-              </AvatarFallback>
-            </Avatar>
-          </button>
         </div>
       </header>
 
-      {/* Main Content Area */}
-      <main className="flex-1 animate-in fade-in slide-in-from-bottom-4 duration-700">
-        <div className="container px-4 py-6">
+      {/* Main Content Area - Scrollable */}
+      <main className="flex-1 overflow-y-auto overflow-x-hidden no-scrollbar pb-20">
+        <div className="max-w-lg mx-auto px-6 py-6 min-h-full">
           {children}
         </div>
       </main>
@@ -121,7 +124,7 @@ export default function MobileSpecialistLayout({ children, title = "ISHPO" }: Mo
         onOpenChange={setShowAnnouncements} 
       />
 
-      {/* Navigation Dock */}
+      {/* Fixed Bottom Navigation Area */}
       <SpecialistBottomNav />
     </div>
   );
