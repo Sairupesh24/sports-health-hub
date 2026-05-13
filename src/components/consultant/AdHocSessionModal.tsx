@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { format } from "date-fns";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/utils/api";
 import { Button } from "@/components/ui/button";
 import {
     Dialog,
@@ -15,7 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { Check, ChevronsUpDown } from "lucide-react";
+import { Check, ChevronsUpDown, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Slider } from "@/components/ui/slider";
 import { Textarea } from "@/components/ui/textarea";
@@ -24,6 +24,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { filterServicesByRole, Service } from "@/utils/serviceMapping";
 import LogInjuryModal from "./LogInjuryModal";
+import SorenessHeatmap from "@/components/ams/SorenessHeatmap";
 
 interface AdHocSessionModalProps {
     open: boolean;
@@ -71,6 +72,7 @@ export default function AdHocSessionModal({ open, onOpenChange, onSuccess, prese
     const [exerciseGiven, setExerciseGiven] = useState("");
     const [clinicalNotes, setClinicalNotes] = useState("");
     const [nextPlan, setNextPlan] = useState("");
+    const [sorenessData, setSorenessData] = useState<string[]>([]);
 
     useEffect(() => {
         if (open && profile?.organization_id) {
@@ -85,6 +87,7 @@ export default function AdHocSessionModal({ open, onOpenChange, onSuccess, prese
             setExerciseGiven("");
             setClinicalNotes("");
             setNextPlan("");
+            setSorenessData([]);
             setSessionDate(format(new Date(), 'yyyy-MM-dd'));
             setStartTime(format(new Date(), 'HH:mm'));
             setEndTime(getDefaultEndTime());
@@ -103,34 +106,25 @@ export default function AdHocSessionModal({ open, onOpenChange, onSuccess, prese
 
     const fetchClients = async () => {
         if (!profile?.organization_id) return;
-
-        // Fetch all active clients from the clients table
-        const { data, error } = await supabase
-            .from("clients")
-            .select("*")
-            .is("deleted_at", null)
-            .order("created_at", { ascending: false });
-
-        if (!error && data) {
+        try {
+            const data = await apiFetch<any[]>('/clients');
             setClients(data);
-        } else {
-            console.error("Error fetching clients:", error);
+        } catch (err) {
+            console.error("Error fetching clients:", err);
         }
     };
 
     const fetchInjuries = async (clientId: string) => {
-        const { data, error } = await supabase
-            .from('injuries')
-            .select('*')
-            .eq('client_id', clientId)
-            .neq('status', 'Resolved')
-            .order('injury_date', { ascending: false });
-
-        if (!error && data) {
+        try {
+            const data = await apiFetch<any[]>('/clinical/injuries', {
+                params: { client_id: clientId, status: 'Active' }
+            });
             setActiveInjuries(data);
             if (data.length > 0) {
                 setSelectedInjuryId(data[0].id);
             }
+        } catch (err) {
+            console.error("Error fetching injuries:", err);
         }
     };
 
@@ -138,12 +132,10 @@ export default function AdHocSessionModal({ open, onOpenChange, onSuccess, prese
         if (!profile?.organization_id) return;
         setServicesLoading(true);
         try {
-            const { data } = await supabase
-                .from("services")
-                .select("id, name, category, organization_id")
-                .eq("organization_id", profile.organization_id)
-                .eq("is_active", true);
-            if (data) setServices(data as Service[]);
+            const data = await apiFetch<Service[]>('/appointments/session-types');
+            setServices(data);
+        } catch (err) {
+            console.error("Error fetching services:", err);
         } finally {
             setServicesLoading(false);
         }
@@ -172,49 +164,41 @@ export default function AdHocSessionModal({ open, onOpenChange, onSuccess, prese
         try {
             setLoading(true);
 
-            // Construct proper UTC timestamps for scheduled_start and scheduled_end
-            // We combine the date and time strings, assuming local timezone for input
             const localStart = new Date(`${sessionDate}T${startTime}:00`);
             const localEnd = new Date(`${sessionDate}T${endTime}:00`);
 
             const selectedService = services.find(s => s.id === serviceId);
 
-            // 1. Create the Ad-Hoc Session Record
-            const { data: sessionData, error: sessionErr } = await supabase
-                .from('sessions')
-                .insert({
-                    organization_id: profile!.organization_id,
+            // 1. Create the Ad-Hoc Session via dedicated endpoint
+            const sessionData = await apiFetch<any>('/appointments', {
+                method: 'POST',
+                data: {
                     client_id: selectedClientId,
-                    therapist_id: profile!.id,
                     service_id: serviceId || null,
                     service_type: selectedService?.name || 'Physiotherapy',
-                    status: 'Completed', // Instant creation implies it happened
                     scheduled_start: localStart.toISOString(),
                     scheduled_end: localEnd.toISOString(),
-                    actual_start: localStart.toISOString(),
-                    actual_end: localEnd.toISOString()
-                })
-                .select()
-                .single();
+                    is_adhoc: true
+                }
+            });
 
-            if (sessionErr) throw sessionErr;
-
-            // 2. Create the associated SOAP Note record
-            const { error: soapErr } = await supabase
-                .from('physio_session_details')
-                .insert({
-                    session_id: sessionData.id,
-                    injury_id: selectedInjuryId === 'none' ? null : selectedInjuryId,
+            // 2. Save the SOAP Note and complete it
+            await apiFetch(`/clinical/sessions/${sessionData.id}/soap`, {
+                method: 'POST',
+                data: {
                     pain_score: painScore[0],
                     modality_used: selectedModalities.join(', '),
                     treatment_type: treatmentType,
                     manual_therapy: manualTherapy,
                     exercise_given: exerciseGiven,
                     clinical_notes: clinicalNotes,
-                    next_plan: nextPlan
-                });
-
-            if (soapErr) throw soapErr;
+                    next_plan: nextPlan,
+                    soreness_data: sorenessData,
+                    injury_id: selectedInjuryId === 'none' ? null : selectedInjuryId,
+                    service_id: serviceId,
+                    service_type: selectedService?.name || 'Physiotherapy'
+                }
+            });
 
             toast({ title: "Success", description: "Ad-hoc session and SOAP notes saved successfully." });
             if (onSuccess) onSuccess();
@@ -232,7 +216,10 @@ export default function AdHocSessionModal({ open, onOpenChange, onSuccess, prese
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="sm:max-w-[700px] h-[90vh] flex flex-col p-0">
                 <DialogHeader className="px-6 py-4 border-b shrink-0">
-                    <DialogTitle>Start Ad-Hoc Session</DialogTitle>
+                    <DialogTitle className="flex items-center gap-2">
+                        Start Ad-Hoc Session
+                        <span className="px-2 py-0.5 rounded bg-amber-100 text-amber-700 text-[10px] font-bold border border-amber-300">AD-HOC / UNSCHEDULED</span>
+                    </DialogTitle>
                     <DialogDescription>Create a new unscheduled session and simultaneously enter SOAP notes.</DialogDescription>
                 </DialogHeader>
 
@@ -280,19 +267,29 @@ export default function AdHocSessionModal({ open, onOpenChange, onSuccess, prese
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="space-y-2">
-                                    <Label>Select Client</Label>
+                                    <div className="flex justify-between items-center mb-1">
+                                        <Label className="font-semibold text-primary">Select Client Name</Label>
+                                        <a href="/consultant/clients" target="_blank" className="text-[10px] text-primary hover:underline font-medium">+ Register New Client</a>
+                                    </div>
                                     <Popover>
                                         <PopoverTrigger asChild>
                                             <Button
                                                 variant="outline"
                                                 role="combobox"
-                                                className={cn("w-full justify-between font-normal", !selectedClientId && "text-muted-foreground")}
+                                                className={cn(
+                                                    "w-full justify-between font-normal bg-white border-primary/20 hover:border-primary/40 transition-all",
+                                                    !selectedClientId && "text-muted-foreground"
+                                                )}
                                             >
-                                                {selectedClientId ? (() => {
-                                                    const c = clients.find(x => x.id === selectedClientId);
-                                                    if (!c) return "Search or select client...";
-                                                    return [c.honorific, c.first_name, c.middle_name, c.last_name].filter(Boolean).join(" ");
-                                                })() : "Search or select client..."}
+                                                <div className="flex items-center gap-2 truncate">
+                                                    <Users className="w-4 h-4 text-primary/50" />
+                                                    {selectedClientId ? (() => {
+                                                        const c = clients.find(x => x.id === selectedClientId);
+                                                        if (!c) return "Search by name, UHID or mobile...";
+                                                        const fullName = [c.honorific, c.first_name, c.middle_name, c.last_name].filter(Boolean).join(" ");
+                                                        return `${fullName} ${c.uhid ? `(${c.uhid})` : ''}`;
+                                                    })() : "Search by name, UHID or mobile..."}
+                                                </div>
                                                 <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                             </Button>
                                         </PopoverTrigger>
@@ -384,6 +381,19 @@ export default function AdHocSessionModal({ open, onOpenChange, onSuccess, prese
                                         step={1}
                                         className="py-4"
                                     />
+                                </div>
+                                <div className="space-y-4 pt-4">
+                                    <Label className="text-sm font-semibold text-primary uppercase tracking-widest">Client Soreness Map</Label>
+                                    <div className="p-4 bg-white dark:bg-slate-950 rounded-2xl border border-dashed border-primary/30 shadow-inner">
+                                        <SorenessHeatmap 
+                                            selectedZones={sorenessData} 
+                                            onZoneToggle={(zone) => {
+                                                setSorenessData(prev => 
+                                                    prev.includes(zone) ? prev.filter(z => z !== zone) : [...prev, zone]
+                                                );
+                                            }} 
+                                        />
+                                    </div>
                                 </div>
 
                                 <div>

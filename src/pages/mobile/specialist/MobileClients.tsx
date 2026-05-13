@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import MobileSpecialistLayout from "@/components/layout/MobileSpecialistLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/utils/api";
 import { useQuery } from "@tanstack/react-query";
 import { Users, Search, ChevronRight, Loader2, Plus } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -41,14 +41,7 @@ export default function MobileClients() {
     const { data: allClients, isLoading: clientsLoading } = useQuery({
         queryKey: ["specialist-all-clients", profile?.organization_id],
         queryFn: async () => {
-            if (!profile?.organization_id) return [];
-            const { data } = await supabase
-                .from("clients")
-                .select("id, first_name, last_name, uhid, is_vip, sport, org_name")
-                .eq("organization_id", profile.organization_id)
-                .is("deleted_at", null)
-                .order("first_name", { ascending: true });
-            return data || [];
+            return await apiFetch<any[]>("/clients");
         },
         enabled: !!profile?.organization_id
     });
@@ -57,47 +50,7 @@ export default function MobileClients() {
     const { data: activeClientsData, isLoading: activeLoading } = useQuery({
         queryKey: ["specialist-active-clients", user?.id],
         queryFn: async () => {
-            if (!user?.id) return [];
-            
-            const start = startOfMonth(new Date()).toISOString();
-            const end = endOfMonth(new Date()).toISOString();
-
-            // Fetch individual sessions
-            const { data: individualSessions } = await supabase
-                .from("sessions")
-                .select("client_id")
-                .eq("scientist_id", user.id)
-                .eq("session_mode", "Individual")
-                .gte("scheduled_start", start)
-                .lte("scheduled_end", end)
-                .not("client_id", "is", null);
-
-            // Fetch group attendance sessions
-            const { data: groupSessions } = await supabase
-                .from("sessions")
-                .select("id")
-                .eq("scientist_id", user.id)
-                .eq("session_mode", "Group")
-                .gte("scheduled_start", start)
-                .lte("scheduled_end", end);
-                
-            const groupSessionIds = groupSessions?.map(s => s.id) || [];
-            
-            let groupClientIds: string[] = [];
-            if (groupSessionIds.length > 0) {
-                const { data: attendance } = await supabase
-                    .from("group_attendance")
-                    .select("client_id")
-                    .in("session_id", groupSessionIds);
-                if (attendance) {
-                    groupClientIds = attendance.map(a => a.client_id).filter(Boolean) as string[];
-                }
-            }
-
-            const individualClientIds = individualSessions?.map(s => s.client_id).filter(Boolean) as string[] || [];
-            const allActiveIds = Array.from(new Set([...individualClientIds, ...groupClientIds]));
-            
-            return allActiveIds;
+            return await apiFetch<string[]>("/ams/mobile-active");
         },
         enabled: !!user?.id
     });
@@ -106,13 +59,7 @@ export default function MobileClients() {
     const { data: groups, isLoading: groupsLoading, refetch: refetchGroups } = useQuery({
         queryKey: ["specialist-client-groups", profile?.organization_id],
         queryFn: async () => {
-            if (!profile?.organization_id) return [];
-            const { data } = await supabase
-                .from("client_groups")
-                .select("id, name, client_group_members(client_id)")
-                .eq("organization_id", profile.organization_id)
-                .order("created_at", { ascending: false });
-            return data || [];
+            return await apiFetch<any[]>("/clients/groups/all");
         },
         enabled: !!profile?.organization_id
     });
@@ -134,24 +81,10 @@ export default function MobileClients() {
         if (!selectedGroup) return;
         setIsSavingGroup(true);
         try {
-            // First delete existing members
-            await supabase
-                .from("client_group_members")
-                .delete()
-                .eq("group_id", selectedGroup.id);
-            
-            // Then insert new ones if any
-            if (groupMembers.length > 0) {
-                const newMembers = groupMembers.map(id => ({
-                    group_id: selectedGroup.id,
-                    client_id: id,
-                    added_by: user!.id
-                }));
-                const { error } = await supabase
-                    .from("client_group_members")
-                    .insert(newMembers);
-                if (error) throw error;
-            }
+            await apiFetch(`/clients/groups/${selectedGroup.id}/members`, {
+                method: "POST",
+                body: { memberIds: groupMembers }
+            });
             
             toast({ title: "Success", description: "Group members updated successfully." });
             refetchGroups();
@@ -168,17 +101,10 @@ export default function MobileClients() {
         if (!newGroupName.trim()) return;
         setIsCreatingGroup(true);
         try {
-            const { data, error } = await supabase
-                .from("client_groups")
-                .insert({
-                    organization_id: profile!.organization_id,
-                    name: newGroupName,
-                    created_by: user!.id
-                })
-                .select()
-                .single();
-            
-            if (error) throw error;
+            const data = await apiFetch<any>("/clients/groups", {
+                method: "POST",
+                body: { name: newGroupName }
+            });
             
             toast({ title: "Success", description: "Group created successfully." });
             setNewGroupName("");

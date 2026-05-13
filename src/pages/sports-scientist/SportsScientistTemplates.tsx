@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/utils/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, Trash2, Edit2, Play, Loader2, Layout, Dumbbell } from "lucide-react";
@@ -27,40 +27,14 @@ export default function SportsScientistTemplates() {
         queryFn: async () => {
             const orgId = profile?.organization_id;
             if (!orgId) return [];
-            
-            const { data, error } = await supabase
-                .from("training_programs" as any)
-                .select(`
-                    *,
-                    coach:profiles!coach_id(full_name),
-                    days:workout_days(
-                        *,
-                        items:workout_items(
-                            *,
-                            lift_items(
-                                *,
-                                exercise:exercises(name)
-                            )
-                        )
-                    )
-                `)
-                .eq("org_id", orgId)
-                .eq("is_template", true)
-                .order("created_at", { ascending: false });
-                
-            if (error) throw error;
-            return data;
+            return await apiFetch('/api/ams/templates');
         },
         enabled: !!profile?.organization_id
     });
 
     const deleteMutation = useMutation({
         mutationFn: async (id: string) => {
-            const { error } = await supabase
-                .from("training_programs" as any)
-                .delete()
-                .eq("id", id);
-            if (error) throw error;
+            await apiFetch(`/api/ams/templates/${id}`, { method: 'DELETE' });
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["ams-templates"] });
@@ -77,90 +51,22 @@ export default function SportsScientistTemplates() {
             let programId = editingTemplate?.id;
 
             if (editingTemplate) {
-                // 1. Update Existing Template Program
-                const { error: pError } = await supabase
-                  .from('training_programs' as any)
-                  .update({
-                    name: days[0]?.title || editingTemplate.name,
-                    updated_at: new Date().toISOString()
-                  } as any)
-                  .eq('id', editingTemplate.id);
-
-                if (pError) throw pError;
-
-                // 2. Delete old days (cascade deletes items)
-                const { error: delError } = await supabase
-                    .from('workout_days' as any)
-                    .delete()
-                    .eq('program_id', editingTemplate.id);
-                
-                if (delError) throw delError;
+                // Update Existing Template via backend
+                await apiFetch(`/api/ams/templates/${editingTemplate.id}`, {
+                    method: 'PUT',
+                    body: JSON.stringify({ days, name: days[0]?.title || editingTemplate.name })
+                });
+                programId = editingTemplate.id;
             } else {
-                // 1. Create New Template Program
-                const { data: programData, error: pError } = await (supabase
-                  .from('training_programs' as any)
-                  .insert({
-                    name: days[0]?.title || `Workout Template - ${format(new Date(), 'MMM d')}`,
-                    description: 'Pre-built workout template',
-                    org_id: orgId,
-                    coach_id: user?.id,
-                    status: 'active',
-                    is_template: true
-                  } as any) as any)
-                  .select()
-                  .single();
-
-                if (pError) throw pError;
-                programId = programData.id;
-            }
-
-            // 3. Create Day and Items
-            for (const day of days) {
-                const { data: dayData, error: dError } = await (supabase
-                  .from('workout_days' as any)
-                  .insert({
-                    program_id: programId,
-                    org_id: orgId,
-                    title: day.title || 'Untitled Workout',
-                    display_order: days.indexOf(day)
-                  } as any) as any)
-                  .select()
-                  .single();
-
-                if (dError) throw dError;
-
-                for (const item of day.items) {
-                    const { data: itemData, error: iError } = await (supabase
-                      .from('workout_items' as any)
-                      .insert({
-                        workout_day_id: dayData.id,
-                        org_id: orgId,
-                        item_type: 'lift',
-                        display_order: day.items.indexOf(item)
-                      } as any) as any)
-                      .select()
-                      .single();
-
-                    if (iError) throw iError;
-
-                    const { error: liftError } = await supabase
-                      .from('lift_items' as any)
-                      .insert({
-                        id: itemData.id,
-                        org_id: orgId,
-                        exercise_id: item.exerciseId,
-                        sets: item.sets,
-                        reps: item.reps,
-                        load_value: item.weight,
-                        tempo: item.tempo,
-                        rest_time_secs: item.rest_time_secs,
-                        workout_grouping: item.workout_grouping,
-                        each_side: item.each_side,
-                        additional_info: item.additional_info
-                      } as any);
-
-                    if (liftError) throw liftError;
-                }
+                // Create New Template via backend
+                const result = await apiFetch('/api/ams/templates', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        name: days[0]?.title || `Workout Template - ${format(new Date(), 'MMM d')}`,
+                        days
+                    })
+                });
+                programId = result.id;
             }
 
             toast({ 

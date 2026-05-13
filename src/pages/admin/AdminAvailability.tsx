@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/utils/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -53,50 +53,20 @@ export default function AdminAvailability({ hideLayout = false }: { hideLayout?:
     const { data: consultants } = useQuery({
         queryKey: ['org-consultants', profile?.organization_id],
         queryFn: async () => {
-
-            
-            // Step 1: Get all approved profiles for this organization
-            const { data: profilesData, error: profileError } = await supabase
-                .from("profiles")
-                .select("id, first_name, last_name, profession")
-                .eq("organization_id", profile?.organization_id)
-                .eq("is_approved", true);
-
-            if (profileError) {
-
+            try {
+                const specialists = await apiFetch<any[]>('/hr/employees', {
+                    params: { role_type: 'clinical' }
+                });
+                return specialists.map(p => ({
+                    id: p.id,
+                    first_name: p.first_name,
+                    last_name: p.last_name,
+                    profession: p.profession
+                }));
+            } catch (error) {
+                console.error("Fetch Consultants Error:", error);
                 return [];
             }
-
-            if (!profilesData || profilesData.length === 0) {
-
-                return [];
-            }
-
-            // Step 2: Get roles for these profiles to filter for clinical staff
-            const profileIds = profilesData.map(p => p.id);
-            const { data: roleData, error: roleError } = await supabase
-                .from("user_roles")
-                .select("user_id, role")
-                .in("user_id", profileIds);
-
-            if (roleError) {
-
-                return [];
-            }
-
-            // Step 3: Filter profiles that have a clinical role
-            const validSpecialists = profilesData.filter(p => {
-                const userRole = roleData?.find(r => r.user_id === p.id)?.role;
-                return CLINICAL_ROLES.includes(userRole as string);
-            }).map(p => ({
-                id: p.id,
-                first_name: p.first_name,
-                last_name: p.last_name,
-                profession: p.profession
-            }));
-
-
-            return validSpecialists;
         },
         enabled: !!profile?.organization_id
     });
@@ -105,13 +75,7 @@ export default function AdminAvailability({ hideLayout = false }: { hideLayout?:
         async function loadSettings() {
             if (!profile?.organization_id) return;
             try {
-                const { data, error } = await supabase
-                    .from("organization_settings")
-                    .select("allow_custom_duration, default_slot_duration")
-                    .eq("organization_id", profile.organization_id)
-                    .maybeSingle();
-
-                if (error) throw error;
+                const data = await apiFetch<any>(`/organizations/${profile.organization_id}/settings`);
                 if (data) {
                     setAllowCustom(!!data.allow_custom_duration);
                     setDefaultDuration(data.default_slot_duration?.toString() || "60");
@@ -133,12 +97,10 @@ export default function AdminAvailability({ hideLayout = false }: { hideLayout?:
             }
             setConsultantLoading(true);
             try {
-                const { data: availData, error } = await supabase
-                    .from("consultant_availability")
-                    .select("*")
-                    .eq("consultant_id", selectedConsultant);
+                const availData = await apiFetch<any[]>('/appointments/availability/bulk', {
+                    params: { consultant_ids: selectedConsultant }
+                });
 
-                if (error) throw error;
                 if (availData && availData.length > 0) {
                     const loadedSchedules: ScheduleRow[] = DAYS_OF_WEEK.map(day => {
                         const existing = availData.find(a => a.day_of_week === day.id);
@@ -173,16 +135,14 @@ export default function AdminAvailability({ hideLayout = false }: { hideLayout?:
                 throw new Error("Default slot duration must be a valid number between 5 and 480 minutes.");
             }
 
-            const { error } = await supabase
-                .from("organization_settings")
-                .upsert({
-                    organization_id: profile.organization_id,
+            await apiFetch(`/organizations/${profile.organization_id}/settings`, {
+                method: 'PATCH',
+                data: {
                     allow_custom_duration: allowCustom,
-                    default_slot_duration: durationNum,
-                    updated_at: new Date().toISOString()
-                });
+                    default_slot_duration: durationNum
+                }
+            });
 
-            if (error) throw error;
             toast({ title: "Settings Saved", description: "Organization scheduling preferences updated successfully." });
         } catch (err: any) {
             toast({ title: "Error Saving", description: err.message, variant: "destructive" });
@@ -208,16 +168,7 @@ export default function AdminAvailability({ hideLayout = false }: { hideLayout?:
         if (!profile?.organization_id || !selectedConsultant) return;
         setConsultantSaving(true);
         try {
-            const { error: deleteError } = await supabase
-                .from("consultant_availability")
-                .delete()
-                .eq("consultant_id", selectedConsultant);
-
-            if (deleteError) throw deleteError;
-
             const inserts = schedules.filter(s => s.is_active).map(s => ({
-                organization_id: profile.organization_id,
-                consultant_id: selectedConsultant,
                 day_of_week: s.day_of_week,
                 start_time: `${s.start_time}:00`,
                 end_time: `${s.end_time}:00`,
@@ -225,10 +176,13 @@ export default function AdminAvailability({ hideLayout = false }: { hideLayout?:
                 buffer_time: s.buffer_time
             }));
 
-            if (inserts.length > 0) {
-                const { error: insertError } = await supabase.from("consultant_availability").insert(inserts);
-                if (insertError) throw insertError;
-            }
+            await apiFetch('/appointments/availability/bulk-update', {
+                method: 'POST',
+                data: {
+                    consultant_id: selectedConsultant,
+                    schedules: inserts
+                }
+            });
 
             toast({ title: "Schedule Saved", description: "Consultant availability has been updated." });
         } catch (err: any) {
@@ -451,17 +405,7 @@ function SessionTypeManager({ organizationId }: { organizationId?: string }) {
         queryKey: ["session-types", organizationId],
         queryFn: async () => {
             try {
-                const { data, error } = await supabase
-                    .from("session_types")
-                    .select("*")
-                    .eq("organization_id", organizationId)
-                    .order("name");
-
-                if (error) {
-
-                    return getLocalTypes();
-                }
-
+                const data = await apiFetch<any[]>('/appointments/session-types');
                 return (data && data.length > 0) ? data : getLocalTypes();
             } catch {
                 return getLocalTypes();
@@ -472,21 +416,10 @@ function SessionTypeManager({ organizationId }: { organizationId?: string }) {
 
     const addMutation = useMutation({
         mutationFn: async (name: string) => {
-            // Try DB first
-            const { error } = await supabase
-                .from("session_types")
-                .insert({ organization_id: organizationId, name });
-            if (error) {
-                // DB unavailable — add locally instead
-
-                const current = getLocalTypes();
-                if (current.some(t => t.name.toLowerCase() === name.toLowerCase())) {
-                    throw new Error("A session type with that name already exists.");
-                }
-                current.push({ id: `local-${Date.now()}`, name, category: "General" });
-                saveLocalTypes(current);
-                return; // success via local
-            }
+            await apiFetch('/appointments/session-types', {
+                method: 'POST',
+                data: { name }
+            });
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["session-types", organizationId] });
@@ -501,21 +434,11 @@ function SessionTypeManager({ organizationId }: { organizationId?: string }) {
     const deleteMutation = useMutation({
         mutationFn: async (id: string) => {
             if (id.startsWith("local-") || id.startsWith("fallback-")) {
-                // Local-only type — remove from localStorage
                 const current = getLocalTypes();
                 saveLocalTypes(current.filter(t => t.id !== id));
                 return;
             }
-            const { error } = await supabase
-                .from("session_types")
-                .delete()
-                .eq("id", id);
-            if (error) {
-                // DB unavailable — remove locally
-
-                const current = getLocalTypes();
-                saveLocalTypes(current.filter(t => t.id !== id));
-            }
+            await apiFetch(`/appointments/session-types/${id}`, { method: 'DELETE' });
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["session-types", organizationId] });

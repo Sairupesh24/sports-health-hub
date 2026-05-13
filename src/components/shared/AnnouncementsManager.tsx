@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/utils/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/hooks/use-toast";
@@ -48,15 +48,7 @@ export function AnnouncementsManager({ open, onOpenChange }: AnnouncementsManage
         queryKey: ["staff-notifications-history", profile?.organization_id],
         queryFn: async () => {
             if (!profile?.organization_id) return [];
-            const { data, error } = await (supabase as any).from("notifications")
-                .select(`
-                    *,
-                    sender:profiles!notifications_sender_id_fkey(first_name, last_name, profession)
-                `)
-                .eq("organization_id", profile.organization_id)
-                .order("created_at", { ascending: false })
-                .limit(50);
-            if (error) throw error;
+            const data = await apiFetch<any[]>('/admin/notifications');
             return data;
         },
         enabled: open && mode === "list" && !!profile?.organization_id
@@ -68,17 +60,16 @@ export function AnnouncementsManager({ open, onOpenChange }: AnnouncementsManage
 
         setLoading(true);
         try {
-            const { error } = await supabase.from("notifications").insert({
-                organization_id: profile.organization_id,
-                sender_id: profile.id,
-                title,
-                content,
-                priority,
-                is_broadcast: target === "all",
-                type: 'announcement'
+            await apiFetch('/admin/notifications', {
+                method: 'POST',
+                body: {
+                    title,
+                    content,
+                    priority,
+                    is_broadcast: target === "all",
+                    type: 'announcement'
+                }
             });
-
-            if (error) throw error;
 
             toast({ title: "Announcement Published!" });
             setTitle("");
@@ -123,11 +114,11 @@ export function AnnouncementsManager({ open, onOpenChange }: AnnouncementsManage
                                             variant="ghost"
                                             onClick={async () => {
                                                 if (!profile?.id || notifications.length === 0) return;
-                                                const inserts = notifications.map((n: any) => ({
-                                                    notification_id: n.id,
-                                                    user_id: profile.id
-                                                }));
-                                                await supabase.from("notification_reads").upsert(inserts, { onConflict: 'notification_id,user_id' });
+                                                const ids = notifications.map((n: any) => n.id);
+                                                await apiFetch('/admin/notifications/read', {
+                                                    method: 'POST',
+                                                    body: { notification_ids: ids }
+                                                });
                                                 queryClient.invalidateQueries({ queryKey: ["unread-notifications"] });
                                                 toast({ title: "Marked all as read" });
                                             }}

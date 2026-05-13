@@ -5,7 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { toast } from "sonner";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/utils/api";
 import { useAuth } from "@/contexts/AuthContext";
 
 import { Button } from "@/components/ui/button";
@@ -52,14 +52,10 @@ export default function WellnessCheckinForm({ onComplete }: { onComplete?: () =>
 
   const submitWellness = useMutation({
     mutationFn: async (values: WellnessFormValues) => {
-      const { data, error } = await supabase.from("wellness_logs").insert([
-        {
-          athlete_id: session?.user?.id,
-          ...values,
-        } as any,
-      ]);
-      if (error) throw error;
-      return data;
+      return await apiFetch('/ams/wellness-logs', {
+        method: 'POST',
+        body: values
+      });
     },
     onSuccess: () => {
       toast.success("Wellness check-in completed!");

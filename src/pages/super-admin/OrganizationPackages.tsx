@@ -2,9 +2,9 @@ import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Download, Upload, AlertCircle, RefreshCw } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
+import { apiFetch } from "@/utils/api";
 import * as XLSX from "xlsx";
 
 interface OrganizationPackagesProps {
@@ -53,77 +53,54 @@ export default function OrganizationPackages({ organizationId }: OrganizationPac
     const fetchPackages = async () => {
         try {
             setLoading(true);
-            const { data, error } = await supabase
-                .from("packages")
-                .select(`
-                    id, name, description, price,
-                    items:package_services (
-                        id,
-                        sessions_included,
-                        service:services(name)
-                    )
-                `)
-                .eq("organization_id", organizationId)
-                .order("created_at", { ascending: false });
+            const data = await apiFetch<any[]>(`/master-console/packages?organization_id=${organizationId}`);
 
-            if (error) throw error;
-            
-            // Map the nested relational structure back into the generic ServicePackage interface 
+            // Map the nested relational structure from backend
             const formatted: ServicePackage[] = (data || []).map((pkg) => ({
                 id: pkg.id,
                 name: pkg.name,
                 description: pkg.description || "",
                 price: pkg.price || 0,
-                items: pkg.items ? (Array.isArray(pkg.items) ? pkg.items : [pkg.items]).map((item) => ({
+                items: (pkg.items || []).filter((i: any) => i.id !== null).map((item: any) => ({
                     id: item.id,
-                    service_type: ((item.service as unknown) as { name: string })?.name || "Unknown",
+                    service_type: item.service?.name || "Unknown",
                     default_sessions: item.sessions_included
-                })) : []
+                }))
             }));
             
             setPackages(formatted);
-        } catch (error: unknown) {
-            const err = error as Error;
-            toast({ title: "Error", description: err.message, variant: "destructive" });
+        } catch (error: any) {
+            toast({ title: "Error", description: error.message, variant: "destructive" });
         } finally {
             setLoading(false);
         }
     };
 
     const downloadTemplate = () => {
-        // Find all unique service types currently in the DB
         const existingServices = new Set<string>();
         packages.forEach(pkg => {
             pkg.items?.forEach(item => existingServices.add(item.service_type));
         });
 
-        // Merge with defaults to ensure we always have standard columns
         const allServices = Array.from(new Set([...DEFAULT_SERVICES, ...Array.from(existingServices)]));
-
         const dynamicHeaders = [...BASE_HEADERS, ...allServices.map(s => `${s} Sessions`)];
         let aoaData: any[][] = [dynamicHeaders];
 
         if (packages.length > 0) {
-            // Pre-fill existing packages
             packages.forEach(pkg => {
                 const row = [pkg.name, pkg.description || "", pkg.price || 0];
-
                 allServices.forEach(service => {
                     const sessionCount = pkg.items?.find(i => i.service_type === service)?.default_sessions || 0;
                     row.push(sessionCount);
                 });
-
                 aoaData.push(row);
             });
         } else {
-            // Static examples
             aoaData.push(["Standard Rehab Pack", "10 Physio sessions to get you back on your feet", 1500, 10, 0, 0, 1, 0, 0]);
             aoaData.push(["Rehab to Performance", "Full transition from rehab to strength training", 3500, 5, 10, 2, 0, 0, 0]);
         }
 
         const ws = XLSX.utils.aoa_to_sheet(aoaData);
-
-        // Add a note about zero values
         XLSX.utils.sheet_add_aoa(ws, [["", "", "", "", "", "", "", ""]], { origin: -1 });
         XLSX.utils.sheet_add_aoa(ws, [["* Note: Leave session counts blank or 0 if the package does not include that service. To delete all packages, upload a file with only headers.", "", "", "", "", "", "", ""]], { origin: -1 });
 
@@ -142,7 +119,6 @@ export default function OrganizationPackages({ organizationId }: OrganizationPac
             const workbook = XLSX.read(data);
             const worksheet = workbook.Sheets[workbook.SheetNames[0]];
 
-            // Parse as array of arrays, skip empty rows
             const rows = XLSX.utils.sheet_to_json<(string | number)[]>(worksheet, { header: 1, blankrows: false });
 
             if (rows.length < 1) {
@@ -154,7 +130,6 @@ export default function OrganizationPackages({ organizationId }: OrganizationPac
                 throw new Error("Invalid headers. The first 3 columns must be Package Name, Description, and Price (Rs).");
             }
 
-            // Extract dynamic service names from headers
             const serviceTypes: string[] = [];
             for (let col = 3; col < headerRow.length; col++) {
                 let headerName = headerRow[col]?.trim() || "";
@@ -164,42 +139,7 @@ export default function OrganizationPackages({ organizationId }: OrganizationPac
                 serviceTypes.push(headerName);
             }
 
-            // Step A: Ensure all serviceTypes exist in the org's `services` table
-            const { data: existingServicesData, error: servicesError } = await supabase
-                .from("services")
-                .select("id, name")
-                .eq("organization_id", organizationId);
-                
-            if (servicesError) throw servicesError;
-            
-            const servicesMap: Record<string, string> = {};
-            if (existingServicesData) {
-                existingServicesData.forEach((s) => servicesMap[s.name.toLowerCase()] = s.id);
-            }
-            
-            const missingServices = serviceTypes.filter(st => !servicesMap[st.toLowerCase()]);
-            if (missingServices.length > 0) {
-                const newServicesArray = missingServices.map(name => ({
-                    organization_id: organizationId,
-                    name: name,
-                    category: "General",
-                    default_session_duration: 60,
-                    is_active: true
-                }));
-                
-                const { data: newlyInsertedServices, error: insertServicesError } = await supabase
-                    .from("services")
-                    .insert(newServicesArray)
-                    .select();
-                    
-                if (insertServicesError) throw insertServicesError;
-                if (newlyInsertedServices) {
-                    newlyInsertedServices.forEach(s => servicesMap[s.name.toLowerCase()] = s.id);
-                }
-            }
-
-            let insertedCount = 0;
-            const processedPackageIds: string[] = [];
+            const packagesToUpload = [];
 
             for (let i = 1; i < rows.length; i++) {
                 const row = rows[i];
@@ -210,84 +150,43 @@ export default function OrganizationPackages({ organizationId }: OrganizationPac
                 const priceValue = row[2]?.toString() || "0";
                 const price = parseFloat(priceValue);
 
-                if (!name) {
-                    throw new Error(`Row ${i + 1} is missing a Package Name.`);
-                }
+                if (!name) continue;
 
-                // 1. Upsert the Package Header (avoiding deletion to preserve FKs in bills)
-                const { data: pkgData, error: pkgError } = await supabase
-                    .from("packages")
-                    .upsert({
-                        organization_id: organizationId,
-                        name,
-                        description,
-                        price
-                    }, {
-                        onConflict: 'organization_id, name'
-                    })
-                    .select()
-                    .single();
-
-                if (pkgError) throw pkgError;
-                if (!pkgData) continue;
-
-                const packageId = pkgData.id;
-                processedPackageIds.push(packageId);
-
-                // 2. Clear existing services for THIS package SPECIFICALLY
-                const { error: clearItemsError } = await supabase
-                    .from("package_services")
-                    .delete()
-                    .eq("package_id", packageId);
-
-                if (clearItemsError) throw clearItemsError;
-
-                // 3. Insert the new Package Items
-                const itemsToInsert: { package_id: string, service_id: string, sessions_included: number }[] = [];
-
+                const items = [];
                 for (let col = 3; col < headerRow.length; col++) {
                     const sessionCount = parseInt(row[col]?.toString() || "0", 10);
                     if (!isNaN(sessionCount) && sessionCount > 0) {
                         const serviceType = serviceTypes[col - 3];
                         if (serviceType) {
-                            const serviceId = servicesMap[serviceType.toLowerCase()];
-                            if (serviceId) {
-                                itemsToInsert.push({
-                                    package_id: packageId,
-                                    service_id: serviceId,
-                                    sessions_included: sessionCount
-                                });
-                            }
+                            items.push({
+                                service_name: serviceType,
+                                sessions_included: sessionCount
+                            });
                         }
                     }
                 }
 
-                if (itemsToInsert.length > 0) {
-                    const { error: itemsError } = await supabase
-                        .from("package_services")
-                        .insert(itemsToInsert);
+                packagesToUpload.push({
+                    name,
+                    description,
+                    price,
+                    items
+                });
+            }
 
-                    if (itemsError) throw itemsError;
+            await apiFetch('/master-console/packages', {
+                method: 'POST',
+                data: {
+                    organizationId,
+                    packages: packagesToUpload
                 }
+            });
 
-                insertedCount++;
-            }
-
-            // 4. Soft-delete packages that were NOT in the new file
-            if (processedPackageIds.length > 0) {
-                await supabase
-                    .from("packages")
-                    .update({ deleted_at: new Date().toISOString() })
-                    .eq("organization_id", organizationId)
-                    .not("id", "in", `(${processedPackageIds.join(",")})`);
-            }
-
-            toast({ title: "Success", description: `Successfully uploaded ${insertedCount} packages.` });
+            toast({ title: "Success", description: `Successfully uploaded ${packagesToUpload.length} packages.` });
             fetchPackages();
 
-        } catch (error: unknown) {
-            const err = error as Error;
-            toast({ title: "Upload Failed", description: err.message, variant: "destructive" });
+        } catch (error: any) {
+            toast({ title: "Upload Failed", description: error.message, variant: "destructive" });
         } finally {
             setUploading(false);
             if (fileInputRef.current) fileInputRef.current.value = "";

@@ -6,8 +6,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 import { PlusCircle } from "lucide-react";
+import { apiFetch } from "@/utils/api";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface LogInjuryModalProps {
     clientId?: string;
@@ -16,6 +17,7 @@ interface LogInjuryModalProps {
 }
 
 export default function LogInjuryModal({ clientId, organizationId, onSuccess }: LogInjuryModalProps) {
+    const { user } = useAuth();
     const [open, setOpen] = useState(false);
     const [loading, setLoading] = useState(false);
     const [regions, setRegions] = useState<string[]>([]);
@@ -55,47 +57,38 @@ export default function LogInjuryModal({ clientId, organizationId, onSuccess }: 
     }, [selectedType]);
 
     const fetchRegions = async () => {
-        const { data } = await supabase
-            .from('injury_master_data')
-            .select('region');
-
-        if (data) {
-            const unique = Array.from(new Set(data.map(d => d.region)));
-            setRegions(unique.sort());
+        try {
+            const data = await apiFetch<string[]>('/clinical/master-data/regions');
+            setRegions(data);
+        } catch (error) {
+            console.error("Failed to fetch regions", error);
         }
     };
 
     const fetchClients = async () => {
-        const { data } = await supabase
-            .from('clients')
-            .select('id, first_name, last_name')
-            .is('deleted_at', null)
-            .order('first_name');
-        if (data) setClients(data);
+        try {
+            const data = await apiFetch<any[]>('/clients');
+            setClients(data);
+        } catch (error) {
+            console.error("Failed to fetch clients", error);
+        }
     };
 
     const fetchTypes = async (region: string) => {
-        const { data } = await supabase
-            .from('injury_master_data')
-            .select('injury_type')
-            .eq('region', region);
-
-        if (data) {
-            const unique = Array.from(new Set(data.map(d => d.injury_type)));
-            setTypes(unique.sort());
+        try {
+            const data = await apiFetch<string[]>(`/clinical/master-data/types?region=${encodeURIComponent(region)}`);
+            setTypes(data);
+        } catch (error) {
+            console.error("Failed to fetch types", error);
         }
     };
 
     const fetchDiagnoses = async (region: string, type: string) => {
-        const { data } = await supabase
-            .from('injury_master_data')
-            .select('diagnosis')
-            .eq('region', region)
-            .eq('injury_type', type);
-
-        if (data) {
-            const unique = Array.from(new Set(data.map(d => d.diagnosis)));
-            setDiagnoses(unique.sort());
+        try {
+            const data = await apiFetch<string[]>(`/clinical/master-data/diagnoses?region=${encodeURIComponent(region)}&type=${encodeURIComponent(type)}`);
+            setDiagnoses(data);
+        } catch (error) {
+            console.error("Failed to fetch diagnoses", error);
         }
     };
 
@@ -112,11 +105,11 @@ export default function LogInjuryModal({ clientId, organizationId, onSuccess }: 
 
         try {
             setLoading(true);
-            const { data: userData } = await supabase.auth.getUser();
+            if (!user) return;
 
-            const { error } = await supabase
-                .from('injuries')
-                .insert({
+            await apiFetch('/clinical/injuries', {
+                method: 'POST',
+                body: {
                     organization_id: organizationId,
                     client_id: selectedClient,
                     injury_date: new Date().toISOString().split('T')[0],
@@ -124,12 +117,10 @@ export default function LogInjuryModal({ clientId, organizationId, onSuccess }: 
                     injury_type: selectedType,
                     diagnosis: selectedDiagnosis,
                     severity: severity,
-                    status: 'Acute', // Default status
+                    status: 'Acute',
                     clinical_notes: notes,
-                    // created_by would ideally be populated via DB trigger or explicitly here if added to schema
-                });
-
-            if (error) throw error;
+                }
+            });
 
             toast({ title: "Injury Logged", description: "The injury has been successfully added to the client profile." });
             setOpen(false);

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { format } from "date-fns";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/utils/api";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { CalendarIcon, User, Clock, AlertCircle, History, UserPlus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/components/ui/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface TherapistData {
   id: string;
@@ -56,23 +57,13 @@ export function TherapistAssignmentCard({ clientId, orgId }: { clientId: string,
   const [isAssigning, setIsAssigning] = useState(false);
   const [consultants, setConsultants] = useState<TherapistData[]>([]);
   const [history, setHistory] = useState<HistoryEntry[]>([]);
+  const { user } = useAuth();
   const { toast } = useToast();
 
   const fetchHistory = async () => {
     try {
-      const { data, error } = await supabase
-        .from('client_therapist_history')
-        .select(`
-          id,
-          therapist_id,
-          assigned_at,
-          therapist:profiles!client_therapist_history_therapist_id_fkey(first_name, last_name, profession)
-        `)
-        .eq('client_id', clientId)
-        .order('assigned_at', { ascending: false });
-
-      if (error) throw error;
-      setHistory(data as any[]);
+      const data = await apiFetch(`/clients/${clientId}/therapist-history`);
+      setHistory(data || []);
     } catch (err: any) {
       console.error("Error fetching history:", err.message);
     }
@@ -82,15 +73,8 @@ export function TherapistAssignmentCard({ clientId, orgId }: { clientId: string,
     setLoading(true);
     try {
       const dateStr = format(selectedDate, "yyyy-MM-dd");
-      // Since RPC is untyped in our generated types right now, we use any
-      const { data: result, error } = await supabase.rpc("get_client_therapist_availability" as any, {
-        p_client_id: clientId,
-        p_date: dateStr,
-      });
+      const result = await apiFetch(`/appointments/client-therapist-availability?client_id=${clientId}&date=${dateStr}`);
 
-      if (error) throw error;
-      
-      // The RPC returns a JSON object
       if (result) {
         setData(result as AvailabilityResult);
       }
@@ -108,38 +92,14 @@ export function TherapistAssignmentCard({ clientId, orgId }: { clientId: string,
   const fetchConsultants = async () => {
     if (!orgId) return;
     try {
-      const { data: profilesData, error: profilesError } = await supabase
-        .from('profiles')
-        .select('id, first_name, last_name, profession')
-        .eq('organization_id', orgId)
-        .eq('is_approved', true)
-        .in('profession', ['Sports Physician', 'Physiotherapist', 'Sports Scientist']);
-        
-      if (profilesError) throw profilesError;
-
-      const userIds = profilesData?.map(p => p.id) || [];
-      if (userIds.length === 0) {
-        setConsultants([]);
-        return;
-      }
-
-      const { data: roleData, error: roleError } = await supabase
-        .from('user_roles')
-        .select('user_id, role')
-        .in('user_id', userIds);
-
-      if (roleError) throw roleError;
-
+      const profilesData = await apiFetch(`/hr/employees`);
+      
       const specialists = (profilesData || [])
-        .filter(p => {
-          const r = roleData?.find(role => role.user_id === p.id);
-          // Exclude administrative roles and non-staff roles
-          return r && !['admin', 'super_admin', 'clinic_admin', 'foe', 'front_office', 'client', 'athlete'].includes(r.role);
-        })
-        .map(p => ({
+        .filter((p: any) => ['Sports Physician', 'Physiotherapist', 'Sports Scientist'].includes(p.profession))
+        .map((p: any) => ({
           id: p.id,
           name: `${p.first_name} ${p.last_name}`,
-          role: roleData?.find(r => r.user_id === p.id)?.role || 'consultant',
+          role: p.role || 'consultant',
           profession: p.profession
         }));
 
@@ -151,26 +111,12 @@ export function TherapistAssignmentCard({ clientId, orgId }: { clientId: string,
 
   const handleAssign = async (therapistId: string) => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
       
-      // 1. Update the primary therapist in the clients table
-      const { error: updateError } = await supabase
-        .from('clients')
-        .update({ assigned_consultant_id: therapistId })
-        .eq('id', clientId);
-        
-      if (updateError) throw updateError;
-
-      // 2. Log the reassignment to history
-      const { error: historyError } = await supabase
-        .from('client_therapist_history')
-        .insert({
-          client_id: clientId,
-          therapist_id: therapistId,
-          assigned_by: user?.id
-        });
-
-      if (historyError) throw historyError;
+      await apiFetch(`/clients/${clientId}`, {
+        method: 'PATCH',
+        data: { assigned_consultant_id: therapistId }
+      });
 
       toast({ title: "Therapist Assigned", description: "Successfully updated primary therapist and logged to history." });
       setIsAssigning(false);

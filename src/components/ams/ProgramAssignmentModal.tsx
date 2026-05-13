@@ -17,13 +17,14 @@ import {
   Check, 
   UserPlus 
 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/utils/api";
 import { useToast } from "@/components/ui/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import AmsQuickBuilder from "./AmsQuickBuilder";
 import { MoveRight, Sparkles } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface ProgramAssignmentModalProps {
   isOpen: boolean;
@@ -57,6 +58,8 @@ export default function ProgramAssignmentModal({
   const [selectedProgramId, setSelectedProgramId] = useState<string>("");
   const [fetching, setFetching] = useState(true);
   const [step, setStep] = useState<'selection' | 'builder'>('selection');
+  const [activeQuestionId, setActiveQuestionId] = useState<string | null>(null);
+  const { user } = useAuth();
   const { toast } = useToast();
 
   useEffect(() => {
@@ -88,16 +91,12 @@ export default function ProgramAssignmentModal({
 
   const fetchPrograms = async () => {
     try {
-      const { data, error } = await supabase
-        .from('training_programs' as any)
-        .select('*')
-        .eq('status', 'active');
-      
-      if (error) throw error;
-      const programsData = data as any[];
-      setPrograms(programsData || []);
-      if (programsData && programsData.length > 0) {
-        setSelectedProgramId(programsData[0].id);
+      const data = await apiFetch<any[]>('/ams/programs', {
+        params: { status: 'active' }
+      });
+      setPrograms(data || []);
+      if (data && data.length > 0) {
+        setSelectedProgramId(data[0].id);
       }
     } catch (error) {
       console.error("Error fetching programs:", error);
@@ -107,14 +106,7 @@ export default function ProgramAssignmentModal({
   const fetchAthletes = async () => {
     try {
       setFetching(true);
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .not('ams_role', 'is', null)
-        .neq('ams_role', 'coach')
-        .order('last_name', { ascending: true });
-
-      if (error) throw error;
+      const data = await apiFetch<any[]>('/ams/athletes');
       setAthletes(data || []);
     } catch (error: any) {
       toast({
@@ -169,11 +161,10 @@ export default function ProgramAssignmentModal({
             status: 'active'
           }));
 
-      const { error } = await supabase
-        .from('program_assignments' as any)
-        .insert(assignments as any);
-
-      if (error) throw error;
+      await apiFetch('/ams/program-assignments/bulk', {
+        method: 'POST',
+        body: { assignments }
+      });
 
       toast({
         title: "Program Assigned",
@@ -198,62 +189,18 @@ export default function ProgramAssignmentModal({
   const handleQuickSave = async (daysData: any[]) => {
     try {
       setLoading(true);
-      const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
-
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('organization_id')
-        .eq('id', user.id)
-        .single();
-
-      const orgId = profile?.organization_id;
 
       // Handle EDITING existing items
       if (initialDays && initialDays.length > 0) {
         const day = daysData[0];
         const dayId = day.id;
 
-        // 1. Delete all existing items for this specific day to ensure sync
-        await supabase
-          .from('workout_items' as any)
-          .delete()
-          .eq('workout_day_id', dayId);
-
-        // 2. Re-insert items
-        for (const item of day.items) {
-          const { data: itemData, error: iError } = await (supabase
-            .from('workout_items' as any)
-            .insert({
-              workout_day_id: dayId,
-              org_id: orgId,
-              item_type: 'lift',
-              display_order: day.items.indexOf(item)
-            } as any) as any)
-            .select()
-            .single();
-
-          if (iError) throw iError;
-
-          const { error: liftError } = await supabase
-            .from('lift_items' as any)
-            .insert({
-              id: itemData.id,
-              org_id: orgId,
-              exercise_id: item.exerciseId,
-              sets: item.sets,
-              reps: item.reps,
-              load_value: item.weight,
-              load_type: item.load_type || 'absolute',
-              tempo: item.tempo,
-              rest_time_secs: item.rest_time_secs,
-              workout_grouping: item.workout_grouping,
-              each_side: item.each_side,
-              additional_info: item.additional_info
-            } as any);
-
-          if (liftError) throw liftError;
-        }
+        // Sync items via backend
+        await apiFetch(`/ams/workout-days/${dayId}/sync-items`, {
+            method: 'POST',
+            body: { items: day.items }
+        });
 
         toast({ title: "Workout Updated!" });
         onSuccess();
@@ -261,94 +208,17 @@ export default function ProgramAssignmentModal({
         return;
       }
 
-      // 1. Create Transient Program (Original Logic for NEW)
-      const { data: programData, error: pError } = await (supabase
-        .from('training_programs' as any)
-        .insert({
-          name: `Quick Assign - ${format(new Date(), 'MMM d, HH:mm')}`,
-          description: 'Ad-hoc workout assigned from calendar',
-          org_id: orgId,
-          coach_id: user.id,
-          status: 'active',
-          is_template: false
-        } as any) as any)
-        .select()
-        .single();
-
-      if (pError) throw pError;
-
-      // 2. Create Days and Items
-      for (const day of daysData) {
-        const { data: dayData, error: dError } = await (supabase
-          .from('workout_days' as any)
-          .insert({
-            program_id: programData.id,
-            org_id: orgId,
-            title: day.title || 'Untitled Workout',
-            display_order: daysData.indexOf(day)
-          } as any) as any)
-          .select()
-          .single();
-
-        if (dError) throw dError;
-
-        for (const item of day.items) {
-          const { data: itemData, error: iError } = await (supabase
-            .from('workout_items' as any)
-            .insert({
-              workout_day_id: dayData.id,
-              org_id: orgId,
-              item_type: 'lift',
-              display_order: day.items.indexOf(item)
-            } as any) as any)
-            .select()
-            .single();
-
-          if (iError) throw iError;
-
-          const { error: liftError } = await supabase
-            .from('lift_items' as any)
-            .insert({
-              id: itemData.id,
-              org_id: orgId,
-              exercise_id: item.exerciseId,
-              sets: item.sets,
-              reps: item.reps,
-              load_value: item.weight,
-              load_type: item.load_type || 'absolute',
-              tempo: item.tempo,
-              rest_time_secs: item.rest_time_secs,
-              workout_grouping: item.workout_grouping,
-              each_side: item.each_side,
-              additional_info: item.additional_info
-            } as any);
-
-          if (liftError) throw liftError;
+      // Create new transient program and assign
+      await apiFetch('/ams/quick-assign', {
+        method: 'POST',
+        body: {
+            title: `Quick Assign - ${format(new Date(), 'MMM d, HH:mm')}`,
+            days: daysData,
+            startDate,
+            athleteIds: selectedAthleteIds,
+            batchId: initialSelectedBatchId
         }
-      }
-
-      // 3. Assign to athletes or batch
-      const assignments = initialSelectedBatchId
-        ? [{
-            program_id: programData.id,
-            batch_id: initialSelectedBatchId,
-            start_date: startDate,
-            org_id: orgId,
-            status: 'active'
-          }]
-        : selectedAthleteIds.map(athleteId => ({
-            program_id: programData.id,
-            athlete_id: athleteId,
-            start_date: startDate,
-            org_id: orgId,
-            status: 'active'
-          }));
-
-      const { error: aError } = await supabase
-        .from('program_assignments' as any)
-        .insert(assignments as any);
-
-      if (aError) throw aError;
+      });
 
       toast({
         title: "Workout Assigned!",

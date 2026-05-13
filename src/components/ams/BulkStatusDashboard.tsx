@@ -1,6 +1,6 @@
 import React from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/utils/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { 
   TrendingUp, 
@@ -48,21 +48,7 @@ export default function BulkStatusDashboard() {
   const { data: assignments, isLoading } = useQuery({
     queryKey: ["ams-bulk-assignments-full", profile?.organization_id],
     queryFn: async () => {
-      const orgId = profile?.organization_id;
-      if (!orgId) return [];
-      
-      const { data, error } = await supabase
-        .from("bulk_assignments" as any)
-        .select(`
-          *,
-          questionnaire:questionnaires(name),
-          specialist:profiles!specialist_id(full_name),
-          responses:form_responses(id, status, client_id)
-        `)
-        .eq("org_id", orgId)
-        .order("created_at", { ascending: false });
-        
-      if (error) throw error;
+      const data = await apiFetch<any[]>('/ams/bulk-assignments');
       return data;
     },
     enabled: !!profile?.organization_id
@@ -81,14 +67,15 @@ export default function BulkStatusDashboard() {
 
       const notifications = pendingClientIds.map((clientId: string) => ({
         user_id: clientId,
-        org_id: profile?.organization_id,
         title: "Reminder: Assessment Pending",
         message: `Please complete the ${assignment.questionnaire?.name} at your earliest convenience.`,
         type: 'questionnaire_reminder'
       }));
 
-      const { error } = await supabase.from('notifications' as any).insert(notifications as any);
-      if (error) throw error;
+      await apiFetch('/ams/notifications/bulk', {
+        method: 'POST',
+        body: notifications
+      });
     },
     onSuccess: () => {
       toast({

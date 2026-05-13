@@ -42,7 +42,7 @@ const adminNav: NavItem[] = [
   { label: "Questionnaires", icon: ClipboardList, href: "/ams/questionnaires" },
   { label: "User Approvals", icon: UserCheck, href: "/admin/users" },
   { label: "Attendance", icon: CalendarClock, href: "/my-attendance" },
-  { label: "Settings", icon: Settings, href: "/admin/settings", isUnderDevelopment: true },
+  { label: "Settings", icon: Settings, href: "/admin/settings" },
 ];
 
 const consultantNav: NavItem[] = [
@@ -74,7 +74,7 @@ const foeNav: NavItem[] = [
   { label: "Questionnaires", icon: ClipboardList, href: "/ams/questionnaires" },
   { label: "User Approvals", icon: UserCheck, href: "/admin/users" },
   { label: "Attendance", icon: CalendarClock, href: "/my-attendance" },
-  { label: "Settings", icon: Settings, href: "/admin/settings", isUnderDevelopment: true },
+  { label: "Settings", icon: Settings, href: "/admin/settings" },
 ];
 
 const sportsScientistNav: NavItem[] = [

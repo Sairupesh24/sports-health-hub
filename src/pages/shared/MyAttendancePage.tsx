@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,11 +10,12 @@ import {
   Clock, CheckCircle2, LogIn, LogOut, AlertTriangle,
   Calendar, Plus, Loader2, ChevronRight
 } from "lucide-react";
-import { format, startOfWeek, addDays, isToday, isSameDay, parseISO } from "date-fns";
+import { format, startOfWeek, addDays, endOfWeek, isToday, isSameDay, parseISO } from "date-fns";
 import { cn } from "@/lib/utils";
 import AttendanceMarker from "@/components/attendance/AttendanceMarker";
 import TimeOffRequestModal from "@/components/shared/TimeOffRequestModal";
 import { toast } from "@/hooks/use-toast";
+import { apiFetch } from "@/utils/api";
 
 const DAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
@@ -44,19 +44,16 @@ export default function MyAttendancePage() {
     return () => window.removeEventListener("attendance_updated", handleUpdate);
   }, [queryClient]);
 
-  // Fetch this week's attendance logs
+  // Fetch this week's attendance logs (full week range)
+  const weekEnd = endOfWeek(new Date(), { weekStartsOn: 1 });
   const { data: weekLogs, isLoading: logsLoading } = useQuery({
     queryKey: ["my-week-attendance", profile?.id, format(weekStart, "yyyy-MM-dd")],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("hr_attendance_logs")
-        .select("*")
-        .eq("profile_id", profile!.id)
-        .gte("created_at", weekStart.toISOString())
-        .lte("created_at", addDays(weekStart, 7).toISOString())
-        .order("created_at", { ascending: true });
-      if (error) throw error;
-      return data || [];
+      const from = format(weekStart, "yyyy-MM-dd");
+      const to = format(addDays(weekEnd, 1), "yyyy-MM-dd");
+      const response = await apiFetch<any>(`/hr/attendance/history?from=${from}&to=${to}`);
+      // The history endpoint returns the array directly (not wrapped in .data)
+      return Array.isArray(response) ? response : (response.data || []);
     },
     enabled: !!profile?.id,
   });
@@ -65,13 +62,8 @@ export default function MyAttendancePage() {
   const { data: myLeaves, isLoading: leavesLoading, refetch: refetchLeaves } = useQuery({
     queryKey: ["my-leaves", profile?.id],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("hr_leaves")
-        .select("*")
-        .eq("employee_id", profile!.id)
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return data || [];
+      const response = await apiFetch<any>(`/hr/leaves?employee_id=${profile!.id}`);
+      return response.data || [];
     },
     enabled: !!profile?.id,
   });
@@ -80,13 +72,8 @@ export default function MyAttendancePage() {
   const { data: myEmergencies } = useQuery({
     queryKey: ["my-emergencies", profile?.id],
     queryFn: async () => {
-      const { data } = await (supabase as any)
-        .from("emergency_alerts")
-        .select("*")
-        .eq("staff_id", profile!.id)
-        .order("created_at", { ascending: false })
-        .limit(10);
-      return data || [];
+      const response = await apiFetch<any>(`/hr/emergencies?staff_id=${profile!.id}`);
+      return response.data || [];
     },
     enabled: !!profile?.id,
   });

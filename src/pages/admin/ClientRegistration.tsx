@@ -13,9 +13,8 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/utils/api";
 import { useAuth } from "@/contexts/AuthContext";
-import type { Database } from "@/integrations/supabase/types";
 import { ArrowLeft, UserPlus, Upload, Shield, X, Check, ChevronsUpDown, Plus } from "lucide-react";
 import { format } from "date-fns";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -130,13 +129,7 @@ export default function ClientRegistration() {
     queryKey: ["client_organizations"],
     queryFn: async () => {
       if (!profile?.organization_id) return [];
-      const { data, error } = await supabase
-        .from("client_organizations")
-        .select("name")
-        .eq("organization_id", profile.organization_id)
-        .order("name");
-      if (error) throw error;
-      return data.map(d => d.name);
+      return apiFetch<string[]>("/clients/organizations");
     },
     enabled: !!profile?.organization_id,
   });
@@ -145,26 +138,17 @@ export default function ClientRegistration() {
     queryKey: ["referral_sources"],
     queryFn: async () => {
       if (!profile?.organization_id) return [];
-      const { data, error } = await supabase
-        .from("referral_sources")
-        .select("name")
-        .eq("organization_id", profile.organization_id)
-        .order("name");
-      if (error) throw error;
-      return data.map(d => d.name);
+      return apiFetch<string[]>("/clients/referral-sources");
     },
     enabled: !!profile?.organization_id,
   });
 
   const generateReferralMutation = useMutation({
     mutationFn: async (newName: string) => {
-      const { data, error } = await supabase
-        .from("referral_sources")
-        .insert({ organization_id: profile!.organization_id, name: newName })
-        .select()
-        .single();
-      if (error) throw error;
-      return data;
+      return apiFetch<{ name: string }>("/clients/referral-sources", {
+        method: "POST",
+        data: { name: newName }
+      });
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["referral_sources"] });
@@ -182,13 +166,10 @@ export default function ClientRegistration() {
 
   const generateOrgMutation = useMutation({
     mutationFn: async (newName: string) => {
-      const { data, error } = await supabase
-        .from("client_organizations")
-        .insert({ organization_id: profile!.organization_id, name: newName })
-        .select()
-        .single();
-      if (error) throw error;
-      return data;
+      return apiFetch<{ name: string }>("/clients/organizations", {
+        method: "POST",
+        data: { name: newName }
+      });
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["client_organizations"] });
@@ -248,101 +229,43 @@ export default function ClientRegistration() {
       const orgId = profile?.organization_id;
       if (!orgId) throw new Error("No organization found. Contact your admin.");
 
-      // Generate UHID via database function
-      const { data: uhidResult, error: uhidError } = await supabase.rpc("generate_uhid", {
-        p_organization_id: orgId,
-      });
+      // 1. Upload documents if any
+      let uploadedDocs = [];
+      if (documents.length > 0) {
+        const formData = new FormData();
+        documents.forEach(file => formData.append('documents', file));
+        
+        const uploadRes = await apiFetch<{ files: any[] }>('/upload/documents', {
+          method: 'POST',
+          data: formData
+        });
+        uploadedDocs = uploadRes.files;
+      }
 
-      if (uhidError) throw uhidError;
-
-      const clientPayload = {
-        organization_id: orgId,
-        uhid: uhidResult as string,
-        honorific: data.honorific || null,
-        first_name: data.first_name,
-        middle_name: data.middle_name || null,
-        last_name: data.last_name,
-        gender: data.gender || null,
-        mobile_no: data.mobile_no,
-        aadhaar_no: data.aadhaar_no || null,
-        blood_group: data.blood_group || null,
-        dob: data.dob || null,
-        age: data.age || null,
-        email: data.email || null,
-        alternate_mobile_no: data.alternate_mobile_no || null,
-        occupation: data.occupation === "General Population" && data.is_recreational 
-          ? "General Population (Recreational)" 
-          : (data.occupation || null),
-        sport: data.sport || null,
-        athlete_type: data.athlete_type || null,
-        org_name: data.org_name || null,
-        address: data.address || null,
-        locality: data.locality || null,
-        pincode: data.pincode || null,
-        city: data.city || null,
-        district: data.district || null,
-        state: data.state || null,
-        country: data.country || "India",
-        has_insurance: data.has_insurance || false,
-        insurance_provider: data.insurance_provider || null,
-        insurance_policy_no: data.insurance_policy_no || null,
-        insurance_validity: data.insurance_validity || null,
-        insurance_coverage_amount: data.insurance_coverage_amount || null,
-        is_vip: data.is_vip || false,
-        referral_source: data.referral_source || null,
-        referral_source_detail: data.referral_source_detail || null,
+      // 2. Register Client
+      const payload = {
+        ...data,
+        document_paths: uploadedDocs
       };
 
-      const { data: newClient, error: clientError } = await supabase
-        .from("clients")
-        .insert(clientPayload)
-        .select()
-        .single();
+      const result = await apiFetch<{ success: boolean; uhid: string }>('/clients/register', {
+        method: 'POST',
+        data: payload
+      });
 
-      if (clientError) throw clientError;
-      if (!newClient) throw new Error("Failed to create client record");
-
-      // Handle Admin Remarks if provided and user is admin
-      if (data.admin_remarks && isAdmin) {
-          await supabase.from("client_admin_notes").insert({
-              client_id: newClient.id,
-              remarks: data.admin_remarks
-          });
-      }
-
-      // Upload documents
-      for (const file of documents) {
-        const filePath = `${orgId}/${newClient.id}/${Date.now()}_${file.name}`;
-        const { error: uploadError } = await supabase.storage
-          .from("client-documents")
-          .upload(filePath, file);
-
-        if (uploadError) {
-          console.error("Upload error:", uploadError);
-          continue;
-        }
-
-        await supabase.from("client_documents").insert({
-          client_id: newClient.id,
-          organization_id: orgId,
-          document_name: file.name,
-          document_type: file.type,
-          file_path: filePath,
-        });
-      }
+      if (!result.success) throw new Error("Registration failed");
 
       toast({
         title: "Client Registered",
-        description: `UHID: ${uhidResult} — ${data.first_name} ${data.last_name}`,
+        description: `UHID: ${result.uhid} — ${data.first_name} ${data.last_name}`,
       });
 
       navigate("/admin/clients");
-    } catch (err: unknown) {
+    } catch (err: any) {
       console.error(err);
-      const errorMessage = err instanceof Error ? err.message : "Something went wrong";
       toast({
         title: "Registration Failed",
-        description: errorMessage,
+        description: err.message || "Something went wrong",
         variant: "destructive",
       });
     } finally {

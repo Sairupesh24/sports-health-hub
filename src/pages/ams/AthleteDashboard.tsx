@@ -17,7 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
 import { useToast } from "@/components/ui/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/utils/api";
 import { ScientificResourcesManager } from "@/components/sports-scientist/resources/ScientificResourcesManager";
 
 export default function AthleteDashboard() {
@@ -42,57 +42,15 @@ export default function AthleteDashboard() {
   const fetchAssignment = async () => {
     try {
       setLoading(true);
-      // 1. Get active assignment (Individual OR via Batch)
-      const { data: assignments, error: aError } = await supabase
-        .from('program_assignments' as any)
-        .select(`
-          *,
-          program:training_programs(*),
-          batch:batches(
-            id,
-            members:batch_members(athlete_id)
-          )
-        `)
-        .eq('status', 'active');
-
-      if (aError) throw aError;
+      const response = await apiFetch<any>('/ams/athlete/dashboard-stats');
       
-      // Find assignment that belongs to this athlete
-      const assignment = (assignments || []).find((a: any) => 
-        a.athlete_id === session?.user?.id || 
-        (a.batch_id && a.batch?.members?.some((m: any) => m.athlete_id === session?.user?.id))
-      );
-
-      if (!assignment) {
-        setLoading(false);
-        return;
+      if (response.assignment) {
+        setAssignedProgram(response.assignment);
+        setTodayWorkout(response.todayWorkout);
       }
-
-      setAssignedProgram(assignment as any);
-
-      // 2. Calculate offset from start_date
-      const start = new Date((assignment as any).start_date);
-      const now = new Date();
-      const diffTime = Math.abs(now.getTime() - start.getTime());
-      const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-
-      // 3. Fetch workout day for this offset
-      const { data: workoutDay, error: wError } = await supabase
-        .from('workout_days' as any)
-        .select(`
-          *,
-          *,
-          items:workout_items(
-            *,
-            lift:lift_items(*, exercise:exercises(name))
-          )
-        `)
-        .eq('program_id', (assignment as any).program_id)
-        .eq('display_order', diffDays)
-        .maybeSingle();
-
-      if (wError) throw wError;
-      setTodayWorkout(workoutDay);
+      if (response.subscription) {
+        setSubscription(response.subscription);
+      }
     } catch (error: any) {
       console.error("Fetch Error:", error);
     } finally {
@@ -101,14 +59,7 @@ export default function AthleteDashboard() {
   };
 
   const fetchSubscription = async () => {
-    const { data } = await supabase
-      .from('subscriptions')
-      .select('status, dunning_step')
-      .eq('client_id', clientId || session?.user?.id)
-      .eq('status', 'Active')
-      .maybeSingle();
-    
-    if (data) setSubscription(data);
+    // This is now handled in fetchAssignment (dashboard-stats)
   };
 
   const navigateToLogging = () => {
@@ -183,7 +134,7 @@ export default function AthleteDashboard() {
                       {todayWorkout ? todayWorkout.title : (assignedProgram ? "Rest Day" : "No Program Assigned")}
                     </h2>
                     <p className="text-slate-500 font-medium">
-                      {assignedProgram ? assignedProgram.program.name : "Check in with your coach for a plan."}
+                      {assignedProgram ? assignedProgram.program_name : "Check in with your coach for a plan."}
                     </p>
                   </div>
                   {todayWorkout && (

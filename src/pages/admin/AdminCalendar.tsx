@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/utils/api";
 import { useQuery } from "@tanstack/react-query";
 import {
     format,
@@ -86,25 +86,14 @@ export default function AdminCalendar() {
             const startStr = format(currentDate, "yyyy-MM-dd") + "T00:00:00Z";
             const endStr = format(currentDate, "yyyy-MM-dd") + "T23:59:59Z";
 
-            let query = supabase
-                .from("sessions")
-                .select(`
-                    id, status, scheduled_start, scheduled_end, service_type,
-                    client:clients(first_name, last_name, uhid, mobile_no),
-                    therapist:profiles!sessions_therapist_id_fkey(first_name, last_name)
-                `)
-                .eq("organization_id", profile.organization_id)
-                .gte("scheduled_start", startStr)
-                .lte("scheduled_end", endStr)
-                .order("scheduled_start", { ascending: true });
+            const data = await apiFetch<any[]>('/appointments', {
+                params: {
+                    start: startStr,
+                    end: endStr,
+                    therapist_id: selectedConsultant !== "all" ? selectedConsultant : undefined
+                }
+            });
 
-            if (selectedConsultant !== "all") {
-                query = query.eq("therapist_id", selectedConsultant);
-            }
-
-            const { data, error } = await query;
-
-            if (error) throw error;
             if (!data || data.length === 0) {
                 toast({ title: "No Appointments", description: "There are no appointments scheduled for this day to export." });
                 return;
@@ -156,46 +145,18 @@ export default function AdminCalendar() {
         async function fetchConsultants() {
             if (!profile?.organization_id) return;
 
-            // 1. Fetch approved profiles in the same org
-            const { data: profilesData, error: profileError } = await supabase
-                .from("profiles")
-                .select("id, first_name, last_name, profession, ams_role")
-                .eq("organization_id", profile.organization_id)
-                .eq("is_approved", true);
-
-            if (profileError || !profilesData) {
-                console.error("Error fetching consultant profiles:", profileError);
-                return;
-            }
-
-            const userIds = profilesData.map((p) => p.id);
-            if (userIds.length === 0) return;
-
-            // 2. Fetch all roles for these users
-            const { data: roleData, error: roleError } = await supabase
-                .from("user_roles")
-                .select("user_id, role")
-                .in("user_id", userIds);
-
-            if (roleError) {
-                console.error("Error fetching consultant roles:", roleError);
-                return;
-            }
-
-            if (roleData) {
-                const validRoles = ["consultant", "sports_physician", "physiotherapist", "nutritionist", "sports_scientist", "massage_therapist"];
-                
-                const specialistProfiles = profilesData.filter(p => {
-                    const r = roleData.find(role => role.user_id === p.id);
-                    // Match valid roles or include admins with a designated clinical profession
-                    return r && (validRoles.includes(r.role) || (r.role === 'admin' && p.profession));
+            try {
+                const specialists = await apiFetch<any[]>('/hr/employees', {
+                    params: { role_type: 'clinical' }
                 });
 
-                setConsultants(specialistProfiles.map(p => ({
+                setConsultants(specialists.map(p => ({
                     id: p.id,
                     name: `${p.first_name} ${p.last_name}`,
                     profession: p.profession
                 })));
+            } catch (error) {
+                console.error("Error fetching consultant profiles:", error);
             }
         }
         fetchConsultants();
@@ -224,15 +185,19 @@ export default function AdminCalendar() {
         queryKey: ["waitlist-summary", profile?.organization_id, dateRange.start, dateRange.end],
         queryFn: async () => {
             if (!profile?.organization_id) return [];
-            const { data, error } = await (supabase as any)
-                .from("waitlist")
-                .select("id, preferred_date, status")
-                .eq("organization_id", profile.organization_id)
-                .eq("status", "Waiting")
-                .gte("preferred_date", dateRange.start.split('T')[0])
-                .lte("preferred_date", dateRange.end.split('T')[0]);
-            if (error) throw error;
-            return data || [];
+            try {
+                const data = await apiFetch<any[]>('/appointments/waitlist', {
+                    params: {
+                        start: dateRange.start.split('T')[0],
+                        end: dateRange.end.split('T')[0],
+                        status: 'Waiting'
+                    }
+                });
+                return data || [];
+            } catch (error) {
+                console.error("Waitlist error:", error);
+                return [];
+            }
         },
         enabled: !!profile?.organization_id
     });
@@ -240,13 +205,15 @@ export default function AdminCalendar() {
     const { data: emergencyAlerts } = useQuery({
         queryKey: ['admin-calendar-emergencies', profile?.organization_id],
         queryFn: async () => {
-            const { data, error } = await (supabase as any)
-                .from('emergency_alerts')
-                .select('staff_id, created_at, status')
-                .eq('organization_id', profile?.organization_id)
-                .eq('status', 'unresolved');
-            if (error) throw error;
-            return data;
+            try {
+                const res = await apiFetch<any>('/hr/emergencies', {
+                    params: { status: 'unresolved' }
+                });
+                return res.data || [];
+            } catch (error) {
+                console.error("Emergency alerts error:", error);
+                return [];
+            }
         },
         enabled: !!profile?.organization_id
     });
@@ -256,33 +223,26 @@ export default function AdminCalendar() {
         queryFn: async () => {
             if (!profile?.organization_id) return [];
 
-            const { data, error } = await supabase
-                .from("sessions")
-                .select(`
-                     id,
-                     client_id,
-                     therapist_id,
-                     scheduled_start,
-                     scheduled_end,
-                     status,
-                     service_id,
-                     service_type,
-                     is_unentitled,
-                     organization_id,
-                     is_guest,
-                     guest_name,
-                     guest_contact,
-                     enquiry_id,
-                     client:clients!sessions_client_id_fkey(first_name, last_name, is_vip),
-                     therapist:profiles!sessions_therapist_id_fkey(first_name, last_name, ams_role, profession)
-                 `)
-                .eq("organization_id", profile.organization_id)
-                .gte("scheduled_start", dateRange.start)
-                .lt("scheduled_start", dateRange.end) // Fetch sessions that start within the range
-                .order("scheduled_start", { ascending: true });
+            const data = await apiFetch<any[]>('/appointments', {
+                params: {
+                    start: dateRange.start,
+                    end: dateRange.end
+                }
+            });
 
-            if (error) throw error;
-            return (data as any[]).map(session => ({ ...session, rawSession: session } as SessionEvent));
+            return data.map(session => ({ 
+                ...session, 
+                client: { 
+                    first_name: session.client?.first_name || session.client_first_name, 
+                    last_name: session.client?.last_name || session.client_last_name, 
+                    is_vip: session.client?.is_vip || session.is_vip 
+                },
+                therapist: { 
+                    first_name: session.therapist?.first_name || session.therapist_first_name, 
+                    last_name: session.therapist?.last_name || session.therapist_last_name 
+                },
+                rawSession: session 
+            } as SessionEvent));
         },
         enabled: !!profile?.organization_id
     });
@@ -301,18 +261,16 @@ export default function AdminCalendar() {
             if (!plannedClientIds.length) return {};
             const results = await Promise.all(
                 plannedClientIds.map(async (clientId) => {
-                    const { data } = await supabase.rpc('fn_compute_entitlement_balance', { p_client_id: clientId });
-                    const byServiceId: Record<string, number> = {};
-                    const byServiceName: Record<string, number> = {};
-                    (data ?? []).forEach((b: any) => {
-                        if (b.service_id) byServiceId[b.service_id] = b.sessions_remaining;
-                        if (b.service_name) byServiceName[b.service_name?.toLowerCase().trim()] = b.sessions_remaining;
-                    });
-                    return { clientId, byServiceId, byServiceName };
+                    try {
+                        const data = await apiFetch<any>(`/billing/entitlements/balance/${clientId}`);
+                        return { clientId, byServiceName: data.byServiceName || {} };
+                    } catch (error) {
+                        return { clientId, byServiceName: {} };
+                    }
                 })
             );
-            const map: Record<string, { byServiceId: Record<string, number>, byServiceName: Record<string, number> }> = {};
-            results.forEach(({ clientId, byServiceId, byServiceName }) => { map[clientId] = { byServiceId, byServiceName }; });
+            const map: Record<string, { byServiceName: Record<string, number> }> = {};
+            results.forEach(({ clientId, byServiceName }) => { map[clientId] = { byServiceName }; });
             return map;
         },
         enabled: plannedClientIds.length > 0,
@@ -327,9 +285,7 @@ export default function AdminCalendar() {
             
             let hasNoBalance = true;
             if (clientBalance) {
-                if (s.service_id && clientBalance.byServiceId[s.service_id] !== undefined) {
-                    hasNoBalance = clientBalance.byServiceId[s.service_id] <= 0;
-                } else if (s.service_type) {
+                if (s.service_type) {
                     const serviceKey = s.service_type.toLowerCase().trim();
                     hasNoBalance = clientBalance.byServiceName[serviceKey] === undefined || clientBalance.byServiceName[serviceKey] <= 0;
                 }
@@ -415,7 +371,7 @@ export default function AdminCalendar() {
                                 <div
                                     key={event.id}
                                     onClick={() => setSelectedSession(event)}
-                                    className={`text-xs p-1.5 rounded border truncate cursor-pointer hover:opacity-80 transition-opacity ${getStatusColor(event.status)}`}
+                                    className={`text-[9px] leading-tight p-1 rounded border truncate cursor-pointer hover:opacity-80 transition-opacity ${getStatusColor(event.status)}`}
                                 >
                                     <span className="font-semibold">{format(parseISO(event.scheduled_start), "HH:mm")}</span>
                                     {" "}
@@ -528,8 +484,8 @@ export default function AdminCalendar() {
                                                     className={`absolute left-1 right-1 rounded border p-1.5 overflow-hidden shadow-sm hover:shadow-md cursor-pointer transition-all ${getStatusColor(event.status)}`}
                                                     style={{ top: `${topPos}px`, height: `${height}px`, minHeight: '24px' }}
                                                 >
-                                                    <div className="text-xs font-semibold">{format(startD, "HH:mm")} - {format(endD, "HH:mm")}</div>
-                                                    <div className={cn("text-[10px] truncate font-medium flex items-center gap-1", event.client?.is_vip && "text-[#D4AF37] font-bold")}>
+                                                    <div className="text-[9px] font-bold leading-none mb-0.5">{format(startD, "HH:mm")} - {format(endD, "HH:mm")}</div>
+                                                    <div className={cn("text-[9px] truncate font-medium flex items-center gap-1 leading-none", event.client?.is_vip && "text-[#D4AF37] font-bold")}>
                                                         {event.is_guest ? (
                                                             <span className="italic">G: {event.guest_name} <span className="text-[8px] bg-orange-100 text-orange-600 px-1 rounded font-bold uppercase ml-1">PROV</span></span>
                                                         ) : (
@@ -538,18 +494,18 @@ export default function AdminCalendar() {
                                                         {!event.is_guest && <VIPBadge isVIP={event.client?.is_vip} iconOnly size="sm" />}
                                                     </div>
                                                     {selectedConsultant === "all" && height > 40 && (
-                                                        <div className="text-[10px] truncate opacity-80 mt-0.5 border-t border-current/20 pt-0.5">
+                                                        <div className="text-[8px] truncate opacity-80 mt-0.5 border-t border-current/20 pt-0.5 leading-none">
                                                             {event.therapist?.first_name} {event.therapist?.last_name}
                                                         </div>
                                                     )}
                                                     {event.is_unentitled && (
-                                                        <div className="mt-1 px-1.5 py-0.5 bg-red-600 text-white text-[9px] font-bold rounded flex items-center gap-1 animate-pulse">
-                                                            <Filter className="w-2.5 h-2.5" /> UN-ENTITLED
+                                                        <div className="absolute top-1 right-1 px-1 py-0 bg-red-600 text-white text-[7px] font-black rounded flex items-center gap-0.5 animate-pulse z-10">
+                                                            <Filter className="w-2 h-2" /> UN
                                                         </div>
                                                     )}
                                                     {(event as any).is_pre_unentitled && (
-                                                        <div className="mt-1 px-1.5 py-0.5 bg-orange-400 text-white text-[9px] font-bold rounded flex items-center gap-1">
-                                                            ⚠ NO ENT
+                                                        <div className="absolute top-1 right-1 px-1 py-0 bg-orange-400 text-white text-[7px] font-black rounded flex items-center gap-0.5 z-10">
+                                                            ⚠ NO
                                                         </div>
                                                     )}
                                                 </div>
@@ -628,14 +584,14 @@ export default function AdminCalendar() {
                                         width: `calc(${widthPercent}% - 1.5rem)`
                                     }}
                                 >
-                                    <div className="font-semibold text-xs mb-1">
+                                    <div className="font-bold text-[10px] mb-1 leading-tight">
                                         {format(startD, "h:mm a")} - {format(endD, "h:mm a")}
                                     </div>
-                                    <div className={cn("font-medium text-sm truncate flex items-center gap-2", event.client?.is_vip && "text-[#D4AF37] font-bold")}>
+                                    <div className={cn("font-semibold text-xs truncate flex items-center gap-2 leading-tight mb-1", event.client?.is_vip && "text-[#D4AF37] font-bold")}>
                                         {event.is_guest ? (
                                             <div className="flex items-center gap-2">
                                                 <span className="italic text-slate-600 font-bold">GUEST: {event.guest_name}</span>
-                                                <div className="bg-orange-500 text-white border-none text-[8px] h-4 uppercase tracking-widest font-extrabold flex items-center px-1 rounded">Provisional</div>
+                                                <div className="bg-orange-500 text-white border-none text-[7px] h-3.5 uppercase tracking-widest font-extrabold flex items-center px-1 rounded">Provisional</div>
                                             </div>
                                         ) : (
                                             <>C: {event.client?.first_name} {event.client?.last_name}</>
@@ -643,17 +599,17 @@ export default function AdminCalendar() {
                                         {!event.is_guest && <VIPBadge isVIP={event.client?.is_vip} size="sm" />}
                                     </div>
                                     {selectedConsultant === "all" && (
-                                        <div className="text-xs truncate opacity-80 mt-1 flex items-center gap-1">
+                                        <div className="text-[10px] truncate opacity-80 flex items-center gap-1 leading-tight">
                                             {event.therapist?.first_name} {event.therapist?.last_name}
                                         </div>
                                     )}
                                     {event.is_unentitled && (
-                                        <div className="mt-2 px-2 py-1 bg-red-600 text-white text-[10px] font-bold rounded-md flex items-center gap-1.5 animate-pulse w-fit">
-                                            <Filter className="w-3 h-3" /> UN-ENTITLED SESSION
+                                        <div className="absolute top-2 right-2 px-1.5 py-0.5 bg-red-600 text-white text-[8px] font-black rounded flex items-center gap-1 animate-pulse shadow-sm z-10">
+                                            <Filter className="w-2.5 h-2.5" /> UN-ENTITLED
                                         </div>
                                     )}
                                     {(event as any).is_pre_unentitled && (
-                                        <div className="mt-2 px-2 py-1 bg-orange-400 text-white text-[10px] font-bold rounded-md flex items-center gap-1.5 w-fit" title="Client has no entitlements for this service">
+                                        <div className="absolute top-2 right-2 px-1.5 py-0.5 bg-orange-500 text-white text-[8px] font-black rounded flex items-center gap-1 shadow-sm z-10" title="Client has no entitlements for this service">
                                             ⚠ NO ENTITLEMENT
                                         </div>
                                     )}

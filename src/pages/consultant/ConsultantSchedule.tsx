@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/utils/api";
 import { useQuery } from "@tanstack/react-query";
 import {
     format,
@@ -85,26 +85,9 @@ export default function ConsultantSchedule() {
         queryFn: async () => {
             if (!profile?.id) return [];
 
-            const { data, error } = await supabase
-                .from("sessions")
-                .select(`
-          id,
-          client_id,
-          scheduled_start,
-          scheduled_end,
-          status,
-          service_id,
-          service_type,
-          is_unentitled,
-          client:clients!sessions_client_id_fkey(first_name, last_name, is_vip),
-          physio_session_details(*)
-        `)
-                .eq("therapist_id", profile.id)
-                .gte("scheduled_start", dateRange.start)
-                .lt("scheduled_start", dateRange.end)
-                .order("scheduled_start", { ascending: true });
-
-            if (error) throw error;
+            const start = dateRange.start;
+            const end = dateRange.end;
+            const data = await apiFetch(`/api/appointments?therapist_id=${profile.id}&start=${start}&end=${end}`);
 
             return (data as any[]).map(session => {
                 // Determine end time from DB or fallback to 60 mins after start
@@ -136,10 +119,10 @@ export default function ConsultantSchedule() {
             if (!plannedClientIds.length) return {};
             const results = await Promise.all(
                 plannedClientIds.map(async (clientId: string) => {
-                    const { data } = await supabase.rpc('fn_compute_entitlement_balance', { p_client_id: clientId });
+                    const data = await apiFetch(`/api/billing/entitlements/balance/${clientId}`);
                     const byServiceId: Record<string, number> = {};
                     const byServiceName: Record<string, number> = {};
-                    (data ?? []).forEach((b: any) => {
+                    (data?.balances ?? []).forEach((b: any) => {
                         if (b.service_id) byServiceId[b.service_id] = b.sessions_remaining;
                         if (b.service_name) byServiceName[b.service_name?.toLowerCase().trim()] = b.sessions_remaining;
                     });
@@ -182,18 +165,7 @@ export default function ConsultantSchedule() {
         queryKey: ["pending-soap-notes", profile?.id],
         queryFn: async () => {
             if (!profile?.id) return [];
-            const { data, error } = await supabase
-                .from("sessions")
-                .select(`
-                    id, client_id, scheduled_start, service_type, organization_id,
-                    client:clients!sessions_client_id_fkey(first_name, last_name, is_vip),
-                    physio_session_details(session_id)
-                `)
-                .eq("therapist_id", profile.id)
-                .eq("status", "Completed")
-                .order("scheduled_start", { ascending: false })
-                .limit(50);
-            if (error) throw error;
+            const data = await apiFetch(`/api/appointments?therapist_id=${profile.id}&status=Completed`);
             // Only keep sessions that have NO physio_session_details
             return (data ?? []).filter((s: any) =>
                 !s.physio_session_details || (Array.isArray(s.physio_session_details) && s.physio_session_details.length === 0)

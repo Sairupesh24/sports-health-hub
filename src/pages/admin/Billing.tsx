@@ -16,7 +16,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, Download, CheckCircle, CreditCard, Banknote, Smartphone, Trash2, ShoppingCart, Check, ChevronsUpDown, Receipt, Copy, User, MessageSquare, ShieldCheck, UserPlus, Eye, EyeOff, ArrowLeftRight, FileText, X, TrendingUp, AlertCircle, Users, History, CalendarClock, Filter } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/utils/api";
 import { toast } from "@/hooks/use-toast";
 import { cn, getImageDimensions } from "@/lib/utils";
 import jsPDF from "jspdf";
@@ -87,11 +87,7 @@ export default function BillingPage() {
         queryKey: ["admin-billing-stats", profile?.organization_id],
         queryFn: async () => {
             if (!profile?.organization_id) return null;
-            const { data, error } = await supabase.rpc('fn_get_admin_billing_stats', {
-                p_org_id: profile.organization_id
-            });
-            if (error) throw error;
-            return data;
+            return await apiFetch<any>('/billing/stats');
         },
         enabled: !!profile?.organization_id
     });
@@ -137,18 +133,7 @@ export default function BillingPage() {
         queryKey: ["admin-subscriptions", profile?.organization_id],
         queryFn: async () => {
             if (!profile?.organization_id) return [];
-            const { data, error } = await supabase
-                .from("subscriptions")
-                .select(`
-                    *,
-                    client:clients(first_name, last_name, uhid),
-                    package:packages(name, price)
-                `)
-                .eq("organization_id", profile.organization_id)
-                .order("created_at", { ascending: false });
-            
-            if (error) throw error;
-            return data;
+            return await apiFetch<any[]>('/billing/subscriptions');
         },
         enabled: !!profile?.organization_id
     });
@@ -158,33 +143,19 @@ export default function BillingPage() {
         queryKey: ["subscription-history", selectedSub?.id],
         queryFn: async () => {
             if (!selectedSub?.id) return [];
-            const { data, error } = await supabase
-                .from("bills")
-                .select(`
-                    *,
-                    payments:bill_payments(
-                        amount,
-                        payment_method,
-                        created_at,
-                        staff:profiles(first_name, last_name)
-                    )
-                `)
-                .eq("subscription_id", selectedSub.id)
-                .order("created_at", { ascending: false });
-            
-            if (error) throw error;
-            return data;
+            return await apiFetch<any[]>(`/billing/invoices`, {
+                params: { subscription_id: selectedSub.id }
+            });
         },
         enabled: !!selectedSub?.id
     });
 
     const generateEarlyInvoice = useMutation({
         mutationFn: async (subId: string) => {
-            const { data, error } = await supabase.rpc('fn_generate_subscription_invoice', {
-                p_subscription_id: subId
+            return await apiFetch('/billing/subscriptions/generate-invoice', {
+                method: 'POST',
+                data: { subscription_id: subId }
             });
-            if (error) throw error;
-            return data;
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["admin-subscriptions"] }).then(() => {
@@ -203,10 +174,10 @@ export default function BillingPage() {
 
     const cancelSubscription = useMutation({
         mutationFn: async (subId: string) => {
-            const { error } = await supabase.rpc('fn_cancel_subscription', {
-                p_subscription_id: subId
+            return await apiFetch('/billing/subscriptions/cancel', {
+                method: 'POST',
+                data: { subscription_id: subId }
             });
-            if (error) throw error;
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["admin-subscriptions"] }).then(() => {
@@ -247,149 +218,73 @@ export default function BillingPage() {
     const fetchData = async () => {
         if (!profile?.organization_id) return;
 
-        // Fetch Clients
-        const { data: clientData } = await supabase
-            .from("clients")
-            .select("id, first_name, last_name, uhid, email, mobile_no, is_vip")
-            .eq("organization_id", profile.organization_id);
-        if (clientData) setClients(clientData as Client[]);
+        try {
+            // Fetch Clients
+            const clientsData = await apiFetch<any[]>('/clients');
+            setClients(clientsData.map(c => ({
+                id: c.id, first_name: c.first_name, last_name: c.last_name, uhid: c.uhid, email: c.email, mobile_no: c.mobile_no, is_vip: c.is_vip
+            })));
 
-        // Fetch Live Packages
-        const { data: pkgData } = await supabase
-            .from("packages")
-            .select("id, name, price, package_services(service_id)")
-            .eq("organization_id", profile.organization_id)
-            .order("created_at", { ascending: false });
+            // Fetch Packages
+            const pkgData = await apiFetch<any[]>('/billing/packages');
+            setPackages(pkgData);
+            console.log('[FRONTEND] Fetched packages:', pkgData);
 
-        if (pkgData) {
-            setPackages(pkgData as any[]);
-        }
+            // Fetch Referral Sources
+            const refData = await apiFetch<any[]>('/billing/referral-sources');
+            setReferralSources(refData);
 
-        // Fetch Referral Sources
-        const { data: refData } = await supabase
-            .from("referral_sources")
-            .select("id, name")
-            .eq("organization_id", profile.organization_id);
-        if (refData) setReferralSources(refData as ReferralSource[]);
+            // Fetch Org Details
+            const orgData = await apiFetch<any>(`/organizations/${profile.organization_id}`);
+            if (orgData.data) setOrgDetails(orgData.data);
 
-        // Fetch Org Details for Branding
-        const { data: orgData } = await supabase
-            .from("organizations")
-            .select("id, name, logo_url, official_name, official_address, contact_phone, contact_email")
-            .eq("id", profile.organization_id)
-            .single();
-        if (orgData) setOrgDetails(orgData);
-
-        // Fetch Bills
-        const { data: billsData } = await supabase
-            .from("bills")
-            .select(`
-                id, 
-                amount, 
-                total, 
-                status, 
-                created_at, 
-                client_id, 
-                transaction_id,
-                payment_method,
-                organization_id,
-                organizations(id, name),
-                clients(id, first_name, last_name, uhid, email, mobile_no, is_vip), 
-                bill_items(id, amount, total, packages(id, name, price, package_services(sessions_included, services(name)))),
-                referral_sources(id, name),
-                discount_authorized_by,
-                billing_staff_name,
-                billed_by_id,
-                billed_by_name,
-                invoice_number,
-                notes,
-                include_notes_in_invoice
-            `)
-            .eq("organization_id", profile.organization_id)
-            .order("created_at", { ascending: false });
-
-        // Fetch Payments to calculate remaining balances
-        const { data: paymentsData } = await supabase
-            .from("bill_payments")
-            .select("bill_id, amount")
-            .in("bill_id", billsData?.map(b => b.id) || []);
-
-        const paymentMap: Record<string, number> = {};
-        paymentsData?.forEach(p => {
-            paymentMap[p.bill_id] = (paymentMap[p.bill_id] || 0) + (Number(p.amount) || 0);
-        });
-
-        if (billsData) {
-            const formattedBills: Bill[] = billsData.map(b => {
-                const items = b.bill_items?.map(bi => {
-                    const pkg = bi.packages;
-                    let entitlements: { service_type: string; default_sessions: number; }[] = [];
-                    if (pkg && (pkg as any).package_services) {
-                        entitlements = (pkg as any).package_services.map((ps: any) => ({
-                            service_type: ps.services?.name || 'Session',
-                            default_sessions: ps.sessions_included
-                        }));
-                    }
-                    return {
-                        name: pkg ? pkg.name : "Custom",
-                        price: bi.total,
-                        entitlements
-                    };
-                }) || [];
-
-                const clientObj = b.clients;
-                const clientName = clientObj ? `${clientObj.first_name} ${clientObj.last_name}` : "Unknown";
-
-                return {
-                    id: b.id,
-                    client_id: b.client_id,
-                    client: { id: b.client_id, full_name: clientName, is_vip: clientObj?.is_vip },
-                    organization: b.organizations as { name: string; id: string },
-                    client_name: clientName,
-                    client_is_vip: clientObj?.is_vip,
-                    client_uhid: clientObj?.uhid || "",
-                    client_mobile: clientObj?.mobile_no || "",
-                    items,
-                    referral_source: b.referral_sources?.name || "-",
-                    referral_source_name: b.referral_sources?.name || "-",
-                    subtotal: b.amount,
-                    discount_type: "flat",
-                    discount_value: b.discount || 0,
-                    total_amount: b.total,
-                    status: b.status === "Paid" ? "Paid" : "Pending",
-                    transaction_id: b.transaction_id || undefined,
-                    date: b.created_at,
-                    notes: b.notes || undefined,
-                    discount_authorized_by: b.discount_authorized_by || undefined,
-                    billing_staff_name: b.billing_staff_name || undefined,
-                    billed_by_id: b.billed_by_id || undefined,
-                    billed_by_name: b.billed_by_name || undefined,
-                    invoice_number: b.invoice_number || undefined,
-                    include_notes_in_invoice: b.include_notes_in_invoice || false,
-                    organization_logo: (b.organizations as any)?.logo_url,
-                    organization_address: (b.organizations as any)?.official_address,
-                    organization_official_name: (b.organizations as any)?.official_name || (b.organizations as any)?.name,
-                    paid_amount: paymentMap[b.id] || 0,
-                    remaining_due: Math.max(0, b.total - (paymentMap[b.id] || 0))
-                };
-            });
-            setBills(formattedBills);
+            // Fetch Bills
+            const billsData = await apiFetch<any[]>('/billing/invoices');
+            setBills(billsData.map(b => ({
+                id: b.id,
+                client_id: b.client_id,
+                client: { id: b.client_id, full_name: b.client_name, is_vip: b.client_is_vip },
+                organization: { id: b.organization_id, name: b.organization_name },
+                client_name: b.client_name,
+                client_is_vip: b.client_is_vip,
+                client_uhid: b.client_uhid || "",
+                client_mobile: b.client_mobile || "",
+                items: b.items,
+                referral_source: b.referral_source_name || "-",
+                referral_source_name: b.referral_source_name || "-",
+                subtotal: Number(b.amount),
+                discount_type: "flat",
+                discount_value: Number(b.discount || 0),
+                total_amount: Number(b.total),
+                status: b.status,
+                transaction_id: b.transaction_id || undefined,
+                date: b.created_at,
+                notes: b.notes || undefined,
+                discount_authorized_by: b.discount_authorized_by || undefined,
+                billing_staff_name: b.billing_staff_name || undefined,
+                billed_by_id: b.billed_by_id || undefined,
+                billed_by_name: b.billed_by_name || undefined,
+                invoice_number: b.invoice_number || undefined,
+                include_notes_in_invoice: b.include_notes_in_invoice || false,
+                organization_logo: b.organization_logo,
+                organization_address: b.organization_official_address,
+                organization_official_name: b.organization_official_name || b.organization_name,
+                paid_amount: Number(b.paid_amount),
+                remaining_due: Number(b.remaining_due)
+            })));
+        } catch (err: any) {
+            toast({ title: "Failed to fetch data", description: err.message, variant: "destructive" });
         }
     };
 
     const fetchRefunds = async () => {
         if (!profile?.organization_id) return;
-        const { data, error } = await supabase
-            .from('refunds')
-            .select(`
-                id, amount, refund_mode, transaction_id, refund_proof_url,
-                notes, is_override, authorized_by, is_entitlement_reversed,
-                created_at, bill_id,
-                clients(id, first_name, last_name, uhid)
-            `)
-            .eq('organization_id', profile.organization_id)
-            .order('created_at', { ascending: false });
-        if (!error && data) setRefunds(data);
+        try {
+            const data = await apiFetch<any[]>('/billing/refunds');
+            setRefunds(data);
+        } catch (err) {
+            console.error("Refunds fetch error:", err);
+        }
     };
 
     const handleAddReferral = () => {
@@ -498,7 +393,7 @@ export default function BillingPage() {
                 id: Date.now().toString() + Math.random(),
                 package_id: pkg.id,
                 name: pkg.name,
-                price: pkg.price,
+                price: Number(pkg.price),
                 items: pkg.service_package_items
             }]);
         }
@@ -508,7 +403,7 @@ export default function BillingPage() {
         setCart(cart.filter(item => item.id !== cartItemId));
     };
 
-    const subtotal = cart.reduce((sum, item) => sum + item.price, 0);
+    const subtotal = cart.reduce((sum, item) => sum + Number(item.price), 0);
 
     const calculatedDiscountAmount = () => {
         const dVal = Number(discountValue) || 0;
@@ -537,52 +432,22 @@ export default function BillingPage() {
             return;
         }
 
-        const billingStaffName = profile ? `${profile.first_name} ${profile.last_name}` : "System";
-
         try {
             let referralId = selectedReferral;
 
-            // If we have a custom referral name but no ID, create it
             if (!referralId && selectedReferralName) {
-                // Check if it already exists (case insensitive)
                 const existing = referralSources.find(r => r.name.toLowerCase() === selectedReferralName.toLowerCase());
                 if (existing) {
                     referralId = existing.id;
                 } else {
-                    const { data, error: refError } = await supabase
-                        .from('referral_sources')
-                        .insert({
-                            name: selectedReferralName,
-                            organization_id: profile?.organization_id
-                        })
-                        .select()
-                        .single();
-                    
-                    if (refError) throw refError;
-                    referralId = data.id;
+                    const newRef = await apiFetch<any>('/billing/referral-sources', {
+                        method: 'POST',
+                        data: { name: selectedReferralName }
+                    });
+                    referralId = newRef.id;
                 }
             }
 
-            // Create the main bill record
-            const { data: billRecord, error: billError } = await supabase.from('bills').insert({
-                organization_id: profile?.organization_id,
-                client_id: selectedClient,
-                amount: subtotal,
-                discount: calculatedDiscountAmount(),
-                total: totalPayable,
-                status: 'Pending',
-                referral_source_id: referralId || null,
-                notes: remarks,
-                include_notes_in_invoice: includeNotesInInvoice,
-                discount_authorized_by: (Number(discountValue) > 0) ? discountAuthorizedBy : null,
-                billed_by_id: profile?.id,
-                billed_by_name: billingStaffName,
-                billing_staff_name: billingStaffName
-            }).select().single();
-
-            if (billError) throw billError;
-
-            // Create bill items
             const billItems = cart.map(item => {
                 const itemRatio = item.price / subtotal;
                 const itemDiscount = discountType === "percentage" 
@@ -591,8 +456,6 @@ export default function BillingPage() {
                 const itemTotal = Math.max(0, item.price - itemDiscount);
 
                 return {
-                    organization_id: profile?.organization_id,
-                    bill_id: billRecord.id,
                     package_id: item.package_id,
                     amount: item.price,
                     discount: itemDiscount,
@@ -600,11 +463,28 @@ export default function BillingPage() {
                 };
             });
 
-            const { error: itemsError } = await supabase.from('bill_items').insert(billItems);
-            if (itemsError) throw itemsError;
+            await apiFetch('/billing/invoices', {
+                method: 'POST',
+                data: {
+                    client_id: selectedClient,
+                    subtotal: subtotal,
+                    discount: calculatedDiscountAmount(),
+                    total: totalPayable,
+                    referral_source_id: referralId || null,
+                    notes: remarks,
+                    include_notes_in_invoice: includeNotesInInvoice,
+                    discount_authorized_by: (Number(discountValue) > 0) ? discountAuthorizedBy : null,
+                    items: billItems
+                }
+            });
 
             toast({ title: "Bill Created Successfully" });
-            window.location.reload();
+            fetchData();
+            // Reset form
+            setCart([]);
+            setSelectedClient("");
+            setRemarks("");
+            setDiscountValue("0");
         } catch (err: any) {
             toast({ title: "Error creating bill", description: err.message, variant: "destructive" });
         }
@@ -616,7 +496,6 @@ export default function BillingPage() {
         
         if (!bill) return;
         
-        const totalAlreadyPaid = bill.paid_amount || 0;
         const remainingDue = bill.remaining_due ?? bill.total_amount;
         
         if (totalPaid <= 0) {
@@ -636,31 +515,17 @@ export default function BillingPage() {
         }
 
         try {
-            // 1. Record each payment row
-            for (const row of paymentRows) {
-                const { error: payError } = await supabase.from('bill_payments').insert({
-                    organization_id: profile?.organization_id!,
+            await apiFetch('/billing/payments', {
+                method: 'POST',
+                data: {
                     bill_id: paymentBillId,
-                    client_id: bill.client_id,
-                    amount: row.amount,
-                    payment_method: row.method as any,
-                    transaction_id: row.transactionId,
-                    recorded_by: profile?.id!,
-                    notes: `Part of split payment for invoice ${bill.invoice_number || bill.id}`
-                });
-                if (payError) throw payError;
-            }
-
-            // 2. Update Bill status
-            const isFullyPaid = Math.abs(totalPaid - remainingDue) < 0.01;
-            const { error: billError } = await supabase.from('bills')
-                .update({ 
-                    status: isFullyPaid ? 'Paid' : 'Partially Paid', 
-                    updated_at: new Date().toISOString()
-                })
-                .eq('id', paymentBillId);
-
-            if (billError) throw billError;
+                    payments: paymentRows.map(r => ({
+                        amount: r.amount,
+                        method: r.method,
+                        transactionId: r.transactionId
+                    }))
+                }
+            });
 
             fetchData();
             setIsPaymentModalOpen(false);
@@ -1081,11 +946,11 @@ export default function BillingPage() {
                                                     <PopoverContent className="p-0 w-[300px]" align="start">
                                                         <Command>
                                                             <CommandInput placeholder="Type package name..." />
-                                                            <CommandList>
+                                                            <CommandList className="max-h-[300px] overflow-y-auto">
                                                                 <CommandEmpty>No packages found.</CommandEmpty>
-                                                                <CommandGroup>
+                                                                <CommandGroup heading={`Available Packages (${packages.length})`}>
                                                                     {packages.map(p => (
-                                                                        <CommandItem key={p.id} onSelect={() => addToCart(p.id)}>
+                                                                        <CommandItem key={p.id} value={p.name} onSelect={() => addToCart(p.id)}>
                                                                             <div className="flex justify-between w-full items-center">
                                                                                 <span>{p.name}</span>
                                                                                 <span className="font-bold text-xs">Rs. {p.price}</span>

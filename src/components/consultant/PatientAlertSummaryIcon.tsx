@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { BadgeIndianRupee, Loader2, AlertCircle, Bookmark } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/utils/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 
@@ -22,25 +22,16 @@ export function PatientAlertSummaryIcon({ clientId, isVIP }: Props) {
     setLoading(true);
     try {
       // Fetch Dues
-      const { data: billsData } = await supabase
-        .from("bills")
-        .select("total")
-        .eq("client_id", clientId)
-        .neq("status", "Paid");
-      
-      const totalDues = (billsData || []).reduce((sum, bill) => sum + (bill.total || 0), 0);
+      const billsData = await apiFetch(`/api/billing/dues?client_id=${clientId}`);
+      const totalDues = billsData?.dues || 0;
 
       // Fetch Remarks
       let remarks = "";
       const isAdmin = roles.some(r => ['admin', 'super_admin', 'clinic_admin'].includes(r));
       
       if (isAdmin || roles.includes('consultant') || roles.includes('physiotherapist')) {
-          const { data: remarksData } = await supabase
-            .from("client_admin_notes")
-            .select("remarks")
-            .eq("client_id", clientId)
-            .maybeSingle();
-          remarks = remarksData?.remarks || "";
+          const notesData = await apiFetch(`/api/clients/${clientId}/admin-notes`);
+          remarks = notesData?.remarks || "";
       }
 
       setData({ dues: totalDues, remarks });

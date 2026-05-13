@@ -5,7 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CalendarIcon, Clock, Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/utils/api";
 import { toast } from "@/hooks/use-toast";
 import { format, addDays } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
@@ -45,17 +45,15 @@ export default function TimeOffRequestModal({ open, onOpenChange, onSuccess }: T
 
     setLoading(true);
     try {
-      const { error } = await supabase.from("hr_leaves").insert({
-        organization_id: profile?.organization_id,
-        employee_id: profile?.id,
-        leave_type: leaveType,
-        start_date: format(dateRange.from, "yyyy-MM-dd"),
-        end_date: format(dateRange.to || dateRange.from, "yyyy-MM-dd"),
-        reason: reason.trim(),
-        status: "Requested",
+      await apiFetch('/hr/leaves', {
+        method: 'POST',
+        data: {
+          leave_type: leaveType,
+          start_date: format(dateRange.from, "yyyy-MM-dd"),
+          end_date: format(dateRange.to || dateRange.from, "yyyy-MM-dd"),
+          reason: reason.trim(),
+        }
       });
-
-      if (error) throw error;
 
       toast({
         title: "Leave Request Submitted",

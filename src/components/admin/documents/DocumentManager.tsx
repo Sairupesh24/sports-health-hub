@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/utils/api";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -44,14 +44,9 @@ export function DocumentManager({ clientId, isVIP }: DocumentManagerProps) {
   const { data: documents, isLoading, refetch } = useQuery({
     queryKey: ["patient-documents", clientId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("client_documents")
-        .select("*")
-        .eq("client_id", clientId)
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-      return data;
+      return await apiFetch<any[]>('/clinical/documents', {
+        params: { client_id: clientId }
+      });
     },
   });
 
@@ -66,21 +61,7 @@ export function DocumentManager({ clientId, isVIP }: DocumentManagerProps) {
     if (!confirm("Are you sure you want to delete this document?")) return;
 
     try {
-      // 1. Delete from storage
-      const { error: storageError } = await supabase.storage
-        .from("client-documents")
-        .remove([filePath]);
-
-      if (storageError) throw storageError;
-
-      // 2. Delete from database
-      const { error: dbError } = await supabase
-        .from("client_documents")
-        .delete()
-        .eq("id", id);
-
-      if (dbError) throw dbError;
-
+      await apiFetch(`/clinical/documents/${id}`, { method: 'DELETE' });
       toast({ title: "Document deleted successfully" });
       refetch();
     } catch (err: any) {

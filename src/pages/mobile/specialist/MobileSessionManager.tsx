@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/utils/api";
 import { useAuth } from "@/contexts/AuthContext";
 import MobileSpecialistLayout from "@/components/layout/MobileSpecialistLayout";
 import { 
@@ -47,42 +47,28 @@ export default function MobileSessionManager() {
   const { data: sessions, isLoading } = useQuery({
     queryKey: ["mobile-sessions", user?.id, selectedDate.toISOString().split('T')[0]],
     queryFn: async () => {
-      if (!user) return [];
-      const dayStart = startOfDay(selectedDate);
-      const dayEnd = endOfDay(selectedDate);
+      const dayStart = startOfDay(selectedDate).toISOString();
+      const dayEnd = endOfDay(selectedDate).toISOString();
 
-      const { data } = await supabase
-        .from("sessions")
-        .select(`
-          *,
-          client:clients(id, first_name, last_name, uhid, is_vip, sport),
-          session_type:session_types(name)
-        `)
-        .eq("scientist_id", user.id)
-        .gte("scheduled_start", dayStart.toISOString())
-        .lte("scheduled_start", dayEnd.toISOString())
-        .order("scheduled_start", { ascending: true });
-      
-      return data || [];
+      return await apiFetch<any[]>(`/appointments?scientist_id=${user?.id}&start=${dayStart}&end=${dayEnd}`);
     },
     enabled: !!user
   });
 
   const handleStartSession = async (session: any) => {
     haptic.success();
-    const { error } = await supabase
-      .from("sessions")
-      .update({ 
-        status: "In Progress",
-        actual_start: new Date().toISOString()
-      })
-      .eq("id", session.id);
-
-    if (error) {
-      toast({ title: "Failed to start session", variant: "destructive" });
-    } else {
+    try {
+      await apiFetch(`/appointments/${session.id}`, {
+        method: "PATCH",
+        body: { 
+          status: "In Progress",
+          actual_start: new Date().toISOString()
+        }
+      });
       queryClient.invalidateQueries({ queryKey: ["mobile-sessions"] });
       toast({ title: "Session Started" });
+    } catch (error) {
+      toast({ title: "Failed to start session", variant: "destructive" });
     }
   };
 

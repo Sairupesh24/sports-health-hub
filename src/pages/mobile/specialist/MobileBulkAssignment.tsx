@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/utils/api";
 import { useAuth } from "@/contexts/AuthContext";
 import MobileSpecialistLayout from "@/components/layout/MobileSpecialistLayout";
 import { 
@@ -43,13 +43,7 @@ export default function MobileBulkAssignment() {
   const { data: forms, isLoading: formsLoading } = useQuery({
     queryKey: ["mobile-questionnaires"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("questionnaire_templates")
-        .select("*")
-        .eq("organization_id", profile?.organization_id)
-        .eq("status", "active");
-      if (error) throw error;
-      return data;
+      return await apiFetch<any[]>('/ams/questionnaires');
     },
     enabled: !!profile?.organization_id
   });
@@ -58,13 +52,7 @@ export default function MobileBulkAssignment() {
   const { data: athletes, isLoading: athletesLoading } = useQuery({
     queryKey: ["mobile-bulk-athletes"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("clients")
-        .select("id, first_name, last_name, uhid, is_vip, sport, org_name")
-        .eq("organization_id", profile?.organization_id)
-        .is("deleted_at", null);
-      if (error) throw error;
-      return data;
+      return await apiFetch<any[]>('/clients');
     },
     enabled: !!profile?.organization_id
   });
@@ -73,39 +61,28 @@ export default function MobileBulkAssignment() {
     mutationFn: async () => {
       if (!user || !selectedForm) throw new Error("Missing data");
 
-      const orgId = profile?.organization_id;
-      
       // Create Bulk Assignment Record
-      const { data: bulkData, error: bulkError } = await (supabase
-        .from('bulk_assignments' as any)
-        .insert({
-          org_id: orgId,
+      const bulkData = await apiFetch<any>('/ams/bulk-assignments', {
+        method: 'POST',
+        body: {
           questionnaire_id: selectedForm.id,
-          specialist_id: user.id,
           total_clients: selectedClientIds.length,
-          responded_count: 0,
           status: 'active'
-        } as any) as any)
-        .select()
-        .single();
-
-      if (bulkError) throw bulkError;
+        }
+      });
 
       // Create individual form_responses
       const responses = selectedClientIds.map(clientId => ({
-        org_id: orgId,
         form_id: selectedForm.id,
         client_id: clientId,
-        specialist_id: user.id,
         bulk_assignment_id: bulkData.id,
         status: 'pending'
       }));
 
-      const { error: respError } = await supabase
-        .from('form_responses' as any)
-        .insert(responses as any);
-
-      if (respError) throw respError;
+      await apiFetch('/ams/form-responses/bulk', {
+        method: 'POST',
+        body: responses
+      });
 
       return selectedClientIds.length;
     },

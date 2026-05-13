@@ -8,7 +8,7 @@ import {
   ChevronRight, Star, Zap, Heart, Moon, ArrowRight, Dumbbell, TrendingUp
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/utils/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { format, isToday, differenceInCalendarDays } from "date-fns";
 import { Badge } from "@/components/ui/badge";
@@ -41,70 +41,31 @@ export default function ClientDashboard() {
       const today = new Date().toISOString();
 
       // 1. Fetch Appointments
-      const { data: appts, error: apptError } = await (supabase as any)
-        .from('sessions')
-        .select(`
-          id, scheduled_start, service_type, status,
-          therapist:profiles!sessions_therapist_id_fkey(first_name, last_name)
-        `)
-        .eq('client_id', clientId)
-        .gte('scheduled_start', subDays(new Date(), 30).toISOString())
-        .order('scheduled_start', { ascending: true });
-
-      if (!apptError && appts) {
-        setAppointments(appts);
-      }
+      const appts = await apiFetch(`/api/appointments?client_id=${clientId}&start=${subDays(new Date(), 30).toISOString()}`).catch(() => []);
+      setAppointments(appts || []);
 
       // 2. Fetch Assigned Workouts
-      const { data: assignments, error: assignError } = await supabase
-        .from('program_assignments' as any)
-        .select(`
-          *,
-          program:training_programs(
-            *,
-            days:workout_days(*)
-          )
-        `)
-        .eq('athlete_id', profile?.id)
-        .eq('status', 'active');
+      const assignments = await apiFetch(`/api/ams/program-assignments?athlete_id=${profile?.id}&status=active`).catch(() => []);
+      setAssignedWorkouts(assignments || []);
 
-      if (!assignError && assignments) {
-        setAssignedWorkouts(assignments);
-      }
-
-      // 3. Fetch Wellness Logs (last 30 days for trend)
-      const { data: logs, error: logsError } = await supabase
-        .from('wellness_logs')
-        .select('*')
-        .eq('athlete_id', profile?.id)
-        .gte('created_at', subDays(new Date(), 30).toISOString())
-        .order('created_at', { ascending: true });
-
-      if (!logsError && logs) {
-        setWellnessLogs(logs);
-      }
+      // 3. Fetch Wellness Logs
+      const logs = await apiFetch(`/api/ams/wellness-logs?athlete_id=${profile?.id}&days=30`).catch(() => []);
+      setWellnessLogs(logs || []);
 
       // 4. Fetch Unpaid Bills
-      const { data: bills, error: billsError } = await supabase
-        .from('bills')
-        .select('total_amount, status')
-        .eq('client_id', clientId)
-        .neq('status', 'Paid')
-        .neq('status', 'Cancelled');
-
-      if (!billsError && bills) {
-        const total = bills.reduce((sum, b) => sum + (Number(b.total_amount) || 0), 0);
+      const bills = await apiFetch(`/api/billing/invoices?client_id=${clientId}`).catch(() => []);
+      if (bills) {
+        const total = (bills as any[]).reduce((sum, b) => {
+          if (b.status !== 'Paid' && b.status !== 'Cancelled') {
+            return sum + (Number(b.total_amount) || 0);
+          }
+          return sum;
+        }, 0);
         setUnpaidDues(total);
       }
 
       // 5. Fetch Insights
-      const { data: injuries, error: injuryError } = await (supabase as any)
-        .from('injuries')
-        .select('clinical_notes, updated_at')
-        .eq('client_id', clientId)
-        .order('updated_at', { ascending: false })
-        .limit(1);
-
+      const injuries = await apiFetch(`/api/clinical/injuries?client_id=${clientId}`).catch(() => []);
       setInsights({
         physio: injuries?.[0] || null,
         program: assignments?.[0]?.program || null

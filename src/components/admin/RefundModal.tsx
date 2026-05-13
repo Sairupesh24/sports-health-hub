@@ -8,7 +8,7 @@ import { Banknote, Smartphone, CreditCard, Landmark, Receipt, Upload, Loader2, C
 import { calculateRefundAmount, processRefund, RefundBreakdown } from "@/lib/refundActions";
 import { toast } from "@/hooks/use-toast";
 import { Progress } from "@/components/ui/progress";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/utils/api";
 import { cn } from "@/lib/utils";
 import { Switch } from "@/components/ui/switch";
 import { ShieldCheck } from "lucide-react";
@@ -117,39 +117,29 @@ export const RefundModal = ({ isOpen, onOpenChange, billId, clientId, clientName
         setIsUploading(true);
         setUploadProgress(10);
         
-        const fileExt = file.name.split('.').pop();
-        const sanitizedName = file.name.replace(/[^a-z0-9]/gi, '_').toLowerCase();
-        const fileName = `${organizationId}/${billId}_${Date.now()}_${sanitizedName}.${fileExt}`;
-        const filePath = `refund-proofs/${fileName}`;
-
-        setUploadProgress(30);
-        
-        const { error: uploadError } = await supabase.storage
-            .from('client-documents')
-            .upload(filePath, file, {
-                cacheControl: '3600',
-                upsert: false
+        try {
+            const formData = new FormData();
+            formData.append('logo', file); 
+            
+            const response = await fetch('/api/upload/logo', { 
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+                },
+                body: formData
             });
 
-        if (uploadError) {
-            console.error("Storage upload error:", uploadError);
-            toast({ 
-                title: "File upload failed", 
-                description: uploadError.message, 
-                variant: "destructive" 
-            });
+            if (!response.ok) throw new Error('Upload failed');
+            const data = await response.json();
+            
+            setUploadProgress(100);
+            setIsUploading(false);
+            return data.publicUrl;
+        } catch (err: any) {
+            toast({ title: "Upload failed", description: err.message, variant: "destructive" });
             setIsUploading(false);
             return null;
         }
-
-        setUploadProgress(90);
-        const { data: { publicUrl } } = supabase.storage
-            .from('client-documents')
-            .getPublicUrl(filePath);
-        
-        setUploadProgress(100);
-        setIsUploading(false);
-        return publicUrl;
     };
 
     const handleConfirmRefund = async () => {

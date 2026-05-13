@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Slider } from "@/components/ui/slider";
 import { toast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/utils/api";
 import { Copy, Save, AlertTriangle, RefreshCw, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { filterServicesByRole, Service } from "@/utils/serviceMapping";
@@ -101,12 +101,14 @@ export default function SOAPNoteModal({ open, onOpenChange, session, clientId, o
 
     const fetchInjuries = async () => {
         if (!clientId) return;
-        const { data } = await supabase
-            .from("injuries")
-            .select("id, diagnosis, injury_type, region, status")
-            .eq("client_id", clientId)
-            .order("created_at", { ascending: false });
-        if (data) setClientInjuries(data);
+        try {
+            const data = await apiFetch<any[]>('/clinical/injuries', {
+                params: { client_id: clientId }
+            });
+            setClientInjuries(data);
+        } catch (err) {
+            console.error("Error fetching injuries:", err);
+        }
     };
 
     const fetchServices = async () => {
@@ -115,12 +117,10 @@ export default function SOAPNoteModal({ open, onOpenChange, session, clientId, o
         
         setServicesLoading(true);
         try {
-            const { data } = await supabase
-                .from("services")
-                .select("id, name, category, organization_id")
-                .eq("organization_id", orgId)
-                .eq("is_active", true);
-            if (data) setServices(data as Service[]);
+            const data = await apiFetch<Service[]>('/appointments/session-types');
+            setServices(data);
+        } catch (err) {
+            console.error("Error fetching services:", err);
         } finally {
             setServicesLoading(false);
         }
@@ -140,13 +140,12 @@ export default function SOAPNoteModal({ open, onOpenChange, session, clientId, o
         const fetchBalance = async () => {
             setBalanceLoading(true);
             try {
-                const { data, error } = await (supabase as any).rpc('fn_compute_entitlement_balance', { 
-                    p_client_id: clientId 
+                const data = await apiFetch<any[]>('/billing/entitlements/balance', {
+                    params: { client_id: clientId }
                 });
-                if (!error && data) {
-                    // Use serviceId if set, otherwise fallback to name mapping
+                if (data) {
                     const currentServiceId = serviceId;
-                    const balance = (data as any[]).find(b => 
+                    const balance = data.find(b => 
                         currentServiceId ? b.service_id === currentServiceId : b.service_name?.toLowerCase().trim() === (session.service_type || "").toLowerCase().trim()
                     );
                     setRemainingSessions(balance ? balance.sessions_remaining : 0);
@@ -175,21 +174,11 @@ export default function SOAPNoteModal({ open, onOpenChange, session, clientId, o
     const handleCopyPrevious = async () => {
         try {
             setFetchingPrevious(true);
-            const { data, error } = await supabase
-                .from("sessions")
-                .select(`
-                    scheduled_start,
-                    physio_session_details (*)
-                `)
-                .eq("client_id", clientId)
-                .lt("scheduled_start", session.scheduled_start)
-                .not("physio_session_details", "is", null)
-                .order("scheduled_start", { ascending: false })
-                .limit(1);
+            const prev = await apiFetch<any>('/clinical/sessions/previous', {
+                params: { client_id: clientId, before: session.scheduled_start }
+            });
 
-            if (error) throw error;
-            if (data?.length && (data[0] as any).physio_session_details) {
-                const prev = (data[0] as any).physio_session_details;
+            if (prev) {
                 setPainScore(prev.pain_score || 0);
                 setSelectedModalities(prev.modality_used ? prev.modality_used.split(',').map((s: string) => s.trim()) : []);
                 setTreatmentType(prev.treatment_type || "");
@@ -202,11 +191,9 @@ export default function SOAPNoteModal({ open, onOpenChange, session, clientId, o
                 setSorenessData(prev.soreness_data || []);
                 setSelectedInjuryId(prev.injury_id || "");
                 toast({ title: "Copied", description: "Copied data from previous session." });
-            } else {
-                toast({ title: "No Previous Note", description: "No previous SOAP notes found.", variant: "destructive" });
             }
         } catch (error: any) {
-            toast({ title: "Error", description: error.message, variant: "destructive" });
+            toast({ title: "No Previous Note", description: "No previous SOAP notes found.", variant: "destructive" });
         } finally {
             setFetchingPrevious(false);
         }
@@ -218,8 +205,8 @@ export default function SOAPNoteModal({ open, onOpenChange, session, clientId, o
 
         try {
             setLoading(true);
+            const selectedService = services.find(s => s.id === serviceId);
             const payload = {
-                session_id: session.id,
                 pain_score: painScore,
                 modality_used: selectedModalities.join(', '),
                 treatment_type: treatmentType,
@@ -230,37 +217,16 @@ export default function SOAPNoteModal({ open, onOpenChange, session, clientId, o
                 clinical_notes: clinicalNotes,
                 next_plan: nextPlan,
                 soreness_data: sorenessData,
-                injury_id: selectedInjuryId === "none" || selectedInjuryId === "" ? null : selectedInjuryId
+                injury_id: selectedInjuryId === "none" || selectedInjuryId === "" ? null : selectedInjuryId,
+                service_id: serviceId,
+                service_type: selectedService?.name || session.service_type
             };
 
-            let error;
-            if (isCompleted) {
-                const res = await supabase.from('physio_session_details').update(payload).eq('session_id', session.id);
-                error = res.error;
-            } else {
-                const res = await supabase.from('physio_session_details').insert(payload);
-                error = res.error;
+            await apiFetch(`/clinical/sessions/${session.id}/soap`, {
+                method: 'POST',
+                data: payload
+            });
 
-                if (!error) {
-                    // Update session with finalized service_id if changed or missing
-                    const selectedService = services.find(s => s.id === serviceId);
-                    await supabase.from('sessions').update({
-                        actual_start: new Date().toISOString(),
-                        actual_end: new Date().toISOString(),
-                        status: 'Completed',
-                        service_id: serviceId,
-                        service_type: selectedService?.name || session.service_type
-                    }).eq('id', session.id);
-
-                    const { data: { user } } = await supabase.auth.getUser();
-                    await supabase.rpc('complete_session', {
-                        p_session_id: session.id,
-                        p_user_id: user?.id
-                    });
-                }
-            }
-
-            if (error) throw error;
             toast({ title: "Success", description: "SOAP note saved successfully." });
             onOpenChange(false);
             onSuccess();
@@ -275,12 +241,7 @@ export default function SOAPNoteModal({ open, onOpenChange, session, clientId, o
         if (!session?.id) return;
         setReconciling(true);
         try {
-            const { data: { user } } = await supabase.auth.getUser();
-            const { error } = await (supabase as any).rpc("reconcile_session", {
-                p_session_id: session.id,
-                p_user_id: user?.id
-            });
-            if (error) throw new Error(error.message);
+            await apiFetch(`/clinical/sessions/${session.id}/reconcile`, { method: 'POST' });
             toast({ title: "✅ Reconciled", description: "Entitlement deducted successfully." });
             onSuccess();
             onOpenChange(false);
@@ -300,13 +261,14 @@ export default function SOAPNoteModal({ open, onOpenChange, session, clientId, o
                     <div className="flex flex-col gap-1">
                         <DialogTitle className="flex items-center gap-2 text-xl font-display">
                             SOAP Note — {session?.scheduled_start ? format(new Date(session.scheduled_start), "MMM d, yyyy") : "Consultation"}
+                            <span className="ml-2 px-2 py-0.5 rounded bg-blue-100 text-blue-700 text-[10px] font-bold border border-blue-300">PLANNED SESSION</span>
                             {isUnentitled && isAdminOrFoe && (
                                 <span className="ml-2 px-2 py-0.5 rounded bg-red-100 text-red-700 text-xs font-bold border border-red-300 flex items-center gap-1">
                                     <AlertTriangle className="w-3 h-3" /> UN-ENTITLED
                                 </span>
                             )}
                         </DialogTitle>
-                        <p className="text-sm text-muted-foreground">Athlete: <span className="font-semibold text-foreground">{session.client?.first_name || "Unknown"} {session.client?.last_name || "Athlete"}</span></p>
+                        <p className="text-sm text-muted-foreground">Client: <span className="font-semibold text-foreground">{session.client?.first_name || "Unknown"} {session.client?.last_name || "Client"}</span></p>
                     </div>
                     {!isCompleted && (
                         <Button variant="outline" size="sm" onClick={handleCopyPrevious} disabled={fetchingPrevious} className="mr-8">
@@ -437,8 +399,8 @@ export default function SOAPNoteModal({ open, onOpenChange, session, clientId, o
                                 </div>
                                 <div className="space-y-6">
                                     <div className="space-y-4">
-                                        <Label className="text-sm font-semibold text-primary uppercase tracking-widest">Athlete Soreness Map</Label>
-                                        <div className="p-4 bg-muted/10 rounded-2xl border border-dashed border-primary/20">
+                                        <Label className="text-sm font-semibold text-primary uppercase tracking-widest">Client Soreness Map</Label>
+                                        <div className="p-4 bg-white dark:bg-slate-950 rounded-2xl border border-dashed border-primary/30 shadow-inner">
                                             <SorenessHeatmap 
                                                 selectedZones={sorenessData} 
                                                 onZoneToggle={(zone) => {

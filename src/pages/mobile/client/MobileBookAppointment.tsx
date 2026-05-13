@@ -4,7 +4,7 @@ import MobileLayout from "@/components/layout/MobileLayout";
 import { Button } from "@/components/ui/button";
 import { Calendar as CalendarIcon, Clock, User, CheckCircle2, ArrowRight, ArrowLeft, Star, Loader2, AlertCircle, Repeat, Bookmark } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/utils/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
@@ -30,6 +30,7 @@ export default function MobileBookAppointment() {
     const [step, setStep] = useState(1);
     const [loading, setLoading] = useState(false);
     const [consultants, setConsultants] = useState<Consultant[]>([]);
+    const [serviceMappings, setServiceMappings] = useState<any[]>([]);
 
     // Booking State
     const [services, setServices] = useState<Service[]>([]);
@@ -45,65 +46,37 @@ export default function MobileBookAppointment() {
     useEffect(() => {
         async function fetchServices() {
             if (!profile?.organization_id) return;
-            const { data, error } = await supabase
-                .from("services")
-                .select("id, name, category, organization_id")
-                .eq("organization_id", profile.organization_id)
-                .eq("is_active", true);
-            if (!error && data) setServices(data as Service[]);
+            try {
+                const data = await apiFetch('/api/billing/services?is_active=true');
+                if (data) setServices(data as Service[]);
+            } catch (err) {
+                console.error("Error fetching services", err);
+            }
         }
         fetchServices();
     }, [profile?.organization_id]);
 
     useEffect(() => {
-        async function loadConsultants() {
+        async function loadData() {
             if (!profile?.organization_id) return;
             try {
-                const { data: profilesData, error: profilesError } = await (supabase as any)
-                    .from("profiles")
-                    .select("id, first_name, last_name, profession, ams_role")
-                    .eq("organization_id", profile.organization_id)
-                    .eq("is_approved", true)
-                    .in("profession", ["Sports Physician", "Physiotherapist", "Sports Scientist", "Massage therapist", "Nutritionist"]);
-
-                if (profilesError) throw profilesError;
-
-                const userIds = profilesData?.map(p => p.id) || [];
-                if (userIds.length === 0) {
-                    setConsultants([]);
-                    return;
-                }
-
-                const { data: roleData, error: roleError } = await (supabase as any)
-                    .from("user_roles")
-                    .select("user_id, role")
-                    .in("user_id", userIds);
-
-                if (roleError) throw roleError;
-
-                const specialists = (profilesData || [])
-                    .filter(p => {
-                        const r = roleData?.find(role => role.user_id === p.id);
-                        // Exclude administrative roles and non-staff roles
-                        return r && !['admin', 'super_admin', 'clinic_admin', 'foe', 'front_office', 'client', 'athlete'].includes(r.role);
-                    })
-                    .map(p => ({
-                        ...p,
-                        ams_role: roleData?.find(r => r.user_id === p.id)?.role
-                    }));
-
-                setConsultants(specialists);
+                const [empData, mappingData] = await Promise.all([
+                    apiFetch<any[]>('/hr/employees?role_type=clinical'),
+                    apiFetch<any[]>('/admin/consultant-services')
+                ]);
+                setConsultants(empData || []);
+                setServiceMappings(mappingData || []);
             } catch (err: any) {
-                toast({ title: "Error loading consultants", description: err.message, variant: "destructive" });
+                toast({ title: "Error loading data", description: err.message, variant: "destructive" });
             }
         }
-        loadConsultants();
+        loadData();
     }, [profile?.organization_id]);
 
     const filteredConsultants = useMemo(() => {
         const selectedService = services.find(s => s.id === selectedServiceId);
-        return filterConsultantsByService(consultants, selectedService);
-    }, [consultants, selectedServiceId, services]);
+        return filterConsultantsByService(consultants, selectedService, serviceMappings);
+    }, [consultants, selectedServiceId, services, serviceMappings]);
 
     useEffect(() => {
         const selected = services.find(s => s.id === selectedServiceId);
@@ -118,15 +91,8 @@ export default function MobileBookAppointment() {
             setSelectedSlot(null);
             try {
                 const formattedDate = format(selectedDate, "yyyy-MM-dd");
-                const { data, error } = await supabase.rpc('get_available_slots' as any, {
-                    p_org_id: profile.organization_id,
-                    p_consultant_id: selectedConsultant,
-                    p_date: formattedDate,
-                    p_service: null
-                });
-
-                if (error) throw error;
-                setAvailableSlots(data || []);
+                const data = await apiFetch(`/api/appointments/availability?therapist_id=${selectedConsultant}&date=${formattedDate}`);
+                setAvailableSlots(data?.slots || []);
             } catch (err: any) {
                 toast({ title: "Failed to load timeslots", description: err.message, variant: "destructive" });
             } finally {
@@ -151,31 +117,20 @@ export default function MobileBookAppointment() {
             const scheduledStart = `${formattedDate}T${selectedSlot.slot_start}:00`;
             const scheduledEnd = `${formattedDate}T${selectedSlot.slot_end}:00`;
 
-            const { error: sessionError } = await (supabase as any)
-                .from('sessions')
-                .insert({
-                    organization_id: profile.organization_id,
+            await apiFetch('/api/appointments', {
+                method: 'POST',
+                body: JSON.stringify({
                     client_id: clientId,
                     therapist_id: selectedConsultant,
                     service_id: selectedServiceId || null,
                     service_type: selectedServiceType,
                     scheduled_start: new Date(scheduledStart).toISOString(),
                     scheduled_end: new Date(scheduledEnd).toISOString(),
-                    status: 'Planned',
-                    created_by: profile.id,
                     session_mode: 'Individual',
                     preference_type: preferenceType,
                     is_flexible_routing: preferenceType === "Flexible"
                 })
-                .select()
-                .single();
-
-            if (sessionError) {
-                if (sessionError.code === '23P04' || sessionError.message?.includes('overlap')) {
-                    throw new Error("This timeslot was just booked. Please select another.");
-                }
-                throw sessionError;
-            }
+            });
 
             toast({ title: "Appointment Confirmed!" });
             setStep(3);
@@ -191,18 +146,17 @@ export default function MobileBookAppointment() {
         if (!profile?.organization_id || !selectedDate || !clientId || !selectedConsultant) return;
         setBooking(true);
         try {
-            const { error } = await (supabase as any).from("waitlist").insert({
-                organization_id: profile?.organization_id,
-                client_id: clientId,
-                therapist_id: selectedConsultant,
-                service_id: selectedServiceId || null,
-                preferred_date: format(selectedDate, "yyyy-MM-dd"),
-                preferred_time_slot: "09:00",
-                preference_type: preferenceType,
-                status: "Waiting"
+            await apiFetch('/api/appointments/waitlist', {
+                method: 'POST',
+                body: JSON.stringify({
+                    client_id: clientId,
+                    therapist_id: selectedConsultant,
+                    service_id: selectedServiceId || null,
+                    preferred_date: format(selectedDate, "yyyy-MM-dd"),
+                    preferred_time_slot: "09:00",
+                    preference_type: preferenceType
+                })
             });
-
-            if (error) throw error;
             toast({ title: "Added to Waitlist" });
             setStep(3);
         } catch (err: any) {

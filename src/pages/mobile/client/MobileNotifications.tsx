@@ -1,7 +1,7 @@
 import React, { useEffect } from "react";
 import MobileLayout from "@/components/layout/MobileLayout";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/utils/api";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
 import { Megaphone, Bell, CheckCircle2, History, Loader2, Info } from "lucide-react";
@@ -15,18 +15,7 @@ export default function MobileNotifications() {
     const { data: notifications = [], isLoading } = useQuery({
         queryKey: ["notifications-list", profile?.id],
         queryFn: async () => {
-            if (!profile?.id || !profile?.organization_id) return [];
-            
-            const { data, error } = await (supabase as any).from("notifications")
-                .select(`
-                    *,
-                    sender:profiles!notifications_sender_id_fkey(first_name, last_name, profession)
-                `)
-                .eq("organization_id", profile.organization_id)
-                .or(`is_broadcast.eq.true,target_user_id.eq.${profile.id}`)
-                .order("created_at", { ascending: false });
-
-            if (error) throw error;
+            const data = await apiFetch<any[]>('/ams/notifications');
             return data;
         },
         enabled: !!profile?.id
@@ -35,9 +24,8 @@ export default function MobileNotifications() {
     const { data: readIds = [] } = useQuery({
         queryKey: ["notification-reads", profile?.id],
         queryFn: async () => {
-            if (!profile?.id) return [];
-            const { data } = await supabase.from("notification_reads").select("notification_id").eq("user_id", profile.id);
-            return data?.map(r => r.notification_id) || [];
+            const data = await apiFetch<string[]>('/ams/notifications/reads');
+            return data || [];
         },
         enabled: !!profile?.id
     });
@@ -51,12 +39,10 @@ export default function MobileNotifications() {
 
         if (unreadIds.length === 0) return;
 
-        const inserts = unreadIds.map(id => ({
-            notification_id: id,
-            user_id: profile.id
-        }));
-
-        await supabase.from("notification_reads").insert(inserts);
+        await apiFetch('/ams/notifications/read', {
+            method: 'POST',
+            body: { notificationIds: unreadIds }
+        });
         queryClient.invalidateQueries({ queryKey: ["unread-notifications"] });
         queryClient.invalidateQueries({ queryKey: ["notification-reads"] });
     };

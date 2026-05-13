@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/utils/api";
 import { 
   Dialog, 
   DialogContent, 
@@ -41,27 +41,22 @@ export function LogEnquiryModal({ isOpen, onClose }: LogEnquiryModalProps) {
 
   const mutation = useMutation({
     mutationFn: async (data: typeof formData) => {
-      const { data: enquiry, error } = await supabase
-        .from("enquiries")
-        .insert([{
+      const enquiry = await apiFetch<any>(`/clients/enquiries`, {
+        method: 'POST',
+        data: {
           ...data,
-          organization_id: profile?.organization_id,
           status: 'new'
-        }])
-        .select()
-        .single();
-
-      if (error) throw error;
+        }
+      });
 
       // Log initial interaction
-      await supabase
-        .from("enquiry_interactions")
-        .insert([{
-          enquiry_id: enquiry.id,
+      await apiFetch(`/clients/enquiries/${enquiry.id}/interactions`, {
+        method: 'POST',
+        data: {
           interaction_type: 'call',
-          response_text: `Initial manual entry logged by FOE. Notes: ${data.notes || 'None'}`,
-          created_by: profile?.id
-        }]);
+          response_text: `Initial manual entry logged by FOE. Notes: ${data.notes || 'None'}`
+        }
+      });
 
       return enquiry;
     },

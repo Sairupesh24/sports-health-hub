@@ -34,8 +34,7 @@ import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
-import type { Database } from "@/integrations/supabase/types";
+import { apiFetch } from "@/utils/api";
 import OrganizationPackages from "./OrganizationPackages";
 import OrganizationInjuries from "./OrganizationInjuries";
 import OrganizationUsers from "./OrganizationUsers";
@@ -61,14 +60,30 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
 });
 
-
-type Organization = Database['public']['Tables']['organizations']['Row'] & {
+type Organization = {
+    id: string;
+    name: string;
+    org_code: string;
+    status: string;
+    created_at: string;
+    uhid_prefix?: string;
+    logo_url?: string;
+    subscription_plan?: string;
     location_count?: number;
     consultant_count?: number;
     client_count?: number;
-    enquiry_form_config?: any;
+    official_name?: string;
+    official_address?: string;
+    contact_phone?: string;
+    contact_email?: string;
+    clinic_latitude?: number;
+    clinic_longitude?: number;
+    geofence_radius?: number;
+    enable_geofencing?: boolean;
+    enable_ip_locking?: boolean;
+    allowed_ips?: string;
+    slug?: string;
 };
-
 
 export default function OrganizationDetails() {
     const { id } = useParams<{ id: string }>();
@@ -94,42 +109,22 @@ export default function OrganizationDetails() {
         if (!id) return;
         try {
             setLoading(true);
+            const data = await apiFetch<Organization>(`/master-console/organizations/${id}`);
             
-            // Fetch basic org data directly to ensure we get the latest columns (lat/long/etc)
-            // as RPCs can sometimes lag in schema cache
-            const { data: directData, error: directErr } = await supabase
-                .from('organizations')
-                .select('*')
-                .eq('id', id)
-                .single();
-
-            if (directErr) throw directErr;
-
-            // Still call RPC for the aggregate counts (location_count, etc)
-            const { data: orgsData, error: orgsErr } = await supabase.rpc('get_platform_organizations');
-            
-            if (directData) {
-                const aggregateData = orgsData?.find((o: any) => o.id === id);
-                setOrg({
-                    ...directData,
-                    location_count: aggregateData?.location_count || 0,
-                    consultant_count: aggregateData?.consultant_count || 0,
-                    client_count: aggregateData?.client_count || 0
-                });
-                if (directData.uhid_prefix) {
-                    setPrefix(directData.uhid_prefix);
+            if (data) {
+                setOrg(data);
+                if (data.uhid_prefix) {
+                    setPrefix(data.uhid_prefix);
                     setIsPrefixAvailable(true);
                 } else {
-                    // Reset availability if no prefix set
                     setIsPrefixAvailable(null);
                 }
             } else {
                 toast({ title: "Not Found", description: "Organization not found.", variant: "destructive" });
                 navigate("/super-admin");
             }
-        } catch (err: unknown) {
-            const error = err as Error;
-            toast({ title: "Error", description: error.message, variant: "destructive" });
+        } catch (err: any) {
+            toast({ title: "Error", description: err.message, variant: "destructive" });
         } finally {
             setLoading(false);
         }
@@ -139,17 +134,15 @@ export default function OrganizationDetails() {
         if (!id || updating) return;
         try {
             setUpdating(true);
-            const { error: updateErr } = await supabase.rpc('update_organization_status', { 
-                p_org_id: id, 
-                p_status: newStatus 
+            await apiFetch(`/master-console/organizations/${id}`, {
+                method: 'PATCH',
+                data: { status: newStatus }
             });
-            if (updateErr) throw updateErr;
 
             setOrg(prev => prev ? { ...prev, status: newStatus } : null);
             toast({ title: "Status Updated", description: `Organization is now ${newStatus}.` });
-        } catch (err: unknown) {
-            const error = err as Error;
-            toast({ title: "Update Failed", description: error.message, variant: "destructive" });
+        } catch (err: any) {
+            toast({ title: "Update Failed", description: err.message, variant: "destructive" });
         } finally {
             setUpdating(false);
         }
@@ -168,30 +161,28 @@ export default function OrganizationDetails() {
             setUpdating(true);
             const updatedOrg = { ...org, ...settings };
             
-            const { error: updateErr } = await supabase
-                .from('organizations')
-                .update({
-                    clinic_latitude: updatedOrg.clinic_latitude ?? org.clinic_latitude,
-                    clinic_longitude: updatedOrg.clinic_longitude ?? org.clinic_longitude,
-                    geofence_radius: updatedOrg.geofence_radius ?? org.geofence_radius,
-                    enable_geofencing: updatedOrg.enable_geofencing ?? org.enable_geofencing,
-                    enable_ip_locking: updatedOrg.enable_ip_locking ?? org.enable_ip_locking,
-                    allowed_ips: updatedOrg.allowed_ips ?? org.allowed_ips,
-                    official_name: updatedOrg.official_name ?? org.official_name,
-                    official_address: updatedOrg.official_address ?? org.official_address,
-                    contact_email: updatedOrg.contact_email ?? org.contact_email,
-                    contact_phone: updatedOrg.contact_phone ?? org.contact_phone,
-                    enquiry_form_config: updatedOrg.enquiry_form_config ?? org.enquiry_form_config
-                })
-                .eq('id', id);
+            const updatePayload = {
+                clinic_latitude: updatedOrg.clinic_latitude ?? org.clinic_latitude,
+                clinic_longitude: updatedOrg.clinic_longitude ?? org.clinic_longitude,
+                geofence_radius: updatedOrg.geofence_radius ?? org.geofence_radius,
+                enable_geofencing: updatedOrg.enable_geofencing ?? org.enable_geofencing,
+                enable_ip_locking: updatedOrg.enable_ip_locking ?? org.enable_ip_locking,
+                allowed_ips: updatedOrg.allowed_ips ?? org.allowed_ips,
+                official_name: updatedOrg.official_name ?? org.official_name,
+                official_address: updatedOrg.official_address ?? org.official_address,
+                contact_email: updatedOrg.contact_email ?? org.contact_email,
+                contact_phone: updatedOrg.contact_phone ?? org.contact_phone,
+            };
 
-            if (updateErr) throw updateErr;
+            await apiFetch(`/master-console/organizations/${id}`, {
+                method: 'PATCH',
+                data: updatePayload
+            });
 
             setOrg(updatedOrg);
             toast({ title: "Settings Saved", description: "Clinic updated successfully." });
-        } catch (err: unknown) {
-            const error = err as Error;
-            toast({ title: "Save Failed", description: error.message, variant: "destructive" });
+        } catch (err: any) {
+            toast({ title: "Save Failed", description: err.message, variant: "destructive" });
         } finally {
             setUpdating(false);
         }
@@ -205,26 +196,11 @@ export default function OrganizationDetails() {
         
         setCheckingPrefix(true);
         try {
-            const { data, error } = await supabase
-                .from('organizations')
-                .select('id')
-                .eq('uhid_prefix', val.toUpperCase())
-                .neq('id', id || '')
-                .maybeSingle();
-                
-            if (error) throw error;
-            setIsPrefixAvailable(!data);
+            const data = await apiFetch<{ available: boolean }>(`/master-console/check-prefix?prefix=${val.toUpperCase()}&excludeId=${id}`);
+            setIsPrefixAvailable(data.available);
         } catch (err: any) {
             console.error("Prefix check failed:", err);
             setIsPrefixAvailable(null);
-            // If the error is that the column doesn't exist, it's a migration issue
-            if (err.message?.includes('column "uhid_prefix" does not exist')) {
-                toast({ 
-                    title: "System Update Required", 
-                    description: "Please run the SQL migration to add branding support.",
-                    variant: "destructive"
-                });
-            }
         } finally {
             setCheckingPrefix(false);
         }
@@ -235,12 +211,10 @@ export default function OrganizationDetails() {
         
         try {
             setUpdating(true);
-            const { error } = await supabase
-                .from('organizations')
-                .update({ uhid_prefix: prefix.toUpperCase() })
-                .eq('id', id);
-                
-            if (error) throw error;
+            await apiFetch(`/master-console/organizations/${id}`, {
+                method: 'PATCH',
+                data: { uhid_prefix: prefix.toUpperCase() }
+            });
             
             setOrg(org ? { ...org, uhid_prefix: prefix.toUpperCase() } : null);
             setShowConfirmModal(false);
@@ -266,28 +240,23 @@ export default function OrganizationDetails() {
             setUploadingLogo(true);
             setUploadProgress(10);
             
-            const fileExt = file.name.split('.').pop();
-            const fileName = `${id}_${Date.now()}.${fileExt}`;
-            const filePath = `logos/${fileName}`;
+            const formData = new FormData();
+            formData.append('logo', file);
 
-            setUploadProgress(30);
-            const { error: uploadError } = await supabase.storage
-                .from('clinic-logos')
-                .upload(filePath, file);
-
-            if (uploadError) throw uploadError;
+            setUploadProgress(40);
+            const uploadRes = await apiFetch<{ publicUrl: string }>('/upload/logo', {
+                method: 'POST',
+                data: formData
+            });
 
             setUploadProgress(70);
-            const { data: { publicUrl } } = supabase.storage
-                .from('clinic-logos')
-                .getPublicUrl(filePath);
+            const publicUrl = uploadRes.publicUrl;
 
-            const { error: updateErr } = await supabase
-                .from('organizations')
-                .update({ logo_url: publicUrl })
-                .eq('id', id);
-
-            if (updateErr) throw updateErr;
+            // Update organization with the new logo URL
+            await apiFetch(`/master-console/organizations/${id}`, {
+                method: 'PATCH',
+                data: { logo_url: publicUrl }
+            });
 
             setOrg(org ? { ...org, logo_url: publicUrl } : null);
             setUploadProgress(100);

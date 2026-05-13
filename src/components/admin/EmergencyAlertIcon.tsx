@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/utils/api";
 import { AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
@@ -16,14 +16,8 @@ export default function EmergencyAlertIcon({ onClick, className }: EmergencyAler
   const { data: unresolvedAlerts } = useQuery({
     queryKey: ["unresolved-emergency-alerts", organizationId],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("emergency_alerts")
-        .select("id")
-        .eq("organization_id", organizationId)
-        .eq("status", "unresolved");
-      
-      if (error) throw error;
-      return data;
+      const data = await apiFetch(`/hr/emergencies?status=unresolved`);
+      return data?.data || [];
     },
     enabled: !!organizationId,
     refetchInterval: 10000, // Poll every 10 seconds for emergencies

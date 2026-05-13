@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useForm, useFieldArray, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/utils/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import {
@@ -81,23 +81,8 @@ export default function LogSessionForm({ onComplete }: { onComplete?: () => void
   const { data: exerciseLibrary = [] } = useQuery<Exercise[]>({
     queryKey: ['exercise-library', gymEnvironment],
     queryFn: async () => {
-      let query = (supabase as any)
-        .from('exercises')
-        .select('id, name, category, equipment_type')
-        .order('name');
-      
-      // Hierarchical filtering
-      if (gymEnvironment === "average_gym") {
-        query = query.in('equipment_type', ['average_gym', 'minimal_equipment', 'calisthenics']);
-      } else if (gymEnvironment === "minimal_equipment") {
-        query = query.in('equipment_type', ['minimal_equipment', 'calisthenics']);
-      } else if (gymEnvironment === "calisthenics") {
-        query = query.eq('equipment_type', 'calisthenics');
-      }
-      
-      const { data, error } = await (query as any);
-      if (error) throw error;
-      return data as Exercise[];
+      const data = await apiFetch(`/api/ams/exercises?gym_environment=${gymEnvironment}`);
+      return data || [];
     }
   });
 
@@ -134,73 +119,61 @@ export default function LogSessionForm({ onComplete }: { onComplete?: () => void
 
     try {
       // 1. Create Workout Completion
-      const { data: completion, error: cError } = await (supabase
-        .from('athlete_workout_completions' as any)
-        .insert({
+      const completion = await apiFetch(`/api/ams/workout-completions`, {
+        method: 'POST',
+        body: {
           athlete_id: clientId,
           org_id: profile?.organization_id,
           completed_at: new Date().toISOString(),
           total_duration_mins: values.duration_mins,
-          status: 'completed'
-        } as any) as any)
-        .select()
-        .single();
-
-      if (cError) throw cError;
+          completion_status: 'completed'
+        }
+      });
 
       // 2. Create Ad-hoc Workout Items & Logs
-      // For ad-hoc, we first need to create workout_items for each exercise
       for (const ex of values.exercises) {
-        // a. Create the workout_item entry
-        const { data: item, error: iError } = await (supabase
-          .from('workout_items' as any)
-          .insert({
-            workout_day_id: null, // Ad-hoc has no workout_day
+        // a. Create the workout_item and lift_item in one go (if the backend supports it, which it does via /workout-items)
+        const item = await apiFetch(`/api/ams/workout-items`, {
+          method: 'POST',
+          body: {
+            workout_day_id: null,
             item_type: 'lift',
             display_order: 0,
-            org_id: profile?.organization_id
-          } as any) as any)
-          .select()
-          .single();
+            details: {
+              exercise_id: ex.exercise_id,
+              sets: ex.sets.length,
+              reps: ex.sets[0].reps.toString(),
+              load_value: ex.sets[0].weight_kg,
+              tempo: ex.tempo,
+              rest_time_secs: ex.rest_time_secs,
+              workout_grouping: ex.workout_grouping,
+              each_side: ex.each_side,
+              additional_info: ex.additional_info
+            }
+          }
+        });
 
-        if (iError) throw iError;
-
-        // b. Create the lift_item detail
-        const { error: liError } = await (supabase
-          .from('lift_items' as any)
-          .insert({
-            workout_item_id: item.id,
-            exercise_id: ex.exercise_id,
-            sets: ex.sets.length,
-            reps: ex.sets[0].reps.toString(),
-            load_value: ex.sets[0].weight_kg,
-            tempo: ex.tempo,
-            rest_time_secs: ex.rest_time_secs,
-            workout_grouping: ex.workout_grouping,
-            each_side: ex.each_side,
-            additional_info: ex.additional_info,
-            org_id: profile?.organization_id
-          } as any));
-
-        if (liError) throw liError;
-
-        // c. Create the actual logs for each set
-        const setLogs = ex.sets.map((set, idx) => ({
-          completion_id: completion.id,
-          workout_item_id: item.id,
-          athlete_id: clientId,
-          org_id: profile?.organization_id,
-          set_number: idx + 1,
-          weight_kg: set.weight_kg,
-          reps: set.reps,
-          is_completed: true
-        }));
-
-        const { error: lError } = await supabase
-          .from('athlete_item_logs' as any)
-          .insert(setLogs as any);
-
-        if (lError) throw lError;
+        // b. Create the actual logs for the item
+        await apiFetch(`/api/ams/item-logs`, {
+          method: 'POST',
+          body: [
+            {
+              org_id: profile?.organization_id,
+              workout_item_id: item.id,
+              athlete_id: clientId,
+              logged_at: new Date().toISOString(),
+              sets_completed: ex.sets.map((s, idx) => ({
+                set_number: idx + 1,
+                weight_kg: s.weight_kg,
+                reps: s.reps,
+                is_completed: true
+              })),
+              rpe: values.rpe,
+              notes: ex.additional_info,
+              skipped: false
+            }
+          ]
+        });
       }
 
       toast({

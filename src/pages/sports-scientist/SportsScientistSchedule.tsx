@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/utils/api";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
     format,
@@ -75,30 +75,7 @@ export default function SportsScientistSchedule() {
         queryKey: ["sports-scientist-sessions", user?.id, dateRange.start, dateRange.end],
         queryFn: async () => {
             if (!user) return [];
-
-            const { data, error } = await (supabase as any)
-                .from("sessions")
-                .select(`
-                     id,
-                     client_id,
-                     scientist_id,
-                     scheduled_start,
-                     scheduled_end,
-                     status,
-                     session_mode,
-                     group_name,
-                     actual_start,
-                     actual_end,
-                     client:clients(first_name, last_name, uhid),
-                     session_type:session_types(name)
-                 `)
-                .eq("scientist_id", user.id)
-                .gte("scheduled_start", dateRange.start)
-                .lte("scheduled_start", dateRange.end)
-                .order("scheduled_start", { ascending: true });
-
-            if (error) throw error;
-            return data;
+            return await apiFetch(`/api/appointments?therapist_id=${user.id}&start=${dateRange.start}&end=${dateRange.end}`);
         },
         enabled: !!user && activeTab === "calendar"
     });

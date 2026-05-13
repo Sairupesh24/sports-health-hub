@@ -24,7 +24,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/utils/api";
 import {
   Dialog,
   DialogContent,
@@ -50,16 +50,7 @@ export default function ClientPerformancePage() {
   const fetchPrs = async () => {
     if (!session?.user?.id) return;
     try {
-      const { data } = await (supabase as any)
-        .from('max_pr_records')
-        .select(`
-          exercise_id,
-          value,
-          exercise:exercises(name)
-        `)
-        .eq('athlete_id', session.user.id)
-        .eq('is_current', true)
-        .order('updated_at', { ascending: false });
+      const data = await apiFetch(`/api/ams/max-pr-records?athlete_id=${session.user.id}`);
       
       setPrs(data?.reduce((acc: any, pr: any) => ({
         ...acc,
@@ -83,81 +74,8 @@ export default function ClientPerformancePage() {
   const fetchAssignments = async () => {
     if (!session?.user?.id) return;
     try {
-      const { data: currentProfile } = await supabase
-        .from('profiles')
-        .select('email, uhid')
-        .eq('id', session.user.id)
-        .single();
-
-      if (!currentProfile?.email) throw new Error("User email not found");
-
-      const profileFilters = [`email.eq.${currentProfile.email}`];
-      if (currentProfile.uhid) profileFilters.push(`uhid.eq.${currentProfile.uhid}`);
-
-      const { data: linkedProfiles } = await supabase
-        .from('profiles')
-        .select('id')
-        .or(profileFilters.join(','));
-
-      const profileIds = linkedProfiles?.map(p => p.id) || [session.user.id];
-
-      const { data: individualAssignments, error: err1 } = await supabase
-        .from('program_assignments' as any)
-        .select(`
-          *,
-          program:training_programs(
-            *,
-            days:workout_days(
-              *,
-              items:workout_items(
-                *,
-                lift:lift_items(*, exercise:exercises(name))
-              )
-            )
-          )
-        `)
-        .in('athlete_id', profileIds)
-        .eq('status', 'active');
-
-      if (err1) throw err1;
-
-      const { data: batchMemberships } = await supabase
-        .from('batch_members' as any)
-        .select('batch_id')
-        .in('athlete_id', profileIds);
-
-      const batchIds = (batchMemberships as any)?.map((m: any) => m.batch_id) || [];
-
-      let batchAssignments: any[] = [];
-      if (batchIds.length > 0) {
-        const { data: bData, error: err2 } = await supabase
-          .from('program_assignments' as any)
-          .select(`
-            *,
-            program:training_programs(
-              *,
-              days:workout_days(
-                *,
-                items:workout_items(
-                  *,
-                  lift:lift_items(*, exercise:exercises(name))
-                )
-              )
-            )
-          `)
-          .in('batch_id', batchIds)
-          .eq('status', 'active');
-
-        if (err2) throw err2;
-        batchAssignments = bData || [];
-      }
-
-      const consolidated = [...(individualAssignments || []), ...batchAssignments];
-      const uniqueConsolidated = consolidated.filter((item, index, self) =>
-        index === self.findIndex((t) => t.id === item.id)
-      );
-
-      setAssignedWorkouts(uniqueConsolidated);
+      const assignments = await apiFetch(`/api/ams/program-assignments?athlete_id=${session.user.id}&status=active`);
+      setAssignedWorkouts(assignments || []);
     } catch (error) {
       console.error("PerformanceHub Sync Error:", error);
     }
@@ -179,15 +97,7 @@ export default function ClientPerformancePage() {
 
   const fetchWellnessLogs = async () => {
     try {
-      const sevenDaysAgo = subDays(new Date(), 7).toISOString();
-      const { data, error } = await supabase
-        .from("wellness_logs")
-        .select("*")
-        .eq("athlete_id", session?.user?.id)
-        .gte("created_at", sevenDaysAgo)
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
+      const data = await apiFetch(`/api/ams/wellness-logs?athlete_id=${session?.user?.id}&days=7`);
       setWellnessLogs(data || []);
     } catch (error: any) {
       console.error("Fetch Wellness Error:", error);

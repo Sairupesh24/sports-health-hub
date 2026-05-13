@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/utils/api";
 import { toast } from "@/hooks/use-toast";
 import { FileText, FileImage, Download, Loader2, X, ExternalLink } from "lucide-react";
 
@@ -23,17 +23,13 @@ export function DocumentViewer({ document, onClose }: DocumentViewerProps) {
   }, [document]);
 
   useEffect(() => {
-    async function fetchSignedUrl() {
+    async function fetchUrl() {
       if (!document) return;
       
       setIsLoading(true);
       try {
-        const { data, error } = await supabase.storage
-          .from('client-documents')
-          .createSignedUrl(document.file_path, 3600); // 1 hour
-
-        if (error) throw error;
-        setSignedUrl(data.signedUrl);
+        const response = await apiFetch<any>(`/upload/url?path=${encodeURIComponent(document.file_path)}`);
+        setSignedUrl(response.signedUrl);
       } catch (err: any) {
         toast({ title: "Failed to load document", description: err.message, variant: "destructive" });
       } finally {
@@ -42,7 +38,7 @@ export function DocumentViewer({ document, onClose }: DocumentViewerProps) {
     }
 
     if (document) {
-      fetchSignedUrl();
+      fetchUrl();
     } else {
       setSignedUrl(null);
     }

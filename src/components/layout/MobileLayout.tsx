@@ -3,7 +3,7 @@ import ClientBottomNav from "../client/ClientBottomNav";
 import { Activity, Bell, User } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate, useLocation } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/utils/api";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 
@@ -21,56 +21,18 @@ export default function MobileLayout({ children, showBack }: MobileLayoutProps) 
   const { data: unreadCount = 0 } = useQuery({
     queryKey: ["unread-notifications", profile?.id],
     queryFn: async () => {
-      if (!profile?.id || !profile?.organization_id) return 0;
-      
-      const { data, error, count } = await (supabase as any).from("notifications")
-        .select(`id`, { count: 'exact', head: true })
-        .eq("organization_id", profile.organization_id)
-        .or(`is_broadcast.eq.true,target_user_id.eq.${profile.id}`)
-        .not("id", "in", (
-            supabase.from("notification_reads").select("notification_id").eq("user_id", profile.id)
-        ) as any);
-      
-      // Since 'not in' with subquery is tricky in postgrest, let's do a more robust approach
-      // Filter count = Total potential - Total read
-      const { count: totalCount } = await (supabase as any).from("notifications")
-        .select("*", { count: 'exact', head: true })
-        .eq("organization_id", profile.organization_id)
-        .or(`is_broadcast.eq.true,target_user_id.eq.${profile.id}`);
-
-      const { count: readCount } = await (supabase as any).from("notification_reads")
-        .select("*", { count: 'exact', head: true })
-        .eq("user_id", profile.id);
-
-      return Math.max(0, (totalCount || 0) - (readCount || 0));
+      if (!profile?.id) return 0;
+      const data = await apiFetch<any>('/admin/notifications/unread-count');
+      return data.count || 0;
     },
     enabled: !!profile?.id,
     refetchInterval: 30000 // Fallback poll
   });
 
+  // Polling handles updates for now without Realtime
   React.useEffect(() => {
-    if (!profile?.organization_id) return;
-
-    const channel = supabase
-      .channel('notifications-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'notifications',
-          filter: `organization_id=eq.${profile.organization_id}`
-        },
-        () => {
-          queryClient.invalidateQueries({ queryKey: ["unread-notifications"] });
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [profile?.organization_id, queryClient]);
+    // Optional: add any logic needed on mount
+  }, []);
 
   return (
     <div className="flex flex-col h-screen overflow-y-auto bg-slate-950 text-white selection:bg-primary/30 antialiased overflow-x-hidden">

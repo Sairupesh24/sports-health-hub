@@ -1,40 +1,23 @@
-import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { Activity, ArrowRight, Lock, CheckCircle2 } from "lucide-react";
+import { useState } from "react";
+import { Link, useNavigate, useLocation } from "react-router-dom";
+import { Activity, ArrowRight, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/utils/api";
 
 export default function ResetPasswordPage() {
   const navigate = useNavigate();
+  const location = useLocation();
+  
+  // Pre-fill email if passed from ForgotPasswordPage
+  const [email, setEmail] = useState(location.state?.email || "");
+  const [otp, setOtp] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
-
-  useEffect(() => {
-    // Check if the user is in a reset password flow session
-    const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        // If no session, they shouldn't be here unless they just clicked a link
-        // which Supabase handles by putting the session in the URL fragment.
-        // If after hydration there's still no session, redirect to login.
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) {
-          toast({
-            title: "Invalid link",
-            description: "The password reset link is invalid or has expired.",
-            variant: "destructive",
-          });
-          navigate("/login");
-        }
-      }
-    };
-    checkSession();
-  }, [navigate]);
 
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,10 +39,20 @@ export default function ResetPasswordPage() {
       return;
     }
 
+    if (otp.length !== 6) {
+      toast({
+        title: "Invalid Code",
+        description: "Please enter the 6-digit code sent to your email.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setLoading(true);
     try {
-      const { error } = await supabase.auth.updateUser({ password });
-      if (error) throw error;
+      await apiFetch('/auth/reset-password', {
+        data: { email, otp, newPassword: password }
+      });
       
       setSuccess(true);
       toast({
@@ -140,10 +133,32 @@ export default function ResetPasswordPage() {
 
           <div>
             <h2 className="font-display text-2xl font-bold text-foreground">Set New Password</h2>
-            <p className="text-muted-foreground mt-1">Make sure it's something you'll remember (or use a manager!).</p>
+            <p className="text-muted-foreground mt-1">Make sure it's something you'll remember.</p>
           </div>
 
           <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input 
+                id="email" 
+                type="email" 
+                value={email} 
+                onChange={(e) => setEmail(e.target.value)} 
+                required 
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="otp">6-Digit Reset Code</Label>
+              <Input 
+                id="otp" 
+                type="text" 
+                value={otp} 
+                onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))} 
+                maxLength={6}
+                required 
+                placeholder="000000" 
+              />
+            </div>
             <div className="space-y-2">
               <Label htmlFor="password">New Password</Label>
               <Input 

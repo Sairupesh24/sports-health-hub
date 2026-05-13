@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/utils/api";
 import { useToast } from "@/hooks/use-toast";
 import { exportQuestionnairePDF } from "@/utils/QuestionnaireExport";
 import { useAuth } from "@/contexts/AuthContext";
@@ -37,12 +37,10 @@ export default function ResponseReviewModal({ isOpen, onClose, response, assignm
   const handleSave = async () => {
     try {
       setSaving(true);
-      const { error } = await supabase
-        .from("form_responses")
-        .update({ clinical_interpretation: interpretation })
-        .eq("id", response.id);
-        
-      if (error) throw error;
+      await apiFetch(`/ams/form-responses/${response.id}`, {
+        method: 'PATCH',
+        body: { clinical_interpretation: interpretation }
+      });
       
       toast({
         title: "Interpretation Saved",

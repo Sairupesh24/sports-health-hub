@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/utils/api";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ComposedChart } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { format, subDays, startOfDay } from "date-fns";
@@ -14,46 +14,35 @@ export default function ReturnToPlayChart({ athleteId, days = 30 }: ReturnToPlay
     const { data: chartData, isLoading } = useQuery({
         queryKey: ["return_to_play_data", athleteId, days],
         queryFn: async () => {
-            const startDate = subDays(new Date(), days).toISOString();
+      const startDate = subDays(new Date(), days).toISOString();
 
-            // Fetch Trainnig Loads
-            const { data: loads } = await supabase
-                .from("training_sessions")
-                .select("session_date, calculated_load")
-                .eq("athlete_id", athleteId)
-                .gte("session_date", startDate);
+      // Fetch Training Loads
+      const loads = await apiFetch(`/api/ams/training-sessions?athlete_id=${athleteId}&start_date=${startDate}`);
 
-            // Fetch Pain Scores from SOAP Notes
-            const { data: notes } = await supabase
-                .from("physio_session_details")
-                .select(`
-                    pain_score,
-                    sessions!inner(scheduled_start)
-                `)
-                .eq("sessions.client_id", athleteId)
-                .gte("sessions.scheduled_start", startDate);
+      // Fetch Pain Scores from SOAP Notes
+      const notes = await apiFetch(`/api/clinical/physio-session-details?athlete_id=${athleteId}&start_date=${startDate}`);
 
-            // Combine data by date
-            const dateMap: Record<string, { date: string, load: number, pain: number | null }> = {};
+      // Combine data by date
+      const dateMap: Record<string, { date: string, load: number, pain: number | null }> = {};
 
-            // Initialize last 30 days
-            for (let i = days; i >= 0; i--) {
-                const date = format(subDays(new Date(), i), "MMM dd");
-                dateMap[date] = { date, load: 0, pain: null };
-            }
+      // Initialize last 30 days
+      for (let i = days; i >= 0; i--) {
+        const date = format(subDays(new Date(), i), "MMM dd");
+        dateMap[date] = { date, load: 0, pain: null };
+      }
 
-            loads?.forEach(l => {
-                const d = format(new Date(l.session_date), "MMM dd");
-                if (dateMap[d]) dateMap[d].load += l.calculated_load;
-            });
+      loads?.forEach((l: any) => {
+        const d = format(new Date(l.session_date), "MMM dd");
+        if (dateMap[d]) dateMap[d].load += l.calculated_load;
+      });
 
-            notes?.forEach(n => {
-                const d = format(new Date(n.sessions.scheduled_start), "MMM dd");
-                if (dateMap[d]) dateMap[d].pain = n.pain_score;
-            });
+      notes?.forEach((n: any) => {
+        const d = format(new Date(n.sessions.scheduled_start), "MMM dd");
+        if (dateMap[d]) dateMap[d].pain = n.pain_score;
+      });
 
-            return Object.values(dateMap);
-        },
+      return Object.values(dateMap);
+    },
         enabled: !!athleteId
     });
 

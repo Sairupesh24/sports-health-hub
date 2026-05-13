@@ -35,16 +35,18 @@ import {
 import { Slider } from "@/components/ui/slider";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/utils/api";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/components/ui/use-toast";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function WorkoutLogging() {
   const { id: workoutDayId } = useParams();
+  const { user } = useAuth();
   const [workout, setWorkout] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [logs, setLogs] = useState<Record<string, any>>({});
@@ -83,48 +85,25 @@ export default function WorkoutLogging() {
   const fetchWorkout = async () => {
     try {
       setLoading(true);
-      const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { data, error } = await supabase
-        .from('workout_days')
-        .select(`
-          *,
-          items:workout_items(
-            *,
-            lift:lift_items(*, exercise:exercises(*)),
-            saqc:saqc_items(*, exercise:exercises(*)),
-            circuit:circuit_items(*)
-          )
-        `)
-        .eq('id', workoutDayId)
-        .single();
-
-      if (error) throw error;
+      const data = await apiFetch<any>(`/ams/workout-days/${workoutDayId}`);
       setWorkout(data);
 
-      // Fetch latest PRs for all exercises in the workout
       const exerciseIds = data.items?.map((i: any) => i[i.item_type]?.exercise_id).filter(Boolean);
       const prMap: Record<string, number> = {};
       
       if (exerciseIds.length > 0) {
-        const { data: prData } = await supabase
-          .from('max_pr_records')
-          .select('exercise_id, value')
-          .eq('athlete_id', user.id)
-          .eq('is_current', true)
-          .in('exercise_id', exerciseIds);
-        
+        const prData = await apiFetch<any[]>(`/ams/max-pr-records?exercise_ids=${exerciseIds.join(',')}`);
         prData?.forEach(pr => { prMap[pr.exercise_id] = pr.value; });
       }
       setPrs(prMap);
       
-      // Initialize logs state
       const initialLogs: Record<string, any> = {};
       data.items?.forEach((item: any) => {
         const details = item[item.item_type];
         if (item.item_type === 'lift') {
-          const prValue = prMap[details?.exercise_id] || 100; // Fallback
+          const prValue = prMap[details?.exercise_id] || 100;
           const weight = details?.load_type === 'percentage' 
             ? Math.round((details.load_value / 100) * prValue) 
             : details?.load_value || 0;
@@ -154,8 +133,12 @@ export default function WorkoutLogging() {
   };
 
   const fetchExercises = async () => {
-    const { data } = await supabase.from('exercises').select('id, name').limit(100);
-    setExercises(data || []);
+    try {
+      const data = await apiFetch<any[]>('/ams/exercises?limit=100');
+      setExercises(data || []);
+    } catch (err) {
+      console.error("Failed to fetch exercises", err);
+    }
   };
 
   const handleSetUpdate = (itemId: string, setIdx: number, field: string, value: any) => {
@@ -212,26 +195,21 @@ export default function WorkoutLogging() {
   const finishWorkout = async () => {
     try {
       setLoading(true);
-      const { data: { user } } = await supabase.auth.getUser();
       if (!user || !workout) return;
 
       // 1. Create Workout Completion
-      const { data: completion, error: cError } = await (supabase
-        .from('athlete_workout_completions' as any)
-        .insert({
+      await apiFetch('/ams/workout-completions', {
+        method: 'POST',
+        body: {
           athlete_id: user.id,
           workout_day_id: workout.id,
           org_id: workout.org_id,
           completed_at: new Date().toISOString(),
           overall_notes: sessionNotes,
           completion_status: 'completed'
-        } as any) as any)
-        .select()
-        .single();
+        }
+      });
 
-      if (cError) throw cError;
-
-      // 2. Save Item Logs
       const itemLogs = Object.entries(logs).flatMap(([itemId, sets]) => 
         sets.map((set: any, idx: number) => ({
           org_id: workout.org_id,
@@ -239,17 +217,16 @@ export default function WorkoutLogging() {
           athlete_id: user.id,
           logged_at: new Date().toISOString(),
           sets_completed: [{ load: set.weight, reps: set.reps }],
-          rpe: sessionRpe, // Applied to all for now or should it be individual?
-          notes: "", // Placeholder
+          rpe: sessionRpe,
+          notes: "",
           skipped: !completedSets[`${itemId}-${idx}`]
         }))
       );
 
-      const { error: lError } = await supabase
-        .from('athlete_item_logs' as any)
-        .insert(itemLogs as any);
-
-      if (lError) throw lError;
+      await apiFetch('/ams/item-logs', {
+        method: 'POST',
+        body: itemLogs
+      });
 
       toast({
         title: "Workout Completed!",

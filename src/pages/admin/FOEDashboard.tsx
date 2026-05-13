@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 import { LogEnquiryModal } from "@/components/admin/LogEnquiryModal";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/utils/api";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -64,23 +64,8 @@ export default function FOEDashboard() {
   const { data: todaysSessions, isLoading: sessionsLoading } = useQuery({
     queryKey: ['foe-todays-sessions', organizationId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('sessions')
-        .select(`
-          id,
-          status,
-          scheduled_start,
-          scheduled_end,
-          service_type,
-          therapist:profiles!sessions_therapist_id_fkey(first_name, last_name),
-          client:clients!sessions_client_id_fkey(id, first_name, last_name, uhid, is_vip, mobile_no)
-        `)
-        .eq('organization_id', organizationId)
-        .gte('scheduled_start', todayStart.toISOString())
-        .lte('scheduled_start', todayEnd.toISOString())
-        .order('scheduled_start', { ascending: true });
-      if (error) throw error;
-      return data;
+      const data = await apiFetch(`/api/appointments?start=${todayStart.toISOString()}&end=${todayEnd.toISOString()}`);
+      return data || [];
     },
     enabled: !!organizationId
   });
@@ -89,21 +74,8 @@ export default function FOEDashboard() {
   const { data: waitlistItems, isLoading: waitlistLoading } = useQuery({
     queryKey: ['foe-waitlist', organizationId],
     queryFn: async () => {
-        const { data, error } = await supabase
-            .from('waitlist')
-            .select(`
-                id, 
-                status, 
-                preferred_date, 
-                preferred_time_slot,
-                created_at,
-                client:clients(id, first_name, last_name, is_vip, mobile_no, uhid)
-            `)
-            .eq('organization_id', organizationId)
-            .in('status', ['Waiting', 'Notified'])
-            .order('created_at', { ascending: false });
-        if (error) throw error;
-        return data;
+        const data = await apiFetch(`/api/appointments/waitlist?status=Waiting`);
+        return data || [];
     },
     enabled: !!organizationId
   });
@@ -112,22 +84,8 @@ export default function FOEDashboard() {
   const { data: unentitledSessions, isLoading: unentitledLoading } = useQuery({
     queryKey: ['foe-unentitled-sessions', organizationId],
     queryFn: async () => {
-        const { data, error } = await supabase
-            .from('sessions')
-            .select(`
-                id,
-                status,
-                scheduled_start,
-                service_type,
-                client:clients(id, first_name, last_name, is_vip, uhid)
-            `)
-            .eq('organization_id', organizationId)
-            .eq('is_unentitled', true)
-            .neq('status', 'Cancelled')
-            .order('scheduled_start', { ascending: false })
-            .limit(10);
-        if (error) throw error;
-        return data;
+        const data = await apiFetch(`/api/appointments?is_unentitled=true`);
+        return data || [];
     },
     enabled: !!organizationId
   });
@@ -136,49 +94,8 @@ export default function FOEDashboard() {
   const { data: consultants, isLoading: consultantsLoading, error: consultantsError } = useQuery({
     queryKey: ['foe-consultant-availability', organizationId],
     queryFn: async () => {
-        if (!organizationId) return [];
-        
-        // Skip user_roles lookup — query profiles directly filtered by org
-        // This is more reliable since user_roles may not always have all clinical staff
-        const { data: profiles, error: pError } = await supabase
-            .from("profiles")
-            .select(`
-                id, 
-                first_name, 
-                last_name,
-                profession,
-                consultant_availability(*)
-            `)
-            .eq("organization_id", organizationId)
-            .eq("is_approved", true)
-            .not("profession", "is", null)
-            .not("profession", "eq", "");
-            
-        if (pError) {
-            console.error("Consultant profiles fetch error:", pError);
-            throw pError;
-        }
-        
-        if (!profiles || profiles.length === 0) return [];
-
-        const profileIds = profiles.map(p => p.id);
-
-        // Fetch unresolved alerts separately to avoid join cache issues
-        const { data: alerts, error: aError } = await (supabase as any)
-            .from("emergency_alerts")
-            .select("id, staff_id, status")
-            .in("staff_id", profileIds)
-            .eq("status", "unresolved");
-
-        if (aError) {
-          console.error("Alerts fetch error:", aError);
-          return profiles.map(p => ({ ...p, emergency_alerts: [] }));
-        }
-
-        return profiles.map(profile => ({
-            ...profile,
-            emergency_alerts: alerts?.filter(a => a.staff_id === profile.id) ?? []
-        }));
+        const data = await apiFetch(`/hr/employees?role_type=clinical`);
+        return data || [];
     },
     enabled: !!organizationId,
     retry: 1
@@ -188,19 +105,8 @@ export default function FOEDashboard() {
   const { data: dunningSubscriptions } = useQuery({
     queryKey: ['foe-dunning-alerts', organizationId],
     queryFn: async () => {
-        const { data, error } = await supabase
-            .from('subscriptions')
-            .select(`
-                id, 
-                status, 
-                dunning_step,
-                client:clients(id, first_name, last_name, uhid)
-            `)
-            .eq('organization_id', organizationId)
-            .in('status', ['Past Due', 'Suspended'])
-            .order('dunning_step', { ascending: false });
-        if (error) throw error;
-        return data;
+        const data = await apiFetch(`/api/billing/dunning-alerts`);
+        return data || [];
     },
     enabled: !!organizationId
   });

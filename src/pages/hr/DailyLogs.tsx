@@ -1,8 +1,8 @@
 import { useState, useEffect, useMemo } from "react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
+import { apiFetch } from "@/utils/api";
 import { 
   Table, 
   TableBody, 
@@ -74,7 +74,6 @@ interface AttendanceSummary {
 export default function DailyLogs() {
   const { profile } = useAuth();
   const [selectedLogs, setSelectedLogs] = useState<any[] | null>(null);
-  const [orgSettings, setOrgSettings] = useState<any>(null);
   
   // Filters
   const [dateRange, setDateRange] = useState<{ from: Date; to: Date }>({
@@ -83,45 +82,21 @@ export default function DailyLogs() {
   });
   const [selectedStaffId, setSelectedStaffId] = useState<string>("all");
   const [staffComboOpen, setStaffComboOpen] = useState(false);
-
-  useEffect(() => {
-    if (profile?.organization_id) {
-      supabase
-        .from("organizations")
-        .select("clinic_latitude, clinic_longitude, geofence_radius, name, default_shift_end_time")
-        .eq("id", profile.organization_id)
-        .single()
-        .then(({ data }) => setOrgSettings(data));
-    }
-  }, [profile?.organization_id]);
+  const { data: orgSettings } = useQuery({
+    queryKey: ["organization-settings", profile?.organization_id],
+    queryFn: async () => {
+      const response = await apiFetch<any>(`/organizations/${profile?.organization_id}`);
+      return response.data;
+    },
+    enabled: !!profile?.organization_id
+  });
 
   // Fetch all staff for the dropdown, excluding clients and super admins
-  const { data: staffList } = useQuery({
+  const { data: staffList = [] } = useQuery({
     queryKey: ["org-staff", profile?.organization_id],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select(`
-          id, 
-          first_name, 
-          last_name, 
-          email,
-          user_roles(role)
-        `)
-        .eq("organization_id", profile?.organization_id)
-        .order("first_name");
-      
-      if (error) {
-        console.error("Staff list error:", error);
-        throw error;
-      }
-      
-      // Filter out clients and super admins in JS for better reliability
-      return data?.filter(p => 
-        !p.user_roles || !p.user_roles.some((ur: any) => 
-          ["client", "super_admin"].includes(ur.role)
-        )
-      );
+      const response = await apiFetch<any>("/hr/users");
+      return response.data?.filter((p: any) => p.current_role !== "client");
     },
     enabled: !!profile?.organization_id
   });
@@ -129,36 +104,13 @@ export default function DailyLogs() {
   const { data: rawLogs, isLoading } = useQuery({
     queryKey: ["hr-attendance-logs", profile?.organization_id, dateRange.from, dateRange.to],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("hr_attendance_logs")
-        .select(`
-          *,
-          profile:profiles(
-            first_name, 
-            last_name, 
-            email,
-            user_roles(role)
-          )
-        `)
-        .eq("organization_id", profile?.organization_id)
-        .gte("created_at", dateRange.from.toISOString())
-        .lte("created_at", endOfDay(dateRange.to).toISOString())
-        .order("created_at", { ascending: true });
-      
-      if (error) {
-        console.error("Raw logs error:", error);
-        throw error;
-      }
-      
-      // Filter out logs from clients and super admins in JS
-      return data?.filter(log => 
-        !log.profile?.user_roles || !log.profile.user_roles.some((ur: any) => 
-          ["client", "super_admin"].includes(ur.role)
-        )
-      );
+      const response = await apiFetch<any>(`/hr/attendance/all?from=${dateRange.from.toISOString()}&to=${endOfDay(dateRange.to).toISOString()}`);
+      return response.data;
     },
     enabled: !!profile?.organization_id
   });
+
+
 
   const processedSummaries = useMemo(() => {
     if (!rawLogs) return [];

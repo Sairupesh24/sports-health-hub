@@ -3,7 +3,7 @@ import { format, subDays, startOfWeek, endOfWeek, eachDayOfInterval } from "date
 import { Download, CalendarIcon, Users, Filter, ChevronRight, Activity, Zap, CheckCircle2 } from "lucide-react";
 import * as XLSX from "xlsx";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/utils/api";
 
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import AthleteList from "@/components/ams/AthleteList";
@@ -38,26 +38,9 @@ export default function CoachDashboard() {
   const { data: athletes, isLoading } = useQuery<any[]>({
     queryKey: ["athletes_roster", selectedTeam],
     queryFn: async () => {
-      let query = (supabase
-        .from("profiles") as any)
-        .select(`
-          id,
-          full_name,
-          first_name,
-          last_name,
-          position,
-          team,
-          wellness_logs (*),
-          training_sessions (*)
-        `)
-        .eq("ams_role", "athlete");
-      
-      if (selectedTeam !== "all") {
-        query = query.eq("team", selectedTeam);
-      }
-
-      const { data, error } = await query;
-      if (error) throw error;
+      const data = await apiFetch<any[]>('/ams/athletes', {
+        params: { team: selectedTeam }
+      });
       return data;
     },
   });

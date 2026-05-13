@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/utils/api";
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -28,7 +28,7 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 export default function InjuryRepoPage() {
-    const { profile } = useAuth();
+    const { profile, user } = useAuth();
     const [injuries, setInjuries] = useState<InjuryWithClient[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedInjury, setSelectedInjury] = useState<InjuryWithClient | null>(null);
@@ -36,34 +36,10 @@ export default function InjuryRepoPage() {
 
     const fetchAllInjuries = async () => {
         try {
-            const { data: { user } } = await supabase.auth.getUser();
                 if (!user) return;
 
-                const { data, error } = await supabase
-                    .from("injuries")
-                    .select(`
-                        id,
-                        injury_date,
-                        injury_type,
-                        diagnosis,
-                        status,
-                        region,
-                        severity,
-                        injury_side,
-                        mechanism_of_injury,
-                        clinical_notes,
-                        expected_return_date,
-                        resolved_date,
-                        client_id,
-                        client:clients!injuries_client_id_fkey(id, first_name, last_name)
-                    `)
-                    .order("injury_date", { ascending: false });
-
-                if (error) {
-                    console.error("Error fetching injuries:", error);
-                } else {
-                    setInjuries(data as InjuryWithClient[]);
-                }
+                const data = await apiFetch<InjuryWithClient[]>("/clinical/injuries");
+                setInjuries(data);
             } catch (err) {
                 console.error(err);
             } finally {

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/utils/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { 
@@ -24,18 +24,7 @@ export function WaitlistDashboard() {
         if (!profile?.organization_id) return;
         setLoading(true);
         try {
-            const { data, error } = await supabase
-                .from("waitlist")
-                .select(`
-                    *,
-                    client:clients(id, first_name, last_name, is_vip, uhid, mobile_no),
-                    therapist:profiles!waitlist_therapist_id_fkey(first_name, last_name),
-                    service:services(name)
-                `)
-                .eq("organization_id", profile.organization_id)
-                .order("created_at", { ascending: true });
-
-            if (error) throw error;
+            const data = await apiFetch<any[]>('/appointments/waitlist');
             setWaitlist(data || []);
         } catch (error: any) {
             toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -46,29 +35,17 @@ export function WaitlistDashboard() {
 
     useEffect(() => {
         fetchWaitlist();
-        
-        // Real-time subscription
-        const channel = supabase
-            .channel('waitlist_changes')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'waitlist' }, () => {
-                fetchWaitlist();
-            })
-            .subscribe();
-
-        return () => {
-            supabase.removeChannel(channel);
-        };
     }, [profile?.organization_id]);
 
     const handleAction = async (id: string, newStatus: string) => {
         try {
-            const { error } = await supabase
-                .from("waitlist")
-                .update({ status: newStatus })
-                .eq("id", id);
+            await apiFetch(`/appointments/waitlist/${id}`, {
+                method: 'PATCH',
+                data: { status: newStatus }
+            });
             
-            if (error) throw error;
             toast({ title: "Success", description: `Waitlist item marked as ${newStatus}.` });
+            fetchWaitlist();
         } catch (error: any) {
             toast({ title: "Action Failed", description: error.message, variant: "destructive" });
         }

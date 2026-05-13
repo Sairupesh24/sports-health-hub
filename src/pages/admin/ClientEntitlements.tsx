@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { apiFetch } from "@/utils/api";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ShieldAlert, CheckCircle, Activity, Package } from 'lucide-react';
@@ -17,13 +17,10 @@ export const ClientEntitlements: React.FC<ClientEntitlementsProps> = ({ clientId
             if (!clientId) return;
             setLoading(true);
             try {
-                // Call the new dynamic entitlement balance RPC
-                const { data, error } = await supabase.rpc('fn_compute_entitlement_balance', {
-                    p_client_id: clientId
-                });
-                
-                if (error) throw error;
-                setBalances(data || []);
+                const data = await apiFetch<any>(`/billing/entitlements/balance/${clientId}`);
+                if (data && data.balances) {
+                    setBalances(data.balances);
+                }
             } catch (error: any) {
                 console.error("Error fetching entitlements:", error.message);
             } finally {

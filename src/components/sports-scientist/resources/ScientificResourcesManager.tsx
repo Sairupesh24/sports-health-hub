@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/utils/api";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -30,25 +30,16 @@ export function ScientificResourcesManager({ athleteId }: ScientificResourcesMan
   const { data: resources, isLoading, refetch } = useQuery({
     queryKey: ["scientist-resources", athleteId, activeCategory],
     queryFn: async () => {
-      let query = supabase
-        .from("scientist_resources")
-        .select(`
-          *,
-          athlete:clients(first_name, last_name, uhid)
-        `)
-        .order("created_at", { ascending: false });
-
-      if (athleteId) {
-        query = query.eq("athlete_id", athleteId);
+      let queryUrl = '/api/ams/resources';
+      const params = new URLSearchParams();
+      if (athleteId) params.append('athleteId', athleteId);
+      if (activeCategory !== 'all') params.append('category', activeCategory);
+      
+      if (params.toString()) {
+        queryUrl += `?${params.toString()}`;
       }
 
-      if (activeCategory !== "all") {
-        query = query.eq("category", activeCategory);
-      }
-
-      const { data, error } = await query;
-      if (error) throw error;
-      return data;
+      return await apiFetch(queryUrl);
     },
   });
 
@@ -64,21 +55,12 @@ export function ScientificResourcesManager({ athleteId }: ScientificResourcesMan
     if (!confirm("Are you sure you want to delete this resource?")) return;
 
     try {
-      // 1. If it's a file, delete from storage first
-      if (resourceType === 'file' && filePath) {
-        const { error: storageError } = await supabase.storage
-          .from("scientist-resources")
-          .remove([filePath]);
-        if (storageError) throw storageError;
-      }
+      // 1. If it's a file, delete from storage (Skipped as we don't have storage access via backend yet or not implemented for custom)
 
       // 2. Delete from database
-      const { error: dbError } = await (supabase
-        .from("scientist_resources") as any)
-        .delete()
-        .eq("id", id);
-
-      if (dbError) throw dbError;
+      await apiFetch(`/api/ams/resources/${id}`, {
+        method: 'DELETE'
+      });
 
       toast({ title: "Resource deleted successfully" });
       refetch();

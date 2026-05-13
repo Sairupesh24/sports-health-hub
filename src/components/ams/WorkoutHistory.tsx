@@ -1,6 +1,6 @@
 import React from "react";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/utils/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, Calendar, Dumbbell, ChevronRight } from "lucide-react";
 import useEmblaCarousel from "embla-carousel-react";
@@ -17,36 +17,16 @@ export default function WorkoutHistory({ athleteId }: WorkoutHistoryProps) {
   const { data: history = [], isLoading } = useQuery({
     queryKey: ['workout-history', athleteId],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from('athlete_workout_completions' as any)
-        .select(`
-          id,
-          completed_at,
-          total_duration_mins,
-          logs:athlete_item_logs(
-            weight_kg,
-            reps,
-            workout_item:workout_items(
-              lift:lift_items(
-                exercise:exercises(name)
-              )
-            )
-          )
-        `)
-        .eq('athlete_id', athleteId)
-        .order('completed_at', { ascending: false });
+      const data = await apiFetch<any[]>(`/ams/workout-history/${athleteId}`);
       
-      if (error) throw error;
-
-      // Map to consistent format
       return (data as any[]).map(comp => ({
         id: comp.id,
         created_at: comp.completed_at,
         duration_mins: comp.total_duration_mins,
-        workout_sets: comp.logs.map((L: any) => ({
-          weight_kg: L.weight_kg,
+        workout_sets: (comp.logs || []).map((L: any) => ({
+          weight_kg: L.weight_kg || L.load_value || 0,
           reps: L.reps,
-          exercise_name: L.workout_item.lift?.exercise?.name || "Exercise"
+          exercise_name: L.exercise_name || "Exercise"
         }))
       }));
     }

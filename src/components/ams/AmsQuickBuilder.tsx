@@ -17,7 +17,7 @@ import {
   LayoutTemplate,
   Pencil
 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/utils/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -86,16 +86,9 @@ export default function AmsQuickBuilder({ startDate, onSave, onCancel, loading, 
   const { data: templates } = useQuery({
       queryKey: ["ams-templates", profile?.organization_id],
       queryFn: async () => {
-          if (!profile?.organization_id) return [];
-          const { data, error } = await supabase
-              .from('training_programs' as any)
-              .select(`*, days:workout_days(*, items:workout_items(*, lift_items(*, exercise:exercises(*))))`)
-              .eq('org_id', profile.organization_id)
-              .eq('is_template', true)
-              .order('created_at', { ascending: false });
-          if (error) throw error;
-          return data;
-      },
+      const data = await apiFetch(`/api/ams/templates`);
+      return data || [];
+    },
       enabled: !!profile?.organization_id
   });
 
@@ -110,10 +103,7 @@ export default function AmsQuickBuilder({ startDate, onSave, onCancel, loading, 
   }, [initialDays]);
 
   const fetchExercises = async () => {
-    const { data } = await supabase
-      .from('exercises' as any)
-      .select('id, name, equipment_type')
-      .order('name');
+    const data = await apiFetch(`/api/ams/exercises`);
     setExercises(data || []);
   };
 

@@ -10,7 +10,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/utils/api";
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 import { MessageSquare, User, Phone, Clock, Send, CheckCircle2, Share2, Briefcase, Loader2 } from "lucide-react";
 
 // Default configuration in case it's missing from DB
@@ -68,38 +69,22 @@ export default function PublicEnquiry() {
   const fetchOrganization = async () => {
     setFetchingOrg(true);
     try {
-      let query = supabase
-        .from('organizations')
-        .select('id, name, logo_url, enquiry_form_config');
+      const response = await fetch(`${API_URL}/public/orgs/${orgSlug || 'default'}`);
+      if (!response.ok) throw new Error("Org not found");
+      const data = await response.json();
       
-      if (orgSlug) {
-        query = query.eq('slug', orgSlug);
-      } else {
-        // FORCE fetch by specific ID for the default clinic to eliminate ambiguity
-        query = query.eq('id', '95d6393e-68ab-4839-9b35-a11562cfc150');
-      }
-
-      const { data, error } = await query.maybeSingle();
-
-      if (error) {
-
-      }
+      setOrg(data);
       
-      if (data) {
-
-        setOrg(data);
-        
-        if (data.enquiry_form_config) {
-          // Merge with defaults to ensure all fields exist
-          setConfig({
-            ...DEFAULT_CONFIG,
-            ...data.enquiry_form_config,
-            fields: {
-              ...DEFAULT_CONFIG.fields,
-              ...(data.enquiry_form_config.fields || {})
-            }
-          });
-        }
+      if (data.enquiry_form_config) {
+        // Merge with defaults to ensure all fields exist
+        setConfig({
+          ...DEFAULT_CONFIG,
+          ...data.enquiry_form_config,
+          fields: {
+            ...DEFAULT_CONFIG.fields,
+            ...(data.enquiry_form_config.fields || {})
+          }
+        });
       }
     } catch (err) {
 
@@ -128,23 +113,27 @@ export default function PublicEnquiry() {
     if (!org) return;
     setLoading(true);
     try {
-      const { error } = await supabase.from("enquiries").insert({
-        organization_id: org.id,
-        name: data.name,
-        contact: data.contact,
-        looking_for: data.looking_for || 'General',
-        referral_source: data.referral_source,
-        referral_details: data.referral_details,
-        work_place: data.work_place,
-        preferred_call_time: data.preferred_call_time,
-        status: "new",
-        notes: [
-          data.notes,
-          ...(config.custom_questions?.map((q: any) => `${q.label}: ${data[`custom_${q.id}`] || ''}`) || [])
-        ].filter(Boolean).join('\n\n')
+      const response = await fetch(`${API_URL}/public/enquiries`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          organization_id: org.id,
+          first_name: data.name.split(' ')[0],
+          last_name: data.name.split(' ').slice(1).join(' '),
+          mobile_no: data.contact,
+          looking_for: data.looking_for || 'General',
+          preferred_call_time: data.preferred_call_time,
+          referral_source: data.referral_source,
+          referral_details: data.referral_details,
+          work_place: data.work_place,
+          notes: [
+            data.notes,
+            ...(config.custom_questions?.map((q: any) => `${q.label}: ${data[`custom_${q.id}`] || ''}`) || [])
+          ].filter(Boolean).join('\n\n')
+        })
       });
 
-      if (error) throw error;
+      if (!response.ok) throw new Error("Failed to submit enquiry");
 
       setIsSubmitted(true);
       toast({
@@ -153,7 +142,6 @@ export default function PublicEnquiry() {
       });
       reset();
     } catch (error: any) {
-
       toast({
         title: "Submission Failed",
         description: error.message || "Something went wrong. Please try again.",

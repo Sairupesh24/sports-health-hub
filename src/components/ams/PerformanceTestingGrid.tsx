@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/utils/api";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -47,12 +47,11 @@ export default function PerformanceTestingGrid() {
   const { data: athletes, isLoading: athletesLoading } = useQuery({
     queryKey: ['athletes-list'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id, first_name, last_name')
-        .eq('ams_role', 'athlete');
-      if (error) throw error;
-      return data.map(d => ({ ...d, full_name: `${d.first_name || ''} ${d.last_name || ''}` }));
+      const data = await apiFetch(`/hr/employees?role_type=athlete`);
+      return (data || []).map((d: any) => ({ 
+        ...d, 
+        full_name: `${d.first_name || ''} ${d.last_name || ''}` 
+      }));
     }
   });
 
@@ -93,17 +92,16 @@ export default function PerformanceTestingGrid() {
           athlete_id: r.athlete_id,
           category: values.category,
           test_name: values.test_name,
-          metrics: { value: r.value, unit: r.unit || 'n/a' },
-          recorded_by: user.id
+          metrics: { value: r.value, unit: r.unit || 'n/a' }
         }));
 
       if (payload.length === 0) return [];
 
-      const { error } = await supabase
-        .from('performance_assessments')
-        .insert(payload);
+      const result = await apiFetch(`/api/ams/performance-assessments`, {
+        method: 'POST',
+        body: payload
+      });
       
-      if (error) throw error;
       return payload;
     },
     onSuccess: (data) => {

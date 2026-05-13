@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/utils/api";
 import { toast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Activity, User } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface InjuryWithProfile {
     id: string;
@@ -22,6 +23,7 @@ interface InjuryWithProfile {
 }
 
 export default function InjuriesWidget() {
+    const { user } = useAuth();
     const [injuries, setInjuries] = useState<InjuryWithProfile[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -31,28 +33,7 @@ export default function InjuriesWidget() {
 
     const fetchInjuries = async () => {
         try {
-            // Ideally, we filter by injuries assigned to the logged-in therapist.
-            // For now, we fetch all active/rehab injuries in the organization.
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) return;
-
-            const { data, error } = await supabase
-                .from("injuries")
-                .select(`
-                    id,
-                    injury_type,
-                    diagnosis,
-                    status,
-                    client:clients!injuries_client_id_fkey(id, first_name, last_name),
-                    latest_rehab:rehab_progress(milestone)
-                `)
-                .in("status", ["Acute", "Rehab", "RTP"])
-                .order("injury_date", { ascending: false })
-                .limit(5);
-
-            if (error) throw error;
-
-            // Note: PostgREST array mapping typing can be tricky, so we cast it safely
+            const data = await apiFetch(`/api/clinical/injuries?status=Acute,Rehab,RTP`);
             setInjuries(data as unknown as InjuryWithProfile[]);
         } catch (error: any) {
             console.error("Error fetching injuries:", error);

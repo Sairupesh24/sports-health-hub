@@ -13,7 +13,6 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { supabase } from "@/integrations/supabase/client";
 
 interface ResourceCardProps {
   resource: any;
@@ -31,18 +30,13 @@ export function ResourceCard({ resource, onDelete }: ResourceCardProps) {
   const style = CATEGORY_STYLES[resource.category] || CATEGORY_STYLES.other;
   const CategoryIcon = style.icon;
 
-  const handleOpen = async () => {
+  const handleOpen = () => {
     if (resource.resource_type === 'link') {
       window.open(resource.url, '_blank');
     } else {
-      // For files, get the public URL or signed URL
-      const { data } = await supabase.storage
-        .from("scientist-resources")
-        .getPublicUrl(resource.url);
-      
-      if (data?.publicUrl) {
-        window.open(data.publicUrl, '_blank');
-      }
+      // For files, the URL is now served directly from our backend
+      const fileUrl = resource.url?.startsWith('http') ? resource.url : `${window.location.origin}${resource.url}`;
+      window.open(fileUrl, '_blank');
     }
   };
 
@@ -50,13 +44,10 @@ export function ResourceCard({ resource, onDelete }: ResourceCardProps) {
     if (resource.resource_type !== 'file') return;
 
     try {
-      const { data, error } = await supabase.storage
-        .from("scientist-resources")
-        .download(resource.url);
-
-      if (error) throw error;
-
-      const blobUrl = URL.createObjectURL(data);
+      const fileUrl = resource.url?.startsWith('http') ? resource.url : `${window.location.origin}${resource.url}`;
+      const response = await fetch(fileUrl);
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = blobUrl;
       link.download = resource.title;

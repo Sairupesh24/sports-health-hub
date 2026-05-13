@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/utils/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import { Loader2, Upload, Link as LinkIcon, Check, ChevronsUpDown, X } from "lucide-react";
@@ -46,13 +46,12 @@ export function AddResourceModal({ isOpen, onClose, onSuccess, initialAthleteId 
   }, [isOpen, profile?.organization_id, initialAthleteId]);
 
   const fetchClients = async () => {
-    const { data } = await supabase
-      .from("clients")
-      .select("id, first_name, last_name, uhid")
-      .eq("organization_id", profile?.organization_id)
-      .is("deleted_at", null)
-      .order("last_name", { ascending: true });
-    if (data) setClients(data);
+    try {
+        const data = await apiFetch("/api/clients");
+        if (data) setClients(data);
+    } catch (e) {
+        console.error("Failed to fetch clients", e);
+    }
   };
 
   const handleSave = async () => {
@@ -77,33 +76,37 @@ export function AddResourceModal({ isOpen, onClose, onSuccess, initialAthleteId 
 
         // 1. Upload file if applicable
         if (resourceType === 'file' && file) {
-            const fileExt = file.name.split('.').pop();
-            const fileName = `${Math.random().toString(36).substring(2)}_${Date.now()}.${fileExt}`;
-            const filePath = `resources/${fileName}`;
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            const token = localStorage.getItem('ishpo_token');
+            const res = await fetch('/api/upload/single', {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}` },
+                body: formData
+            });
 
-            const { error: uploadError } = await supabase.storage
-                .from("scientist-resources")
-                .upload(filePath, file);
+            if (!res.ok) {
+                const errorData = await res.json();
+                throw new Error(errorData.error || 'Upload failed');
+            }
 
-            if (uploadError) throw uploadError;
-            finalUrl = filePath;
+            const { publicUrl } = await res.json();
+            finalUrl = publicUrl;
         }
 
         // 2. Insert into DB
-        const { error: dbError } = await (supabase
-            .from("scientist_resources") as any)
-            .insert({
-                organization_id: profile!.organization_id,
-                uploaded_by: user!.id,
+        await apiFetch("/api/ams/resources", {
+            method: 'POST',
+            body: JSON.stringify({
                 athlete_id: category === 'athlete_document' ? selectedAthleteId : null,
                 title,
                 description,
-                resource_type: resourceType,
+                type: resourceType,
                 category,
                 url: finalUrl,
-            });
-
-        if (dbError) throw dbError;
+            })
+        });
 
         toast({ title: "Resource added successfully" });
         resetForm();

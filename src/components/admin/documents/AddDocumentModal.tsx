@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/utils/api";
 import { toast } from "@/hooks/use-toast";
 import { Upload, X, FileText, FileImage, Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -49,36 +49,32 @@ export function AddDocumentModal({ isOpen, onClose, clientId, onSuccess }: AddDo
 
     setIsUploading(true);
     try {
-      // 1. Upload to Storage
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${clientId}/${Date.now()}-${file.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.${fileExt}`;
-      const filePath = `${fileName}`;
+      // 1. Upload to local server storage
+      const formData = new FormData();
+      formData.append('documents', file);
+      
+      const uploadRes = await apiFetch<any>('/upload/documents', {
+        method: 'POST',
+        data: formData
+      });
 
-      const { error: uploadError, data: uploadData } = await supabase.storage
-        .from('client-documents')
-        .upload(filePath, file);
-
-      if (uploadError) throw uploadError;
+      const filePath = uploadRes.files[0].path;
 
       // 2. Identify Role/Profession for metadata
       const userRoleDisplay = profile?.profession || (roles.includes('admin') ? 'Administrator' : 'Medical Staff');
 
-      // 3. Insert into Database
-      const { error: dbError } = await supabase
-        .from('client_documents')
-        .insert({
+      // 3. Insert record into Database
+      await apiFetch('/clinical/documents', {
+        method: 'POST',
+        data: {
           client_id: clientId,
-          organization_id: profile?.organization_id,
           document_name: file.name,
-          category: category as any,
+          category: category,
           file_path: filePath,
-          uploaded_by: user?.id,
           uploaded_by_role: userRoleDisplay,
-          notes: notes.trim() || null,
-          access_level: 'Medical_Staff_Only'
-        });
-
-      if (dbError) throw dbError;
+          notes: notes.trim() || null
+        }
+      });
 
       toast({ title: "Document uploaded successfully" });
       resetForm();

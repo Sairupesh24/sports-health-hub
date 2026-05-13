@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/utils/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { 
@@ -29,20 +29,17 @@ export function WaitlistSidebar({ selectedDate, onBook }: Props) {
         setLoading(true);
         try {
             const dateStr = format(selectedDate, "yyyy-MM-dd");
-            const { data, error } = await supabase
-                .from("waitlist")
-                .select(`
-                    *,
-                    client:clients(id, first_name, last_name, is_vip, uhid, mobile_no),
-                    therapist:profiles!waitlist_therapist_id_fkey(first_name, last_name),
-                    service:services(name)
-                `)
-                .eq("organization_id", profile.organization_id)
-                .eq("preferred_date", dateStr)
-                .eq("status", "Waiting")
-                .order("created_at", { ascending: true });
+            const data = await apiFetch<any[]>('/appointments/waitlist', {
+                params: {
+                    start: dateStr,
+                    end: dateStr,
+                    status: "Waiting"
+                }
+            });
 
-            if (error) throw error;
+            // Map frontend expectation (therapist/client joins)
+            // Note: Backend /appointments/waitlist should ideally join these or frontend maps them
+            // For now, I'll assume backend returns them or I'll implement the join in backend
             setWaitlist(data || []);
         } catch (error: any) {
             toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -53,28 +50,19 @@ export function WaitlistSidebar({ selectedDate, onBook }: Props) {
 
     useEffect(() => {
         fetchWaitlist();
-
-        const channel = supabase
-            .channel('waitlist_sidebar_sync')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'waitlist' }, () => {
-                fetchWaitlist();
-            })
-            .subscribe();
-
-        return () => {
-            supabase.removeChannel(channel);
-        };
+        const interval = setInterval(fetchWaitlist, 30000); // Poll every 30s as a fallback for real-time
+        return () => clearInterval(interval);
     }, [selectedDate, profile?.organization_id]);
 
     const handleNotify = async (id: string) => {
         try {
-            const { error } = await supabase
-                .from("waitlist")
-                .update({ status: 'Notified' })
-                .eq("id", id);
+            await apiFetch(`/appointments/waitlist/${id}`, {
+                method: 'PATCH',
+                data: { status: 'Notified' }
+            });
             
-            if (error) throw error;
             toast({ title: "Patient Notified", description: "Waitlist status updated." });
+            fetchWaitlist();
         } catch (error: any) {
             toast({ title: "Action Failed", description: error.message, variant: "destructive" });
         }

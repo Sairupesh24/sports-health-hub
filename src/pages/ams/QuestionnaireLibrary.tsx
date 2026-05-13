@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/utils/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { 
@@ -43,17 +43,7 @@ export default function QuestionnaireLibrary() {
   const { data: forms, isLoading: formsLoading, refetch: refetchForms } = useQuery({
     queryKey: ["ams-questionnaires", profile?.organization_id],
     queryFn: async () => {
-      const orgId = profile?.organization_id;
-      if (!orgId) return [];
-      
-      const { data, error } = await supabase
-        .from("questionnaires" as any)
-        .select("*")
-        .eq("org_id", orgId)
-        .order("created_at", { ascending: false });
-        
-      if (error) throw error;
-      return data;
+      return await apiFetch<any[]>('/ams/questionnaires');
     },
     enabled: !!profile?.organization_id
   });
@@ -61,22 +51,7 @@ export default function QuestionnaireLibrary() {
   const { data: recentAssignments } = useQuery({
     queryKey: ["ams-bulk-assignments", profile?.organization_id],
     queryFn: async () => {
-      const orgId = profile?.organization_id;
-      if (!orgId) return [];
-      
-      const { data, error } = await supabase
-        .from("bulk_assignments" as any)
-        .select(`
-          *,
-          questionnaire:questionnaires(name),
-          specialist:profiles!specialist_id(full_name)
-        `)
-        .eq("org_id", orgId)
-        .order("created_at", { ascending: false })
-        .limit(5);
-        
-      if (error) throw error;
-      return data;
+      return await apiFetch<any[]>('/ams/bulk-assignments?limit=5');
     },
     enabled: !!profile?.organization_id
   });

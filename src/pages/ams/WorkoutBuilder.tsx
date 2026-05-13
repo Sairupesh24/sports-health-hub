@@ -17,7 +17,7 @@ import {
   GripVertical,
   Edit
 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/utils/api";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import AmsStaffNav from "@/components/ams/AmsStaffNav";
 import WorkoutItemModal from "@/components/ams/WorkoutItemModal";
@@ -68,40 +68,9 @@ export default function WorkoutBuilder() {
   const fetchProgramData = async () => {
     try {
       setLoading(true);
-      const { data: programData, error: pError } = await supabase
-        .from('training_programs' as any)
-        .select('*')
-        .eq('id', programId)
-        .single();
-
-      if (pError) throw pError;
-      setProgram(programData);
-
-      const { data: daysData, error: dError } = await supabase
-        .from('workout_days' as any)
-        .select(`
-          *,
-          items:workout_items(
-            *,
-            lift:lift_items(*, exercise:exercises(name)),
-            saqc:saqc_items(*, exercise:exercises(name)),
-            circuit:circuit_items(*),
-            science:sport_science_items(*, questionnaire:questionnaires(name)),
-            warmup:warmup_items(*),
-            note:note_items(*)
-          )
-        `)
-        .eq('program_id', programId)
-        .order('display_order', { ascending: true });
-
-      if (dError) throw dError;
-      
-      const formattedDays = daysData.map((day: any) => ({
-        ...day,
-        items: (day.items || []).sort((a: any, b: any) => a.display_order - b.display_order)
-      }));
-
-      setDays(formattedDays);
+      const data = await apiFetch<any>(`/ams/programs/${programId}`);
+      setProgram(data);
+      setDays(data.days || []);
     } catch (error: any) {
       toast({
         title: "Error fetching builder data",
@@ -115,26 +84,13 @@ export default function WorkoutBuilder() {
 
   const addDay = async () => {
     try {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('organization_id')
-        .eq('id', (await supabase.auth.getUser()).data.user?.id)
-        .single();
-
-      const newDay = {
-        program_id: programId,
-        org_id: profile?.organization_id,
-        title: `Day ${days.length + 1}`,
-        display_order: days.length,
-      };
-
-      const { data, error } = await (supabase
-        .from('workout_days' as any)
-        .insert(newDay as any) as any)
-        .select()
-        .single();
-
-      if (error) throw error;
+      const data = await apiFetch<any>(`/ams/programs/${programId}/days`, {
+        method: 'POST',
+        data: {
+          title: `Day ${days.length + 1}`,
+          display_order: days.length,
+        }
+      });
       setDays([...days, { ...data, items: [] }]);
     } catch (error: any) {
       toast({

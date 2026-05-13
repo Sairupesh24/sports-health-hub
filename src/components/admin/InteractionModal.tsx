@@ -18,7 +18,7 @@ import {
   SelectValue 
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/utils/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import { addDays } from "date-fns";
@@ -59,25 +59,25 @@ export function InteractionModal({
         : null;
 
       // 1. Insert Interaction Record
-      const { error: interactError } = await supabase.from("enquiry_interactions").insert({
-        enquiry_id: enquiryId,
-        interaction_type: 'call',
-        response_text: response,
-        follow_up_required: followUpRequired,
-        follow_up_at: followUpDate,
-        created_by: profile?.id
+      await apiFetch(`/clients/enquiries/${enquiryId}/interactions`, {
+        method: 'POST',
+        body: {
+          interaction_type: 'call',
+          response_text: response,
+          follow_up_required: followUpRequired,
+          follow_up_at: followUpDate
+        }
       });
 
-      if (interactError) throw interactError;
-
       // 2. Update Enquiry Status and Follow-up Info
-      const { error: enqError } = await supabase.from("enquiries").update({
-        status: 'contacted',
-        next_follow_up_at: followUpDate,
-        last_interaction_at: new Date().toISOString()
-      }).eq("id", enquiryId);
-
-      if (enqError) throw enqError;
+      await apiFetch(`/clients/enquiries/${enquiryId}`, {
+        method: 'PATCH',
+        body: {
+          status: 'contacted',
+          next_follow_up_at: followUpDate,
+          last_interaction_at: new Date().toISOString()
+        }
+      });
 
       toast({ title: "Interaction Logged", description: "Call response has been saved successfully." });
       onSuccess();

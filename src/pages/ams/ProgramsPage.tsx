@@ -12,7 +12,7 @@ import {
   Trash2,
   Copy
 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/utils/api";
 import AmsStaffNav from "@/components/ams/AmsStaffNav";
 import ProgramAssignmentModal from "@/components/ams/ProgramAssignmentModal";
 import { Button } from "@/components/ui/button";
@@ -35,6 +35,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
+import DashboardLayout from "@/components/layout/DashboardLayout";
 
 interface TrainingProgram {
   id: string;
@@ -47,6 +49,7 @@ interface TrainingProgram {
 }
 
 export default function ProgramsPage() {
+  const { user } = useAuth();
   const [programs, setPrograms] = useState<TrainingProgram[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -62,12 +65,7 @@ export default function ProgramsPage() {
   const fetchPrograms = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('training_programs' as any)
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
+      const data = await apiFetch<TrainingProgram[]>('/ams/programs');
       setPrograms(data || []);
     } catch (error: any) {
       toast({
@@ -82,30 +80,16 @@ export default function ProgramsPage() {
 
   const createProgram = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('organization_id')
-        .eq('id', user.id)
-        .single();
-
-      if (!profile) return;
-
-      const { data, error } = await (supabase
-        .from('training_programs' as any)
-        .insert({
+      const data = await apiFetch<any>('/ams/programs', {
+        method: 'POST',
+        data: {
           name: "New Training Program",
           description: "Click to edit description",
-          coach_id: user.id,
-          org_id: profile.organization_id,
           status: 'draft'
-        } as any) as any)
-        .select()
-        .single();
-
-      if (error) throw error;
+        }
+      });
 
       toast({
         title: "Program created",
@@ -137,7 +121,6 @@ export default function ProgramsPage() {
       <AmsStaffNav />
       
       <main className="container py-8 max-w-7xl mx-auto px-4">
-        {/* Header Section */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Training Programs</h1>
@@ -150,7 +133,6 @@ export default function ProgramsPage() {
           </Button>
         </div>
 
-        {/* Filters/Search */}
         <div className="flex flex-col md:flex-row gap-4 mb-8">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -171,7 +153,6 @@ export default function ProgramsPage() {
           </div>
         </div>
 
-        {/* Program Grid */}
         {loading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[1, 2, 3].map(i => (

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { apiFetch } from "@/utils/api";
 import MobileSpecialistLayout from "@/components/layout/MobileSpecialistLayout";
 import { 
   Users, 
@@ -27,7 +27,7 @@ import AttendanceMarker from "@/components/attendance/AttendanceMarker";
 import { format } from "date-fns";
 
 export default function MobileSpecialistDashboard() {
-  const { user, profile } = useAuth();
+  const { profile } = useAuth();
   const navigate = useNavigate();
   const [selectedAthlete, setSelectedAthlete] = useState<any>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -41,79 +41,12 @@ export default function MobileSpecialistDashboard() {
   }, []);
 
   const { data: dashboardData, isLoading } = useQuery({
-    queryKey: ["mobile-scientist-dashboard", user?.id],
+    queryKey: ["mobile-scientist-dashboard", profile?.id],
     queryFn: async () => {
-      if (!user) return null;
-
-      const todayStart = new Date();
-      todayStart.setHours(0,0,0,0);
-      const todayEnd = new Date();
-      todayEnd.setHours(23,59,59,999);
-
-      // 1. Attendance Status
-      const { data: attendanceData } = await supabase
-        .from('hr_attendance_logs' as any)
-        .select('*')
-        .eq('profile_id', user.id)
-        .gte('created_at', todayStart.toISOString())
-        .order('created_at', { ascending: false })
-        .limit(1);
-      
-      const lastLog = attendanceData?.[0] || null;
-      const isCheckedIn = lastLog?.type === 'check_in';
-
-      // 2. Sessions Today
-      const { data: sessionsToday } = await supabase
-        .from('sessions')
-        .select('id, status')
-        .eq('scientist_id', user.id)
-        .gte('scheduled_start', todayStart.toISOString())
-        .lte('scheduled_start', todayEnd.toISOString());
-
-      const totalSessions = sessionsToday?.length || 0;
-      const remainingSessions = sessionsToday?.filter(s => s.status !== 'Completed' && s.status !== 'Cancelled').length || 0;
-
-      // 3. Active Clients
-      const { count: activeClientsCount } = await supabase
-        .from('clients')
-        .select('id')
-        .eq('primary_scientist_id', user.id)
-        .is('deleted_at', null);
-
-      // 4. Pending Tasks (Questionnaires)
-      const { count: pendingTasks } = await supabase
-        .from("form_responses" as any)
-        .select("id", { count: 'exact', head: true })
-        .eq("specialist_id", user.id)
-        .eq("status", "completed")
-        .is("clinical_interpretation", null);
-
-      // 5. Active Sessions (Checked-In Athletes)
-      const { data: activeSessions } = await supabase
-        .from("sessions")
-        .select(`
-          id, 
-          scheduled_start, 
-          status, 
-          session_mode, 
-          group_name,
-          client:clients(id, first_name, last_name, uhid, is_vip, sport, org_name)
-        `)
-        .eq("scientist_id", user.id)
-        .eq("status", "Checked In")
-        .order("scheduled_start", { ascending: true })
-        .limit(10);
-
-      return {
-        isCheckedIn,
-        todaySessions: sessionsToday?.length || 0,
-        inProgressSessions: sessionsToday?.filter(s => s.status === 'In Progress').length || 0,
-        activeClients: activeClients?.length || 0,
-        pendingTasks: pendingTasks || 0,
-        activeSessions: activeSessions || []
-      };
+      const response = await apiFetch<any>("/ams/mobile-dashboard/stats");
+      return response.data;
     },
-    enabled: !!user?.id,
+    enabled: !!profile?.id,
     staleTime: 30000,
   });
 

@@ -37,7 +37,7 @@ import {
     DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/utils/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -64,18 +64,7 @@ export default function SportsScientistBilling() {
         queryKey: ["ss-subscriptions", profile?.organization_id],
         queryFn: async () => {
             if (!profile?.organization_id) return [];
-            const { data, error } = await supabase
-                .from("subscriptions")
-                .select(`
-                    *,
-                    client:clients(first_name, last_name, uhid),
-                    package:packages(name, price)
-                `)
-                .eq("organization_id", profile.organization_id)
-                .order("created_at", { ascending: false });
-            
-            if (error) throw error;
-            return data;
+            return await apiFetch('/api/billing/subscriptions');
         },
         enabled: !!profile?.organization_id
     });
@@ -85,33 +74,14 @@ export default function SportsScientistBilling() {
         queryKey: ["subscription-history", selectedSub?.id],
         queryFn: async () => {
             if (!selectedSub?.id) return [];
-            const { data, error } = await supabase
-                .from("bills")
-                .select(`
-                    *,
-                    payments:bill_payments(
-                        amount,
-                        payment_method,
-                        created_at,
-                        staff:profiles(first_name, last_name)
-                    )
-                `)
-                .eq("subscription_id", selectedSub.id)
-                .order("created_at", { ascending: false });
-            
-            if (error) throw error;
-            return data;
+            return await apiFetch(`/api/billing/invoices?subscription_id=${selectedSub.id}`);
         },
         enabled: !!selectedSub?.id
     });
 
     const generateEarlyInvoice = useMutation({
         mutationFn: async (subId: string) => {
-            const { data, error } = await supabase.rpc('fn_generate_subscription_invoice', {
-                p_subscription_id: subId
-            });
-            if (error) throw error;
-            return data;
+            return await apiFetch(`/api/billing/subscriptions/${subId}/generate-invoice`, { method: 'POST' });
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["ss-subscriptions"] }).then(() => {
@@ -129,10 +99,7 @@ export default function SportsScientistBilling() {
 
     const cancelSubscription = useMutation({
         mutationFn: async (subId: string) => {
-            const { error } = await supabase.rpc('fn_cancel_subscription', {
-                p_subscription_id: subId
-            });
-            if (error) throw error;
+            await apiFetch(`/api/billing/subscriptions/${subId}/cancel`, { method: 'POST' });
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["ss-subscriptions"] }).then(() => {

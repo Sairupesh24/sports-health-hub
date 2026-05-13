@@ -51,7 +51,7 @@ import {
     DialogTitle,
     DialogFooter
 } from "@/components/ui/dialog";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/utils/api";
 import { 
     Table, 
     TableBody, 
@@ -111,32 +111,19 @@ function ClinicalReports({ role }: { role: ReportsPageProps['role'] }) {
   const [customTemplates, setCustomTemplates] = useState<TemplateMetadata[]>([]);
   const [isLibraryModalOpen, setIsLibraryModalOpen] = useState(false);
 
+  const { profile, user } = useAuth();
+
   useEffect(() => {
-    const initPage = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { data } = await supabase
-          .from('profiles')
-          .select('profession')
-          .eq('id', user.id)
-          .single();
-        if (data) setProfession(data.profession);
-      }
-      fetchTemplates();
-      fetchAthletes();
-    };
-    initPage();
-  }, []);
+    if (profile) {
+      setProfession(profile.profession || null);
+    }
+    fetchTemplates();
+    fetchAthletes();
+  }, [profile]);
 
   const fetchTemplates = async () => {
     try {
-      const { data, error } = await supabase
-        .from('report_templates')
-        .select('*')
-        .order('created_at', { ascending: false });
-      
-      if (error) throw error;
-      
+      const data = await apiFetch<any[]>('/reports/templates');
       const mapped: TemplateMetadata[] = (data || []).map(t => ({
         id: t.id,
         name: t.name,
@@ -153,15 +140,9 @@ function ClinicalReports({ role }: { role: ReportsPageProps['role'] }) {
   const fetchAthletes = async () => {
     try {
       setIsFetchingAthletes(true);
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id, first_name, last_name, uhid')
-        .not('ams_role', 'is', null)
-        .neq('ams_role', 'coach')
-        .order('last_name', { ascending: true });
-
-      if (error) throw error;
-      setAthletes(data || []);
+      const data = await apiFetch<any[]>('/clients');
+      // Filter for athletes
+      setAthletes(data.filter(p => p.ams_role && p.ams_role !== 'coach') || []);
     } catch (err: any) {
       toast({ title: "Error fetching athletes", description: err.message, variant: "destructive" });
     } finally {
@@ -174,11 +155,13 @@ function ClinicalReports({ role }: { role: ReportsPageProps['role'] }) {
     try {
       let buffer: ArrayBuffer;
       if (template.isCloud) {
-          const { data, error } = await supabase.storage
-            .from('report-templates')
-            .download(template.url);
-          if (error) throw error;
-          buffer = await data.arrayBuffer();
+          const response = await fetch(`${import.meta.env.VITE_API_URL || ''}${template.url}`, {
+              headers: {
+                  'Authorization': `Bearer ${localStorage.getItem('ishpo_jwt')}`
+              }
+          });
+          if (!response.ok) throw new Error("Failed to download template");
+          buffer = await response.arrayBuffer();
       } else {
           buffer = await fetchTemplate(template.url);
       }
@@ -237,41 +220,19 @@ function ClinicalReports({ role }: { role: ReportsPageProps['role'] }) {
 
   const handleSaveToLibrary = async () => {
     if (!pendingFile) return;
+    if (!profile) return;
     setIsSaving(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Authentication required");
+      const formData = new FormData();
+      formData.append('template', pendingFile);
+      formData.append('name', pendingFile.name.replace(/\.[^/.]+$/, ""));
 
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('organization_id')
-        .eq('id', user.id)
-        .single();
-      
-      if (!profile?.organization_id) throw new Error("Organization context missing");
+      await apiFetch('/reports/templates', {
+        method: 'POST',
+        body: formData
+      });
 
-      const fileExt = pendingFile.name.split('.').pop();
-      const fileName = `${crypto.randomUUID()}.${fileExt}`;
-      const filePath = `${profile.organization_id}/${fileName}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from('report-templates')
-        .upload(filePath, pendingFile);
-
-      if (uploadError) throw uploadError;
-
-      const { error: dbError } = await supabase
-        .from('report_templates')
-        .insert({
-          name: pendingFile.name.replace(/\.[^/.]+$/, ""),
-          file_path: filePath,
-          organization_id: profile.organization_id,
-          created_by: user.id
-        });
-
-      if (dbError) throw dbError;
-
-      toast({ title: "Template Saved to Cloud" });
+      toast({ title: "Template Saved to Library" });
       setPendingFile(null);
       fetchTemplates();
     } catch (error: any) {
@@ -328,8 +289,12 @@ function ClinicalReports({ role }: { role: ReportsPageProps['role'] }) {
 
   const handleDownloadOriginal = async (template: TemplateMetadata) => {
     try {
-      const { data, error } = await supabase.storage.from('report-templates').download(template.url);
-      if (error) throw error;
+      const response = await fetch(`${import.meta.env.VITE_API_URL || ''}${template.url}`, {
+          headers: {
+              'Authorization': `Bearer ${localStorage.getItem('ishpo_jwt')}`
+          }
+      });
+      const data = await response.blob();
       const blobUrl = window.URL.createObjectURL(data);
       const link = document.createElement('a');
       link.href = blobUrl;
@@ -346,9 +311,9 @@ function ClinicalReports({ role }: { role: ReportsPageProps['role'] }) {
   const handleDeleteTemplate = async (template: TemplateMetadata) => {
     try {
       setIsDeleting(template.id);
-      await supabase.storage.from('report-templates').remove([template.url]);
-      const { error } = await supabase.from('report_templates').delete().eq('id', template.id);
-      if (error) throw error;
+      await apiFetch(`/reports/templates/${template.id}`, {
+        method: 'DELETE'
+      });
       toast({ title: "Template Removed" });
       if (selectedTemplateId === template.id) {
         setSelectedTemplateId("");
@@ -581,9 +546,8 @@ function LegacyReports({ role }: { role: ReportsPageProps['role'] }) {
   const fetchAthletes = async () => {
     try {
       setIsFetchingAthletes(true);
-      const { data, error } = await supabase.from('profiles').select('id, first_name, last_name, uhid').not('ams_role', 'is', null).neq('ams_role', 'coach').order('last_name', { ascending: true });
-      if (error) throw error;
-      setAthletes(data || []);
+      const data = await apiFetch<any[]>('/clients');
+      setAthletes(data.filter(p => p.ams_role && p.ams_role !== 'coach') || []);
     } catch (err: any) {
       toast({ title: "Error fetching athletes", description: err.message, variant: "destructive" });
     } finally {

@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, User, Phone, MapPin, Shield, Activity, CalendarDays, FileText, Download, Users, Banknote, Smartphone, Landmark, CreditCard, Plus, X } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/utils/api";
 import { format } from "date-fns";
 import { Textarea } from "@/components/ui/textarea";
 import { ClientEntitlements } from "./ClientEntitlements";
@@ -80,84 +80,39 @@ export default function ClientProfile() {
     useEffect(() => {
         async function fetchClient() {
             if (!id) return;
-            const { data, error } = await supabase
-                .from("clients")
-                .select("*")
-                .eq("id", id)
-                .single();
-
-            if (!error && data) {
+            try {
+                const data = await apiFetch<any>(`/clients/${id}`);
                 setClient(data);
                 
-                if (data.uhid) {
-                    let { data: profileData } = await supabase
-                        .from("profiles")
-                        .select("id, ams_role, email")
-                        .eq("uhid", data.uhid)
-                        .maybeSingle();
-
-                    if (!profileData && data.email) {
-                        const { data: profileByEmail } = await supabase
-                            .from("profiles")
-                            .select("id, ams_role, email")
-                            .eq("email", data.email)
-                            .maybeSingle();
-                        
-                        if (profileByEmail) {
-                            profileData = profileByEmail;
-                        }
-                    }
-
-                    if (profileData) {
-                        setAmsRole(profileData.ams_role);
-                        setProfileId(profileData.id);
-                    }
+                if (data.linked_profile) {
+                    setAmsRole(data.linked_profile.ams_role);
+                    setProfileId(data.linked_profile.id);
                 }
 
-                // Fetch Admin Remarks if admin
                 if (isAdmin) {
-                    const { data: remarksData } = await (supabase as any)
-                        .from("client_admin_notes")
-                        .select("remarks")
-                        .eq("client_id", id)
-                        .maybeSingle();
-                    if (remarksData) {
-                        setAdminRemarks(remarksData.remarks);
-                    }
+                    setAdminRemarks(data.admin_remarks || "");
                 }
+            } catch (err: any) {
+                console.error("Error fetching client:", err);
+                toast({ 
+                    title: "Error", 
+                    description: err.message || "Failed to load client profile", 
+                    variant: "destructive" 
+                });
+            } finally {
+                setLoading(false);
             }
-            setLoading(false);
         }
         fetchClient();
-    }, [id]);
+    }, [id, isAdmin]);
 
     const { data: sessions, isLoading: sessionsLoading } = useQuery({
         queryKey: ['client-sessions', id, startDate, endDate, sessionTypeFilter],
         queryFn: async () => {
             if (!id) return [];
-            let query = supabase
-                .from('sessions')
-                .select(`
-                    *,
-                    therapist:profiles!sessions_therapist_id_fkey(first_name, last_name),
-                    physio_session_details(*),
-                    is_unentitled
-                `)
-                .eq('client_id', id);
-
-            if (startDate) {
-                query = query.gte('scheduled_start', `${startDate}T00:00:00`);
-            }
-            if (endDate) {
-                query = query.lte('scheduled_start', `${endDate}T23:59:59`);
-            }
-            if (sessionTypeFilter !== "all") {
-                query = query.eq('service_type', sessionTypeFilter);
-            }
-
-            const { data, error } = await query.order('scheduled_start', { ascending: false });
-            if (error) throw error;
-            return data;
+            return apiFetch<any[]>(`/clients/${id}/sessions`, {
+                params: { startDate, endDate, sessionType: sessionTypeFilter }
+            });
         },
         enabled: !!id
     });
@@ -166,45 +121,7 @@ export default function ClientProfile() {
         queryKey: ['client-bills', id],
         queryFn: async () => {
             if (!id) return [];
-            const { data, error } = await supabase
-                .from('bills')
-                .select(`
-                    id,
-                    created_at,
-                    total,
-                    status,
-                    notes,
-                    transaction_id,
-                    payment_method,
-                    bill_items(
-                        id,
-                        total,
-                        packages(name, package_services(sessions_included, services(name)))
-                    )
-                `)
-                .eq('client_id', id)
-                .order('created_at', { ascending: false });
-            if (error) throw error;
-
-            // Fetch payments for these bills
-            const billIds = data.map(b => b.id);
-            const { data: payments, error: payError } = await supabase
-                .from('bill_payments')
-                .select('bill_id, amount')
-                .in('bill_id', billIds);
-            
-            if (payError) throw payError;
-
-            const paymentMap: Record<string, number> = {};
-            payments?.forEach(p => {
-                paymentMap[p.bill_id] = (paymentMap[p.bill_id] || 0) + (Number(p.amount) || 0);
-            });
-
-            return data.map(b => ({
-                ...b,
-                paid_amount: paymentMap[b.id] || 0,
-                remaining_due: Math.max(0, Number(b.total) - (paymentMap[b.id] || 0))
-            }));
+            return apiFetch<any[]>(`/clients/${id}/bills`);
         },
         enabled: !!id
     });
@@ -213,58 +130,29 @@ export default function ClientProfile() {
         queryKey: ['client-refunds', id],
         queryFn: async () => {
             if (!id) return [];
-            const { data, error } = await supabase
-                .from('refunds')
-                .select('*')
-                .eq('client_id', id)
-                .order('created_at', { ascending: false });
-            if (error) throw error;
-            return data;
+            return apiFetch<any[]>(`/clients/${id}/refunds`);
         },
         enabled: !!id
     });
 
     const toggleAmsAccess = async (checked: boolean) => {
-        let currentProfileId = profileId;
-
-        // Auto-link profile if not linked but email matches
-        if (!currentProfileId && client?.email) {
-            const { data: profileByEmail } = await supabase
-                .from("profiles")
-                .select("id")
-                .eq("email", client.email)
-                .maybeSingle();
-            
-            if (profileByEmail) {
-                currentProfileId = profileByEmail.id;
-                // Auto-link the UHID to bridge the gap
-                await supabase.from("profiles").update({ uhid: client.uhid }).eq("id", currentProfileId);
-                setProfileId(currentProfileId);
-            }
-        }
-
-        if (!currentProfileId) {
-            toast({
-                title: "No Login Credentials",
-                description: "This client only has a clinical record. They must sign up for an ISHPO login account (using their email) before AMS access can be granted.",
-                variant: "destructive"
+        if (!id) return;
+        try {
+            const result = await apiFetch<any>(`/clients/${id}/ams-access`, {
+                method: 'POST',
+                data: { enabled: checked }
             });
-            return;
-        }
-
-        const newRole = checked ? "athlete" : null;
-        // Optimistic UI update
-        setAmsRole(newRole);
-
-        const { error } = await supabase
-            .from("profiles")
-            .update({ ams_role: newRole as any })
-            .eq("id", currentProfileId);
-        if (!error) {
-          setAmsRole(newRole);
-          toast({ title: "AMS Access Updated", description: `Client has been ${checked ? 'granted' : 'revoked'} access to the Athlete Monitoring System.` });
-        } else {
-          toast({ title: "Failed to update AMS access", description: error.message, variant: "destructive" });
+            setAmsRole(result.ams_role);
+            toast({ 
+                title: "AMS Access Updated", 
+                description: `Client has been ${checked ? 'granted' : 'revoked'} access to the Athlete Monitoring System.` 
+            });
+        } catch (err: any) {
+            toast({ 
+                title: "Failed to update AMS access", 
+                description: err.message || "No login account found for this client.", 
+                variant: "destructive" 
+            });
         }
     };
 
@@ -294,31 +182,17 @@ export default function ClientProfile() {
         }
 
         try {
-            // 1. Record each payment row
-            for (const row of paymentRows) {
-                const { error: payError } = await supabase.from('bill_payments').insert({
-                    organization_id: client?.organization_id!,
+            await apiFetch('/billing/payments', {
+                method: 'POST',
+                data: {
                     bill_id: paymentBillId,
-                    client_id: id!,
-                    amount: row.amount,
-                    payment_method: row.method as any,
-                    transaction_id: row.transactionId,
-                    recorded_by: currentUserProfile?.id!,
-                    notes: `Collect payment via Client Profile`
-                });
-                if (payError) throw payError;
-            }
-
-            // 2. Update Bill status
-            const isFullyPaid = Math.abs(totalPaid - remainingDue) < 0.01;
-            const { error: billError } = await supabase.from('bills')
-                .update({ 
-                    status: isFullyPaid ? 'Paid' : 'Partially Paid', 
-                    updated_at: new Date().toISOString()
-                })
-                .eq('id', paymentBillId);
-
-            if (billError) throw billError;
+                    payments: paymentRows.map(r => ({
+                        amount: r.amount,
+                        method: r.method,
+                        transactionId: r.transactionId
+                    }))
+                }
+            });
 
             queryClient.invalidateQueries({ queryKey: ['client-bills', id] });
 
@@ -457,14 +331,10 @@ export default function ClientProfile() {
         if (!id) return;
         setIsUpdatingRemarks(true);
         try {
-            const { error } = await (supabase as any)
-                .from("client_admin_notes")
-                .upsert({ 
-                    client_id: id, 
-                    remarks: adminRemarks 
-                });
-
-            if (error) throw error;
+            await apiFetch(`/clients/${id}`, {
+                method: 'PATCH',
+                data: { admin_remarks: adminRemarks }
+            });
             toast({ title: "Remarks updated successfully" });
         } catch (err: any) {
             toast({ title: "Failed to update remarks", description: err.message, variant: "destructive" });
@@ -476,12 +346,10 @@ export default function ClientProfile() {
     const handleToggleVIP = async (val: boolean) => {
         if (!id) return;
         try {
-            const { error } = await supabase
-                .from("clients")
-                .update({ is_vip: val } as any)
-                .eq("id", id);
-
-            if (error) throw error;
+            await apiFetch(`/clients/${id}`, {
+                method: 'PATCH',
+                data: { is_vip: val }
+            });
             setClient({ ...client, is_vip: val });
             toast({ title: val ? "Client marked as VIP" : "VIP status removed" });
         } catch (err: any) {

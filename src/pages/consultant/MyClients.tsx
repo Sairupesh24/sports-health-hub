@@ -6,11 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/utils/api";
 import { Search, Users, ClipboardList } from "lucide-react";
 import AdHocSessionModal from "@/components/consultant/AdHocSessionModal";
 import { VIPBadge, VIPName } from "@/components/ui/VIPBadge";
-import type { Database } from "@/integrations/supabase/types";
 
 export default function MyClients() {
     const navigate = useNavigate();
@@ -23,23 +22,8 @@ export default function MyClients() {
     const { data: clients, isLoading } = useQuery({
         queryKey: ["consultant-clients", search],
         queryFn: async () => {
-            // For now, fetching all active clients in the consultant's organization.
-            // In the future, this could be filtered by clients who have a session with this specific therapist.
-            let query = supabase
-                .from("clients")
-                .select("*")
-                .is("deleted_at", null)
-                .order("created_at", { ascending: false });
-
-            if (search.trim()) {
-                query = query.or(
-                    `first_name.ilike.%${search}%,last_name.ilike.%${search}%,uhid.ilike.%${search}%,mobile_no.ilike.%${search}%`
-                );
-            }
-
-            const { data, error } = await query.limit(50);
-            if (error) throw error;
-            return data;
+            const endpoint = `/clients${search ? `?search=${encodeURIComponent(search)}` : ""}`;
+            return apiFetch<any[]>(endpoint);
         },
     });
 

@@ -5,26 +5,31 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
+import { apiFetch } from "@/utils/api";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
 
+  const navigate = useNavigate();
+
   const handleResetRequest = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`,
+      await apiFetch('/auth/forgot-password', {
+        data: { email }
       });
-      if (error) throw error;
-      setSent(true);
+      
       toast({ 
-        title: "Reset link sent", 
-        description: "Check your email for the password reset link." 
+        title: "Reset code sent", 
+        description: "Check your email for the 6-digit password reset code." 
       });
+      
+      // Navigate to reset password page and pass email
+      navigate('/reset-password', { state: { email } });
     } catch (err: any) {
       toast({ 
         title: "Request failed", 

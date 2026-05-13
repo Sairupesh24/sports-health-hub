@@ -1,6 +1,6 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/utils/api";
 
 interface ExportData {
   clientName: string;
@@ -29,11 +29,7 @@ export const exportQuestionnairePDF = async (data: ExportData) => {
   const pageWidth = doc.internal.pageSize.getWidth();
   
   // 1. Fetch Org Branding
-  const { data: org } = await supabase
-    .from("organizations")
-    .select("official_name, logo_url, official_address")
-    .eq("id", orgId)
-    .single();
+  const { data: org } = await apiFetch<any>(`/organizations/${orgId}`);
 
   // 2. Header: Logo & Org Name
   let currentY = 15;

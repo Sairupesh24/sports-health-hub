@@ -30,7 +30,7 @@ import {
 import { Slider } from "@/components/ui/slider";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/utils/api";
 import MobileLayout from "@/components/layout/MobileLayout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -41,7 +41,7 @@ import { useAuth } from "@/contexts/AuthContext";
 
 export default function MobileWorkoutLogging() {
   const { id: workoutDayId } = useParams();
-  const { profile } = useAuth();
+  const { profile, user } = useAuth();
   const [workout, setWorkout] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [logs, setLogs] = useState<Record<string, any>>({});
@@ -80,37 +80,16 @@ export default function MobileWorkoutLogging() {
   const fetchWorkout = async () => {
     try {
       setLoading(true);
-      const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { data, error } = await supabase
-        .from('workout_days')
-        .select(`
-          *,
-          items:workout_items(
-            *,
-            lift:lift_items(*, exercise:exercises(*)),
-            saqc:saqc_items(*, exercise:exercises(*)),
-            circuit:circuit_items(*)
-          )
-        `)
-        .eq('id', workoutDayId)
-        .single();
-
-      if (error) throw error;
+      const data = await apiFetch<any>(`/ams/workout-days/${workoutDayId}`);
       setWorkout(data);
 
       const exerciseIds = data.items?.map((i: any) => i[i.item_type]?.exercise_id).filter(Boolean);
       const prMap: Record<string, number> = {};
       
       if (exerciseIds.length > 0) {
-        const { data: prData } = await supabase
-          .from('max_pr_records')
-          .select('exercise_id, value')
-          .eq('athlete_id', user.id)
-          .eq('is_current', true)
-          .in('exercise_id', exerciseIds);
-        
+        const prData = await apiFetch<any[]>(`/ams/max-pr-records?exercise_ids=${exerciseIds.join(',')}`);
         prData?.forEach(pr => { prMap[pr.exercise_id] = pr.value; });
       }
       setPrs(prMap);
@@ -149,8 +128,12 @@ export default function MobileWorkoutLogging() {
   };
 
   const fetchExercises = async () => {
-    const { data } = await supabase.from('exercises').select('id, name').limit(100);
-    setExercises(data || []);
+    try {
+      const data = await apiFetch<any[]>('/ams/exercises?limit=100');
+      setExercises(data || []);
+    } catch (err) {
+      console.error("Failed to fetch exercises", err);
+    }
   };
 
   const handleSetUpdate = (itemId: string, setIdx: number, field: string, value: any) => {
@@ -206,21 +189,19 @@ export default function MobileWorkoutLogging() {
   const finishWorkout = async () => {
     try {
       setLoading(true);
-      const { data: { user } } = await supabase.auth.getUser();
       if (!user || !workout) return;
 
-      const { error: cError } = await supabase
-        .from('athlete_workout_completions' as any)
-        .insert({
+      await apiFetch('/ams/workout-completions', {
+        method: 'POST',
+        body: {
           athlete_id: user.id,
           workout_day_id: workout.id,
           org_id: workout.org_id,
           completed_at: new Date().toISOString(),
           overall_notes: sessionNotes,
           completion_status: 'completed'
-        } as any);
-
-      if (cError) throw cError;
+        }
+      });
 
       const itemLogs = Object.entries(logs).flatMap(([itemId, sets]) => 
         sets.map((set: any, idx: number) => ({
@@ -235,11 +216,10 @@ export default function MobileWorkoutLogging() {
         }))
       );
 
-      const { error: lError } = await supabase
-        .from('athlete_item_logs' as any)
-        .insert(itemLogs as any);
-
-      if (lError) throw lError;
+      await apiFetch('/ams/item-logs', {
+        method: 'POST',
+        body: itemLogs
+      });
 
       toast({
         title: "Workout Completed!",

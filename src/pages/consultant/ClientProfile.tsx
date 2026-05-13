@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, User, Phone, Calendar, Activity, ClipboardList, History } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/utils/api";
 import { toast } from "@/hooks/use-toast";
 import AMSTrainingLoadWidget from "@/components/dashboard/AMSTrainingLoadWidget";
 import LogInjuryModal from "@/components/consultant/LogInjuryModal";
@@ -91,44 +91,19 @@ export default function ConsultantClientProfile() {
         try {
             setLoading(true);
             // Fetch Client Info
-            const { data: clientData, error: clientErr } = await supabase
-                .from('clients')
-                .select('*')
-                .eq('id', id)
-                .single();
-            if (clientErr) throw clientErr;
+            const clientData = await apiFetch<any>(`/clients/${id}`);
             setClient(clientData);
 
             // Fetch Active Injuries
-            const { data: injuryData, error: injuryErr } = await supabase
-                .from('injuries')
-                .select('*')
-                .eq('client_id', id)
-                .order('injury_date', { ascending: false });
-            if (injuryErr) throw injuryErr;
+            const injuryData = await apiFetch<any[]>(`/clinical/injuries`, {
+                params: { client_id: id }
+            });
             setInjuries(injuryData || []);
 
             // Fetch Sessions History
-            let sessionQuery = supabase
-                .from('sessions')
-                .select(`
-                    *,
-                    physio_session_details (*)
-                `)
-                .eq('client_id', id);
-
-            if (startDate) {
-                sessionQuery = sessionQuery.gte('scheduled_start', `${startDate}T00:00:00`);
-            }
-            if (endDate) {
-                sessionQuery = sessionQuery.lte('scheduled_start', `${endDate}T23:59:59`);
-            }
-            if (sessionTypeFilter !== "all") {
-                sessionQuery = sessionQuery.eq('service_type', sessionTypeFilter);
-            }
-
-            const { data: sessionData, error: sessionErr } = await sessionQuery.order('scheduled_start', { ascending: false });
-            if (sessionErr) throw sessionErr;
+            const sessionData = await apiFetch<any[]>(`/clients/${id}/sessions`, {
+                params: { startDate, endDate, sessionType: sessionTypeFilter }
+            });
             setSessions(sessionData || []);
 
         } catch (err: unknown) {

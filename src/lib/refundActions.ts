@@ -1,4 +1,4 @@
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/utils/api";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { format } from "date-fns";
@@ -12,122 +12,14 @@ export interface RefundBreakdown {
 }
 
 export const calculateRefundAmount = async (billId: string, clientId: string) => {
-    // 1. Fetch Bill and Package Details via bill_items
-    const { data: bill, error: billError } = await (supabase as any)
-        .from('bills')
-        .select(`
-            id, total, amount, discount,
-            bill_items(
-                id, total, amount, 
-                packages(id, name, price, package_services(service_id, sessions_included, services(name)))
-            )
-        `)
-        .eq('id', billId)
-        .single();
-
-    if (billError || !bill) throw new Error("Bill not found or error fetching details.");
-
-    // 2. Fetch current balances for the client
-    const { data: balances, error: balanceError } = await supabase.rpc('fn_compute_entitlement_balance', {
-        p_client_id: clientId
-    });
-
-    if (balanceError) throw new Error("Could not fetch entitlement balances.");
-
-    let totalRefund = 0;
-    const breakdown: RefundBreakdown[] = [];
-
-    const items = (bill.bill_items as any[]) || [];
-    
-    for (const item of items) {
-        const pkg = item.packages;
-        if (!pkg || !pkg.package_services) continue;
-
-        const itemSubtotal = item.amount || 1;
-        const itemTotal = item.total || 0;
-        const itemDiscountRatio = itemTotal / itemSubtotal;
-
-        for (const ps of pkg.package_services) {
-            const serviceName = ps.services?.name || "Session";
-            const balance = balances.find((b: any) => b.service_name === serviceName);
-            
-            const sessionsInThisItem = ps.sessions_included;
-            const globalRemaining = balance ? balance.sessions_remaining : sessionsInThisItem;
-            
-            // Proportional sessions for this item
-            const remainingForThisItem = Math.min(sessionsInThisItem, globalRemaining);
-            
-            const totalSessionsInPackage = (pkg.package_services as any[]).reduce((sum, s) => sum + s.sessions_included, 0);
-            const pricePerSession = (itemTotal) / (totalSessionsInPackage || 1);
-            
-            const refundForService = remainingForThisItem * pricePerSession;
-            totalRefund += refundForService;
-            
-            breakdown.push({
-                serviceName: `${pkg.name}: ${serviceName}`,
-                remaining: remainingForThisItem,
-                totalPurchased: sessionsInThisItem,
-                calculatedRefund: refundForService
-            });
-        }
-    }
-
-    return { totalRefund, breakdown, billTotal: bill.total };
+    return await apiFetch<any>(`/billing/invoices/${billId}/calculate-refund`);
 };
 
-export const processRefund = async (refundData: {
-    billId: string;
-    clientId: string;
-    organizationId: string;
-    amount: number;
-    refundMode: string;
-    transactionId?: string;
-    refundProofUrl?: string;
-    notes?: string;
-    isOverride?: boolean;
-    authorizedBy?: string;
-    reverseEntitlements: boolean;
-}) => {
-    // 1. Insert Refund Record
-    const { data: refund, error: refundError } = await supabase
-        .from('refunds')
-        .insert({
-            bill_id: refundData.billId,
-            client_id: refundData.clientId,
-            organization_id: refundData.organizationId,
-            amount: refundData.amount,
-            refund_mode: refundData.refundMode as any,
-            transaction_id: refundData.transactionId,
-            refund_proof_url: refundData.refundProofUrl,
-            notes: refundData.notes,
-            is_override: refundData.isOverride || false,
-            authorized_by: refundData.authorizedBy || null,
-            is_entitlement_reversed: refundData.reverseEntitlements
-        })
-        .select()
-        .single();
-
-    if (refundError) throw refundError;
-
-    // 2. Conditionally Reverse Entitlements
-    if (refundData.reverseEntitlements) {
-        // This usually involves finding the specific row in client_service_entitlements 
-        // linked to this bill's purchase and reducing sessions_allowed.
-        // Since multiple packages might be in one bill (though the current UI inserts one bill per package),
-        // we hunt by invoice_id / bill_id.
-        
-        const { error: revError } = await supabase
-            .from('client_entitlements')
-            .update({ status: 'Cancelled', notes: `Refunded on ${format(new Date(), 'dd/MM/yyyy')}` })
-            .eq('invoice_id', refundData.billId);
-            
-        if (revError) {
-            console.error("Error reversing entitlements, but refund record was created:", revError);
-            toast({ title: "Refund recorded, but error reversing entitlements.", variant: "destructive" });
-        }
-    }
-
-    return refund;
+export const processRefund = async (refundData: any) => {
+    return await apiFetch<any>('/billing/refunds', {
+        method: 'POST',
+        data: refundData
+    });
 };
 
 export const generateRefundVoucher = (orgName: string, clientName: string, refund: any, isEntitlementReversed?: boolean) => {

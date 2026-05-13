@@ -4,9 +4,9 @@ import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Building2, User, Key } from "lucide-react";
+import { ArrowLeft, Building2, User, Key, Phone } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/utils/api";
 
 export default function OnboardOrganization() {
     const navigate = useNavigate();
@@ -17,6 +17,9 @@ export default function OnboardOrganization() {
         organization_name: "",
         organization_slug: "",
         contact_email: "",
+        firstName: "",
+        lastName: "",
+        phone: "",
         subscription_plan: "free",
     });
 
@@ -25,7 +28,6 @@ export default function OnboardOrganization() {
     };
 
     const handleSlugUpdate = (e: React.ChangeEvent<HTMLInputElement>) => {
-        // Generate a slug based on name if slug is empty
         const name = e.target.value;
         setFormData(prev => ({
             ...prev,
@@ -39,45 +41,26 @@ export default function OnboardOrganization() {
         setLoading(true);
 
         try {
-
-            
-            const { data, error } = await supabase.functions.invoke('onboard-organization', {
-                body: formData
+            const data = await apiFetch<any>('/master-console/onboard-organization', {
+                method: 'POST',
+                data: {
+                    name: formData.organization_name,
+                    email: formData.contact_email,
+                    firstName: formData.firstName,
+                    lastName: formData.lastName,
+                    phone: formData.phone,
+                    role: 'admin',
+                    slug: formData.organization_slug,
+                    subscription_plan: formData.subscription_plan
+                }
             });
 
-            if (error) {
-
-                
-                let errorMessage = error.message || "Failed to connect to the onboarding service.";
-                
-                // If the message is the generic one, add more context
-                if (errorMessage.includes("non-2xx status code")) {
-                    errorMessage = "The onboarding service encountered a server error. This usually means a record already exists or a database function is missing.";
-                }
-                
-                throw new Error(errorMessage);
-            }
-
-            if (data?.success === false || data?.error) {
-
-                throw new Error(data?.error || "An unknown error occurred during onboarding.");
-            }
-
-            setSuccessData(data);
+            setSuccessData(data.data);
             toast({ title: "Organization Onboarded", description: `${formData.organization_name} has been successfully created.` });
         } catch (err: any) {
-
-            
-            let displayMessage = err.message || "An unexpected error occurred.";
-            
-            // If the message is the generic one, add more context
-            if (displayMessage.includes("non-2xx status code")) {
-                displayMessage = "The onboarding service encountered an error. This usually means a record already exists or a database function is missing.";
-            }
-
             toast({ 
                 title: "Onboarding Failed", 
-                description: displayMessage, 
+                description: err.message || "An unexpected error occurred.", 
                 variant: "destructive" 
             });
         } finally {
@@ -100,7 +83,7 @@ export default function OnboardOrganization() {
                     <div className="rounded-xl border border-border bg-card p-6 space-y-6">
                         <div>
                             <Label className="text-muted-foreground">Organization Name</Label>
-                            <p className="text-lg font-medium">{successData.organization.name}</p>
+                            <p className="text-lg font-medium">{formData.organization_name}</p>
                         </div>
 
                         <div className="p-4 bg-muted/50 rounded-lg border border-border">
@@ -108,7 +91,7 @@ export default function OnboardOrganization() {
                                 <Key className="w-4 h-4" />
                                 Organization Code
                             </Label>
-                            <p className="text-2xl font-mono tracking-widest">{successData.organization.org_code}</p>
+                            <p className="text-2xl font-mono tracking-widest">{successData.orgCode}</p>
                             <p className="text-xs text-muted-foreground mt-2">
                                 Provide this code to users who need to sign up independently.
                             </p>
@@ -116,20 +99,20 @@ export default function OnboardOrganization() {
 
                         <div className="space-y-3">
                             <h4 className="font-semibold text-foreground flex items-center gap-2">
-                                <User className="w-4 h-4" /> Admin Account Check
+                                <User className="w-4 h-4" /> Admin Account Credentials
                             </h4>
                             <p className="text-sm">
-                                An invite has been sent to <strong>{successData.admin_email}</strong>.
-                                They can also login using the following temporary credentials:
+                                An admin account has been created for <strong>{successData.adminEmail}</strong>.
+                                They can login using the following temporary credentials:
                             </p>
                             <div className="grid grid-cols-2 gap-4 bg-background p-4 rounded-lg border border-border">
                                 <div>
                                     <Label>Email</Label>
-                                    <p className="font-mono text-sm">{successData.admin_email}</p>
+                                    <p className="font-mono text-sm">{successData.adminEmail}</p>
                                 </div>
                                 <div>
                                     <Label>Temporary Password</Label>
-                                    <p className="font-mono text-sm">{successData.temp_password}</p>
+                                    <p className="font-mono text-sm font-bold text-primary">{successData.tempPassword}</p>
                                 </div>
                             </div>
                         </div>
@@ -212,21 +195,58 @@ export default function OnboardOrganization() {
                         <div className="space-y-4 pt-4">
                             <h3 className="text-lg font-semibold flex items-center gap-2 border-b border-border pb-2">
                                 <User className="w-5 h-5 text-primary" />
-                                Admin Contact
+                                Admin User Profile
                             </h3>
 
-                            <div className="space-y-2">
-                                <Label htmlFor="contact_email">Admin Email <span className="text-destructive">*</span></Label>
-                                <Input
-                                    id="contact_email"
-                                    name="contact_email"
-                                    type="email"
-                                    value={formData.contact_email}
-                                    onChange={handleChange}
-                                    required
-                                    placeholder="admin@clinic.com"
-                                />
-                                <p className="text-xs text-muted-foreground mt-1">This email will receive the admin account invite.</p>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label htmlFor="firstName">First Name <span className="text-destructive">*</span></Label>
+                                    <Input
+                                        id="firstName"
+                                        name="firstName"
+                                        value={formData.firstName}
+                                        onChange={handleChange}
+                                        required
+                                        placeholder="John"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="lastName">Last Name <span className="text-destructive">*</span></Label>
+                                    <Input
+                                        id="lastName"
+                                        name="lastName"
+                                        value={formData.lastName}
+                                        onChange={handleChange}
+                                        required
+                                        placeholder="Doe"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="contact_email">Email <span className="text-destructive">*</span></Label>
+                                    <Input
+                                        id="contact_email"
+                                        name="contact_email"
+                                        type="email"
+                                        value={formData.contact_email}
+                                        onChange={handleChange}
+                                        required
+                                        placeholder="admin@clinic.com"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="phone">Phone Number</Label>
+                                    <div className="relative">
+                                        <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                                        <Input
+                                            id="phone"
+                                            name="phone"
+                                            value={formData.phone}
+                                            onChange={handleChange}
+                                            className="pl-9"
+                                            placeholder="+91 9876543210"
+                                        />
+                                    </div>
+                                </div>
                             </div>
                         </div>
 

@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/utils/api";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -76,21 +76,7 @@ export function SportsScientistSessionLog() {
         queryKey: ["ss-sessions-log", user?.id, dateRange.start, dateRange.end],
         queryFn: async () => {
             if (!user) return [];
-            const { data, error } = await (supabase as any)
-                .from("sessions")
-                .select(`
-                    id, scheduled_start, scheduled_end,
-                    actual_start, actual_end, status,
-                    session_mode, group_name, session_notes,
-                    client:clients(first_name, last_name, uhid),
-                    session_type:session_types(name)
-                `)
-                .eq("scientist_id", user.id)
-                .gte("scheduled_start", dateRange.start)
-                .lte("scheduled_start", dateRange.end)
-                .order("scheduled_start", { ascending: false });
-            if (error) throw error;
-            return (data ?? []) as any[];
+            return await apiFetch(`/api/appointments?therapist_id=${user.id}&start=${dateRange.start}&end=${dateRange.end}`);
         },
         enabled: !!user,
     });
@@ -99,10 +85,10 @@ export function SportsScientistSessionLog() {
     const autoMissMutation = useMutation({
         mutationFn: async (ids: string[]) => {
             if (!ids.length) return;
-            await supabase
-                .from("sessions")
-                .update({ status: "Missed", updated_at: new Date().toISOString() })
-                .in("id", ids);
+            await apiFetch('/api/appointments/sessions/bulk-update', {
+                method: 'PATCH',
+                body: JSON.stringify({ ids, status: 'Missed' })
+            });
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["ss-sessions-log"] });

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/utils/api";
 import { Search, Users, Calendar, Activity, Filter } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -29,23 +29,13 @@ export default function SportsScientistClients() {
         queryKey: ["client-organizations", user?.id],
         queryFn: async () => {
             if (!user) return [];
-            const { data: profile } = await supabase
-                .from("profiles")
-                .select("organization_id")
-                .eq("id", user.id)
-                .single();
-            if (!profile) return [];
-
-            const { data, error } = await supabase
-                .from("clients")
-                .select("org_name")
-                .eq("organization_id", profile.organization_id)
-                .is("deleted_at", null)
-                .not("org_name", "is", null);
-            
-            if (error) throw error;
-            const uniqueOrgs = Array.from(new Set(data.map(d => d.org_name))).sort();
-            return uniqueOrgs;
+            try {
+                const clients = await apiFetch('/api/clients?fields=org_name');
+                const uniqueOrgs = Array.from(new Set((clients || []).map((d: any) => d.org_name).filter(Boolean))).sort();
+                return uniqueOrgs;
+            } catch {
+                return [];
+            }
         },
         enabled: !!user
     });
@@ -54,57 +44,20 @@ export default function SportsScientistClients() {
         queryKey: ["sports-scientist-clients", search, populationFilter, orgFilter, user?.id],
         queryFn: async () => {
             if (!user) return [];
-            
-            // Fetch clients assigned to this scientist OR unassigned in the same org
-            // First get the scientist's profile to know their organization_id
-            const { data: profile } = await supabase
-                .from("profiles")
-                .select("organization_id")
-                .eq("id", user.id)
-                .single();
 
-            if (!profile) return [];
+            const params = new URLSearchParams();
+            if (search.trim()) params.set('search', search);
+            if (populationFilter === 'athlete') params.set('population', 'athlete');
+            else if (populationFilter === 'general') params.set('population', 'general');
+            if (orgFilter !== 'all') params.set('org_name', orgFilter);
+            params.set('limit', '100');
 
-            let query = supabase
-                .from("clients")
-                .select(`
-                    *,
-                    sessions:sessions(count),
-                    last_session:sessions(scheduled_start)
-                `)
-                .eq("organization_id", profile.organization_id)
-                .is("deleted_at", null);
+            const data = await apiFetch(`/api/clients?${params.toString()}`);
 
-            // Visibility rules: own assigned clients OR unassigned clients
-            query = query.or(`primary_scientist_id.eq.${user.id},primary_scientist_id.is.null`);
-
-            if (search.trim()) {
-                query = query.or(
-                    `first_name.ilike.%${search}%,last_name.ilike.%${search}%,uhid.ilike.%${search}%,sport.ilike.%${search}%`
-                );
-            }
-
-            if (populationFilter === "athlete") {
-                query = query.not("sport", "is", null);
-            } else if (populationFilter === "general") {
-                query = query.is("sport", null);
-            }
-
-            if (orgFilter !== "all") {
-                query = query.eq("org_name", orgFilter);
-            }
-
-            const { data, error } = await query.order("last_name", { ascending: true }).limit(100);
-            if (error) throw error;
-
-            // Post-process to get last session date and counts
-            // Note: Supabase count/select might need optimization for large datasets
-            return data.map(c => ({
+            return (data || []).map((c: any) => ({
                 ...c,
-                total_sessions: c.sessions?.[0]?.count || 0,
-                last_session_date: c.last_session?.sort((a: any, b: any) => 
-                    new Date(b.scheduled_start).getTime() - new Date(a.scheduled_start).getTime()
-                )?.[0]?.scheduled_start || null
+                total_sessions: c.total_sessions || 0,
+                last_session_date: c.last_session_date || null
             }));
         },
         enabled: !!user

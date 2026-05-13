@@ -14,11 +14,27 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
-import type { Database } from "@/integrations/supabase/types";
+import { apiFetch } from "@/utils/api";
 
-type OrgMetrics = Database['public']['Functions']['get_platform_metrics']['Returns'];
-type Organization = Database['public']['Functions']['get_platform_organizations']['Returns'][number];
+type OrgMetrics = {
+    total_organizations: number;
+    active_organizations: number;
+    disabled_organizations: number;
+    total_locations: number;
+    total_consultants: number;
+};
+
+type Organization = {
+    id: string;
+    name: string;
+    org_code: string;
+    status: string;
+    created_at: string;
+    location_count: number;
+    consultant_count: number;
+    client_count: number;
+    subscription_plan: string;
+};
 
 export default function SuperAdminDashboard() {
     const [metrics, setMetrics] = useState<OrgMetrics | null>(null);
@@ -32,17 +48,13 @@ export default function SuperAdminDashboard() {
     const fetchData = async () => {
         try {
             setLoading(true);
-            const { data: metricsData, error: metricsErr } = await supabase.rpc('get_platform_metrics');
-            if (metricsErr) throw metricsErr;
-
-            const { data: orgsData, error: orgsErr } = await supabase.rpc('get_platform_organizations');
-            if (orgsErr) throw orgsErr;
+            const metricsData = await apiFetch<OrgMetrics>('/master-console/metrics');
+            const orgsData = await apiFetch<Organization[]>('/master-console/organizations');
 
             setMetrics(metricsData);
             setOrganizations(orgsData || []);
-        } catch (err: unknown) {
-            const error = err as Error;
-            toast({ title: "Error fetching data", description: error.message, variant: "destructive" });
+        } catch (err: any) {
+            toast({ title: "Error fetching data", description: err.message, variant: "destructive" });
         } finally {
             setLoading(false);
         }

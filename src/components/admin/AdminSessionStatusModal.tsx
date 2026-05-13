@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/utils/api";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, AlertTriangle, CheckCircle, ClipboardList, RefreshCw } from "lucide-react";
 import { format } from "date-fns";
@@ -58,12 +58,14 @@ export function AdminSessionStatusModal({ open, onOpenChange, session, onSuccess
 
     const fetchServices = async () => {
         if (!session?.organization_id) return;
-        const { data } = await supabase
-            .from("services")
-            .select("id, name, category, organization_id")
-            .eq("organization_id", session.organization_id)
-            .eq("is_active", true);
-        if (data) setServices(data as Service[]);
+        try {
+            const data = await apiFetch<any[]>('/billing/services', {
+                params: { is_active: true }
+            });
+            if (data) setServices(data as Service[]);
+        } catch (error) {
+            console.error("Error fetching services:", error);
+        }
     };
 
     // Fetch SOAP notes when modal opens for a Completed session
@@ -71,12 +73,10 @@ export function AdminSessionStatusModal({ open, onOpenChange, session, onSuccess
         if (!open || !session?.id) { setSoapNote(null); return; }
         if (session.status !== "Completed") { setSoapNote(null); return; }
         setSoapLoading(true);
-        supabase
-            .from("physio_session_details")
-            .select("*")
-            .eq("session_id", session.id)
-            .maybeSingle()
-            .then(({ data }) => { setSoapNote(data ?? null); setSoapLoading(false); });
+        apiFetch<any>(`/clinical/sessions/${session.id}/soap`)
+            .then((data) => { setSoapNote(data ?? null); })
+            .catch(() => setSoapNote(null))
+            .finally(() => setSoapLoading(false));
     }, [open, session?.id, session?.status]);
 
     // Fetch entitlement balance for Planned sessions
@@ -89,14 +89,10 @@ export function AdminSessionStatusModal({ open, onOpenChange, session, onSuccess
         const fetchBalance = async () => {
             setBalanceLoading(true);
             try {
-                const { data, error } = await supabase.rpc('fn_compute_entitlement_balance', { 
-                    p_client_id: session.client_id 
-                });
-                if (!error && data) {
-                    const balance = (data as any[]).find(b => 
-                        serviceId ? b.service_id === serviceId : b.service_name?.toLowerCase().trim() === (session.service_type || "").toLowerCase().trim()
-                    );
-                    setRemainingSessions(balance ? balance.sessions_remaining : 0);
+                const data = await apiFetch<any>(`/billing/entitlements/balance/${session.client_id}`);
+                if (data && data.byServiceName) {
+                    const serviceKey = (session.service_type || "").toLowerCase().trim();
+                    setRemainingSessions(data.byServiceName[serviceKey] || 0);
                 }
             } finally {
                 setBalanceLoading(false);
@@ -129,89 +125,35 @@ export function AdminSessionStatusModal({ open, onOpenChange, session, onSuccess
 
         setLoading(true);
         try {
-            const updateData: any = { status };
-
-            const isMarkingAttendance = status === "Attendance Confirmed" || status === "Completed";
-
-            if (isMarkingAttendance) {
-
+            if (status === "Completed") {
                 if (!actualStart || !actualEnd) throw new Error("Actual start and end times are required for completed sessions.");
-
                 const dateStr = format(new Date(session.scheduled_start), "yyyy-MM-dd");
-                updateData.actual_start = new Date(`${dateStr}T${actualStart}:00`).toISOString();
-                updateData.actual_end = new Date(`${dateStr}T${actualEnd}:00`).toISOString();
+                const aStart = new Date(`${dateStr}T${actualStart}:00`).toISOString();
+                const aEnd = new Date(`${dateStr}T${actualEnd}:00`).toISOString();
 
-                const { error: timesError } = await supabase
-                    .from("sessions")
-                    .update({ actual_start: updateData.actual_start, actual_end: updateData.actual_end })
-                    .eq("id", session.id);
-                if (timesError) throw timesError;
-
-                const { data: { user } } = await supabase.auth.getUser();
-                const { error: rpcError } = await supabase.rpc("complete_session", {
-                    p_session_id: session.id,
-                    p_user_id: user?.id
+                await apiFetch(`/appointments/${session.id}/complete`, {
+                    method: 'POST',
+                    data: { actual_start: aStart, actual_end: aEnd }
                 });
-                if (rpcError) throw new Error(rpcError.message || "Failed to consume session entitlement");
-
-                // Notify therapist if SOAP note is missing
-                if (session.therapist_id && session.service_type !== "Consultation") {
-                    const { data: soapExists } = await supabase
-                        .from("physio_session_details")
-                        .select("session_id")
-                        .eq("session_id", session.id)
-                        .maybeSingle();
-
-                    if (!soapExists) {
-                        await supabase.from("notifications").insert({
-                            organization_id: session.organization_id,
-                            user_id: session.therapist_id,
-                            title: "📋 SOAP Note Pending",
-                            message: `Session completed for ${session.client?.first_name} ${session.client?.last_name} on ${format(new Date(session.scheduled_start), "MMM d, yyyy")} — please add the SOAP note.`,
-                        });
-                    }
-                }
-
             } else if (status === "Rescheduled") {
-                if (session.status !== "Planned") {
-                    throw new Error("Only sessions in 'Planned' status can be rescheduled.");
-                }
-                if (!rescheduledDate || !rescheduledTime) {
-                    throw new Error("Please select both a date and time for rescheduling.");
-                }
-
+                if (!rescheduledDate || !rescheduledTime) throw new Error("Please select both a date and time for rescheduling.");
                 const newStartTime = new Date(`${rescheduledDate}T${rescheduledTime}:00`);
                 const durationMs = new Date(session.scheduled_end).getTime() - new Date(session.scheduled_start).getTime();
                 const newEndTime = new Date(newStartTime.getTime() + durationMs);
 
-                const { data: newSessionId, error: rescheduleError } = await supabase.rpc("reschedule_session", {
-                    p_session_id: session.id,
-                    p_new_start: newStartTime.toISOString(),
-                    p_new_end: newEndTime.toISOString()
+                await apiFetch(`/appointments/${session.id}/reschedule`, {
+                    method: 'POST',
+                    data: { new_start: newStartTime.toISOString(), new_end: newEndTime.toISOString() }
                 });
-
-                if (rescheduleError) throw rescheduleError;
-
-                toast({ title: "Rescheduled", description: "The session has been moved to the new date and time." });
             } else {
                 const selectedService = services.find(s => s.id === serviceId);
-                const { error } = await supabase
-                    .from("sessions")
-                    .update({ 
+                await apiFetch(`/appointments/${session.id}`, {
+                    method: 'PATCH',
+                    data: { 
                         status, 
                         service_id: serviceId || null,
                         service_type: selectedService?.name || session.service_type
-                    })
-                    .eq("id", session.id);
-                if (error) throw error;
-            }
-
-            if (status === "Checked In" && session.therapist_id) {
-                await supabase.from("notifications").insert({
-                    organization_id: session.organization_id,
-                    user_id: session.therapist_id,
-                    title: "Client Checked In",
-                    message: `${session.client?.first_name} ${session.client?.last_name} has checked in for their appointment.`,
+                    }
                 });
             }
 
@@ -230,26 +172,7 @@ export function AdminSessionStatusModal({ open, onOpenChange, session, onSuccess
         if (!session?.id) return;
         setReconciling(true);
         try {
-            // 1. If service changed in UI, persist it first so RPC can use it
-            if (serviceId && serviceId !== session.service_id) {
-                const selectedService = services.find(s => s.id === serviceId);
-                const { error: updateError } = await supabase
-                    .from("sessions")
-                    .update({ 
-                        service_id: serviceId,
-                        service_type: selectedService?.name || session.service_type
-                    })
-                    .eq("id", session.id);
-                
-                if (updateError) throw updateError;
-            }
-
-            const { data: { user } } = await supabase.auth.getUser();
-            const { error } = await (supabase as any).rpc("reconcile_session", {
-                p_session_id: session.id,
-                p_user_id: user?.id
-            });
-            if (error) throw new Error(error.message);
+            await apiFetch(`/appointments/${session.id}/reconcile`, { method: 'POST' });
             toast({ title: "✅ Reconciled", description: "Session entitlement has been deducted and the un-entitled flag cleared." });
             onSuccess();
             onOpenChange(false);

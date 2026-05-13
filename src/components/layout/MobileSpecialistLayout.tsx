@@ -4,7 +4,7 @@ import { Activity, Bell, User } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/utils/api";
 import { cn } from "@/lib/utils";
 import { haptic } from "@/utils/haptic";
 import { AnnouncementsManager } from "../shared/AnnouncementsManager";
@@ -24,46 +24,26 @@ export default function MobileSpecialistLayout({ children, title = "ISHPO" }: Mo
     queryKey: ["unread-notifications", profile?.id],
     queryFn: async () => {
       if (!profile?.id || !profile?.organization_id) return 0;
-      
-      const { count: totalCount } = await (supabase as any).from("notifications")
-        .select("*", { count: 'exact', head: true })
-        .eq("organization_id", profile.organization_id)
-        .or(`is_broadcast.eq.true,target_user_id.eq.${profile.id}`);
-
-      const { count: readCount } = await (supabase as any).from("notification_reads")
-        .select("*", { count: 'exact', head: true })
-        .eq("user_id", profile.id);
-
-      return Math.max(0, (totalCount || 0) - (readCount || 0));
+      const data = await apiFetch(`/hr/notifications/unread-count`);
+      return data?.unreadCount || 0;
     },
     enabled: !!profile?.id,
     refetchInterval: 30000 
   });
 
-  // Real-time subscription for notifications
+  // Note: Real-time PostgreSQL changes via supabase client are kept for push notifications
+  // but we could also poll if we wanted to fully decouple.
+  // Given the requirement to migrate backend to Postgres, we still have a Supabase client
+  // for real-time features if needed, but here we keep the subscription logic if it works with the new backend.
+  // Actually, the new backend is NOT Supabase, so standard Supabase real-time won't work 
+  // unless we implement WebSockets. For now, we rely on the refetchInterval.
+  
+  /* Real-time logic commented out as it relies on Supabase Realtime which won't work with local Postgres */
+  /*
   React.useEffect(() => {
-    if (!profile?.organization_id) return;
-
-    const channel = supabase
-      .channel('specialist-notifications')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'notifications',
-          filter: `organization_id=eq.${profile.organization_id}`
-        },
-        () => {
-          queryClient.invalidateQueries({ queryKey: ["unread-notifications"] });
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [profile?.organization_id, queryClient]);
+    ...
+  }, [...]);
+  */
 
   return (
     <div className="h-screen flex flex-col bg-slate-50/50 dark:bg-[#020617] antialiased selection:bg-primary/30 overflow-hidden">

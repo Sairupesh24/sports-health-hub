@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/utils/api";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { 
     BarChart, 
@@ -42,19 +42,7 @@ export default function SportsScientistAnalytics() {
             if (!user) return null;
 
             const sixMonthsAgo = subMonths(new Date(), 6).toISOString();
-            const { data: sessions, error } = await supabase
-                .from("sessions")
-                .select(`
-                    id, 
-                    scheduled_start, 
-                    status, 
-                    session_mode, 
-                    session_type:session_types(name)
-                `)
-                .eq('scientist_id', user.id)
-                .gte("scheduled_start", sixMonthsAgo);
-
-            if (error) throw error;
+            const sessions = await apiFetch(`/api/appointments?therapist_id=${user.id}&start=${sixMonthsAgo}`);
 
             const months = eachMonthOfInterval({
                 start: subMonths(new Date(), 5),
@@ -100,39 +88,21 @@ export default function SportsScientistAnalytics() {
             if (!clientId) return null;
 
             // 1. Fetch Client Info
-            const { data: client, error: clientErr } = await supabase
-                .from('clients')
-                .select('*, organizations(*)')
-                .eq('id', clientId)
-                .single();
-            if (clientErr) throw clientErr;
+            const client = await apiFetch(`/api/clients/${clientId}`);
 
             // 2. Fetch Sessions & Pain Scores
-            const { data: sessions, error: sessionErr } = await supabase
-                .from('sessions')
-                .select(`
-                    *,
-                    physio_session_details (pain_score)
-                `)
-                .eq('client_id', clientId)
-                .order('scheduled_start', { ascending: true });
-            if (sessionErr) throw sessionErr;
+            const sessions = await apiFetch(`/api/appointments?client_id=${clientId}`);
 
             // 3. Process Pain Scores for Chart
-            const painData = sessions
-                .filter(s => s.physio_session_details?.[0]?.pain_score !== null && s.physio_session_details?.[0]?.pain_score !== undefined)
-                .map(s => ({
+            const painData = (sessions || [])
+                .filter((s: any) => s.physio_session_details?.[0]?.pain_score !== null && s.physio_session_details?.[0]?.pain_score !== undefined)
+                .map((s: any) => ({
                     date: format(new Date(s.scheduled_start), "MMM d"),
                     score: s.physio_session_details[0].pain_score
                 }));
 
             // 4. Fetch Injuries
-            const { data: injuries, error: injuryErr } = await supabase
-                .from('injuries')
-                .select('*')
-                .eq('client_id', clientId)
-                .order('injury_date', { ascending: false });
-            if (injuryErr) throw injuryErr;
+            const injuries = await apiFetch(`/api/clinical/injuries?client_id=${clientId}`);
 
             return {
                 client,

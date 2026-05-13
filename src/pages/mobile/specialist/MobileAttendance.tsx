@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/utils/api";
 import { useAuth } from "@/contexts/AuthContext";
 import MobileSpecialistLayout from "@/components/layout/MobileSpecialistLayout";
 import { 
@@ -47,39 +47,23 @@ export default function MobileAttendance() {
   });
 
   // Fetch today's attendance log for the specialist status
-  const { data: currentStatusLog } = useQuery({
+  const { data: currentStatusLogs } = useQuery({
     queryKey: ["mobile-attendance-status", user?.id],
     queryFn: async () => {
-      if (!user) return null;
-      const today = new Date().toISOString().split('T')[0];
-      const { data, error } = await (supabase as any)
-        .from('hr_attendance_logs')
-        .select('*')
-        .eq('profile_id', user.id)
-        .gte('created_at', `${today}T00:00:00Z`)
-        .order('created_at', { ascending: false });
-      
-      if (error) return null;
-      return data?.find((l: any) => l.type === 'check_in' || l.type === 'check_out' || l.type === 'emergency_leave') || null;
+      const response = await apiFetch<any[]>("/hr/attendance/today");
+      return response.data || [];
     },
     enabled: !!user
   });
+
+  const currentStatusLog = currentStatusLogs?.find((l: any) => l.type === 'check_in' || l.type === 'check_out' || l.type === 'emergency_leave') || null;
 
   // Fetch logs for history
   const { data: logs, isLoading: isLoadingLogs } = useQuery({
     queryKey: ["mobile-attendance-logs-history", user?.id, date?.from, date?.to],
     queryFn: async () => {
       if (!user || !date?.from) return [];
-      const { data, error } = await (supabase as any)
-        .from('hr_attendance_logs')
-        .select('*')
-        .eq('profile_id', user.id)
-        .gte('created_at', date.from.toISOString())
-        .lte('created_at', (date.to || endOfDay(date.from)).toISOString())
-        .order('created_at', { ascending: false });
-      
-      if (error) return [];
-      return data || [];
+      return await apiFetch<any[]>(`/hr/attendance/history?from=${date.from.toISOString()}&to=${(date.to || endOfDay(date.from)).toISOString()}`);
     },
     enabled: !!user && !!date?.from
   });

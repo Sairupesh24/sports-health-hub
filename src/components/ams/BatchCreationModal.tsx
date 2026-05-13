@@ -18,9 +18,10 @@ import {
   Sparkles,
   Loader2
 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/utils/api";
 import { useToast } from "@/components/ui/use-toast";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface BatchCreationModalProps {
   isOpen: boolean;
@@ -41,6 +42,7 @@ export default function BatchCreationModal({
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
+  const { user } = useAuth();
   const { toast } = useToast();
 
   useEffect(() => {
@@ -59,14 +61,7 @@ export default function BatchCreationModal({
   const fetchAthletes = async () => {
     try {
       setFetching(true);
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .not('ams_role', 'is', null)
-        .neq('ams_role', 'coach')
-        .order('last_name', { ascending: true });
-
-      if (error) throw error;
+      const data = await apiFetch<any[]>('/ams/athletes');
       setAthletes(data || []);
     } catch (error: any) {
       toast({
@@ -81,13 +76,8 @@ export default function BatchCreationModal({
 
   const fetchBatchMembers = async (batchId: string) => {
     try {
-      const { data, error } = await supabase
-        .from('batch_members' as any)
-        .select('athlete_id')
-        .eq('batch_id', batchId);
-      
-      if (error) throw error;
-      setSelectedAthleteIds(data.map((m: any) => m.athlete_id));
+      const data = await apiFetch<any[]>(`/ams/batches/${batchId}/members`);
+      setSelectedAthleteIds(data.map((m: any) => m.id));
     } catch (error: any) {
       console.error("Error fetching batch members:", error);
     }
@@ -120,51 +110,30 @@ export default function BatchCreationModal({
 
     try {
       setLoading(true);
-      const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
-
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('organization_id')
-        .eq('id', user.id)
-        .single();
-      
-      const orgId = profile?.organization_id;
-      if (!orgId) throw new Error("Organization not found");
 
       let batchId = batchToEdit?.id;
 
       if (batchToEdit) {
         // Update batch name
-        const { error: uError } = await supabase
-          .from('batches' as any)
-          .update({ name: batchName })
-          .eq('id', batchId);
-        
-        if (uError) throw uError;
+        await apiFetch(`/ams/batches/${batchId}`, {
+            method: 'PATCH',
+            body: { name: batchName }
+        });
       } else {
         // Create new batch
-        const { data: bData, error: bError } = await (supabase
-          .from('batches' as any)
-          .insert({
-            name: batchName,
-            org_id: orgId,
-            created_by: user.id
-          } as any) as any)
-          .select()
-          .single();
-        
-        if (bError) throw bError;
+        const bData = await apiFetch<any>('/ams/batches', {
+            method: 'POST',
+            body: { name: batchName }
+        });
         batchId = bData.id;
       }
 
-      // Update members using RPC
-      const { error: mError } = await supabase.rpc('update_batch_members', {
-        p_batch_id: batchId,
-        p_athlete_ids: selectedAthleteIds
+      // Update members
+      await apiFetch(`/ams/batches/${batchId}/members`, {
+        method: 'POST',
+        body: { athlete_ids: selectedAthleteIds }
       });
-
-      if (mError) throw mError;
 
       toast({
         title: batchToEdit ? "Batch Updated" : "Batch Created",

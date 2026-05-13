@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Download, Upload, Loader2, X, CheckCircle2, AlertCircle } from "lucide-react";
 import * as XLSX from "xlsx";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/utils/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
@@ -103,6 +103,7 @@ export function ClientBulkUpload() {
         }
 
         setUploadProgress({ total: rows.length, current: 0, errors: [] });
+        const preparedClients = [];
 
         for (let i = 0; i < rows.length; i++) {
           const row = rows[i];
@@ -123,61 +124,55 @@ export function ClientBulkUpload() {
             continue;
           }
 
+          const dob = parseSafeDate(row.dob);
+          const insuranceValidity = parseSafeDate(row.insurance_validity);
+
+          preparedClients.push({
+            honorific: row.honorific || null,
+            first_name: row.first_name,
+            middle_name: row.middle_name || null,
+            last_name: row.last_name,
+            gender: row.gender || null,
+            mobile_no: String(row.mobile_no || ""),
+            aadhaar_no: row.aadhaar_no ? String(row.aadhaar_no) : null,
+            blood_group: row.blood_group || null,
+            dob: dob,
+            age: dob ? calculateAge(new Date(dob)) : null,
+            email: row.email || null,
+            alternate_mobile_no: row.alternate_mobile_no ? String(row.alternate_mobile_no) : null,
+            occupation: row.occupation || null,
+            sport: row.sport || null,
+            org_name: row.org_name || null,
+            address: row.address || null,
+            locality: row.locality || null,
+            pincode: row.pincode ? String(row.pincode) : null,
+            city: row.city || null,
+            district: row.district || null,
+            state: row.state || null,
+            country: row.country || "India",
+            has_insurance: row.has_insurance === "TRUE" || row.has_insurance === true || false,
+            insurance_provider: row.insurance_provider || null,
+            insurance_policy_no: row.insurance_policy_no || null,
+            insurance_validity: insuranceValidity,
+            insurance_coverage_amount: row.insurance_coverage_amount ? Number(row.insurance_coverage_amount) : null,
+          });
+        }
+
+        if (preparedClients.length > 0) {
           try {
-            // Generate UHID
-            const { data: uhid, error: uhidError } = await supabase.rpc("generate_uhid", {
-              p_organization_id: profile.organization_id,
+            await apiFetch(`/api/clients/bulk`, {
+              method: 'POST',
+              body: { clients: preparedClients }
             });
-
-            if (uhidError) throw uhidError;
-
-            // Prepare payload
-            const dob = parseSafeDate(row.dob);
-            const insuranceValidity = parseSafeDate(row.insurance_validity);
-
-            const payload = {
-              organization_id: profile.organization_id,
-              uhid: uhid as string,
-              honorific: row.honorific || null,
-              first_name: row.first_name,
-              middle_name: row.middle_name || null,
-              last_name: row.last_name,
-              gender: row.gender || null,
-              mobile_no: String(row.mobile_no || ""),
-              aadhaar_no: row.aadhaar_no ? String(row.aadhaar_no) : null,
-              blood_group: row.blood_group || null,
-              dob: dob,
-              age: dob ? calculateAge(new Date(dob)) : null,
-              email: row.email || null,
-              alternate_mobile_no: row.alternate_mobile_no ? String(row.alternate_mobile_no) : null,
-              occupation: row.occupation || null,
-              sport: row.sport || null,
-              org_name: row.org_name || null,
-              address: row.address || null,
-              locality: row.locality || null,
-              pincode: row.pincode ? String(row.pincode) : null,
-              city: row.city || null,
-              district: row.district || null,
-              state: row.state || null,
-              country: row.country || "India",
-              has_insurance: row.has_insurance === "TRUE" || row.has_insurance === true || false,
-              insurance_provider: row.insurance_provider || null,
-              insurance_policy_no: row.insurance_policy_no || null,
-              insurance_validity: insuranceValidity,
-              insurance_coverage_amount: row.insurance_coverage_amount ? Number(row.insurance_coverage_amount) : null,
-            };
-
-            const { error: insertError } = await supabase.from("clients").insert(payload);
-            if (insertError) throw insertError;
-
+            
             setUploadProgress(prev => ({
               ...prev!,
-              current: prev!.current + 1
+              current: preparedClients.length
             }));
           } catch (err: any) {
             setUploadProgress(prev => ({
               ...prev!,
-              errors: [...prev!.errors, `Row ${i + 2}: ${err.message}`]
+              errors: [...prev!.errors, `Bulk Upload Error: ${err.message}`]
             }));
           }
         }

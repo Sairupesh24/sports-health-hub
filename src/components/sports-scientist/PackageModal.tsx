@@ -10,7 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/utils/api";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 
@@ -27,19 +27,14 @@ export function PackageModal({ open, onOpenChange, orgId }: PackageModalProps) {
 
     const createPackage = useMutation({
         mutationFn: async () => {
-            const { data, error } = await supabase
-                .from("packages")
-                .insert({
-                    organization_id: orgId,
+            return await apiFetch('/api/billing/packages', {
+                method: 'POST',
+                body: JSON.stringify({
                     name,
                     price: Number(price),
                     is_recurring: true
                 })
-                .select()
-                .single();
-            
-            if (error) throw error;
-            return data;
+            });
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["ss-packages"] });

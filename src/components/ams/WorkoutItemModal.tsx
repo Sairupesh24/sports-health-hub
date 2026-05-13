@@ -29,7 +29,7 @@ import {
   Check, 
   ChevronDown 
 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/utils/api";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
@@ -106,10 +106,7 @@ export default function WorkoutItemModal({
   }, [initialItem, isOpen]);
 
   const fetchExercises = async () => {
-    const { data } = await supabase
-      .from('exercises')
-      .select('id, name, category_id, equipment_type')
-      .order('name');
+    const data = await apiFetch<any[]>('/ams/exercises?limit=500');
     setExercises(data || []);
   };
 
@@ -117,66 +114,43 @@ export default function WorkoutItemModal({
     try {
       setSaving(true);
       
-      // 1. Create/Update Base Workout Item
       const itemPayload = {
         workout_day_id: dayId,
-        org_id: orgId,
         item_type: activeTab,
-        display_order: initialItem?.display_order || 0
+        display_order: initialItem?.display_order || 0,
+        details: {
+          exercise_id: selectedExercise?.id,
+          sets: formData.sets,
+          reps: formData.reps,
+          load_value: formData.load_value,
+          tempo: formData.tempo,
+          rest_time_secs: formData.rest_time_secs,
+          workout_grouping: formData.workout_grouping,
+          each_side: formData.each_side,
+          additional_info: formData.additional_info,
+          circuit_name: formData.circuit_name,
+          rounds: formData.rounds,
+          content: formData.content
+        }
       };
 
-      let baseItem;
+      let savedItem;
       if (initialItem?.id) {
-        const { data } = await supabase
-          .from('workout_items')
-          .update(itemPayload)
-          .eq('id', initialItem.id)
-          .select()
-          .single();
-        baseItem = data;
+        savedItem = await apiFetch<any>(`/ams/workout-items/${initialItem.id}`, {
+          method: 'PATCH',
+          body: itemPayload
+        });
       } else {
-        const { data } = await supabase
-          .from('workout_items')
-          .insert(itemPayload)
-          .select()
-          .single();
-        baseItem = data;
+        savedItem = await apiFetch<any>('/ams/workout-items', {
+          method: 'POST',
+          body: itemPayload
+        });
       }
 
-      // 2. Create/Update Detail Item
-      const detailTable = `${activeTab}_items`;
-      const detailPayload: any = { id: baseItem.id };
-
-      if (activeTab === 'lift' || activeTab === 'saqc') {
-        detailPayload.exercise_id = selectedExercise.id;
-        detailPayload.sets = formData.sets;
-        detailPayload.reps = formData.reps;
-        detailPayload.load_value = formData.load_value;
-        detailPayload.tempo = formData.tempo;
-        detailPayload.rest_time_secs = formData.rest_time_secs;
-        detailPayload.workout_grouping = formData.workout_grouping;
-        detailPayload.each_side = formData.each_side;
-        detailPayload.additional_info = formData.additional_info;
-        detailPayload.is_completion_lift = formData.is_completion_lift;
-        detailPayload.is_bodyweight = formData.is_bodyweight;
-        detailPayload.is_coach_completion = formData.is_coach_completion;
-      } else if (activeTab === 'circuit') {
-        detailPayload.circuit_name = formData.circuit_name;
-        detailPayload.rounds = formData.rounds;
-      } else if (activeTab === 'note') {
-        detailPayload.content = formData.content;
-      }
-
-      const { error: detailError } = await supabase
-        .from(detailTable)
-        .upsert(detailPayload);
-
-      if (detailError) throw detailError;
-
-      onSave({ ...baseItem, [activeTab]: { ...detailPayload, exercise: selectedExercise } });
+      onSave(savedItem);
       onClose();
     } catch (error: any) {
-
+      console.error("Failed to save workout item:", error);
     } finally {
       setSaving(false);
     }

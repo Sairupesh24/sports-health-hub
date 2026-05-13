@@ -3,9 +3,8 @@ import { Link } from "react-router-dom";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import type { Database } from "@/integrations/supabase/types";
 import { cn } from "@/lib/utils";
+import { apiFetch } from "@/utils/api";
 import {
   Table,
   TableBody,
@@ -70,8 +69,8 @@ import {
   SheetDescription,
 } from "@/components/ui/sheet";
 
-type Enquiry = Database['public']['Tables']['enquiries']['Row'];
-type EnquiryStatus = Enquiry['status'];
+type Enquiry = any;
+type EnquiryStatus = string;
 
 export default function LeadsDashboard() {
   const { profile } = useAuth();
@@ -91,30 +90,18 @@ export default function LeadsDashboard() {
     queryKey: ["enquiries", profile?.organization_id, statusFilter],
     queryFn: async () => {
       if (!profile?.organization_id) return [];
-      let query = supabase
-        .from("enquiries")
-        .select("*")
-        .eq("organization_id", profile.organization_id)
-        .order("created_at", { ascending: false });
-
-      if (statusFilter !== 'all') {
-        query = query.eq("status", statusFilter);
-      }
-
-      const { data, error } = await query;
-      if (error) throw error;
-      return data as Enquiry[];
+      const data = await apiFetch<Enquiry[]>(`/clients/enquiries/all${statusFilter !== 'all' ? `?status=${statusFilter}` : ''}`);
+      return data;
     },
     enabled: !!profile?.organization_id,
   });
 
   const updateStatusMutation = useMutation({
     mutationFn: async ({ id, status }: { id: string, status: EnquiryStatus }) => {
-      const { error } = await supabase
-        .from("enquiries")
-        .update({ status })
-        .eq("id", id);
-      if (error) throw error;
+      await apiFetch(`/clients/enquiries/${id}`, {
+        method: 'PATCH',
+        body: { status }
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["enquiries"] });
@@ -124,17 +111,15 @@ export default function LeadsDashboard() {
 
   const logInteractionMutation = useMutation({
     mutationFn: async ({ id, type, response }: { id: string, type: string, response: string }) => {
-      const { error } = await supabase.from("enquiry_interactions").insert({
-        enquiry_id: id,
-        interaction_type: type,
-        response_text: response,
-        created_by: profile?.id
+      await apiFetch(`/clients/enquiries/${id}/interactions`, {
+        method: 'POST',
+        body: { interaction_type: type, response_text: response }
       });
-      if (error) throw error;
       
-      await supabase.from("enquiries").update({
-        last_interaction_at: new Date().toISOString()
-      }).eq("id", id);
+      await apiFetch(`/clients/enquiries/${id}`, {
+        method: 'PATCH',
+        body: { last_interaction_at: new Date().toISOString() }
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["enquiries"] });
@@ -146,12 +131,7 @@ export default function LeadsDashboard() {
     queryKey: ["client-search", linkSearchTerm],
     queryFn: async () => {
       if (linkSearchTerm.length < 3) return [];
-      const { data, error } = await supabase
-        .from("clients")
-        .select("id, first_name, last_name, uhid, mobile_no")
-        .or(`uhid.ilike.%${linkSearchTerm}%,first_name.ilike.%${linkSearchTerm}%,last_name.ilike.%${linkSearchTerm}%`)
-        .limit(5);
-      if (error) throw error;
+      const data = await apiFetch<any[]>(`/clients?search=${encodeURIComponent(linkSearchTerm)}`);
       return data;
     },
     enabled: linkSearchTerm.length >= 3,
@@ -159,33 +139,33 @@ export default function LeadsDashboard() {
 
   const linkMutation = useMutation({
     mutationFn: async ({ enquiryId, clientId }: { enquiryId: string, clientId: string }) => {
-      const { data: enqData, error: enqError } = await supabase
-        .from("enquiries")
-        .update({ status: 'converted', linked_client_id: clientId })
-        .eq("id", enquiryId)
-        .select()
-        .single();
-      if (enqError) throw enqError;
+      const enqData = await apiFetch<any>(`/clients/enquiries/${enquiryId}`, {
+        method: 'PATCH',
+        body: { status: 'converted', linked_client_id: clientId }
+      });
 
-      await supabase.from("enquiry_interactions").insert({
-        enquiry_id: enquiryId,
-        interaction_type: 'converted',
-        response_text: `Lead linked to UHID: ${selectedClient?.uhid || 'Manual Selection'}`,
-        created_by: profile?.id
+      await apiFetch(`/clients/enquiries/${enquiryId}/interactions`, {
+        method: 'POST',
+        body: {
+          interaction_type: 'converted',
+          response_text: `Lead linked to UHID: ${selectedClient?.uhid || 'Manual Selection'}`
+        }
       });
 
       if (enqData.notes) {
-        await supabase.from("client_admin_notes").insert({
-          client_id: clientId,
-          remarks: `[Enquiry Conversion Note]: ${enqData.notes}`,
-          created_by: profile?.id
+        await apiFetch(`/clients/${clientId}`, {
+          method: 'PATCH',
+          body: { admin_remarks: `[Enquiry Conversion Note]: ${enqData.notes}` }
         });
       }
 
-      await supabase
-        .from("sessions")
-        .update({ client_id: clientId, is_guest: false })
-        .eq("enquiry_id", enquiryId);
+      await apiFetch(`/appointments/sessions/bulk-update`, {
+        method: 'PATCH',
+        body: { 
+          filters: { enquiry_id: enquiryId },
+          updates: { client_id: clientId, is_guest: false }
+        }
+      });
 
       return true;
     },
@@ -228,9 +208,9 @@ export default function LeadsDashboard() {
   };
 
   const filteredEnquiries = enquiries.filter(enq => 
-    enq.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    enq.contact.includes(searchTerm) ||
-    enq.looking_for.toLowerCase().includes(searchTerm.toLowerCase())
+    (enq.name || enq.first_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (enq.contact || enq.mobile_no || '').includes(searchTerm) ||
+    (enq.looking_for || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const getStatusBadge = (status: EnquiryStatus) => {
@@ -344,11 +324,11 @@ export default function LeadsDashboard() {
                         <TableCell>
                           <div className="flex flex-col">
                             <span className="font-bold text-slate-900 flex items-center gap-2">
-                               {enq.name}
+                               {enq.name || enq.first_name || 'Unknown Lead'}
                                {enq.status === 'new' && <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />}
                             </span>
                             <span className="text-xs font-medium text-slate-500 flex items-center gap-1">
-                               <PhoneCall className="w-3 h-3" /> {enq.contact}
+                               <PhoneCall className="w-3 h-3" /> {enq.contact || enq.mobile_no || 'No Contact'}
                             </span>
                           </div>
                         </TableCell>
@@ -466,8 +446,8 @@ export default function LeadsDashboard() {
           }}
           initialData={{
             isGuest: true,
-            guestName: selectedEnquiry.name,
-            guestContact: selectedEnquiry.contact,
+            guestName: selectedEnquiry.name || selectedEnquiry.first_name || '',
+            guestContact: selectedEnquiry.contact || selectedEnquiry.mobile_no || '',
             enquiryId: selectedEnquiry.id
           }}
         />
@@ -533,7 +513,7 @@ export default function LeadsDashboard() {
         open={isInteractionModalOpen}
         onOpenChange={setIsInteractionModalOpen}
         enquiryId={selectedEnquiry?.id || ""}
-        enquiryName={selectedEnquiry?.name || ""}
+        enquiryName={selectedEnquiry?.name || selectedEnquiry?.first_name || ""}
         onSuccess={() => {
           queryClient.invalidateQueries({ queryKey: ["enquiries"] });
         }}
@@ -552,12 +532,12 @@ export default function LeadsDashboard() {
           <SheetHeader className="border-b pb-6 mb-6">
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center text-primary font-bold text-lg uppercase">
-                {selectedEnquiry?.name?.[0]}
+                {(selectedEnquiry?.name || selectedEnquiry?.first_name || '?')?.[0]}
               </div>
               <div className="flex-1">
-                <SheetTitle className="text-2xl font-display font-bold text-slate-900">{selectedEnquiry?.name}</SheetTitle>
+                <SheetTitle className="text-2xl font-display font-bold text-slate-900">{selectedEnquiry?.name || selectedEnquiry?.first_name}</SheetTitle>
                 <SheetDescription className="flex items-center gap-2 mt-1">
-                  <PhoneCall className="w-3.5 h-3.5" /> {selectedEnquiry?.contact}
+                  <PhoneCall className="w-3.5 h-3.5" /> {selectedEnquiry?.contact || selectedEnquiry?.mobile_no}
                   <span className="mx-2 text-slate-300">|</span>
                   <Badge variant="outline" className="text-[10px] font-bold uppercase tracking-widest">{selectedEnquiry?.status}</Badge>
                 </SheetDescription>
@@ -582,7 +562,14 @@ export default function LeadsDashboard() {
                   )}
                 </p>
               </div>
-              <div className="p-4 bg-slate-50 rounded-xl border border-slate-100 col-span-2">
+              <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
+                <Label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 block mb-1">Preferred Callback</Label>
+                <div className="flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-slate-400" />
+                  <p className="font-semibold text-slate-900">{selectedEnquiry?.preferred_call_time || 'Anytime'}</p>
+                </div>
+              </div>
+              <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
                 <Label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 block mb-1">Place of Work</Label>
                 <div className="flex items-center gap-2">
                   <Briefcase className="w-4 h-4 text-slate-400" />

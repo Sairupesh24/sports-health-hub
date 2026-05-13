@@ -3,7 +3,7 @@ import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/utils/api";
 import { toast } from "@/hooks/use-toast";
 import { Settings, ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -36,18 +36,13 @@ export default function FieldConfig() {
   const navigate = useNavigate();
   const [config, setConfig] = useState<Record<string, boolean>>({});
   const [saving, setSaving] = useState(false);
-  const orgId = "00000000-0000-0000-0000-000000000001";
 
   useEffect(() => {
     const fetchConfig = async () => {
-      const { data } = await supabase
-        .from("client_field_config")
-        .select("field_name, is_mandatory")
-        .eq("organization_id", orgId);
-
+      const data = await apiFetch(`/api/clients/field-config`);
       if (data) {
         const map: Record<string, boolean> = {};
-        data.forEach((row) => (map[row.field_name] = row.is_mandatory));
+        data.forEach((row: any) => (map[row.field_name] = row.is_mandatory));
         setConfig(map);
       }
     };
@@ -61,18 +56,15 @@ export default function FieldConfig() {
   const saveConfig = async () => {
     setSaving(true);
     try {
-      const upserts = CONFIGURABLE_FIELDS.map((f) => ({
-        organization_id: orgId,
+      const configs = CONFIGURABLE_FIELDS.map((f) => ({
         field_name: f.name,
         is_mandatory: config[f.name] || false,
-        updated_at: new Date().toISOString(),
       }));
 
-      const { error } = await supabase.from("client_field_config").upsert(upserts, {
-        onConflict: "organization_id,field_name",
+      await apiFetch(`/api/clients/field-config`, {
+        method: 'POST',
+        body: { configs }
       });
-
-      if (error) throw error;
       toast({ title: "Saved", description: "Field configuration updated" });
     } catch (err: any) {
       toast({ title: "Error", description: err.message, variant: "destructive" });
@@ -85,7 +77,7 @@ export default function FieldConfig() {
     <DashboardLayout role="admin">
       <div className="max-w-2xl mx-auto space-y-6">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/admin/clients")}>
+          <Button variant="ghost" size="icon" onClick={() => navigate("/admin/settings")}>
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <div>

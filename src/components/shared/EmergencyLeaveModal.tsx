@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { AlertCircle, Clock, Calendar, Users, Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/utils/api";
 import { toast } from "@/hooks/use-toast";
 import { format, addHours } from "date-fns";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -34,16 +34,8 @@ export default function EmergencyLeaveModal({ open, onOpenChange }: EmergencyLea
 
   const checkExistingEmergency = async () => {
     try {
-      const today = new Date().toISOString().split("T")[0];
-      const { data, error } = await supabase
-        .from("emergency_alerts")
-        .select("*")
-        .eq("staff_id", profile?.id)
-        .gte("created_at", `${today}T00:00:00Z`)
-        .order("created_at", { ascending: false })
-        .limit(1);
-
-      if (!error && data && data.length > 0) {
+      const data = await apiFetch('/hr/emergency-alerts/today');
+      if (data && data.length > 0) {
         setExistingEmergency(data[0]);
       }
     } catch (error) {
@@ -57,21 +49,18 @@ export default function EmergencyLeaveModal({ open, onOpenChange }: EmergencyLea
       const start = new Date().toISOString();
       const end = addHours(new Date(), 24).toISOString();
 
-      const { data, error } = await supabase
-        .from("sessions")
-        .select(`
-          id,
-          scheduled_start,
-          service_type,
-          client:clients(first_name, last_name, uhid, is_vip)
-        `)
-        .eq("therapist_id", profile?.id)
-        .gte("scheduled_start", start)
-        .lte("scheduled_start", end)
-        .order("scheduled_start", { ascending: true });
-
-      if (error) throw error;
-      setAffectedSessions(data || []);
+      const data = await apiFetch(`/api/appointments?therapist_id=${profile?.id}&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`);
+      
+      const mappedData = (data || []).map((session: any) => ({
+        ...session,
+        client: session.client || {
+          first_name: session.client_first_name,
+          last_name: session.client_last_name,
+          uhid: session.client_uhid,
+          is_vip: session.client_is_vip
+        }
+      }));
+      setAffectedSessions(mappedData);
     } catch (error: any) {
       console.error("Error fetching sessions:", error);
     } finally {
@@ -91,64 +80,11 @@ export default function EmergencyLeaveModal({ open, onOpenChange }: EmergencyLea
 
     setLoading(true);
     try {
-      // 1. Insert the emergency alert
-      const { error } = await (supabase as any)
-        .from("emergency_alerts")
-        .insert({
-          organization_id: profile?.organization_id,
-          staff_id: profile?.id,
-          reason: reason,
-          status: "unresolved",
-        });
-
-      if (error) throw error;
-
-      // 2. Auto-checkout or log emergency in attendance
-      const today = new Date().toISOString().split("T")[0];
-      const { data: todayLogs } = await supabase
-        .from("hr_attendance_logs")
-        .select("*")
-        .eq("profile_id", profile?.id)
-        .gte("created_at", `${today}T00:00:00Z`)
-        .order("created_at", { ascending: false });
-
-      const lastCheckIn = todayLogs?.find((l: any) => l.type === "check_in");
-      const alreadyCheckedOut = todayLogs?.some((l: any) => l.type === "check_out");
-
-      if (lastCheckIn && !alreadyCheckedOut) {
-        // Staff has an open check-in — log emergency_leave and close session
-        await supabase.from("hr_attendance_logs").insert({
-          organization_id: profile?.organization_id,
-          profile_id: profile?.id,
-          type: "emergency_leave",
-          latitude: lastCheckIn.latitude,
-          longitude: lastCheckIn.longitude,
-          distance_from_center: lastCheckIn.distance_from_center,
-          is_within_geofence: lastCheckIn.is_within_geofence,
-          metadata: {
-            auto: true,
-            reason: "emergency_leave",
-            note: "Auto-checked out due to emergency leave",
-            user_agent: navigator.userAgent,
-          },
-        });
-      } else if (!lastCheckIn) {
-        // No check-in today — log a standalone emergency_leave entry
-        await supabase.from("hr_attendance_logs").insert({
-          organization_id: profile?.organization_id,
-          profile_id: profile?.id,
-          type: "emergency_leave",
-          latitude: null,
-          longitude: null,
-          distance_from_center: null,
-          is_within_geofence: false,
-          metadata: {
-            reason: "emergency_leave",
-            note: "Emergency leave raised — no prior check-in for today",
-            user_agent: navigator.userAgent,
-          },
-        });
-      }
+      // Create emergency alert which also handles auto-checkout on the backend
+      await apiFetch('/hr/emergency-alerts', {
+        method: 'POST',
+        body: JSON.stringify({ reason })
+      });
 
       window.dispatchEvent(new Event("attendance_updated"));
 

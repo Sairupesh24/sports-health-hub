@@ -2,7 +2,7 @@ import { useState } from "react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/utils/api";
 import { 
   Card, 
   CardContent, 
@@ -39,16 +39,8 @@ export default function EmployeeManagement() {
   const { data: employees = [], isLoading } = useQuery({
     queryKey: ["hr-employees", profile?.organization_id],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("hr_employees")
-        .select(`
-          *,
-          profiles:profile_id (*),
-          jobs:job_id (*)
-        `)
-        .eq("organization_id", profile?.organization_id);
-      if (error) throw error;
-      return data;
+      const response = await apiFetch<any>("/hr/employees/directory");
+      return response.data;
     },
     enabled: !!profile?.organization_id,
   });

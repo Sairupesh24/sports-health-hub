@@ -17,7 +17,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/utils/api";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 
@@ -38,12 +38,7 @@ export function SubscriptionModal({ open, onOpenChange, orgId }: SubscriptionMod
     const { data: packages } = useQuery({
         queryKey: ["recurring-packages", orgId],
         queryFn: async () => {
-            const { data, error } = await supabase
-                .from("packages")
-                .select("*")
-                .eq("organization_id", orgId);
-            if (error) throw error;
-            return data;
+            return await apiFetch('/api/billing/packages');
         }
     });
 
@@ -51,53 +46,24 @@ export function SubscriptionModal({ open, onOpenChange, orgId }: SubscriptionMod
     const { data: clients } = useQuery({
         queryKey: ["all-clients", orgId],
         queryFn: async () => {
-            const { data, error } = await supabase
-                .from("clients")
-                .select("id, first_name, last_name, uhid")
-                .eq("organization_id", orgId);
-            if (error) throw error;
-            return data;
+            return await apiFetch('/api/clients');
         }
     });
 
     const createSubscription = useMutation({
         mutationFn: async () => {
-            // 1. Create Subscription
-            const { data: sub, error: subError } = await supabase
-                .from("subscriptions")
-                .insert({
-                    organization_id: orgId,
+            const pkg = packages?.find((p: any) => p.id === selectedPackage);
+            return await apiFetch('/api/billing/subscriptions', {
+                method: 'POST',
+                body: JSON.stringify({
                     client_id: selectedClient,
                     package_id: selectedPackage,
                     billing_cycle: billingCycle,
-                    current_period_start: startDate,
-                    next_billing_date: startDate,
-                    status: 'Active'
+                    start_date: startDate,
+                    package_name: pkg?.name,
+                    package_price: pkg?.price
                 })
-                .select()
-                .single();
-            
-            if (subError) throw subError;
-
-            // 2. Create Initial Bill
-            const pkg = packages?.find(p => p.id === selectedPackage);
-            const { error: billError } = await supabase
-                .from("bills")
-                .insert({
-                    organization_id: orgId,
-                    client_id: selectedClient,
-                    package_id: selectedPackage,
-                    subscription_id: sub.id,
-                    amount: pkg?.price || 0,
-                    total: pkg?.price || 0,
-                    status: 'Pending',
-                    date: startDate,
-                    notes: `Initial membership bill for ${pkg?.name}`
-                });
-
-            if (billError) throw billError;
-            
-            return sub;
+            });
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["ss-subscriptions"] });

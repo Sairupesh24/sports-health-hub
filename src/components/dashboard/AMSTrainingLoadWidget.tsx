@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/utils/api";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Flame, Info } from "lucide-react";
@@ -31,36 +31,11 @@ export default function AMSTrainingLoadWidget({ clientId }: { clientId?: string 
 
     const fetchTrainingLoads = async () => {
         try {
-            // Fetch recent training loads from the AMS integration table
-            // In a real app we would limit to the consultant's assigned athletes.
-            const today = new Date();
-            const lastWeek = new Date(today);
-            lastWeek.setDate(lastWeek.getDate() - 7);
-
-            let query = supabase
-                .from("external_training_summary")
-                .select(`
-                    id,
-                    training_date,
-                    workout_name,
-                    training_load,
-                    readiness_score,
-                    duration_minutes,
-                    completion_status,
-                    client:profiles!external_training_summary_client_id_fkey(id, first_name, last_name)
-                `)
-                .gte("training_date", lastWeek.toISOString())
-                .order("training_date", { ascending: false })
-                .limit(5);
-
-            if (clientId) {
-                query = query.eq('client_id', clientId);
-            }
-
-            const { data, error } = await query;
-
-            if (error) throw error;
-            setLoads(data as unknown as TrainingLoadWithProfile[]);
+            setLoading(true);
+            const data = await apiFetch<TrainingLoadWithProfile[]>('/ams/training-summary', {
+                params: { client_id: clientId, days: 7 }
+            });
+            setLoads(data);
         } catch (error: any) {
             console.error("Error fetching AMS data:", error);
         } finally {

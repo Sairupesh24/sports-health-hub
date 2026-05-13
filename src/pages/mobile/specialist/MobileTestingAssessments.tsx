@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/utils/api";
 import { useAuth } from "@/contexts/AuthContext";
 import MobileSpecialistLayout from "@/components/layout/MobileSpecialistLayout";
 import { 
@@ -46,34 +46,24 @@ export default function MobileTestingAssessments() {
   const { data: athletes, isLoading } = useQuery({
     queryKey: ['mobile-athletes-list'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('clients')
-        .select('id, first_name, last_name, uhid, is_vip, sport')
-        .is('deleted_at', null);
-      if (error) throw error;
-      return data;
+      return await apiFetch<any[]>('/clients');
     }
   });
 
   // 2. Save Mutation
   const saveMutation = useMutation({
     mutationFn: async ({ athleteId, value }: { athleteId: string, value: number }) => {
-      if (!user) throw new Error("Authentication required");
-
-      const { error } = await supabase
-        .from('performance_assessments')
-        .insert({
+      return await apiFetch('/ams/performance-assessments', {
+        method: 'POST',
+        body: {
           athlete_id: athleteId,
           category: selectedCategory,
           test_name: selectedTest,
-          metrics: { value, unit: 'n/a' },
-          recorded_by: user.id
-        });
-      
-      if (error) throw error;
-      return { athleteId, value };
+          metrics: { value, unit: 'n/a' }
+        }
+      });
     },
-    onSuccess: (data) => {
+    onSuccess: (data: any, variables) => {
       haptic.success();
       queryClient.invalidateQueries({ queryKey: ['performance-results'] });
       toast({
@@ -82,7 +72,7 @@ export default function MobileTestingAssessments() {
         className: "bg-emerald-500 text-white font-black uppercase text-[10px] tracking-widest border-none"
       });
       // Clear value for this athlete
-      setTestValues(prev => ({ ...prev, [data.athleteId]: 0 }));
+      setTestValues(prev => ({ ...prev, [variables.athleteId]: 0 }));
       setExpandedAthleteId(null);
     }
   });

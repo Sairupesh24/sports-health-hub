@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/utils/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Activity, Moon, Zap, AlertTriangle } from "lucide-react";
 import { format, subDays } from "date-fns";
@@ -17,15 +17,9 @@ export default function PerformanceSnapshot({ clientId }: PerformanceSnapshotPro
     const { data: logs, isLoading } = useQuery({
         queryKey: ["client_performance_snapshot", clientId],
         queryFn: async () => {
-            const sevenDaysAgo = subDays(new Date(), 7).toISOString();
-            const { data, error } = await supabase
-                .from("wellness_logs")
-                .select("*")
-                .eq("athlete_id", clientId)
-                .gte("created_at", sevenDaysAgo)
-                .order("created_at", { ascending: false });
-            
-            if (error) throw error;
+            const data = await apiFetch<any[]>('/ams/wellness-logs', {
+                params: { athlete_id: clientId, days: 7 }
+            });
             return data;
         },
         enabled: !!clientId

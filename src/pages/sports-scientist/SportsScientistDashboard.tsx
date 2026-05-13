@@ -18,7 +18,7 @@ import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/utils/api";
 import { SportsScientistBookSessionModal } from "@/components/sports-scientist/SportsScientistBookSessionModal";
 import { SportsScientistSessionStatusModal } from "@/components/sports-scientist/SportsScientistSessionStatusModal";
 import AmsStaffNav from "@/components/ams/AmsStaffNav";
@@ -41,49 +41,7 @@ export default function SportsScientistDashboard() {
         queryKey: ["sports-scientist-dashboard-stats", user?.id],
         queryFn: async () => {
             if (!user) return null;
-
-            // 1. Get Today's Sessions
-            const todayStart = new Date();
-            todayStart.setHours(0, 0, 0, 0);
-            const todayEnd = new Date();
-            todayEnd.setHours(23, 59, 59, 999);
-
-            const { data: todaySessions } = await (supabase
-                .from("sessions") as any)
-                .select(`
-                    id, 
-                    scheduled_start,
-                    scheduled_end,
-                    actual_start,
-                    actual_end,
-                    status, 
-                    session_mode, 
-                    group_name,
-                    session_notes,
-                    client:clients(first_name, last_name),
-                    session_type:session_types(name)
-                `)
-                .eq("scientist_id", user.id)
-                .gte("scheduled_start", todayStart.toISOString())
-                .lte("scheduled_start", todayEnd.toISOString())
-                .order("scheduled_start", { ascending: true });
-
-            // 2. Get Overall Counts
-            const { count: clientCount } = await supabase
-                .from("clients")
-                .select("*", { count: 'exact', head: true })
-                .or(`primary_scientist_id.eq.${user.id},primary_scientist_id.is.null`);
-
-            const { count: templateCount } = await supabase
-                .from("session_templates")
-                .select("*", { count: 'exact', head: true })
-                .eq("scientist_id", user.id);
-
-            return {
-                todaySessions: todaySessions || [],
-                clientCount: clientCount || 0,
-                templateCount: templateCount || 0
-            };
+            return await apiFetch<any>('/ams/dashboard/stats');
         },
         enabled: !!user
     });

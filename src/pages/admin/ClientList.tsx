@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/utils/api";
 import { UserPlus, Search, Users } from "lucide-react";
 import { format } from "date-fns";
 import { ClientBulkUpload } from "@/components/admin/ClientBulkUpload";
@@ -20,21 +20,8 @@ export default function ClientList() {
   const { data: clients, isLoading } = useQuery({
     queryKey: ["clients", search],
     queryFn: async () => {
-      let query = supabase
-        .from("clients")
-        .select("*")
-        .is("deleted_at", null)
-        .order("created_at", { ascending: false });
-
-      if (search.trim()) {
-        query = query.or(
-          `first_name.ilike.%${search}%,last_name.ilike.%${search}%,uhid.ilike.%${search}%,mobile_no.ilike.%${search}%`
-        );
-      }
-
-      const { data, error } = await query.limit(50);
-      if (error) throw error;
-      return data;
+      const endpoint = `/clients${search ? `?search=${encodeURIComponent(search)}` : ""}`;
+      return apiFetch<any[]>(endpoint);
     },
   });
 

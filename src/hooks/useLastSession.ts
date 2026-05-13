@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/utils/api";
 import { useAuth } from "@/contexts/AuthContext";
 
 export function useLastSession(exerciseId: string | null) {
@@ -9,35 +9,18 @@ export function useLastSession(exerciseId: string | null) {
     queryKey: ["exercise-history", exerciseId, session?.user?.id],
     enabled: !!exerciseId && !!session?.user?.id,
     queryFn: async () => {
-      // 1. Fetch Last Session
-      const { data: lastData } = await supabase
-        .from("workout_sets")
-        .select(`
-          weight_kg, reps,
-          workout_logs (created_at)
-        `)
-        .eq("exercise_id", exerciseId)
-        .order("created_at", { ascending: false })
-        .limit(1);
-
-      // 2. Fetch Best Lift (PR)
-      const { data: bestData } = await supabase
-        .from("workout_sets")
-        .select("weight_kg, reps")
-        .eq("exercise_id", exerciseId)
-        .order("weight_kg", { ascending: false })
-        .order("reps", { ascending: false })
-        .limit(1);
-
+      const data = await apiFetch(`/api/ams/exercise-history/${exerciseId}`);
+      if (!data) return { last: null, best: null };
+      
       return {
-        last: lastData?.[0] ? {
-          weight_kg: lastData[0].weight_kg,
-          reps: lastData[0].reps,
-          date: new Date(lastData[0].workout_logs.created_at).toLocaleDateString(),
+        last: data.last ? {
+          weight_kg: data.last.weight_kg,
+          reps: data.last.reps,
+          date: new Date(data.last.date).toLocaleDateString(),
         } : null,
-        best: bestData?.[0] ? {
-          weight_kg: bestData[0].weight_kg,
-          reps: bestData[0].reps,
+        best: data.best ? {
+          weight_kg: data.best.weight_kg,
+          reps: data.best.reps,
         } : null
       };
     },

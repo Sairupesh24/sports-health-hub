@@ -2,9 +2,9 @@ import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Download, Upload, AlertCircle, CheckCircle2, UserPlus, FileWarning } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
+import { apiFetch } from "@/utils/api";
 import * as XLSX from "xlsx";
 
 interface OrganizationUsersProps {
@@ -169,14 +169,14 @@ export default function OrganizationUsers({ organizationId }: OrganizationUsersP
         try {
             setProcessing(true);
 
-            const { data, error: functionError } = await supabase.functions.invoke('bulk-create-users', {
-                body: { 
+            const data = await apiFetch<any>('/master-console/bulk-create-users', {
+                method: 'POST',
+                data: { 
                     users: parsedUsers, 
                     organizationId: organizationId 
                 }
             });
 
-            if (functionError) throw functionError;
             if (!data?.success) throw new Error(data?.error || "Bulk import failed");
 
             const results = data.data;

@@ -14,7 +14,7 @@ import {
   Loader2,
   Check
 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/utils/api";
 import { useToast } from "@/components/ui/use-toast";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
@@ -46,16 +46,8 @@ export default function BatchInfoPopover({ batch, onUpdate, onManage }: BatchInf
 
   const fetchMembers = async () => {
     try {
-      const { data, error } = await supabase
-        .from('batch_members' as any)
-        .select(`
-          athlete_id,
-          athlete:profiles!batch_members_athlete_id_fkey(id, first_name, last_name, uhid)
-        `)
-        .eq('batch_id', batch.id);
-      
-      if (error) throw error;
-      setMembers(data.map((m: any) => m.athlete) || []);
+      const data = await apiFetch<any[]>(`/ams/batches/${batch.id}/members`);
+      setMembers(data || []);
     } catch (error: any) {
       console.error("Error fetching members:", error);
     }
@@ -65,13 +57,7 @@ export default function BatchInfoPopover({ batch, onUpdate, onManage }: BatchInf
   const removeMember = async (athleteId: string) => {
     try {
       setLoading(true);
-      const { error } = await supabase
-        .from('batch_members' as any)
-        .delete()
-        .eq('batch_id', batch.id)
-        .eq('athlete_id', athleteId);
-      
-      if (error) throw error;
+      await apiFetch(`/ams/batches/${batch.id}/members/${athleteId}`, { method: 'DELETE' });
       
       toast({
         title: "Member Removed",

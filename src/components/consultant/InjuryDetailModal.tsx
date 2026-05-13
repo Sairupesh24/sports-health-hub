@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/utils/api";
 import { format } from "date-fns";
 import { User, Calendar, Activity, ClipboardList, MapPin, Stethoscope, AlertTriangle, CheckCircle2, ArrowRight } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -52,18 +52,10 @@ export default function InjuryDetailModal({ open, onOpenChange, injury }: Injury
 
             try {
                 // 1. PRIMARY THERAPIST — from clients.assigned_consultant_id → profiles
-                const { data: clientRow } = await supabase
-                    .from("clients")
-                    .select(`
-                        id,
-                        assigned_consultant_id,
-                        consultant:profiles!clients_assigned_consultant_id_fkey(first_name, last_name, profession)
-                    `)
-                    .eq("id", injury.client_id)
-                    .single();
+                const clientRow = await apiFetch(`/api/clients/${injury.client_id}`);
 
                 if (clientRow?.consultant) {
-                    const c = clientRow.consultant as any;
+                    const c = clientRow.consultant;
                     const profLabel = c.profession ? ` (${c.profession})` : "";
                     setPrimaryTherapist(`Dr. ${c.first_name} ${c.last_name}${profLabel}`);
                 } else {
@@ -71,25 +63,13 @@ export default function InjuryDetailModal({ open, onOpenChange, injury }: Injury
                 }
 
                 // 2. RECENT THERAPIST — from latest session that has a therapist_id
-                const { data: sessionsData } = await supabase
-                    .from("sessions")
-                    .select(`
-                        id,
-                        scheduled_start,
-                        status,
-                        therapist_id,
-                        therapist:profiles!sessions_therapist_id_fkey(first_name, last_name, profession),
-                        physio_session_details(pain_score)
-                    `)
-                    .eq("client_id", injury.client_id)
-                    .order("scheduled_start", { ascending: false })
-                    .limit(15);
+                const sessionsData = await apiFetch(`/api/appointments?client_id=${injury.client_id}`);
 
                 if (sessionsData && sessionsData.length > 0) {
                     // Most recent session with a therapist
-                    const withTherapist = sessionsData.find(s => s.therapist_id);
+                    const withTherapist = sessionsData.find((s: any) => s.therapist_id);
                     if (withTherapist?.therapist) {
-                        const t = withTherapist.therapist as any;
+                        const t = withTherapist.therapist;
                         const profLabel = t.profession ? ` (${t.profession})` : "";
                         setRecentTherapist(`Dr. ${t.first_name} ${t.last_name}${profLabel}`);
                     } else {

@@ -7,7 +7,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/utils/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { Clock, Save, Calendar as CalendarIcon, Plus, Trash2 } from "lucide-react";
 
@@ -51,23 +51,15 @@ export default function ConsultantAvailability() {
             if (!profile?.organization_id || !profile?.id) return;
             try {
                 // Fetch Org Settings
-                const { data: orgSettings } = await supabase
-                    .from("organization_settings")
-                    .select("allow_custom_duration")
-                    .eq("organization_id", profile.organization_id)
-                    .maybeSingle();
-
+                const orgSettings = await apiFetch<any>(`/organizations/${profile.organization_id}/settings`);
                 if (orgSettings) {
                     setOrgAllowCustom(!!orgSettings.allow_custom_duration);
                 }
 
                 // Fetch Consultant's Existing Schedule
-                const { data: availData, error } = await supabase
-                    .from("consultant_availability")
-                    .select("*")
-                    .eq("consultant_id", profile.id);
-
-                if (error) throw error;
+                const availData = await apiFetch<any[]>('/appointments/availability/bulk', {
+                    params: { consultant_ids: profile.id }
+                });
 
                 if (availData && availData.length > 0) {
                     const loadedSchedules: ScheduleRow[] = DAYS_OF_WEEK.map(day => {
@@ -119,18 +111,7 @@ export default function ConsultantAvailability() {
         if (!profile?.organization_id || !profile?.id) return;
         setSaving(true);
         try {
-            // 1. Delete all existing records for this consultant
-            const { error: deleteError } = await supabase
-                .from("consultant_availability")
-                .delete()
-                .eq("consultant_id", profile.id);
-
-            if (deleteError) throw deleteError;
-
-            // 2. Insert new active ones
             const inserts = schedules.filter(s => s.is_active).map(s => ({
-                organization_id: profile.organization_id,
-                consultant_id: profile.id,
                 day_of_week: s.day_of_week,
                 start_time: `${s.start_time}:00`,
                 end_time: `${s.end_time}:00`,
@@ -138,12 +119,13 @@ export default function ConsultantAvailability() {
                 buffer_time: s.buffer_time
             }));
 
-            if (inserts.length > 0) {
-                const { error: insertError } = await supabase
-                    .from("consultant_availability")
-                    .insert(inserts);
-                if (insertError) throw insertError;
-            }
+            await apiFetch('/appointments/availability/bulk-update', {
+                method: 'POST',
+                data: {
+                    consultant_id: profile.id,
+                    schedules: inserts
+                }
+            });
 
             toast({ title: "Schedule Saved", description: "Your weekly availability has been successfully updated." });
         } catch (err: any) {

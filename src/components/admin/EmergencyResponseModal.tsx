@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/utils/api";
 import { 
   Dialog, 
   DialogContent, 
@@ -49,36 +49,11 @@ export default function EmergencyResponseModal({ open, onOpenChange, organizatio
     if (!organizationId) return;
     setAlertsLoading(true);
     try {
-      const { data: alertsData, error } = await (supabase as any)
-        .from("emergency_alerts")
-        .select("*")
-        .eq("organization_id", organizationId)
-        .eq("status", "unresolved")
-        .order("created_at", { ascending: false });
-
-      if (error) { console.error("Alert fetch error:", error); setAlerts([]); return; }
-      if (!alertsData || alertsData.length === 0) { setAlerts([]); return; }
-
-      // Fetch each staff profile individually to avoid .in() formatting issues
-      const merged = await Promise.all(
-        alertsData.map(async (alert: any) => {
-          try {
-            const { data: profileData } = await supabase
-              .from("profiles")
-              .select("id, first_name, last_name, profession")
-              .eq("id", alert.staff_id)
-              .maybeSingle();
-            return { ...alert, staff: profileData };
-          } catch {
-            return { ...alert, staff: null };
-          }
-        })
-      );
-
-      setAlerts(merged);
-      // Set selected after alerts are set
-      if (merged.length > 0) {
-        setSelectedAlertId(merged[0].id);
+      const data = await apiFetch(`/hr/emergencies?status=unresolved`);
+      const alertsData = data?.data || [];
+      setAlerts(alertsData);
+      if (alertsData.length > 0) {
+        setSelectedAlertId(alertsData[0].id);
       }
     } catch (e) {
       console.error("Unexpected error fetching alerts:", e);
@@ -107,26 +82,10 @@ export default function EmergencyResponseModal({ open, onOpenChange, organizatio
     queryKey: ["emergency-affected-sessions", selectedAlert?.staff_id],
     queryFn: async () => {
       if (!selectedAlert?.staff_id) return [];
-      
       const start = parseISO(selectedAlert.created_at);
       const end = addHours(start, 24).toISOString();
-
-      const { data, error } = await (supabase
-        .from("sessions") as any)
-        .select(`
-          id,
-          scheduled_start,
-          service_type,
-          status,
-          client:clients(id, first_name, last_name, uhid, is_vip, mobile_no, email)
-        `)
-        .eq("therapist_id", selectedAlert.staff_id)
-        .gte("scheduled_start", start.toISOString())
-        .lte("scheduled_start", end)
-        .order("scheduled_start", { ascending: true });
-
-      if (error) throw error;
-      return data;
+      const data = await apiFetch(`/api/appointments?therapist_id=${selectedAlert.staff_id}&start=${start.toISOString()}&end=${end}`);
+      return data || [];
     },
     enabled: !!selectedAlert?.staff_id
   });
@@ -144,16 +103,13 @@ export default function EmergencyResponseModal({ open, onOpenChange, organizatio
   // 3. Resolution Mutation
   const resolveMutation = useMutation({
     mutationFn: async ({ id, decision }: { id: string, decision: string }) => {
-      const { error } = await (supabase as any)
-        .from("emergency_alerts")
-        .update({
-          status: "resolved",
-          admin_decision: decision,
-          updated_at: new Date().toISOString()
-        })
-        .eq("id", id);
-      
-      if (error) throw error;
+      await apiFetch(`/hr/emergencies/${id}`, {
+        method: 'PATCH',
+        body: {
+          status: 'resolved',
+          admin_decision: decision
+        }
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["unresolved-emergency-alerts"] });

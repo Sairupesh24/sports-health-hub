@@ -72,15 +72,28 @@ export function filterServicesByRole(
 }
 
 /**
- * Pairs a specialist with a service by checking if their profession matches 
- * any categories allowed for that service.
+ * Pairs a specialist with a service by checking dynamic mappings first,
+ * then falling back to role-based category matching.
  */
 export function filterConsultantsByService(
     consultants: any[],
-    service: Service | null | undefined
+    service: Service | null | undefined,
+    dynamicMappings?: { consultant_id: string, service_id: string }[]
 ): any[] {
     if (!service) return consultants;
 
+    // 1. Try dynamic mappings first
+    if (dynamicMappings && dynamicMappings.length > 0) {
+        const mappedIds = dynamicMappings
+            .filter(m => m.service_id === service.id)
+            .map(m => m.consultant_id);
+        
+        if (mappedIds.length > 0) {
+            return consultants.filter(c => mappedIds.includes(c.id));
+        }
+    }
+
+    // 2. Fallback to existing role-based logic
     const sName = (service.name || "").toLowerCase().trim();
     const sCat = (service.category || "").toLowerCase().trim();
 

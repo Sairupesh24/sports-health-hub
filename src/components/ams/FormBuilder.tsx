@@ -27,7 +27,7 @@ import {
   Info,
   Save
 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/utils/api";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
@@ -164,42 +164,28 @@ export default function FormBuilder({ isOpen, onClose, onSuccess, initialData }:
 
     try {
       setSaving(true);
-      const { data: { user } } = await supabase.auth.getUser();
+      const { user } = useAuth();
       if (!user) throw new Error("Not authenticated");
 
       const formPayload = {
-        org_id: profile?.organization_id,
         name: formName,
         classification: classification,
-        questions: questions,
-        created_by: user.id
+        questions: questions
       };
 
-      let error;
-      let savedData;
       if (initialData?.id) {
-        ({ data: savedData, error } = await supabase
-          .from("questionnaires" as any)
-          .update(formPayload as any)
-          .eq("id", initialData.id)
-          .select()
-          .single());
+        await apiFetch(`/ams/questionnaires/${initialData.id}`, {
+          method: 'PATCH',
+          body: formPayload
+        });
       } else {
-        ({ data: savedData, error } = await supabase
-          .from("questionnaires" as any)
-          .insert([formPayload as any])
-          .select()
-          .single());
+        const savedData = await apiFetch<any>('/ams/questionnaires', {
+          method: 'POST',
+          body: formPayload
+        });
+        setSavedFormId(savedData.id);
       }
 
-      if (error) {
-        if (error.message.includes('column "classification" does not exist')) {
-          throw new Error("Database update required. Please run the migration script provided in the root directory (supabase/migrations/manual_update_classification.sql).");
-        }
-        throw error;
-      }
-
-      setSavedFormId(savedData.id);
       setShowSuccessActions(true);
 
       toast({ 

@@ -5,9 +5,10 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/utils/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { Calendar as CalendarIcon, Clock, Users, User, Plus, Loader2, Check, ChevronsUpDown, X } from "lucide-react";
@@ -31,7 +32,6 @@ export function SportsScientistBookSessionModal({ open, onOpenChange, onSuccess 
     const [clients, setClients] = useState<any[]>([]);
     const [sessionTypes, setSessionTypes] = useState<any[]>([]);
 
-    // Form state
     const [sessionMode, setSessionMode] = useState<"Individual" | "Group" | "Other">("Individual");
     const [groupName, setGroupName] = useState("");
     const [selectedClientIds, setSelectedClientIds] = useState<string[]>([]);
@@ -65,98 +65,41 @@ export function SportsScientistBookSessionModal({ open, onOpenChange, onSuccess 
     }, [open, profile?.organization_id]);
 
     const fetchGroups = async () => {
-        const { data: groups } = await supabase
-            .from("client_groups")
-            .select("id, name")
-            .eq("organization_id", profile?.organization_id);
-            
-        if (groups) {
-            setRecentGroups(groups);
-            
-            const { data: members } = await supabase
-                .from("client_group_members")
-                .select("group_id, client_id");
+        try {
+            const groups = await apiFetch<any[]>("/ams/groups");
+            if (groups) {
+                setRecentGroups(groups);
                 
-            if (members) {
-                const map: Record<string, string[]> = {};
-                members.forEach(m => {
-                    if (!map[m.group_id]) map[m.group_id] = [];
-                    map[m.group_id].push(m.client_id);
-                });
-                setGroupMembers(map);
+                const members = await apiFetch<any[]>("/ams/group-members");
+                if (members) {
+                    const map: Record<string, string[]> = {};
+                    members.forEach((m: any) => {
+                        if (!map[m.group_id]) map[m.group_id] = [];
+                        map[m.group_id].push(m.client_id);
+                    });
+                    setGroupMembers(map);
+                }
             }
+        } catch (error) {
+            console.error("Error fetching groups:", error);
         }
     };
 
     const fetchClients = async () => {
-
-        const { data } = await supabase
-            .from("clients")
-            .select("id, first_name, last_name, uhid")
-            .eq("organization_id", profile?.organization_id)
-            .is("deleted_at", null);
-        if (data) setClients(data);
-    };
-
-    const DEFAULT_SESSION_TYPES = [
-        "Performance Assessment", "Device Testing", "Testing & Training", "Training",
-        "Online session", "Physiotherapy", "Studying/Research",
-        "Video Production/Video shooting/Video Editing", "Site Visit/Business Development",
-        "Meeting", "Travelling", "Athlete/Parent Counselling", "Initial Consultation",
-        "Guest Visits(at Center and Outside)", "Off-site Testing", "Off-site Training",
-        "Group Session", "Office Work", "On-Court/On-Field Observations", "Report Making",
-        "Warmup/ cool down", "Data work", "Program Design/Program planning and sharing",
-        "Match day/ Observation", "Doctor consultation"
-    ];
-
-    const getLocalTypes = (): { id: string; name: string; category: string }[] => {
-        const key = `session_types_${profile?.organization_id || "default"}`;
         try {
-            const stored = localStorage.getItem(key);
-            if (stored) return JSON.parse(stored);
-        } catch { /* ignore */ }
-        return DEFAULT_SESSION_TYPES.map((name, i) => ({ id: `local-${i}`, name, category: "General" }));
+            const data = await apiFetch<any[]>("/clients");
+            if (data) setClients(data);
+        } catch (error) {
+            console.error("Error fetching clients:", error);
+        }
     };
 
     const fetchSessionTypes = async () => {
         try {
-            const { data, error } = await (supabase as any)
-                .from("session_types")
-                .select("*")
-                .eq("organization_id", profile?.organization_id);
-
-            if (error) throw error;
-
-            if (data && data.length > 0) {
-                setSessionTypes(data);
-                return;
-            }
-
-            // No session types in DB — seed the defaults now so we always get real UUIDs
-            const defaultTypes = DEFAULT_SESSION_TYPES.map(name => ({
-                organization_id: profile!.organization_id,
-                name,
-                category: "General",
-            }));
-
-            const { data: inserted, error: insertError } = await (supabase as any)
-                .from("session_types")
-                .insert(defaultTypes)
-                .select();
-
-            if (insertError) {
-                // If seeding fails (e.g. duplicate), try fetching again
-
-                const { data: retry } = await (supabase as any)
-                    .from("session_types")
-                    .select("*")
-                    .eq("organization_id", profile?.organization_id);
-                if (retry && retry.length > 0) setSessionTypes(retry);
-            } else if (inserted) {
-                setSessionTypes(inserted);
-            }
+            const data = await apiFetch<any[]>("/appointments/session-types");
+            if (data) setSessionTypes(data);
         } catch (error) {
-
+            console.error('Error fetching session types:', error);
         }
     };
 
@@ -276,52 +219,16 @@ export function SportsScientistBookSessionModal({ open, onOpenChange, onSuccess 
                 }
             }
 
-            // 1. Create the sessions
-            const { data: insertedSessions, error: sessionError } = await (supabase as any)
-                .from("sessions")
-                .insert(sessionsToInsert)
-                .select();
-
-            if (sessionError) throw sessionError;
-
-            // 2. If Group mode, create attendance rows and sync group architecture
-            if (sessionMode === "Group" && selectedClientIds.length > 0) {
-                const attendanceData = [];
-                for (const session of insertedSessions) {
-                    for (const clientId of selectedClientIds) {
-                        attendanceData.push({
-                            session_id: session.id,
-                            client_id: clientId,
-                            attendance_status: 'Present'
-                        });
-                    }
-                }
-                
-                const { error: attendError } = await supabase
-                    .from("group_attendance")
-                    .insert(attendanceData);
-
-
-                // Sync group architecture
-                const { data: groupData, error: groupError } = await supabase
-                    .from("client_groups")
-                    .upsert({ 
-                        organization_id: profile!.organization_id,
-                        name: groupName,
-                        created_by: user!.id 
-                    }, { onConflict: 'organization_id,name' })
-                    .select("id")
-                    .single();
-                    
-                if (groupData && !groupError) {
-                    const groupMembersData = selectedClientIds.map(clientId => ({
-                        group_id: groupData.id,
-                        client_id: clientId,
-                        added_by: user!.id
-                    }));
-                    await supabase.from("client_group_members").upsert(groupMembersData, { onConflict: 'group_id,client_id' });
-                }
-            }
+            // Bulk book sessions
+            await apiFetch('/api/ams/sessions/bulk', {
+                method: 'POST',
+                body: JSON.stringify({
+                    sessions: sessionsToInsert,
+                    sessionMode,
+                    groupName,
+                    selectedClientIds
+                })
+            });
 
             toast({ title: "Success", description: "Session booked successfully." });
             onSuccess();

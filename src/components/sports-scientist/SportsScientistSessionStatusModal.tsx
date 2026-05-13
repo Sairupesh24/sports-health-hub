@@ -4,11 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/utils/api";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Lock, AlertTriangle, Clock, CheckCircle2, XCircle, Info } from "lucide-react";
 import { format, startOfDay, differenceInCalendarDays, parseISO, isFuture } from "date-fns";
 import { Input } from "@/components/ui/input";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface Props {
     open: boolean;
@@ -59,6 +60,7 @@ function getSessionEditability(session: any): {
 }
 
 export function SportsScientistSessionStatusModal({ open, onOpenChange, session, onSuccess }: Props) {
+    const { user } = useAuth();
     const { toast } = useToast();
     const [loading, setLoading] = useState(false);
     const [autoMissing, setAutoMissing] = useState(false);
@@ -80,10 +82,10 @@ export function SportsScientistSessionStatusModal({ open, onOpenChange, session,
 
         setAutoMissing(true);
         try {
-            await supabase
-                .from("sessions")
-                .update({ status: "Missed", updated_at: new Date().toISOString() })
-                .eq("id", session.id);
+            await apiFetch(`/api/appointments/${session.id}`, {
+                method: 'PATCH',
+                body: JSON.stringify({ status: "Missed" })
+            });
             onSuccess(); // refresh caller
         } catch (e) {
             console.error("Auto-miss failed", e);
@@ -134,26 +136,26 @@ export function SportsScientistSessionStatusModal({ open, onOpenChange, session,
                 
                 let updateError;
                 try {
-                    const { error } = await supabase.from("sessions").update({
-                        status: "Checked In",
-                        actual_start: actualStartIso,
-                        updated_at: new Date().toISOString()
-                    }).eq("id", session.id);
-                    updateError = error;
+                    await apiFetch(`/api/appointments/${session.id}`, {
+                        method: 'PATCH',
+                        body: JSON.stringify({
+                            status: "Checked In",
+                            actual_start: actualStartIso
+                        })
+                    });
                 } catch (e) {
                     updateError = e;
                 }
                 
                 if (updateError) {
                     // Aggressive Fallback: Just update actual_start and keep status as is
-                    const { error: fallbackError } = await supabase.from("sessions").update({
-                        actual_start: actualStartIso,
-                        updated_at: new Date().toISOString()
-                    }).eq("id", session.id);
+                    await apiFetch(`/api/appointments/${session.id}`, {
+                        method: 'PATCH',
+                        body: JSON.stringify({
+                            actual_start: actualStartIso
+                        })
+                    });
                     
-                    if (fallbackError) throw fallbackError;
-                    // If fallback succeeds, we stay as "Planned" but with actual_start set, 
-                    // which our UI now recognizes as "IN PROGRESS"
                     setStatus(session.status || "Planned");
                 } else {
                     setStatus("Checked In");
@@ -166,20 +168,13 @@ export function SportsScientistSessionStatusModal({ open, onOpenChange, session,
                 const dateStr = format(parseISO(session.scheduled_start), "yyyy-MM-dd");
                 const actualEndIso = new Date(`${dateStr}T${nowTime}:00`).toISOString();
                 
-                const { error: updateError } = await supabase.from("sessions").update({
-                    status: "Completed",
-                    actual_end: actualEndIso,
-                    updated_at: new Date().toISOString()
-                }).eq("id", session.id);
-                
-                if (updateError) throw updateError;
-                
-                const { data: { user } } = await supabase.auth.getUser();
-                const { error: rpcError } = await supabase.rpc("complete_session", {
-                    p_session_id: session.id,
-                    p_user_id: user?.id,
+                await apiFetch(`/api/appointments/${session.id}/complete`, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        actual_start: session.actual_start || actualEndIso,
+                        actual_end: actualEndIso
+                    })
                 });
-                if (rpcError) throw new Error(rpcError.message || "Failed to complete session");
                 
                 toast({ title: "Session Ended", description: "Session completed successfully." });
                 await onSuccess();
@@ -237,22 +232,13 @@ export function SportsScientistSessionStatusModal({ open, onOpenChange, session,
 
             if (status === "Completed") {
                 const dateStr = format(parseISO(session.scheduled_start), "yyyy-MM-dd");
-                updateData.actual_start = new Date(`${dateStr}T${actualStart}:00`).toISOString();
-                updateData.actual_end = new Date(`${dateStr}T${actualEnd}:00`).toISOString();
+                const actual_start = new Date(`${dateStr}T${actualStart}:00`).toISOString();
+                const actual_end = new Date(`${dateStr}T${actualEnd}:00`).toISOString();
 
-                // Update actual times first
-                await (supabase as any).from("sessions").update({
-                    actual_start: updateData.actual_start,
-                    actual_end: updateData.actual_end,
-                }).eq("id", session.id);
-
-                // Call complete_session RPC (handles entitlement deduction)
-                const { data: { user } } = await supabase.auth.getUser();
-                const { error: rpcError } = await supabase.rpc("complete_session", {
-                    p_session_id: session.id,
-                    p_user_id: user?.id,
+                await apiFetch(`/api/appointments/${session.id}/complete`, {
+                    method: 'POST',
+                    body: JSON.stringify({ actual_start, actual_end })
                 });
-                if (rpcError) throw new Error(rpcError.message || "Failed to complete session");
             } else if (status === "Rescheduled") {
                 if (session.status !== "Planned") {
                     throw new Error("Only Planned sessions can be rescheduled.");
@@ -265,26 +251,28 @@ export function SportsScientistSessionStatusModal({ open, onOpenChange, session,
                 const durationMs = new Date(session.scheduled_end || session.scheduled_start).getTime() - new Date(session.scheduled_start).getTime();
                 const newEndTime = new Date(newStartTime.getTime() + (durationMs || 3600000)); // Default 1h if duration missing
 
-                const { data: newSessionId, error: rescheduleError } = await supabase.rpc("reschedule_session", {
-                    p_session_id: session.id,
-                    p_new_start: newStartTime.toISOString(),
-                    p_new_end: newEndTime.toISOString()
+                await apiFetch(`/api/appointments/${session.id}/reschedule`, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        new_start: newStartTime.toISOString(),
+                        new_end: newEndTime.toISOString()
+                    })
                 });
-
-                if (rescheduleError) throw rescheduleError;
 
                 toast({ title: "Rescheduled", description: "The session has been moved to the new date and time." });
             } else {
-                const { error } = await (supabase as any)
-                    .from("sessions")
-                    .update(updateData)
-                    .eq("id", session.id);
-                if (error) throw error;
+                await apiFetch(`/api/appointments/${session.id}`, {
+                    method: 'PATCH',
+                    body: JSON.stringify(updateData)
+                });
             }
 
             // Also update session_notes separately if changed
-            if (sessionNotes !== session.session_notes) {
-                await (supabase as any).from("sessions").update({ session_notes: sessionNotes }).eq("id", session.id);
+            if (sessionNotes !== session.session_notes && status !== "Completed" && status !== "Rescheduled") {
+                await apiFetch(`/api/appointments/${session.id}`, {
+                    method: 'PATCH',
+                    body: JSON.stringify({ session_notes: sessionNotes })
+                });
             }
 
             toast({ title: "Saved", description: "Session notes updated." });

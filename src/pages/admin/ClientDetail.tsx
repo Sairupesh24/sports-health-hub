@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/utils/api";
 import {
   ArrowLeft, User, Phone, Mail, MapPin, Shield, Dumbbell,
   Receipt, Calendar, CreditCard, Building2, Heart
@@ -20,13 +20,7 @@ export default function ClientDetail() {
   const { data: client, isLoading } = useQuery({
     queryKey: ["client", id],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("clients")
-        .select("*")
-        .eq("id", id!)
-        .single();
-      if (error) throw error;
-      return data;
+      return await apiFetch<any>(`/clients/${id}`);
     },
     enabled: !!id,
   });
@@ -34,33 +28,7 @@ export default function ClientDetail() {
   const { data: bills } = useQuery({
     queryKey: ["client-bills", id],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("bills")
-        .select("*, packages(name), referral_sources(name)")
-        .eq("client_id", id!)
-        .is("deleted_at", null)
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-
-      // Fetch payments for these bills
-      const billIds = data.map((b: any) => b.id);
-      const { data: payments, error: payError } = await supabase
-        .from("bill_payments")
-        .select("bill_id, amount")
-        .in("bill_id", billIds);
-      
-      if (payError) throw payError;
-
-      const paymentMap: Record<string, number> = {};
-      payments?.forEach((p: any) => {
-        paymentMap[p.bill_id] = (paymentMap[p.bill_id] || 0) + (Number(p.amount) || 0);
-      });
-
-      return data.map((b: any) => ({
-        ...b,
-        paid_amount: paymentMap[b.id] || 0,
-        remaining_due: Math.max(0, Number(b.total) - (paymentMap[b.id] || 0))
-      }));
+      return await apiFetch<any[]>(`/clients/${id}/bills`);
     },
     enabled: !!id,
   });

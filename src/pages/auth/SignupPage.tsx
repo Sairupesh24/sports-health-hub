@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/utils/api";
 
 export default function SignupPage() {
   const [email, setEmail] = useState("");
@@ -21,25 +21,19 @@ export default function SignupPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      // Validate the organization code
-      const { data: orgId, error: orgError } = await supabase.rpc('get_org_by_code' as any, { p_code: orgCode });
-
-      if (orgError) throw new Error("Failed to validate organization code.");
-      if (!orgId) throw new Error("Invalid organization code. Please check and try again.");
-
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          emailRedirectTo: window.location.origin,
-          data: { first_name: firstName, last_name: lastName, organization_id: orgId, role },
-        },
+      await apiFetch('/auth/signup', {
+        data: {
+          email,
+          password,
+          firstName,
+          lastName,
+          orgCode,
+          role
+        }
       });
-      if (error) throw error;
-
-      // Update the auto-created profile with name
+      
       setSent(true);
-      toast({ title: "Check your email", description: "We sent a verification link to " + email });
+      toast({ title: "Check your email", description: "Your account is pending admin approval." });
     } catch (err: any) {
       toast({ title: "Signup failed", description: err.message, variant: "destructive" });
     } finally {

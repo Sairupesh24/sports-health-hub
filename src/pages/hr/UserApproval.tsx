@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/utils/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -65,41 +65,15 @@ export default function UserApproval() {
     if (!profile?.organization_id) return;
 
     try {
-      const { data: profiles, error: profilesError } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("organization_id", profile.organization_id)
-        .neq("id", profile.id)
-        .order("created_at", { ascending: false });
-
-      if (profilesError) throw profilesError;
-
-      const userIds = profiles?.map(p => p.id) || [];
-      let rolesData: any[] = [];
-
-      if (userIds.length > 0) {
-        const { data: roles } = await supabase
-          .from("user_roles")
-          .select("user_id, role")
-          .in("user_id", userIds);
-
-        rolesData = roles || [];
-      }
+      const response = await apiFetch<any>(`/hr/users`);
+      const profiles = response.data;
 
       if (profiles) {
-        const filtered = profiles.map(p => {
-          const userRole = rolesData.find(r => r.user_id === p.id);
-          return {
-            ...p,
-            current_role: userRole ? userRole.role : undefined
-          };
-        }).filter(u => {
+        const filtered = profiles.filter(u => {
           // Exclude super admins
           if (u.current_role === 'super_admin') return false;
-          // Exclude ghost profiles (those that were renamed during cleanup attempts)
+          // Exclude ghost profiles
           if (u.email?.startsWith('deleted_')) return false;
-          // Exclude orphans (profiles with no role that aren't pending approval)
-          // (Wait, keep new users who don't have roles yet but are not approved)
           return true;
         });
 
@@ -135,9 +109,9 @@ export default function UserApproval() {
 
     setIsAdding(true);
     try {
-      const { createClient } = await import("@supabase/supabase-js");
-      const { data, error: functionError } = await supabase.functions.invoke('create-user', {
-        body: { 
+      const response = await apiFetch<any>('/hr/users', {
+        method: 'POST',
+        data: { 
           email: newEmail, 
           firstName: newFirst, 
           lastName: newLast, 
@@ -146,10 +120,9 @@ export default function UserApproval() {
         }
       });
 
-      if (functionError) throw functionError;
-      if (!data?.success) throw new Error(data?.error || "Failed to create user account");
+      if (!response.success) throw new Error(response.error || "Failed to create user account");
 
-      const authData = data.user;
+      const authData = response.user;
       setGeneratedCreds({ email: authData.email, password: authData.password });
       toast({ title: "User created", description: "Successfully created user and bypassed email verification." });
       fetchUsers();
@@ -196,43 +169,15 @@ export default function UserApproval() {
           else if (role === 'sports_scientist') prof = 'Sports Scientist';
       }
 
-      const profileUpdate: any = { 
-        is_approved: true,
-        ams_role: amsRole !== undefined ? amsRole : null,
-        profession: prof
-      };
-
-      if (role === "client" && uhid?.trim()) {
-        const cleanUhid = uhid.trim();
-        const { data: clientCheck, error: checkError } = await supabase.from("clients").select("id").eq("uhid", cleanUhid).maybeSingle();
-        if (checkError) throw checkError;
-        if (!clientCheck) {
-          toast({ title: "Invalid UHID", description: "This UHID does not exist in your clinic's records.", variant: "destructive" });
-          return;
+      await apiFetch(`/hr/users/${userId}/approve`, {
+        method: 'POST',
+        data: {
+          role,
+          uhid: uhid?.trim(),
+          ams_role: amsRole !== undefined ? amsRole : null,
+          profession: prof
         }
-        profileUpdate.uhid = cleanUhid;
-      }
-      
-      if (role === "athlete" && !amsRole) {
-        profileUpdate.ams_role = "athlete";
-      }
-
-      const { error: profileError } = await supabase
-        .from("profiles")
-        .update(profileUpdate)
-        .eq("id", userId);
-      if (profileError) throw profileError;
-
-      const { data: existingRole, error: fetchError } = await supabase.from("user_roles").select("*").eq("user_id", userId).maybeSingle();
-      if (fetchError && fetchError.code !== 'PGRST116') throw fetchError;
-
-      if (existingRole) {
-        const { error: roleUpdateError } = await supabase.from("user_roles").update({ role } as any).eq("user_id", userId);
-        if (roleUpdateError) throw roleUpdateError;
-      } else {
-        const { error: roleInsertError } = await supabase.from("user_roles").insert({ user_id: userId, role } as any);
-        if (roleInsertError) throw roleInsertError;
-      }
+      });
 
       toast({ title: "User approved", description: `User has been approved as ${role}.` });
       fetchUsers();
@@ -251,50 +196,15 @@ export default function UserApproval() {
     setSelectedRoles(prev => ({ ...prev, [userId]: newRole }));
 
     try {
-      const profileUpdate: any = {};
-      if (amsRole !== undefined) {
-        profileUpdate.ams_role = amsRole;
-      }
-      if (profession !== undefined) {
-        let prof = (profession as string) !== "none" ? (profession as string) : null;
-        
-        if (!prof) {
-            if (newRole === 'sports_physician') prof = 'Sports Physician';
-            else if (newRole === 'physiotherapist') prof = 'Physiotherapist';
-            else if (newRole === 'nutritionist') prof = 'Nutritionist';
-            else if (newRole === 'sports_scientist') prof = 'Sports Scientist';
+      await apiFetch(`/hr/users/${userId}/role`, {
+        method: 'PATCH',
+        data: {
+          role: newRole,
+          uhid: uhid?.trim(),
+          ams_role: amsRole !== undefined ? amsRole : null,
+          profession: prof
         }
-        
-        profileUpdate.profession = prof;
-      }
-
-      if (newRole === "client" && uhid?.trim()) {
-        const cleanUhid = uhid.trim();
-        const { data: clientCheck, error: checkError } = await supabase.from("clients").select("id").eq("uhid", cleanUhid).maybeSingle();
-        if (checkError) throw checkError;
-        if (!clientCheck) {
-          toast({ title: "Invalid UHID", description: "This UHID does not exist in your clinic's records.", variant: "destructive" });
-          fetchUsers();
-          return;
-        }
-        profileUpdate.uhid = cleanUhid;
-      }
-
-      if (Object.keys(profileUpdate).length > 0) {
-        const { error: profileError } = await supabase.from("profiles").update(profileUpdate).eq("id", userId);
-        if (profileError) throw profileError;
-      }
-
-      const { data: existingRole, error: fetchError } = await supabase.from("user_roles").select("*").eq("user_id", userId).maybeSingle();
-      if (fetchError && fetchError.code !== 'PGRST116') throw fetchError;
-
-      if (existingRole) {
-        const { error: roleUpdateError } = await supabase.from("user_roles").update({ role: newRole } as any).eq("user_id", userId);
-        if (roleUpdateError) throw roleUpdateError;
-      } else {
-        const { error: roleInsertError } = await supabase.from("user_roles").insert({ user_id: userId, role: newRole } as any);
-        if (roleInsertError) throw roleInsertError;
-      }
+      });
 
       toast({ title: "Role updated", description: "User's role has been changed successfully." });
       fetchUsers();
@@ -308,17 +218,9 @@ export default function UserApproval() {
     if (!confirm("Are you sure you want to revoke this user's access to the organization?")) return;
 
     try {
-      const { error: profileError } = await supabase
-        .from("profiles")
-        .update({ is_approved: false } as any)
-        .eq("id", userId);
-      if (profileError) throw profileError;
-
-      const { error: roleError } = await supabase
-        .from("user_roles")
-        .delete()
-        .eq("user_id", userId);
-      if (roleError) throw roleError;
+      await apiFetch(`/hr/users/${userId}`, {
+        method: 'DELETE'
+      });
 
       toast({ title: "Access Revoked", description: "User has been removed from active members." });
 
@@ -339,18 +241,8 @@ export default function UserApproval() {
 
     setDeletingUserId(userId);
     try {
-      const { data, error: functionError } = await supabase.functions.invoke('delete-user', {
-        body: { userId }
-      });
-      
-      if (functionError) {
-        console.error("Invoke error:", functionError);
-        throw new Error(functionError.message || "Failed to reach the deletion service. Make sure Edge Functions are deployed.");
-      }
-
-      if (!data?.success) throw new Error(data?.error || "Failed to delete user account");
-
-      toast({ title: "User Deleted", description: "User account and all related data have been removed." });
+      await apiFetch(`/hr/users/${userId}`, { method: 'DELETE' });
+      toast({ title: "Access Revoked", description: "User has been removed from active members." });
       fetchUsers();
     } catch (err: any) {
       console.error("Error deleting user:", err);

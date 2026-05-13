@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/utils/api";
 
 export interface PerformanceAssessment {
     id: string;
@@ -17,14 +17,7 @@ export function usePerformanceResults(athleteId?: string) {
         queryKey: ['performance-results', athleteId],
         queryFn: async () => {
             if (!athleteId) return [];
-            
-            const { data, error } = await supabase
-                .from('performance_assessments')
-                .select('*')
-                .eq('athlete_id', athleteId)
-                .order('recorded_at', { ascending: false });
-
-            if (error) throw error;
+            const data = await apiFetch(`/api/ams/performance-assessments?athlete_id=${athleteId}`);
             return data as PerformanceAssessment[];
         },
         enabled: !!athleteId

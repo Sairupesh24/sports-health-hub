@@ -31,6 +31,8 @@ import FOEDashboard from "./pages/admin/FOEDashboard";
 import ClientList from "./pages/admin/ClientList";
 import ClientRegistration from "./pages/admin/ClientRegistration";
 import FieldConfig from "./pages/admin/FieldConfig";
+import ServiceMapping from "./pages/admin/ServiceMapping";
+import AdminSettings from "./pages/admin/AdminSettings";
 import ConsultantDashboard from "./pages/consultant/ConsultantDashboard";
 import EmployeeManagement from "./pages/hr/EmployeeManagement";
 import HrDashboard from "./pages/hr/HrDashboard";
@@ -123,7 +125,9 @@ const App = () => (
               <Route path="/admin/clients" element={<ProtectedRoute requiredRole={["admin", "foe"]}><ClientList /></ProtectedRoute>} />
               <Route path="/admin/clients/register" element={<ProtectedRoute requiredRole={["admin", "foe"]}><ClientRegistration /></ProtectedRoute>} />
               <Route path="/admin/clients/:id" element={<ProtectedRoute requiredRole={["admin", "foe"]}><ClientProfile /></ProtectedRoute>} />
+              <Route path="/admin/settings" element={<ProtectedRoute requiredRole="admin"><AdminSettings /></ProtectedRoute>} />
               <Route path="/admin/settings/fields" element={<ProtectedRoute requiredRole="admin"><FieldConfig /></ProtectedRoute>} />
+              <Route path="/admin/settings/services" element={<ProtectedRoute requiredRole="admin"><ServiceMapping /></ProtectedRoute>} />
               <Route path="/admin/billing" element={<ProtectedRoute requiredRole={["admin", "foe"]}><BillingPage /></ProtectedRoute>} />
               <Route path="/admin/users" element={<ProtectedRoute requiredRole={["admin", "foe"]}><UserApproval /></ProtectedRoute>} />
               

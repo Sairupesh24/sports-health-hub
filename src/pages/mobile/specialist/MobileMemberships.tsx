@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/utils/api";
 import { useAuth } from "@/contexts/AuthContext";
 import MobileSpecialistLayout from "@/components/layout/MobileSpecialistLayout";
 import { 
@@ -27,37 +27,7 @@ export default function MobileMemberships() {
   const { data: memberships, isLoading } = useQuery({
     queryKey: ["mobile-memberships", user?.id],
     queryFn: async () => {
-      if (!user) return [];
-      
-      // Get specialist's organization
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("organization_id")
-        .eq("id", user.id)
-        .single();
-
-      if (!profile?.organization_id) return [];
-
-      const { data, error } = await supabase
-        .from("subscriptions")
-        .select(`
-          *,
-          client:clients(
-            id, 
-            first_name, 
-            last_name, 
-            uhid, 
-            mobile_no,
-            is_vip, 
-            sport
-          ),
-          package:packages(name, price)
-        `)
-        .eq("organization_id", profile.organization_id)
-        .order("created_at", { ascending: false });
-
-      if (error) return [];
-      return data || [];
+      return await apiFetch<any[]>("/billing/subscriptions");
     },
     enabled: !!user
   });

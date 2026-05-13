@@ -22,7 +22,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/utils/api";
 import {
   Dialog,
   DialogContent,
@@ -56,25 +56,7 @@ export default function MobilePerformancePage() {
   const fetchAssignments = async () => {
     if (!session?.user?.id) return;
     try {
-      const { data: assignments, error } = await supabase
-        .from('program_assignments' as any)
-        .select(`
-          *,
-          program:training_programs(
-            *,
-            days:workout_days(
-              *,
-              items:workout_items(
-                *,
-                lift:lift_items(*, exercise:exercises(name))
-              )
-            )
-          )
-        `)
-        .eq('athlete_id', session.user.id)
-        .eq('status', 'active');
-
-      if (error) throw error;
+      const assignments = await apiFetch(`/api/ams/program-assignments?athlete_id=${session.user.id}&status=active`);
       setAssignedWorkouts(assignments || []);
     } catch (error) {
       console.error("Assignments Error:", error);
@@ -83,15 +65,7 @@ export default function MobilePerformancePage() {
 
   const fetchWellnessLogs = async () => {
     try {
-      const sevenDaysAgo = subDays(new Date(), 7).toISOString();
-      const { data, error } = await supabase
-        .from("wellness_logs")
-        .select("*")
-        .eq("athlete_id", session?.user?.id)
-        .gte("created_at", sevenDaysAgo)
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
+      const data = await apiFetch(`/api/ams/wellness-logs?athlete_id=${session?.user?.id}&days=7`);
       setWellnessLogs(data || []);
     } catch (error) {
       console.error("Wellness Error:", error);
@@ -101,11 +75,7 @@ export default function MobilePerformancePage() {
   const fetchPrs = async () => {
     if (!session?.user?.id) return;
     try {
-      const { data } = await (supabase as any)
-        .from('max_pr_records')
-        .select('exercise_id, value, exercise:exercises(name)')
-        .eq('athlete_id', session.user.id)
-        .eq('is_current', true);
+      const data = await apiFetch(`/api/ams/max-pr-records?athlete_id=${session.user.id}`);
       
       setPrs(data?.reduce((acc: any, pr: any) => ({
         ...acc,

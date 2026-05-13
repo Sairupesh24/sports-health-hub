@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/utils/api";
 import { useAuth } from "@/contexts/AuthContext";
 import MobileSpecialistLayout from "@/components/layout/MobileSpecialistLayout";
 import { 
@@ -41,14 +41,7 @@ export default function MobileQuestionnaires() {
   const { data: forms, isLoading: formsLoading } = useQuery({
     queryKey: ["mobile-ams-questionnaires", profile?.organization_id],
     queryFn: async () => {
-      const orgId = profile?.organization_id;
-      if (!orgId) return [];
-      const { data } = await supabase
-        .from("questionnaires" as any)
-        .select("*")
-        .eq("org_id", orgId)
-        .order("created_at", { ascending: false });
-      return data || [];
+      return await apiFetch<any[]>('/ams/questionnaires');
     },
     enabled: !!profile?.organization_id
   });

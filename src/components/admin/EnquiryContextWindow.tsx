@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/utils/api";
 import { format } from "date-fns";
 import { 
   History, 
@@ -26,17 +26,8 @@ export function EnquiryContextWindow({ clientId, isMobile = false }: EnquiryCont
   const { data: enquiry, isLoading: enquiryLoading } = useQuery({
     queryKey: ["enquiry-context", clientId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("enquiries")
-        .select(`
-          *,
-          organization:organizations(name, logo_url)
-        `)
-        .eq("linked_client_id", clientId)
-        .maybeSingle();
-
-      if (error) throw error;
-      return data;
+      const response = await apiFetch<any>(`/clients/${clientId}/enquiry`);
+      return response.data;
     },
     enabled: !!clientId,
   });
@@ -45,17 +36,8 @@ export function EnquiryContextWindow({ clientId, isMobile = false }: EnquiryCont
     queryKey: ["enquiry-interactions-context", enquiry?.id],
     queryFn: async () => {
       if (!enquiry?.id) return [];
-      const { data, error } = await supabase
-        .from("enquiry_interactions")
-        .select(`
-          *,
-          profiles:created_by (first_name, last_name)
-        `)
-        .eq("enquiry_id", enquiry.id)
-        .order("created_at", { ascending: true });
-
-      if (error) throw error;
-      return data;
+      const response = await apiFetch<any>(`/clients/enquiries/${enquiry.id}/interactions`);
+      return response.data;
     },
     enabled: !!enquiry?.id,
   });

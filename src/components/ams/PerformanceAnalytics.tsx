@@ -1,6 +1,6 @@
 import React, { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/utils/api";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { 
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, 
@@ -25,13 +25,8 @@ export default function PerformanceAnalytics({ athleteId }: PerformanceAnalytics
   const { data: trainingLoads, isLoading: loadsLoading } = useQuery({
     queryKey: ['training-loads-analytics', athleteId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('external_training_summary')
-        .select('training_date, training_load')
-        .eq('client_id', athleteId)
-        .order('training_date', { ascending: true });
-      if (error) throw error;
-      return data;
+      const data = await apiFetch(`/api/ams/external-training-summary?client_id=${athleteId}`);
+      return data || [];
     }
   });
 

@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/utils/api";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { 
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, AreaChart, Area
@@ -19,32 +19,8 @@ export default function StrengthAnalytics({ athleteId }: StrengthAnalyticsProps)
   const { data: workoutData, isLoading } = useQuery({
     queryKey: ['strength-analytics', athleteId],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from('athlete_item_logs' as any)
-        .select(`
-          weight_kg,
-          reps,
-          created_at,
-          workout_item:workout_items!inner(
-            lift:lift_items!inner(
-              exercise_id,
-              exercise:exercises(name, category)
-            )
-          )
-        `)
-        .eq('athlete_id', athleteId)
-        .order('created_at', { ascending: true });
-      
-      if (error) throw error;
-      
-      // Flatten data for easier processing
-      return (data as any[]).map(d => ({
-        weight_kg: d.weight_kg,
-        reps: d.reps,
-        exercise_id: d.workout_item.lift.exercise_id,
-        created_at: d.created_at,
-        exercises: d.workout_item.lift.exercise
-      }));
+      const data = await apiFetch(`/api/ams/athlete-item-logs?athlete_id=${athleteId}`);
+      return data || [];
     }
   });
 

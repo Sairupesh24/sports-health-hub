@@ -11,6 +11,7 @@ export function requireAuth(req, res, next) {
 
   try {
     const payload = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret_do_not_use_in_prod');
+    console.log(`[DEBUG] Auth payload:`, JSON.stringify(payload));
     req.user = payload; // Attach user info { id, email, role } to the request
     next();
   } catch (error) {

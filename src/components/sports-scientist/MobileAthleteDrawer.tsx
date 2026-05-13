@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/utils/api";
 
 interface MobileAthleteDrawerProps {
   open: boolean;
@@ -33,58 +33,26 @@ export default function MobileAthleteDrawer({ open, onOpenChange, athlete }: Mob
       if (!athlete?.id) return null;
 
       // 1. Fetch Admin Notes
-      const { data: adminNotes } = await supabase
-        .from("client_admin_notes")
-        .select("remarks, created_at")
-        .eq("client_id", athlete.id)
-        .order("created_at", { ascending: false })
-        .limit(1);
+      const adminNotes = await apiFetch(`/api/clients/${athlete.id}?include=admin_notes`).catch(() => null);
 
+      // 2. Fetch Session History
+      const sessionHistory = await apiFetch(`/api/appointments?client_id=${athlete.id}&limit=3`).catch(() => []);
 
-
-      // 3. Fetch Session History
-      const { data: sessionHistory } = await supabase
-        .from("sessions")
-        .select(`
-          id, scheduled_start, status, session_mode, session_notes,
-          session_types ( name )
-        `)
-        .eq("client_id", athlete.id)
-        .order("scheduled_start", { ascending: false })
-        .limit(3);
-
-      // 4. Fetch Subscriptions and Bills
-      const { data: subscription } = await supabase
-        .from("subscriptions")
-        .select(`
-          *,
-          package:packages(name, price)
-        `)
-        .eq("client_id", athlete.id)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .single();
-
-      let bills = [];
-      if (subscription) {
-        const { data: billData } = await supabase
-          .from("bills")
-          .select(`
-            *,
-            payments:bill_payments(
-              amount,
-              payment_method,
-              created_at
-            )
-          `)
-          .eq("subscription_id", subscription.id)
-          .order("created_at", { ascending: false })
-          .limit(5);
-        bills = billData || [];
+      // 3. Fetch Subscriptions and Bills
+      let subscription = null;
+      let bills: any[] = [];
+      try {
+        const subs = await apiFetch(`/api/billing/subscriptions?client_id=${athlete.id}`);
+        subscription = subs?.[0] || null;
+        if (subscription) {
+          bills = await apiFetch(`/api/billing/invoices?subscription_id=${subscription.id}&limit=5`).catch(() => []);
+        }
+      } catch {
+        // no subscription
       }
 
       return {
-        remarks: adminNotes?.[0]?.remarks || null,
+        remarks: adminNotes?.admin_notes?.[0]?.remarks || null,
         sessions: sessionHistory || [],
         subscription,
         bills

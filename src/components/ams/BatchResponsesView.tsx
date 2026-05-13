@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/utils/api";
 import { 
   Users, 
   CheckCircle2, 
@@ -34,17 +34,7 @@ export default function BatchResponsesView({ assignmentId, assignmentName }: Bat
   const { data: responses, isLoading } = useQuery({
     queryKey: ["batch-responses", assignmentId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("form_responses")
-        .select(`
-          *,
-          client:profiles!client_id(full_name, uhid)
-        `)
-        .eq("bulk_assignment_id", assignmentId)
-        .order("created_at", { ascending: false });
-        
-      if (error) throw error;
-      return data;
+      return await apiFetch<any[]>(`/ams/batch-responses/${assignmentId}`);
     }
   });
 

@@ -3,7 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/utils/api";
 import { 
   Card, 
   CardContent, 
@@ -31,17 +31,8 @@ export default function HrDashboard() {
   const { data: stats } = useQuery({
     queryKey: ["hr-dashboard-stats", profile?.organization_id],
     queryFn: async () => {
-      const [empCount, pendingLeaves, approvalCount] = await Promise.all([
-        supabase.from("hr_employees").select("*", { count: "exact", head: true }).eq("organization_id", profile?.organization_id),
-        supabase.from("hr_leaves").select("*", { count: "exact", head: true }).eq("organization_id", profile?.organization_id).eq("status", "Requested"),
-        supabase.from("profiles").select("*", { count: "exact", head: true }).eq("organization_id", profile?.organization_id).eq("is_approved", false)
-      ]);
-
-      return {
-        totalEmployees: empCount.count || 0,
-        pendingLeaves: pendingLeaves.count || 0,
-        pendingApprovals: approvalCount.count || 0,
-      };
+      const response = await apiFetch<any>('/hr/stats');
+      return response.data;
     },
     enabled: !!profile?.organization_id,
   });

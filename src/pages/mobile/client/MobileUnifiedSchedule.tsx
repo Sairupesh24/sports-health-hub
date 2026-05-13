@@ -20,7 +20,7 @@ import {
   Info
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/utils/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
@@ -56,6 +56,7 @@ export default function MobileUnifiedSchedule() {
     // Booking Wizard State
     const [step, setStep] = useState(1);
     const [consultants, setConsultants] = useState<Consultant[]>([]);
+    const [serviceMappings, setServiceMappings] = useState<any[]>([]);
     const [services, setServices] = useState<Service[]>([]);
     const [selectedServiceId, setSelectedServiceId] = useState<string>("");
     const [selectedServiceType, setSelectedServiceType] = useState<string>("");
@@ -82,34 +83,11 @@ export default function MobileUnifiedSchedule() {
             const end = addDays(startOfDay(selectedDate), 1).toISOString();
 
             // Fetch Sessions
-            const { data: sessionData } = await (supabase as any).from("sessions")
-                .select(`
-                    id, scheduled_start, scheduled_end, service_type, status,
-                    therapist:profiles!sessions_therapist_id_fkey(first_name, last_name, profession)
-                `)
-                .eq("organization_id", profile?.organization_id)
-                .eq("client_id", clientId)
-                .gte("scheduled_start", start)
-                .lt("scheduled_start", end)
-                .order('scheduled_start', { ascending: true });
-
+            const sessionData = await apiFetch(`/api/appointments?client_id=${clientId}&start=${start}&end=${end}`);
             setAppointments(sessionData || []);
 
             // Fetch Workouts
-            const { data: assignments } = await supabase
-                .from('program_assignments' as any)
-                .select(`
-                    *,
-                    program:training_programs(
-                        *,
-                        days:workout_days(
-                            *,
-                            items:workout_items(*)
-                        )
-                    )
-                `)
-                .eq('athlete_id', session?.user?.id)
-                .eq('status', 'active');
+            const assignments = await apiFetch('/api/ams/program-assignments');
 
             const workoutsToday = assignments?.flatMap(w => {
                  const progStart = parseISO(w.start_date);
@@ -135,12 +113,7 @@ export default function MobileUnifiedSchedule() {
             const end = addDays(startOfDay(new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0)), 1).toISOString();
 
             // Fetch Sessions for the month
-            const { data: sessionData } = await (supabase as any).from("sessions")
-                .select('scheduled_start')
-                .eq("organization_id", profile?.organization_id)
-                .eq("client_id", clientId)
-                .gte("scheduled_start", start)
-                .lt("scheduled_start", end);
+            const sessionData = await apiFetch(`/api/appointments?client_id=${clientId}&start=${start}&end=${end}`);
 
             const dates = new Set<string>();
             sessionData?.forEach((s: any) => dates.add(format(parseISO(s.scheduled_start), 'yyyy-MM-dd')));
@@ -165,19 +138,31 @@ export default function MobileUnifiedSchedule() {
     useEffect(() => {
         async function loadServices() {
             if (!profile?.organization_id || view !== 'book') return;
-            const { data } = await supabase.from("services").select("id, name, category").eq("organization_id", profile.organization_id).eq("is_active", true);
-            setServices(data as Service[] || []);
+            try {
+                const data = await apiFetch("/api/billing/services?is_active=true");
+                setServices(data as Service[] || []);
+            } catch (e) {
+                // ignore
+            }
         }
         loadServices();
     }, [profile?.organization_id, view]);
 
     useEffect(() => {
-        async function loadConsultants() {
+        async function loadData() {
             if (!profile?.organization_id || view !== 'book') return;
-            const { data: profilesData } = await (supabase as any).from("profiles").select("id, first_name, last_name, profession").eq("organization_id", profile.organization_id).eq("is_approved", true).in("profession", ["Sports Physician", "Physiotherapist", "Sports Scientist", "Massage therapist", "Nutritionist"]);
-            setConsultants(profilesData || []);
+            try {
+                const [empData, mappingData] = await Promise.all([
+                    apiFetch<any[]>('/hr/employees?role_type=clinical'),
+                    apiFetch<any[]>('/admin/consultant-services')
+                ]);
+                setConsultants(empData || []);
+                setServiceMappings(mappingData || []);
+            } catch (err: any) {
+                console.error("Error loading data", err);
+            }
         }
-        loadConsultants();
+        loadData();
     }, [profile?.organization_id, view]);
 
     useEffect(() => {
@@ -185,13 +170,12 @@ export default function MobileUnifiedSchedule() {
             if (!profile?.organization_id || !selectedConsultant || !bookingDate || step !== 2) return;
             setLoading(true);
             const formattedDate = format(bookingDate, "yyyy-MM-dd");
-            const { data } = await supabase.rpc('get_available_slots' as any, {
-                p_org_id: profile.organization_id,
-                p_consultant_id: selectedConsultant,
-                p_date: formattedDate,
-                p_service: null
-            });
-            setAvailableSlots(data || []);
+            try {
+                const data = await apiFetch(`/api/appointments/availability?therapist_id=${selectedConsultant}&date=${formattedDate}`);
+                setAvailableSlots(data?.slots || []);
+            } catch (e) {
+                setAvailableSlots([]);
+            }
             setLoading(false);
         }
         fetchSlots();
@@ -199,8 +183,8 @@ export default function MobileUnifiedSchedule() {
 
     const filteredConsultants = useMemo(() => {
         const selectedService = services.find(s => s.id === selectedServiceId);
-        return filterConsultantsByService(consultants, selectedService);
-    }, [consultants, selectedServiceId, services]);
+        return filterConsultantsByService(consultants, selectedService, serviceMappings);
+    }, [consultants, selectedServiceId, services, serviceMappings]);
 
     const handleBookSubmit = async () => {
         if (!selectedSlot || !bookingDate) return;
@@ -211,22 +195,22 @@ export default function MobileUnifiedSchedule() {
             
             const selected = services.find(s => s.id === selectedServiceId);
 
-            const { error: sessionError } = await (supabase as any).from('sessions').insert({
-                organization_id: profile?.organization_id,
-                client_id: clientId,
-                therapist_id: selectedConsultant,
-                service_id: selectedServiceId || null,
-                service_type: selected?.name || "General",
-                scheduled_start: new Date(scheduledStart).toISOString(),
-                scheduled_end: new Date(scheduledEnd).toISOString(),
-                status: 'Planned',
-                created_by: profile?.id,
-                session_mode: 'Individual',
-                preference_type: preferenceType,
-                is_flexible_routing: preferenceType === "Flexible"
+            await apiFetch('/api/appointments', {
+                method: 'POST',
+                body: JSON.stringify({
+                    client_id: clientId,
+                    therapist_id: selectedConsultant,
+                    service_id: selectedServiceId || null,
+                    service_type: selected?.name || "General",
+                    scheduled_start: new Date(scheduledStart).toISOString(),
+                    scheduled_end: new Date(scheduledEnd).toISOString(),
+                    status: 'Planned',
+                    session_mode: 'Individual',
+                    preference_type: preferenceType,
+                    is_flexible_routing: preferenceType === "Flexible"
+                })
             });
 
-            if (sessionError) throw sessionError;
             toast({ title: "Appointment Booked!" });
             setStep(1);
             setView("timeline");

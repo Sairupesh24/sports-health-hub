@@ -5,7 +5,7 @@ import RecentActivity from "@/components/dashboard/RecentActivity";
 import ScheduleCard from "@/components/dashboard/ScheduleCard";
 import { Users, Calendar, CreditCard, TrendingUp, Activity, AlertTriangle, Loader2, Bell, Clock } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/utils/api";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval, parseISO, formatDistanceToNow, format } from "date-fns";
 import { useAuth } from "@/contexts/AuthContext";
@@ -37,135 +37,23 @@ export default function AdminDashboard() {
   const todayStart = startOfDay(today);
   const todayEnd = endOfDay(today);
 
-  // Query for sessions
-  const { data: sessions, isLoading: sessionsLoading } = useQuery({
-    queryKey: ['admin-sessions', organizationId],
+  // Consolidated Query for all Dashboard Data
+  const { data: dashboardData, isLoading: dashboardLoading } = useQuery({
+    queryKey: ['admin-dashboard-stats', organizationId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('sessions')
-        .select(`
-          id,
-          status,
-          scheduled_start,
-          scheduled_end,
-          service_type,
-          therapist_id,
-          client_id,
-          therapist:profiles!sessions_therapist_id_fkey(first_name, last_name),
-          client:clients!sessions_client_id_fkey(first_name, last_name)
-        `)
-        .eq('organization_id', organizationId);
-      if (error) throw error;
-      return data;
+      const response = await apiFetch<any>(`/admin/dashboard-stats`);
+      return response;
     },
     enabled: !!organizationId
   });
 
-  // Query for today's sessions (schedule)
-  const { data: todaysSessions, isLoading: todaysSessionsLoading } = useQuery({
-    queryKey: ['admin-todays-sessions', organizationId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('sessions')
-        .select(`
-          id,
-          status,
-          scheduled_start,
-          scheduled_end,
-          service_type,
-          client:clients!sessions_client_id_fkey(first_name, last_name)
-        `)
-        .eq('organization_id', organizationId)
-        .gte('scheduled_start', todayStart.toISOString())
-        .lte('scheduled_start', todayEnd.toISOString())
-        .order('scheduled_start', { ascending: true });
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!organizationId
-  });
-
-  // Query for bills
-  const { data: bills, isLoading: billsLoading } = useQuery({
-    queryKey: ['admin-bills', organizationId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('bills')
-        .select('id, amount, total, status, payment_method, created_at')
-        .eq('organization_id', organizationId);
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!organizationId
-  });
-
-  // Query for refunds
-  const { data: refunds, isLoading: refundsLoading } = useQuery({
-    queryKey: ['admin-refunds', organizationId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('refunds')
-        .select('id, amount, refund_mode, created_at')
-        .eq('organization_id', organizationId);
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!organizationId
-  });
-
-  // Query for recent clients (for activity feed)
-  const { data: recentClients, isLoading: recentClientsLoading } = useQuery({
-    queryKey: ['admin-recent-clients', organizationId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('clients')
-        .select('id, first_name, last_name, created_at')
-        .eq('organization_id', organizationId)
-        .order('created_at', { ascending: false })
-        .limit(10);
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!organizationId
-  });
-
-  // Query for recent bills (for activity feed)
-  const { data: recentBills, isLoading: recentBillsLoading } = useQuery({
-    queryKey: ['admin-recent-bills', organizationId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('bills')
-        .select('id, amount, status, created_at')
-        .eq('organization_id', organizationId)
-        .eq('status', 'Paid')
-        .order('created_at', { ascending: false })
-        .limit(10);
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!organizationId
-  });
-
-  const { data: waitlistAlerts, isLoading: waitlistLoading } = useQuery({
-    queryKey: ['admin-waitlist-alerts', organizationId],
-    queryFn: async () => {
-        const { data, error } = await supabase
-            .from('waitlist')
-            .select(`
-                id, 
-                status, 
-                preferred_date, 
-                preferred_time_slot,
-                client:clients(first_name, last_name, is_vip, mobile_no)
-            `)
-            .eq('organization_id', organizationId)
-            .in('status', ['Waiting', 'Notified'])
-            .order('created_at', { ascending: false });
-        if (error) throw error;
-        return data;
-    },
-    enabled: !!organizationId
-  });
+  const sessions = dashboardData?.sessions || [];
+  const todaysSessions = dashboardData?.todaysSessions || [];
+  const bills = dashboardData?.bills || [];
+  const refunds = dashboardData?.refunds || [];
+  const recentClients = dashboardData?.recentClients || [];
+  const recentBills = dashboardData?.recentBills || [];
+  const waitlistAlerts = dashboardData?.waitlistAlerts || [];
 
   const metrics = useMemo(() => {
     if (!sessions || !bills) return null;
@@ -210,7 +98,7 @@ export default function AdminDashboard() {
       if (s.therapist_id && therapist) {
         if (!consultantCounts[s.therapist_id]) {
           consultantCounts[s.therapist_id] = {
-            name: `Dr. ${therapist.first_name} ${therapist.last_name}`,
+            name: `Dr. ${s.therapist_first_name} ${s.therapist_last_name}`,
             count: 0
           };
         }
@@ -267,7 +155,7 @@ export default function AdminDashboard() {
   const schedule = useMemo(() => {
     if (!todaysSessions) return [];
     return todaysSessions.map(session => {
-      const clientName = session.client ? `${session.client.first_name || ''} ${session.client.last_name || ''}`.trim() : 'Unknown';
+      const clientName = session.client_first_name ? `${session.client_first_name || ''} ${session.client_last_name || ''}`.trim() : 'Unknown';
       return {
         id: session.id,
         time: session.scheduled_start ? format(parseISO(session.scheduled_start), 'HH:mm') : '--:--',
@@ -301,8 +189,8 @@ export default function AdminDashboard() {
         .filter(s => s.status === 'Completed')
         .slice(0, 5);
       completedSessions.forEach(session => {
-        const clientName = session.client ? `${session.client.first_name || ''} ${session.client.last_name || ''}`.trim() : 'Client';
-        const therapistName = session.therapist ? `Dr. ${session.therapist.first_name || ''} ${session.therapist.last_name || ''}`.trim() : 'Therapist';
+        const clientName = session.client_first_name ? `${session.client_first_name || ''} ${session.client_last_name || ''}`.trim() : 'Client';
+        const therapistName = session.therapist_first_name ? `Dr. ${session.therapist_first_name || ''} ${session.therapist_last_name || ''}`.trim() : 'Therapist';
         activityList.push({
           id: `session-${session.id}`,
           title: "Session completed",
@@ -371,7 +259,7 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        {sessionsLoading || billsLoading || todaysSessionsLoading || recentClientsLoading || recentBillsLoading ? (
+        {dashboardLoading ? (
           <div className="flex items-center justify-center h-64">
             <Loader2 className="w-8 h-8 animate-spin text-primary" />
           </div>
@@ -460,10 +348,10 @@ export default function AdminDashboard() {
                     notifiedWaitlist.map((w) => (
                       <div key={w.id} className="flex items-center justify-between p-3 rounded-lg bg-white/60 border border-orange-200 shadow-sm">
                         <div className="flex flex-col">
-                          <p className="text-sm font-semibold text-orange-950">{w.client?.first_name} {w.client?.last_name}</p>
+                          <p className="text-sm font-semibold text-orange-950">{w.client_first_name} {w.client_last_name}</p>
                           <p className="text-[10px] text-orange-800/70">{format(new Date(w.preferred_date), "MMM d")} @ {w.preferred_time_slot.substring(0, 5)}</p>
                         </div>
-                        <a href={`tel:${w.client?.mobile_no}`} className="p-2 rounded-full bg-orange-500 text-white hover:bg-orange-600 transition-colors">
+                        <a href={`tel:${w.mobile_no}`} className="p-2 rounded-full bg-orange-500 text-white hover:bg-orange-600 transition-colors">
                             <Activity className="w-3 h-3" />
                         </a>
                       </div>

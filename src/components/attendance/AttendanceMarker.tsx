@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -17,6 +16,7 @@ import {
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { calculateDistance, getCurrentLocation, detectMockLocation } from "@/utils/geofencing";
+import { apiFetch } from "@/utils/api";
 import { cn } from "@/lib/utils";
 import { format, parseISO } from "date-fns";
 
@@ -76,7 +76,8 @@ export default function AttendanceMarker() {
         }
 
         if (orgSettings.enable_geofencing && distance !== null) {
-          if (distance > orgSettings.geofence_radius) {
+          const radius = Number(orgSettings.geofence_radius) || 100;
+          if (distance > radius) {
             isWithinGeofence = false;
           }
         }
@@ -107,40 +108,37 @@ export default function AttendanceMarker() {
   }, [profile?.id]);
 
   const fetchOrgSettings = async () => {
-    const { data, error } = await supabase
-      .from("organizations")
-      .select("clinic_latitude, clinic_longitude, geofence_radius, enable_geofencing, enable_ip_locking, allowed_ips, name")
-      .eq("id", profile?.organization_id)
-      .single();
-    
-    if (!error) setOrgSettings(data);
+    try {
+      const response = await apiFetch<{ data: any }>(`/organizations/${profile?.organization_id}`);
+      setOrgSettings(response.data);
+    } catch (error) {
+      console.error("Failed to fetch organization settings:", error);
+    }
   };
 
   const fetchTodayStatus = async () => {
-    const today = new Date().toISOString().split('T')[0];
-    const { data, error } = await supabase
-      .from("hr_attendance_logs")
-      .select("*")
-      .eq("profile_id", profile?.id)
-      .gte("created_at", `${today}T00:00:00Z`)
-      .order("created_at", { ascending: false })
-      .limit(10); // Fetch more to find actual state
+    try {
+      const response = await apiFetch<any>(`/hr/attendance/today`);
+      const data = response.data;
 
-    if (!error && data && data.length > 0) {
-      // Store the absolute latest log for UI alerts/details
-      setLastLog(data[0]);
-      
-      // Find the most recent status-changing event
-      const lastStatusLog = data.find(l => ['check_in', 'check_out', 'emergency_leave'].includes(l.type));
-      
-      if (lastStatusLog?.type === 'check_in') {
-        setStatus('checked_in');
+      if (data && data.length > 0) {
+        // Store the absolute latest log for UI alerts/details
+        setLastLog(data[0]);
+        
+        // Find the most recent status-changing event
+        const lastStatusLog = data.find(l => ['check_in', 'check_out', 'emergency_leave'].includes(l.type));
+        
+        if (lastStatusLog?.type === 'check_in') {
+          setStatus('checked_in');
+        } else {
+          setStatus('none');
+        }
       } else {
         setStatus('none');
+        setLastLog(null);
       }
-    } else {
-      setStatus('none');
-      setLastLog(null);
+    } catch (error) {
+      console.error("Failed to fetch today's status:", error);
     }
   };
 
@@ -173,24 +171,22 @@ export default function AttendanceMarker() {
         publicIp = ipData.ip;
       } catch (e) {}
 
-      // Save Normal Log
-      const { error: logErr } = await supabase.from("hr_attendance_logs").insert({
-        organization_id: profile.organization_id,
-        profile_id: profile.id,
-        type,
-        latitude,
-        longitude,
-        distance_from_center: liveSecurity.distance,
-        is_within_geofence: liveSecurity.isWithinGeofence,
-        metadata: {
-          accuracy: position.coords.accuracy,
-          user_agent: navigator.userAgent,
-          ip_address: publicIp,
-          is_ip_allowed: liveSecurity.isIpAllowed
+      // Save Normal Log via API
+      await apiFetch('/hr/attendance/log', {
+        method: 'POST',
+        data: {
+          type,
+          latitude,
+          longitude,
+          distance: liveSecurity.distance,
+          metadata: {
+            accuracy: position.coords.accuracy,
+            user_agent: navigator.userAgent,
+            ip_address: publicIp,
+            is_ip_allowed: liveSecurity.isIpAllowed
+          }
         }
       });
-
-      if (logErr) throw logErr;
 
       toast({
         title: type === 'check_in' ? "Checked In Successfully" : "Checked Out Successfully",

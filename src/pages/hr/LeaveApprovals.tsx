@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/utils/api";
 import { useAuth } from "@/contexts/AuthContext";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -38,28 +38,13 @@ export default function LeaveApprovals() {
   const { data: leaves, isLoading } = useQuery({
     queryKey: ["hr-leave-requests", orgId, statusFilter],
     queryFn: async () => {
-      let q = supabase
-        .from("hr_leaves")
-        .select("*")
-        .eq("organization_id", orgId!)
-        .order("created_at", { ascending: false });
-
-      if (statusFilter !== "All") q = q.eq("status", statusFilter);
-
-      const { data, error } = await q;
-      if (error) throw error;
-      if (!data || data.length === 0) return [];
-
-      // Fetch employee profiles
-      const empIds = [...new Set(data.map((l: any) => l.employee_id))];
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("id, first_name, last_name, profession")
-        .in("id", empIds);
+      const status = statusFilter === "All" ? "" : statusFilter;
+      const response = await apiFetch<any>(`/hr/leaves?status=${status}`);
+      const data = response.data || [];
 
       return data.map((leave: any) => ({
         ...leave,
-        employee: profiles?.find((p: any) => p.id === leave.employee_id),
+        employee: { first_name: leave.first_name, last_name: leave.last_name, profession: leave.profession },
       }));
     },
     enabled: !!orgId,
@@ -68,11 +53,10 @@ export default function LeaveApprovals() {
   // Approve / Reject mutation
   const updateMutation = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: "Approved" | "Rejected" }) => {
-      const { error } = await supabase
-        .from("hr_leaves")
-        .update({ status, approved_by: profile?.id })
-        .eq("id", id);
-      if (error) throw error;
+      await apiFetch(`/hr/leaves/${id}`, {
+        method: 'PATCH',
+        data: { status }
+      });
     },
     onSuccess: (_, { status }) => {
       queryClient.invalidateQueries({ queryKey: ["hr-leave-requests"] });

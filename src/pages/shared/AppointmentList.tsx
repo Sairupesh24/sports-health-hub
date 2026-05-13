@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/utils/api";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { format } from "date-fns";
 import { Calendar, Clock, User, ClipboardList, ChevronRight, MapPin } from "lucide-react";
@@ -20,27 +20,32 @@ export default function AppointmentList({ role, hideLayout = false }: { role: 'a
     const fetchAppointments = async () => {
         if (!profile?.organization_id || !profile?.id) return;
         try {
-            let query = (supabase as any).from("sessions").select(`
-          id, scheduled_start, scheduled_end, service_type, status, is_unentitled,
-          client:clients!sessions_client_id_fkey(first_name, last_name, uhid, is_vip),
-        therapist:profiles!sessions_therapist_id_fkey(first_name, last_name)
-        `).eq("organization_id", profile.organization_id)
-                .order('scheduled_start', { ascending: false });
-
-            if (role === 'client') {
-                if (clientId) {
-                    query = query.eq('client_id', clientId);
-                } else {
-                    setAppointments([]);
-                    setLoading(false);
-                    return;
+            setLoading(true);
+            const data = await apiFetch<any[]>('/appointments', {
+                params: {
+                    client_id: role === 'client' ? clientId : undefined,
+                    therapist_id: role === 'consultant' ? profile.id : undefined
                 }
-            } else if (role === 'consultant') {
-                query = query.eq('therapist_id', profile.id);
-            }
-
-            const { data } = await query;
-            if (data) setAppointments(data);
+            });
+            
+            // Map the backend data to match the component's expectations
+            const mapped = data.map(apt => ({
+                ...apt,
+                client: { 
+                    first_name: apt.client_first_name, 
+                    last_name: apt.client_last_name, 
+                    uhid: apt.client_uhid, 
+                    is_vip: apt.is_vip 
+                },
+                therapist: { 
+                    first_name: apt.therapist_first_name, 
+                    last_name: apt.therapist_last_name 
+                }
+            }));
+            
+            setAppointments(mapped);
+        } catch (error: any) {
+            console.error("Failed to fetch appointments:", error.message);
         } finally {
             setLoading(false);
         }

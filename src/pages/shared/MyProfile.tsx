@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/utils/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -54,20 +54,8 @@ export default function MyProfile() {
         if (!user?.id) return;
 
         try {
-            // Find the client record associated with this profile
-            const { data, error } = await supabase
-                .from('clients')
-                .select('*')
-                .eq('profile_id', user.id)
-                .single();
-
-            if (error) {
-                if (error.code !== 'PGRST116') { // PGRST116 is "Rows not found", which is fine for brand new clients without complete setup
-                    console.error("Error fetching client details:", error);
-                }
-                return;
-            }
-
+            const data = await apiFetch('/api/clients/profile');
+            
             if (data) {
                 setClientDataId(data.id);
                 setMobileNo(data.mobile_no || "");
@@ -76,8 +64,10 @@ export default function MyProfile() {
                 setBloodGroup(data.blood_group || "");
                 setUhid(data.uhid || "");
             }
-        } catch (err) {
-            console.error("Failed to fetch client details:", err);
+        } catch (err: any) {
+            if (err.message !== 'Client not found') {
+                console.error("Failed to fetch client details:", err);
+            }
         }
     };
 
@@ -90,30 +80,32 @@ export default function MyProfile() {
             }
 
             const file = event.target.files[0];
-            const fileExt = file.name.split('.').pop();
-            const filePath = `${user?.id}-${Math.random()}.${fileExt}`;
+            const formData = new FormData();
+            formData.append('file', file);
 
-            // Upload to Supabase Storage
-            const { error: uploadError } = await supabase.storage
-                .from('avatars')
-                .upload(filePath, file);
+            // Fetch current token
+            const token = localStorage.getItem('ishpo_token');
+            const res = await fetch('/api/upload/single', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                },
+                body: formData
+            });
 
-            if (uploadError) throw uploadError;
+            if (!res.ok) {
+                const errorData = await res.json();
+                throw new Error(errorData.error || 'Upload failed');
+            }
 
-            // Get public URL
-            const { data: { publicUrl } } = supabase.storage
-                .from('avatars')
-                .getPublicUrl(filePath);
-
+            const { publicUrl } = await res.json();
             setAvatarUrl(publicUrl);
 
             // Update profile
-            const { error: updateError } = await supabase
-                .from('profiles')
-                .update({ avatar_url: publicUrl })
-                .eq('id', user?.id);
-
-            if (updateError) throw updateError;
+            await apiFetch('/api/auth/me', {
+                method: 'PATCH',
+                body: JSON.stringify({ avatar_url: publicUrl })
+            });
 
             toast({
                 title: "Avatar Updated",
@@ -137,36 +129,24 @@ export default function MyProfile() {
         try {
             setLoading(true);
 
-            // 1. Update master profile
-            const { error: profileError } = await supabase
-                .from('profiles')
-                .update({
-                    first_name: firstName,
-                    last_name: lastName,
-                    // We only save mobile_no to profile if they are NOT a client, 
-                    // otherwise client table is the source of truth
-                    ...(isClient ? {} : { mobile_no: mobileNo })
-                })
-                .eq('id', user.id);
-
-            if (profileError) throw profileError;
-
-            // 2. If client, update extended client table
-            if (isClient && clientDataId) {
-                const { error: clientError } = await supabase
-                    .from('clients')
-                    .update({
-                        first_name: firstName,
-                        last_name: lastName,
-                        mobile_no: mobileNo,
-                        gender,
-                        age: parseInt(age) || null,
-                        blood_group: bloodGroup
-                    })
-                    .eq('id', clientDataId);
-
-                if (clientError) throw clientError;
+            const updates: any = {
+                first_name: firstName,
+                last_name: lastName
+            };
+            
+            if (!isClient) {
+                updates.mobile_no = mobileNo;
+            } else {
+                updates.mobile_no = mobileNo;
+                updates.gender = gender;
+                updates.age = parseInt(age) || null;
+                updates.blood_group = bloodGroup;
             }
+
+            await apiFetch('/api/auth/me', {
+                method: 'PATCH',
+                body: JSON.stringify(updates)
+            });
 
             toast({
                 title: "Profile Updated",
@@ -235,6 +215,29 @@ export default function MyProfile() {
 
                                 <h3 className="text-xl font-bold font-display">{firstName} {lastName}</h3>
                                 <p className="text-muted-foreground text-sm font-medium mt-1">{displayRole}</p>
+
+                                {profile?.organization_name && (
+                                    <div className="mt-6 w-full pt-6 border-t border-border/50">
+                                        <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold mb-3">Associated Organization</p>
+                                        <div className="flex items-center justify-center gap-3 bg-muted/30 p-3 rounded-xl border border-border/50">
+                                            {profile.organization_logo ? (
+                                                <img 
+                                                    src={profile.organization_logo} 
+                                                    alt={profile.organization_name} 
+                                                    className="w-10 h-10 object-contain rounded-md bg-white p-1 shadow-sm"
+                                                />
+                                            ) : (
+                                                <div className="w-10 h-10 rounded-md bg-primary/10 flex items-center justify-center text-primary font-bold text-xs">
+                                                    {profile.organization_name.charAt(0)}
+                                                </div>
+                                            )}
+                                            <div className="text-left">
+                                                <p className="text-sm font-bold text-foreground leading-tight line-clamp-1">{profile.organization_name}</p>
+                                                <p className="text-[10px] text-muted-foreground">ID: {profile.organization_id?.substring(0, 8)}...</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
 
                                 {isClient && uhid && (
                                     <div className="mt-4 px-3 py-1 bg-muted/50 rounded-md font-mono text-sm text-foreground/80">

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { format } from "date-fns";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/utils/api";
 import { Button } from "@/components/ui/button";
 import {
     Dialog,
@@ -36,15 +36,13 @@ export default function ResolveInjuryModal({
 
         try {
             setLoading(true);
-            const { error } = await supabase
-                .from('injuries')
-                .update({
+            await apiFetch(`/clinical/injuries/${injury.id}`, {
+                method: 'PATCH',
+                body: {
                     status: 'Resolved',
                     resolved_date: resolvedDate
-                })
-                .eq('id', injury.id);
-
-            if (error) throw error;
+                }
+            });
 
             toast({
                 title: "Injury Resolved",

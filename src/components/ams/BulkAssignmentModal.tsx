@@ -21,7 +21,7 @@ import {
   ChevronRight,
   Info
 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/utils/api";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import {
@@ -76,15 +76,9 @@ export default function BulkAssignmentModal({
       if (!orgId) return;
 
       // Fetch Sports & Teams
-      const { data: clientData } = await supabase
-        .from('clients')
-        .select('sport, org_name')
-        .eq('organization_id', orgId)
-        .is('deleted_at', null);
-      
-      if (clientData) {
-        setSports(Array.from(new Set(clientData.map(c => c.sport).filter(Boolean))) as string[]);
-        setTeams(Array.from(new Set(clientData.map(c => c.org_name).filter(Boolean))) as string[]);
+      if (clients) {
+        setSports(Array.from(new Set(clients.map(c => c.sport).filter(Boolean))) as string[]);
+        setTeams(Array.from(new Set(clients.map(c => c.org_name).filter(Boolean))) as string[]);
       }
 
     } catch (error) {
@@ -95,31 +89,7 @@ export default function BulkAssignmentModal({
   const fetchClients = async () => {
     try {
       setFetching(true);
-      const { data: userAuth } = await supabase.auth.getUser();
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('organization_id')
-        .eq('id', userAuth.user?.id)
-        .single();
-
-      if (!profile) throw new Error("No organization found");
-
-      const { data, error } = await supabase
-        .from('clients')
-        .select(`
-          id, 
-          first_name, 
-          last_name, 
-          uhid, 
-          is_vip, 
-          sport, 
-          org_name, 
-          primary_scientist_id
-        `)
-        .eq('organization_id', profile.organization_id)
-        .is('deleted_at', null);
-
-      if (error) throw error;
+      const data = await apiFetch<any[]>('/clients');
       setClients(data || []);
     } catch (error: any) {
       toast({
@@ -161,60 +131,46 @@ export default function BulkAssignmentModal({
 
     try {
       setLoading(true);
-      const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
-
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('organization_id')
-        .eq('id', user.id)
-        .single();
       
       const orgId = profile?.organization_id;
       if (!orgId) throw new Error("Organization not found");
 
       // 1. Create Bulk Assignment Record
-      const { data: bulkData, error: bulkError } = await (supabase
-        .from('bulk_assignments' as any)
-        .insert({
-          org_id: orgId,
+      const bulkData = await apiFetch<any>('/ams/bulk-assignments', {
+        method: 'POST',
+        body: {
           questionnaire_id: form.id,
-          specialist_id: user.id,
           total_clients: selectedClientIds.length,
-          responded_count: 0,
           status: 'active'
-        } as any) as any)
-        .select()
-        .single();
-
-      if (bulkError) throw bulkError;
+        }
+      });
 
       // 2. Create individual form_responses
       const responses = selectedClientIds.map(clientId => ({
-        org_id: orgId,
         form_id: form.id,
         client_id: clientId,
-        specialist_id: user.id,
         bulk_assignment_id: bulkData.id,
         status: 'pending'
       }));
 
-      const { error: respError } = await supabase
-        .from('form_responses' as any)
-        .insert(responses as any);
+      await apiFetch('/ams/form-responses/bulk', {
+        method: 'POST',
+        body: responses
+      });
 
-      if (respError) throw respError;
-
-      // 3. Create notifications for each client (Simplified for now)
+      // 3. Create notifications for each client
       const notifications = selectedClientIds.map(clientId => ({
         user_id: clientId,
-        org_id: orgId,
         title: "New Questionnaire Assigned",
         message: `Please complete the ${form.name} assessment.`,
         type: 'questionnaire'
       }));
 
-      await supabase.from('notifications' as any).insert(notifications as any);
+      await apiFetch('/ams/notifications/bulk', {
+        method: 'POST',
+        body: notifications
+      });
 
       toast({
         title: "Bulk Assignment Successful",

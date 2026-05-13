@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/utils/api";
 import { format } from "date-fns";
 import { 
   PhoneCall, 
@@ -19,10 +19,8 @@ interface Interaction {
   follow_up_required: boolean;
   follow_up_at: string | null;
   created_at: string;
-  profiles: {
-    first_name: string;
-    last_name: string;
-  } | null;
+  first_name: string;
+  last_name: string;
 }
 
 interface EnquiryHistoryProps {
@@ -33,17 +31,8 @@ export function EnquiryHistory({ enquiryId }: EnquiryHistoryProps) {
   const { data: interactions = [], isLoading } = useQuery({
     queryKey: ["enquiry_interactions", enquiryId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("enquiry_interactions")
-        .select(`
-          *,
-          profiles:created_by (first_name, last_name)
-        `)
-        .eq("enquiry_id", enquiryId)
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-      return data as Interaction[];
+      const data = await apiFetch<any>(`/clients/enquiries/${enquiryId}/interactions`);
+      return data.data as Interaction[];
     },
     enabled: !!enquiryId,
   });
@@ -116,7 +105,7 @@ export function EnquiryHistory({ enquiryId }: EnquiryHistoryProps) {
             </div>
 
             <div className="text-[9px] text-slate-400 font-medium">
-              Recorded by: <span className="text-slate-600">{item.profiles ? `${item.profiles.first_name} ${item.profiles.last_name}` : 'Unknown'}</span>
+              Recorded by: <span className="text-slate-600">{item.first_name ? `${item.first_name} ${item.last_name}` : 'Unknown'}</span>
             </div>
           </div>
         </div>

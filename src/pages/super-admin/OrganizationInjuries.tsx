@@ -2,8 +2,8 @@ import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Download, Upload, AlertCircle, RefreshCw, Trash2 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { apiFetch } from "@/utils/api";
 import * as XLSX from "xlsx";
 
 interface OrganizationInjuriesProps {
@@ -33,15 +33,8 @@ export default function OrganizationInjuries({ organizationId }: OrganizationInj
     const fetchMasterData = async () => {
         try {
             setLoading(true);
-            const { data: dbData, error } = await supabase
-                .from("injury_master_data")
-                .select("*")
-                .eq("organization_id", organizationId)
-                .order("region", { ascending: true })
-                .order("injury_type", { ascending: true });
-
-            if (error) throw error;
-            setData(dbData || []);
+            const result = await apiFetch<InjuryMasterData[]>(`/master-console/injuries?organization_id=${organizationId}`);
+            setData(result || []);
         } catch (error: any) {
             toast({ title: "Error", description: error.message, variant: "destructive" });
         } finally {
@@ -57,7 +50,6 @@ export default function OrganizationInjuries({ organizationId }: OrganizationInj
                 aoaData.push([item.region, item.injury_type, item.diagnosis]);
             });
         } else {
-            // Static examples
             aoaData.push(["Knee", "Ligament Tear", "ACL Tear"]);
             aoaData.push(["Shoulder", "Tendonitis", "Rotator Cuff Tendonitis"]);
             aoaData.push(["Spine", "Disc Issue", "Lumbar Disc Herniation"]);
@@ -77,12 +69,9 @@ export default function OrganizationInjuries({ organizationId }: OrganizationInj
 
         try {
             setDeleting(true);
-            const { error } = await supabase
-                .from("injury_master_data")
-                .delete()
-                .eq("organization_id", organizationId);
-
-            if (error) throw error;
+            await apiFetch(`/master-console/injuries?organization_id=${organizationId}`, {
+                method: 'DELETE'
+            });
 
             toast({ title: "Success", description: "All injury master data cleared." });
             setData([]);
@@ -114,11 +103,11 @@ export default function OrganizationInjuries({ organizationId }: OrganizationInj
                 throw new Error("Invalid headers. Please use the exact headers: Region, Injury Type, Diagnosis.");
             }
 
-            const itemsToInsert: { organization_id: string, region: string, injury_type: string, diagnosis: string }[] = [];
+            const itemsToInsert = [];
 
             for (let i = 1; i < rows.length; i++) {
                 const row = rows[i];
-                if (!row[0] || row[0].toString().startsWith('*')) continue; // Skip empty or footer notes
+                if (!row[0] || row[0].toString().startsWith('*')) continue;
 
                 const region = row[0]?.toString().trim();
                 const injuryType = row[1]?.toString().trim();
@@ -126,7 +115,6 @@ export default function OrganizationInjuries({ organizationId }: OrganizationInj
 
                 if (region && injuryType && diagnosis) {
                     itemsToInsert.push({
-                        organization_id: organizationId,
                         region,
                         injury_type: injuryType,
                         diagnosis
@@ -138,17 +126,13 @@ export default function OrganizationInjuries({ organizationId }: OrganizationInj
                 throw new Error("No valid data rows found to import.");
             }
 
-            // Using UPSERT or ON CONFLICT requires a unique constraint matching the exact columns
-            // Since we added UNIQUE(organization_id, region, injury_type, diagnosis) in the migration,
-            // we can just catch duplicate errors if we don't use upsert, or we can upsert safely.
-            const { error } = await supabase
-                .from("injury_master_data")
-                .upsert(itemsToInsert, {
-                    onConflict: 'organization_id,region,injury_type,diagnosis',
-                    ignoreDuplicates: true
-                });
-
-            if (error) throw error;
+            await apiFetch('/master-console/injuries', {
+                method: 'POST',
+                data: {
+                    organizationId,
+                    items: itemsToInsert
+                }
+            });
 
             toast({ title: "Success", description: `Successfully processed ${itemsToInsert.length} rules.` });
             fetchMasterData();

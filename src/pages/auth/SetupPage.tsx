@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/utils/api";
 
 export default function SetupPage() {
   const navigate = useNavigate();
@@ -20,41 +20,22 @@ export default function SetupPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      // Validate organization code first
-      const { data: orgId, error: orgError } = await supabase.rpc('get_org_by_code', { p_code: orgCode });
-      
-      if (orgError || !orgId) {
-        throw new Error("Invalid organization code. Please check with your administrator.");
-      }
-
-      // Sign up the admin user with metadata for the trigger to handle setup
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          emailRedirectTo: window.location.origin,
-          data: { 
-            first_name: firstName, 
-            last_name: lastName,
-            organization_id: orgId,
-            is_initial_admin: true
-          },
-        },
+      const response = await apiFetch<{ message: string }>('/auth/signup', {
+        method: 'POST',
+        data: {
+          email,
+          password,
+          firstName,
+          lastName,
+          orgCode,
+          role: 'admin' // Initial admin setup
+        }
       });
       
-      if (authError) throw authError;
-
-      if (!authData.session) {
-        toast({
-          title: "Setup almost complete!",
-          description: "Signup succeeded. Please check your email to confirm your account and complete setup.",
-        });
-      } else {
-        toast({
-          title: "Admin account created!",
-          description: "Setup complete. You are now logged in.",
-        });
-      }
+      toast({
+        title: "Setup successful",
+        description: response.message || "Account created. You can now log in.",
+      });
       
       navigate("/login");
     } catch (err: any) {
