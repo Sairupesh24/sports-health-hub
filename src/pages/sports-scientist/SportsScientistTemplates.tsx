@@ -255,7 +255,7 @@ export default function SportsScientistTemplates() {
                     setIsCreateOpen(open);
                     if (!open) setEditingTemplate(null);
                 }}>
-                    <DialogContent className="max-w-4xl p-6 bg-[#1A1F26] border-white/10 shadow-2xl max-h-[90vh] overflow-y-auto">
+                    <DialogContent aria-describedby={undefined} className="max-w-4xl p-6 bg-[#1A1F26] border-white/10 shadow-2xl max-h-[90vh] overflow-y-auto">
                         <div className="mb-4">
                             <h2 className="text-xl font-black uppercase italic tracking-tight text-white mb-2">
                                 {(editingTemplate as any) ? "Edit Training Template" : "Build Training Template"}

@@ -965,7 +965,7 @@ export default function ClientProfile() {
 
             {/* Payment Modal */}
             <Dialog open={isPaymentModalOpen} onOpenChange={setIsPaymentModalOpen}>
-                <DialogContent className="sm:max-w-[480px]">
+                <DialogContent aria-describedby={undefined} className="sm:max-w-[480px]">
                     <DialogHeader>
                         <DialogTitle>Collect Payment</DialogTitle>
                         <p className="text-xs text-muted-foreground">

@@ -286,7 +286,7 @@ export function SportsScientistBookSessionModal({ open, onOpenChange, onSuccess 
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[500px] p-0 overflow-hidden border-none bg-slate-50 dark:bg-slate-950 rounded-[2.5rem]">
+            <DialogContent aria-describedby={undefined} className="sm:max-w-[500px] p-0 overflow-hidden border-none bg-slate-50 dark:bg-slate-950 rounded-[2.5rem]">
                 <DialogHeader className="p-6 pb-0">
                     <DialogTitle className="text-xl font-black italic tracking-tight text-slate-900 dark:text-white">
                        Schedule Session

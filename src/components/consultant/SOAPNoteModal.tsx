@@ -257,7 +257,7 @@ export default function SOAPNoteModal({ open, onOpenChange, session, clientId, o
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[90vw] lg:max-w-[1200px] max-h-[95vh] overflow-y-auto overflow-x-hidden">
+            <DialogContent aria-describedby={undefined} className="sm:max-w-[90vw] lg:max-w-[1200px] max-h-[95vh] overflow-y-auto overflow-x-hidden">
                 <DialogHeader className="flex flex-row items-center justify-between border-b pb-4">
                     <div className="flex flex-col gap-1">
                         <DialogTitle className="flex items-center gap-2 text-xl font-display">

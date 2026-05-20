@@ -246,7 +246,7 @@ export default function ProgramAssignmentModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className={cn(
+      <DialogContent aria-describedby={undefined} className={cn(
         "bg-[#1A1F26] border-white/10 text-white rounded-2xl overflow-hidden shadow-2xl p-0 transition-all duration-300",
         step === 'selection' ? "max-w-md" : "max-w-4xl"
       )}>
