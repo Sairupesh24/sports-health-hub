@@ -268,11 +268,11 @@ export default function ConsultantClientProfile() {
                                 <div className="mt-4 flex flex-wrap gap-3 items-end">
                                     <div className="space-y-1 flex-1 min-w-[140px]">
                                         <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Start Date</span>
-                                        <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="h-9 w-full text-xs bg-muted/30" />
+                                        <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="h-9 w-full text-xs bg-muted/30 py-1" />
                                     </div>
                                     <div className="space-y-1 flex-1 min-w-[140px]">
                                         <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">End Date</span>
-                                        <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="h-9 w-full text-xs bg-muted/30" />
+                                        <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="h-9 w-full text-xs bg-muted/30 py-1" />
                                     </div>
                                     <div className="space-y-1 flex-1 min-w-[160px]">
                                         <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Type</span>

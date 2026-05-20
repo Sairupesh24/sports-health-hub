@@ -678,11 +678,11 @@ export default function ClientProfile() {
                                     <div className="mt-4 flex flex-wrap gap-3 items-end">
                                         <div className="space-y-1">
                                             <span className="text-[10px] text-muted-foreground uppercase font-bold">Start Date</span>
-                                            <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="h-9 w-[150px] text-xs bg-muted/50" />
+                                            <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="h-9 w-[150px] text-xs bg-muted/50 py-1" />
                                         </div>
                                         <div className="space-y-1">
                                             <span className="text-[10px] text-muted-foreground uppercase font-bold">End Date</span>
-                                            <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="h-9 w-[150px] text-xs bg-muted/50" />
+                                            <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="h-9 w-[150px] text-xs bg-muted/50 py-1" />
                                         </div>
                                         <div className="space-y-1">
                                             <span className="text-[10px] text-muted-foreground uppercase font-bold">Session Type</span>
