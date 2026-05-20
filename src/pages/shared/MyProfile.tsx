@@ -10,9 +10,12 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { User, Mail, Phone, Upload, Loader2, Save } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
+import MobileConsultantLayout from "@/components/layout/MobileConsultantLayout";
+import MobileSpecialistLayout from "@/components/layout/MobileSpecialistLayout";
 
 export default function MyProfile() {
-    const { user, profile, roles } = useAuth();
+    const { user, profile, roles, signOut } = useAuth();
     const { toast } = useToast();
     const [loading, setLoading] = useState(false);
     const [uploading, setUploading] = useState(false);
@@ -84,7 +87,7 @@ export default function MyProfile() {
             formData.append('file', file);
 
             // Fetch current token
-            const token = localStorage.getItem('ishpo_token');
+            const token = localStorage.getItem('ishpo_jwt');
             const res = await fetch('/api/upload/single', {
                 method: 'POST',
                 headers: {
@@ -102,9 +105,9 @@ export default function MyProfile() {
             setAvatarUrl(publicUrl);
 
             // Update profile
-            await apiFetch('/api/auth/me', {
+            await apiFetch('/auth/me', {
                 method: 'PATCH',
-                body: JSON.stringify({ avatar_url: publicUrl })
+                data: { avatar_url: publicUrl }
             });
 
             toast({
@@ -143,9 +146,9 @@ export default function MyProfile() {
                 updates.blood_group = bloodGroup;
             }
 
-            await apiFetch('/api/auth/me', {
+            await apiFetch('/auth/me', {
                 method: 'PATCH',
-                body: JSON.stringify(updates)
+                data: updates
             });
 
             toast({
@@ -175,9 +178,24 @@ export default function MyProfile() {
     else if (roles.includes("client")) displayRole = "Client";
     else if (roles.includes("athlete")) displayRole = "Athlete";
 
+    const isMobile = useIsMobile();
+    
+    let LayoutToUse: any = DashboardLayout;
+    let layoutProps: any = { role: roles[0] || "client" };
+
+    if (isMobile) {
+        if (roles.includes("consultant") || roles.includes("sports_physician") || roles.includes("physiotherapist")) {
+            LayoutToUse = MobileConsultantLayout;
+            layoutProps = { title: "My Profile" };
+        } else if (roles.includes("sports_scientist")) {
+            LayoutToUse = MobileSpecialistLayout;
+            layoutProps = { title: "My Profile" };
+        }
+    }
+
     return (
-        <DashboardLayout role={roles[0] || "client"}>
-            <div className="space-y-6 max-w-4xl mx-auto">
+        <LayoutToUse {...layoutProps}>
+            <div className="space-y-6 max-w-4xl mx-auto pb-8">
                 <div>
                     <h1 className="text-2xl font-display font-bold text-foreground">My Profile</h1>
                     <p className="text-muted-foreground text-sm mt-0.5">Manage your personal information and preferences.</p>
@@ -242,6 +260,18 @@ export default function MyProfile() {
                                 {isClient && uhid && (
                                     <div className="mt-4 px-3 py-1 bg-muted/50 rounded-md font-mono text-sm text-foreground/80">
                                         UHID: {uhid}
+                                    </div>
+                                )}
+
+                                {isMobile && (
+                                    <div className="mt-6 w-full pt-4 border-t border-border/30">
+                                        <Button
+                                            variant="destructive"
+                                            onClick={() => signOut()}
+                                            className="w-full h-11 rounded-xl font-black uppercase text-[10px] tracking-widest gap-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 border border-rose-500/20 shadow-none"
+                                        >
+                                            Sign Out
+                                        </Button>
                                     </div>
                                 )}
                             </CardContent>
@@ -366,6 +396,6 @@ export default function MyProfile() {
                     </div>
                 </div>
             </div>
-        </DashboardLayout>
+        </LayoutToUse>
     );
 }

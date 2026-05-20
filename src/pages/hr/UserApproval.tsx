@@ -53,6 +53,8 @@ export default function UserApproval() {
   const [newLast, setNewLast] = useState("");
   const [newRole, setNewRole] = useState("sports_physician");
   const [newUhid, setNewUhid] = useState("");
+  const [newAmsRole, setNewAmsRole] = useState("none");
+  const [newProfession, setNewProfession] = useState("none");
   const [isAdding, setIsAdding] = useState(false);
   const [generatedCreds, setGeneratedCreds] = useState<{ email: string, password: string } | null>(null);
 
@@ -109,6 +111,15 @@ export default function UserApproval() {
 
     setIsAdding(true);
     try {
+      const amsRole = newAmsRole === "none" ? null : newAmsRole;
+      let prof = newProfession !== "none" ? newProfession : null;
+      if (!prof) {
+          if (newRole === 'sports_physician') prof = 'Sports Physician';
+          else if (newRole === 'physiotherapist') prof = 'Physiotherapist';
+          else if (newRole === 'nutritionist') prof = 'Nutritionist';
+          else if (newRole === 'sports_scientist') prof = 'Sports Scientist';
+      }
+
       const response = await apiFetch<any>('/hr/users', {
         method: 'POST',
         data: { 
@@ -116,7 +127,9 @@ export default function UserApproval() {
           firstName: newFirst, 
           lastName: newLast, 
           role: newRole, 
-          uhid: newUhid.trim() 
+          uhid: newUhid.trim(),
+          ams_role: amsRole,
+          profession: prof
         }
       });
 
@@ -144,9 +157,11 @@ export default function UserApproval() {
     setNewFirst("");
     setNewLast("");
     setNewUhid("");
+    setNewAmsRole("none");
+    setNewProfession("none");
   };
 
-  const approveUser = async (userId: string, providedUhid?: string, amsRole?: string | null, profession?: string | null) => {
+  const approveUser = async (userId: string, providedUhid?: string, amsRole?: string | null) => {
     const role = pendingAction?.role || selectedRoles[userId];
     if (!role) {
       toast({ title: "Select a role", description: "Please assign a role before approving.", variant: "destructive" });
@@ -160,14 +175,11 @@ export default function UserApproval() {
     }
 
     try {
-      let prof = (profession as string) !== "none" ? (profession as string) : null;
-      
-      if (!prof) {
-          if (role === 'sports_physician') prof = 'Sports Physician';
-          else if (role === 'physiotherapist') prof = 'Physiotherapist';
-          else if (role === 'nutritionist') prof = 'Nutritionist';
-          else if (role === 'sports_scientist') prof = 'Sports Scientist';
-      }
+      let prof = null;
+      if (role === 'sports_physician') prof = 'Sports Physician';
+      else if (role === 'physiotherapist') prof = 'Physiotherapist';
+      else if (role === 'nutritionist') prof = 'Nutritionist';
+      else if (role === 'sports_scientist') prof = 'Sports Scientist';
 
       await apiFetch(`/hr/users/${userId}/approve`, {
         method: 'POST',
@@ -186,7 +198,7 @@ export default function UserApproval() {
     }
   };
 
-  const changeUserRole = async (userId: string, newRole: string, providedUhid?: string, amsRole?: string | null, profession?: string | null) => {
+  const changeUserRole = async (userId: string, newRole: string, providedUhid?: string, amsRole?: string | null) => {
     const uhid = providedUhid;
     if ((newRole === "client" || newRole === "athlete") && !uhid?.trim()) {
       toast({ title: "UHID Required", description: "You must supply a UHID before converting the user to this role.", variant: "destructive" });
@@ -196,6 +208,12 @@ export default function UserApproval() {
     setSelectedRoles(prev => ({ ...prev, [userId]: newRole }));
 
     try {
+      let prof = null;
+      if (newRole === 'sports_physician') prof = 'Sports Physician';
+      else if (newRole === 'physiotherapist') prof = 'Physiotherapist';
+      else if (newRole === 'nutritionist') prof = 'Nutritionist';
+      else if (newRole === 'sports_scientist') prof = 'Sports Scientist';
+
       await apiFetch(`/hr/users/${userId}/role`, {
         method: 'PATCH',
         data: {
@@ -303,12 +321,11 @@ export default function UserApproval() {
     }
 
     const amsRole = pendingActionAmsRole === "none" ? null : pendingActionAmsRole;
-    const profession = pendingActionProfession;
 
     if (pendingAction.type === "change_role") {
-      changeUserRole(pendingAction.userId, pendingAction.role, pendingActionUhid, amsRole, profession);
+      changeUserRole(pendingAction.userId, pendingAction.role, pendingActionUhid, amsRole);
     } else {
-      approveUser(pendingAction.userId, pendingActionUhid, amsRole, profession);
+      approveUser(pendingAction.userId, pendingActionUhid, amsRole);
     }
 
     setPendingAction(null);
@@ -386,24 +403,7 @@ export default function UserApproval() {
                       <p className="text-xs text-muted-foreground">Select an AMS functional tier if this user requires tracking/coaching within the Athlete workflow.</p>
                     </div>
 
-                    {(pendingAction?.role === "consultant" || pendingAction?.role === "sports_physician" || pendingAction?.role === "physiotherapist" || pendingAction?.role === "nutritionist" || pendingAction?.role === "sports_scientist") && (
-                      <div className="space-y-2 animate-in fade-in slide-in-from-top-1 duration-200">
-                        <Label>Specialist Designation / Profession</Label>
-                        <Select value={pendingActionProfession} onValueChange={setPendingActionProfession}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select Profession" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="none">General / No Specific Specialization</SelectItem>
-                            <SelectItem value="Physiotherapist">Physiotherapist</SelectItem>
-                            <SelectItem value="Sports Scientist">Sports Scientist</SelectItem>
-                            <SelectItem value="Nutritionist">Nutritionist</SelectItem>
-                            <SelectItem value="Sports Physician">Sports Physician</SelectItem>
-                            <SelectItem value="Massage therapist">Massage therapist</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    )}
+
                     <Button onClick={confirmPendingAction} className="w-full">
                       Confirm Action
                     </Button>
@@ -416,6 +416,7 @@ export default function UserApproval() {
                 if (!open) {
                   setGeneratedCreds(null);
                   setNewEmail(""); setNewFirst(""); setNewLast(""); setNewUhid("");
+                  setNewAmsRole("none"); setNewProfession("none");
                 }
               }}>
                 <DialogTrigger asChild>
@@ -476,6 +477,20 @@ export default function UserApproval() {
                           </SelectContent>
                         </Select>
                       </div>
+                      <div className="space-y-2 animate-in fade-in zoom-in duration-200">
+                        <Label>AMS Role (Athlete Monitoring System)</Label>
+                        <Select value={newAmsRole} onValueChange={setNewAmsRole}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select AMS Role" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">No AMS Access</SelectItem>
+                            <SelectItem value="coach">AMS Coach</SelectItem>
+                            <SelectItem value="athlete">AMS Athlete</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
                       {(newRole === "client" || newRole === "athlete") && (
                         <div className="space-y-2 animate-in fade-in zoom-in duration-200">
                           <Label>Client UHID <span className="text-destructive">*</span></Label>

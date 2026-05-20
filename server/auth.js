@@ -303,7 +303,7 @@ router.patch('/me', async (req, res) => {
     const userId = decoded.id;
 
     const updates = req.body;
-    const allowedFields = ['first_name', 'last_name', 'profession', 'avatar_url'];
+    const allowedFields = ['first_name', 'last_name', 'profession', 'avatar_url', 'mobile_no'];
     const clientAllowedFields = ['mobile_no', 'gender', 'age', 'blood_group'];
     
     const profileFieldsToUpdate = [];

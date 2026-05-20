@@ -13,7 +13,7 @@ router.get('/injuries', requireAuth, async (req, res) => {
         let query = `
             SELECT i.*, 
                    c.first_name, c.last_name, c.id as client_id_raw,
-                   (SELECT json_agg(rp.*) FROM rehab_progress rp WHERE rp.injury_id = i.id ORDER BY rp.created_at DESC LIMIT 1) as latest_rehab
+                   (SELECT row_to_json(rp_sub) FROM (SELECT * FROM rehab_progress WHERE injury_id = i.id ORDER BY created_at DESC LIMIT 1) rp_sub) as latest_rehab
             FROM Injuries i
             LEFT JOIN Clients c ON i.client_id = c.id
             WHERE i.organization_id = $1

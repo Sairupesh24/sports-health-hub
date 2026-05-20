@@ -521,14 +521,14 @@ router.patch('/:id', requireAuth, async (req, res) => {
         
         if (keys.length === 0) return res.status(400).json({ error: 'No valid update fields' });
         
-        const setClause = keys.map((k, i) => `${k} = $${i + 2}`).join(', ');
+        const setClause = keys.map((k, i) => `${k} = $${i + 1}`).join(', ');
         const values = keys.map(k => updates[k]);
 
         const result = await db.query(`
             UPDATE sessions SET ${setClause}, updated_at = CURRENT_TIMESTAMP 
-            WHERE id = $1 AND organization_id = $2
+            WHERE id = $${keys.length + 1} AND organization_id = $${keys.length + 2}
             RETURNING *
-        `, [id, orgId, ...values]);
+        `, [...values, id, orgId]);
 
         res.json(result.rows[0]);
     } catch (error) {

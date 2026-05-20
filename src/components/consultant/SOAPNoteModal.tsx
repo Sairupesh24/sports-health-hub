@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import PerformanceSnapshot from "./PerformanceSnapshot";
 import SorenessHeatmap from "@/components/ams/SorenessHeatmap";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -69,20 +69,21 @@ export default function SOAPNoteModal({ open, onOpenChange, session, clientId, o
             setServiceId(session.service_id || "");
             fetchServices();
             if (isCompleted) {
-                const data = Array.isArray(session.physio_session_details)
-                    ? session.physio_session_details[0]
-                    : session.physio_session_details;
-                setPainScore(data.pain_score || 0);
-                setSelectedModalities(data.modality_used ? data.modality_used.split(',').map((s: string) => s.trim()) : []);
-                setTreatmentType(data.treatment_type || "");
-                setManualTherapy(data.manual_therapy || "");
-                setExerciseGiven(data.exercise_given || "");
-                setRangeOfMotion(data.range_of_motion || "");
-                setStrengthProgress(data.strength_progress || "");
-                setClinicalNotes(data.clinical_notes || "");
-                setNextPlan(data.next_plan || "");
-                setSorenessData(data.soreness_data || []);
-                setSelectedInjuryId(data.injury_id || "");
+                const rawDetails = session.physio_session_details;
+                const data = rawDetails
+                    ? (Array.isArray(rawDetails) ? rawDetails[0] : rawDetails)
+                    : null;
+                setPainScore(data?.pain_score || 0);
+                setSelectedModalities(data?.modality_used ? data.modality_used.split(',').map((s: string) => s.trim()) : []);
+                setTreatmentType(data?.treatment_type || "");
+                setManualTherapy(data?.manual_therapy || "");
+                setExerciseGiven(data?.exercise_given || "");
+                setRangeOfMotion(data?.range_of_motion || "");
+                setStrengthProgress(data?.strength_progress || "");
+                setClinicalNotes(data?.clinical_notes || "");
+                setNextPlan(data?.next_plan || "");
+                setSorenessData(data?.soreness_data || []);
+                setSelectedInjuryId(data?.injury_id || "");
             } else {
                 setPainScore(0);
                 setSelectedModalities([]);
@@ -268,7 +269,7 @@ export default function SOAPNoteModal({ open, onOpenChange, session, clientId, o
                                 </span>
                             )}
                         </DialogTitle>
-                        <p className="text-sm text-muted-foreground">Client: <span className="font-semibold text-foreground">{session.client?.first_name || "Unknown"} {session.client?.last_name || "Client"}</span></p>
+                        <DialogDescription className="text-sm text-muted-foreground">Client: <span className="font-semibold text-foreground">{session.client?.first_name || "Unknown"} {session.client?.last_name || "Client"}</span></DialogDescription>
                     </div>
                     {!isCompleted && (
                         <Button variant="outline" size="sm" onClick={handleCopyPrevious} disabled={fetchingPrevious} className="mr-8">

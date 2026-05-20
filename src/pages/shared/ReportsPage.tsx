@@ -1,5 +1,9 @@
 import { useState, useEffect } from "react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
+import MobileConsultantLayout from "@/components/layout/MobileConsultantLayout";
+import MobileSpecialistLayout from "@/components/layout/MobileSpecialistLayout";
+import { useLocation } from "react-router-dom";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { 
     Card, 
     CardContent, 
@@ -739,13 +743,29 @@ export default function ReportsPage({ role: initialRole }: ReportsPageProps) {
   // Routing Logic: Admin/FOE/Manager -> Legacy, Physio/SportsScientist -> Clinical
   const isLegacy = role === 'admin' || role === 'foe' || role === 'manager';
 
+  const location = useLocation();
+  const isMobile = useIsMobile();
+  
+  let LayoutToUse: any = DashboardLayout;
+  let layoutProps: any = { role: role };
+
+  if (isMobile) {
+      if (location.pathname.startsWith("/mobile/consultant")) {
+          LayoutToUse = MobileConsultantLayout;
+          layoutProps = { title: "Reports" };
+      } else if (location.pathname.startsWith("/mobile/specialist")) {
+          LayoutToUse = MobileSpecialistLayout;
+          layoutProps = { title: "Reports" };
+      }
+  }
+
   return (
-    <DashboardLayout role={role}>
+    <LayoutToUse {...layoutProps}>
       {isLegacy ? (
         <LegacyReports role={role} />
       ) : (
         <ClinicalReports role={role} />
       )}
-    </DashboardLayout>
+    </LayoutToUse>
   );
 }

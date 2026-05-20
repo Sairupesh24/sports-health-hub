@@ -1,19 +1,24 @@
 import { NavLink } from "react-router-dom";
-import { LayoutDashboard, Users, Clock, ClipboardList } from "lucide-react";
+import { LayoutDashboard, Users, CalendarDays, MapPin, ClipboardList } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { haptic } from "@/utils/haptic";
 
-export default function SpecialistBottomNav() {
+export default function ConsultantBottomNav() {
   const navItems = [
     {
-      label: "Dashboard",
+      label: "Queue",
       icon: LayoutDashboard,
-      path: "/mobile/specialist",
+      path: "/mobile/consultant",
     },
     {
-      label: "Sessions",
-      icon: Clock,
-      path: "/mobile/specialist/sessions",
+      label: "Search",
+      icon: Users,
+      path: "/mobile/consultant/clients",
+    },
+    {
+      label: "Schedule",
+      icon: CalendarDays,
+      path: "/mobile/consultant/schedule",
     },
     {
       label: "Forms",
@@ -21,9 +26,9 @@ export default function SpecialistBottomNav() {
       path: "/mobile/specialist/forms",
     },
     {
-      label: "Memberships",
-      icon: Users,
-      path: "/mobile/specialist/memberships",
+      label: "Check-In",
+      icon: MapPin,
+      path: "/mobile/consultant/attendance",
     },
   ];
 
@@ -37,10 +42,10 @@ export default function SpecialistBottomNav() {
             <NavLink
               key={item.path}
               to={item.path}
-              end={item.path === "/mobile/specialist"}
+              end={item.path === "/mobile/consultant"}
               onClick={() => haptic.light()}
               className={({ isActive }) => cn(
-                "flex flex-col items-center justify-center gap-1.5 w-full h-full transition-all duration-500 relative group",
+                "flex flex-col items-center justify-center gap-1.5 w-full h-full transition-all duration-500 relative group min-w-[44px] min-h-[44px]",
                 isActive ? "text-primary" : "text-slate-400 dark:text-slate-500"
               )}
             >
@@ -50,7 +55,7 @@ export default function SpecialistBottomNav() {
                     <div className="absolute top-0 left-1/2 -translate-x-1/2 w-10 h-1 bg-primary rounded-b-xl shadow-[0_2px_10px_rgba(var(--primary-rgb),0.4)] animate-in fade-in slide-in-from-top-2 duration-500" />
                   )}
                   <div className={cn(
-                    "p-2 rounded-2xl transition-all duration-500",
+                    "p-2 rounded-2xl transition-all duration-500 min-w-[44px] min-h-[44px] flex items-center justify-center",
                     isActive ? "bg-primary/10 scale-110 shadow-inner" : "group-active:scale-90"
                   )}>
                     <Icon

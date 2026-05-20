@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import MobileSpecialistLayout from "@/components/layout/MobileSpecialistLayout";
+import MobileConsultantLayout from "@/components/layout/MobileConsultantLayout";
+import { useLocation } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiFetch } from "@/utils/api";
@@ -12,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import MobileAthleteDrawer from "@/components/sports-scientist/MobileAthleteDrawer";
 import { startOfMonth, endOfMonth, format } from "date-fns";
 import { cn } from "@/lib/utils";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
@@ -21,7 +23,10 @@ export default function MobileClients() {
     const navigate = useNavigate();
     const { profile, user } = useAuth();
     const { toast } = useToast();
+    const location = useLocation();
     
+    const Layout = location.pathname.startsWith("/mobile/consultant") ? MobileConsultantLayout : MobileSpecialistLayout;
+
     const [searchQuery, setSearchQuery] = useState("");
     const [selectedAthlete, setSelectedAthlete] = useState<any>(null);
     const [drawerOpen, setDrawerOpen] = useState(false);
@@ -172,9 +177,9 @@ export default function MobileClients() {
     };
 
     return (
-        <MobileSpecialistLayout title="Clients Directory">
+        <Layout title="Clients Directory">
             <div className="space-y-6 pb-20">
-                <Tabs defaultValue="active" className="w-full">
+                <Tabs defaultValue="all" className="w-full">
                     {/* Sticky Header with Search and TabsList */}
                     <div className="sticky top-[-24px] z-30 -mx-6 px-6 py-4 bg-white/70 dark:bg-black/70 backdrop-blur-2xl border-b border-border/30">
                         <div className="relative group mb-4">
@@ -309,6 +314,7 @@ export default function MobileClients() {
                 <DialogContent className="sm:max-w-[425px] h-[85vh] sm:h-auto flex flex-col p-0 gap-0 overflow-hidden">
                     <DialogHeader className="p-4 border-b">
                         <DialogTitle>Manage Group: {selectedGroup?.name}</DialogTitle>
+                        <DialogDescription>Add or remove athletes from this group.</DialogDescription>
                     </DialogHeader>
                     
                     <div className="p-4 border-b bg-muted/30">
@@ -364,6 +370,7 @@ export default function MobileClients() {
                 <DialogContent className="sm:max-w-[425px]">
                     <DialogHeader>
                         <DialogTitle>Create New Group</DialogTitle>
+                        <DialogDescription>Create a group to organise your athletes together.</DialogDescription>
                     </DialogHeader>
                     <div className="py-4 space-y-4">
                         <div className="space-y-2">
@@ -385,6 +392,6 @@ export default function MobileClients() {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
-        </MobileSpecialistLayout>
+        </Layout>
     );
 }

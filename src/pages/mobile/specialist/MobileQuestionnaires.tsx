@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/utils/api";
 import { useAuth } from "@/contexts/AuthContext";
 import MobileSpecialistLayout from "@/components/layout/MobileSpecialistLayout";
+import MobileConsultantLayout from "@/components/layout/MobileConsultantLayout";
 import { 
   ClipboardList, 
   Plus, 
@@ -36,6 +37,8 @@ export default function MobileQuestionnaires() {
   const [editingForm, setEditingForm] = useState<any>(null);
 
   const isClinical = roles?.some(r => ["coach", "sports_scientist", "sports_physician", "physiotherapist", "nutritionist"].includes(r));
+  const isConsultant = roles?.some(r => ["consultant", "sports_physician", "physiotherapist", "nutritionist", "massage_therapist"].includes(r));
+  const Layout = isConsultant ? MobileConsultantLayout : MobileSpecialistLayout;
 
   // Fetch Forms
   const { data: forms, isLoading: formsLoading } = useQuery({
@@ -67,7 +70,7 @@ export default function MobileQuestionnaires() {
   };
 
   return (
-    <MobileSpecialistLayout title="Questionnaires">
+    <Layout title="Questionnaires">
       <div className="space-y-6 pb-24">
         
         <Tabs defaultValue="library" className="w-full">
@@ -212,6 +215,6 @@ export default function MobileQuestionnaires() {
         }}
         initialData={editingForm}
       />
-    </MobileSpecialistLayout>
+    </Layout>
   );
 }

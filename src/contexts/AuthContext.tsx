@@ -82,10 +82,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = async () => {
     localStorage.removeItem("ishpo_jwt");
-    setUser(null);
-    setProfile(null);
-    setRoles([]);
-    setClientId(null);
     window.location.href = '/login';
   };
 

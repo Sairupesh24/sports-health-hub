@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
@@ -140,11 +140,13 @@ export default function LogInjuryModal({ clientId, organizationId, onSuccess }: 
                     Log New Injury
                 </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[500px]">
-                <DialogHeader>
+            <DialogContent className="sm:max-w-[500px] max-h-[90dvh] flex flex-col p-0 gap-0">
+                <DialogHeader className="px-6 pt-6 pb-4 border-b shrink-0">
                     <DialogTitle>Log New Injury</DialogTitle>
+                    <DialogDescription>Specify the details of the injury to log it into the repository.</DialogDescription>
                 </DialogHeader>
-                <form onSubmit={handleSubmit} className="space-y-4 pt-4">
+                <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
+                  <div className="overflow-y-auto flex-1 px-6 py-4 space-y-4">
 
                     {!clientId && (
                         <div className="space-y-2">
@@ -224,12 +226,13 @@ export default function LogInjuryModal({ clientId, organizationId, onSuccess }: 
                         />
                     </div>
 
-                    <div className="flex justify-end pt-4">
-                        <Button type="button" variant="outline" onClick={() => setOpen(false)} className="mr-2">Cancel</Button>
-                        <Button type="submit" disabled={loading}>
-                            {loading ? "Saving..." : "Log Injury"}
-                        </Button>
-                    </div>
+                  </div>
+                  <div className="flex justify-end gap-2 px-6 py-4 border-t bg-background shrink-0">
+                      <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+                      <Button type="submit" disabled={loading}>
+                          {loading ? "Saving..." : "Log Injury"}
+                      </Button>
+                  </div>
                 </form>
             </DialogContent>
         </Dialog>
