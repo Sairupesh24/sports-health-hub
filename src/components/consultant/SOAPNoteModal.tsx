@@ -258,25 +258,39 @@ export default function SOAPNoteModal({ open, onOpenChange, session, clientId, o
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent aria-describedby={undefined} className="sm:max-w-[90vw] lg:max-w-[1200px] max-h-[95vh] overflow-y-auto overflow-x-hidden">
-                <DialogHeader className="flex flex-row items-center justify-between border-b pb-4">
-                    <div className="flex flex-col gap-1">
-                        <DialogTitle className="flex items-center gap-2 text-xl font-display">
-                            SOAP Note — {session?.scheduled_start ? format(new Date(session.scheduled_start), "MMM d, yyyy") : "Consultation"}
-                            <span className="ml-2 px-2 py-0.5 rounded bg-blue-100 text-blue-700 text-[10px] font-bold border border-blue-300">PLANNED SESSION</span>
-                            {isUnentitled && isAdminOrFoe && (
-                                <span className="ml-2 px-2 py-0.5 rounded bg-red-100 text-red-700 text-xs font-bold border border-red-300 flex items-center gap-1">
-                                    <AlertTriangle className="w-3 h-3" /> UN-ENTITLED
+                <DialogHeader className="border-b pb-4 space-y-3">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div className="space-y-1.5 text-left flex-1 min-w-0">
+                            <div className="flex flex-wrap items-center gap-2">
+                                <DialogTitle className="text-xl font-bold font-display text-slate-900 dark:text-white leading-tight">
+                                    SOAP Note — {session?.scheduled_start ? format(new Date(session.scheduled_start), "MMM d, yyyy") : "Consultation"}
+                                </DialogTitle>
+                                <span className="px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-600 text-[10px] font-black tracking-wider border border-blue-200 uppercase">
+                                    PLANNED SESSION
                                 </span>
-                            )}
-                        </DialogTitle>
-                        <DialogDescription className="text-sm text-muted-foreground">Client: <span className="font-semibold text-foreground">{session.client?.first_name || "Unknown"} {session.client?.last_name || "Client"}</span></DialogDescription>
+                                {isUnentitled && isAdminOrFoe && (
+                                    <span className="px-2.5 py-0.5 rounded-full bg-red-50 text-red-600 text-[10px] font-black tracking-wider border border-red-200 flex items-center gap-1 uppercase">
+                                        <AlertTriangle className="w-3 h-3" /> UN-ENTITLED
+                                    </span>
+                                )}
+                            </div>
+                            <DialogDescription className="text-sm text-slate-500">
+                                Client: <span className="font-semibold text-slate-800 dark:text-slate-200">{session.client?.first_name || session.first_name || "Unknown"} {session.client?.last_name || session.last_name || "Client"}</span>
+                            </DialogDescription>
+                        </div>
+                        {!isCompleted && (
+                            <Button 
+                                variant="outline" 
+                                size="sm" 
+                                onClick={handleCopyPrevious} 
+                                disabled={fetchingPrevious} 
+                                className="w-full md:w-auto self-start md:self-center bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition-colors shadow-sm rounded-xl font-medium h-9 text-xs"
+                            >
+                                <Copy className="w-3.5 h-3.5 mr-2 text-slate-500" />
+                                Copy Previous Note
+                            </Button>
+                        )}
                     </div>
-                    {!isCompleted && (
-                        <Button variant="outline" size="sm" onClick={handleCopyPrevious} disabled={fetchingPrevious} className="mr-8">
-                            <Copy className="w-4 h-4 mr-2" />
-                            Copy Previous
-                        </Button>
-                    )}
                 </DialogHeader>
 
                 <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 pt-6">
