@@ -405,7 +405,7 @@ export default function ConsultantClientProfile() {
 
                         {/* Document Manager Modal for Consultant */}
                         <Dialog open={isDocumentModalOpen} onOpenChange={setIsDocumentModalOpen}>
-                            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                            <DialogContent aria-describedby={undefined} className="max-w-4xl max-h-[90vh] overflow-y-auto">
                                 <DialogHeader>
                                     <DialogTitle className="flex items-center gap-2 text-xl font-bold">
                                         <div className="p-2 bg-primary/10 rounded-lg">
@@ -422,7 +422,7 @@ export default function ConsultantClientProfile() {
 
                         {/* Scientific Resources Modal for Sports Scientists ONLY */}
                         <Dialog open={isScientificModalOpen} onOpenChange={setIsScientificModalOpen}>
-                            <DialogContent className="max-w-6xl max-h-[95vh] overflow-y-auto rounded-[40px] p-0 border-none bg-[#f8fafc]">
+                            <DialogContent aria-describedby={undefined} className="max-w-6xl max-h-[95vh] overflow-y-auto rounded-[40px] p-0 border-none bg-[#f8fafc]">
                                 <DialogHeader className="p-8 pb-0">
                                     <DialogTitle className="flex items-center gap-4 text-2xl font-black">
                                         <div className="p-3 bg-slate-900 rounded-2xl shadow-lg">

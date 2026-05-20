@@ -159,7 +159,7 @@ export default function BatchCreationModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="bg-[#1A1F26] border-white/20 text-white rounded-[3rem] overflow-hidden shadow-2xl p-0 max-w-xl ring-1 ring-white/10">
+      <DialogContent aria-describedby={undefined} className="bg-[#1A1F26] border-white/20 text-white rounded-[3rem] overflow-hidden shadow-2xl p-0 max-w-xl ring-1 ring-white/10">
         <DialogHeader className="p-8 bg-white/[0.04] border-b border-white/10">
           <div className="flex items-center justify-between">
             <DialogTitle className="text-2xl font-black uppercase tracking-tight flex items-center gap-3">

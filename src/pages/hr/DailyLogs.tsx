@@ -451,7 +451,7 @@ export default function DailyLogs() {
       </div>
 
       <Dialog open={!!selectedLogs} onOpenChange={() => setSelectedLogs(null)}>
-        <DialogContent className="max-w-5xl p-0 overflow-hidden rounded-3xl border-none shadow-2xl">
+        <DialogContent aria-describedby={undefined} className="max-w-5xl p-0 overflow-hidden rounded-3xl border-none shadow-2xl">
           <div className="grid grid-cols-1 lg:grid-cols-5 h-[600px]">
             <div className="lg:col-span-3 relative h-full bg-slate-100">
               {selectedLogs && (

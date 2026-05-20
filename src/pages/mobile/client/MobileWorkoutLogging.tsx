@@ -306,7 +306,7 @@ export default function MobileWorkoutLogging() {
                               <ArrowLeftRight className="w-4 h-4" />
                             </Button>
                           </DialogTrigger>
-                          <DialogContent className="bg-slate-900 border-white/10 p-0 overflow-hidden rounded-[28px] max-w-[90vw]">
+                          <DialogContent aria-describedby={undefined} className="bg-slate-900 border-white/10 p-0 overflow-hidden rounded-[28px] max-w-[90vw]">
                             <Command className="bg-transparent">
                               <CommandInput placeholder="Swap exercise..." className="h-14 outline-none text-sm font-bold" />
                               <CommandList className="max-h-[60vh]">
@@ -415,7 +415,7 @@ export default function MobileWorkoutLogging() {
 
       {/* Finish Dialog */}
       <Dialog open={isFinishing} onOpenChange={setIsFinishing}>
-        <DialogContent className="bg-slate-900 border-white/10 text-white rounded-[32px] max-w-[90vw] p-8">
+        <DialogContent aria-describedby={undefined} className="bg-slate-900 border-white/10 text-white rounded-[32px] max-w-[90vw] p-8">
           <DialogHeader>
             <DialogTitle className="text-2xl font-black italic uppercase tracking-tighter">Finish Session</DialogTitle>
           </DialogHeader>
@@ -460,7 +460,7 @@ export default function MobileWorkoutLogging() {
 
       {/* Exercise Detail Dialog */}
       <Dialog open={!!selectedExerciseDetail} onOpenChange={(open) => !open && setSelectedExerciseDetail(null)}>
-        <DialogContent className="bg-slate-900 border-white/10 text-white rounded-[32px] max-w-[95vw] p-0 overflow-hidden shadow-2xl">
+        <DialogContent aria-describedby={undefined} className="bg-slate-900 border-white/10 text-white rounded-[32px] max-w-[95vw] p-0 overflow-hidden shadow-2xl">
           {selectedExerciseDetail && (
             <div className="flex flex-col">
               <div className="aspect-video bg-black/60 relative flex items-center justify-center border-b border-white/5">

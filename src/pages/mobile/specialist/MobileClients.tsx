@@ -306,7 +306,7 @@ export default function MobileClients() {
 
             {/* Group Management Dialog */}
             <Dialog open={groupManageOpen} onOpenChange={setGroupManageOpen}>
-                <DialogContent className="sm:max-w-[425px] h-[85vh] sm:h-auto flex flex-col p-0 gap-0 overflow-hidden">
+                <DialogContent aria-describedby={undefined} className="sm:max-w-[425px] h-[85vh] sm:h-auto flex flex-col p-0 gap-0 overflow-hidden">
                     <DialogHeader className="p-4 border-b">
                         <DialogTitle>Manage Group: {selectedGroup?.name}</DialogTitle>
                     </DialogHeader>
@@ -361,7 +361,7 @@ export default function MobileClients() {
             </Dialog>
             {/* Create Group Dialog */}
             <Dialog open={createGroupOpen} onOpenChange={setCreateGroupOpen}>
-                <DialogContent className="sm:max-w-[425px]">
+                <DialogContent aria-describedby={undefined} className="sm:max-w-[425px]">
                     <DialogHeader>
                         <DialogTitle>Create New Group</DialogTitle>
                     </DialogHeader>

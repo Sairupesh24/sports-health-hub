@@ -140,7 +140,7 @@ export default function LogInjuryModal({ clientId, organizationId, onSuccess }: 
                     Log New Injury
                 </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[500px]">
+            <DialogContent aria-describedby={undefined} className="sm:max-w-[500px]">
                 <DialogHeader>
                     <DialogTitle>Log New Injury</DialogTitle>
                 </DialogHeader>

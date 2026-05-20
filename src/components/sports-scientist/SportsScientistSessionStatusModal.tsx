@@ -308,7 +308,7 @@ export function SportsScientistSessionStatusModal({ open, onOpenChange, session,
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[480px]">
+            <DialogContent aria-describedby={undefined} className="sm:max-w-[480px]">
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
                         {editInfo.isLocked ? <Lock className="w-4 h-4 text-muted-foreground" /> : <Clock className="w-4 h-4 text-primary" />}

@@ -209,7 +209,7 @@ export default function FormBuilder({ isOpen, onClose, onSuccess, initialData }:
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="bg-[#F1F5F9] border-none text-slate-900 rounded-none md:rounded-[3rem] overflow-hidden shadow-[0_0_100px_rgba(0,0,0,0.1)] p-0 max-w-full md:max-w-7xl ring-1 ring-slate-200/50 h-full md:h-[92vh] flex flex-col">
+      <DialogContent aria-describedby={undefined} className="bg-[#F1F5F9] border-none text-slate-900 rounded-none md:rounded-[3rem] overflow-hidden shadow-[0_0_100px_rgba(0,0,0,0.1)] p-0 max-w-full md:max-w-7xl ring-1 ring-slate-200/50 h-full md:h-[92vh] flex flex-col">
         {/* Modern Header */}
         <DialogHeader className="p-3 md:p-6 bg-white border-b border-slate-100 flex-shrink-0 z-20">
           <div className="flex items-center justify-between gap-4 mb-4">

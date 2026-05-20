@@ -266,7 +266,7 @@ export default function MobilePerformancePage() {
 
       {/* Wellness Sheet Overlay */}
       <Dialog open={isWellnessDialogOpen} onOpenChange={setIsWellnessDialogOpen}>
-         <DialogContent className="max-w-md bg-slate-950 border-white/10 p-0 text-white overflow-hidden">
+         <DialogContent aria-describedby={undefined} className="max-w-md bg-slate-950 border-white/10 p-0 text-white overflow-hidden">
             <DialogHeader className="p-6 bg-[#1A1F26] border-b border-white/10">
                <DialogTitle className="flex items-center gap-2 font-black italic uppercase tracking-tighter">
                   <Heart className="w-5 h-5 text-primary" /> Health Log

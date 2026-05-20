@@ -194,7 +194,7 @@ export default function BulkAssignmentModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="bg-[#0F172A] border-white/10 text-white rounded-[2rem] sm:rounded-[3rem] overflow-hidden shadow-2xl p-0 sm:max-w-4xl max-w-[95vw] ring-1 ring-white/5 h-[90vh] sm:h-[80vh] flex flex-col">
+      <DialogContent aria-describedby={undefined} className="bg-[#0F172A] border-white/10 text-white rounded-[2rem] sm:rounded-[3rem] overflow-hidden shadow-2xl p-0 sm:max-w-4xl max-w-[95vw] ring-1 ring-white/5 h-[90vh] sm:h-[80vh] flex flex-col">
         <DialogHeader className="p-2 sm:p-4 bg-white/[0.02] border-b border-white/10 flex-shrink-0">
           <div className="flex items-center justify-between">
             <div className="max-w-[70%]">
