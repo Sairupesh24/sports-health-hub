@@ -480,12 +480,6 @@ export default function SOAPNoteModal({ open, onOpenChange, session, clientId, o
                                             ))}
                                         </div>
                                     </div>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div className="space-y-2"><Label>Primary Treatment</Label><Input value={treatmentType} onChange={e => setTreatmentType(e.target.value)} placeholder="e.g. Laser, TENS" /></div>
-                                        <div className="space-y-2"><Label>Manual Therapy</Label><Input value={manualTherapy} onChange={e => setManualTherapy(e.target.value)} placeholder="e.g. Myofascial Release" /></div>
-                                        <div className="space-y-2"><Label>Range of Motion</Label><Input value={rangeOfMotion} onChange={e => setRangeOfMotion(e.target.value)} placeholder="e.g. Flexion 100°" /></div>
-                                        <div className="space-y-2"><Label>Strength Status</Label><Input value={strengthProgress} onChange={e => setStrengthProgress(e.target.value)} placeholder="e.g. 4/5 MMT" /></div>
-                                    </div>
                                     <div className="space-y-2"><Label>Exercise / Rehabilitation Given</Label><Textarea value={exerciseGiven} onChange={e => setExerciseGiven(e.target.value)} placeholder="List exercises and parameters..." className="bg-muted/20" /></div>
                                 </div>
                             </div>
