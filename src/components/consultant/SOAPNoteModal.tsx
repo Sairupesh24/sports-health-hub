@@ -281,13 +281,14 @@ export default function SOAPNoteModal({ open, onOpenChange, session, clientId, o
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent aria-describedby={undefined} className="sm:max-w-[90vw] lg:max-w-[1200px] max-h-[95vh] overflow-y-auto overflow-x-hidden">
+                <DialogTitle className="sr-only">SOAP Note Details</DialogTitle>
                 <DialogHeader className="border-b pb-4 space-y-3">
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                         <div className="space-y-1.5 text-left flex-1 min-w-0">
                             <div className="flex flex-wrap items-center gap-2">
-                                <DialogTitle className="text-xl font-bold font-display text-slate-900 dark:text-white leading-tight">
+                                <span className="text-xl font-bold font-display text-slate-900 dark:text-white leading-tight">
                                     SOAP Note — {session?.scheduled_start ? format(new Date(session.scheduled_start), "MMM d, yyyy") : "Consultation"}
-                                </DialogTitle>
+                                </span>
                                 <span className="px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-600 text-[10px] font-black tracking-wider border border-blue-200 uppercase">
                                     PLANNED SESSION
                                 </span>
