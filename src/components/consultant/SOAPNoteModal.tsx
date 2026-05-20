@@ -192,6 +192,8 @@ export default function SOAPNoteModal({ open, onOpenChange, session, clientId, o
                 setSorenessData(prev.soreness_data || []);
                 setSelectedInjuryId(prev.injury_id || "");
                 toast({ title: "Copied", description: "Copied data from previous session." });
+            } else {
+                toast({ title: "No Previous Note", description: "No previous SOAP notes found for this client.", variant: "default" });
             }
         } catch (error: any) {
             toast({ title: "No Previous Note", description: "No previous SOAP notes found.", variant: "destructive" });

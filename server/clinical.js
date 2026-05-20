@@ -116,7 +116,7 @@ router.get('/sessions/previous', requireAuth, async (req, res) => {
             LIMIT 1
         `, [client_id, orgId, before || new Date().toISOString()]);
         
-        if (result.rows.length === 0) return res.status(404).json({ error: 'No previous notes found' });
+        if (result.rows.length === 0) return res.json(null);
         res.json(result.rows[0]);
     } catch (error) {
         res.status(500).json({ error: error.message });
