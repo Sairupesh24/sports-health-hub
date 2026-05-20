@@ -48,10 +48,17 @@ interface ClientProfile {
 }
 
 
-const isValidDateString = (dateStr: string) => {
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return false;
-    const date = new Date(dateStr);
-    return date instanceof Date && !isNaN(date.getTime());
+const parseDDMMYYYY = (val: string): string | null => {
+    if (!/^\d{2}-\d{2}-\d{4}$/.test(val)) return null;
+    const parts = val.split("-");
+    const day = parseInt(parts[0], 10);
+    const month = parseInt(parts[1], 10) - 1;
+    const year = parseInt(parts[2], 10);
+    const d = new Date(year, month, day);
+    if (d.getFullYear() === year && d.getMonth() === month && d.getDate() === day) {
+        return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    }
+    return null;
 };
 
 export default function ConsultantClientProfile() {
@@ -87,6 +94,8 @@ export default function ConsultantClientProfile() {
     // Filters
     const [startDate, setStartDate] = useState("");
     const [endDate, setEndDate] = useState("");
+    const [startDateInput, setStartDateInput] = useState("");
+    const [endDateInput, setEndDateInput] = useState("");
     const [sessionTypeFilter, setSessionTypeFilter] = useState("all");
 
     useEffect(() => {
@@ -109,15 +118,8 @@ export default function ConsultantClientProfile() {
             setInjuries(injuryData || []);
 
             // Fetch Sessions History
-            const sessionParams: any = { sessionType: sessionTypeFilter };
-            if (!startDate || isValidDateString(startDate)) {
-                sessionParams.startDate = startDate;
-            }
-            if (!endDate || isValidDateString(endDate)) {
-                sessionParams.endDate = endDate;
-            }
             const sessionData = await apiFetch<any[]>(`/clients/${id}/sessions`, {
-                params: sessionParams
+                params: { startDate, endDate, sessionType: sessionTypeFilter }
             });
             setSessions(sessionData || []);
 
@@ -286,18 +288,32 @@ export default function ConsultantClientProfile() {
                                         <div className="relative flex items-center h-9 w-full bg-muted/30 rounded-md border border-input focus-within:ring-1 focus-within:ring-ring">
                                             <Input 
                                                 type="text" 
-                                                placeholder="YYYY-MM-DD" 
-                                                value={startDate} 
-                                                onChange={(e) => setStartDate(e.target.value)} 
+                                                placeholder="DD-MM-YYYY" 
+                                                value={startDateInput} 
+                                                onChange={(e) => {
+                                                    const val = e.target.value;
+                                                    setStartDateInput(val);
+                                                    if (!val) {
+                                                        setStartDate("");
+                                                    } else {
+                                                        const parsed = parseDDMMYYYY(val);
+                                                        if (parsed) {
+                                                            setStartDate(parsed);
+                                                        }
+                                                    }
+                                                }} 
                                                 className="w-full h-full bg-transparent px-3 py-1 text-xs border-none focus-visible:ring-0 focus-visible:ring-offset-0 pr-8" 
                                             />
                                             <div className="absolute right-1 flex items-center">
-                                                {startDate && (
+                                                {startDateInput && (
                                                     <Button 
                                                         variant="ghost" 
                                                         size="icon" 
                                                         className="h-7 w-7 hover:bg-transparent text-muted-foreground hover:text-foreground"
-                                                        onClick={() => setStartDate("")}
+                                                        onClick={() => {
+                                                            setStartDate("");
+                                                            setStartDateInput("");
+                                                        }}
                                                     >
                                                         <X className="h-3 w-3" />
                                                     </Button>
@@ -315,8 +331,16 @@ export default function ConsultantClientProfile() {
                                                     <PopoverContent className="w-auto p-0" align="end">
                                                         <Calendar
                                                             mode="single"
-                                                            selected={startDate && isValidDateString(startDate) ? parse(startDate, "yyyy-MM-dd", new Date()) : undefined}
-                                                            onSelect={(date) => setStartDate(date ? format(date, "yyyy-MM-dd") : "")}
+                                                            selected={startDate ? parse(startDate, "yyyy-MM-dd", new Date()) : undefined}
+                                                            onSelect={(date) => {
+                                                                if (date) {
+                                                                    setStartDate(format(date, "yyyy-MM-dd"));
+                                                                    setStartDateInput(format(date, "dd-MM-yyyy"));
+                                                                } else {
+                                                                    setStartDate("");
+                                                                    setStartDateInput("");
+                                                                }
+                                                            }}
                                                             initialFocus
                                                         />
                                                     </PopoverContent>
@@ -329,18 +353,32 @@ export default function ConsultantClientProfile() {
                                         <div className="relative flex items-center h-9 w-full bg-muted/30 rounded-md border border-input focus-within:ring-1 focus-within:ring-ring">
                                             <Input 
                                                 type="text" 
-                                                placeholder="YYYY-MM-DD" 
-                                                value={endDate} 
-                                                onChange={(e) => setEndDate(e.target.value)} 
+                                                placeholder="DD-MM-YYYY" 
+                                                value={endDateInput} 
+                                                onChange={(e) => {
+                                                    const val = e.target.value;
+                                                    setEndDateInput(val);
+                                                    if (!val) {
+                                                        setEndDate("");
+                                                    } else {
+                                                        const parsed = parseDDMMYYYY(val);
+                                                        if (parsed) {
+                                                            setEndDate(parsed);
+                                                        }
+                                                    }
+                                                }} 
                                                 className="w-full h-full bg-transparent px-3 py-1 text-xs border-none focus-visible:ring-0 focus-visible:ring-offset-0 pr-8" 
                                             />
                                             <div className="absolute right-1 flex items-center">
-                                                {endDate && (
+                                                {endDateInput && (
                                                     <Button 
                                                         variant="ghost" 
                                                         size="icon" 
                                                         className="h-7 w-7 hover:bg-transparent text-muted-foreground hover:text-foreground"
-                                                        onClick={() => setEndDate("")}
+                                                        onClick={() => {
+                                                            setEndDate("");
+                                                            setEndDateInput("");
+                                                        }}
                                                     >
                                                         <X className="h-3 w-3" />
                                                     </Button>
@@ -358,8 +396,16 @@ export default function ConsultantClientProfile() {
                                                     <PopoverContent className="w-auto p-0" align="end">
                                                         <Calendar
                                                             mode="single"
-                                                            selected={endDate && isValidDateString(endDate) ? parse(endDate, "yyyy-MM-dd", new Date()) : undefined}
-                                                            onSelect={(date) => setEndDate(date ? format(date, "yyyy-MM-dd") : "")}
+                                                            selected={endDate ? parse(endDate, "yyyy-MM-dd", new Date()) : undefined}
+                                                            onSelect={(date) => {
+                                                                if (date) {
+                                                                    setEndDate(format(date, "yyyy-MM-dd"));
+                                                                    setEndDateInput(format(date, "dd-MM-yyyy"));
+                                                                } else {
+                                                                    setEndDate("");
+                                                                    setEndDateInput("");
+                                                                }
+                                                            }}
                                                             initialFocus
                                                         />
                                                     </PopoverContent>
