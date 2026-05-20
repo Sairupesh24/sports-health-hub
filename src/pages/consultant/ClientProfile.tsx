@@ -4,7 +4,7 @@ import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, User, Phone, Calendar, Activity, ClipboardList, History } from "lucide-react";
+import { ArrowLeft, User, Phone, CalendarDays, Activity, ClipboardList, History, X } from "lucide-react";
 import { apiFetch } from "@/utils/api";
 import { toast } from "@/hooks/use-toast";
 import AMSTrainingLoadWidget from "@/components/dashboard/AMSTrainingLoadWidget";
@@ -12,7 +12,9 @@ import LogInjuryModal from "@/components/consultant/LogInjuryModal";
 import SOAPNoteModal from "@/components/consultant/SOAPNoteModal";
 import ResolveInjuryModal from "@/components/consultant/ResolveInjuryModal";
 import AdHocSessionModal from "@/components/consultant/AdHocSessionModal";
-import { format } from "date-fns";
+import { format, parse } from "date-fns";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 import * as XLSX from "xlsx";
 import { VIPBadge, VIPName } from "@/components/ui/VIPBadge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -268,11 +270,75 @@ export default function ConsultantClientProfile() {
                                 <div className="mt-4 flex flex-wrap gap-3 items-end">
                                     <div className="space-y-1 flex-1 min-w-[140px]">
                                         <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Start Date</span>
-                                        <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="h-9 w-full text-xs bg-muted/30 py-1" />
+                                        <Popover>
+                                            <PopoverTrigger asChild>
+                                                <Button
+                                                    variant="outline"
+                                                    className={cn(
+                                                        "h-9 w-full justify-start text-left font-normal bg-muted/30 text-xs px-3 gap-2 border border-input relative",
+                                                        !startDate && "text-muted-foreground"
+                                                    )}
+                                                >
+                                                    <CalendarDays className="h-4 w-4 shrink-0 opacity-50 text-primary" />
+                                                    <span className="truncate pr-4">
+                                                        {startDate ? format(parse(startDate, "yyyy-MM-dd", new Date()), "dd MMM yyyy") : "Pick a date"}
+                                                    </span>
+                                                    {startDate && (
+                                                        <X 
+                                                            className="h-3 w-3 absolute right-2 hover:text-foreground opacity-50 hover:opacity-100 shrink-0" 
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setStartDate("");
+                                                            }}
+                                                        />
+                                                    )}
+                                                </Button>
+                                            </PopoverTrigger>
+                                            <PopoverContent className="w-auto p-0" align="start">
+                                                <Calendar
+                                                    mode="single"
+                                                    selected={startDate ? parse(startDate, "yyyy-MM-dd", new Date()) : undefined}
+                                                    onSelect={(date) => setStartDate(date ? format(date, "yyyy-MM-dd") : "")}
+                                                    initialFocus
+                                                />
+                                            </PopoverContent>
+                                        </Popover>
                                     </div>
                                     <div className="space-y-1 flex-1 min-w-[140px]">
                                         <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">End Date</span>
-                                        <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="h-9 w-full text-xs bg-muted/30 py-1" />
+                                        <Popover>
+                                            <PopoverTrigger asChild>
+                                                <Button
+                                                    variant="outline"
+                                                    className={cn(
+                                                        "h-9 w-full justify-start text-left font-normal bg-muted/30 text-xs px-3 gap-2 border border-input relative",
+                                                        !endDate && "text-muted-foreground"
+                                                    )}
+                                                >
+                                                    <CalendarDays className="h-4 w-4 shrink-0 opacity-50 text-primary" />
+                                                    <span className="truncate pr-4">
+                                                        {endDate ? format(parse(endDate, "yyyy-MM-dd", new Date()), "dd MMM yyyy") : "Pick a date"}
+                                                    </span>
+                                                    {endDate && (
+                                                        <X 
+                                                            className="h-3 w-3 absolute right-2 hover:text-foreground opacity-50 hover:opacity-100 shrink-0" 
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setEndDate("");
+                                                            }}
+                                                        />
+                                                    )}
+                                                </Button>
+                                            </PopoverTrigger>
+                                            <PopoverContent className="w-auto p-0" align="start">
+                                                <Calendar
+                                                    mode="single"
+                                                    selected={endDate ? parse(endDate, "yyyy-MM-dd", new Date()) : undefined}
+                                                    onSelect={(date) => setEndDate(date ? format(date, "yyyy-MM-dd") : "")}
+                                                    initialFocus
+                                                />
+                                            </PopoverContent>
+                                        </Popover>
                                     </div>
                                     <div className="space-y-1 flex-1 min-w-[160px]">
                                         <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Type</span>
