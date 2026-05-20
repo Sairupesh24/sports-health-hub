@@ -29,19 +29,23 @@ export default function AppointmentList({ role, hideLayout = false }: { role: 'a
             });
             
             // Map the backend data to match the component's expectations
-            const mapped = data.map(apt => ({
-                ...apt,
-                client: { 
-                    first_name: apt.client_first_name, 
-                    last_name: apt.client_last_name, 
-                    uhid: apt.client_uhid, 
-                    is_vip: apt.is_vip 
-                },
-                therapist: { 
-                    first_name: apt.therapist_first_name, 
-                    last_name: apt.therapist_last_name 
-                }
-            }));
+            const mapped = data.map(apt => {
+                const client = apt.client && apt.client.first_name !== undefined ? apt.client : {
+                    first_name: apt.client_first_name,
+                    last_name: apt.client_last_name,
+                    uhid: apt.client_uhid,
+                    is_vip: apt.is_vip
+                };
+                const therapist = apt.therapist && apt.therapist.first_name !== undefined ? apt.therapist : {
+                    first_name: apt.therapist_first_name,
+                    last_name: apt.therapist_last_name
+                };
+                return {
+                    ...apt,
+                    client,
+                    therapist
+                };
+            });
             
             setAppointments(mapped);
         } catch (error: any) {

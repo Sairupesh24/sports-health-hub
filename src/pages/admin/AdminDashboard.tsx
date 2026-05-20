@@ -155,7 +155,8 @@ export default function AdminDashboard() {
   const schedule = useMemo(() => {
     if (!todaysSessions) return [];
     return todaysSessions.map(session => {
-      const clientName = session.client_first_name ? `${session.client_first_name || ''} ${session.client_last_name || ''}`.trim() : 'Unknown';
+      const client = session.client || { first_name: session.client_first_name, last_name: session.client_last_name };
+      const clientName = client.first_name ? `${client.first_name || ''} ${client.last_name || ''}`.trim() : 'Unknown';
       return {
         id: session.id,
         time: session.scheduled_start ? format(parseISO(session.scheduled_start), 'HH:mm') : '--:--',
@@ -189,8 +190,10 @@ export default function AdminDashboard() {
         .filter(s => s.status === 'Completed')
         .slice(0, 5);
       completedSessions.forEach(session => {
-        const clientName = session.client_first_name ? `${session.client_first_name || ''} ${session.client_last_name || ''}`.trim() : 'Client';
-        const therapistName = session.therapist_first_name ? `Dr. ${session.therapist_first_name || ''} ${session.therapist_last_name || ''}`.trim() : 'Therapist';
+        const client = session.client || { first_name: session.client_first_name, last_name: session.client_last_name };
+        const clientName = client.first_name ? `${client.first_name || ''} ${client.last_name || ''}`.trim() : 'Client';
+        const therapist = session.therapist || { first_name: session.therapist_first_name, last_name: session.therapist_last_name };
+        const therapistName = therapist.first_name ? `Dr. ${therapist.first_name || ''} ${therapist.last_name || ''}`.trim() : 'Therapist';
         activityList.push({
           id: `session-${session.id}`,
           title: "Session completed",
