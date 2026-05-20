@@ -253,6 +253,27 @@ export default function SOAPNoteModal({ open, onOpenChange, session, clientId, o
         }
     };
 
+    const getTherapistName = () => {
+        if (session?.therapist) {
+            const first = session.therapist.first_name || "";
+            const last = session.therapist.last_name || "";
+            const name = `${first} ${last}`.trim();
+            if (name) return name;
+        }
+        if (profile) {
+            const first = profile.first_name || "";
+            const last = profile.last_name || "";
+            const name = `${first} ${last}`.trim();
+            if (name) return name;
+        }
+        return "TBD";
+    };
+
+    const rawTherapistName = getTherapistName();
+    const therapistDisplayName = rawTherapistName.toLowerCase().startsWith("dr.") 
+        ? rawTherapistName 
+        : `Dr. ${rawTherapistName}`;
+
     if (!session) return null;
 
     return (
@@ -489,7 +510,7 @@ export default function SOAPNoteModal({ open, onOpenChange, session, clientId, o
                             <div className="space-y-3 text-sm">
                                 <div className="flex flex-col"><span className="text-[10px] text-muted-foreground uppercase font-bold">Service Type</span><span className="font-semibold text-foreground">{session.service_type}</span></div>
                                 <div className="flex flex-col"><span className="text-[10px] text-muted-foreground uppercase font-bold">Scheduled At</span><span className="font-semibold text-foreground">{format(new Date(session.scheduled_start), "MMM d, h:mm a")}</span></div>
-                                <div className="flex flex-col"><span className="text-[10px] text-muted-foreground uppercase font-bold">Consultant</span><span className="font-semibold text-foreground">Dr. {session.therapist?.last_name || "TBD"}</span></div>
+                                <div className="flex flex-col"><span className="text-[10px] text-muted-foreground uppercase font-bold">Consultant</span><span className="font-semibold text-foreground">{therapistDisplayName}</span></div>
                             </div>
                         </div>
                     </div>

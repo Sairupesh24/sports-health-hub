@@ -136,9 +136,11 @@ router.get('/dashboard/stats', requireAuth, async (req, res) => {
         
         // 1. Today's sessions
         const sessionsRes = await db.query(`
-            SELECT s.*, c.first_name, c.last_name, c.is_vip
+            SELECT s.*, c.first_name, c.last_name, c.is_vip,
+                   json_build_object('first_name', p.first_name, 'last_name', p.last_name) as therapist
             FROM Sessions s
             LEFT JOIN Clients c ON s.client_id = c.id
+            LEFT JOIN Profiles p ON s.therapist_id = p.id
             WHERE s.therapist_id = $1 
             AND s.scheduled_start >= $2 
             AND s.scheduled_start <= $3
