@@ -153,8 +153,8 @@ export function TherapistAssignmentCard({ clientId, orgId }: { clientId: string,
   };
 
   return (
-    <Card className="h-full border shadow-sm">
-      <CardHeader className="pb-3 border-b bg-muted/20">
+    <Card className="gradient-card border-border h-full">
+      <CardHeader className="pb-3">
         <div className="flex justify-between items-center">
           <CardTitle className="text-lg font-medium flex items-center gap-2">
             <User className="w-5 h-5 text-primary" />

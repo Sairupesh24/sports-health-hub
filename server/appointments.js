@@ -303,18 +303,75 @@ router.get('/client-therapist-availability', requireAuth, async (req, res) => {
         const therapistRes = await db.query('SELECT id, first_name, last_name, profession FROM profiles WHERE id = $1', [therapistId]);
         const therapist = therapistRes.rows[0];
         
-        // 3. Simple availability (Mocked for now, can be improved)
+        if (!therapist) {
+            return res.json({ status: 'Unassigned', assigned_therapist: null, free_slots: [], alternate_therapists: [] });
+        }
+        
+        // 3. Get standard availability for the day of week
+        const dayOfWeek = new Date(date).getDay();
+        const availRes = await db.query(
+            'SELECT start_time, end_time FROM consultantavailability WHERE consultant_id = $1 AND day_of_week = $2',
+            [therapistId, dayOfWeek]
+        );
+
+        let status = 'Available';
+        let freeSlots = [];
+
+        if (availRes.rows.length === 0) {
+            status = 'Unavailable';
+        } else {
+            const { start_time, end_time } = availRes.rows[0];
+
+            // 4. Check for exceptions (Leaves)
+            const excRes = await db.query(
+                'SELECT is_blocked, start_time as exc_start, end_time as exc_end FROM availabilityexceptions WHERE consultant_id = $1 AND exception_date = $2',
+                [therapistId, date]
+            );
+
+            if (excRes.rows.length > 0 && excRes.rows[0].is_blocked && !excRes.rows[0].exc_start) {
+                status = 'On Leave';
+            } else {
+                // 5. Get booked sessions
+                const bookedRes = await db.query(
+                    'SELECT scheduled_start, scheduled_end FROM sessions WHERE therapist_id = $1 AND status != $2 AND scheduled_start::date = $3',
+                    [therapistId, 'Cancelled', date]
+                );
+
+                // Simple slot generation (30 min increments)
+                let current = new Date(`${date}T${start_time}`);
+                const end = new Date(`${date}T${end_time}`);
+
+                while (current < end) {
+                    const slotEnd = new Date(current.getTime() + 30 * 60000);
+                    const isBooked = bookedRes.rows.some(b => {
+                        const bStart = new Date(b.scheduled_start);
+                        const bEnd = new Date(b.scheduled_end);
+                        return (current >= bStart && current < bEnd) || (slotEnd > bStart && slotEnd <= bEnd);
+                    });
+
+                    if (!isBooked) {
+                        freeSlots.push({
+                            start: current.toTimeString().substring(0, 5),
+                            end: slotEnd.toTimeString().substring(0, 5)
+                        });
+                    }
+                    current = slotEnd;
+                }
+                
+                if (freeSlots.length === 0) {
+                    status = 'Unavailable';
+                }
+            }
+        }
+
         res.json({
-            status: 'Available',
+            status,
             assigned_therapist: {
                 id: therapist.id,
                 name: `${therapist.first_name} ${therapist.last_name}`,
                 profession: therapist.profession
             },
-            free_slots: [
-                { start: '09:00', end: '10:00' },
-                { start: '11:00', end: '12:00' }
-            ],
+            free_slots: freeSlots,
             alternate_therapists: []
         });
     } catch (error) {
