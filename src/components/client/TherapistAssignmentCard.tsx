@@ -165,11 +165,11 @@ export function TherapistAssignmentCard({ clientId, orgId }: { clientId: string,
               <Button
                 variant="outline"
                 className={cn(
-                  "w-[140px] justify-start text-left font-normal bg-white h-8 text-sm",
+                  "w-[160px] justify-start text-left font-normal bg-white h-8 text-sm px-3 gap-2",
                   !date && "text-muted-foreground"
                 )}
               >
-                <CalendarIcon className="mr-2 h-4 w-4" />
+                <CalendarIcon className="h-4 w-4 shrink-0" />
                 {date ? format(date, "MMM dd, yyyy") : <span>Pick a date</span>}
               </Button>
             </PopoverTrigger>
