@@ -163,11 +163,6 @@ router.patch('/:id', requireAuth, async (req, res) => {
                 'UPDATE clients SET assigned_consultant_id = $1 WHERE id = $2 AND organization_id = $3',
                 [assigned_consultant_id, id, orgId]
             );
-            // Log to history
-            await db.query(
-                'INSERT INTO client_therapist_history (client_id, therapist_id, assigned_by) VALUES ($1, $2, $3)',
-                [id, assigned_consultant_id, req.user.id]
-            );
         }
 
         res.json({ success: true });
@@ -181,12 +176,12 @@ router.get('/:id/therapist-history', requireAuth, async (req, res) => {
     try {
         const { id } = req.params;
         const result = await db.query(`
-            SELECT h.*, 
+            SELECT h.id, h.client_id, h.new_consultant_id as therapist_id, h.created_at as assigned_at, h.change_reason,
                    p.first_name, p.last_name, p.profession
-            FROM client_therapist_history h
-            JOIN profiles p ON h.therapist_id = p.id
+            FROM client_assignment_history h
+            JOIN profiles p ON h.new_consultant_id = p.id
             WHERE h.client_id = $1
-            ORDER BY h.assigned_at DESC
+            ORDER BY h.created_at DESC
         `, [id]);
         
         const mapped = result.rows.map(row => ({
