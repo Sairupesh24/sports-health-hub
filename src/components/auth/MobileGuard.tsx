@@ -28,8 +28,11 @@ export default function MobileGuard({ children }: MobileGuardProps) {
     const isMobileClientPath = location.pathname.startsWith('/mobile/client');
     const isSpecialistPath = location.pathname.startsWith('/sports-scientist') || location.pathname.startsWith('/ams');
     const isMobileSpecialistPath = location.pathname.startsWith('/mobile/specialist');
+    const isConsultantPath = location.pathname.startsWith('/consultant');
+    const isMobileConsultantPath = location.pathname.startsWith('/mobile/consultant');
 
     const isSpecialist = roles?.some(r => ["sports_scientist", "admin", "coach", "sports_physician", "physiotherapist", "nutritionist"].includes(r));
+    const isConsultant = roles?.some(r => ["consultant", "sports_physician", "physiotherapist", "nutritionist", "massage_therapist"].includes(r));
     const isClient = roles?.includes("client") || roles?.includes("athlete");
 
     if (isMobile) {
@@ -55,6 +58,14 @@ export default function MobileGuard({ children }: MobileGuardProps) {
         navigate(mobilePath, { replace: true });
         return;
       }
+
+      // Handle Consultant Redirection
+      if (isConsultant && isConsultantPath && !isMobileConsultantPath) {
+        // Special mappings for specific views could go here, otherwise generic replace
+        let mobilePath = location.pathname.replace('/consultant', '/mobile/consultant');
+        navigate(mobilePath, { replace: true });
+        return;
+      }
     } else {
       // Redirect back to desktop if on a desktop device
       if (isMobileClientPath) {
@@ -64,6 +75,9 @@ export default function MobileGuard({ children }: MobileGuardProps) {
         const desktopPath = location.pathname === '/mobile/specialist/forms' 
           ? '/ams/questionnaires'
           : location.pathname.replace('/mobile/specialist', '/sports-scientist');
+        navigate(desktopPath, { replace: true });
+      } else if (isMobileConsultantPath) {
+        const desktopPath = location.pathname.replace('/mobile/consultant', '/consultant');
         navigate(desktopPath, { replace: true });
       }
     }

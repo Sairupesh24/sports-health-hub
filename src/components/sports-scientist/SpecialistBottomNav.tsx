@@ -61,7 +61,7 @@ export default function SpecialistBottomNav() {
                     />
                   </div>
                   <span className={cn(
-                    "text-[8px] font-black uppercase tracking-[0.2em] transition-all duration-500",
+                    "text-[7px] sm:text-[8px] font-black uppercase tracking-[0.1em] transition-all duration-500",
                     isActive ? "opacity-100 translate-y-0" : "opacity-60 -translate-y-0.5"
                   )}>
                     {item.label}

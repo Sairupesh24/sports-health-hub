@@ -108,8 +108,9 @@ export default function EmergencyLeaveModal({ open, onOpenChange }: EmergencyLea
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-[500px] max-h-[90dvh] flex flex-col p-0 gap-0">
+        {/* Pinned Header */}
+        <DialogHeader className="px-6 pt-6 pb-4 border-b shrink-0">
           <DialogTitle className="flex items-center gap-2 text-destructive">
             <AlertCircle className="w-5 h-5 animate-pulse" />
             Fire Emergency Alert
@@ -120,25 +121,31 @@ export default function EmergencyLeaveModal({ open, onOpenChange }: EmergencyLea
         </DialogHeader>
 
         {existingEmergency ? (
-          <div className="space-y-4 py-6 text-center">
-             <div className="mx-auto w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mb-4">
+          <>
+            {/* Scrollable body */}
+            <div className="overflow-y-auto flex-1 px-6 py-6 text-center space-y-4">
+              <div className="mx-auto w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center">
                 <AlertCircle className="w-8 h-8" />
-             </div>
-             <h3 className="font-black text-slate-800 text-xl">Emergency Already Raised</h3>
-             <p className="text-sm text-muted-foreground max-w-sm mx-auto">
-                You have already raised an emergency alert today at {format(new Date(existingEmergency.created_at), "hh:mm a")}. Our team is handling the situation.
-             </p>
-             <DialogFooter className="mt-8 sm:justify-center">
-               <Button variant="outline" onClick={() => onOpenChange(false)}>Close Window</Button>
-             </DialogFooter>
-          </div>
+              </div>
+              <h3 className="font-black text-slate-800 text-xl">Emergency Already Raised</h3>
+              <p className="text-sm text-muted-foreground max-w-sm mx-auto">
+                You have already raised an emergency alert today at{" "}
+                {format(new Date(existingEmergency.created_at), "hh:mm a")}. Our team is handling the situation.
+              </p>
+            </div>
+            {/* Pinned footer */}
+            <div className="px-6 py-4 border-t bg-background shrink-0 flex justify-center">
+              <Button variant="outline" onClick={() => onOpenChange(false)}>Close Window</Button>
+            </div>
+          </>
         ) : (
           <>
-            <div className="space-y-4 py-4">
+            {/* Scrollable body */}
+            <div className="overflow-y-auto flex-1 px-6 py-4 space-y-4">
               <div className="space-y-2">
                 <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Reason for Emergency</label>
-                <Textarea 
-                  placeholder="Briefly describe the emergency..." 
+                <Textarea
+                  placeholder="Briefly describe the emergency..."
                   value={reason}
                   onChange={(e) => setReason(e.target.value)}
                   className="min-h-[100px] border-destructive/20 focus-visible:ring-destructive"
@@ -150,7 +157,6 @@ export default function EmergencyLeaveModal({ open, onOpenChange }: EmergencyLea
                   <Calendar className="w-3 h-3" />
                   Impact: Next 24 Hours
                 </h4>
-                
                 <ScrollArea className="h-[150px]">
                   {fetchingSessions ? (
                     <div className="flex justify-center p-4">
@@ -180,18 +186,21 @@ export default function EmergencyLeaveModal({ open, onOpenChange }: EmergencyLea
               </div>
             </div>
 
-            <DialogFooter>
-              <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={loading}>Cancel</Button>
-              <Button 
-                variant="destructive" 
-                onClick={handleSubmit} 
+            {/* Pinned footer */}
+            <div className="px-6 py-4 border-t bg-background shrink-0 flex flex-col gap-2">
+              <Button
+                variant="destructive"
+                onClick={handleSubmit}
                 disabled={loading}
-                className="gap-2 shadow-lg shadow-destructive/20"
+                className="w-full gap-2 shadow-lg shadow-destructive/20"
               >
                 {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <AlertCircle className="w-4 h-4" />}
                 Confirm Emergency
               </Button>
-            </DialogFooter>
+              <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={loading} className="w-full">
+                Cancel
+              </Button>
+            </div>
           </>
         )}
       </DialogContent>

@@ -7,7 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, User, Phone, MapPin, Shield, Activity, CalendarDays, FileText, Download, Users, Banknote, Smartphone, Landmark, CreditCard, Plus, X } from "lucide-react";
 import { apiFetch } from "@/utils/api";
-import { format } from "date-fns";
+import { format, parse } from "date-fns";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 import { Textarea } from "@/components/ui/textarea";
 import { ClientEntitlements } from "./ClientEntitlements";
 import { DocumentManager } from "@/components/admin/documents/DocumentManager";
@@ -32,6 +34,19 @@ import { ShieldCheck, History } from "lucide-react";
 import { EnquiryContextWindow } from "@/components/admin/EnquiryContextWindow";
 
 
+
+const parseDDMMYYYY = (val: string): string | null => {
+    if (!/^\d{2}-\d{2}-\d{4}$/.test(val)) return null;
+    const parts = val.split("-");
+    const day = parseInt(parts[0], 10);
+    const month = parseInt(parts[1], 10) - 1;
+    const year = parseInt(parts[2], 10);
+    const d = new Date(year, month, day);
+    if (d.getFullYear() === year && d.getMonth() === month && d.getDate() === day) {
+        return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    }
+    return null;
+};
 
 export default function ClientProfile() {
     const queryClient = useQueryClient();
@@ -71,6 +86,8 @@ export default function ClientProfile() {
     // Filters
     const [startDate, setStartDate] = useState("");
     const [endDate, setEndDate] = useState("");
+    const [startDateInput, setStartDateInput] = useState("");
+    const [endDateInput, setEndDateInput] = useState("");
     const [sessionTypeFilter, setSessionTypeFilter] = useState("all");
 
     // Refund State
@@ -676,15 +693,137 @@ export default function ClientProfile() {
                                         All past and upcoming appointments for this client.
                                     </CardDescription>
                                     <div className="mt-4 flex flex-wrap gap-3 items-end">
-                                        <div className="space-y-1">
+                                        <div className="flex flex-col gap-1">
                                             <span className="text-[10px] text-muted-foreground uppercase font-bold">Start Date</span>
-                                            <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="h-9 w-[150px] text-xs bg-muted/50" />
+                                            <div className="relative flex items-center h-9 w-[160px] bg-muted/50 rounded-md border border-input focus-within:ring-1 focus-within:ring-ring">
+                                                <Input 
+                                                    type="text" 
+                                                    placeholder="DD-MM-YYYY" 
+                                                    value={startDateInput} 
+                                                    onChange={(e) => {
+                                                        const val = e.target.value;
+                                                        setStartDateInput(val);
+                                                        if (!val) {
+                                                            setStartDate("");
+                                                        } else {
+                                                            const parsed = parseDDMMYYYY(val);
+                                                            if (parsed) {
+                                                                setStartDate(parsed);
+                                                            }
+                                                        }
+                                                    }} 
+                                                    className="w-full h-full bg-transparent px-3 py-1 text-xs border-none focus-visible:ring-0 focus-visible:ring-offset-0 pr-8" 
+                                                />
+                                                <div className="absolute right-1 flex items-center">
+                                                    {startDateInput && (
+                                                        <Button 
+                                                            variant="ghost" 
+                                                            size="icon" 
+                                                            className="h-7 w-7 hover:bg-transparent text-muted-foreground hover:text-foreground"
+                                                            onClick={() => {
+                                                                setStartDate("");
+                                                                setStartDateInput("");
+                                                            }}
+                                                        >
+                                                            <X className="h-3 w-3" />
+                                                        </Button>
+                                                    )}
+                                                    <Popover>
+                                                        <PopoverTrigger asChild>
+                                                            <Button 
+                                                                variant="ghost" 
+                                                                size="icon" 
+                                                                className="h-7 w-7 hover:bg-transparent text-muted-foreground hover:text-foreground"
+                                                            >
+                                                                <CalendarDays className="h-4 w-4 text-primary opacity-70" />
+                                                            </Button>
+                                                        </PopoverTrigger>
+                                                        <PopoverContent className="w-auto p-0" align="end">
+                                                            <Calendar
+                                                                mode="single"
+                                                                selected={startDate ? parse(startDate, "yyyy-MM-dd", new Date()) : undefined}
+                                                                onSelect={(date) => {
+                                                                    if (date) {
+                                                                        setStartDate(format(date, "yyyy-MM-dd"));
+                                                                        setStartDateInput(format(date, "dd-MM-yyyy"));
+                                                                    } else {
+                                                                        setStartDate("");
+                                                                        setStartDateInput("");
+                                                                    }
+                                                                }}
+                                                                initialFocus
+                                                            />
+                                                        </PopoverContent>
+                                                    </Popover>
+                                                </div>
+                                            </div>
                                         </div>
-                                        <div className="space-y-1">
+                                        <div className="flex flex-col gap-1">
                                             <span className="text-[10px] text-muted-foreground uppercase font-bold">End Date</span>
-                                            <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="h-9 w-[150px] text-xs bg-muted/50" />
+                                            <div className="relative flex items-center h-9 w-[160px] bg-muted/50 rounded-md border border-input focus-within:ring-1 focus-within:ring-ring">
+                                                <Input 
+                                                    type="text" 
+                                                    placeholder="DD-MM-YYYY" 
+                                                    value={endDateInput} 
+                                                    onChange={(e) => {
+                                                        const val = e.target.value;
+                                                        setEndDateInput(val);
+                                                        if (!val) {
+                                                            setEndDate("");
+                                                        } else {
+                                                            const parsed = parseDDMMYYYY(val);
+                                                            if (parsed) {
+                                                                setEndDate(parsed);
+                                                            }
+                                                        }
+                                                    }} 
+                                                    className="w-full h-full bg-transparent px-3 py-1 text-xs border-none focus-visible:ring-0 focus-visible:ring-offset-0 pr-8" 
+                                                />
+                                                <div className="absolute right-1 flex items-center">
+                                                    {endDateInput && (
+                                                        <Button 
+                                                            variant="ghost" 
+                                                            size="icon" 
+                                                            className="h-7 w-7 hover:bg-transparent text-muted-foreground hover:text-foreground"
+                                                            onClick={() => {
+                                                                setEndDate("");
+                                                                setEndDateInput("");
+                                                            }}
+                                                        >
+                                                            <X className="h-3 w-3" />
+                                                        </Button>
+                                                    )}
+                                                    <Popover>
+                                                        <PopoverTrigger asChild>
+                                                            <Button 
+                                                                variant="ghost" 
+                                                                size="icon" 
+                                                                className="h-7 w-7 hover:bg-transparent text-muted-foreground hover:text-foreground"
+                                                            >
+                                                                <CalendarDays className="h-4 w-4 text-primary opacity-70" />
+                                                            </Button>
+                                                        </PopoverTrigger>
+                                                        <PopoverContent className="w-auto p-0" align="end">
+                                                            <Calendar
+                                                                mode="single"
+                                                                selected={endDate ? parse(endDate, "yyyy-MM-dd", new Date()) : undefined}
+                                                                onSelect={(date) => {
+                                                                    if (date) {
+                                                                        setEndDate(format(date, "yyyy-MM-dd"));
+                                                                        setEndDateInput(format(date, "dd-MM-yyyy"));
+                                                                    } else {
+                                                                        setEndDate("");
+                                                                        setEndDateInput("");
+                                                                    }
+                                                                }}
+                                                                initialFocus
+                                                            />
+                                                        </PopoverContent>
+                                                    </Popover>
+                                                </div>
+                                            </div>
                                         </div>
-                                        <div className="space-y-1">
+                                        <div className="flex flex-col gap-1">
                                             <span className="text-[10px] text-muted-foreground uppercase font-bold">Session Type</span>
                                             <Select value={sessionTypeFilter} onValueChange={setSessionTypeFilter}>
                                                 <SelectTrigger className="h-9 w-[160px] text-xs bg-muted/50">
@@ -965,7 +1104,7 @@ export default function ClientProfile() {
 
             {/* Payment Modal */}
             <Dialog open={isPaymentModalOpen} onOpenChange={setIsPaymentModalOpen}>
-                <DialogContent className="sm:max-w-[480px]">
+                <DialogContent aria-describedby={undefined} className="sm:max-w-[480px]">
                     <DialogHeader>
                         <DialogTitle>Collect Payment</DialogTitle>
                         <p className="text-xs text-muted-foreground">

@@ -131,7 +131,7 @@ export function AddResourceModal({ isOpen, onClose, onSuccess, initialAthleteId 
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[500px] rounded-[32px] p-0 border-none shadow-2xl overflow-hidden bg-white">
+      <DialogContent aria-describedby={undefined} className="sm:max-w-[500px] rounded-[32px] p-0 border-none shadow-2xl overflow-hidden bg-white">
         <ScrollArea className="max-h-[85vh] p-8">
           <DialogHeader className="mb-6">
             <DialogTitle className="text-2xl font-black text-slate-900 tracking-tight">Add New Resource</DialogTitle>

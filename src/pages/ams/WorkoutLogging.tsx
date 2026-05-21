@@ -271,7 +271,7 @@ export default function WorkoutLogging() {
               Finish
             </Button>
           </DialogTrigger>
-          <DialogContent className="bg-[#1A1F26] border-white/10 text-white rounded-xl max-w-sm">
+          <DialogContent aria-describedby={undefined} className="bg-[#1A1F26] border-white/10 text-white rounded-xl max-w-sm">
             <DialogHeader>
               <DialogTitle className="text-lg font-bold">Finish Session</DialogTitle>
             </DialogHeader>
@@ -364,7 +364,7 @@ export default function WorkoutLogging() {
                             <ArrowLeftRight className="w-4 h-4" />
                           </Button>
                         </DialogTrigger>
-                        <DialogContent className="bg-[#1A1F26] border-white/10 p-0 overflow-hidden rounded-xl">
+                        <DialogContent aria-describedby={undefined} className="bg-[#1A1F26] border-white/10 p-0 overflow-hidden rounded-xl">
                           <Command className="bg-transparent">
                             <CommandInput placeholder="Swap for another exercise..." className="h-11 outline-none text-sm" />
                             <CommandList>
@@ -472,7 +472,7 @@ export default function WorkoutLogging() {
       </div>
 
       <Dialog open={!!selectedExerciseDetail} onOpenChange={(open) => !open && setSelectedExerciseDetail(null)}>
-        <DialogContent className="bg-[#1A1F26] border-white/10 text-white rounded-2xl max-w-lg p-0 overflow-hidden">
+        <DialogContent aria-describedby={undefined} className="bg-[#1A1F26] border-white/10 text-white rounded-2xl max-w-lg p-0 overflow-hidden">
           {selectedExerciseDetail && (
             <div className="flex flex-col">
               {/* Image/Video Preview */}

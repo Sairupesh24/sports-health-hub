@@ -3,10 +3,14 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 
+import { fileURLToPath } from 'url';
+
 const router = express.Router();
 
-// Ensure upload directory exists
-const uploadDir = 'public/uploads';
+// Ensure upload directory exists — use absolute path to be CWD-independent
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const uploadDir = path.join(__dirname, '..', 'public', 'uploads');
 if (!fs.existsSync(uploadDir)) {
     fs.mkdirSync(uploadDir, { recursive: true });
 }
@@ -23,12 +27,16 @@ const storage = multer.diskStorage({
 
 const upload = multer({ 
     storage: storage,
-    limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+    limits: { fileSize: 50 * 1024 * 1024 }, // 50MB limit to support high-res mobile uploads
     fileFilter: (req, file, cb) => {
-        if (file.mimetype.startsWith('image/') || file.mimetype === 'application/pdf') {
+        const filetypes = /jpeg|jpg|png|gif|webp|heic|heif|pdf/i;
+        const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
+        const mimetype = file.mimetype.startsWith('image/') || file.mimetype === 'application/pdf' || file.mimetype === 'application/octet-stream';
+        
+        if (extname || mimetype) {
             cb(null, true);
         } else {
-            cb(new Error('Only images and PDFs are allowed'));
+            cb(new Error('Only images (JPEG, PNG, WEBP, HEIC) and PDFs are allowed'));
         }
     }
 });
@@ -55,12 +63,17 @@ router.post('/documents', upload.array('documents', 10), (req, res) => {
     res.json({ files: results });
 });
 
-router.post('/single', upload.single('file'), (req, res) => {
-    if (!req.file) {
-        return res.status(400).json({ error: 'No file uploaded' });
-    }
-    const publicUrl = `/uploads/${req.file.filename}`;
-    res.json({ publicUrl });
+router.post('/single', (req, res, next) => {
+    upload.single('file')(req, res, (err) => {
+        if (err) {
+            return res.status(400).json({ error: err.message || 'Upload failed' });
+        }
+        if (!req.file) {
+            return res.status(400).json({ error: 'No file uploaded' });
+        }
+        const publicUrl = `/uploads/${req.file.filename}`;
+        res.json({ publicUrl });
+    });
 });
 
 // GET Signed URL for a document

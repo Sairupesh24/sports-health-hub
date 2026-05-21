@@ -31,14 +31,14 @@ export function VIPBadge({ isVIP, className, showText = true, iconOnly = false, 
   }
 
   return (
-    <div className={cn(
+    <span className={cn(
       "inline-flex items-center gap-1 font-black uppercase tracking-wider rounded-md border border-[#D4AF37]/30 bg-[#D4AF37]/10 text-[#D4AF37] shadow-[0_0_8px_rgba(212,175,55,0.2)]",
       metrics.padding,
       className
     )}>
       <Crown size={metrics.icon} className="fill-[#D4AF37]/40" />
       {showText && <span className={metrics.text}>VIP</span>}
-    </div>
+    </span>
   );
 }
 

@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import PerformanceSnapshot from "./PerformanceSnapshot";
 import SorenessHeatmap from "@/components/ams/SorenessHeatmap";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -69,20 +69,21 @@ export default function SOAPNoteModal({ open, onOpenChange, session, clientId, o
             setServiceId(session.service_id || "");
             fetchServices();
             if (isCompleted) {
-                const data = Array.isArray(session.physio_session_details)
-                    ? session.physio_session_details[0]
-                    : session.physio_session_details;
-                setPainScore(data.pain_score || 0);
-                setSelectedModalities(data.modality_used ? data.modality_used.split(',').map((s: string) => s.trim()) : []);
-                setTreatmentType(data.treatment_type || "");
-                setManualTherapy(data.manual_therapy || "");
-                setExerciseGiven(data.exercise_given || "");
-                setRangeOfMotion(data.range_of_motion || "");
-                setStrengthProgress(data.strength_progress || "");
-                setClinicalNotes(data.clinical_notes || "");
-                setNextPlan(data.next_plan || "");
-                setSorenessData(data.soreness_data || []);
-                setSelectedInjuryId(data.injury_id || "");
+                const rawDetails = session.physio_session_details;
+                const data = rawDetails
+                    ? (Array.isArray(rawDetails) ? rawDetails[0] : rawDetails)
+                    : null;
+                setPainScore(data?.pain_score || 0);
+                setSelectedModalities(data?.modality_used ? data.modality_used.split(',').map((s: string) => s.trim()) : []);
+                setTreatmentType(data?.treatment_type || "");
+                setManualTherapy(data?.manual_therapy || "");
+                setExerciseGiven(data?.exercise_given || "");
+                setRangeOfMotion(data?.range_of_motion || "");
+                setStrengthProgress(data?.strength_progress || "");
+                setClinicalNotes(data?.clinical_notes || "");
+                setNextPlan(data?.next_plan || "");
+                setSorenessData(data?.soreness_data || []);
+                setSelectedInjuryId(data?.injury_id || "");
             } else {
                 setPainScore(0);
                 setSelectedModalities([]);
@@ -191,6 +192,8 @@ export default function SOAPNoteModal({ open, onOpenChange, session, clientId, o
                 setSorenessData(prev.soreness_data || []);
                 setSelectedInjuryId(prev.injury_id || "");
                 toast({ title: "Copied", description: "Copied data from previous session." });
+            } else {
+                toast({ title: "No Previous Note", description: "No previous SOAP notes found for this client.", variant: "default" });
             }
         } catch (error: any) {
             toast({ title: "No Previous Note", description: "No previous SOAP notes found.", variant: "destructive" });
@@ -252,30 +255,66 @@ export default function SOAPNoteModal({ open, onOpenChange, session, clientId, o
         }
     };
 
+    const getTherapistName = () => {
+        if (session?.therapist) {
+            const first = session.therapist.first_name || "";
+            const last = session.therapist.last_name || "";
+            const name = `${first} ${last}`.trim();
+            if (name) return name;
+        }
+        if (profile) {
+            const first = profile.first_name || "";
+            const last = profile.last_name || "";
+            const name = `${first} ${last}`.trim();
+            if (name) return name;
+        }
+        return "TBD";
+    };
+
+    const rawTherapistName = getTherapistName();
+    const therapistDisplayName = rawTherapistName.toLowerCase().startsWith("dr.") 
+        ? rawTherapistName 
+        : `Dr. ${rawTherapistName}`;
+
     if (!session) return null;
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[90vw] lg:max-w-[1200px] max-h-[95vh] overflow-y-auto overflow-x-hidden">
-                <DialogHeader className="flex flex-row items-center justify-between border-b pb-4">
-                    <div className="flex flex-col gap-1">
-                        <DialogTitle className="flex items-center gap-2 text-xl font-display">
-                            SOAP Note — {session?.scheduled_start ? format(new Date(session.scheduled_start), "MMM d, yyyy") : "Consultation"}
-                            <span className="ml-2 px-2 py-0.5 rounded bg-blue-100 text-blue-700 text-[10px] font-bold border border-blue-300">PLANNED SESSION</span>
-                            {isUnentitled && isAdminOrFoe && (
-                                <span className="ml-2 px-2 py-0.5 rounded bg-red-100 text-red-700 text-xs font-bold border border-red-300 flex items-center gap-1">
-                                    <AlertTriangle className="w-3 h-3" /> UN-ENTITLED
+            <DialogContent aria-describedby={undefined} className="sm:max-w-[90vw] lg:max-w-[1200px] max-h-[95vh] overflow-y-auto overflow-x-hidden">
+                <DialogTitle className="sr-only">SOAP Note Details</DialogTitle>
+                <DialogHeader className="border-b pb-4 space-y-3">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div className="space-y-1.5 text-left flex-1 min-w-0">
+                            <div className="flex flex-wrap items-center gap-2">
+                                <span className="text-xl font-bold font-display text-slate-900 dark:text-white leading-tight">
+                                    SOAP Note — {session?.scheduled_start ? format(new Date(session.scheduled_start), "MMM d, yyyy") : "Consultation"}
                                 </span>
-                            )}
-                        </DialogTitle>
-                        <p className="text-sm text-muted-foreground">Client: <span className="font-semibold text-foreground">{session.client?.first_name || "Unknown"} {session.client?.last_name || "Client"}</span></p>
+                                <span className="px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-600 text-[10px] font-black tracking-wider border border-blue-200 uppercase">
+                                    PLANNED SESSION
+                                </span>
+                                {isUnentitled && isAdminOrFoe && (
+                                    <span className="px-2.5 py-0.5 rounded-full bg-red-50 text-red-600 text-[10px] font-black tracking-wider border border-red-200 flex items-center gap-1 uppercase">
+                                        <AlertTriangle className="w-3 h-3" /> UN-ENTITLED
+                                    </span>
+                                )}
+                            </div>
+                            <DialogDescription className="text-sm text-slate-500">
+                                Client: <span className="font-semibold text-slate-800 dark:text-slate-200">{session.client?.first_name || session.first_name || "Unknown"} {session.client?.last_name || session.last_name || "Client"}</span>
+                            </DialogDescription>
+                        </div>
+                        {!isCompleted && (
+                            <Button 
+                                variant="outline" 
+                                size="sm" 
+                                onClick={handleCopyPrevious} 
+                                disabled={fetchingPrevious} 
+                                className="w-full md:w-auto self-start md:self-center bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition-colors shadow-sm rounded-xl font-medium h-9 text-xs"
+                            >
+                                <Copy className="w-3.5 h-3.5 mr-2 text-slate-500" />
+                                Copy Previous Note
+                            </Button>
+                        )}
                     </div>
-                    {!isCompleted && (
-                        <Button variant="outline" size="sm" onClick={handleCopyPrevious} disabled={fetchingPrevious} className="mr-8">
-                            <Copy className="w-4 h-4 mr-2" />
-                            Copy Previous
-                        </Button>
-                    )}
                 </DialogHeader>
 
                 <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 pt-6">
@@ -442,12 +481,6 @@ export default function SOAPNoteModal({ open, onOpenChange, session, clientId, o
                                             ))}
                                         </div>
                                     </div>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div className="space-y-2"><Label>Primary Treatment</Label><Input value={treatmentType} onChange={e => setTreatmentType(e.target.value)} placeholder="e.g. Laser, TENS" /></div>
-                                        <div className="space-y-2"><Label>Manual Therapy</Label><Input value={manualTherapy} onChange={e => setManualTherapy(e.target.value)} placeholder="e.g. Myofascial Release" /></div>
-                                        <div className="space-y-2"><Label>Range of Motion</Label><Input value={rangeOfMotion} onChange={e => setRangeOfMotion(e.target.value)} placeholder="e.g. Flexion 100°" /></div>
-                                        <div className="space-y-2"><Label>Strength Status</Label><Input value={strengthProgress} onChange={e => setStrengthProgress(e.target.value)} placeholder="e.g. 4/5 MMT" /></div>
-                                    </div>
                                     <div className="space-y-2"><Label>Exercise / Rehabilitation Given</Label><Textarea value={exerciseGiven} onChange={e => setExerciseGiven(e.target.value)} placeholder="List exercises and parameters..." className="bg-muted/20" /></div>
                                 </div>
                             </div>
@@ -474,7 +507,7 @@ export default function SOAPNoteModal({ open, onOpenChange, session, clientId, o
                             <div className="space-y-3 text-sm">
                                 <div className="flex flex-col"><span className="text-[10px] text-muted-foreground uppercase font-bold">Service Type</span><span className="font-semibold text-foreground">{session.service_type}</span></div>
                                 <div className="flex flex-col"><span className="text-[10px] text-muted-foreground uppercase font-bold">Scheduled At</span><span className="font-semibold text-foreground">{format(new Date(session.scheduled_start), "MMM d, h:mm a")}</span></div>
-                                <div className="flex flex-col"><span className="text-[10px] text-muted-foreground uppercase font-bold">Consultant</span><span className="font-semibold text-foreground">Dr. {session.therapist?.last_name || "TBD"}</span></div>
+                                <div className="flex flex-col"><span className="text-[10px] text-muted-foreground uppercase font-bold">Consultant</span><span className="font-semibold text-foreground">{therapistDisplayName}</span></div>
                             </div>
                         </div>
                     </div>

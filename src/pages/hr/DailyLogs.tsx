@@ -38,7 +38,7 @@ import {
 } from "lucide-react";
 import { format, startOfMonth, startOfDay, endOfDay, parseISO, differenceInMinutes, isWithinInterval, isSameDay } from "date-fns";
 import { cn } from "@/lib/utils";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { MapContainer, TileLayer, Marker, Circle, CircleMarker } from "react-leaflet";
 import L from "leaflet";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -452,6 +452,10 @@ export default function DailyLogs() {
 
       <Dialog open={!!selectedLogs} onOpenChange={() => setSelectedLogs(null)}>
         <DialogContent className="max-w-5xl p-0 overflow-hidden rounded-3xl border-none shadow-2xl">
+          <DialogHeader className="sr-only">
+            <DialogTitle>Attendance Activity Details</DialogTitle>
+            <DialogDescription>View detailed map tracking and activity timeline for the selected date.</DialogDescription>
+          </DialogHeader>
           <div className="grid grid-cols-1 lg:grid-cols-5 h-[600px]">
             <div className="lg:col-span-3 relative h-full bg-slate-100">
               {selectedLogs && (

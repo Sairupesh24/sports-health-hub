@@ -15,13 +15,20 @@ import reportRoutes from './reports.js';
 import { requireAuth } from './middleware.js';
 import { db } from './db.js';
 
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const uploadsDir = path.join(__dirname, '..', 'public', 'uploads');
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Middleware
 app.use(cors()); // Used for dev, but Nginx proxy will bypass CORS anyway
 app.use(express.json());
-app.use('/uploads', express.static('public/uploads'));
+app.use('/uploads', express.static(uploadsDir));
 
 // Routes
 app.use('/api/auth', authRoutes);

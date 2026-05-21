@@ -228,7 +228,7 @@ export default function BulkStatusDashboard() {
       })}
       {selectedBatch && (
         <Dialog open={batchModalOpen} onOpenChange={setBatchModalOpen}>
-          <DialogContent className="max-w-4xl max-h-[90vh] bg-white rounded-[2.5rem] border-none p-0 overflow-hidden shadow-2xl">
+          <DialogContent aria-describedby={undefined} className="max-w-4xl max-h-[90vh] bg-white rounded-[2.5rem] border-none p-0 overflow-hidden shadow-2xl">
             <DialogHeader className="p-8 bg-slate-50 border-b border-slate-100">
                <div className="flex items-center gap-4">
                  <div className="w-12 h-12 rounded-2xl bg-slate-900 flex items-center justify-center text-white shadow-lg">

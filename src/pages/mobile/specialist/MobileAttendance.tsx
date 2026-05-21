@@ -3,6 +3,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/utils/api";
 import { useAuth } from "@/contexts/AuthContext";
 import MobileSpecialistLayout from "@/components/layout/MobileSpecialistLayout";
+import MobileConsultantLayout from "@/components/layout/MobileConsultantLayout";
+import { useLocation } from "react-router-dom";
 import { 
   MapPin, 
   Clock, 
@@ -40,6 +42,9 @@ export default function MobileAttendance() {
   const { user, profile } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const location = useLocation();
+  const Layout = location.pathname.startsWith("/mobile/consultant") ? MobileConsultantLayout : MobileSpecialistLayout;
+
   const [isEmergencyModalOpen, setIsEmergencyModalOpen] = useState(false);
   const [date, setDate] = useState<any>({
     from: startOfMonth(new Date()),
@@ -126,7 +131,7 @@ export default function MobileAttendance() {
   }, [processedLogs]);
 
   return (
-    <MobileSpecialistLayout title="Attendance">
+    <Layout title="Attendance">
       <div className="space-y-6 pb-32">
         
         {/* Functional Attendance Marker */}
@@ -289,7 +294,7 @@ export default function MobileAttendance() {
         open={isEmergencyModalOpen}
         onOpenChange={setIsEmergencyModalOpen}
       />
-    </MobileSpecialistLayout>
+    </Layout>
   );
 }
 

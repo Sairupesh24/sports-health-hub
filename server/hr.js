@@ -298,7 +298,7 @@ router.delete('/users/:id', requireAuth, async (req, res) => {
 router.post('/users', requireAuth, async (req, res) => {
     const client = await db.connect();
     try {
-        const { email, firstName, lastName, role, profession, uhid } = req.body;
+        const { email, firstName, lastName, role, profession, uhid, ams_role } = req.body;
         const orgId = req.user.organization_id;
         
         // Generate random password
@@ -317,8 +317,8 @@ router.post('/users', requireAuth, async (req, res) => {
 
         // 2. Insert Profile
         await client.query(
-            'INSERT INTO profiles (id, first_name, last_name, organization_id, is_approved, profession, uhid) VALUES ($1, $2, $3, $4, $5, $6, $7)',
-            [userId, firstName, lastName, orgId, true, profession || null, uhid || null]
+            'INSERT INTO profiles (id, first_name, last_name, organization_id, is_approved, profession, uhid, ams_role) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
+            [userId, firstName, lastName, orgId, true, profession || null, uhid || null, ams_role || null]
         );
 
         await client.query('COMMIT');

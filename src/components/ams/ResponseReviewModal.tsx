@@ -97,7 +97,7 @@ export default function ResponseReviewModal({ isOpen, onClose, response, assignm
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] p-0 bg-[#F8FAFC] border-none overflow-hidden flex flex-col shadow-2xl">
+      <DialogContent aria-describedby={undefined} className="max-w-4xl max-h-[90vh] p-0 bg-[#F8FAFC] border-none overflow-hidden flex flex-col shadow-2xl">
         <DialogHeader className="p-8 bg-white border-b border-slate-100 flex-shrink-0">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">

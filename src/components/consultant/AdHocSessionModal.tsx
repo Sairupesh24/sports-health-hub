@@ -267,9 +267,8 @@ export default function AdHocSessionModal({ open, onOpenChange, onSuccess, prese
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="space-y-2">
-                                    <div className="flex justify-between items-center mb-1">
+                                    <div className="mb-1">
                                         <Label className="font-semibold text-primary">Select Client Name</Label>
-                                        <a href="/consultant/clients" target="_blank" className="text-[10px] text-primary hover:underline font-medium">+ Register New Client</a>
                                     </div>
                                     <Popover>
                                         <PopoverTrigger asChild>

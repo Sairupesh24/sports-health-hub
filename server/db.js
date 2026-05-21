@@ -113,6 +113,12 @@ async function initializeDatabase() {
     try {
       await pool.query(`ALTER TABLE profiles ADD COLUMN created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP;`);
     } catch (e) {}
+    try {
+      await pool.query(`ALTER TABLE profiles ADD COLUMN avatar_url TEXT;`);
+    } catch (e) {}
+    try {
+      await pool.query(`ALTER TABLE profiles ADD COLUMN mobile_no TEXT;`);
+    } catch (e) {}
 
     // Create authsessions table for OTP
     await pool.query(`
@@ -446,6 +452,39 @@ async function initializeDatabase() {
         } catch (e) {}
     }
 
+    // Clinical - Injuries
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS Injuries (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+        client_id UUID NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+        diagnosis TEXT NOT NULL,
+        injury_type TEXT NOT NULL,
+        region TEXT NOT NULL,
+        injury_date TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+        status TEXT NOT NULL DEFAULT 'Active', -- 'Active', 'Rehab', 'RTP', 'Resolved'
+        side TEXT, -- 'Left', 'Right', 'Bilateral'
+        onset TEXT, -- 'Acute', 'Gradual'
+        mechanism TEXT,
+        notes TEXT,
+        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // Clinical - Rehab Progress
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS rehab_progress (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        injury_id UUID NOT NULL REFERENCES Injuries(id) ON DELETE CASCADE,
+        status TEXT NOT NULL,
+        notes TEXT,
+        metrics JSONB DEFAULT '{}',
+        recorded_by UUID REFERENCES profiles(id),
+        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
     // Physio Session Details
     await pool.query(`
       CREATE TABLE IF NOT EXISTS physiosessiondetails (
@@ -545,6 +584,50 @@ async function initializeDatabase() {
       )
     `);
 
+    // subscriptions
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS subscriptions (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+        client_id UUID NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+        package_id UUID NOT NULL REFERENCES packages(id) ON DELETE CASCADE,
+        status TEXT NOT NULL DEFAULT 'Active' CHECK (status IN ('Active', 'Past Due', 'Suspended', 'Cancelled')),
+        current_period_start DATE NOT NULL DEFAULT CURRENT_DATE,
+        current_period_end DATE,
+        billing_cycle TEXT NOT NULL,
+        auto_pay BOOLEAN DEFAULT false,
+        next_billing_date DATE,
+        grace_period_end DATE,
+        cancel_at_period_end BOOLEAN DEFAULT false,
+        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // Safely add missing columns to subscriptions
+    const subCols = [
+        ['dunning_step', 'INTEGER DEFAULT 0'],
+        ['last_dunning_at', 'TIMESTAMPTZ'],
+        ['last_billing_date', 'DATE']
+    ];
+    for (const [col, type] of subCols) {
+        try {
+            await pool.query(`ALTER TABLE subscriptions ADD COLUMN ${col} ${type};`);
+        } catch (e) {}
+    }
+
+    // subscription_logs
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS subscription_logs (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+        subscription_id UUID NOT NULL REFERENCES subscriptions(id) ON DELETE CASCADE,
+        event TEXT NOT NULL,
+        details JSONB DEFAULT '{}'::jsonb,
+        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
     // bills
     await pool.query(`
       CREATE TABLE IF NOT EXISTS bills (
@@ -580,7 +663,9 @@ async function initializeDatabase() {
         ['billed_by_id', 'UUID'],
         ['billed_by_name', 'TEXT'],
         ['billing_staff_name', 'TEXT'],
-        ['updated_at', 'TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP']
+        ['updated_at', 'TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP'],
+        ['subscription_id', 'UUID REFERENCES subscriptions(id) ON DELETE SET NULL'],
+        ['due_date', 'DATE']
     ];
     for (const [col, type] of billCols) {
         try {

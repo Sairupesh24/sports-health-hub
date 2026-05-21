@@ -1,5 +1,9 @@
 import { useState, useEffect } from "react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
+import MobileConsultantLayout from "@/components/layout/MobileConsultantLayout";
+import MobileSpecialistLayout from "@/components/layout/MobileSpecialistLayout";
+import { useLocation } from "react-router-dom";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { 
     Card, 
     CardContent, 
@@ -475,7 +479,7 @@ function ClinicalReports({ role }: { role: ReportsPageProps['role'] }) {
       </div>
 
       <Dialog open={isLibraryModalOpen} onOpenChange={setIsLibraryModalOpen}>
-        <DialogContent className="max-w-3xl bg-slate-900 border-white/10 p-0 overflow-hidden text-white rounded-3xl">
+        <DialogContent aria-describedby={undefined} className="max-w-3xl bg-slate-900 border-white/10 p-0 overflow-hidden text-white rounded-3xl">
           <DialogHeader className="p-8 bg-white/5 border-b border-white/10">
             <DialogTitle className="text-2xl font-black uppercase tracking-tighter flex items-center gap-3">
               <ShieldCheck className="w-8 h-8 text-primary" />
@@ -704,7 +708,7 @@ function LegacyReports({ role }: { role: ReportsPageProps['role'] }) {
       </div>
 
       <Dialog open={isAthleteModalOpen} onOpenChange={setIsAthleteModalOpen}>
-        <DialogContent className="bg-[#1A1F26] text-white rounded-[2rem] max-w-xl">
+        <DialogContent aria-describedby={undefined} className="bg-[#1A1F26] text-white rounded-[2rem] max-w-xl">
           <DialogHeader><DialogTitle>Select Client</DialogTitle></DialogHeader>
           <div className="p-8 space-y-6">
             <Input placeholder="Search..." value={athleteSearchQuery} onChange={(e) => setAthleteSearchQuery(e.target.value)} className="bg-white/10" />
@@ -739,13 +743,29 @@ export default function ReportsPage({ role: initialRole }: ReportsPageProps) {
   // Routing Logic: Admin/FOE/Manager -> Legacy, Physio/SportsScientist -> Clinical
   const isLegacy = role === 'admin' || role === 'foe' || role === 'manager';
 
+  const location = useLocation();
+  const isMobile = useIsMobile();
+  
+  let LayoutToUse: any = DashboardLayout;
+  let layoutProps: any = { role: role };
+
+  if (isMobile) {
+      if (location.pathname.startsWith("/mobile/consultant")) {
+          LayoutToUse = MobileConsultantLayout;
+          layoutProps = { title: "Reports" };
+      } else if (location.pathname.startsWith("/mobile/specialist")) {
+          LayoutToUse = MobileSpecialistLayout;
+          layoutProps = { title: "Reports" };
+      }
+  }
+
   return (
-    <DashboardLayout role={role}>
+    <LayoutToUse {...layoutProps}>
       {isLegacy ? (
         <LegacyReports role={role} />
       ) : (
         <ClinicalReports role={role} />
       )}
-    </DashboardLayout>
+    </LayoutToUse>
   );
 }

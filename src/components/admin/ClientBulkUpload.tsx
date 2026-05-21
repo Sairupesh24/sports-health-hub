@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/dialog";
 
 const TEMPLATE_HEADERS = [
+  "registration_date",
   "honorific",
   "first_name",
   "middle_name",
@@ -29,6 +30,7 @@ const TEMPLATE_HEADERS = [
   "alternate_mobile_no",
   "occupation",
   "sport",
+  "athlete_type",
   "org_name",
   "address",
   "locality",
@@ -42,6 +44,9 @@ const TEMPLATE_HEADERS = [
   "insurance_policy_no",
   "insurance_validity",
   "insurance_coverage_amount",
+  "is_vip",
+  "referral_source",
+  "referral_source_detail",
 ];
 
 const REQUIRED_FIELDS = ["first_name", "last_name", "mobile_no"];
@@ -126,8 +131,10 @@ export function ClientBulkUpload() {
 
           const dob = parseSafeDate(row.dob);
           const insuranceValidity = parseSafeDate(row.insurance_validity);
+          const registrationDate = parseSafeDate(row.registration_date) || new Date().toISOString().split('T')[0];
 
           preparedClients.push({
+            registered_on: registrationDate,
             honorific: row.honorific || null,
             first_name: row.first_name,
             middle_name: row.middle_name || null,
@@ -142,6 +149,7 @@ export function ClientBulkUpload() {
             alternate_mobile_no: row.alternate_mobile_no ? String(row.alternate_mobile_no) : null,
             occupation: row.occupation || null,
             sport: row.sport || null,
+            athlete_type: row.athlete_type || null,
             org_name: row.org_name || null,
             address: row.address || null,
             locality: row.locality || null,
@@ -155,6 +163,9 @@ export function ClientBulkUpload() {
             insurance_policy_no: row.insurance_policy_no || null,
             insurance_validity: insuranceValidity,
             insurance_coverage_amount: row.insurance_coverage_amount ? Number(row.insurance_coverage_amount) : null,
+            is_vip: row.is_vip === "TRUE" || row.is_vip === true || false,
+            referral_source: row.referral_source || null,
+            referral_source_detail: row.referral_source_detail || null,
           });
         }
 

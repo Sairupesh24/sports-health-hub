@@ -85,7 +85,7 @@ export function AnnouncementsManager({ open, onOpenChange }: AnnouncementsManage
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-[600px] w-[95vw] h-[85vh] p-0 overflow-hidden border-none rounded-[32px] sm:rounded-[40px] bg-slate-50 shadow-2xl flex flex-col">
+        <DialogContent aria-describedby={undefined} className="sm:max-w-[600px] w-[95vw] h-[85vh] p-0 overflow-hidden border-none rounded-[32px] sm:rounded-[40px] bg-slate-50 shadow-2xl flex flex-col">
                 {/* Custom Modal Header */}
                 <div className="p-5 sm:p-8 pb-4 sm:pb-6 border-b border-slate-100 bg-white relative">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">

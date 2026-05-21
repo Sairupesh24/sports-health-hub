@@ -158,7 +158,7 @@ export default function WorkoutItemModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl bg-[#161920] border-white/10 text-white rounded-3xl overflow-hidden glass p-0">
+      <DialogContent aria-describedby={undefined} className="max-w-2xl bg-[#161920] border-white/10 text-white rounded-3xl overflow-hidden glass p-0">
         <DialogHeader className="p-6 bg-white/[0.02] border-b border-white/5">
           <DialogTitle className="text-xl font-black uppercase tracking-tight flex items-center gap-2">
             <Plus className="w-5 h-5 text-primary" />

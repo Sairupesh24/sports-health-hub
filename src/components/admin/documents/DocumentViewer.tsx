@@ -48,7 +48,7 @@ export function DocumentViewer({ document, onClose }: DocumentViewerProps) {
 
   return (
     <Dialog open={!!document} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-4xl max-h-[90vh] flex flex-col p-0 overflow-hidden">
+      <DialogContent aria-describedby={undefined} className="sm:max-w-4xl max-h-[90vh] flex flex-col p-0 overflow-hidden">
         <DialogHeader className="p-4 border-b">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-2">

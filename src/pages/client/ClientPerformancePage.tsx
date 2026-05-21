@@ -162,7 +162,7 @@ export default function ClientPerformancePage() {
                       <Heart className="w-4 h-4 text-red-500 fill-red-500" /> Check-in
                     </Button>
                   </DialogTrigger>
-                  <DialogContent className="max-w-xl bg-slate-950 rounded-2xl p-0 overflow-hidden border border-white/10 shadow-2xl">
+                  <DialogContent aria-describedby={undefined} className="max-w-xl bg-slate-950 rounded-2xl p-0 overflow-hidden border border-white/10 shadow-2xl">
                      <DialogHeader className="p-6 bg-[#1A1F26] text-white border-b border-white/5">
                         <DialogTitle className="text-lg font-bold flex items-center gap-2 uppercase italic">
                           <Activity className="w-5 h-5 text-primary" />
@@ -184,7 +184,7 @@ export default function ClientPerformancePage() {
                       <Plus className="w-4 h-4" /> Log Session
                     </Button>
                   </DialogTrigger>
-                  <DialogContent className="max-w-xl bg-white rounded-2xl p-0 overflow-hidden border-none shadow-2xl text-slate-900">
+                  <DialogContent aria-describedby={undefined} className="max-w-xl bg-white rounded-2xl p-0 overflow-hidden border-none shadow-2xl text-slate-900">
                      <DialogHeader className="p-6 bg-slate-900 text-white">
                         <DialogTitle className="text-lg font-bold flex items-center gap-2 uppercase italic">
                           <Dumbbell className="w-5 h-5 text-primary" />

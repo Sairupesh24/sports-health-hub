@@ -27,5 +27,27 @@ export const haptic = {
     if (typeof window !== "undefined" && window.navigator && window.navigator.vibrate) {
       window.navigator.vibrate([50, 100, 50]);
     }
-  }
+  },
+
+  /**
+   * Triggers a dynamic vibration style.
+   */
+  impact: (style?: 'light' | 'medium' | 'heavy') => {
+    if (typeof window !== "undefined" && window.navigator && window.navigator.vibrate) {
+      if (style === 'heavy') {
+        window.navigator.vibrate(30);
+      } else if (style === 'medium') {
+        window.navigator.vibrate(20);
+      } else {
+        window.navigator.vibrate(10);
+      }
+    }
+  },
+
+  /**
+   * Aliases and helper functions to prevent any undefined method errors.
+   */
+  selection: () => haptic.light(),
+  medium: () => haptic.impact('medium'),
+  heavy: () => haptic.impact('heavy')
 };

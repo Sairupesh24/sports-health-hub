@@ -13,7 +13,7 @@ router.get('/injuries', requireAuth, async (req, res) => {
         let query = `
             SELECT i.*, 
                    c.first_name, c.last_name, c.id as client_id_raw,
-                   (SELECT json_agg(rp.*) FROM rehab_progress rp WHERE rp.injury_id = i.id ORDER BY rp.created_at DESC LIMIT 1) as latest_rehab
+                   (SELECT row_to_json(rp_sub) FROM (SELECT * FROM rehab_progress WHERE injury_id = i.id ORDER BY created_at DESC LIMIT 1) rp_sub) as latest_rehab
             FROM Injuries i
             LEFT JOIN Clients c ON i.client_id = c.id
             WHERE i.organization_id = $1
@@ -116,7 +116,7 @@ router.get('/sessions/previous', requireAuth, async (req, res) => {
             LIMIT 1
         `, [client_id, orgId, before || new Date().toISOString()]);
         
-        if (result.rows.length === 0) return res.status(404).json({ error: 'No previous notes found' });
+        if (result.rows.length === 0) return res.json(null);
         res.json(result.rows[0]);
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -136,9 +136,11 @@ router.get('/dashboard/stats', requireAuth, async (req, res) => {
         
         // 1. Today's sessions
         const sessionsRes = await db.query(`
-            SELECT s.*, c.first_name, c.last_name, c.is_vip
+            SELECT s.*, c.first_name, c.last_name, c.is_vip,
+                   json_build_object('first_name', p.first_name, 'last_name', p.last_name) as therapist
             FROM Sessions s
             LEFT JOIN Clients c ON s.client_id = c.id
+            LEFT JOIN Profiles p ON s.therapist_id = p.id
             WHERE s.therapist_id = $1 
             AND s.scheduled_start >= $2 
             AND s.scheduled_start <= $3

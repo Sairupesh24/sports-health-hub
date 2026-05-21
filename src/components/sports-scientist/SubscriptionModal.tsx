@@ -19,7 +19,10 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { apiFetch } from "@/utils/api";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, Check, ChevronsUpDown } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from "@/components/ui/command";
+import { cn } from "@/lib/utils";
 
 interface SubscriptionModalProps {
     open: boolean;
@@ -31,6 +34,7 @@ export function SubscriptionModal({ open, onOpenChange, orgId }: SubscriptionMod
     const queryClient = useQueryClient();
     const [selectedClient, setSelectedClient] = useState("");
     const [selectedPackage, setSelectedPackage] = useState("");
+    const [packageOpen, setPackageOpen] = useState(false);
     const [billingCycle, setBillingCycle] = useState("Monthly");
     const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
 
@@ -78,7 +82,7 @@ export function SubscriptionModal({ open, onOpenChange, orgId }: SubscriptionMod
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[425px]">
+            <DialogContent aria-describedby={undefined} className="sm:max-w-[425px]">
                 <DialogHeader>
                     <DialogTitle>Assign Membership</DialogTitle>
                 </DialogHeader>
@@ -101,18 +105,50 @@ export function SubscriptionModal({ open, onOpenChange, orgId }: SubscriptionMod
 
                     <div className="grid gap-2">
                         <Label htmlFor="package">Membership Plan</Label>
-                        <Select value={selectedPackage} onValueChange={setSelectedPackage}>
-                            <SelectTrigger>
-                                <SelectValue placeholder="Select plan..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {packages?.map(p => (
-                                    <SelectItem key={p.id} value={p.id}>
-                                        {p.name} - ₹{p.price}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                        <Popover open={packageOpen} onOpenChange={setPackageOpen}>
+                            <PopoverTrigger asChild>
+                                <Button
+                                    variant="outline"
+                                    role="combobox"
+                                    aria-expanded={packageOpen}
+                                    className="w-full justify-between font-normal text-left"
+                                >
+                                    {selectedPackage ? (() => {
+                                        const pkg = packages?.find((p: any) => p.id === selectedPackage);
+                                        return pkg ? `${pkg.name} - ₹${pkg.price}` : "Select plan...";
+                                    })() : "Select plan..."}
+                                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+                                <Command>
+                                    <CommandInput placeholder="Search plan..." />
+                                    <CommandList>
+                                        <CommandEmpty>No plan found.</CommandEmpty>
+                                        <CommandGroup>
+                                            {packages?.map((p: any) => (
+                                                <CommandItem
+                                                    key={p.id}
+                                                    value={p.name}
+                                                    onSelect={() => {
+                                                        setSelectedPackage(p.id);
+                                                        setPackageOpen(false);
+                                                    }}
+                                                >
+                                                    <Check
+                                                        className={cn(
+                                                            "mr-2 h-4 w-4",
+                                                            selectedPackage === p.id ? "opacity-100" : "opacity-0"
+                                                        )}
+                                                    />
+                                                    {p.name} - ₹{p.price}
+                                                </CommandItem>
+                                            ))}
+                                        </CommandGroup>
+                                    </CommandList>
+                                </Command>
+                            </PopoverContent>
+                        </Popover>
                     </div>
 
                     <div className="grid gap-2">

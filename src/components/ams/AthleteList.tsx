@@ -168,7 +168,7 @@ export default function AthleteList({ athletes, dateRange }: AthleteListProps) {
  
       {/* Individual Athlete Drill-down Modal */}
       <Dialog open={!!selectedAthlete} onOpenChange={(open) => !open && setSelectedAthlete(null)}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto w-full md:w-[90vw] glass border-none">
+        <DialogContent aria-describedby={undefined} className="max-w-4xl max-h-[90vh] overflow-y-auto w-full md:w-[90vw] glass border-none">
           <DialogHeader>
             <DialogTitle className="text-2xl flex items-center gap-2">
               <ActivityIcon className="w-5 h-5 text-primary" />
