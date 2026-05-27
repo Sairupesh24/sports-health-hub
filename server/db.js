@@ -1077,6 +1077,44 @@ async function initializeDatabase() {
       )
     `);
 
+    // Safely add missing columns to notifications
+    try {
+      await pool.query(`ALTER TABLE notifications ADD COLUMN IF NOT EXISTS category TEXT DEFAULT 'in_app';`);
+    } catch (e) {}
+    try {
+      await pool.query(`ALTER TABLE notifications ADD COLUMN IF NOT EXISTS action_payload JSONB DEFAULT '{}'::jsonb;`);
+    } catch (e) {}
+    try {
+      await pool.query(`ALTER TABLE notifications ADD COLUMN IF NOT EXISTS action_status TEXT DEFAULT 'pending';`);
+    } catch (e) {}
+    try {
+      await pool.query(`ALTER TABLE notifications ADD COLUMN IF NOT EXISTS is_vip BOOLEAN DEFAULT false;`);
+    } catch (e) {}
+    try {
+      await pool.query(`ALTER TABLE notifications ADD COLUMN IF NOT EXISTS sender_id UUID REFERENCES profiles(id) ON DELETE SET NULL;`);
+    } catch (e) {}
+
+    // PostgreSQL Trigger for notification updates
+    await pool.query(`
+      CREATE OR REPLACE FUNCTION notify_system_notification()
+      RETURNS TRIGGER AS $$
+      BEGIN
+        PERFORM pg_notify('system_notifications', row_to_json(NEW)::text);
+        RETURN NEW;
+      END;
+      $$ LANGUAGE plpgsql;
+    `);
+
+    await pool.query(`
+      DROP TRIGGER IF EXISTS trigger_system_notification ON notifications;
+    `);
+    await pool.query(`
+      CREATE TRIGGER trigger_system_notification
+      AFTER INSERT ON notifications
+      FOR EACH ROW
+      EXECUTE FUNCTION notify_system_notification();
+    `);
+
     // Scientific Resources
     await pool.query(`
       CREATE TABLE IF NOT EXISTS scientific_resources (
@@ -1187,6 +1225,20 @@ async function initializeDatabase() {
         RETURN v_uhid;
       END;
       $$;
+    `);
+
+    // Create staff_schedules table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS staff_schedules (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+        consultant_id UUID NOT NULL UNIQUE REFERENCES profiles(id) ON DELETE CASCADE,
+        shift_start TIME NOT NULL DEFAULT '08:00:00',
+        shift_end TIME NOT NULL DEFAULT '17:00:00',
+        breaks JSONB NOT NULL DEFAULT '[]'::jsonb,
+        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+      );
     `);
 
     // Seed super admin

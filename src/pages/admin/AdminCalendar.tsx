@@ -26,12 +26,11 @@ import { cn } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Filter, Layers, Clock, Plus, Download, Bell, AlertCircle } from "lucide-react";
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Filter, Layers, Clock, Plus, Download, Bell, AlertCircle, Check, Coffee } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
-import AdminAvailability from "./AdminAvailability";
 import AppointmentList from "../shared/AppointmentList";
 import { AdminBookSessionModal } from "@/components/admin/AdminBookSessionModal";
 import { AdminSessionStatusModal } from "@/components/admin/AdminSessionStatusModal";
@@ -72,61 +71,18 @@ export default function AdminCalendar() {
 
     // Master Schedule States
     const [currentDate, setCurrentDate] = useState(new Date());
-    const [viewMode, setViewMode] = useState<ViewMode>("month");
-    const [consultants, setConsultants] = useState<{ id: string, name: string, profession?: string | null }[]>([]);
+    const [viewMode, setViewMode] = useState<ViewMode>("day");
+    interface ConsultantProfile {
+        id: string;
+        name: string;
+        profession?: string | null;
+        avatar_url?: string | null;
+        emergency_alerts?: any[];
+    }
+
+    const [consultants, setConsultants] = useState<ConsultantProfile[]>([]);
     const [selectedConsultant, setSelectedConsultant] = useState<string>("all");
-    const [exporting, setExporting] = useState(false);
 
-    const handleExportDaily = async () => {
-        if (!profile?.organization_id) return;
-        setExporting(true);
-        try {
-            const XLSX = await import("xlsx");
-            
-            const startStr = format(currentDate, "yyyy-MM-dd") + "T00:00:00Z";
-            const endStr = format(currentDate, "yyyy-MM-dd") + "T23:59:59Z";
-
-            const data = await apiFetch<any[]>('/appointments', {
-                params: {
-                    start: startStr,
-                    end: endStr,
-                    therapist_id: selectedConsultant !== "all" ? selectedConsultant : undefined
-                }
-            });
-
-            if (!data || data.length === 0) {
-                toast({ title: "No Appointments", description: "There are no appointments scheduled for this day to export." });
-                return;
-            }
-
-            const exportData = (data as any[]).map(session => ({
-                "Time": `${format(new Date(session.scheduled_start), "hh:mm a")} - ${format(new Date(session.scheduled_end), "hh:mm a")}`,
-                "Specialist": session.therapist ? `${session.therapist.first_name} ${session.therapist.last_name}` : "Unassigned",
-                "Client Name": session.client ? `${session.client.first_name} ${session.client.last_name}` : "Unknown",
-                "UHID": session.client?.uhid || "-",
-                "Mobile": session.client?.mobile_no || "-",
-                "Service": session.service_type || "-",
-                "Status": session.status || "-"
-            }));
-
-            const worksheet = XLSX.utils.json_to_sheet(exportData);
-            const workbook = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(workbook, worksheet, "Appointments");
-            
-            const colWidths = [{ wch: 20 }, { wch: 25 }, { wch: 25 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }];
-            worksheet['!cols'] = colWidths;
-
-            const consultantLabel = selectedConsultant === "all" ? "All" : "Cons";
-            const filename = `Appointments_${consultantLabel}_${format(currentDate, "yyyy-MM-dd")}.xlsx`;
-            XLSX.writeFile(workbook, filename);
-            toast({ title: "Export Successful", description: `Downloaded ${filename}` });
-        } catch (error: any) {
-            console.error("Export Error: ", error);
-            toast({ title: "Export Failed", description: "There was an error generating the Excel file.", variant: "destructive" });
-        } finally {
-            setExporting(false);
-        }
-    };
 
     const handleWaitlistBook = (item: any) => {
         setWaitlistInitialData({
@@ -153,7 +109,9 @@ export default function AdminCalendar() {
                 setConsultants(specialists.map(p => ({
                     id: p.id,
                     name: `${p.first_name} ${p.last_name}`,
-                    profession: p.profession
+                    profession: p.profession,
+                    avatar_url: p.avatar_url,
+                    emergency_alerts: p.emergency_alerts
                 })));
             } catch (error) {
                 console.error("Error fetching consultant profiles:", error);
@@ -213,6 +171,50 @@ export default function AdminCalendar() {
             } catch (error) {
                 console.error("Emergency alerts error:", error);
                 return [];
+            }
+        },
+        enabled: !!profile?.organization_id
+    });
+
+    const { data: staffSchedules = [] } = useQuery({
+        queryKey: ["staff-schedules", profile?.organization_id],
+        queryFn: async () => {
+            if (!profile?.organization_id) return [];
+            try {
+                const data = await apiFetch<any[]>('/hr/staff-schedules');
+                return data || [];
+            } catch (error) {
+                console.error("Staff schedules fetch error:", error);
+                return [];
+            }
+        },
+        enabled: !!profile?.organization_id
+    });
+
+    const { data: hrLeaves = [] } = useQuery({
+        queryKey: ["hr-leaves", profile?.organization_id],
+        queryFn: async () => {
+            if (!profile?.organization_id) return [];
+            try {
+                const res = await apiFetch<{ data: any[] }>('/hr/leaves');
+                return res.data || [];
+            } catch (error) {
+                console.error("Leaves fetch error:", error);
+                return [];
+            }
+        },
+        enabled: !!profile?.organization_id
+    });
+
+    const { data: orgSettings } = useQuery({
+        queryKey: ["org-settings", profile?.organization_id],
+        queryFn: async () => {
+            if (!profile?.organization_id) return null;
+            try {
+                return await apiFetch<any>(`/organizations/${profile?.organization_id}/settings`);
+            } catch (error) {
+                console.error("Org settings fetch error:", error);
+                return null;
             }
         },
         enabled: !!profile?.organization_id
@@ -299,10 +301,231 @@ export default function AdminCalendar() {
         [allSessions, clientEntitlementMap]
     );
 
+    const rolesList = useMemo(() => {
+        const professions = consultants
+            .map(c => c.profession)
+            .filter((p): p is string => typeof p === 'string' && p.trim() !== '');
+        return Array.from(new Set(professions));
+    }, [consultants]);
+
     const sessions = useMemo(() => {
-        if (selectedConsultant === "all") return sessionsWithEntitlementStatus;
-        return sessionsWithEntitlementStatus.filter(s => s.therapist_id === selectedConsultant);
-    }, [sessionsWithEntitlementStatus, selectedConsultant]);
+        if (selectedConsultant === "all" || !selectedConsultant) return sessionsWithEntitlementStatus;
+        if (viewMode === "day") {
+            const clinicianIds = new Set(consultants.filter(c => c.profession === selectedConsultant).map(c => c.id));
+            return sessionsWithEntitlementStatus.filter(s => clinicianIds.has(s.therapist_id));
+        } else {
+            return sessionsWithEntitlementStatus.filter(s => s.therapist_id === selectedConsultant);
+        }
+    }, [sessionsWithEntitlementStatus, selectedConsultant, viewMode, consultants]);
+
+    // Mobile responsiveness
+    const [isMobile, setIsMobile] = useState(false);
+    useEffect(() => {
+        const handleResize = () => {
+            setIsMobile(window.innerWidth < 768);
+        };
+        handleResize();
+        window.addEventListener("resize", handleResize);
+        return () => window.removeEventListener("resize", handleResize);
+    }, []);
+
+    const [mobileSelectedClinicianId, setMobileSelectedClinicianId] = useState<string | null>(null);
+
+    const activeClinicians = useMemo(() => {
+        if (selectedConsultant === "all" || !selectedConsultant) return consultants;
+        if (viewMode === "day") {
+            return consultants.filter(c => c.profession === selectedConsultant);
+        } else {
+            return consultants.filter(c => c.id === selectedConsultant);
+        }
+    }, [consultants, selectedConsultant, viewMode]);
+
+    useEffect(() => {
+        setSelectedConsultant("all");
+    }, [viewMode]);
+
+    // Automatically set/reset mobile selection
+    useEffect(() => {
+        if (activeClinicians.length > 0) {
+            if (!mobileSelectedClinicianId || !activeClinicians.some(c => c.id === mobileSelectedClinicianId)) {
+                setMobileSelectedClinicianId(activeClinicians[0].id);
+            }
+        } else {
+            setMobileSelectedClinicianId(null);
+        }
+    }, [activeClinicians, mobileSelectedClinicianId]);
+
+    const activeCliniciansToRender = useMemo(() => {
+        if (isMobile) {
+            const selected = activeClinicians.find(c => c.id === mobileSelectedClinicianId);
+            return selected ? [selected] : (activeClinicians.length > 0 ? [activeClinicians[0]] : []);
+        }
+        return activeClinicians;
+    }, [isMobile, activeClinicians, mobileSelectedClinicianId]);
+
+    const timeSlots = useMemo(() => {
+        const slots: { start: string; end: string; label: string }[] = [];
+        const startMinutes = 8 * 60; // 08:00 AM
+        const endMinutes = 20 * 60;   // 08:00 PM
+        const duration = Number(orgSettings?.default_slot_duration) || 30;
+
+        for (let m = startMinutes; m < endMinutes; m += duration) {
+            const startHour = Math.floor(m / 60);
+            const startMin = m % 60;
+            const endHour = Math.floor((m + duration) / 60);
+            const endMin = (m + duration) % 60;
+
+            const formatTime = (h: number, min: number) => {
+                const ampm = h >= 12 ? 'PM' : 'AM';
+                const displayHour = h % 12 === 0 ? 12 : h % 12;
+                return `${String(displayHour).padStart(2, '0')}:${String(min).padStart(2, '0')} ${ampm}`;
+            };
+            
+            const formatTime24 = (h: number, min: number) => {
+                return `${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}`;
+            };
+
+            slots.push({
+                start: formatTime24(startHour, startMin),
+                end: formatTime24(endHour, endMin),
+                label: formatTime(startHour, startMin)
+            });
+        }
+        return slots;
+    }, [orgSettings?.default_slot_duration]);
+
+    const timeToY = (timeStrOrDate: string | Date) => {
+        let hours = 0;
+        let minutes = 0;
+        if (timeStrOrDate instanceof Date) {
+            hours = timeStrOrDate.getHours();
+            minutes = timeStrOrDate.getMinutes();
+        } else {
+            const parts = timeStrOrDate.split(':');
+            hours = parseInt(parts[0], 10) || 0;
+            minutes = parseInt(parts[1], 10) || 0;
+        }
+        const currentM = hours * 60 + minutes;
+        const startM = 8 * 60; // 08:00 AM
+        const totalM = 12 * 60; // 12 hours total
+        
+        const offsetM = Math.max(0, Math.min(totalM, currentM - startM));
+        const totalHeight = timeSlots.length * 60;
+        return (offsetM / totalM) * totalHeight;
+    };
+
+    const getTopAndHeight = (start: string | Date, end: string | Date) => {
+        const top = timeToY(start);
+        const bottom = timeToY(end);
+        const height = Math.max(20, bottom - top);
+        return { top, height };
+    };
+
+    const getClinicianBreaks = (clinicianId: string) => {
+        const schedule = staffSchedules.find((s: any) => s.consultant_id === clinicianId);
+        if (!schedule) return [];
+
+        let loadedBreaks = schedule.breaks || {};
+        if (typeof loadedBreaks === 'string') {
+            try {
+                loadedBreaks = JSON.parse(loadedBreaks);
+            } catch (e) {
+                loadedBreaks = {};
+            }
+        }
+
+        let activeBreaksList: any[] = [];
+        if (Array.isArray(loadedBreaks)) {
+            activeBreaksList = loadedBreaks;
+        } else if (loadedBreaks.all) {
+            activeBreaksList = loadedBreaks.all;
+        } else {
+            const dayKey = String(currentDate.getDay());
+            activeBreaksList = loadedBreaks[dayKey] || [];
+        }
+
+        return activeBreaksList;
+    };
+
+    const getBookingStyleAndElements = (session: any) => {
+        const start = parseISO(session.scheduled_start);
+        const end = parseISO(session.scheduled_end);
+        const now = new Date();
+        
+        let state: 'completed' | 'in_progress' | 'overdue' | 'planned' | 'other' = 'planned';
+
+        if (session.status === 'Completed') {
+            state = 'completed';
+        } else if (session.status === 'Planned' || session.status === 'Checked In') {
+            if (now >= start && now <= end) {
+                state = 'in_progress';
+            } else if (now > end) {
+                state = 'overdue';
+            } else {
+                state = 'planned';
+            }
+        } else {
+            state = 'completed'; 
+        }
+
+        let cardClasses = "";
+        let indicatorElement = null;
+
+        switch (state) {
+            case 'completed':
+                cardClasses = "bg-slate-100 text-slate-700 border-slate-200";
+                indicatorElement = (
+                    <span className="flex items-center gap-1 text-[8px] font-bold text-slate-500 uppercase">
+                        <Check className="w-2.5 h-2.5 text-slate-500" /> Completed
+                    </span>
+                );
+                break;
+            case 'in_progress':
+                cardClasses = "border-emerald-500 bg-emerald-50 text-emerald-800";
+                indicatorElement = (
+                    <span className="flex items-center gap-1 text-[8px] font-bold text-emerald-600 uppercase">
+                        <span className="relative flex h-1.5 w-1.5">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
+                        </span>
+                        Active
+                    </span>
+                );
+                break;
+            case 'overdue':
+                cardClasses = "border-red-500 bg-red-50 text-red-800";
+                indicatorElement = (
+                    <span className="flex items-center gap-1 text-[8px] font-bold text-red-600 uppercase">
+                        <span className="relative flex h-2 w-2">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                          <AlertCircle className="w-2 h-2 text-red-500 relative" />
+                        </span>
+                        Overdue
+                    </span>
+                );
+                break;
+            case 'planned':
+            default:
+                cardClasses = "border-blue-300 bg-blue-50 text-blue-800";
+                indicatorElement = (
+                    <span className="text-[8px] font-bold text-blue-600 uppercase">
+                        Planned
+                    </span>
+                );
+                break;
+        }
+
+        return { cardClasses, indicatorElement };
+    };
+
+    const handleCellClick = (consultantId: string, startTime: string) => {
+        setWaitlistInitialData({
+            consultantId,
+            sessionDate: format(currentDate, "yyyy-MM-dd"),
+            startTime
+        });
+        setIsBookModalOpen(true);
+    };
 
     const renderMasterSchedule = () => {
         if (viewMode === "month") return renderMonthView();
@@ -522,100 +745,322 @@ export default function AdminCalendar() {
     };
 
     const renderDayView = () => {
-        const hours = Array.from({ length: 13 }, (_, i) => i + 8);
-        const dayEvents = sessions.filter(s => isSameDay(parseISO(s.scheduled_start), currentDate));
+        if (activeClinicians.length === 0) {
+            return (
+                <div className="p-8 text-center text-muted-foreground">
+                    <AlertCircle className="w-8 h-8 mx-auto mb-2 opacity-20" />
+                    <p className="text-xs font-bold uppercase tracking-wider">No Active Clinicians Found</p>
+                </div>
+            );
+        }
+
+        const totalHeight = timeSlots.length * 60;
 
         return (
             <div className="bg-card rounded-xl border border-border/50 overflow-hidden shadow-sm animate-in fade-in duration-500">
+                {/* Day Header Block */}
                 <div className="p-4 border-b border-border/50 bg-muted/30 flex justify-between items-center">
                     <div>
                         <div className="text-lg font-semibold text-primary">{format(currentDate, "EEEE")}</div>
                         <div className="text-muted-foreground">{format(currentDate, "MMMM d, yyyy")}</div>
                     </div>
-                    <div className="bg-primary/10 text-primary px-3 py-1 rounded-full text-sm font-medium">
-                        {dayEvents.length} Sessions Scheduled
+                    <div className="bg-primary/10 text-primary px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
+                        {sessions.filter(s => isSameDay(parseISO(s.scheduled_start), currentDate)).length} Sessions Scheduled
                     </div>
                 </div>
 
-                <div className="relative overflow-y-auto max-h-[600px] flex p-4">
-                    <div className="w-20 shrink-0 border-r border-border/50 relative z-10 pr-4">
-                        {hours.map(hour => (
-                            <div key={hour} className="h-24 border-b border-border/50 text-sm text-muted-foreground text-right pt-2 font-medium pr-2">
-                                {hour}:00
-                            </div>
-                        ))}
+                {/* Mobile Ribbon Selector */}
+                {isMobile && activeClinicians.length > 1 && (
+                    <div className="flex gap-2 overflow-x-auto pb-3 pt-2 px-3 no-scrollbar border-b border-border/50 bg-muted/10">
+                        {activeClinicians.map((c) => {
+                            const isSelected = mobileSelectedClinicianId === c.id;
+                            const initials = c.name ? c.name.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase() : "";
+                            const hasEmergency = c.emergency_alerts && c.emergency_alerts.length > 0;
+                            
+                            return (
+                                <button
+                                    key={c.id}
+                                    onClick={() => setMobileSelectedClinicianId(c.id)}
+                                    className={cn(
+                                        "flex items-center gap-2 px-3 py-2 rounded-full border text-xs font-bold transition-all whitespace-nowrap min-h-[44px] shrink-0",
+                                        isSelected 
+                                            ? "bg-primary text-white border-primary shadow-sm" 
+                                            : "bg-card text-slate-700 border-border hover:bg-muted/50",
+                                        hasEmergency && "ring-2 ring-red-500 ring-offset-1"
+                                    )}
+                                >
+                                    {c.avatar_url ? (
+                                        <img 
+                                            src={c.avatar_url} 
+                                            alt={c.name} 
+                                            className="w-6 h-6 rounded-full object-cover border border-current"
+                                        />
+                                    ) : (
+                                        <div className={cn(
+                                            "w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black",
+                                            isSelected ? "bg-white/20 text-white" : "bg-primary/10 text-primary"
+                                        )}>
+                                            {initials}
+                                        </div>
+                                    )}
+                                    <span>{c.name}</span>
+                                    {hasEmergency && (
+                                        <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                                    )}
+                                </button>
+                            );
+                        })}
                     </div>
+                )}
 
-                    <div className="flex-1 relative pl-4">
-                        <div className="absolute inset-0 pl-4">
-                            {hours.map(hour => (
-                                <div key={`cell-${hour}`} className="h-24 border-b border-border/50/50 w-full"></div>
-                            ))}
+                {/* Resource Matrix Grid */}
+                <div className="w-full overflow-x-auto custom-scrollbar">
+                    <div 
+                        className="grid divide-x divide-border"
+                        style={{
+                            gridTemplateColumns: `80px repeat(${activeCliniciansToRender.length}, minmax(200px, 1fr))`,
+                            minWidth: isMobile ? '100%' : `${80 + activeCliniciansToRender.length * 200}px`
+                        }}
+                    >
+                        {/* Time Column (Y-Axis) */}
+                        <div className="flex flex-col select-none">
+                            <div className="h-[75px] border-b border-border/50 bg-muted/30 flex items-center justify-center font-bold text-xs text-muted-foreground">
+                                Time
+                            </div>
+                            <div className="relative" style={{ height: `${totalHeight}px` }}>
+                                {timeSlots.map((slot, i) => (
+                                    <div 
+                                        key={slot.start} 
+                                        className="absolute left-0 right-0 border-b border-border/10 text-[10px] text-muted-foreground flex items-start justify-end pr-2 pt-1 font-bold"
+                                        style={{ top: `${i * 60}px`, height: '60px' }}
+                                    >
+                                        {slot.label}
+                                    </div>
+                                ))}
+                            </div>
                         </div>
 
-                        {dayEvents.map((event, index) => {
-                            const startD = parseISO(event.scheduled_start);
-                            const endD = parseISO(event.scheduled_end);
+                        {/* Clinicians Columns */}
+                        {activeCliniciansToRender.map((clinician) => {
+                            const initials = clinician.name ? clinician.name.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase() : "";
+                            const hasEmergency = clinician.emergency_alerts && clinician.emergency_alerts.length > 0;
 
-                            const startHour = startD.getHours() + (startD.getMinutes() / 60);
-                            const durationHours = (endD.getTime() - startD.getTime()) / (1000 * 60 * 60);
+                            // Leaves Overlay logic
+                            const isCurrentlyOnLeave = hrLeaves.some((leave: any) => {
+                                if (leave.employee_id !== clinician.id) return false;
+                                if (leave.status !== 'Approved') return false;
+                                
+                                const startStr = leave.start_date.split('T')[0];
+                                const endStr = leave.end_date.split('T')[0];
+                                const currentStr = format(currentDate, "yyyy-MM-dd");
+                                
+                                return currentStr >= startStr && currentStr <= endStr;
+                            });
 
-                            const topPos = Math.max(0, (startHour - 8) * 96);
-                            const height = durationHours * 96;
+                            // Breaks logic
+                            const clinicianBreaks = getClinicianBreaks(clinician.id);
 
-                            if (startHour > 20 || endD.getHours() < 8) return null;
+                            // Bookings logic
+                            const clinicianSessions = sessions.filter(s => {
+                                return s.therapist_id === clinician.id && isSameDay(parseISO(s.scheduled_start), currentDate);
+                            });
 
-                            const overlapping = dayEvents.filter(e => e.id !== event.id && e.scheduled_start === event.scheduled_start);
-                            const myIndex = dayEvents.filter(e => e.scheduled_start === event.scheduled_start).findIndex(e => e.id === event.id);
+                            // Overlap tracking
+                            const sortedSessions = [...clinicianSessions].sort((a, b) => {
+                                return new Date(a.scheduled_start).getTime() - new Date(b.scheduled_start).getTime();
+                            });
 
-                            const widthPercent = overlapping.length > 0 ? 100 / (overlapping.length + 1) : 100;
-                            const leftPos = overlapping.length > 0 ? (myIndex * widthPercent) : 0;
+                            const columns: any[][] = [];
+                            sortedSessions.forEach(session => {
+                                const start = new Date(session.scheduled_start).getTime();
+                                
+                                let placed = false;
+                                for (let c = 0; c < columns.length; c++) {
+                                    const lastSessionInCol = columns[c][columns[c].length - 1];
+                                    const lastEnd = new Date(lastSessionInCol.scheduled_end).getTime();
+                                    
+                                    if (start >= lastEnd) {
+                                        columns[c].push(session);
+                                        placed = true;
+                                        break;
+                                    }
+                                }
+
+                                if (!placed) {
+                                    columns.push([session]);
+                                }
+                            });
+
+                            const getSessionLayout = (session: any) => {
+                                let colIndex = 0;
+                                let totalCols = 1;
+
+                                for (let c = 0; c < columns.length; c++) {
+                                    const idx = columns[c].findIndex(s => s.id === session.id);
+                                    if (idx !== -1) {
+                                        colIndex = c;
+                                        totalCols = columns.length;
+                                        break;
+                                    }
+                                }
+
+                                const start = parseISO(session.scheduled_start);
+                                const end = parseISO(session.scheduled_end);
+                                const { top, height } = getTopAndHeight(start, end);
+
+                                const widthPercent = 100 / totalCols;
+                                const leftPercent = colIndex * widthPercent;
+
+                                return {
+                                    top,
+                                    height,
+                                    left: `${leftPercent}%`,
+                                    width: `${widthPercent}%`
+                                };
+                            };
 
                             return (
-                                <div
-                                    key={event.id}
-                                    onClick={() => setSelectedSession(event)}
-                                    className={`absolute rounded-lg border p-3 flex flex-col justify-start shadow-sm hover:shadow hover:z-20 transition-all cursor-pointer ${getStatusColor(event.status)}`}
-                                    style={{
-                                        top: `${topPos + 8}px`,
-                                        height: `${height - 16}px`,
-                                        minHeight: '60px',
-                                        left: `calc(1rem + ${leftPos}%)`,
-                                        width: `calc(${widthPercent}% - 1.5rem)`
-                                    }}
-                                >
-                                    <div className="font-bold text-[10px] mb-1 leading-tight">
-                                        {format(startD, "h:mm a")} - {format(endD, "h:mm a")}
-                                    </div>
-                                    <div className={cn("font-semibold text-xs truncate flex items-center gap-2 leading-tight mb-1", event.client?.is_vip && "text-[#D4AF37] font-bold")}>
-                                        {event.is_guest ? (
-                                            <div className="flex items-center gap-2">
-                                                <span className="italic text-slate-600 font-bold">GUEST: {event.guest_name}</span>
-                                                <div className="bg-orange-500 text-white border-none text-[7px] h-3.5 uppercase tracking-widest font-extrabold flex items-center px-1 rounded">Provisional</div>
+                                <div key={clinician.id} className="flex flex-col relative">
+                                    {/* Clinician Column Header */}
+                                    <div className="h-[75px] border-b border-border/50 bg-muted/10 p-2 flex flex-col justify-center relative select-none">
+                                        <div className="flex items-center gap-2">
+                                            {clinician.avatar_url ? (
+                                                <img 
+                                                    src={clinician.avatar_url} 
+                                                    alt={clinician.name} 
+                                                    className="w-9 h-9 rounded-full object-cover border border-border"
+                                                />
+                                            ) : (
+                                                <div className="w-9 h-9 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs">
+                                                    {initials}
+                                                </div>
+                                            )}
+                                            <div className="min-w-0">
+                                                <div className="text-xs font-bold text-slate-800 truncate">{clinician.name}</div>
+                                                <div className="text-[10px] text-muted-foreground truncate uppercase font-medium">
+                                                    {clinician.profession || "Clinician"}
+                                                </div>
                                             </div>
-                                        ) : (
-                                            <>C: {event.client?.first_name} {event.client?.last_name}</>
+                                        </div>
+                                        
+                                        {hasEmergency && (
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setIsEmergencyModalOpen(true);
+                                                }}
+                                                className="absolute inset-x-0 bottom-0 bg-red-600 hover:bg-red-700 text-white text-[9px] font-black py-1 uppercase tracking-widest text-center flex items-center justify-center gap-1 animate-pulse z-20 cursor-pointer border-t border-red-700 shadow-sm"
+                                            >
+                                                ⚠️ EMERGENCY ACTIVE
+                                            </button>
                                         )}
-                                        {!event.is_guest && <VIPBadge isVIP={event.client?.is_vip} size="sm" />}
                                     </div>
-                                    {selectedConsultant === "all" && (
-                                        <div className="text-[10px] truncate opacity-80 flex items-center gap-1 leading-tight">
-                                            {event.therapist?.first_name} {event.therapist?.last_name}
-                                        </div>
-                                    )}
-                                    {event.is_unentitled && (
-                                        <div className="absolute top-2 right-2 px-1.5 py-0.5 bg-red-600 text-white text-[8px] font-black rounded flex items-center gap-1 animate-pulse shadow-sm z-10">
-                                            <Filter className="w-2.5 h-2.5" /> UN-ENTITLED
-                                        </div>
-                                    )}
-                                    {(event as any).is_pre_unentitled && (
-                                        <div className="absolute top-2 right-2 px-1.5 py-0.5 bg-orange-500 text-white text-[8px] font-black rounded flex items-center gap-1 shadow-sm z-10" title="Client has no entitlements for this service">
-                                            ⚠ NO ENTITLEMENT
-                                        </div>
-                                    )}
 
+                                    {/* Column Grid & Overlays Container */}
+                                    <div className="relative w-full" style={{ height: `${totalHeight}px` }}>
+                                        {/* Background Cells */}
+                                        {timeSlots.map((slot, i) => (
+                                            <div 
+                                                key={slot.start} 
+                                                onClick={() => handleCellClick(clinician.id, slot.start)}
+                                                className="absolute left-0 right-0 border-b border-border/10 hover:bg-muted/30 cursor-pointer transition-colors"
+                                                style={{ top: `${i * 60}px`, height: '60px' }}
+                                            />
+                                        ))}
+
+                                        {/* Leaves Overlay */}
+                                        {isCurrentlyOnLeave && (
+                                            <div 
+                                                className="absolute inset-0 z-30 flex flex-col items-center justify-center backdrop-blur-sm bg-slate-200/50 text-slate-700 font-bold text-sm text-center p-4 border-b border-slate-300 select-none"
+                                            >
+                                                <AlertCircle className="w-6 h-6 text-slate-500 mb-1" />
+                                                Unavailable - Staff Leave
+                                            </div>
+                                        )}
+
+                                        {/* Breaks Overlays */}
+                                        {!isCurrentlyOnLeave && clinicianBreaks.map((breakBlock: any, idx: number) => {
+                                            const { top, height } = getTopAndHeight(breakBlock.start_time, breakBlock.end_time);
+                                            return (
+                                                <div
+                                                    key={`break-${idx}`}
+                                                    className="absolute inset-x-0 z-10 pointer-events-none flex flex-col items-center justify-center border-y bg-[repeating-linear-gradient(45deg,#f1f5f9,#f1f5f9_10px,#e2e8f0_10px,#e2e8f0_20px)] border-slate-200 text-slate-500 text-[10px] font-black uppercase tracking-wider text-center px-2 select-none"
+                                                    style={{ top: `${top}px`, height: `${height}px` }}
+                                                >
+                                                    <Coffee className="w-3.5 h-3.5 mb-0.5 text-slate-400" />
+                                                    <span>Staff Break</span>
+                                                    <span className="text-[8px] font-normal text-slate-400 mt-0.5">
+                                                        {breakBlock.start_time.slice(0, 5)} - {breakBlock.end_time.slice(0, 5)}
+                                                    </span>
+                                                </div>
+                                            );
+                                        })}
+
+                                        {/* Bookings Overlays */}
+                                        {!isCurrentlyOnLeave && sortedSessions.map((event) => {
+                                            const layout = getSessionLayout(event);
+                                            const { cardClasses, indicatorElement } = getBookingStyleAndElements(event);
+                                            const startD = parseISO(event.scheduled_start);
+                                            const endD = parseISO(event.scheduled_end);
+
+                                            return (
+                                                <div
+                                                    key={event.id}
+                                                    onClick={() => setSelectedSession(event)}
+                                                    className={`absolute rounded-xl border p-2 flex flex-col justify-between shadow-sm hover:shadow-md hover:z-20 transition-all cursor-pointer overflow-hidden ${cardClasses}`}
+                                                    style={{
+                                                        top: `${layout.top + 2}px`,
+                                                        height: `${layout.height - 4}px`,
+                                                        left: `calc(${layout.left} + 2px)`,
+                                                        width: `calc(${layout.width} - 4px)`,
+                                                        minHeight: '45px'
+                                                    }}
+                                                >
+                                                    <div className="flex flex-col min-w-0 h-full justify-between">
+                                                        <div>
+                                                            <div className="flex justify-between items-start gap-1">
+                                                                <span className="font-bold text-[9px] leading-tight">
+                                                                    {format(startD, "h:mm a")} - {format(endD, "h:mm a")}
+                                                                </span>
+                                                                {indicatorElement}
+                                                            </div>
+
+                                                            <div className={cn("font-bold text-xs truncate mt-0.5 flex items-center gap-1", event.client?.is_vip && "text-[#D4AF37]")}>
+                                                                {event.is_guest ? (
+                                                                    <span className="italic opacity-85">G: {event.guest_name}</span>
+                                                                ) : (
+                                                                    <span>{event.client?.first_name} {event.client?.last_name}</span>
+                                                                )}
+                                                                {!event.is_guest && <VIPBadge isVIP={event.client?.is_vip} size="sm" iconOnly />}
+                                                            </div>
+
+                                                            <div className="text-[10px] opacity-80 truncate leading-tight mt-0.5">
+                                                                {event.service_type || "No Service"}
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="flex items-center justify-between gap-1 mt-1">
+                                                            {/* Entitlement Warnings */}
+                                                            <div className="flex gap-1">
+                                                                {event.is_unentitled && (
+                                                                    <span className="px-1 bg-red-600 text-white text-[7px] font-black rounded animate-pulse">
+                                                                        UN
+                                                                    </span>
+                                                                )}
+                                                                {(event as any).is_pre_unentitled && (
+                                                                    <span className="px-1 bg-orange-500 text-white text-[7px] font-black rounded" title="Client has no entitlements for this service">
+                                                                        ⚠ NO
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
                                 </div>
-                            )
+                            );
                         })}
                     </div>
                 </div>
@@ -631,12 +1076,12 @@ export default function AdminCalendar() {
                         <CalendarIcon className="w-6 h-6 text-primary" />
                         Clinic Calendar & Scheduling
                     </h1>
-                    <p className="text-muted-foreground mt-1">Manage all clinic schedules, appointments, and availability settings</p>
+                    <p className="text-muted-foreground mt-1">Manage all clinic schedules and appointments</p>
                 </div>
 
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                     <div className="w-full overflow-x-auto custom-scrollbar pb-2 mb-4 -mx-1 px-1 sm:mx-0 sm:px-0">
-                        <TabsList className="flex md:grid w-max md:w-full md:grid-cols-3 min-w-max md:min-w-0 md:max-w-3xl">
+                        <TabsList className="flex md:grid w-max md:w-full md:grid-cols-2 min-w-max md:min-w-0 md:max-w-2xl">
                         <TabsTrigger value="master" className="flex items-center gap-2 px-4 py-2 whitespace-nowrap">
                             <CalendarIcon className="w-4 h-4" />
                             Master Schedule
@@ -644,10 +1089,6 @@ export default function AdminCalendar() {
                         <TabsTrigger value="appointments" className="flex items-center gap-2 px-4 py-2 whitespace-nowrap">
                             <Layers className="w-4 h-4" />
                             Appointments List
-                        </TabsTrigger>
-                        <TabsTrigger value="availability" className="flex items-center gap-2 px-4 py-2 whitespace-nowrap">
-                            <Clock className="w-4 h-4" />
-                            Availability Settings
                         </TabsTrigger>
                     </TabsList>
                     </div>
@@ -677,47 +1118,82 @@ export default function AdminCalendar() {
                             <div className="flex flex-col lg:flex-row gap-6">
                                 <div className="flex-1 space-y-6">
                                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-muted/20 p-4 rounded-xl border border-border/50">
-                                        <div className="flex items-center gap-2">
-                                            <Button variant="outline" size="icon" onClick={() => setCurrentDate(viewMode === "month" ? subMonths(currentDate, 1) : viewMode === "week" ? subWeeks(currentDate, 1) : subDays(currentDate, 1))}>
-                                                <ChevronLeft className="w-4 h-4" />
+                                        <div className="flex items-center gap-2.5">
+                                            <Button 
+                                                variant="outline" 
+                                                size="icon" 
+                                                onClick={() => setCurrentDate(viewMode === "month" ? subMonths(currentDate, 1) : viewMode === "week" ? subWeeks(currentDate, 1) : subDays(currentDate, 1))}
+                                                className="w-9 h-9 rounded-xl border-slate-200"
+                                            >
+                                                <ChevronLeft className="w-4 h-4 text-slate-600" />
                                             </Button>
-                                            <h2 className="text-lg font-semibold min-w-[200px] text-center">
+                                            <h2 className="text-base font-semibold text-slate-800 min-w-[140px] text-center tracking-tight">
                                                 {format(currentDate, viewMode === "month" ? "MMMM yyyy" : "MMMM d, yyyy")}
                                             </h2>
-                                            <Button variant="outline" size="icon" onClick={() => setCurrentDate(viewMode === "month" ? addMonths(currentDate, 1) : viewMode === "week" ? addWeeks(currentDate, 1) : addDays(currentDate, 1))}>
-                                                <ChevronRight className="w-4 h-4" />
+                                            <Button 
+                                                variant="outline" 
+                                                size="icon" 
+                                                onClick={() => setCurrentDate(viewMode === "month" ? addMonths(currentDate, 1) : viewMode === "week" ? addWeeks(currentDate, 1) : addDays(currentDate, 1))}
+                                                className="w-9 h-9 rounded-xl border-slate-200"
+                                            >
+                                                <ChevronRight className="w-4 h-4 text-slate-600" />
                                             </Button>
-                                            <Button variant="ghost" size="sm" onClick={() => setCurrentDate(new Date())} className="ml-2 font-bold uppercase text-[10px] tracking-widest bg-primary/5 text-primary hover:bg-primary/10">Today</Button>
+                                            <Button 
+                                                variant="outline" 
+                                                size="sm" 
+                                                onClick={() => setCurrentDate(new Date())} 
+                                                className="h-9 px-3 rounded-xl border-slate-200 text-slate-600 font-bold uppercase text-[10px] tracking-wider hover:bg-slate-50 transition-colors"
+                                            >
+                                                Today
+                                            </Button>
                                         </div>
 
                                         <div className="flex flex-wrap items-center gap-3">
                                             <Select value={selectedConsultant} onValueChange={setSelectedConsultant}>
-                                                <SelectTrigger className="w-[200px] h-9 bg-background"><SelectValue placeholder="All Specialists" /></SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectItem value="all" className="text-xs font-bold">ALL SPECIALISTS</SelectItem>
-                                                    {consultants.map(c => (
-                                                        <SelectItem key={c.id} value={c.id} className="text-xs uppercase font-medium">
-                                                            {c.name} {c.profession ? `(${c.profession})` : ''}
-                                                        </SelectItem>
-                                                    ))}
+                                                <SelectTrigger className="w-[180px] h-9 bg-background border-slate-200 rounded-xl text-xs font-medium">
+                                                    <SelectValue placeholder={viewMode === "day" ? "All Roles" : "All Specialists"} />
+                                                </SelectTrigger>
+                                                <SelectContent className="rounded-xl">
+                                                    <SelectItem value="all" className="text-xs font-bold text-slate-700">ALL SPECIALISTS</SelectItem>
+                                                    {viewMode === "day" ? (
+                                                        rolesList.map(role => (
+                                                            <SelectItem key={role} value={role} className="text-xs font-semibold text-slate-600 uppercase">
+                                                                {role}s
+                                                            </SelectItem>
+                                                        ))
+                                                    ) : (
+                                                        consultants.map(c => (
+                                                            <SelectItem key={c.id} value={c.id} className="text-xs font-semibold text-slate-600 uppercase">
+                                                                {c.name} {c.profession ? `(${c.profession})` : ''}
+                                                            </SelectItem>
+                                                        ))
+                                                    )}
                                                 </SelectContent>
                                             </Select>
 
-                                            <div className="flex bg-muted p-1 rounded-lg border border-border/50">
+                                            <div className="flex bg-slate-100 p-0.5 rounded-xl border border-slate-100">
                                                 {(["day", "week", "month"] as ViewMode[]).map((m) => (
-                                                    <Button key={m} variant={viewMode === m ? "default" : "ghost"} size="sm" onClick={() => setViewMode(m)} className={cn("h-7 px-3 text-[10px] font-bold uppercase", viewMode === m && "shadow-sm")}>
+                                                    <Button 
+                                                        key={m} 
+                                                        variant={viewMode === m ? "default" : "ghost"} 
+                                                        size="sm" 
+                                                        onClick={() => setViewMode(m)} 
+                                                        className={cn(
+                                                            "h-8 px-3 text-[10px] font-bold uppercase rounded-lg transition-all", 
+                                                            viewMode === m ? "bg-white text-primary shadow-sm hover:bg-white" : "text-slate-600 hover:text-slate-900"
+                                                        )}
+                                                    >
                                                         {m}
                                                     </Button>
                                                 ))}
                                             </div>
-
-                                            <Button variant="outline" size="sm" className="h-9 gap-2 font-bold text-[10px] uppercase tracking-wider" onClick={handleExportDaily} disabled={exporting}>
-                                                {exporting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5 text-primary" />}
-                                                Export
-                                            </Button>
                                             
-                                            <Button size="sm" className="h-9 gap-2 font-bold text-[10px] uppercase tracking-widest pl-3 pr-4 shadow-lg active:scale-95 transition-transform" onClick={() => { setWaitlistInitialData(null); setIsBookModalOpen(true); }}>
-                                                <Plus className="w-3.5 h-3.5" /> Schedule
+                                            <Button 
+                                                size="sm" 
+                                                className="h-9 gap-1.5 font-bold text-[10px] uppercase tracking-wider pl-3 pr-4 rounded-xl shadow-md bg-primary hover:bg-primary/95 text-white active:scale-95 transition-all" 
+                                                onClick={() => { setWaitlistInitialData(null); setIsBookModalOpen(true); }}
+                                            >
+                                                <Plus className="w-4 h-4" /> Schedule
                                             </Button>
                                         </div>
                                     </div>
@@ -743,12 +1219,6 @@ export default function AdminCalendar() {
                     <TabsContent value="appointments" className="mt-0 outline-none">
                         <div className="bg-card border border-border rounded-xl overflow-hidden shadow-sm">
                             <AppointmentList role="admin" hideLayout />
-                        </div>
-                    </TabsContent>
-
-                    <TabsContent value="availability" className="mt-0 outline-none">
-                        <div className="bg-card border border-border rounded-xl shadow-sm p-4 sm:p-6">
-                            <AdminAvailability hideLayout />
                         </div>
                     </TabsContent>
                 </Tabs>

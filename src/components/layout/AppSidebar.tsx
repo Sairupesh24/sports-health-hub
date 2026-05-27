@@ -20,10 +20,12 @@ import {
   CalendarClock,
   CheckSquare,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { apiFetch } from "@/utils/api";
 
 interface NavItem {
   label: string;
@@ -147,6 +149,48 @@ export default function AppSidebar({ role, isMobile, className, onNavigate }: Ap
   const navigate = useNavigate();
   const { signOut, profile } = useAuth();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  // Fetch pending user approvals count (only for admin, hr_manager, foe)
+  const { data: pendingApprovals = 0 } = useQuery({
+    queryKey: ["pending-approvals-count", profile?.organization_id],
+    queryFn: async () => {
+      if (!["admin", "hr_manager", "foe"].includes(role)) return 0;
+      const data = await apiFetch<any>('/hr/stats');
+      return data?.data?.pendingApprovals || 0;
+    },
+    enabled: !!profile?.organization_id && ["admin", "hr_manager", "foe"].includes(role),
+    refetchInterval: 30000
+  });
+
+  // Subscribe to SSE to invalidate pending-approvals-count in real-time
+  useEffect(() => {
+    // Only connect on desktop to avoid duplicate socket connections in mobile layout drawer
+    if (!profile?.id || isMobile) return;
+
+    const token = localStorage.getItem('ishpo_jwt');
+    if (!token) return;
+
+    const streamUrl = `/api/notifications/stream?token=${encodeURIComponent(token)}`;
+    const eventSource = new EventSource(streamUrl);
+
+    eventSource.onmessage = (event) => {
+      try {
+        console.log('[SSE Sidebar] New notification received to invalidate stats');
+        queryClient.invalidateQueries({ queryKey: ["pending-approvals-count"] });
+      } catch (err) {
+        console.error('[SSE Sidebar] Failed to parse message:', err);
+      }
+    };
+
+    eventSource.onerror = (err) => {
+      console.error('[SSE Sidebar] EventSource failed:', err);
+    };
+
+    return () => {
+      eventSource.close();
+    };
+  }, [profile?.id, isMobile, queryClient]);
   
   let items = navMap[role] || adminNav;
 
@@ -211,8 +255,22 @@ export default function AppSidebar({ role, isMobile, className, onNavigate }: Ap
                   : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
               )}
             >
-              <item.icon className="w-5 h-5 flex-shrink-0" />
-              {(!collapsed || isMobile) && <span>{item.label}</span>}
+              <div className="relative flex items-center justify-center">
+                <item.icon className="w-5 h-5 flex-shrink-0" />
+                {collapsed && !isMobile && item.label === "User Approvals" && pendingApprovals > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 w-2 h-2 bg-orange-500 rounded-full border border-sidebar animate-pulse" />
+                )}
+              </div>
+              {(!collapsed || isMobile) && (
+                <span className="flex-1 flex items-center justify-between">
+                  <span>{item.label}</span>
+                  {item.label === "User Approvals" && pendingApprovals > 0 && (
+                    <span className="ml-2 px-2 py-0.5 text-[10px] font-black rounded-full bg-orange-500 text-white animate-pulse">
+                      {pendingApprovals}
+                    </span>
+                  )}
+                </span>
+              )}
             </Link>
           );
         })}

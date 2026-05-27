@@ -61,6 +61,22 @@ router.post('/signup', async (req, res) => {
       [userId, firstName, lastName, orgId, false]
     );
 
+    // Dispatch Administrative Action Notification
+    await db.query(`
+      INSERT INTO notifications (
+        organization_id, title, content, type, target_role, category, action_payload, action_status
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+    `, [
+      orgId, 
+      'Approval Required', 
+      `Approval Required: ${firstName} ${lastName} has signed up as ${role || 'client'}.`, 
+      'orange', 
+      'admin', 
+      'direct_action', 
+      JSON.stringify({ userId, role: role || 'client' }), 
+      'pending'
+    ]);
+
     res.json({ message: 'Signup successful. Pending approval.' });
   } catch (error) {
     console.error('Error in /signup:', error);

@@ -705,7 +705,54 @@ router.patch('/form-responses/:id', requireAuth, async (req, res) => {
             RETURNING *
         `, [clinical_interpretation, status, response_data ? JSON.stringify(response_data) : null, submitted_at, id, orgId]);
         
-        res.json(result.rows[0]);
+        const updatedRow = result.rows[0];
+
+        if (status === 'completed' && updatedRow) {
+            // Fetch client details
+            const clientRes = await db.query('SELECT p.first_name, p.last_name, c.is_vip FROM profiles p LEFT JOIN clients c ON p.id = c.id WHERE p.id = $1', [updatedRow.client_id]);
+            const clientName = clientRes.rows.length > 0 ? `${clientRes.rows[0].first_name} ${clientRes.rows[0].last_name}` : 'A client';
+            const isVip = clientRes.rows.length > 0 ? Boolean(clientRes.rows[0].is_vip) : false;
+
+            // Fetch form/questionnaire title
+            const formRes = await db.query('SELECT name FROM questionnaires WHERE id = $1', [updatedRow.form_id]);
+            const formTitle = formRes.rows.length > 0 ? formRes.rows[0].name : 'Form';
+
+            // 1. Alert strictly to the specific Assigner (Physician, Scientist, or PT - specialist_id)
+            if (updatedRow.specialist_id) {
+                await db.query(`
+                    INSERT INTO notifications (
+                        organization_id, title, content, type, target_user_id, category, is_vip, sender_id
+                    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                `, [
+                    orgId,
+                    'Questionnaire Completed',
+                    `Client ${clientName} has completed the questionnaire: ${formTitle}.`,
+                    'info',
+                    updatedRow.specialist_id,
+                    'in_app',
+                    isVip,
+                    updatedRow.client_id
+                ]);
+            }
+
+            // 2. Alert strictly to the Admin
+            await db.query(`
+                INSERT INTO notifications (
+                    organization_id, title, content, type, target_role, category, is_vip, sender_id
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            `, [
+                orgId,
+                'Questionnaire Completed',
+                `Client ${clientName} has completed the questionnaire: ${formTitle}.`,
+                'info',
+                'admin',
+                'in_app',
+                isVip,
+                updatedRow.client_id
+            ]);
+        }
+
+        res.json(updatedRow);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
@@ -763,14 +810,36 @@ router.post('/form-responses/bulk', requireAuth, async (req, res) => {
         if (!Array.isArray(responses)) return res.status(400).json({ error: 'Expected array' });
         
         await client.query('BEGIN');
+        const specRes = await client.query('SELECT first_name, last_name FROM profiles WHERE id = $1', [req.user.id]);
+        const specName = specRes.rows.length > 0 ? `${specRes.rows[0].first_name} ${specRes.rows[0].last_name}` : 'A specialist';
+
         const results = [];
         for (const r of responses) {
-            const res = await client.query(`
+            const insertRes = await client.query(`
                 INSERT INTO form_responses (organization_id, form_id, client_id, specialist_id, bulk_assignment_id, status)
                 VALUES ($1, $2, $3, $4, $5, $6)
                 RETURNING *
             `, [req.user.organization_id, r.form_id, r.client_id, req.user.id, r.bulk_assignment_id, r.status || 'pending']);
-            results.push(res.rows[0]);
+            results.push(insertRes.rows[0]);
+
+            // Check if client is VIP
+            const clientRes = await client.query('SELECT is_vip FROM clients WHERE id = $1', [r.client_id]);
+            const isVip = clientRes.rows.length > 0 ? clientRes.rows[0].is_vip : false;
+
+            await client.query(`
+                INSERT INTO notifications (
+                    organization_id, title, content, type, target_user_id, category, is_vip, sender_id
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            `, [
+                req.user.organization_id,
+                'New Form Assigned',
+                `${specName} has updated your training schedule / assigned a new form.`,
+                'info',
+                r.client_id,
+                'in_app',
+                isVip,
+                req.user.id
+            ]);
         }
         await client.query('COMMIT');
         res.status(201).json(results);
@@ -1324,15 +1393,60 @@ router.post('/program-assignments/bulk', requireAuth, async (req, res) => {
         const orgId = req.user.organization_id;
         
         await client.query('BEGIN');
+        const specRes = await client.query('SELECT first_name, last_name FROM profiles WHERE id = $1', [req.user.id]);
+        const specName = specRes.rows.length > 0 ? `${specRes.rows[0].first_name} ${specRes.rows[0].last_name}` : 'A specialist';
+
         const results = [];
         for (const a of assignments) {
-            const res = await client.query(`
+            const insertRes = await client.query(`
                 INSERT INTO program_assignments (
                     program_id, athlete_id, batch_id, start_date, organization_id, status
                 ) VALUES ($1, $2, $3, $4, $5, $6)
                 RETURNING *
             `, [a.program_id, a.athlete_id || null, a.batch_id || null, a.start_date, orgId, a.status || 'active']);
-            results.push(res.rows[0]);
+            results.push(insertRes.rows[0]);
+
+            // Dispatch Notifications
+            if (a.athlete_id) {
+                const clientRes = await client.query('SELECT is_vip FROM clients WHERE id = $1', [a.athlete_id]);
+                const isVip = clientRes.rows.length > 0 ? clientRes.rows[0].is_vip : false;
+
+                await client.query(`
+                    INSERT INTO notifications (
+                        organization_id, title, content, type, target_user_id, category, is_vip, sender_id
+                    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                `, [
+                    orgId,
+                    'New Program Assigned',
+                    `${specName} has updated your training schedule / assigned a new form.`,
+                    'info',
+                    a.athlete_id,
+                    'in_app',
+                    isVip,
+                    req.user.id
+                ]);
+            } else if (a.batch_id) {
+                const membersRes = await client.query('SELECT athlete_id FROM batch_members WHERE batch_id = $1', [a.batch_id]);
+                for (const member of membersRes.rows) {
+                    const clientRes = await client.query('SELECT is_vip FROM clients WHERE id = $1', [member.athlete_id]);
+                    const isVip = clientRes.rows.length > 0 ? clientRes.rows[0].is_vip : false;
+
+                    await client.query(`
+                        INSERT INTO notifications (
+                            organization_id, title, content, type, target_user_id, category, is_vip, sender_id
+                        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                    `, [
+                        orgId,
+                        'New Program Assigned',
+                        `${specName} has updated your training schedule / assigned a new form.`,
+                        'info',
+                        member.athlete_id,
+                        'in_app',
+                        isVip,
+                        req.user.id
+                    ]);
+                }
+            }
         }
         await client.query('COMMIT');
         res.status(201).json(results);

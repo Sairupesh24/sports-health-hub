@@ -8,7 +8,8 @@ import {
     Users, 
     ShieldCheck, 
     LayoutGrid,
-    Bell
+    Bell,
+    Clock
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -30,6 +31,15 @@ const SETTINGS_ITEMS: SettingItem[] = [
         description: "Configure which specialists are qualified for each clinical service.",
         icon: Layers,
         href: "/admin/settings/services",
+        category: "Clinical",
+        isActive: true
+    },
+    {
+        id: "resource-schedule",
+        title: "Resource Schedule Manager",
+        description: "Configure custom working hours and break schedules for each clinician.",
+        icon: Clock,
+        href: "/admin/settings/resource-schedule",
         category: "Clinical",
         isActive: true
     },

@@ -9,8 +9,8 @@ import { apiFetch } from "@/utils/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { CheckCircle, Users, UserX, Plus, Copy, ExternalLink, Search, Trash2 } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { useNavigate } from "react-router-dom";
 
 interface PendingUser {
@@ -331,12 +331,75 @@ export default function UserApproval() {
     setPendingAction(null);
   };
 
-  const handleViewClientDetails = async (uhid?: string) => {
+  const [isLinkingDialogOpen, setIsLinkingDialogOpen] = useState(false);
+  const [linkingUser, setLinkingUser] = useState<PendingUser | null>(null);
+  const [enteredUhid, setEnteredUhid] = useState("");
+  const [isLinking, setIsLinking] = useState(false);
+
+  const handleViewClientDetails = async (user: PendingUser) => {
+    const uhid = user.uhid;
     if (!uhid) {
-      toast({ title: "No UHID Link", description: "This user does not have a UHID assigned to their profile yet.", variant: "destructive" });
+      setLinkingUser(user);
+      setEnteredUhid("");
+      setIsLinkingDialogOpen(true);
       return;
     }
-    toast({ title: "Information Only", description: "Client profiles are managed by the Clinical Administration team." });
+
+    try {
+      const clients = await apiFetch<any[]>(`/clients?search=${encodeURIComponent(uhid)}`);
+      const matchedClient = clients.find(c => c.uhid?.toLowerCase() === uhid.toLowerCase());
+      if (matchedClient) {
+        navigate(`/admin/clients/${matchedClient.id}`);
+      } else {
+        setLinkingUser(user);
+        setEnteredUhid(uhid);
+        setIsLinkingDialogOpen(true);
+      }
+    } catch (err: any) {
+      toast({ title: "Error searching client", description: err.message, variant: "destructive" });
+    }
+  };
+
+  const handleLinkUhid = async () => {
+    if (!linkingUser || !enteredUhid.trim()) return;
+    setIsLinking(true);
+    try {
+      const clients = await apiFetch<any[]>(`/clients?search=${encodeURIComponent(enteredUhid.trim())}`);
+      const matchedClient = clients.find(c => c.uhid?.toLowerCase() === enteredUhid.trim().toLowerCase());
+      
+      if (!matchedClient) {
+        toast({ 
+          title: "Invalid UHID", 
+          description: `No client profile found in database with UHID: "${enteredUhid}"`, 
+          variant: "destructive" 
+        });
+        setIsLinking(false);
+        return;
+      }
+
+      await apiFetch(`/hr/users/${linkingUser.id}/role`, {
+        method: 'PATCH',
+        body: { 
+          uhid: matchedClient.uhid 
+        }
+      });
+
+      toast({ 
+        title: "Account Linked Successfully", 
+        description: `Linked user to client profile ${matchedClient.first_name} ${matchedClient.last_name}` 
+      });
+      setIsLinkingDialogOpen(false);
+      
+      // Refresh list
+      fetchUsers();
+
+      // Redirect to the client's profile page
+      navigate(`/admin/clients/${matchedClient.id}`);
+    } catch (err: any) {
+      toast({ title: "Linking Failed", description: err.message, variant: "destructive" });
+    } finally {
+      setIsLinking(false);
+    }
   };
 
   return (
@@ -367,6 +430,42 @@ export default function UserApproval() {
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
               </div>
+
+              <Dialog open={isLinkingDialogOpen} onOpenChange={setIsLinkingDialogOpen}>
+                <DialogContent className="sm:max-w-[425px]">
+                  <DialogHeader>
+                    <DialogTitle>Link Client Profile</DialogTitle>
+                    <DialogDescription>
+                      This user account is not linked to a valid client profile. Enter a valid UHID to link them properly.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 py-4">
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground uppercase font-black tracking-wider">User Details</Label>
+                      <p className="text-sm font-semibold">{linkingUser?.first_name} {linkingUser?.last_name}</p>
+                      <p className="text-xs text-muted-foreground">{linkingUser?.email}</p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="link-uhid-input" className="text-xs text-muted-foreground uppercase font-black tracking-wider">Client UHID</Label>
+                      <Input
+                        id="link-uhid-input"
+                        placeholder="e.g. CL-10001"
+                        value={enteredUhid}
+                        onChange={(e) => setEnteredUhid(e.target.value.toUpperCase())}
+                        className="bg-muted/30 border-border font-bold tracking-wider"
+                      />
+                    </div>
+                  </div>
+                  <DialogFooter className="gap-2 sm:gap-0">
+                    <Button variant="ghost" onClick={() => setIsLinkingDialogOpen(false)}>
+                      Cancel
+                    </Button>
+                    <Button onClick={handleLinkUhid} disabled={isLinking || !enteredUhid.trim()} className="bg-primary text-primary-foreground font-bold">
+                      {isLinking ? "Linking..." : "Link & View Profile"}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
 
               <Dialog open={!!pendingAction} onOpenChange={(open) => !open && setPendingAction(null)}>
                 <DialogContent>
@@ -536,7 +635,7 @@ export default function UserApproval() {
                         <Button
                           size="icon"
                           variant="outline"
-                          onClick={() => handleViewClientDetails(u.uhid)}
+                          onClick={() => handleViewClientDetails(u)}
                           className="h-9 w-9 shrink-0"
                           title="View Data Status"
                         >

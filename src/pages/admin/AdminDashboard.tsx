@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils";
 import EmergencyAlertIcon from "@/components/admin/EmergencyAlertIcon";
 import EmergencyResponseModal from "@/components/admin/EmergencyResponseModal";
 import { AnnouncementsManager } from "@/components/shared/AnnouncementsManager";
-import { Megaphone } from "lucide-react";
+import { Megaphone, X } from "lucide-react";
 import AttendanceMarker from "@/components/attendance/AttendanceMarker";
 
 type WaitlistItem = Database['public']['Tables']['waitlist']['Row'] & {
@@ -32,6 +32,62 @@ export default function AdminDashboard() {
   const organizationId = profile?.organization_id;
   const [emergencyModalOpen, setEmergencyModalOpen] = useState(false);
   const [announcementModalOpen, setAnnouncementModalOpen] = useState(false);
+  const [activePopup, setActivePopup] = useState<any | null>(null);
+  const queryClient = useQueryClient();
+
+  // Fetch unread notifications count for admin
+  const { data: unreadCount = 0 } = useQuery({
+    queryKey: ["unread-notifications", profile?.id],
+    queryFn: async () => {
+      if (!profile?.id) return 0;
+      const data = await apiFetch<any>('/admin/notifications/unread-count');
+      return data?.count || 0;
+    },
+    enabled: !!profile?.id,
+    refetchInterval: 30000 // Fallback poll
+  });
+
+  // Subscribe to real-time notifications via SSE
+  useEffect(() => {
+    if (!profile?.id) return;
+
+    const token = localStorage.getItem('ishpo_jwt');
+    if (!token) return;
+
+    const streamUrl = `/api/notifications/stream?token=${encodeURIComponent(token)}`;
+    const eventSource = new EventSource(streamUrl);
+
+    eventSource.onmessage = (event) => {
+      try {
+        const notification = JSON.parse(event.data);
+        console.log('[SSE Admin] New notification received:', notification);
+        queryClient.invalidateQueries({ queryKey: ["unread-notifications"] });
+        queryClient.invalidateQueries({ queryKey: ["staff-notifications-history"] });
+        queryClient.invalidateQueries({ queryKey: ["admin-dashboard-stats"] });
+        setActivePopup(notification);
+      } catch (err) {
+        console.error('[SSE] Failed to parse message:', err);
+      }
+    };
+
+    eventSource.onerror = (err) => {
+      console.error('[SSE] EventSource failed:', err);
+    };
+
+    return () => {
+      eventSource.close();
+    };
+  }, [profile?.id, queryClient]);
+
+  // Auto-dismiss popup after 5 seconds
+  useEffect(() => {
+    if (activePopup) {
+      const timer = setTimeout(() => {
+        setActivePopup(null);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [activePopup]);
 
   const today = new Date();
   const todayStart = startOfDay(today);
@@ -243,13 +299,32 @@ export default function AdminDashboard() {
           </div>
 
           <div className="flex items-center gap-4">
-            <button 
-                onClick={() => setAnnouncementModalOpen(true)}
-                className="p-2 rounded-xl bg-primary/10 text-primary hover:bg-primary/20 transition-all border border-primary/20 shadow-sm"
-                title="Broadcast Announcement"
-            >
-                <Megaphone className="w-5 h-5" />
-            </button>
+            <div className="relative">
+              <button 
+                  onClick={() => setAnnouncementModalOpen(true)}
+                  className="p-2 rounded-xl bg-primary/10 text-primary hover:bg-primary/20 transition-all border border-primary/20 shadow-sm"
+                  title="Broadcast Announcement"
+              >
+                  <Megaphone className="w-5 h-5" />
+              </button>
+              {unreadCount > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 flex items-center justify-center bg-rose-500 text-[10px] font-black text-white rounded-full border-2 border-white animate-in zoom-in duration-300">
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </span>
+              )}
+              {activePopup && (
+                <div className="absolute top-12 right-0 w-72 bg-white/95 dark:bg-slate-900/95 text-slate-900 dark:text-white border border-primary/30 p-3 rounded-2xl shadow-xl z-50 animate-in slide-in-from-top-2 duration-300 font-sans pointer-events-auto">
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-[8px] font-black uppercase tracking-widest text-primary">New Alert</span>
+                    <button onClick={(e) => { e.stopPropagation(); setActivePopup(null); }} className="text-slate-400 hover:text-slate-650 dark:hover:text-white">
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                  <h5 className="text-[10px] font-black uppercase tracking-tight line-clamp-1">{activePopup.title}</h5>
+                  <p className="text-[9px] text-slate-500 dark:text-slate-300 leading-snug line-clamp-2 mt-0.5 italic">"{activePopup.content}"</p>
+                </div>
+              )}
+            </div>
             <EmergencyAlertIcon onClick={() => setEmergencyModalOpen(true)} />
             
             <Tabs value={timeRange} onValueChange={(v) => setTimeRange(v as 'daily' | 'weekly' | 'monthly')} className="w-[300px]">

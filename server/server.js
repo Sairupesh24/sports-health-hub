@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
+import jwt from 'jsonwebtoken';
 import authRoutes from './auth.js';
 import masterConsoleRoutes from './masterConsole.js';
 import uploadRoutes from './upload.js';
@@ -150,6 +151,92 @@ app.get('/api/patients', requireAuth, (req, res) => {
       { id: 1, name: 'John Doe', condition: 'ACL Tear' },
       { id: 2, name: 'Jane Smith', condition: 'Rotator Cuff Tendinitis' }
     ]
+  });
+});
+
+// Active SSE Connections registry
+const activeConnections = new Set();
+
+// Start Postgres listener
+async function startPgListener() {
+  let pgListenClient;
+  try {
+    pgListenClient = await db.connect();
+    await pgListenClient.query('LISTEN system_notifications');
+    console.log('[SSE] Listening to Postgres system_notifications channel');
+    
+    pgListenClient.on('notification', (msg) => {
+      try {
+        const notification = JSON.parse(msg.payload);
+        // Broadcast to matching connections
+        for (const conn of activeConnections) {
+          // Check multi-tenant isolation
+          if (conn.orgId === notification.organization_id) {
+            // Target checks
+            const matchesUser = !notification.target_user_id || conn.userId === notification.target_user_id;
+            const matchesRole = !notification.target_role || conn.role === notification.target_role;
+            const isBroadcast = notification.is_broadcast;
+
+            // Global announcements also matching
+            const isGlobalAnnounce = notification.category === 'global_announcement';
+
+            if (isGlobalAnnounce || isBroadcast || (matchesUser && matchesRole)) {
+              conn.res.write(`data: ${JSON.stringify(notification)}\n\n`);
+            }
+          }
+        }
+      } catch (e) {
+        console.error('Error handling pg notification payload:', e);
+      }
+    });
+
+    pgListenClient.on('error', async (err) => {
+      console.error('[SSE] Postgres listener client error, restarting:', err);
+      pgListenClient.release();
+      setTimeout(startPgListener, 5000);
+    });
+  } catch (err) {
+    console.error('[SSE] Failed to establish Postgres listener, retrying:', err);
+    if (pgListenClient) pgListenClient.release();
+    setTimeout(startPgListener, 5000);
+  }
+}
+startPgListener();
+
+// SSE Stream route
+app.get('/api/notifications/stream', (req, res) => {
+  let token = req.query.token;
+  if (!token && req.headers.authorization) {
+    token = req.headers.authorization.split(' ')[1];
+  }
+  if (!token) {
+    return res.status(401).json({ error: 'Unauthorized: No token provided' });
+  }
+
+  try {
+    const payload = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret_do_not_use_in_prod');
+    req.user = payload;
+  } catch (error) {
+    return res.status(401).json({ error: 'Unauthorized: Invalid token' });
+  }
+
+  const orgId = req.user.organization_id;
+  const userId = req.user.id;
+  const role = req.user.role;
+
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.flushHeaders();
+
+  const conn = { res, orgId, userId, role };
+  activeConnections.add(conn);
+
+  // Send keepalive comment
+  res.write(': keep-alive\n\n');
+
+  req.on('close', () => {
+    activeConnections.delete(conn);
   });
 });
 

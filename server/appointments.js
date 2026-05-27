@@ -98,6 +98,39 @@ router.post('/', requireAuth, async (req, res) => {
             throw new Error('Therapist is already booked for this time slot.');
         }
 
+        // 1.5 Check if client has outstanding dues
+        const duesRes = await client.query(`
+            SELECT COALESCE(SUM(total), 0) as total_dues
+            FROM bills
+            WHERE client_id = $1 AND organization_id = $2 AND status != 'Paid'
+        `, [client_id, orgId]);
+        const totalDues = parseFloat(duesRes.rows[0].total_dues || 0);
+
+        if (totalDues > 0) {
+            // Fetch client details
+            const clientProfileRes = await client.query('SELECT p.first_name, p.last_name, c.is_vip FROM profiles p LEFT JOIN clients c ON p.id = c.id WHERE p.id = $1', [client_id]);
+            const clientName = clientProfileRes.rows.length > 0 ? `${clientProfileRes.rows[0].first_name} ${clientProfileRes.rows[0].last_name}` : 'A client';
+            const isVip = clientProfileRes.rows.length > 0 ? Boolean(clientProfileRes.rows[0].is_vip) : false;
+
+            // Log warning notification
+            await client.query(`
+                INSERT INTO notifications (
+                    organization_id, title, content, type, target_role, category, action_payload, action_status, is_vip, sender_id
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+            `, [
+                orgId,
+                'Outstanding Balance Warning',
+                `Booking attempt with outstanding balance (₹${totalDues}) for client ${clientName}.`,
+                'amber',
+                'admin',
+                'direct_action',
+                JSON.stringify({ client_id, totalDues }),
+                'pending',
+                isVip,
+                req.user.id
+            ]);
+        }
+
         // 2. Insert Session
         const insertQuery = `
             INSERT INTO sessions (

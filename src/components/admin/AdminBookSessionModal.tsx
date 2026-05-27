@@ -70,6 +70,8 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess, initialDa
     const [sessionDate, setSessionDate] = useState(format(new Date(), "yyyy-MM-dd"));
     const [startTime, setStartTime] = useState("09:00");
     const [endTime, setEndTime] = useState("10:00");
+    const [sessionDuration, setSessionDuration] = useState<number>(60);
+    const [isDurationManuallySet, setIsDurationManuallySet] = useState(false);
     const [isConflict, setIsConflict] = useState(false);
 
     // Guest Mode State
@@ -99,9 +101,24 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess, initialDa
     const [isAcknowledged, setIsAcknowledged] = useState(false);
     const [clientData, setClientData] = useState<any>(null);
     const [orgLogoUrl, setOrgLogoUrl] = useState<string | null>(null);
+    const [clientEntitlements, setClientEntitlements] = useState<any[]>([]);
+    const [clientPackageEntitlements, setClientPackageEntitlements] = useState<any[]>([]);
+    const [consultantSchedule, setConsultantSchedule] = useState<any>(null);
+
+    const groupedPackageEntitlements = useMemo(() => {
+        const groups: Record<string, any[]> = {};
+        clientPackageEntitlements.forEach((ent: any) => {
+            if (!groups[ent.package_name]) {
+                groups[ent.package_name] = [];
+            }
+            groups[ent.package_name].push(ent);
+        });
+        return groups;
+    }, [clientPackageEntitlements]);
 
     useEffect(() => {
         if (open && profile?.organization_id) {
+            setIsDurationManuallySet(false);
             fetchClients();
             fetchConsultants();
             fetchServices();
@@ -134,21 +151,34 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess, initialDa
             setAdminRemarks("");
             setIsAcknowledged(false);
             setClientData(null);
+            setClientEntitlements([]);
+            setClientPackageEntitlements([]);
         }
     }, [clientId, isGuest, clients]);
 
     const fetchClientUnifiedAlerts = async () => {
         if (!clientId) return;
 
+        // 1. Fetch Outstanding Balance (with fallback)
         try {
-            // Fetch Outstanding Balance
-            const bills = await apiFetch<any[]>('/billing/history', {
-                params: { client_id: clientId, status: 'unpaid' }
-            });
-            const totalDues = (bills || []).reduce((sum, bill) => sum + (parseFloat(bill.total) || 0), 0);
+            const bills = await apiFetch<any[]>(`/clients/${clientId}/bills`);
+            const totalDues = (bills || []).reduce((sum, bill) => sum + (parseFloat(bill.remaining_due) || 0), 0);
             setOutstandingBalance(totalDues);
+        } catch (error: any) {
+            console.error("Error fetching client bills via clients route:", error.message);
+            try {
+                const duesData = await apiFetch<any>(`/billing/dues`, {
+                    params: { client_id: clientId }
+                });
+                setOutstandingBalance(parseFloat(duesData?.dues) || 0);
+            } catch (fallbackError: any) {
+                console.error("Fallback fetching dues failed:", fallbackError.message);
+                setOutstandingBalance(0);
+            }
+        }
 
-            // Fetch Admin Remarks
+        // 2. Fetch Admin Remarks
+        try {
             const isAdmin = roles.includes('admin') || roles.includes('super_admin') || roles.includes('clinic_admin');
             if (isAdmin) {
                 const remarksData = await apiFetch<any>(`/clients/${clientId}/admin-notes`);
@@ -158,10 +188,48 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess, initialDa
                     setAdminRemarks("");
                 }
             }
-        } catch (error) {
-            console.error("Error fetching client alerts:", error);
+        } catch (error: any) {
+            console.error("Error fetching client admin notes:", error.message);
+            setAdminRemarks("");
+        }
+
+        // 3. Fetch Entitlements Balance
+        try {
+            const balanceData = await apiFetch<any>(`/billing/entitlements/balance/${clientId}`);
+            if (balanceData) {
+                setClientEntitlements(balanceData.balances || []);
+                setClientPackageEntitlements(balanceData.packageEntitlements || []);
+            } else {
+                setClientEntitlements([]);
+                setClientPackageEntitlements([]);
+            }
+        } catch (error: any) {
+            console.error("Error fetching client entitlements:", error.message);
+            setClientEntitlements([]);
+            setClientPackageEntitlements([]);
         }
     };
+
+    useEffect(() => {
+        async function fetchSelectedConsultantSchedule() {
+            if (!consultantId) {
+                setConsultantSchedule(null);
+                return;
+            }
+            try {
+                const res = await apiFetch<any>(`/hr/staff-schedules/${consultantId}`);
+                if (res) {
+                    setConsultantSchedule(res);
+                } else {
+                    setConsultantSchedule(null);
+                }
+            } catch (error) {
+                console.error("Error fetching selected consultant schedule:", error);
+                setConsultantSchedule(null);
+            }
+        }
+        fetchSelectedConsultantSchedule();
+    }, [consultantId]);
 
     const fetchOrganizationBranding = async () => {
         if (!profile?.organization_id) return;
@@ -178,7 +246,12 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess, initialDa
     const fetchOrgSettings = async () => {
         try {
             const data = await apiFetch<any>(`/organizations/${profile?.organization_id}/settings`);
-            if (data) setOrgSettings(data);
+            if (data) {
+                setOrgSettings(data);
+                if (data.default_slot_duration) {
+                    setSessionDuration(data.default_slot_duration);
+                }
+            }
         } catch (error) {
             console.error("Error fetching settings:", error);
         }
@@ -232,6 +305,19 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess, initialDa
     useEffect(() => {
         fetchConsultantData();
     }, [consultantId, sessionDate, filteredConsultants]);
+
+    useEffect(() => {
+        if (!consultantId || !sessionDate || allConsultantAvailability.length === 0) return;
+        const dateObj = parse(sessionDate, "yyyy-MM-dd", new Date());
+        const dayOfWeek = dateObj.getDay();
+        const primaryAvail = allConsultantAvailability.find(a => a.consultant_id === consultantId && a.day_of_week === dayOfWeek);
+        if (primaryAvail) {
+            const slotDuration = primaryAvail.slot_duration_interval || orgSettings?.default_slot_duration || 60;
+            setSessionDuration(slotDuration);
+        } else if (orgSettings?.default_slot_duration) {
+            setSessionDuration(orgSettings.default_slot_duration);
+        }
+    }, [consultantId, sessionDate, allConsultantAvailability, orgSettings]);
 
     const fetchServices = async () => {
         try {
@@ -297,7 +383,28 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess, initialDa
         const shiftStart = parse(primaryAvail.start_time, "HH:mm:ss", dateObj);
         const shiftEnd = parse(primaryAvail.end_time, "HH:mm:ss", dateObj);
 
-        const slots: { start: string, end: string, label: string, status: 'available' | 'flex' | 'waitlist' }[] = [];
+        // Parse break timings for checking overlaps
+        const timeToMinutes = (timeStr: string) => {
+            if (!timeStr) return 0;
+            const parts = timeStr.split(':');
+            const h = parseInt(parts[0], 10) || 0;
+            const m = parseInt(parts[1], 10) || 0;
+            return h * 60 + m;
+        };
+
+        let activeBreaks: any[] = [];
+        if (consultantSchedule && consultantSchedule.breaks) {
+            const breaksData = consultantSchedule.breaks;
+            if (breaksData.all) {
+                activeBreaks = breaksData.all;
+            } else if (breaksData[dayOfWeek.toString()]) {
+                activeBreaks = breaksData[dayOfWeek.toString()];
+            } else if (Array.isArray(breaksData)) {
+                activeBreaks = breaksData;
+            }
+        }
+
+        const slots: { start: string, end: string, label: string, status: 'available' | 'flex' | 'waitlist', duration: number }[] = [];
         let currentStart = shiftStart;
 
         while (currentStart.getTime() + (slotDuration * 60000) <= shiftEnd.getTime()) {
@@ -305,50 +412,63 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess, initialDa
             const startT = currentStart.getTime();
             const endT = currentEnd.getTime();
 
-            // 1. Is selected consultant free?
-            const isPrimaryBusy = allBookedSessions.some(s => 
-                s.therapist_id === consultantId && 
-                ( (startT >= new Date(s.scheduled_start).getTime() && startT < new Date(s.scheduled_end).getTime()) || 
-                  (endT > new Date(s.scheduled_start).getTime() && endT <= new Date(s.scheduled_end).getTime()) )
-            );
+            const startMin = currentStart.getHours() * 60 + currentStart.getMinutes();
+            const endMin = startMin + slotDuration;
 
-            let status: 'available' | 'flex' | 'waitlist' = 'available';
-            
-            if (isPrimaryBusy) {
-                // 2. Is ANY qualified specialist free?
-                const freeSpecialist = filteredConsultants.find(c => {
-                    if (c.id === consultantId) return false;
-                    const cAvail = allConsultantAvailability.find(a => a.consultant_id === c.id && a.day_of_week === dayOfWeek);
-                    if (!cAvail) return false;
-                    
-                    const cShiftS = parse(cAvail.start_time, "HH:mm:ss", dateObj).getTime();
-                    const cShiftE = parse(cAvail.end_time, "HH:mm:ss", dateObj).getTime();
-                    if (startT < cShiftS || endT > cShiftE) return false;
-
-                    const isBusy = allBookedSessions.some(s => 
-                        s.therapist_id === c.id && 
-                        ( (startT >= new Date(s.scheduled_start).getTime() && startT < new Date(s.scheduled_end).getTime()) || 
-                          (endT > new Date(s.scheduled_start).getTime() && endT <= new Date(s.scheduled_end).getTime()) )
-                    );
-                    return !isBusy;
-                });
-
-                status = freeSpecialist ? 'flex' : 'waitlist';
-            }
-
-            slots.push({
-                start: format(currentStart, "HH:mm"),
-                end: format(currentEnd, "HH:mm"),
-                label: `${format(currentStart, "HH:mm")} (${slotDuration}m)`,
-                status
+            // Check if slot falls in a break block
+            const isBreakOverlap = activeBreaks.some((br: any) => {
+                const brStartMin = timeToMinutes(br.start_time);
+                const brEndMin = timeToMinutes(br.end_time);
+                return startMin < brEndMin && endMin > brStartMin;
             });
+
+            if (!isBreakOverlap) {
+                // 1. Is selected consultant free?
+                const isPrimaryBusy = allBookedSessions.some(s => 
+                    s.therapist_id === consultantId && 
+                    ( (startT >= new Date(s.scheduled_start).getTime() && startT < new Date(s.scheduled_end).getTime()) || 
+                      (endT > new Date(s.scheduled_start).getTime() && endT <= new Date(s.scheduled_end).getTime()) )
+                );
+
+                let status: 'available' | 'flex' | 'waitlist' = 'available';
+                
+                if (isPrimaryBusy) {
+                    // 2. Is ANY qualified specialist free?
+                    const freeSpecialist = filteredConsultants.find(c => {
+                        if (c.id === consultantId) return false;
+                        const cAvail = allConsultantAvailability.find(a => a.consultant_id === c.id && a.day_of_week === dayOfWeek);
+                        if (!cAvail) return false;
+                        
+                        const cShiftS = parse(cAvail.start_time, "HH:mm:ss", dateObj).getTime();
+                        const cShiftE = parse(cAvail.end_time, "HH:mm:ss", dateObj).getTime();
+                        if (startT < cShiftS || endT > cShiftE) return false;
+
+                        const isBusy = allBookedSessions.some(s => 
+                            s.therapist_id === c.id && 
+                            ( (startT >= new Date(s.scheduled_start).getTime() && startT < new Date(s.scheduled_end).getTime()) || 
+                              (endT > new Date(s.scheduled_start).getTime() && endT <= new Date(s.scheduled_end).getTime()) )
+                        );
+                        return !isBusy;
+                    });
+
+                    status = freeSpecialist ? 'flex' : 'waitlist';
+                }
+
+                slots.push({
+                    start: format(currentStart, "HH:mm"),
+                    end: format(currentEnd, "HH:mm"),
+                    label: `${format(currentStart, "HH:mm")} (${slotDuration}m)`,
+                    status,
+                    duration: slotDuration
+                });
+            }
 
             currentStart = new Date(currentStart.getTime() + (slotDuration * 60000));
             if (slots.length >= 50) break;
         }
 
         return slots;
-    }, [consultantId, sessionDate, allConsultantAvailability, allBookedSessions, orgSettings, filteredConsultants]);
+    }, [consultantId, sessionDate, allConsultantAvailability, allBookedSessions, orgSettings, filteredConsultants, consultantSchedule]);
 
     const checkSlotAvailability = async (time: string, endT: string) => {
         if (!time || !endT || !consultantId) return;
@@ -376,6 +496,44 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess, initialDa
             const shiftEnd = parse(dayAvail.end_time, "HH:mm:ss", dateObj).getTime();
 
             if (startTimestamp < shiftStart || endTimestamp > shiftEnd) {
+                setIsAvailable(false);
+                setIsConflict(true);
+                return;
+            }
+
+            // Check break overlap
+            const timeToMinutes = (timeStr: string) => {
+                if (!timeStr) return 0;
+                const parts = timeStr.split(':');
+                const h = parseInt(parts[0], 10) || 0;
+                const m = parseInt(parts[1], 10) || 0;
+                return h * 60 + m;
+            };
+
+            let activeBreaks: any[] = [];
+            if (consultantSchedule && consultantSchedule.breaks) {
+                const breaksData = consultantSchedule.breaks;
+                if (breaksData.all) {
+                    activeBreaks = breaksData.all;
+                } else if (breaksData[dayOfWeek.toString()]) {
+                    activeBreaks = breaksData[dayOfWeek.toString()];
+                } else if (Array.isArray(breaksData)) {
+                    activeBreaks = breaksData;
+                }
+            }
+
+            const [sH, sM] = time.split(':').map(Number);
+            const [eH, eM] = endT.split(':').map(Number);
+            const startMin = sH * 60 + sM;
+            const endMin = eH * 60 + eM;
+
+            const isBreakOverlap = activeBreaks.some((br: any) => {
+                const brStartMin = timeToMinutes(br.start_time);
+                const brEndMin = timeToMinutes(br.end_time);
+                return startMin < brEndMin && endMin > brStartMin;
+            });
+
+            if (isBreakOverlap) {
                 setIsAvailable(false);
                 setIsConflict(true);
                 return;
@@ -412,12 +570,26 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess, initialDa
             }
         }, 300);
         return () => clearTimeout(timer);
-    }, [startTime, endTime, sessionDate, consultantId, allBookedSessions, allConsultantAvailability]);
+    }, [startTime, endTime, sessionDate, consultantId, allBookedSessions, allConsultantAvailability, consultantSchedule]);
 
     useEffect(() => {
         const selected = services.find(s => s.id === serviceId);
         if (selected) setServiceType(selected.name);
     }, [serviceId, services]);
+
+    useEffect(() => {
+        if (startTime && sessionDuration) {
+            try {
+                const [hours, minutes] = startTime.split(":").map(Number);
+                const date = new Date();
+                date.setHours(hours);
+                date.setMinutes(minutes + sessionDuration);
+                setEndTime(format(date, "HH:mm"));
+            } catch (e) {
+                console.error("Error calculating end time:", e);
+            }
+        }
+    }, [startTime, sessionDuration]);
 
     const handleSave = async () => {
         if (!isGuest && !clientId) {
@@ -527,6 +699,10 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess, initialDa
         setSessionDate(format(new Date(), "yyyy-MM-dd"));
         setStartTime("09:00");
         setEndTime("10:00");
+        setSessionDuration(orgSettings?.default_slot_duration || 60);
+        setClientEntitlements([]);
+        setClientPackageEntitlements([]);
+        setIsDurationManuallySet(false);
     };
 
     return (
@@ -592,36 +768,84 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess, initialDa
                                                 </PopoverContent>
                                             </Popover>
 
+                                            {clientId && !isGuest && clientPackageEntitlements.length > 0 && (
+                                                <div className="mt-2 space-y-1.5 p-3 rounded-xl border border-border bg-muted/20">
+                                                    <div className="flex items-center justify-between text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">
+                                                        <span>Active Packages & Entitlements</span>
+                                                        <a 
+                                                            href={`/admin/clients/${clientId}?tab=entitlements`} 
+                                                            className="text-xs text-primary font-bold hover:underline normal-case"
+                                                        >
+                                                            View All
+                                                        </a>
+                                                    </div>
+                                                    <div className="space-y-2 max-h-[120px] overflow-y-auto pr-1">
+                                                        {Object.entries(groupedPackageEntitlements).slice(0, 2).map(([pkgName, items]: any) => (
+                                                            <div key={pkgName} className="space-y-1">
+                                                                <div className="text-[11px] font-bold text-foreground truncate">{pkgName}</div>
+                                                                <div className="space-y-1 pl-2">
+                                                                    {items.slice(0, 2).map((item: any, idx: number) => (
+                                                                        <div key={idx} className="flex justify-between items-center text-xs text-muted-foreground">
+                                                                            <span>{item.service_name}</span>
+                                                                            <span className={cn(
+                                                                                "font-semibold text-[10px] px-1.5 py-0.5 rounded-full",
+                                                                                item.sessions_remaining > 0 ? "bg-emerald-50 text-emerald-600 border border-emerald-200" : "bg-red-50 text-red-600 border border-red-200"
+                                                                            )}>
+                                                                                {item.sessions_remaining} left
+                                                                            </span>
+                                                                        </div>
+                                                                    ))}
+                                                                    {items.length > 2 && (
+                                                                        <div className="text-[10px] text-muted-foreground italic pl-1">
+                                                                            + {items.length - 2} more services
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                        {Object.keys(groupedPackageEntitlements).length > 2 && (
+                                                            <div className="text-[10px] text-muted-foreground italic text-center pt-1 border-t border-border">
+                                                                + {Object.keys(groupedPackageEntitlements).length - 2} more packages
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            )}
+
                                             {clientId && (outstandingBalance > 0 || adminRemarks) && (
                                                 <div className={cn(
                                                     "rounded-lg overflow-hidden border animate-in fade-in slide-in-from-top-2 duration-300",
                                                     clientData?.is_vip ? "border-yellow-500 shadow-sm" : "border-amber-200"
                                                 )}>
-                                                    <div className="bg-amber-50/80 backdrop-blur-sm p-4 flex flex-col md:flex-row divide-y md:divide-y-0 md:divide-x divide-amber-200/50">
-                                                        <div className="flex-1 pb-3 md:pb-0 md:pr-4 flex items-start gap-3">
-                                                            <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
-                                                            <div>
-                                                                <p className="text-[10px] uppercase font-bold text-amber-800 tracking-wider">Financial Alert</p>
-                                                                <p className={cn(
-                                                                    "text-sm font-semibold mt-0.5",
-                                                                    outstandingBalance > 0 ? "text-red-600" : "text-amber-700"
-                                                                )}>
-                                                                    Outstanding Balance: ₹{outstandingBalance.toLocaleString()}
-                                                                </p>
-                                                            </div>
-                                                        </div>
-                                                        
-                                                        {(roles.includes('admin') || roles.includes('super_admin') || roles.includes('clinic_admin')) && adminRemarks && (
-                                                            <div className="flex-1 pt-3 md:pt-0 md:pl-4 flex items-start gap-3">
-                                                                <Bookmark className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
-                                                                <div>
-                                                                    <p className="text-[10px] uppercase font-bold text-amber-800 tracking-wider">Strategic Note</p>
-                                                                    <p className="text-[0.75rem] leading-relaxed text-amber-900 mt-1 font-medium italic">
-                                                                        {adminRemarks}
-                                                                    </p>
+                                                    <div className="bg-amber-50/80 backdrop-blur-sm p-4 flex flex-col gap-4">
+                                                        <div className="flex flex-col md:flex-row divide-y md:divide-y-0 md:divide-x divide-amber-200/50">
+                                                            {outstandingBalance > 0 && (
+                                                                <div className="flex-1 pb-3 md:pb-0 md:pr-4 flex items-start gap-3">
+                                                                    <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                                                                    <div>
+                                                                        <p className="text-[10px] uppercase font-bold text-amber-800 tracking-wider">Financial Alert</p>
+                                                                        <p className="text-sm font-semibold text-red-600 mt-0.5">
+                                                                            Outstanding Balance: ₹{outstandingBalance.toLocaleString()}
+                                                                        </p>
+                                                                    </div>
                                                                 </div>
-                                                            </div>
-                                                        )}
+                                                            )}
+                                                            
+                                                            {(roles.includes('admin') || roles.includes('super_admin') || roles.includes('clinic_admin')) && adminRemarks && (
+                                                                <div className={cn(
+                                                                    "flex-1 flex items-start gap-3",
+                                                                    outstandingBalance > 0 ? "pt-3 md:pt-0 md:pl-4" : ""
+                                                                )}>
+                                                                    <Bookmark className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                                                                    <div>
+                                                                        <p className="text-[10px] uppercase font-bold text-amber-800 tracking-wider">Strategic Note</p>
+                                                                        <p className="text-[0.75rem] leading-relaxed text-amber-900 mt-1 font-medium italic">
+                                                                            {adminRemarks}
+                                                                        </p>
+                                                                    </div>
+                                                                </div>
+                                                            )}
+                                                        </div>
                                                     </div>
                                                     
                                                     {outstandingBalance > 0 && (
@@ -757,6 +981,8 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess, initialDa
                                                     {isConflict && <Badge variant="destructive" className="animate-pulse flex items-center gap-1"><AlertCircle className="w-3 h-3" /> CONFLICT</Badge>}
                                                 </Label>
 
+                                                {/* Session Duration Selector Removed */}
+
                                                 {availableSlots.length > 0 ? (
                                                     <div className="space-y-3">
                                                         <Label className="text-[10px] font-bold uppercase text-primary mb-2 block tracking-widest">Available Slots (Quick-Pick)</Label>
@@ -781,7 +1007,9 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess, initialDa
                                                                         )}
                                                                         onClick={() => {
                                                                             setStartTime(slot.start);
-                                                                            setEndTime(slot.end);
+                                                                            if (!isDurationManuallySet) {
+                                                                                setSessionDuration(slot.duration);
+                                                                            }
                                                                         }}
                                                                     >
                                                                         {slot.status === 'flex' && "(FLEX) "}

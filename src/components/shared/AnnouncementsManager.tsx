@@ -54,6 +54,61 @@ export function AnnouncementsManager({ open, onOpenChange }: AnnouncementsManage
         enabled: open && mode === "list" && !!profile?.organization_id
     });
 
+    const sortedNotifications = React.useMemo(() => {
+        return [...notifications].sort((a, b) => {
+            if (a.is_vip && !b.is_vip) return -1;
+            if (!a.is_vip && b.is_vip) return 1;
+            return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+        });
+    }, [notifications]);
+
+    const [actioningId, setActioningId] = useState<string | null>(null);
+
+    const handleApprovalAction = async (notificationId: string, payload: any, approve: boolean) => {
+        setActioningId(notificationId);
+        try {
+            if (approve) {
+                // Call approval endpoint
+                await apiFetch(`/hr/users/${payload.userId}/approve`, {
+                    method: 'POST',
+                    body: {
+                        role: payload.role || 'client',
+                        profession: payload.role === 'sports_physician' ? 'Sports Physician' 
+                                  : payload.role === 'physiotherapist' ? 'Physiotherapist'
+                                  : payload.role === 'nutritionist' ? 'Nutritionist'
+                                  : payload.role === 'sports_scientist' ? 'Sports Scientist'
+                                  : null,
+                        ams_role: payload.role === 'sports_scientist' ? 'coach' 
+                                : payload.role === 'athlete' ? 'athlete'
+                                : null,
+                        uhid: null // auto generated on backend!
+                    }
+                });
+                toast({ title: "User Approved Successfully" });
+            } else {
+                // Call delete endpoint permanently
+                await apiFetch(`/hr/users/${payload.userId}`, {
+                    method: 'DELETE'
+                });
+                toast({ title: "User Signup Rejected & Deleted Permanently" });
+            }
+
+            // Update status on notification
+            await apiFetch(`/admin/notifications/${notificationId}/status`, {
+                method: 'PATCH',
+                body: { action_status: approve ? 'approved' : 'rejected' }
+            });
+
+            queryClient.invalidateQueries({ queryKey: ["staff-notifications-history"] });
+            queryClient.invalidateQueries({ queryKey: ["unread-notifications"] });
+        } catch (err: any) {
+            console.error(err);
+            toast({ title: "Action Failed", description: err.message, variant: "destructive" });
+        } finally {
+            setActioningId(null);
+        }
+    };
+
     const handleCreateSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!title || !content || !profile?.organization_id) return;
@@ -167,43 +222,97 @@ export function AnnouncementsManager({ open, onOpenChange }: AnnouncementsManage
                                     <Button onClick={() => setMode('create')} variant="outline" className="rounded-xl border-primary/20 text-primary font-black uppercase text-[9px] tracking-[0.2em]">Initialise System</Button>
                                 </div>
                             ) : (
-                                notifications.map((n: any) => (
-                                    <div key={n.id} className="bg-white p-5 rounded-[28px] border border-slate-100 shadow-sm group hover:shadow-md hover:border-primary/20 transition-all cursor-default">
-                                        <div className="flex justify-between items-start mb-3">
-                                            <div className="flex items-center gap-3">
-                                                <Badge className={cn(
-                                                    "border-none text-[8px] font-black uppercase tracking-widest px-2",
-                                                    n.priority === 'high' ? "bg-rose-500 text-white" : "bg-primary/10 text-primary"
-                                                )}>
-                                                    {n.priority === 'high' ? 'Urgent' : 'General'}
-                                                </Badge>
-                                                <span className="text-[9px] font-black text-slate-400 lowercase italic flex items-center gap-1.5">
-                                                    <Clock className="w-3 h-3" />
-                                                    {formatDistanceToNow(new Date(n.created_at), { addSuffix: true })}
-                                                </span>
-                                            </div>
-                                            {n.is_broadcast && (
-                                                <Badge variant="outline" className="border-slate-100 text-[8px] font-black uppercase text-slate-400">Broadcast</Badge>
+                                sortedNotifications.map((n: any) => {
+                                    const payload = typeof n.action_payload === 'string' ? JSON.parse(n.action_payload) : n.action_payload;
+                                    
+                                    // Custom colors based on type and category
+                                    const isPendingRegistration = n.category === 'direct_action' && n.type === 'orange' && n.action_status === 'pending';
+                                    const isAmberAlert = n.type === 'amber';
+                                    const isMutedGray = n.category === 'global_announcement';
+
+                                    return (
+                                        <div 
+                                            key={n.id} 
+                                            className={cn(
+                                                "p-5 rounded-[28px] border transition-all cursor-default relative overflow-hidden",
+                                                n.is_vip ? "vip-border bg-amber-50/10 dark:bg-amber-950/10 border-amber-500/30" : "bg-white border-slate-100 shadow-sm hover:shadow-md hover:border-primary/20",
+                                                isPendingRegistration && "border-orange-500/50 bg-orange-50/50 dark:bg-orange-950/15 animate-pulse",
+                                                isAmberAlert && "border-amber-500/50 bg-amber-50/30 dark:bg-amber-950/10",
+                                                isMutedGray && "border-slate-100 bg-slate-50/50 dark:bg-slate-900/50"
                                             )}
-                                        </div>
-                                        <h4 className="text-base font-black text-slate-900 leading-tight mb-2 tracking-tight group-hover:text-primary transition-colors uppercase">{n.title}</h4>
-                                        <p className="text-xs font-medium text-slate-500 leading-relaxed mb-4 line-clamp-3 italic">
-                                            "{n.content}"
-                                        </p>
-                                        <div className="flex items-center justify-between pt-4 border-t border-slate-50">
-                                            <div className="flex items-center gap-2.5">
-                                                <div className="w-7 h-7 rounded-xl bg-slate-100 flex items-center justify-center text-slate-400">
-                                                    <User className="w-4 h-4" />
+                                        >
+                                            {n.is_vip && (
+                                                <div className="absolute top-0 right-0 bg-gradient-to-l from-amber-500 to-yellow-400 text-slate-950 text-[7px] font-black uppercase tracking-[0.2em] px-3 py-1 rounded-bl-xl shadow-sm z-10 font-sans">
+                                                    ★ VIP Athlete
                                                 </div>
-                                                <div className="text-left">
-                                                    <p className="text-[10px] font-black text-slate-900 leading-none lowercase italic">{n.sender?.first_name} {n.sender?.last_name}</p>
-                                                    <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-1">Specialist</p>
+                                            )}
+                                            <div className="flex justify-between items-start mb-3">
+                                                <div className="flex items-center gap-3">
+                                                    <Badge className={cn(
+                                                        "border-none text-[8px] font-black uppercase tracking-widest px-2",
+                                                        n.priority === 'high' ? "bg-rose-500 text-white" : "bg-primary/10 text-primary",
+                                                        isPendingRegistration && "bg-orange-500 text-white",
+                                                        isAmberAlert && "bg-amber-500 text-white"
+                                                    )}>
+                                                        {n.priority === 'high' ? 'Urgent' : n.category === 'direct_action' ? 'Action Required' : 'General'}
+                                                    </Badge>
+                                                    <span className="text-[9px] font-black text-slate-400 lowercase italic flex items-center gap-1.5">
+                                                        <Clock className="w-3 h-3" />
+                                                        {formatDistanceToNow(new Date(n.created_at), { addSuffix: true })}
+                                                    </span>
                                                 </div>
+                                                {n.is_broadcast && (
+                                                    <Badge variant="outline" className="border-slate-100 text-[8px] font-black uppercase text-slate-400">Broadcast</Badge>
+                                                )}
                                             </div>
-                                            <Badge variant="ghost" className="text-[8px] font-black text-slate-300 uppercase tracking-tighter">ID: {n.id.substring(0, 8)}</Badge>
+                                            <h4 className="text-base font-black text-slate-900 dark:text-slate-100 leading-tight mb-2 tracking-tight group-hover:text-primary transition-colors uppercase">{n.title}</h4>
+                                            <p className="text-xs font-medium text-slate-500 dark:text-slate-450 leading-relaxed mb-4 line-clamp-3 italic">
+                                                "{n.content}"
+                                            </p>
+
+                                            {/* Action buttons inside card */}
+                                            {n.category === 'direct_action' && n.action_status === 'pending' && payload?.userId && (
+                                                <div className="mt-4 pt-4 border-t border-slate-100/50 flex gap-2">
+                                                    <Button
+                                                        size="sm"
+                                                        disabled={actioningId === n.id}
+                                                        onClick={() => handleApprovalAction(n.id, payload, true)}
+                                                        className="bg-emerald-500 hover:bg-emerald-600 text-white text-[10px] font-black uppercase tracking-wider rounded-xl h-8 px-4"
+                                                    >
+                                                        {actioningId === n.id ? "Processing..." : "Approve"}
+                                                    </Button>
+                                                    <Button
+                                                        size="sm"
+                                                        variant="destructive"
+                                                        disabled={actioningId === n.id}
+                                                        onClick={() => handleApprovalAction(n.id, payload, false)}
+                                                        className="bg-rose-500 hover:bg-rose-600 text-white text-[10px] font-black uppercase tracking-wider rounded-xl h-8 px-4"
+                                                    >
+                                                        Reject
+                                                    </Button>
+                                                </div>
+                                            )}
+                                            {n.category === 'direct_action' && n.action_status !== 'pending' && (
+                                                <div className="mt-4 pt-2 border-t border-slate-100/50 text-[10px] font-black uppercase tracking-wider text-slate-400 italic">
+                                                    Status: {n.action_status}
+                                                </div>
+                                            )}
+
+                                            <div className="flex items-center justify-between pt-4 border-t border-slate-50">
+                                                <div className="flex items-center gap-2.5">
+                                                    <div className="w-7 h-7 rounded-xl bg-slate-100 flex items-center justify-center text-slate-400">
+                                                        <User className="w-4 h-4" />
+                                                    </div>
+                                                    <div className="text-left">
+                                                        <p className="text-[10px] font-black text-slate-900 dark:text-slate-200 leading-none lowercase italic">{n.sender?.first_name || 'System'} {n.sender?.last_name || ''}</p>
+                                                        <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-1">{n.sender?.profession || 'Specialist'}</p>
+                                                    </div>
+                                                </div>
+                                                <Badge variant="ghost" className="text-[8px] font-black text-slate-300 uppercase tracking-tighter">ID: {n.id.substring(0, 8)}</Badge>
+                                            </div>
                                         </div>
-                                    </div>
-                                ))
+                                    );
+                                })
                             )}
                         </div>
                     ) : (

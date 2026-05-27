@@ -35,7 +35,29 @@ router.get('/entitlements/balance/:clientId', requireAuth, async (req, res) => {
             byServiceName[row.service_type.toLowerCase().trim()] = parseInt(row.sessions_remaining);
         });
 
-        res.json({ balances, byServiceName });
+        // Fetch detailed entitlements with package names
+        const pkgQuery = `
+            SELECT 
+                ce.service_type,
+                ce.granted_sessions as total_granted,
+                ce.sessions_used as total_used,
+                (ce.granted_sessions - ce.sessions_used) as sessions_remaining,
+                COALESCE(sp.name, 'Direct Purchase') as package_name
+            FROM cliententitlements ce
+            LEFT JOIN billitems bi ON ce.bill_item_id = bi.id
+            LEFT JOIN servicepackages sp ON bi.package_id = sp.id
+            WHERE ce.client_id = $1 AND ce.organization_id = $2 AND ce.status = 'active'
+        `;
+        const pkgResult = await db.query(pkgQuery, [clientId, orgId]);
+        const packageEntitlements = pkgResult.rows.map(row => ({
+            service_name: row.service_type,
+            total_purchased: parseInt(row.total_granted) || 0,
+            sessions_used: parseInt(row.total_used) || 0,
+            sessions_remaining: parseInt(row.sessions_remaining) || 0,
+            package_name: row.package_name
+        }));
+
+        res.json({ balances, byServiceName, packageEntitlements });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }

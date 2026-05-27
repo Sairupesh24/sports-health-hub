@@ -250,4 +250,28 @@ router.post('/consultant-services', requireAuth, async (req, res) => {
     }
 });
 
+// PATCH Update Notification Action Status
+router.patch('/notifications/:id/status', requireAuth, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { action_status } = req.body;
+        const orgId = req.user.organization_id;
+
+        const result = await db.query(`
+            UPDATE notifications 
+            SET action_status = $1
+            WHERE id = $2 AND organization_id = $3
+            RETURNING *
+        `, [action_status, id, orgId]);
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Notification not found' });
+        }
+
+        res.json(result.rows[0]);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
 export default router;

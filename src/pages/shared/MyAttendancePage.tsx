@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Clock, CheckCircle2, LogIn, LogOut, AlertTriangle,
-  Calendar, Plus, Loader2, ChevronRight
+  Calendar, Plus, Loader2, ChevronRight, Megaphone
 } from "lucide-react";
 import { format, startOfWeek, addDays, endOfWeek, isToday, isSameDay, parseISO } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -78,6 +78,16 @@ export default function MyAttendancePage() {
     enabled: !!profile?.id,
   });
 
+  // Fetch global announcements for Notice Board
+  const { data: globalAnnouncements = [], isLoading: globalLoading } = useQuery({
+    queryKey: ["global-announcements", profile?.organization_id],
+    queryFn: async () => {
+      const response = await apiFetch<any[]>('/admin/notifications');
+      return response.filter((n: any) => n.category === 'global_announcement');
+    },
+    enabled: !!profile?.organization_id
+  });
+
   // Build per-day summaries
   const daySummaries = weekDays.map(day => {
     const dayLogs = (weekLogs || []).filter((l: any) =>
@@ -114,7 +124,7 @@ export default function MyAttendancePage() {
 
   return (
     <DashboardLayout role={role}>
-      <div className="space-y-6 max-w-4xl mx-auto">
+      <div className="space-y-6 max-w-[1200px] mx-auto pb-10">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
@@ -135,172 +145,218 @@ export default function MyAttendancePage() {
         {/* Live Check-in Widget */}
         <AttendanceMarker />
 
-        <Tabs defaultValue="week">
-          <TabsList className="bg-slate-100 rounded-xl p-1">
-            <TabsTrigger value="week" className="rounded-lg font-bold">This Week</TabsTrigger>
-            <TabsTrigger value="leaves" className="rounded-lg font-bold">
-              Leave Requests
-              {myLeaves?.filter((l: any) => l.status === "Requested").length
-                ? <span className="ml-1.5 bg-amber-500 text-white rounded-full w-4 h-4 text-[10px] flex items-center justify-center">
-                    {myLeaves?.filter((l: any) => l.status === "Requested").length}
-                  </span>
-                : null}
-            </TabsTrigger>
-            <TabsTrigger value="emergency" className="rounded-lg font-bold">Emergency History</TabsTrigger>
-          </TabsList>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+          {/* Main Attendance Content */}
+          <div className="lg:col-span-2 space-y-6">
+            <Tabs defaultValue="week">
+              <TabsList className="bg-slate-100 rounded-xl p-1">
+                <TabsTrigger value="week" className="rounded-lg font-bold">This Week</TabsTrigger>
+                <TabsTrigger value="leaves" className="rounded-lg font-bold">
+                  Leave Requests
+                  {myLeaves?.filter((l: any) => l.status === "Requested").length
+                    ? <span className="ml-1.5 bg-amber-500 text-white rounded-full w-4 h-4 text-[10px] flex items-center justify-center">
+                        {myLeaves?.filter((l: any) => l.status === "Requested").length}
+                      </span>
+                    : null}
+                </TabsTrigger>
+                <TabsTrigger value="emergency" className="rounded-lg font-bold">Emergency History</TabsTrigger>
+              </TabsList>
 
-          {/* WEEK VIEW */}
-          <TabsContent value="week" className="mt-4">
-            {logsLoading ? (
-              <div className="flex justify-center p-12"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-                {daySummaries.map(({ day, checkIn, checkOut, emergency, workedMinutes }, idx) => (
-                  <div
-                    key={idx}
-                    className={cn(
-                      "rounded-2xl border p-4 space-y-3 transition-all",
-                      isToday(day) ? "ring-2 ring-primary shadow-lg" : "",
-                      statusColor({ day, checkIn, checkOut, emergency, workedMinutes, dayLogs: [] })
-                    )}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-[10px] font-black uppercase tracking-widest opacity-60">{DAY_LABELS[idx]}</p>
-                        <p className="text-2xl font-black">{format(day, "d")}</p>
-                      </div>
-                      {isToday(day) && (
-                        <Badge className="bg-primary/10 text-primary border-primary/20 text-[10px] font-black">TODAY</Badge>
-                      )}
-                    </div>
+              {/* WEEK VIEW */}
+              <TabsContent value="week" className="mt-4">
+                {logsLoading ? (
+                  <div className="flex justify-center p-12"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {daySummaries.map(({ day, checkIn, checkOut, emergency, workedMinutes }, idx) => (
+                      <div
+                        key={idx}
+                        className={cn(
+                          "rounded-2xl border p-4 space-y-3 transition-all",
+                          isToday(day) ? "ring-2 ring-primary shadow-lg" : "",
+                          statusColor({ day, checkIn, checkOut, emergency, workedMinutes, dayLogs: [] })
+                        )}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-[10px] font-black uppercase tracking-widest opacity-60">{DAY_LABELS[idx]}</p>
+                            <p className="text-2xl font-black">{format(day, "d")}</p>
+                          </div>
+                          {isToday(day) && (
+                            <Badge className="bg-primary/10 text-primary border-primary/20 text-[10px] font-black">TODAY</Badge>
+                          )}
+                        </div>
 
-                    {emergency ? (
-                      <div className="space-y-1 text-xs font-medium">
-                        <div className="flex items-center gap-1.5 text-destructive font-bold">
-                          <AlertTriangle className="w-3 h-3" />
-                          Emergency Leave
-                        </div>
-                        <p className="text-[10px] opacity-60">Auto-checked out at {format(parseISO(emergency.created_at), "hh:mm a")}</p>
-                      </div>
-                    ) : checkIn ? (
-                      <div className="space-y-1 text-xs font-medium">
-                        <div className="flex items-center gap-1.5">
-                          <LogIn className="w-3 h-3 text-emerald-500" />
-                          <span>In: {format(parseISO(checkIn.created_at), "hh:mm a")}</span>
-                        </div>
-                        {checkOut?.type === "check_out" ? (
-                          <>
-                            <div className="flex items-center gap-1.5">
-                              <LogOut className="w-3 h-3 text-slate-400" />
-                              <span>Out: {format(parseISO(checkOut.created_at), "hh:mm a")}</span>
+                        {emergency ? (
+                          <div className="space-y-1 text-xs font-medium">
+                            <div className="flex items-center gap-1.5 text-destructive font-bold">
+                              <AlertTriangle className="w-3 h-3" />
+                              Emergency Leave
                             </div>
-                            {workedMinutes !== null && (
-                              <div className="flex items-center gap-1.5 font-bold text-emerald-600 pt-1">
-                                <Clock className="w-3 h-3" />
-                                {Math.floor(workedMinutes / 60)}h {Math.round(workedMinutes % 60)}m worked
+                            <p className="text-[10px] opacity-60">Auto-checked out at {format(parseISO(emergency.created_at), "hh:mm a")}</p>
+                          </div>
+                        ) : checkIn ? (
+                          <div className="space-y-1 text-xs font-medium">
+                            <div className="flex items-center gap-1.5">
+                              <LogIn className="w-3 h-3 text-emerald-500" />
+                              <span>In: {format(parseISO(checkIn.created_at), "hh:mm a")}</span>
+                            </div>
+                            {checkOut?.type === "check_out" ? (
+                              <>
+                                <div className="flex items-center gap-1.5">
+                                  <LogOut className="w-3 h-3 text-slate-400" />
+                                  <span>Out: {format(parseISO(checkOut.created_at), "hh:mm a")}</span>
+                                </div>
+                                {workedMinutes !== null && (
+                                  <div className="flex items-center gap-1.5 font-bold text-emerald-600 pt-1">
+                                    <Clock className="w-3 h-3" />
+                                    {Math.floor(workedMinutes / 60)}h {Math.round(workedMinutes % 60)}m worked
+                                  </div>
+                                )}
+                              </>
+                            ) : (
+                              <div className="flex items-center gap-1.5 text-amber-600 font-bold">
+                                <Clock className="w-3 h-3 animate-pulse" />
+                                Still working...
                               </div>
                             )}
-                          </>
-                        ) : (
-                          <div className="flex items-center gap-1.5 text-amber-600 font-bold">
-                            <Clock className="w-3 h-3 animate-pulse" />
-                            Still working...
                           </div>
+                        ) : isFuture(day) ? (
+                          <p className="text-[10px] opacity-40 font-medium">—</p>
+                        ) : (
+                          <p className="text-[10px] font-bold opacity-50">No record</p>
                         )}
                       </div>
-                    ) : isFuture(day) ? (
-                      <p className="text-[10px] opacity-40 font-medium">—</p>
-                    ) : (
-                      <p className="text-[10px] font-bold opacity-50">No record</p>
-                    )}
+                    ))}
                   </div>
-                ))}
-              </div>
-            )}
-          </TabsContent>
+                )}
+              </TabsContent>
 
-          {/* LEAVE REQUESTS */}
-          <TabsContent value="leaves" className="mt-4 space-y-3">
-            <div className="flex justify-between items-center">
-              <p className="text-sm font-bold text-muted-foreground">{myLeaves?.length || 0} total requests</p>
-              <Button size="sm" variant="outline" onClick={() => setTimeOffOpen(true)} className="gap-2 rounded-xl font-bold">
-                <Plus className="w-3 h-3" /> New Request
-              </Button>
-            </div>
+              {/* LEAVE REQUESTS */}
+              <TabsContent value="leaves" className="mt-4 space-y-3">
+                <div className="flex justify-between items-center">
+                  <p className="text-sm font-bold text-muted-foreground">{myLeaves?.length || 0} total requests</p>
+                  <Button size="sm" variant="outline" onClick={() => setTimeOffOpen(true)} className="gap-2 rounded-xl font-bold">
+                    <Plus className="w-3 h-3" /> New Request
+                  </Button>
+                </div>
 
-            {leavesLoading ? (
-              <div className="flex justify-center p-8"><Loader2 className="w-5 h-5 animate-spin text-primary" /></div>
-            ) : myLeaves?.length === 0 ? (
-              <div className="text-center p-12 rounded-2xl border border-dashed">
-                <Calendar className="w-10 h-10 mx-auto text-slate-300 mb-3" />
-                <p className="font-bold text-slate-500">No leave requests yet</p>
-                <p className="text-xs text-muted-foreground mt-1">Submit your first time-off request above</p>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {myLeaves?.map((leave: any) => (
-                  <div key={leave.id} className="flex items-center gap-4 p-4 rounded-2xl border bg-white hover:shadow-md transition-all">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-0.5">
-                        <p className="font-bold text-slate-900 capitalize">{leave.leave_type?.replace(/_/g, " ")}</p>
-                        {leaveStatusBadge(leave.status)}
+                {leavesLoading ? (
+                  <div className="flex justify-center p-8"><Loader2 className="w-5 h-5 animate-spin text-primary" /></div>
+                ) : myLeaves?.length === 0 ? (
+                  <div className="text-center p-12 rounded-2xl border border-dashed">
+                    <Calendar className="w-10 h-10 mx-auto text-slate-300 mb-3" />
+                    <p className="font-bold text-slate-500">No leave requests yet</p>
+                    <p className="text-xs text-muted-foreground mt-1">Submit your first time-off request above</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {myLeaves?.map((leave: any) => (
+                      <div key={leave.id} className="flex items-center gap-4 p-4 rounded-2xl border bg-white hover:shadow-md transition-all">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-0.5">
+                            <p className="font-bold text-slate-900 capitalize">{leave.leave_type?.replace(/_/g, " ")}</p>
+                            {leaveStatusBadge(leave.status)}
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            {format(parseISO(leave.start_date), "dd MMM yyyy")}
+                            {leave.end_date !== leave.start_date ? ` – ${format(parseISO(leave.end_date), "dd MMM yyyy")}` : ""}
+                          </p>
+                          {leave.reason && <p className="text-xs text-slate-500 italic mt-1 truncate">"{leave.reason}"</p>}
+                        </div>
+                        <p className="text-[10px] text-muted-foreground whitespace-nowrap">
+                          {format(parseISO(leave.created_at), "dd MMM")}
+                        </p>
                       </div>
-                      <p className="text-xs text-muted-foreground">
-                        {format(parseISO(leave.start_date), "dd MMM yyyy")}
-                        {leave.end_date !== leave.start_date ? ` – ${format(parseISO(leave.end_date), "dd MMM yyyy")}` : ""}
-                      </p>
-                      {leave.reason && <p className="text-xs text-slate-500 italic mt-1 truncate">"{leave.reason}"</p>}
-                    </div>
-                    <p className="text-[10px] text-muted-foreground whitespace-nowrap">
-                      {format(parseISO(leave.created_at), "dd MMM")}
-                    </p>
+                    ))}
                   </div>
-                ))}
-              </div>
-            )}
-          </TabsContent>
+                )}
+              </TabsContent>
 
-          {/* EMERGENCY HISTORY */}
-          <TabsContent value="emergency" className="mt-4 space-y-3">
-            {!myEmergencies || myEmergencies.length === 0 ? (
-              <div className="text-center p-12 rounded-2xl border border-dashed">
-                <CheckCircle2 className="w-10 h-10 mx-auto text-emerald-200 mb-3" />
-                <p className="font-bold text-slate-500">No emergency alerts</p>
-                <p className="text-xs text-muted-foreground mt-1">You have never raised an emergency leave</p>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {myEmergencies.map((alert: any) => (
-                  <div key={alert.id} className={cn(
-                    "flex items-center gap-4 p-4 rounded-2xl border transition-all",
-                    alert.status === "unresolved" ? "bg-destructive/5 border-destructive/20" : "bg-white border-slate-100"
-                  )}>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-0.5">
-                        <AlertTriangle className="w-4 h-4 text-destructive" />
-                        <p className="font-bold text-slate-900 text-sm">Emergency Leave</p>
-                        <Badge className={cn(
-                          "text-[10px] font-black",
-                          alert.status === "unresolved"
-                            ? "bg-destructive/10 text-destructive border-destructive/20"
-                            : "bg-slate-100 text-slate-500 border-slate-200"
-                        )}>
-                          {alert.status === "unresolved" ? "PENDING" : "RESOLVED"}
+              {/* EMERGENCY HISTORY */}
+              <TabsContent value="emergency" className="mt-4 space-y-3">
+                {!myEmergencies || myEmergencies.length === 0 ? (
+                  <div className="text-center p-12 rounded-2xl border border-dashed">
+                    <CheckCircle2 className="w-10 h-10 mx-auto text-emerald-200 mb-3" />
+                    <p className="font-bold text-slate-500">No emergency alerts</p>
+                    <p className="text-xs text-muted-foreground mt-1">You have never raised an emergency leave</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {myEmergencies.map((alert: any) => (
+                      <div key={alert.id} className={cn(
+                        "flex items-center gap-4 p-4 rounded-2xl border transition-all",
+                        alert.status === "unresolved" ? "bg-destructive/5 border-destructive/20" : "bg-white border-slate-100"
+                      )}>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-0.5">
+                            <AlertTriangle className="w-4 h-4 text-destructive" />
+                            <p className="font-bold text-slate-900 text-sm">Emergency Leave</p>
+                            <Badge className={cn(
+                              "text-[10px] font-black",
+                              alert.status === "unresolved"
+                                ? "bg-destructive/10 text-destructive border-destructive/20"
+                                : "bg-slate-100 text-slate-500 border-slate-200"
+                            )}>
+                              {alert.status === "unresolved" ? "PENDING" : "RESOLVED"}
+                            </Badge>
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            {format(parseISO(alert.created_at), "dd MMM yyyy, hh:mm a")}
+                          </p>
+                          {alert.reason && (
+                            <p className="text-xs text-slate-600 italic mt-1">"{alert.reason}"</p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </TabsContent>
+            </Tabs>
+          </div>
+
+          {/* Right Column: Notice Board Widget */}
+          <div className="lg:col-span-1 space-y-6">
+            <Card className="border border-slate-100 shadow-md rounded-[28px] overflow-hidden bg-white">
+              <CardHeader className="bg-slate-50/50 border-b border-slate-100 p-5">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                    <Megaphone className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-sm font-black text-slate-900 tracking-tight uppercase leading-none">Notice Board</CardTitle>
+                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">Global Announcements</p>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="p-5 space-y-4">
+                {globalLoading ? (
+                  <div className="flex justify-center py-10"><Loader2 className="w-6 h-6 animate-spin text-primary/30" /></div>
+                ) : globalAnnouncements.length === 0 ? (
+                  <div className="text-center py-10 text-slate-400 italic text-xs">
+                    No active global announcements.
+                  </div>
+                ) : (
+                  globalAnnouncements.map((ann: any) => (
+                    <div key={ann.id} className="p-4 rounded-2xl border border-slate-100 bg-slate-50/50 space-y-2">
+                      <div className="flex justify-between items-start">
+                        <Badge className="border-none text-[8px] font-black uppercase bg-primary/10 text-primary px-1.5 py-0.5">
+                          {ann.priority === 'high' ? 'Urgent' : 'Notice'}
                         </Badge>
+                        <span className="text-[8px] text-slate-400 font-bold lowercase italic">
+                          {formatDistanceToNow(new Date(ann.created_at), { addSuffix: true })}
+                        </span>
                       </div>
-                      <p className="text-xs text-muted-foreground">
-                        {format(parseISO(alert.created_at), "dd MMM yyyy, hh:mm a")}
-                      </p>
-                      {alert.reason && (
-                        <p className="text-xs text-slate-600 italic mt-1">"{alert.reason}"</p>
-                      )}
+                      <h4 className="text-xs font-black text-slate-900 uppercase tracking-tight leading-none">{ann.title}</h4>
+                      <p className="text-[11px] font-medium text-slate-600 leading-relaxed italic">"{ann.content}"</p>
                     </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </TabsContent>
-        </Tabs>
+                  ))
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </div>
 
         <TimeOffRequestModal
           open={timeOffOpen}

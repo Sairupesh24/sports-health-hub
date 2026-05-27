@@ -207,6 +207,12 @@ router.post('/users/:id/approve', requireAuth, async (req, res) => {
 
         await client.query('BEGIN');
 
+        let finalUhid = uhid || null;
+        if ((role === 'client' || role === 'athlete') && !finalUhid) {
+            const uhidRes = await client.query('SELECT generate_uhid_func($1) as new_uhid', [orgId]);
+            finalUhid = uhidRes.rows[0].new_uhid;
+        }
+
         // 1. Update Profile
         await client.query(`
             UPDATE profiles SET 
@@ -215,7 +221,7 @@ router.post('/users/:id/approve', requireAuth, async (req, res) => {
                 ams_role = $2,
                 uhid = $3
             WHERE id = $4 AND organization_id = $5
-        `, [profession || null, ams_role || null, uhid || null, id, orgId]);
+        `, [profession || null, ams_role || null, finalUhid, id, orgId]);
 
         // 2. Update User Role
         await client.query('UPDATE users SET role = $1 WHERE id = $2', [role, id]);
@@ -276,17 +282,20 @@ router.patch('/users/:id/role', requireAuth, async (req, res) => {
     }
 });
 
-// DELETE revoke/delete user
+// DELETE permanently delete user
 router.delete('/users/:id', requireAuth, async (req, res) => {
     try {
         const { id } = req.params;
         const orgId = req.user.organization_id;
 
-        // Revoke access (don't delete from Users, just un-approve)
-        await db.query(`
-            UPDATE profiles SET is_approved = false 
-            WHERE id = $1 AND organization_id = $2
-        `, [id, orgId]);
+        // Verify organization match before deleting
+        const profileRes = await db.query('SELECT organization_id FROM profiles WHERE id = $1', [id]);
+        if (profileRes.rows.length === 0 || profileRes.rows[0].organization_id !== orgId) {
+            return res.status(403).json({ error: 'Unauthorized user deletion' });
+        }
+
+        // Permanently delete user (cascades to profiles)
+        await db.query('DELETE FROM users WHERE id = $1', [id]);
 
         res.json({ success: true });
     } catch (error) {
@@ -472,6 +481,25 @@ router.post('/emergency-alerts', requireAuth, async (req, res) => {
             VALUES ($1, $2, $3, $4) RETURNING *
         `, [orgId, staffId, reason, 'unresolved']);
 
+        const staffRes = await client.query('SELECT first_name, last_name FROM profiles WHERE id = $1', [staffId]);
+        const staffName = staffRes.rows.length > 0 ? `${staffRes.rows[0].first_name} ${staffRes.rows[0].last_name}` : 'A staff member';
+
+        await client.query(`
+            INSERT INTO notifications (
+                organization_id, title, content, type, target_role, category, action_payload, action_status, sender_id
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        `, [
+            orgId,
+            'Emergency Leave Activated',
+            `${staffName} has activated Emergency Leave.`,
+            'red',
+            'admin',
+            'direct_action',
+            JSON.stringify({ staffId, alertId: alertRes.rows[0].id }),
+            'pending',
+            staffId
+        ]);
+
         // 2. Handle auto checkout/leave
         const today = new Date().toISOString().split('T')[0];
         const logsRes = await client.query(`
@@ -555,6 +583,88 @@ router.get('/notifications/unread-count', requireAuth, async (req, res) => {
         
         const unreadCount = Math.max(0, parseInt(totalResult.rows[0].count) - parseInt(readResult.rows[0].count));
         res.json({ unreadCount });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// GET all staff schedules for organization
+router.get('/staff-schedules', requireAuth, async (req, res) => {
+    try {
+        const orgId = req.user.organization_id;
+        const result = await db.query(
+            'SELECT * FROM staff_schedules WHERE organization_id = $1',
+            [orgId]
+        );
+        res.json(result.rows);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// GET individual schedule (fallback to default if none exists)
+router.get('/staff-schedules/:consultant_id', requireAuth, async (req, res) => {
+    try {
+        const { consultant_id } = req.params;
+        const orgId = req.user.organization_id;
+        const result = await db.query(
+            'SELECT * FROM staff_schedules WHERE consultant_id = $1 AND organization_id = $2',
+            [consultant_id, orgId]
+        );
+        if (result.rows.length > 0) {
+            res.json(result.rows[0]);
+        } else {
+            res.json({
+                consultant_id,
+                shift_start: '08:00:00',
+                shift_end: '17:00:00',
+                breaks: []
+            });
+        }
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// POST upsert staff schedule
+router.post('/staff-schedules', requireAuth, async (req, res) => {
+    try {
+        const { organization_id, consultant_id, shift_start, shift_end, breaks } = req.body;
+        const orgId = organization_id || req.user.organization_id;
+
+        if (!consultant_id) {
+            return res.status(400).json({ error: 'consultant_id is required' });
+        }
+
+        let breaksJson;
+        if (typeof breaks === 'string') {
+            breaksJson = breaks;
+        } else {
+            breaksJson = JSON.stringify(breaks || []);
+        }
+
+        const query = `
+            INSERT INTO staff_schedules (organization_id, consultant_id, shift_start, shift_end, breaks, updated_at)
+            VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP)
+            ON CONFLICT (consultant_id)
+            DO UPDATE SET
+                organization_id = EXCLUDED.organization_id,
+                shift_start = EXCLUDED.shift_start,
+                shift_end = EXCLUDED.shift_end,
+                breaks = EXCLUDED.breaks,
+                updated_at = CURRENT_TIMESTAMP
+            RETURNING *
+        `;
+
+        const result = await db.query(query, [
+            orgId,
+            consultant_id,
+            shift_start || '08:00:00',
+            shift_end || '17:00:00',
+            breaksJson
+        ]);
+
+        res.json(result.rows[0]);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }

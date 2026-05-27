@@ -403,3 +403,11 @@
     background-color: #0f172a !important;
   }
 }
+
+/* Touchscreen optimization: scale down unread badge counts by exactly 15% */
+@media (pointer: coarse) {
+  .touchscreen-badge {
+    transform: scale(0.85) !important;
+    transform-origin: center !important;
+  }
+}

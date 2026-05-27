@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { format, parseISO } from "date-fns";
 import { 
     Users, 
@@ -26,16 +26,71 @@ import { cn } from "@/lib/utils";
 import AttendanceMarker from "@/components/attendance/AttendanceMarker";
 import EmergencyLeaveModal from "@/components/shared/EmergencyLeaveModal";
 import { AnnouncementsManager } from "@/components/shared/AnnouncementsManager";
-import { AlertCircle, Megaphone } from "lucide-react";
+import { AlertCircle, Megaphone, X } from "lucide-react";
 
 
 export default function SportsScientistDashboard() {
-    const { user } = useAuth();
+    const { user, profile } = useAuth();
     const navigate = useNavigate();
     const [isBookModalOpen, setIsBookModalOpen] = useState(false);
     const [selectedSession, setSelectedSession] = useState<any>(null);
     const [isEmergencyModalOpen, setIsEmergencyModalOpen] = useState(false);
     const [isAnnouncementModalOpen, setIsAnnouncementModalOpen] = useState(false);
+    const [activePopup, setActivePopup] = useState<any | null>(null);
+    const queryClient = useQueryClient();
+
+    // Fetch unread count for sports scientist (uses hr/notifications/unread-count)
+    const { data: unreadCount = 0 } = useQuery({
+      queryKey: ["unread-notifications", profile?.id],
+      queryFn: async () => {
+        if (!profile?.id) return 0;
+        const data = await apiFetch<any>(`/hr/notifications/unread-count`);
+        return data?.unreadCount || 0;
+      },
+      enabled: !!profile?.id,
+      refetchInterval: 30000 
+    });
+
+    // Subscribe to real-time notifications via SSE
+    useEffect(() => {
+      if (!profile?.id) return;
+
+      const token = localStorage.getItem('ishpo_jwt');
+      if (!token) return;
+
+      const streamUrl = `/api/notifications/stream?token=${encodeURIComponent(token)}`;
+      const eventSource = new EventSource(streamUrl);
+
+      eventSource.onmessage = (event) => {
+        try {
+          const notification = JSON.parse(event.data);
+          console.log('[SSE Specialist Console] New notification received:', notification);
+          queryClient.invalidateQueries({ queryKey: ["unread-notifications"] });
+          queryClient.invalidateQueries({ queryKey: ["staff-notifications-history"] });
+          setActivePopup(notification);
+        } catch (err) {
+          console.error('[SSE] Failed to parse message:', err);
+        }
+      };
+
+      eventSource.onerror = (err) => {
+        console.error('[SSE] EventSource failed:', err);
+      };
+
+      return () => {
+        eventSource.close();
+      };
+    }, [profile?.id, queryClient]);
+
+    // Auto-dismiss popup after 5 seconds
+    useEffect(() => {
+      if (activePopup) {
+        const timer = setTimeout(() => {
+          setActivePopup(null);
+        }, 5000);
+        return () => clearTimeout(timer);
+      }
+    }, [activePopup]);
 
     const { data: dashboardData, isLoading, refetch } = useQuery({
         queryKey: ["sports-scientist-dashboard-stats", user?.id],
@@ -60,7 +115,33 @@ export default function SportsScientistDashboard() {
                             </p>
                             <h1 className="text-3xl font-black tracking-tight text-slate-900">Performance Console</h1>
                         </div>
-                        <div className="flex gap-3">
+                        <div className="flex items-center gap-3">
+                            <div className="relative">
+                                <button 
+                                    onClick={() => setIsAnnouncementModalOpen(true)}
+                                    className="p-2.5 rounded-xl bg-primary/10 text-primary hover:bg-primary/20 transition-all border border-primary/20 shadow-sm flex items-center justify-center"
+                                    title="Broadcast Announcement"
+                                >
+                                    <Megaphone className="w-5 h-5" />
+                                </button>
+                                {unreadCount > 0 && (
+                                  <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 flex items-center justify-center bg-rose-500 text-[10px] font-black text-white rounded-full border-2 border-white animate-in zoom-in duration-300">
+                                    {unreadCount > 9 ? '9+' : unreadCount}
+                                  </span>
+                                )}
+                                {activePopup && (
+                                  <div className="absolute top-12 right-0 w-72 bg-white/95 dark:bg-slate-900/95 text-slate-900 dark:text-white border border-primary/30 p-3 rounded-2xl shadow-xl z-50 animate-in slide-in-from-top-2 duration-300 font-sans pointer-events-auto">
+                                    <div className="flex justify-between items-center mb-1">
+                                      <span className="text-[8px] font-black uppercase tracking-widest text-primary">New Alert</span>
+                                      <button onClick={(e) => { e.stopPropagation(); setActivePopup(null); }} className="text-slate-400 hover:text-white">
+                                        <X className="w-3.5 h-3.5" />
+                                      </button>
+                                    </div>
+                                    <h5 className="text-[10px] font-black uppercase tracking-tight line-clamp-1">{activePopup.title}</h5>
+                                    <p className="text-[9px] text-slate-500 dark:text-slate-300 leading-snug line-clamp-2 mt-0.5 italic">"{activePopup.content}"</p>
+                                  </div>
+                                )}
+                            </div>
                             <Button 
                                 variant="outline" 
                                 className="glass h-11 border-none shadow-sm font-bold gap-2"
