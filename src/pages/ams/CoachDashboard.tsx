@@ -124,35 +124,53 @@ export default function CoachDashboard() {
             </div>
           </header>
 
-          <section className="bg-white rounded-[32px] shadow-sm border border-slate-100 overflow-hidden">
-             {isLoading ? (
-               <div className="p-20 text-center flex flex-col items-center gap-4">
-                  <Activity className="w-8 h-8 text-primary animate-pulse" />
-                  <p className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Synchronizing Athlete Data...</p>
-               </div>
-             ) : (
-               <AthleteList athletes={athletes} dateRange={date} />
-             )}
-          </section>
+          <div className="relative">
+            <div className="space-y-8 opacity-30 pointer-events-none filter blur-[0.5px]">
+              <section className="bg-white rounded-[32px] shadow-sm border border-slate-100 overflow-hidden">
+                 {isLoading ? (
+                   <div className="p-20 text-center flex flex-col items-center gap-4">
+                      <Activity className="w-8 h-8 text-primary animate-pulse" />
+                      <p className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Synchronizing Athlete Data...</p>
+                   </div>
+                 ) : (
+                   <AthleteList athletes={athletes} dateRange={date} />
+                 )}
+              </section>
 
-          {/* Secondary Analytics Section */}
-          <section className="grid grid-cols-1 xl:grid-cols-12 gap-8">
-             <div className="xl:col-span-8">
-                <TeamOverviewChart logs={allLogs} />
-             </div>
-             <div className="xl:col-span-4 space-y-6">
-                 <div className="glass-card rounded-3xl p-6">
-                    <h3 className="font-black text-xs uppercase tracking-widest mb-4 flex items-center gap-2">
-                       <Zap className="w-4 h-4 text-amber-500" /> System Alerts
-                    </h3>
-                    <div className="space-y-4">
-                       <AlertItem label="High Fatigue detected" count={2} color="text-amber-500" bg="bg-amber-500/10" />
-                       <AlertItem label="Missed Workouts" count={5} color="text-rose-500" bg="bg-rose-500/10" />
-                       <AlertItem label="New PRs Recorded" count={12} color="text-emerald-500" bg="bg-emerald-500/10" />
-                    </div>
+              {/* Secondary Analytics Section */}
+              <section className="grid grid-cols-1 xl:grid-cols-12 gap-8">
+                 <div className="xl:col-span-8">
+                    <TeamOverviewChart logs={allLogs} />
                  </div>
-             </div>
-          </section>
+                 <div className="xl:col-span-4 space-y-6">
+                     <div className="glass-card rounded-3xl p-6">
+                        <h3 className="font-black text-xs uppercase tracking-widest mb-4 flex items-center gap-2">
+                           <Zap className="w-4 h-4 text-amber-500" /> System Alerts
+                        </h3>
+                        <div className="space-y-4">
+                           <AlertItem label="High Fatigue detected" count={2} color="text-amber-500" bg="bg-amber-500/10" />
+                           <AlertItem label="Missed Workouts" count={5} color="text-rose-500" bg="bg-rose-500/10" />
+                           <AlertItem label="New PRs Recorded" count={12} color="text-emerald-500" bg="bg-emerald-500/10" />
+                        </div>
+                     </div>
+                 </div>
+              </section>
+            </div>
+
+            <div className="absolute inset-0 bg-white/70 backdrop-blur-[2.5px] z-20 flex flex-col items-center justify-center p-8 text-center rounded-[32px] border border-dashed border-slate-200">
+              <div className="bg-slate-900/95 text-white p-6 rounded-2xl shadow-xl max-w-md space-y-4">
+                <div className="mx-auto w-12 h-12 bg-emerald-500/10 rounded-full flex items-center justify-center border border-emerald-500/20 text-emerald-500">
+                  <Activity className="w-6 h-6 animate-pulse" />
+                </div>
+                <div className="space-y-2">
+                  <h3 className="text-sm font-black uppercase tracking-[0.2em] text-emerald-400">DAILY BRIEF IN PROGRESS</h3>
+                  <p className="text-xs text-slate-300 leading-relaxed">
+                    This daily metrics brief region is currently under development. Real-time team compliance and readiness tracking will be available soon.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
         </main>
       </div>
     </DashboardLayout>

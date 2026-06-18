@@ -1,0 +1,1 @@
+"    // Get the index of an annotation (to display as numbered marker like ❶, ❷, ❸...)\n    const getAnnotationNumber = (key: string): number => {\n        const foundIdx = activeAnnotations.findIndex(a => a.key === key);\n        return foundIdx !== -1 ? foundIdx + 1 : 0;\n    };\n\n    const getLogoUrl = () => {"

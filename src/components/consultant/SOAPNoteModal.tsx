@@ -1,6 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
 import PerformanceSnapshot from "./PerformanceSnapshot";
-import SorenessHeatmap from "@/components/ams/SorenessHeatmap";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +15,7 @@ import { filterServicesByRole, Service } from "@/utils/serviceMapping";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/contexts/AuthContext";
 import LogInjuryModal from "./LogInjuryModal";
+import PainMap from "./PainMap";
 
 interface SOAPNoteModalProps {
     open: boolean;
@@ -38,18 +38,19 @@ export default function SOAPNoteModal({ open, onOpenChange, session, clientId, o
     const [services, setServices] = useState<Service[]>([]);
     const [serviceId, setServiceId] = useState<string>("");
     const [servicesLoading, setServicesLoading] = useState(false);
+    const [client, setClient] = useState<any>(null);
 
     // Note State
     const [painScore, setPainScore] = useState<number>(0);
+    const [sorenessData, setSorenessData] = useState<Record<string, any>>({});
     const [selectedModalities, setSelectedModalities] = useState<string[]>([]);
     const [treatmentType, setTreatmentType] = useState("");
     const [manualTherapy, setManualTherapy] = useState("");
     const [exerciseGiven, setExerciseGiven] = useState("");
     const [rangeOfMotion, setRangeOfMotion] = useState("");
     const [strengthProgress, setStrengthProgress] = useState("");
-    const [clinicalNotes, setClinicalNotes] = useState("");
+        const [clinicalNotes, setClinicalNotes] = useState("");
     const [nextPlan, setNextPlan] = useState("");
-    const [sorenessData, setSorenessData] = useState<string[]>([]);
     const [clientInjuries, setClientInjuries] = useState<any[]>([]);
     const [selectedInjuryId, setSelectedInjuryId] = useState<string>("");
 
@@ -82,8 +83,8 @@ export default function SOAPNoteModal({ open, onOpenChange, session, clientId, o
                 setStrengthProgress(data?.strength_progress || "");
                 setClinicalNotes(data?.clinical_notes || "");
                 setNextPlan(data?.next_plan || "");
-                setSorenessData(data?.soreness_data || []);
                 setSelectedInjuryId(data?.injury_id || "");
+                setSorenessData(data?.soreness_data || {});
             } else {
                 setPainScore(0);
                 setSelectedModalities([]);
@@ -94,8 +95,8 @@ export default function SOAPNoteModal({ open, onOpenChange, session, clientId, o
                 setStrengthProgress("");
                 setClinicalNotes("");
                 setNextPlan("");
-                setSorenessData([]);
                 setSelectedInjuryId("");
+                setSorenessData({});
             }
         }
     }, [open, session, isCompleted]);
@@ -109,6 +110,16 @@ export default function SOAPNoteModal({ open, onOpenChange, session, clientId, o
             setClientInjuries(data);
         } catch (err) {
             console.error("Error fetching injuries:", err);
+        }
+    };
+
+    const fetchClientDetails = async () => {
+        if (!clientId) return;
+        try {
+            const data = await apiFetch<any>(`/clients/${clientId}`);
+            setClient(data);
+        } catch (err) {
+            console.error("Error fetching client details in SOAPNoteModal:", err);
         }
     };
 
@@ -141,26 +152,31 @@ export default function SOAPNoteModal({ open, onOpenChange, session, clientId, o
         const fetchBalance = async () => {
             setBalanceLoading(true);
             try {
-                const data = await apiFetch<any[]>('/billing/entitlements/balance', {
-                    params: { client_id: clientId }
-                });
-                if (data) {
-                    const currentServiceId = serviceId;
-                    const balance = data.find(b => 
-                        currentServiceId ? b.service_id === currentServiceId : b.service_name?.toLowerCase().trim() === (session.service_type || "").toLowerCase().trim()
+                const data = await apiFetch<any>(`/billing/entitlements/balance/${clientId}`);
+                if (data && data.balances) {
+                    const currentService = services.find(s => s.id === serviceId);
+                    const targetServiceName = (currentService?.name || session.service_type || "").toLowerCase().trim();
+                    const balance = data.balances.find((b: any) => 
+                        b.service_name?.toLowerCase().trim() === targetServiceName
                     );
                     setRemainingSessions(balance ? balance.sessions_remaining : 0);
                 }
+            } catch (error) {
+                console.error("Error fetching balance:", error);
+                setRemainingSessions(0);
             } finally {
                 setBalanceLoading(false);
             }
         };
         fetchBalance();
-    }, [open, session?.id, session?.status, clientId, session?.service_type, serviceId]);
+    }, [open, session?.id, session?.status, clientId, session?.service_type, serviceId, services]);
 
     useEffect(() => {
         if (open && clientId) {
             fetchInjuries();
+            fetchClientDetails();
+        } else if (!open) {
+            setClient(null);
         }
     }, [open, clientId]);
 
@@ -189,8 +205,8 @@ export default function SOAPNoteModal({ open, onOpenChange, session, clientId, o
                 setStrengthProgress(prev.strength_progress || "");
                 setClinicalNotes(prev.clinical_notes || "");
                 setNextPlan(prev.next_plan || "");
-                setSorenessData(prev.soreness_data || []);
                 setSelectedInjuryId(prev.injury_id || "");
+                setSorenessData(prev.soreness_data || {});
                 toast({ title: "Copied", description: "Copied data from previous session." });
             } else {
                 toast({ title: "No Previous Note", description: "No previous SOAP notes found for this client.", variant: "default" });
@@ -209,8 +225,13 @@ export default function SOAPNoteModal({ open, onOpenChange, session, clientId, o
         try {
             setLoading(true);
             const selectedService = services.find(s => s.id === serviceId);
+            const computedPainScore = Object.values(sorenessData).reduce(
+                (max, curr: any) => Math.max(max, curr.painLevel || 0),
+                0
+            );
+
             const payload = {
-                pain_score: painScore,
+                pain_score: computedPainScore,
                 modality_used: selectedModalities.join(', '),
                 treatment_type: treatmentType,
                 manual_therapy: manualTherapy,
@@ -299,7 +320,7 @@ export default function SOAPNoteModal({ open, onOpenChange, session, clientId, o
                                 )}
                             </div>
                             <DialogDescription className="text-sm text-slate-500">
-                                Client: <span className="font-semibold text-slate-800 dark:text-slate-200">{session.client?.first_name || session.first_name || "Unknown"} {session.client?.last_name || session.last_name || "Client"}</span>
+                                Client: <span className="font-semibold text-slate-800 dark:text-slate-200">{client?.first_name || session.client?.first_name || session.first_name || "Unknown"} {client?.last_name || session.client?.last_name || session.last_name || "Client"}</span>
                             </DialogDescription>
                         </div>
                         {!isCompleted && (
@@ -438,28 +459,22 @@ export default function SOAPNoteModal({ open, onOpenChange, session, clientId, o
                                 </div>
                                 <div className="space-y-6">
                                     <div className="space-y-4">
-                                        <Label className="text-sm font-semibold text-primary uppercase tracking-widest">Client Soreness Map</Label>
-                                        <div className="p-4 bg-white dark:bg-slate-950 rounded-2xl border border-dashed border-primary/30 shadow-inner">
-                                            <SorenessHeatmap 
-                                                selectedZones={sorenessData} 
-                                                onZoneToggle={(zone) => {
-                                                    setSorenessData(prev => 
-                                                        prev.includes(zone) ? prev.filter(z => z !== zone) : [...prev, zone]
-                                                    );
-                                                }} 
-                                            />
-                                        </div>
-                                    </div>
-                                    <div className="space-y-4">
-                                        <div className="flex justify-between items-end">
-                                            <Label className="text-sm font-semibold">Pain Intensity</Label>
-                                            <span className="text-2xl font-black text-primary font-display">{painScore}<span className="text-xs text-muted-foreground font-normal ml-1">/ 10</span></span>
-                                        </div>
-                                        <Slider value={[painScore]} onValueChange={(val) => setPainScore(val[0])} max={10} step={1} className="py-2" />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label className="text-sm font-semibold">Subjective Notes / Patient Feedback</Label>
-                                        <Textarea value={clinicalNotes} onChange={e => setClinicalNotes(e.target.value)} placeholder="How is the patient feeling?" className="min-h-[100px] bg-muted/20" />
+                                        <PainMap 
+                                            value={sorenessData} 
+                                            onChange={(data) => {
+                                                setSorenessData(data);
+                                                // Compute maximum pain score for legacy compatibility and visual output
+                                                const maxPain = Object.values(data).reduce(
+                                                    (max, curr: any) => Math.max(max, curr.painLevel || 0),
+                                                    0
+                                                );
+                                                setPainScore(maxPain);
+                                            }}
+                                            readOnly={isCompleted}
+                                            clinicalNotes={clinicalNotes}
+                                            onClinicalNotesChange={setClinicalNotes}
+                                            gender={client?.gender?.toLowerCase() === "female" ? "female" : "male"}
+                                        />
                                     </div>
                                 </div>
                             </div>

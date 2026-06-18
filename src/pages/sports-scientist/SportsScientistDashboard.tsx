@@ -159,7 +159,7 @@ export default function SportsScientistDashboard() {
                     </header>
 
                     {/* KPI Cards */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <KPICard 
                             title="Athletes" 
                             value={dashboardData?.clientCount || 0} 
@@ -177,13 +177,6 @@ export default function SportsScientistDashboard() {
                             value={dashboardData?.todaySessions.length || 0} 
                             description="Loads scheduled" 
                             icon={Clock} 
-                        />
-                        <KPICard 
-                            title="Compliance" 
-                            value="--" 
-                            description="Protocol rate" 
-                            icon={CheckCircle2} 
-                            color="text-emerald-500"
                         />
                     </div>
 
@@ -249,45 +242,13 @@ export default function SportsScientistDashboard() {
                             )}
                         </div>
 
-                        {/* Performance Insights Sidebar */}
+                        {/* Performance Insights Sidebar (Weekly Target Removed) */}
                         <div className="space-y-6">
-                            <div className="glass-card rounded-[32px] p-8 space-y-6 shadow-sm border-none overflow-hidden relative">
-                                <div className="absolute top-0 right-0 p-4 opacity-10">
-                                    <TrendingUp className="w-32 h-32 -mr-16 -mt-16" />
-                                </div>
-                                <h3 className="font-black text-xs uppercase tracking-widest flex items-center gap-2">
-                                    <TrendingUp className="w-4 h-4 text-primary" /> Performance Insights
-                                </h3>
-                                
-                                <div className="space-y-6 relative z-10">
-                                    <div className="flex justify-between items-end">
-                                        <div className="space-y-1">
-                                            <p className="text-[10px] font-black uppercase text-muted-foreground/60 tracking-wider">Weekly Target</p>
-                                            <p className="text-3xl font-black">24 <span className="text-base text-muted-foreground/40 font-bold">/ 40</span></p>
-                                        </div>
-                                        <div className="text-right">
-                                            <p className="text-emerald-500 font-black text-sm">+20%</p>
-                                            <p className="text-[10px] font-bold text-muted-foreground/40">vs Last Week</p>
-                                        </div>
-                                    </div>
-                                    
-                                    <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden">
-                                        <div className="h-full bg-primary w-[60%] rounded-full shadow-[0_0_15px_rgba(var(--primary-rgb),0.3)] animate-in slide-in-from-left duration-1000" />
-                                    </div>
-                                    
-                                    <p className="text-xs font-bold text-slate-500 leading-relaxed italic">
-                                        "You are on track to meet your weekly training load target. Compliance is scaling well with the new group templates."
-                                    </p>
-                                    
-                                    <Button className="w-full h-12 bg-white hover:bg-slate-50 text-foreground border shadow-sm rounded-2xl font-black text-[11px] uppercase tracking-widest" onClick={() => navigate("/sports-scientist/analytics")}>
-                                        Deep Dive Analytics
-                                    </Button>
-                                </div>
-                            </div>
+
 
                             <div className="grid grid-cols-2 gap-4">
                                 <QuickActionButton 
-                                    label="My Clients" 
+                                    label="Clients" 
                                     icon={Users} 
                                     onClick={() => navigate("/sports-scientist/clients")} 
                                 />
@@ -361,7 +322,7 @@ function QuickActionButton({ label, icon: Icon, onClick, color = "" }: { label: 
         <Button 
             variant="ghost" 
             className={cn(
-                "h-28 flex flex-col gap-3 rounded-[24px] border-2 border-dashed border-slate-200 hover:border-primary/30 hover:bg-primary/5 hover:text-primary transition-all group",
+                "h-36 flex flex-col gap-3 rounded-[24px] border-2 border-dashed border-slate-200 hover:border-primary/30 hover:bg-primary/5 hover:text-primary transition-all group",
                 color === "text-destructive" && "border-destructive/20 hover:border-destructive/40 hover:bg-destructive/5 hover:text-destructive"
             )}
             onClick={onClick}

@@ -1,6 +1,7 @@
 import pg from 'pg';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import fs from 'fs/promises';
 
 const { Pool } = pg;
 
@@ -21,7 +22,7 @@ const pool = process.env.DATABASE_URL
 // We wrap queries in a helper so we can keep the rest of the app's 'db.query' signature similar to SQLite if possible, or we just export the pool.
 export const db = pool;
 
-async function initializeDatabase() {
+async function runMigrations() {
   try {
     // Create organizations table
     await pool.query(`
@@ -119,6 +120,10 @@ async function initializeDatabase() {
     try {
       await pool.query(`ALTER TABLE profiles ADD COLUMN mobile_no TEXT;`);
     } catch (e) {}
+    try {
+      await pool.query(`ALTER TABLE profiles ADD COLUMN has_calendar_access BOOLEAN DEFAULT FALSE;`);
+    } catch (e) {}
+
 
     // Create authsessions table for OTP
     await pool.query(`
@@ -282,6 +287,16 @@ async function initializeDatabase() {
         await pool.query(`ALTER TABLE clients ADD COLUMN profile_id UUID REFERENCES profiles(id) ON DELETE SET NULL;`);
     } catch (e) {}
 
+    // Safely add primary_scientist_id to clients
+    try {
+        await pool.query(`ALTER TABLE clients ADD COLUMN primary_scientist_id UUID REFERENCES profiles(id) ON DELETE SET NULL;`);
+    } catch (e) {}
+
+    // Safely add deleted_at to clients
+    try {
+        await pool.query(`ALTER TABLE clients ADD COLUMN deleted_at TIMESTAMPTZ;`);
+    } catch (e) {}
+
     // Safely add athlete_id to scientific_resources
     try {
         await pool.query(`ALTER TABLE scientific_resources ADD COLUMN athlete_id UUID REFERENCES clients(id) ON DELETE SET NULL;`);
@@ -332,9 +347,23 @@ async function initializeDatabase() {
       )
     `);
 
+    // Add dynamic fields for Unified Session Types
+    try {
+      await pool.query(`ALTER TABLE services ADD COLUMN IF NOT EXISTS base_price NUMERIC DEFAULT 0;`);
+    } catch (e) {}
+    try {
+      await pool.query(`ALTER TABLE services ADD COLUMN IF NOT EXISTS min_duration INTEGER DEFAULT 30;`);
+    } catch (e) {}
+    try {
+      await pool.query(`ALTER TABLE services ADD COLUMN IF NOT EXISTS max_duration INTEGER DEFAULT 120;`);
+    } catch (e) {}
+    try {
+      await pool.query(`ALTER TABLE services ADD COLUMN IF NOT EXISTS is_universal BOOLEAN DEFAULT TRUE;`);
+    } catch (e) {}
+
     // Backwards compatibility for 'sessiontypes' name
     try {
-        await pool.query('DROP TABLE IF EXISTS sessiontypes CASCADE');
+        await pool.query('DROP VIEW IF EXISTS sessiontypes CASCADE');
         await pool.query('CREATE VIEW sessiontypes AS SELECT * FROM services');
     } catch (e) {}
 
@@ -444,13 +473,22 @@ async function initializeDatabase() {
         ['scientist_id', 'UUID'],
         ['service_id', 'UUID'],
         ['preference_type', "TEXT DEFAULT 'Strict'"],
-        ['is_flexible_routing', 'BOOLEAN DEFAULT false']
+        ['is_flexible_routing', 'BOOLEAN DEFAULT false'],
+        ['group_name', 'TEXT'],
+        ['session_location', 'TEXT'],
+        ['session_notes', 'TEXT'],
+        ['attachments', "JSONB DEFAULT '[]'::jsonb"],
+        ['session_type_id', 'UUID REFERENCES services(id) ON DELETE SET NULL']
     ];
     for (const [col, type] of sessionCols) {
         try {
             await pool.query(`ALTER TABLE Sessions ADD COLUMN ${col} ${type};`);
         } catch (e) {}
     }
+
+    try {
+        await pool.query(`ALTER TABLE Sessions ALTER COLUMN client_id DROP NOT NULL;`);
+    } catch (e) {}
 
     // Clinical - Injuries
     await pool.query(`
@@ -852,13 +890,62 @@ async function initializeDatabase() {
     await pool.query(`
       CREATE TABLE IF NOT EXISTS exercises (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+        organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
         name TEXT NOT NULL,
+        description TEXT,
         category TEXT,
+        equipment_type TEXT,
+        difficulty_level TEXT,
+        muscle_groups TEXT[],
+        body_region TEXT,
+        equipment_required TEXT,
+        instructions TEXT,
+        video_url TEXT,
+        is_rehabilitation BOOLEAN DEFAULT false,
+        is_active BOOLEAN DEFAULT true,
         created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
         UNIQUE(organization_id, name)
       )
     `);
+
+    // Safely add missing columns to exercises
+    try {
+      await pool.query(`ALTER TABLE exercises ALTER COLUMN organization_id DROP NOT NULL;`);
+    } catch (e) {}
+    try {
+      await pool.query(`ALTER TABLE exercises ADD COLUMN description TEXT;`);
+    } catch (e) {}
+    try {
+      await pool.query(`ALTER TABLE exercises ADD COLUMN equipment_type TEXT;`);
+    } catch (e) {}
+    try {
+      await pool.query(`ALTER TABLE exercises ADD COLUMN difficulty_level TEXT;`);
+    } catch (e) {}
+    try {
+      await pool.query(`ALTER TABLE exercises ADD COLUMN muscle_groups TEXT[];`);
+    } catch (e) {}
+    try {
+      await pool.query(`ALTER TABLE exercises ADD COLUMN body_region TEXT;`);
+    } catch (e) {}
+    try {
+      await pool.query(`ALTER TABLE exercises ADD COLUMN equipment_required TEXT;`);
+    } catch (e) {}
+    try {
+      await pool.query(`ALTER TABLE exercises ADD COLUMN instructions TEXT;`);
+    } catch (e) {}
+    try {
+      await pool.query(`ALTER TABLE exercises ADD COLUMN video_url TEXT;`);
+    } catch (e) {}
+    try {
+      await pool.query(`ALTER TABLE exercises ADD COLUMN is_rehabilitation BOOLEAN DEFAULT false;`);
+    } catch (e) {}
+    try {
+      await pool.query(`ALTER TABLE exercises ADD COLUMN is_active BOOLEAN DEFAULT true;`);
+    } catch (e) {}
+    try {
+      await pool.query(`ALTER TABLE exercises ADD COLUMN updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP;`);
+    } catch (e) {}
 
     // Training Programs
     await pool.query(`
@@ -978,14 +1065,61 @@ async function initializeDatabase() {
     await pool.query(`
       CREATE TABLE IF NOT EXISTS injury_master_data (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+        organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
         region TEXT NOT NULL,
         injury_type TEXT NOT NULL,
         diagnosis TEXT NOT NULL,
-        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-        UNIQUE(organization_id, region, injury_type, diagnosis)
+        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
       )
     `);
+
+    // Safely migrate existing injury_master_data table
+    try {
+        await pool.query(`ALTER TABLE injury_master_data ALTER COLUMN organization_id DROP NOT NULL;`);
+    } catch (e) {}
+    try {
+        await pool.query(`ALTER TABLE injury_master_data DROP CONSTRAINT IF EXISTS injury_master_data_organization_id_region_injury_type_diagn_key;`);
+    } catch (e) {}
+    try {
+        await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS injury_master_data_global_unique_idx ON injury_master_data (region, injury_type, diagnosis) WHERE organization_id IS NULL;`);
+    } catch (e) {}
+    try {
+        await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS injury_master_data_org_unique_idx ON injury_master_data (organization_id, region, injury_type, diagnosis) WHERE organization_id IS NOT NULL;`);
+    } catch (e) {}
+
+    // Seed global injuries
+    try {
+        const checkRes = await pool.query('SELECT COUNT(*) FROM injury_master_data WHERE organization_id IS NULL');
+        const count = parseInt(checkRes.rows[0].count, 10);
+        if (count === 0) {
+            console.log('[DB] Seeding global injury master data...');
+            const seedPath = path.join(__dirname, '../supabase/seed_global_injuries.sql');
+            let sql = await fs.readFile(seedPath, 'utf8');
+            sql = sql.replace('DELETE FROM public.injury_master_data;', 'DELETE FROM public.injury_master_data WHERE organization_id IS NULL;');
+            await pool.query(sql);
+            console.log('[DB] Global injury master data seeded successfully.');
+        }
+    } catch (err) {
+        console.error('[DB] Error seeding global injury master data:', err);
+    }
+
+    // Seed global exercises
+    try {
+        const checkRes = await pool.query('SELECT COUNT(*) FROM exercises WHERE organization_id IS NULL');
+        const count = parseInt(checkRes.rows[0].count, 10);
+        if (count === 0) {
+            console.log('[DB] Seeding global exercise library...');
+            const seedPath = path.join(__dirname, '../supabase/seed_exercises.sql');
+            let sql = await fs.readFile(seedPath, 'utf8');
+            sql = sql.replace(/DO\s+\$\s*BEGIN/i, '');
+            sql = sql.replace(/END\s+\$\$;/i, '');
+            sql = sql.replace(/RAISE\s+NOTICE\s+['"].*?['"]\s*;/gi, '');
+            await pool.query(sql);
+            console.log('[DB] Global exercise library seeded successfully.');
+        }
+    } catch (err) {
+        console.error('[DB] Error seeding global exercise library:', err);
+    }
 
     // Questionnaires (Templates)
     await pool.query(`
@@ -1182,6 +1316,21 @@ async function initializeDatabase() {
       )
     `);
 
+    // Organization Notification Settings
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS organization_notification_settings (
+        organization_id UUID PRIMARY KEY REFERENCES organizations(id) ON DELETE CASCADE,
+        enable_email_notifications BOOLEAN DEFAULT true,
+        enable_in_app_notifications BOOLEAN DEFAULT true,
+        notify_signup_approval BOOLEAN DEFAULT true,
+        notify_questionnaire_assigned BOOLEAN DEFAULT true,
+        notify_questionnaire_completed BOOLEAN DEFAULT true,
+        notify_emergency_leave BOOLEAN DEFAULT true,
+        notify_outstanding_balance BOOLEAN DEFAULT true,
+        updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
     // Report Templates
     await pool.query(`
       CREATE TABLE IF NOT EXISTS report_templates (
@@ -1241,13 +1390,115 @@ async function initializeDatabase() {
       );
     `);
 
+    // Create session_templates table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS session_templates (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        scientist_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+        template_name TEXT NOT NULL,
+        session_type_id UUID REFERENCES services(id) ON DELETE SET NULL,
+        default_duration INTERVAL DEFAULT '1 hour',
+        notes TEXT,
+        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+    // Backwards compatibility for SessionTemplates name
+    try {
+        await pool.query('DROP TABLE IF EXISTS sessiontemplates CASCADE');
+        await pool.query('CREATE OR REPLACE VIEW sessiontemplates AS SELECT * FROM session_templates');
+    } catch (e) {}
+
+    // Create external_training_summary table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS external_training_summary (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+        client_id UUID NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+        external_system TEXT NOT NULL DEFAULT 'TeamBuildr',
+        training_date DATE NOT NULL,
+        workout_name TEXT,
+        duration_minutes INTEGER,
+        training_load NUMERIC,
+        completion_status TEXT,
+        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+    // Create performance index for external_training_summary
+    await pool.query(`
+      CREATE INDEX IF NOT EXISTS idx_ext_training_client_date 
+      ON external_training_summary(client_id, training_date DESC);
+    `);
+
+
+    // Create excel_diagnostic_reports table for parsed Excel diagnostic data exports
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS excel_diagnostic_reports (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+        client_uhid TEXT,
+        patient_name TEXT NOT NULL,
+        dob DATE,
+        test_history JSONB NOT NULL,
+        latest_metrics JSONB NOT NULL,
+        clinical_interpretation TEXT,
+        created_by UUID REFERENCES users(id) ON DELETE SET NULL,
+        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+    // Create client_assessment_reports table for saved interactive reports
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS client_assessment_reports (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+        client_id UUID NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+        title TEXT NOT NULL,
+        test_index INTEGER NOT NULL,
+        assessment_data JSONB NOT NULL,
+        report_texts JSONB NOT NULL,
+        pain_data JSONB NOT NULL,
+        reassessment_date TEXT,
+        created_by UUID REFERENCES users(id) ON DELETE SET NULL,
+        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
     // Seed super admin
     await seedSuperAdmin();
     // Seed default organization
     await seedOrganization();
-    console.log('[DB] Database initialized successfully.');
+    // Seed default services for all organizations
+    await seedAllOrganizationServices();
+    console.log('[DB] Run migrations completed.');
   } catch (err) {
-    console.error('[DB] Failed to initialize database:', err);
+    console.error('[DB] Migration error:', err);
+    throw err;
+  }
+}
+
+async function initializeDatabase() {
+  const maxRetries = 10;
+  const delayMs = 3000;
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      await pool.query('SELECT 1');
+      console.log(`[DB] Successfully connected to database on attempt ${attempt}. Running migrations...`);
+      await runMigrations();
+      console.log('[DB] Database initialized successfully.');
+      return;
+    } catch (err) {
+      console.error(`[DB] Database connection/initialization attempt ${attempt} failed:`, err.message);
+      if (attempt === maxRetries) {
+        console.error('[DB] Max retries reached. Database failed to initialize.');
+        break;
+      }
+      console.log(`[DB] Retrying in ${delayMs / 1000} seconds...`);
+      await new Promise(resolve => setTimeout(resolve, delayMs));
+    }
   }
 }
 
@@ -1275,6 +1526,140 @@ async function seedOrganization() {
   if (res.rows.length === 0) {
     await pool.query('INSERT INTO Organizations (name, org_code) VALUES ($1, $2)', [defaultOrgName, defaultOrgCode]);
     console.log(`[DB] Seeded default organization: ${defaultOrgName} with code: ${defaultOrgCode}`);
+  }
+}
+
+const DEFAULT_ROLE_SERVICES = {
+  'sports scientist': [
+    'Performance Assessment', 'Device Testing', 'Testing & Training', 'Training', 'Online session',
+    'Physiotherapy', 'Studying/Research', 'Video Production/Video shooting/Video Editing',
+    'Site Visit/Business Development', 'Meeting', 'Travelling', 'Athlete/Parent Counselling',
+    'Initial Consultation', 'Guest Visits(at Center and Outside)', 'Off-site Testing',
+    'Off-site Training', 'Group Session', 'Office Work', 'On-Court/On-Field Observations',
+    'Report Making', 'Warmup/ cool down', 'Data work', 'Program Design/Program planning and sharing',
+    'Match day/ Observation', 'Doctor consultation'
+  ],
+  'physiotherapist': [
+    'Physiotherapy', 'Device Assessment'
+  ],
+  'sports physician': [
+    'Consultation', 'Device Assessment', 'Physiotherapy'
+  ],
+  'nutritionist': [
+    'Consultation'
+  ],
+  'massage therapist': [
+    'Active recovery training'
+  ]
+};
+
+export async function seedAllOrganizationServices(executor = pool) {
+  try {
+    const orgsRes = await executor.query(`SELECT id FROM organizations`);
+    const orgIds = orgsRes.rows.map(r => r.id);
+
+    const allServices = new Set();
+    for (const names of Object.values(DEFAULT_ROLE_SERVICES)) {
+      for (const name of names) {
+        allServices.add(name);
+      }
+    }
+
+    for (const orgId of orgIds) {
+      for (const serviceName of allServices) {
+        const existsRes = await executor.query(
+          `SELECT id FROM services WHERE organization_id = $1 AND name = $2`,
+          [orgId, serviceName]
+        );
+        if (existsRes.rows.length === 0) {
+          let category = 'General';
+          if (serviceName.includes('Assessment') || serviceName.includes('Testing') || serviceName.includes('Diagnostic') || serviceName.includes('Device')) {
+            category = 'Diagnostics';
+          } else if (serviceName.includes('Training') || serviceName.includes('S&C') || serviceName.includes('Warmup') || serviceName.includes('recovery')) {
+            category = 'Training';
+          } else if (serviceName.includes('Physiotherapy') || serviceName.includes('Rehab')) {
+            category = 'Physiotherapy';
+          } else if (serviceName.includes('Consultation') || serviceName.includes('Counselling') || serviceName.includes('Meeting')) {
+            category = 'Consultation';
+          }
+
+          await executor.query(
+            `INSERT INTO services (organization_id, name, category, is_active, base_price, min_duration, max_duration, is_universal)
+             VALUES ($1, $2, $3, true, 0, 30, 120, false)`,
+            [orgId, serviceName, category]
+          );
+        }
+      }
+    }
+    console.log('[DB] Seeding default services completed.');
+  } catch (error) {
+    console.error('[DB] Error seeding organization services:', error);
+  }
+}
+
+export async function autoAllocateStaffServices(userId, profession, orgId, clientExecutor = null) {
+  const executor = clientExecutor || pool;
+  if (!profession || !orgId) return;
+
+  const cleanProf = profession.toLowerCase().trim().replace(/_/g, ' ');
+  const serviceNames = DEFAULT_ROLE_SERVICES[cleanProf];
+  if (!serviceNames || serviceNames.length === 0) return;
+
+  try {
+    const servicesRes = await executor.query(
+      `SELECT id, name FROM services WHERE organization_id = $1 AND name = ANY($2)`,
+      [orgId, serviceNames]
+    );
+
+    const foundServiceIds = servicesRes.rows.map(r => r.id);
+
+    for (const serviceId of foundServiceIds) {
+      await executor.query(
+        `INSERT INTO consultant_services (organization_id, consultant_id, service_id)
+         VALUES ($1, $2, $3)
+         ON CONFLICT (consultant_id, service_id) DO NOTHING`,
+        [orgId, userId, serviceId]
+      );
+    }
+
+    await logStaffServiceUpdate(orgId, userId, null, 'auto-allocate', { service_ids: foundServiceIds }, executor);
+  } catch (error) {
+    console.error(`[DB] Error in autoAllocateStaffServices for user ${userId}:`, error);
+  }
+}
+
+export async function logStaffServiceUpdate(orgId, staffId, adminUserId, actionType, details, clientExecutor = null) {
+  const executor = clientExecutor || pool;
+  try {
+    const staffRes = await executor.query(`SELECT first_name, last_name FROM profiles WHERE id = $1`, [staffId]);
+    const staffName = staffRes.rows.length > 0 
+      ? `${staffRes.rows[0].first_name} ${staffRes.rows[0].last_name}` 
+      : 'Unknown Staff';
+
+    const title = 'Staff Service Mapping Updated';
+    let content = '';
+    if (actionType === 'auto-allocate') {
+      content = `Default services auto-allocated for ${staffName} upon role update.`;
+    } else {
+      content = `Services overridden for ${staffName} by administrator.`;
+    }
+
+    await executor.query(`
+      INSERT INTO notifications (
+        organization_id, title, content, type, is_broadcast, category, action_payload, created_by
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+    `, [
+      orgId,
+      title,
+      content,
+      'info',
+      true,
+      'activity_ledger',
+      JSON.stringify({ staff_id: staffId, action_type: actionType, details }),
+      adminUserId || null
+    ]);
+  } catch (error) {
+    console.error('[DB] Error in logStaffServiceUpdate:', error);
   }
 }
 

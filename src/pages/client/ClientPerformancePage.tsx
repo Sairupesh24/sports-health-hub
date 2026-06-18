@@ -19,8 +19,9 @@ import {
   Activity, Dumbbell, Heart, Zap, Calendar as CalendarIcon,
   ArrowRight, Plus, ShieldX, Loader2, ChevronLeft, ChevronRight,
   Clock, Star, CheckCircle2, AlertTriangle, Info, TrendingUp, Filter,
-  Layout, User, Map
+  Layout, User, Map, FileText
 } from "lucide-react";
+import { AssessmentReportsList } from "@/components/shared/assessment/AssessmentReportsList";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -35,7 +36,7 @@ import {
 import { Calendar as MiniCalendar } from "@/components/ui/calendar";
 
 export default function ClientPerformancePage() {
-  const { session, profile, loading: authLoading } = useAuth();
+  const { session, profile, clientId, loading: authLoading } = useAuth();
   const [assignedWorkouts, setAssignedWorkouts] = useState<any[]>([]);
   const [wellnessLogs, setWellnessLogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -206,7 +207,8 @@ export default function ClientPerformancePage() {
              { id: 'overview', label: 'Overview', icon: Layout },
              { id: 'body', label: 'Body', icon: Map },
              { id: 'schedule', label: 'Schedule', icon: CalendarIcon },
-             { id: 'analytics', label: 'Analytics', icon: Activity }
+             { id: 'analytics', label: 'Analytics', icon: Activity },
+             { id: 'reports', label: 'Reports', icon: FileText }
            ].map((tab) => (
              <button
                key={tab.id}
@@ -270,6 +272,9 @@ export default function ClientPerformancePage() {
                   {session?.user?.id && <PerformanceAnalytics athleteId={session.user.id} />}
                </div>
              </div>
+           )}
+           {activeTab === 'reports' && session?.user?.id && (
+             <AssessmentReportsList clientId={session.user.id} showDelete={false} />
            )}
         </main>
 

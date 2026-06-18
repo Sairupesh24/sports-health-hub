@@ -115,7 +115,7 @@ export function WaitlistSidebar({ selectedDate, onBook }: Props) {
                                             <span className="text-[9px] font-mono text-muted-foreground font-bold tracking-widest">{item.client?.uhid}</span>
                                         </div>
                                         <Badge variant="outline" className="text-[10px] h-5 bg-white border-primary/20 text-primary font-mono font-normal">
-                                            {item.preferred_time_slot.substring(0, 5)}
+                                            {item.preferred_time_slot ? item.preferred_time_slot.substring(0, 5) : "Anytime"}
                                         </Badge>
                                     </div>
 

@@ -61,7 +61,7 @@ export default function MobileConsultantSchedule() {
         queryKey: ["mobile-consultant-sessions", profile?.id, dateRange.start, dateRange.end],
         queryFn: async () => {
             if (!profile?.id) return [];
-            const data = await apiFetch(`/api/appointments?therapist_id=${profile.id}&start=${dateRange.start}&end=${dateRange.end}`);
+            const data = await apiFetch(`/api/appointments?specialist_id=${profile.id}&start=${dateRange.start}&end=${dateRange.end}`);
             return (data as any[]).map(session => {
                 let endDateStr = session.scheduled_end;
                 if (!endDateStr) {

@@ -1,0 +1,88 @@
+Created At: 2026-06-10T07:43:32Z
+Completed At: 2026-06-10T07:43:35Z
+
+				The command completed successfully.
+				Output:
+				Scanning raw content of 116 conversation folders for neck coordinate...
+Folder 5c50d2a2-55c6-41a7-8cc5-e07e65517710 contains neck coordinate or shoulder_l_ant!
+  Files in folder: [
+  '.system_generated',
+  '.tempmediaStorage',
+  'anatomy_heatmap_bg_1780056894684.png',
+  'implementation_plan.md',
+  'implementation_plan.md.metadata.json',
+  'media__1780055854347.png',
+  'media__1780055863952.jpg',
+  'media__1780056173751.png',
+  'media__1780056232444.jpg',
+  'media__1780057437148.png',
+  'media__1780057817166.png',
+  'task.md',
+  'task.md.metadata.json',
+  'walkthrough.md',
+  'walkthrough.md.metadata.json'
+]
+    Line 116 matches M235,160 (length 6248)
+    Line 128 matches M235,160 (length 7416)
+    Line 144 matches M235,160 (length 3500)
+    Line 160 matches M235,160 (length 3115)
+    Line 164 matches M235,160 (length 4403)
+    Line 489 matches M235,160 (length 4515)
+    Line 497 matches M235,160 (length 2990)
+    Line 509 matches M235,160 (length 3158)
+    Line 535 matches M235,160 (length 5003)
+    Line 600 matches M235,160 (length 2978)
+    Line 602 matches M235,160 (length 3158)
+    Line 614 matches M235,160 (length 2971)
+    Line 693 matches M235,160 (length 2460)
+    Line 695 matches M235,160 (length 2278)
+Folder e2f1f80a-03a6-4079-a77d-175f54b036f6 contains neck coordinate or shoulder_l_ant!
+  Files in folder: [
+  '.system_generated',
+  'implementation_plan.md',
+  'implementation_plan.md.metadata.json',
+  'media__1780310656035.jpg',
+  'media__1780310656036.jpg',
+  'media__1780310656043.jpg',
+  'media__1780312389721.png',
+  'media__1780312518506.png',
+  'media__1780313069409.png',
+  'media__1780313163518.png',
+  'media__1780313901198.png',
+  'media__1780314639103.png',
+  'media__1780314810773.png',
+  'media__1780315705957.png',
+  'media__1780316159124.png',
+  'media__1780316185882.png',
+  'media__1780316593634.png',
+  'media__1780317151344.png',
+  'media__1780317743504.png',
+  'media__1780318082008.png',
+  'media__1780318469211.png',
+  'media__1780319231933.png',
+  'media__1780319624714.png',
+  'media__1780320360031.png',
+  'media__1780465028080.png',
+  'media__1780467074487.png',
+  'media__1780468087637.png',
+  'media__1780468114254.png',
+  'media__1780468584786.png',
+  'media__1780478166247.png',
+  'media__1780479085337.png',
+  'media__1780479118198.png',
+  'media__1780479839748.png',
+  'media__1780480725092.png',
+  'media__1780480864264.png',
+  'media__1780487576791.png',
+  'task.md',
+  'task.md.metadata.json',
+  'walkthrough.md',
+  'walkthrough.md.metadata.json'
+]
+    Line 15 matches M235,160 (length 4402)
+    Line 175 matches M235,160 (length 4403)
+    Line 344 matches M235,160 (length 4403)
+    Line 347 matches M235,160 (length 7891)
+    Line 395 matches M235,160 (length 4403)
+Search completed.
+

@@ -159,18 +159,7 @@ export default function BulkAssignmentModal({
         body: responses
       });
 
-      // 3. Create notifications for each client
-      const notifications = selectedClientIds.map(clientId => ({
-        user_id: clientId,
-        title: "New Questionnaire Assigned",
-        message: `Please complete the ${form.name} assessment.`,
-        type: 'questionnaire'
-      }));
-
-      await apiFetch('/ams/notifications/bulk', {
-        method: 'POST',
-        body: notifications
-      });
+      // 3. Create notifications for each client (Removed: backend handles this inside /ams/form-responses/bulk)
 
       toast({
         title: "Bulk Assignment Successful",

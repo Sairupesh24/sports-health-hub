@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, Trash2, Edit2, Play, Loader2, Layout, Dumbbell } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import AmsQuickBuilder from "@/components/ams/AmsQuickBuilder";
 import { format } from "date-fns";
 import { ChevronDown, ChevronUp, History, User } from "lucide-react";
@@ -27,14 +27,14 @@ export default function SportsScientistTemplates() {
         queryFn: async () => {
             const orgId = profile?.organization_id;
             if (!orgId) return [];
-            return await apiFetch('/api/ams/templates');
+            return await apiFetch<any[]>('/api/ams/templates');
         },
         enabled: !!profile?.organization_id
     });
 
     const deleteMutation = useMutation({
         mutationFn: async (id: string) => {
-            await apiFetch(`/api/ams/templates/${id}`, { method: 'DELETE' });
+            await apiFetch<void>(`/api/ams/templates/${id}`, { method: 'DELETE' });
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["ams-templates"] });
@@ -52,14 +52,14 @@ export default function SportsScientistTemplates() {
 
             if (editingTemplate) {
                 // Update Existing Template via backend
-                await apiFetch(`/api/ams/templates/${editingTemplate.id}`, {
+                await apiFetch<void>(`/api/ams/templates/${editingTemplate.id}`, {
                     method: 'PUT',
                     body: JSON.stringify({ days, name: days[0]?.title || editingTemplate.name })
                 });
                 programId = editingTemplate.id;
             } else {
                 // Create New Template via backend
-                const result = await apiFetch('/api/ams/templates', {
+                const result = await apiFetch<{ id: string }>('/api/ams/templates', {
                     method: 'POST',
                     body: JSON.stringify({
                         name: days[0]?.title || `Workout Template - ${format(new Date(), 'MMM d')}`,
@@ -255,14 +255,14 @@ export default function SportsScientistTemplates() {
                     setIsCreateOpen(open);
                     if (!open) setEditingTemplate(null);
                 }}>
-                    <DialogContent aria-describedby={undefined} className="max-w-4xl p-6 bg-[#1A1F26] border-white/10 shadow-2xl max-h-[90vh] overflow-y-auto">
+                    <DialogContent className="max-w-4xl p-6 bg-[#1A1F26] border-white/10 shadow-2xl max-h-[90vh] overflow-y-auto">
                         <div className="mb-4">
-                            <h2 className="text-xl font-black uppercase italic tracking-tight text-white mb-2">
+                            <DialogTitle className="text-xl font-black uppercase italic tracking-tight text-white mb-2">
                                 {(editingTemplate as any) ? "Edit Training Template" : "Build Training Template"}
-                            </h2>
-                            <p className="text-sm text-white/40">
+                            </DialogTitle>
+                            <DialogDescription className="text-sm text-white/40">
                                 {(editingTemplate as any) ? "Modify this template's exercises and structure." : "Add your exercises to construct a reusable workout template."}
-                            </p>
+                            </DialogDescription>
                         </div>
                         <AmsQuickBuilder 
                             startDate={new Date().toISOString().split('T')[0]} 

@@ -122,6 +122,7 @@ export function AnnouncementsManager({ open, onOpenChange }: AnnouncementsManage
                     content,
                     priority,
                     is_broadcast: target === "all",
+                    target_role: target !== "all" ? target : null,
                     type: 'announcement'
                 }
             });
@@ -359,7 +360,12 @@ export function AnnouncementsManager({ open, onOpenChange }: AnnouncementsManage
                                                     <SelectValue />
                                                 </SelectTrigger>
                                                 <SelectContent className="rounded-2xl border-none shadow-2xl">
-                                                    <SelectItem value="all" className="font-bold uppercase tracking-tighter text-[10px] sm:text-xs">Broadcast: All Clients</SelectItem>
+                                                    <SelectItem value="all" className="font-bold uppercase tracking-tighter text-[10px] sm:text-xs">Broadcast: Everyone</SelectItem>
+                                                    <SelectItem value="admin" className="font-bold uppercase tracking-tighter text-[10px] sm:text-xs text-rose-600">Admins Only</SelectItem>
+                                                    <SelectItem value="sports_scientist" className="font-bold uppercase tracking-tighter text-[10px] sm:text-xs text-indigo-600">Sports Scientists</SelectItem>
+                                                    <SelectItem value="athlete" className="font-bold uppercase tracking-tighter text-[10px] sm:text-xs text-emerald-600">Athletes / Clients</SelectItem>
+                                                    <SelectItem value="consultant" className="font-bold uppercase tracking-tighter text-[10px] sm:text-xs text-amber-600">Consultants</SelectItem>
+                                                    <SelectItem value="specialist" className="font-bold uppercase tracking-tighter text-[10px] sm:text-xs text-blue-600">Specialists (Clinical Staff)</SelectItem>
                                                 </SelectContent>
                                             </Select>
                                         </div>

@@ -3,7 +3,7 @@ import nodemailer from 'nodemailer';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import bcrypt from 'bcrypt';
-import { db } from './db.js';
+import { db, autoAllocateStaffServices } from './db.js';
 
 const router = express.Router();
 
@@ -62,20 +62,33 @@ router.post('/signup', async (req, res) => {
     );
 
     // Dispatch Administrative Action Notification
-    await db.query(`
-      INSERT INTO notifications (
-        organization_id, title, content, type, target_role, category, action_payload, action_status
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-    `, [
-      orgId, 
-      'Approval Required', 
-      `Approval Required: ${firstName} ${lastName} has signed up as ${role || 'client'}.`, 
-      'orange', 
-      'admin', 
-      'direct_action', 
-      JSON.stringify({ userId, role: role || 'client' }), 
-      'pending'
-    ]);
+    let shouldNotify = true;
+    if (orgId) {
+      const settingsRes = await db.query(
+        'SELECT enable_in_app_notifications, notify_signup_approval FROM organization_notification_settings WHERE organization_id = $1',
+        [orgId]
+      );
+      if (settingsRes.rows.length > 0) {
+        shouldNotify = settingsRes.rows[0].enable_in_app_notifications && settingsRes.rows[0].notify_signup_approval;
+      }
+    }
+
+    if (shouldNotify) {
+      await db.query(`
+        INSERT INTO notifications (
+          organization_id, title, content, type, target_role, category, action_payload, action_status
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      `, [
+        orgId, 
+        'Approval Required', 
+        `Approval Required: ${firstName} ${lastName} has signed up as ${role || 'client'}.`, 
+        'orange', 
+        'admin', 
+        'direct_action', 
+        JSON.stringify({ userId, role: role || 'client' }), 
+        'pending'
+      ]);
+    }
 
     res.json({ message: 'Signup successful. Pending approval.' });
   } catch (error) {
@@ -343,6 +356,11 @@ router.patch('/me', async (req, res) => {
         RETURNING *
       `;
       await db.query(query, profileValues);
+
+      // Auto-allocate if user self-updates their profession
+      if (updates.profession) {
+        await autoAllocateStaffServices(userId, updates.profession, decoded.organization_id);
+      }
     }
 
     // Also update client record if one exists and we have fields to update

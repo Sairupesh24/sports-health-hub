@@ -284,7 +284,7 @@ router.get('/:id/sessions', requireAuth, async (req, res) => {
                    p.first_name as therapist_first_name, p.last_name as therapist_last_name,
                    psd.pain_score, psd.clinical_notes
             FROM sessions s
-            LEFT JOIN profiles p ON s.therapist_id = p.id
+            LEFT JOIN profiles p ON COALESCE(s.therapist_id, s.scientist_id) = p.id
             LEFT JOIN physiosessiondetails psd ON s.id = psd.session_id
             WHERE s.client_id = $1 AND s.organization_id = $2
         `;

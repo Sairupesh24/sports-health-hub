@@ -24,7 +24,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { filterServicesByRole, Service } from "@/utils/serviceMapping";
 import LogInjuryModal from "./LogInjuryModal";
-import SorenessHeatmap from "@/components/ams/SorenessHeatmap";
+import PainMap from "./PainMap";
 
 interface AdHocSessionModalProps {
     open: boolean;
@@ -66,13 +66,19 @@ export default function AdHocSessionModal({ open, onOpenChange, onSuccess, prese
 
     // SOAP Note Data
     const [painScore, setPainScore] = useState<number[]>([5]);
+    const [sorenessData, setSorenessData] = useState<Record<string, any>>({});
     const [selectedModalities, setSelectedModalities] = useState<string[]>([]);
     const [treatmentType, setTreatmentType] = useState("");
     const [manualTherapy, setManualTherapy] = useState("");
     const [exerciseGiven, setExerciseGiven] = useState("");
     const [clinicalNotes, setClinicalNotes] = useState("");
     const [nextPlan, setNextPlan] = useState("");
-    const [sorenessData, setSorenessData] = useState<string[]>([]);
+
+    const selectedClient = useMemo(() => {
+        return clients.find(c => c.id === selectedClientId);
+    }, [clients, selectedClientId]);
+
+    const clientGender = selectedClient?.gender?.toLowerCase() === "female" ? "female" : "male";
 
     useEffect(() => {
         if (open && profile?.organization_id) {
@@ -80,14 +86,14 @@ export default function AdHocSessionModal({ open, onOpenChange, onSuccess, prese
             // Reset form
             setSelectedClientId(preselectedClientId || "");
             setSelectedInjuryId("none");
-            setPainScore([5]);
+            setPainScore([0]);
+            setSorenessData({});
             setSelectedModalities([]);
             setTreatmentType("");
             setManualTherapy("");
             setExerciseGiven("");
             setClinicalNotes("");
             setNextPlan("");
-            setSorenessData([]);
             setSessionDate(format(new Date(), 'yyyy-MM-dd'));
             setStartTime(format(new Date(), 'HH:mm'));
             setEndTime(getDefaultEndTime());
@@ -183,10 +189,15 @@ export default function AdHocSessionModal({ open, onOpenChange, onSuccess, prese
             });
 
             // 2. Save the SOAP Note and complete it
+            const computedPainScore = Object.values(sorenessData).reduce(
+                (max, curr: any) => Math.max(max, curr.painLevel || 0),
+                0
+            );
+
             await apiFetch(`/clinical/sessions/${sessionData.id}/soap`, {
                 method: 'POST',
                 data: {
-                    pain_score: painScore[0],
+                    pain_score: computedPainScore,
                     modality_used: selectedModalities.join(', '),
                     treatment_type: treatmentType,
                     manual_therapy: manualTherapy,
@@ -214,7 +225,7 @@ export default function AdHocSessionModal({ open, onOpenChange, onSuccess, prese
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[700px] h-[90vh] flex flex-col p-0">
+            <DialogContent className="sm:max-w-[90vw] lg:max-w-[1200px] h-[90vh] flex flex-col p-0">
                 <DialogHeader className="px-6 py-4 border-b shrink-0">
                     <DialogTitle className="flex items-center gap-2">
                         Start Ad-Hoc Session
@@ -368,43 +379,20 @@ export default function AdHocSessionModal({ open, onOpenChange, onSuccess, prese
                             <h3 className="font-semibold text-lg border-b pb-2">Subjective</h3>
 
                             <div className="space-y-4">
-                                <div>
-                                    <div className="flex justify-between mb-2">
-                                        <Label>Pain Score (0-10)</Label>
-                                        <span className="font-medium">{painScore[0]}/10</span>
-                                    </div>
-                                    <Slider
-                                        value={painScore}
-                                        onValueChange={setPainScore}
-                                        max={10}
-                                        step={1}
-                                        className="py-4"
+                                {selectedClientId ? (
+                                    <PainMap 
+                                        value={sorenessData} 
+                                        onChange={setSorenessData}
+                                        readOnly={loading}
+                                        clinicalNotes={clinicalNotes}
+                                        onClinicalNotesChange={setClinicalNotes}
+                                        gender={clientGender}
                                     />
-                                </div>
-                                <div className="space-y-4 pt-4">
-                                    <Label className="text-sm font-semibold text-primary uppercase tracking-widest">Client Soreness Map</Label>
-                                    <div className="p-4 bg-white dark:bg-slate-950 rounded-2xl border border-dashed border-primary/30 shadow-inner">
-                                        <SorenessHeatmap 
-                                            selectedZones={sorenessData} 
-                                            onZoneToggle={(zone) => {
-                                                setSorenessData(prev => 
-                                                    prev.includes(zone) ? prev.filter(z => z !== zone) : [...prev, zone]
-                                                );
-                                            }} 
-                                        />
+                                ) : (
+                                    <div className="text-center py-8 text-slate-400 dark:text-slate-500 bg-slate-50/50 dark:bg-slate-900/30 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800">
+                                        Please select a client to enable the interactive pain map.
                                     </div>
-                                </div>
-
-                                <div>
-                                    <Label>Subjective Notes</Label>
-                                    <Textarea
-                                        placeholder="Patient reports feeling..."
-                                        className="mt-2"
-                                        rows={3}
-                                        value={clinicalNotes}
-                                        onChange={e => setClinicalNotes(e.target.value)}
-                                    />
-                                </div>
+                                )}
                             </div>
                         </div>
 

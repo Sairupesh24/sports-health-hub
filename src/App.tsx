@@ -33,7 +33,10 @@ import ClientRegistration from "./pages/admin/ClientRegistration";
 import FieldConfig from "./pages/admin/FieldConfig";
 import ServiceMapping from "./pages/admin/ServiceMapping";
 import AdminSettings from "./pages/admin/AdminSettings";
+import AdminInjuries from "./pages/admin/AdminInjuries";
+import AdminPermissions from "./pages/admin/AdminPermissions";
 import ResourceScheduleManager from "./pages/admin/ResourceScheduleManager";
+import NotificationSettings from "./pages/admin/NotificationSettings";
 import ConsultantDashboard from "./pages/consultant/ConsultantDashboard";
 import EmployeeManagement from "./pages/hr/EmployeeManagement";
 import HrDashboard from "./pages/hr/HrDashboard";
@@ -101,7 +104,8 @@ const queryClient = new QueryClient();
 
 const AdminDashboardRedirect = () => {
   const { roles } = useAuth();
-  if (roles.includes('foe')) {
+  const rolesList = roles || [];
+  if (rolesList.includes('foe')) {
     return <FOEDashboard />;
   }
   return <AdminDashboard />;
@@ -136,6 +140,9 @@ const App = () => (
               <Route path="/admin/settings/fields" element={<ProtectedRoute requiredRole="admin"><FieldConfig /></ProtectedRoute>} />
               <Route path="/admin/settings/services" element={<ProtectedRoute requiredRole="admin"><ServiceMapping /></ProtectedRoute>} />
               <Route path="/admin/settings/resource-schedule" element={<ProtectedRoute requiredRole="admin"><ResourceScheduleManager /></ProtectedRoute>} />
+              <Route path="/admin/settings/injuries" element={<ProtectedRoute requiredRole="admin"><AdminInjuries /></ProtectedRoute>} />
+              <Route path="/admin/settings/permissions" element={<ProtectedRoute requiredRole="admin"><AdminPermissions /></ProtectedRoute>} />
+              <Route path="/admin/settings/notifications" element={<ProtectedRoute requiredRole="admin"><NotificationSettings /></ProtectedRoute>} />
               <Route path="/admin/billing" element={<ProtectedRoute requiredRole={["admin", "foe"]}><BillingPage /></ProtectedRoute>} />
               <Route path="/admin/users" element={<ProtectedRoute requiredRole={["admin", "foe"]}><UserApproval /></ProtectedRoute>} />
               
@@ -151,7 +158,7 @@ const App = () => (
               {/* Shared Attendance Page — all clinical staff roles */}
               <Route path="/my-attendance" element={<ProtectedRoute><MyAttendancePage /></ProtectedRoute>} />
 
-              <Route path="/admin/calendar" element={<ProtectedRoute requiredRole={["admin", "foe"]}><AdminCalendar /></ProtectedRoute>} />
+              <Route path="/admin/calendar" element={<ProtectedRoute checkCalendarAccess><AdminCalendar /></ProtectedRoute>} />
               <Route path="/admin/availability" element={<ProtectedRoute requiredRole="admin"><AdminAvailability /></ProtectedRoute>} />
               <Route path="/admin/reports" element={<ProtectedRoute requiredRole={["admin", "foe", "manager"]}><ReportsPage role="admin" /></ProtectedRoute>} />
               <Route path="/admin/appointments" element={<ProtectedRoute requiredRole={["admin", "foe"]}><AppointmentList role="admin" /></ProtectedRoute>} />
