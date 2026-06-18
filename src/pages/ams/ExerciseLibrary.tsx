@@ -21,6 +21,7 @@ import { apiFetch } from "@/utils/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
 import { 
   Dialog, 
   DialogContent, 
@@ -218,29 +219,29 @@ export default function ExerciseLibrary() {
       </div>
 
       <Dialog open={isEditDialogOpen || isAddDialogOpen} onOpenChange={() => { setIsEditDialogOpen(false); setIsAddDialogOpen(false); }}>
-        <DialogContent className="sm:max-w-[600px] glass border-none shadow-2xl p-0 overflow-hidden rounded-3xl">
-          <DialogHeader className="p-8 pb-4">
-            <DialogTitle className="text-2xl font-bold uppercase tracking-tight flex items-center gap-3">
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] flex flex-col bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 shadow-2xl p-0 overflow-hidden rounded-[2rem]">
+          <DialogHeader className="p-8 pb-4 flex-shrink-0 border-b border-slate-100 dark:border-slate-900 bg-white/50 dark:bg-slate-950/50">
+            <DialogTitle className="text-2xl font-bold uppercase tracking-tight flex items-center gap-3 text-slate-900 dark:text-slate-100">
               <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
                  {isAddDialogOpen ? <Plus className="w-5 h-5" /> : <Edit2 className="w-5 h-5" />}
               </div>
               {isAddDialogOpen ? "Add New Exercise" : "Edit Exercise"}
             </DialogTitle>
-            <DialogDescription className="text-muted-foreground mt-2">
+            <DialogDescription className="text-slate-500 dark:text-slate-400 mt-2">
               Fill in the details below to save the exercise to your library.
             </DialogDescription>
           </DialogHeader>
           
-          <div className="p-8 pt-2 space-y-6">
+          <div className="flex-1 overflow-y-auto p-8 space-y-6 custom-scrollbar">
             <div className="grid grid-cols-2 gap-4">
               <div className="col-span-2 space-y-2">
-                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Exercise Name</Label>
-                <Input value={name} onChange={(e) => setName(e.target.value)} className="h-12 glass border-none ring-1 ring-border/50 focus:ring-primary/40 font-bold" placeholder="e.g. Back Squat" />
+                <Label className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 ml-1">Exercise Name</Label>
+                <Input value={name} onChange={(e) => setName(e.target.value)} className="h-12 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus-visible:ring-primary font-semibold" placeholder="e.g. Back Squat" />
               </div>
               <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Category</Label>
+                <Label className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 ml-1">Category</Label>
                 <Select value={category} onValueChange={setCategory}>
-                  <SelectTrigger className="h-12 glass border-none ring-1 ring-border/50 focus:ring-primary/40 font-bold">
+                  <SelectTrigger className="h-12 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 focus:ring-primary font-semibold">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="glass border-none shadow-2xl">
@@ -253,9 +254,9 @@ export default function ExerciseLibrary() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Body Region</Label>
+                <Label className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 ml-1">Body Region</Label>
                 <Select value={bodyRegion} onValueChange={setBodyRegion}>
-                  <SelectTrigger className="h-12 glass border-none ring-1 ring-border/50 focus:ring-primary/40 font-bold">
+                  <SelectTrigger className="h-12 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 focus:ring-primary font-semibold">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="glass border-none shadow-2xl">
@@ -269,19 +270,19 @@ export default function ExerciseLibrary() {
             </div>
             
             <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Video URL (Optional)</Label>
-              <Input value={videoUrl} onChange={(e) => setVideoUrl(e.target.value)} className="h-12 glass border-none ring-1 ring-border/50 focus:ring-primary/40 font-bold" placeholder="YouTube or Vimeo link" />
+              <Label className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 ml-1">Video URL (Optional)</Label>
+              <Input value={videoUrl} onChange={(e) => setVideoUrl(e.target.value)} className="h-12 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus-visible:ring-primary font-semibold" placeholder="YouTube or Vimeo link" />
             </div>
 
             <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Instructions</Label>
-              <Textarea value={instructions} onChange={(e) => setInstructions(e.target.value)} className="min-h-[120px] glass border-none ring-1 ring-border/50 focus:ring-primary/40 leading-relaxed font-medium" placeholder="Describe the proper form and technique..." />
+              <Label className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 ml-1">Instructions</Label>
+              <Textarea value={instructions} onChange={(e) => setInstructions(e.target.value)} className="min-h-[120px] rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus-visible:ring-primary leading-relaxed font-medium p-4" placeholder="Describe the proper form and technique..." />
             </div>
           </div>
 
-          <DialogFooter className="p-8 pt-4 bg-muted/20 flex gap-3">
-            <Button variant="ghost" onClick={() => { setIsEditDialogOpen(false); setIsAddDialogOpen(false); }} className="rounded-2xl h-14 px-8 font-black uppercase tracking-widest text-[11px] opacity-40 hover:opacity-100 bg-transparent hover:bg-white/5 border-none">Cancel</Button>
-            <Button onClick={() => handleSaveExercise(isAddDialogOpen)} disabled={editLoading} className="rounded-2xl h-14 px-10 font-black uppercase tracking-widest text-[11px] shadow-xl shadow-primary/20 flex-1">
+          <DialogFooter className="p-8 pt-4 bg-slate-100/50 dark:bg-slate-900/50 flex gap-3 flex-shrink-0 border-t border-slate-100 dark:border-slate-900">
+            <Button variant="ghost" onClick={() => { setIsEditDialogOpen(false); setIsAddDialogOpen(false); }} className="rounded-xl h-12 px-8 font-black uppercase tracking-widest text-[11px] text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100 bg-transparent hover:bg-slate-100 dark:hover:bg-slate-900">Cancel</Button>
+            <Button onClick={() => handleSaveExercise(isAddDialogOpen)} disabled={editLoading} className="rounded-xl h-12 px-10 font-black uppercase tracking-widest text-[11px] shadow-xl shadow-primary/20 flex-1">
               {editLoading ? "Saving..." : "Save Exercise"}
             </Button>
           </DialogFooter>

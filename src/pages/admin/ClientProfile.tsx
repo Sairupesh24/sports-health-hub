@@ -32,6 +32,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { TherapistAssignmentCard } from "@/components/client/TherapistAssignmentCard";
 import { ShieldCheck, History } from "lucide-react";
 import { EnquiryContextWindow } from "@/components/admin/EnquiryContextWindow";
+import { AssessmentReportsList } from "@/components/shared/assessment/AssessmentReportsList";
 
 
 
@@ -468,12 +469,13 @@ export default function ClientProfile() {
 
                 {/* Content */}
                 <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-                    <TabsList className={`mb-6 grid w-full ${canAccessDocuments ? 'max-w-3xl grid-cols-5' : 'max-w-2xl grid-cols-4'}`}>
+                    <TabsList className={`mb-6 grid w-full ${canAccessDocuments ? 'max-w-4xl grid-cols-6' : 'max-w-3xl grid-cols-5'}`}>
                         <TabsTrigger value="profile">Profile Details</TabsTrigger>
                         <TabsTrigger value="sessions">Session History</TabsTrigger>
                         {isAdminOrFoe && <TabsTrigger value="entitlements">Entitlements</TabsTrigger>}
                         {isAdminOrFoe && <TabsTrigger value="billing">Billing History</TabsTrigger>}
                         {canAccessDocuments && <TabsTrigger value="documents">Documents</TabsTrigger>}
+                        <TabsTrigger value="assessment-reports">Assessment Reports</TabsTrigger>
                     </TabsList>
 
 
@@ -1086,6 +1088,11 @@ export default function ClientProfile() {
                             <DocumentManager clientId={id!} isVIP={client.is_vip} />
                         </TabsContent>
                     )}
+
+                    {/* ASSESSMENT REPORTS TAB */}
+                    <TabsContent value="assessment-reports">
+                        <AssessmentReportsList clientId={id!} showDelete={true} />
+                    </TabsContent>
                 </Tabs>
             </div>
 

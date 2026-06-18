@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import SorenessHeatmap from "./SorenessHeatmap";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -25,7 +24,6 @@ const wellnessSchema = z.object({
   stress_level: z.number().min(1).max(10),
   soreness_level: z.number().min(1).max(10),
   fatigue_level: z.number().min(1).max(10),
-  soreness_data: z.array(z.string()).optional(),
 });
 
 type WellnessFormValues = z.infer<typeof wellnessSchema>;
@@ -42,12 +40,10 @@ export default function WellnessCheckinForm({ onComplete }: { onComplete?: () =>
       stress_level: 5,
       soreness_level: 5,
       fatigue_level: 5,
-      soreness_data: [],
     },
   });
 
   const sorenessLevel = form.watch("soreness_level");
-  const selectedZones = form.watch("soreness_data") || [];
 
 
   const submitWellness = useMutation({
@@ -165,32 +161,6 @@ export default function WellnessCheckinForm({ onComplete }: { onComplete?: () =>
                     </FormItem>
                   )}
                 />
-
-                {sorenessLevel > 5 && (
-                  <div className="space-y-4 animate-in fade-in zoom-in-95 duration-300">
-                    <FormField
-                      control={form.control}
-                      name="soreness_data"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormControl>
-                            <SorenessHeatmap
-                              selectedZones={field.value || []}
-                              onZoneToggle={(zoneId) => {
-                                const current = field.value || [];
-                                const updated = current.includes(zoneId)
-                                  ? current.filter((id: string) => id !== zoneId)
-                                  : [...current, zoneId];
-                                field.onChange(updated);
-                              }}
-                            />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                )}
-
                 <FormField
                   control={form.control}
                   name="fatigue_level"

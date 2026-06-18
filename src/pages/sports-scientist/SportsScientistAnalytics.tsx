@@ -24,7 +24,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import AMSTrainingLoadWidget from "@/components/dashboard/AMSTrainingLoadWidget";
 import PerformanceAnalytics from "@/components/ams/PerformanceAnalytics";
-import { generateAthletePerformanceReport } from "@/lib/reports/AthletePerformanceReport";
+import { useToast } from "@/hooks/use-toast";
 import { usePerformanceResults, usePersonalBests } from "@/hooks/usePerformanceResults";
 import { FileDown, Trophy } from "lucide-react";
 
@@ -42,7 +42,7 @@ export default function SportsScientistAnalytics() {
             if (!user) return null;
 
             const sixMonthsAgo = subMonths(new Date(), 6).toISOString();
-            const sessions = await apiFetch(`/api/appointments?therapist_id=${user.id}&start=${sixMonthsAgo}`);
+            const sessions = await apiFetch(`/api/appointments?specialist_id=${user.id}&start=${sixMonthsAgo}`);
 
             const months = eachMonthOfInterval({
                 start: subMonths(new Date(), 5),
@@ -70,12 +70,23 @@ export default function SportsScientistAnalytics() {
                 Other: sessions?.filter(s => s.session_mode === 'Other').length || 0
             };
 
+            const currentMonthStr = format(new Date(), "yyyy-MM");
+            const thisMonthSessions = (sessions as any[] || []).filter(s => 
+                s.scheduled_start && format(new Date(s.scheduled_start), "yyyy-MM") === currentMonthStr
+            );
+            const uniqueClientsThisMonth = new Set(
+                thisMonthSessions
+                    .map(s => s.client_id)
+                    .filter(id => id !== null && id !== undefined)
+            ).size;
+
             return {
                 totalSessions: sessions?.length || 0,
                 completedSessions: sessions?.filter(s => s.status === 'Completed').length || 0,
                 monthlyData,
                 pieData,
-                modeCounts
+                modeCounts,
+                activeAthletesCount: uniqueClientsThisMonth
             };
         },
         enabled: !!user && !clientId
@@ -164,7 +175,7 @@ export default function SportsScientistAnalytics() {
 
 
                     {/* Stats Grid */}
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <Card className="gradient-card border-none shadow-md">
                             <CardHeader className="pb-2">
                                 <CardTitle className="text-sm font-medium text-muted-foreground">Total Sessions</CardTitle>
@@ -194,15 +205,6 @@ export default function SportsScientistAnalytics() {
                                 <p className="text-xs text-muted-foreground mt-1 truncate">
                                     {athleteData.lastSession?.service_type || "N/A"}
                                 </p>
-                            </CardContent>
-                        </Card>
-                        <Card className="gradient-card border-none shadow-md">
-                            <CardHeader className="pb-2">
-                                <CardTitle className="text-sm font-medium text-muted-foreground">Readiness Status</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-3xl font-bold text-emerald-600">Optimal</div>
-                                <p className="text-xs text-muted-foreground mt-1">Based on latest AMS</p>
                             </CardContent>
                         </Card>
                     </div>
@@ -372,7 +374,7 @@ export default function SportsScientistAnalytics() {
                             <CardTitle className="text-sm font-medium text-muted-foreground">Active Athletes</CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <div className="text-3xl font-bold">--</div>
+                            <div className="text-3xl font-bold">{stats?.activeAthletesCount || 0}</div>
                             <p className="text-xs text-muted-foreground mt-1">Unique clients this month</p>
                         </CardContent>
                     </Card>
@@ -486,16 +488,12 @@ function PerformanceReportButton({
 }) {
     const { data: results } = usePerformanceResults(athleteId);
     const { personalBests } = usePersonalBests(athleteId);
+    const { toast } = useToast();
 
     const handleDownload = async () => {
-        if (!results) return;
-        await generateAthletePerformanceReport({
-            athleteName,
-            organization: orgName,
-            organizationLogo: orgLogo,
-            organizationAddress: orgAddress,
-            assessments: results,
-            personalBests
+        toast({
+            title: "Coming Soon",
+            description: "Athlete performance report generation is under progress.",
         });
     };
 

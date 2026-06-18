@@ -11,16 +11,17 @@ import { cn } from "@/lib/utils";
 import { apiFetch } from "@/utils/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { Calendar as CalendarIcon, Clock, Users, User, Plus, Loader2, Check, ChevronsUpDown, X } from "lucide-react";
+import { Calendar as CalendarIcon, Clock, Users, User, Plus, Loader2, Check, ChevronsUpDown, X, Trash2, Repeat } from "lucide-react";
 import { format, parse, addHours, differenceInCalendarDays, startOfDay, addWeeks, addDays } from "date-fns";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
 
 interface Props {
     open: boolean;
     onOpenChange: (open: boolean) => void;
-    onSuccess: () => void;
+    onSuccess?: () => void;
 }
 
 export function SportsScientistBookSessionModal({ open, onOpenChange, onSuccess }: Props) {
@@ -142,6 +143,8 @@ export function SportsScientistBookSessionModal({ open, onOpenChange, onSuccess 
 
         setLoading(true);
         try {
+            const selectedType = sessionTypes.find(t => t.id === sessionTypeId);
+            const serviceTypeStr = selectedType ? selectedType.name : "Sports Science";
             const startDate = new Date(`${sessionDate}T00:00:00`);
             const sessionsToInsert: any[] = [];
 
@@ -155,6 +158,8 @@ export function SportsScientistBookSessionModal({ open, onOpenChange, onSuccess 
                     scientist_id: user!.id,
                     session_mode: sessionMode,
                     session_type_id: sessionTypeId,
+                    service_id: sessionTypeId || null,
+                    service_type: serviceTypeStr,
                     scheduled_start: new Date(startTimestamp).toISOString(),
                     scheduled_end: new Date(endTimestamp).toISOString(),
                     status: status,
@@ -200,6 +205,8 @@ export function SportsScientistBookSessionModal({ open, onOpenChange, onSuccess 
                             scientist_id: user!.id,
                             session_mode: sessionMode,
                             session_type_id: sessionTypeId,
+                            service_id: sessionTypeId || null,
+                            service_type: serviceTypeStr,
                             scheduled_start: new Date(startTimestamp).toISOString(),
                             scheduled_end: new Date(endTimestamp).toISOString(),
                             status: status,
@@ -231,7 +238,7 @@ export function SportsScientistBookSessionModal({ open, onOpenChange, onSuccess 
             });
 
             toast({ title: "Success", description: "Session booked successfully." });
-            onSuccess();
+            onSuccess?.();
             onOpenChange(false);
             resetForm();
         } catch (error: any) {
@@ -581,36 +588,150 @@ export function SportsScientistBookSessionModal({ open, onOpenChange, onSuccess 
                             </div>
                         )}
 
-                        {/* Date & Time Section - Redesigned Grid */}
-                        <div className="p-4 bg-white dark:bg-slate-900 rounded-[2rem] border border-border/50 shadow-sm space-y-4">
-                            <div className="space-y-2">
-                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1 flex items-center gap-2">
-                                   <CalendarIcon className="w-3 h-3" /> Event Date
-                                </Label>
-                                <Input 
-                                    type="date" 
-                                    className="h-12 rounded-xl border-slate-100 dark:border-slate-800 font-bold bg-slate-50 dark:bg-slate-950 focus-visible:ring-primary" 
-                                    value={sessionDate} 
-                                    onChange={e => setSessionDate(e.target.value)} 
-                                />
+                        {/* Recurrence Toggle */}
+                        <div className="flex items-center justify-between p-3.5 bg-primary/5 rounded-2xl border border-primary/10">
+                            <div className="flex items-center gap-2">
+                                <Repeat className="w-4 h-4 text-primary" />
+                                <Label className="text-xs font-black uppercase cursor-pointer tracking-wider" htmlFor="recurring-mode">Recurring Series</Label>
                             </div>
-                            
-                            <div className="space-y-2">
-                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1 flex items-center gap-2">
-                                   <Clock className="w-3 h-3" /> Time Window
-                                </Label>
-                                <div className="grid grid-cols-2 gap-3">
-                                    <div className="relative">
-                                        <Input type="time" className="h-12 rounded-xl border-slate-100 dark:border-slate-800 font-bold bg-slate-50 dark:bg-slate-950 pr-8" value={startTime} onChange={e => setStartTime(e.target.value)} />
-                                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] font-black text-slate-400">IN</span>
+                            <Switch id="recurring-mode" checked={isRecurring} onCheckedChange={setIsRecurring} />
+                        </div>
+
+                        {/* Date & Time Selection (Conditional for Recurrence) */}
+                        {isRecurring ? (
+                            <div className="space-y-4 animate-in fade-in slide-in-from-left-2 duration-300">
+                                {/* Series Start & End Dates */}
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1 flex items-center gap-2">
+                                            <CalendarIcon className="w-3 h-3" /> Series Start Date
+                                        </Label>
+                                        <Input 
+                                            type="date" 
+                                            className="h-12 rounded-xl border-slate-200 font-bold bg-white dark:bg-slate-900 focus-visible:ring-primary" 
+                                            value={sessionDate} 
+                                            onChange={e => setSessionDate(e.target.value)} 
+                                        />
                                     </div>
-                                    <div className="relative">
-                                        <Input type="time" className="h-12 rounded-xl border-slate-100 dark:border-slate-800 font-bold bg-slate-50 dark:bg-slate-950 pr-8" value={endTime} onChange={e => setEndTime(e.target.value)} />
-                                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] font-black text-slate-400">OUT</span>
+                                    <div className="space-y-2">
+                                        <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1 flex items-center gap-2">
+                                            <CalendarIcon className="w-3 h-3" /> Series End Date
+                                        </Label>
+                                        <Input 
+                                            type="date" 
+                                            className="h-12 rounded-xl border-slate-200 font-bold bg-white dark:bg-slate-900 focus-visible:ring-primary" 
+                                            value={recurringEndDate} 
+                                            onChange={e => setRecurringEndDate(e.target.value)} 
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Weekly Slots */}
+                                <div className="space-y-3">
+                                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Series Weekly Schedule</Label>
+                                    <div className="space-y-3">
+                                        {recurringSlots.map((slot, idx) => (
+                                            <div key={idx} className="flex items-end gap-2 p-3 bg-white dark:bg-slate-900 rounded-2xl border border-border/50 shadow-sm relative group">
+                                                <div className="flex-1 space-y-1.5 min-w-[120px]">
+                                                    <Label className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Day of Week</Label>
+                                                    <Select 
+                                                        value={slot.day} 
+                                                        onValueChange={(val) => {
+                                                            const newSlots = [...recurringSlots];
+                                                            newSlots[idx].day = val;
+                                                            setRecurringSlots(newSlots);
+                                                        }}
+                                                    >
+                                                        <SelectTrigger className="h-10 text-xs font-bold rounded-xl"><SelectValue /></SelectTrigger>
+                                                        <SelectContent className="rounded-xl border-none shadow-2xl">
+                                                            {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].map(day => (
+                                                                <SelectItem key={day} value={day} className="text-xs font-semibold">{day}</SelectItem>
+                                                            ))}
+                                                        </SelectContent>
+                                                    </Select>
+                                                </div>
+                                                <div className="w-24 space-y-1.5">
+                                                    <Label className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Start</Label>
+                                                    <Input 
+                                                        type="time" 
+                                                        value={slot.startTime} 
+                                                        onChange={(e) => {
+                                                            const newSlots = [...recurringSlots];
+                                                            newSlots[idx].startTime = e.target.value;
+                                                            setRecurringSlots(newSlots);
+                                                        }} 
+                                                        className="h-10 text-xs font-bold rounded-xl px-2" 
+                                                    />
+                                                </div>
+                                                <div className="w-24 space-y-1.5">
+                                                    <Label className="text-[9px] font-black uppercase text-slate-400 tracking-wider">End</Label>
+                                                    <Input 
+                                                        type="time" 
+                                                        value={slot.endTime} 
+                                                        onChange={(e) => {
+                                                            const newSlots = [...recurringSlots];
+                                                            newSlots[idx].endTime = e.target.value;
+                                                            setRecurringSlots(newSlots);
+                                                        }} 
+                                                        className="h-10 text-xs font-bold rounded-xl px-2" 
+                                                    />
+                                                </div>
+                                                <Button 
+                                                    type="button"
+                                                    variant="ghost" 
+                                                    size="icon" 
+                                                    className="h-10 w-10 text-slate-400 hover:text-red-500 rounded-xl" 
+                                                    onClick={() => setRecurringSlots(prev => prev.filter((_, i) => i !== idx))} 
+                                                    disabled={recurringSlots.length <= 1}
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </Button>
+                                            </div>
+                                        ))}
+                                        <Button 
+                                            type="button"
+                                            variant="outline" 
+                                            size="sm" 
+                                            className="w-full h-10 border-dashed border-primary/30 text-[10px] font-black uppercase tracking-wider text-primary rounded-xl bg-primary/5 hover:bg-primary/10 transition-colors" 
+                                            onClick={() => setRecurringSlots(prev => [...prev, { day: format(new Date(), "EEEE"), startTime: "09:00", endTime: "10:00" }])}
+                                        >
+                                            <Plus className="w-3 h-3 mr-2" /> Add Weekly Day
+                                        </Button>
                                     </div>
                                 </div>
                             </div>
-                        </div>
+                        ) : (
+                            /* Event Date & Time Window for Single Session */
+                            <div className="p-4 bg-white dark:bg-slate-900 rounded-[2rem] border border-border/50 shadow-sm space-y-4 animate-in fade-in slide-in-from-right-2 duration-300">
+                                <div className="space-y-2">
+                                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1 flex items-center gap-2">
+                                       <CalendarIcon className="w-3 h-3" /> Event Date
+                                    </Label>
+                                    <Input 
+                                        type="date" 
+                                        className="h-12 rounded-xl border-slate-100 dark:border-slate-800 font-bold bg-slate-50 dark:bg-slate-950 focus-visible:ring-primary" 
+                                        value={sessionDate} 
+                                        onChange={e => setSessionDate(e.target.value)} 
+                                    />
+                                </div>
+                                
+                                <div className="space-y-2">
+                                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1 flex items-center gap-2">
+                                       <Clock className="w-3 h-3" /> Time Window
+                                    </Label>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div className="relative">
+                                            <Input type="time" className="h-12 rounded-xl border-slate-100 dark:border-slate-800 font-bold bg-slate-50 dark:bg-slate-950 pr-8" value={startTime} onChange={e => setStartTime(e.target.value)} />
+                                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] font-black text-slate-400">IN</span>
+                                        </div>
+                                        <div className="relative">
+                                            <Input type="time" className="h-12 rounded-xl border-slate-100 dark:border-slate-800 font-bold bg-slate-50 dark:bg-slate-950 pr-8" value={endTime} onChange={e => setEndTime(e.target.value)} />
+                                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] font-black text-slate-400">OUT</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
 
                         {/* Notes */}
                         <div className="space-y-2">

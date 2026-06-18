@@ -8,26 +8,28 @@ const router = express.Router();
 router.get('/', requireAuth, async (req, res) => {
     try {
         const orgId = req.user.organization_id;
-        const { start, end, therapist_id, scientist_id, client_id, status, is_unentitled } = req.query;
-
+        const { start, end, therapist_id, scientist_id, specialist_id, client_id, status, is_unentitled } = req.query;
         let query = `
-            SELECT s.*, 
-                   json_build_object(
-                       'id', c.id, 
-                       'first_name', c.first_name, 
-                       'last_name', c.last_name, 
-                       'uhid', c.uhid, 
-                       'is_vip', c.is_vip,
-                       'mobile_no', c.mobile_no,
-                       'email', c.email,
-                       'sport', c.sport
-                   ) as client,
+            SELECT s.id, s.organization_id, s.client_id, s.scientist_id, s.entitlement_id, s.service_id, s.service_type, s.session_mode, s.scheduled_start, s.scheduled_end, s.actual_start, s.actual_end, s.status, s.cancellation_reason, s.is_unentitled, s.preference_type, s.is_flexible_routing, s.created_by, s.created_at, s.updated_at, s.group_name, s.session_location, s.session_notes, s.attachments, s.session_type_id,
+                   COALESCE(s.therapist_id, s.scientist_id) as therapist_id,
+                   CASE WHEN s.client_id IS NOT NULL THEN
+                       json_build_object(
+                           'id', c.id, 
+                           'first_name', c.first_name, 
+                           'last_name', c.last_name, 
+                           'uhid', c.uhid, 
+                           'is_vip', c.is_vip,
+                           'mobile_no', c.mobile_no,
+                           'email', c.email,
+                           'sport', c.sport
+                       )
+                   ELSE NULL END as client,
                    json_build_object('first_name', p.first_name, 'last_name', p.last_name) as therapist,
                    (SELECT json_agg(psd.*) FROM physiosessiondetails psd WHERE psd.session_id = s.id) as physio_session_details,
                    json_build_object('name', st.name) as session_type
             FROM Sessions s
-            JOIN Clients c ON s.client_id = c.id
-            LEFT JOIN profiles p ON s.therapist_id = p.id
+            LEFT JOIN Clients c ON s.client_id = c.id
+            LEFT JOIN profiles p ON COALESCE(s.therapist_id, s.scientist_id) = p.id
             LEFT JOIN Services st ON s.service_id = st.id
             WHERE s.organization_id = $1
         `;
@@ -41,8 +43,13 @@ router.get('/', requireAuth, async (req, res) => {
             query += ` AND s.scheduled_start <= $${params.length + 1}`;
             params.push(end);
         }
+        // specialist_id: matches sessions where user is EITHER the therapist OR the scientist
+        if (specialist_id) {
+            query += ` AND (s.therapist_id = $${params.length + 1} OR s.scientist_id = $${params.length + 1})`;
+            params.push(specialist_id);
+        }
         if (therapist_id) {
-            query += ` AND s.therapist_id = $${params.length + 1}`;
+            query += ` AND COALESCE(s.therapist_id, s.scientist_id) = $${params.length + 1}`;
             params.push(therapist_id);
         }
         if (scientist_id) {
@@ -112,23 +119,34 @@ router.post('/', requireAuth, async (req, res) => {
             const clientName = clientProfileRes.rows.length > 0 ? `${clientProfileRes.rows[0].first_name} ${clientProfileRes.rows[0].last_name}` : 'A client';
             const isVip = clientProfileRes.rows.length > 0 ? Boolean(clientProfileRes.rows[0].is_vip) : false;
 
-            // Log warning notification
-            await client.query(`
-                INSERT INTO notifications (
-                    organization_id, title, content, type, target_role, category, action_payload, action_status, is_vip, sender_id
-                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-            `, [
-                orgId,
-                'Outstanding Balance Warning',
-                `Booking attempt with outstanding balance (₹${totalDues}) for client ${clientName}.`,
-                'amber',
-                'admin',
-                'direct_action',
-                JSON.stringify({ client_id, totalDues }),
-                'pending',
-                isVip,
-                req.user.id
-            ]);
+            // Check if settings allow outstanding balance warning
+            const settingsRes = await client.query(
+                'SELECT enable_in_app_notifications, notify_outstanding_balance FROM organization_notification_settings WHERE organization_id = $1',
+                [orgId]
+            );
+            const shouldNotify = settingsRes.rows.length > 0
+                ? (settingsRes.rows[0].enable_in_app_notifications && settingsRes.rows[0].notify_outstanding_balance)
+                : true;
+
+            if (shouldNotify) {
+                // Log warning notification
+                await client.query(`
+                    INSERT INTO notifications (
+                        organization_id, title, content, type, target_role, category, action_payload, action_status, is_vip, sender_id
+                    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+                `, [
+                    orgId,
+                    'Outstanding Balance Warning',
+                    `Booking attempt with outstanding balance (₹${totalDues}) for client ${clientName}.`,
+                    'amber',
+                    'admin',
+                    'direct_action',
+                    JSON.stringify({ client_id, totalDues }),
+                    'pending',
+                    isVip,
+                    req.user.id
+                ]);
+            }
         }
 
         // 2. Insert Session

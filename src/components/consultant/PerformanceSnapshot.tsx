@@ -4,7 +4,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Activity, Moon, Zap, AlertTriangle } from "lucide-react";
 import { format, subDays } from "date-fns";
 import { Progress } from "@/components/ui/progress";
-import SorenessHeatmap from "@/components/ams/SorenessHeatmap";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
@@ -88,25 +87,6 @@ export default function PerformanceSnapshot({ clientId }: PerformanceSnapshotPro
                         </div>
                         <Progress value={(latest?.soreness_level || 0) * 10} className={cn("h-1", getProgressColor(11 - (latest?.soreness_level || 0)))} />
                     </div>
-
-                    {latest.soreness_data && (latest.soreness_data as string[]).length > 0 && (
-                        <div className="space-y-4">
-                            <div className="flex flex-wrap gap-1.5">
-                                {(latest.soreness_data as string[]).map((zone, idx) => (
-                                    <Badge 
-                                        key={idx} 
-                                        variant="outline" 
-                                        className="bg-red-50 text-red-600 border-red-100 text-[9px] font-black uppercase tracking-tight py-0.5 px-2"
-                                    >
-                                        <AlertTriangle className="w-2.5 h-2.5 mr-1" />
-                                        {zone.replace(/_/g, " ").replace(" ant", "").replace(" post", "")}
-                                    </Badge>
-                                ))}
-                            </div>
-                            <SorenessHeatmap selectedZones={latest.soreness_data as string[]} readOnly />
-                        </div>
-                    )}
-
                 </div>
 
                 <p className="text-[10px] text-center text-muted-foreground italic">

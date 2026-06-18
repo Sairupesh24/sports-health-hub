@@ -258,9 +258,15 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess, initialDa
     };
 
     const filteredServices = useMemo(() => {
+        if (consultantId) {
+            return services.filter(s => 
+                (s as any).is_universal || 
+                serviceMappings.some((m: any) => m.consultant_id === consultantId && m.service_id === s.id)
+            );
+        }
         const userRole = roles.find(r => ['admin', 'clinic_admin', 'front_office', 'foe'].includes(r));
         return filterServicesByRole(services, null, userRole);
-    }, [services, roles]);
+    }, [services, roles, consultantId, serviceMappings]);
 
     const filteredConsultants = useMemo(() => {
         const selectedService = services.find(s => s.id === serviceId);

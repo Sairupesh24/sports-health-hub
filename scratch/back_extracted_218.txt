@@ -1,0 +1,57 @@
+Created At: 2026-05-29T12:41:39Z
+Completed At: 2026-05-29T12:41:39Z
+
+				The command completed successfully.
+				Output:
+				import React from "react";
+import { cn } from "@/lib/utils";
+
+interface BodyPart {
+    id: string;
+    label: string;
+    path: string;
+    view: "front" | "back";
+}
+
+const bodyParts: BodyPart[] = [
+    // FRONT VIEW
+    { id: "neck_ant", label: "Neck", view: "front", path: "M92,55 C92,55 94,68 100,68 C106,68 108,55 108,55 L104,50 L96,50 Z" },
+    { id: "shoulder_l_ant", label: "Shoulder (L)", view: "front", path: "M78,75 C68,75 58,85 62,105 L80,105 L88,85 Z" },
+    { id: "shoulder_r_ant", label: "Shoulder (R)", view: "front", path: "M122,75 C132,75 142,85 138,105 L120,105 L112,85 Z" },
+    { id: "chest_l", label: "Pectorals (L)", view: "front", path: "M86,85 C92,85 100,85 100,85 L100,115 L78,118 C75,108 78,95 86,85 Z" },
+    { id: "chest_r", label: "Pectorals (R)", view: "front", path: "M114,85 C108,85 100,85 100,85 L100,115 L122,118 C125,108 122,95 114,85 Z" },
+    { id: "bicep_l", label: "Bicep (L)", view: "front", path: "M60,108 L76,110 L72,140 L54,135 C52,125 55,115 60,108 Z" },
+    { id: "bicep_r", label: "Bicep (R)", view: "front", path: "M140,108 L124,110 L128,140 L146,135 C148,125 145,115 140,108 Z" },
+    { id: "forearm_l_ant", label: "Forearm (L)", view: "front", path: "M52,148 L68,148 L65,190 L52,190 C48,175 48,160 52,148 Z" },
+    { id: "forearm_r_ant", label: "Forearm (R)", view: "front", path: "M148,148 L132,148 L135,190 L148,190 C152,175 152,160 148,148 Z" },
+    { id: "abs", label: "Abdominals", view: "front", path: "M88,118 L112,118 C115,135 115,145 112,155 L88,155 C85,145 85,135 88,118 Z" },
+    { id: "oblique_l", label: "Obliques (L)", view: "front", path: "M76,120 L86,120 C85,135 85,145 86,155 L74,155 C72,140 73,130 76,120 Z" },
+    { id: "oblique_r", label: "Obliques (R)", view: "front", path: "M124,120 L114,120 C115,135 115,145 114,155 L126,155 C128,140 127,130 124,120 Z" },
+    { id: "hip_flexor_l", label: "Hip Flexor (L)", view: "front", path
+<truncated 1035 bytes>
+ label: "Traps (L)", view: "back", path: "M85,70 C92,65 100,60 100,60 L100,90 L85,90 Z" },
+    { id: "traps_r", label: "Traps (R)", view: "back", path: "M115,70 C108,65 100,60 100,60 L100,90 L115,90 Z" },
+    { id: "shoulder_l_post", label: "Shoulder (L)", view: "back", path: "M78,75 C68,75 58,85 62,105 L80,105 L88,85 Z" },
+    { id: "shoulder_r_post", label: "Shoulder (R)", view: "back", path: "M122,75 C132,75 142,85 138,105 L120,105 L112,85 Z" },
+    { id: "lats_l", label: "Lats (L)", view: "back", path: "M78,92 L100,92 L100,135 L72,125 C70,110 72,100 78,92 Z" },
+    { id: "lats_r", label: "Lats (R)", view: "back", path: "M122,92 L100,92 L100,135 L128,125 C130,110 128,100 122,92 Z" },
+    { id: "tricep_l", label: "Triceps (L)", view: "back", path: "M60,108 L76,110 L72,140 L54,135 C52,125 55,115 60,108 Z" },
+    { id: "tricep_r", label: "Triceps (R)", view: "back", path: "M140,108 L124,110 L128,140 L146,135 C148,125 145,115 140,108 Z" },
+    { id: "lower_back", label: "Lower Back", view: "back", path: "M85,135 L115,135 L112,158 L88,158 Z" },
+    { id: "glute_l", label: "Gluteus (L)", view: "back", path: "M75,160 C72,175 72,190 75,195 L100,195 L100,160 Z" },
+    { id: "glute_r", label: "Gluteus (R)", view: "back", path: "M125,160 C128,175 128,190 125,195 L100,195 L100,160 Z" },
+    { id: "hamstring_l", label: "Hamstrings (L)", view: "back", path: "M72,200 L95,200 L90,250 L70,250 C68,230 68,215 72,200 Z" },
+    { id: "hamstring_r", label: "Hamstrings (R)", view: "back", path: "M128,200 L105,200 L110,250 L130,250 C132,230 132,215 128,200 Z" },
+    { id: "calf_l", label: "Calf (L)", view: "back", path: "M78,255 L95,255 L90,300 L82,300 Z" },
+    { id: "calf_r", label: "Calf (R)", view: "back", path: "M122,255 L105,255 L110,300 L118,300 Z" },
+];
+
+
+interface SorenessHeatmapProps {
+    onZoneToggle?: (zoneId: string) => void;
+    selectedZones: string[];
+    readOnly?: boolean;
+}
+
+export default function SorenessHeatmap({ onZoneToggle, selectedZones, readOnly = false }: SorenessHeatmapProps) {
+

@@ -24,6 +24,7 @@ export interface Service {
   name: string;
   category: string | null;
   organization_id: string;
+  is_universal?: boolean;
 }
 
 /**
@@ -81,6 +82,11 @@ export function filterConsultantsByService(
     dynamicMappings?: { consultant_id: string, service_id: string }[]
 ): any[] {
     if (!service) return consultants;
+
+    // If service is universal, all clinical consultants are qualified to conduct it
+    if (service.is_universal) {
+        return consultants;
+    }
 
     // 1. Try dynamic mappings first
     if (dynamicMappings && dynamicMappings.length > 0) {

@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiFetch } from "@/utils/api";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
     format,
     addDays,
@@ -28,6 +28,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Filter, Layers, Clock, Plus, Download, Bell, AlertCircle, Check, Coffee } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import { Loader2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
@@ -62,6 +65,7 @@ interface SessionEvent {
 
 export default function AdminCalendar() {
     const { profile } = useAuth();
+    const queryClient = useQueryClient();
     const [activeTab, setActiveTab] = useState("master");
     const [isBookModalOpen, setIsBookModalOpen] = useState(false);
     const [selectedSession, setSelectedSession] = useState<any>(null);
@@ -81,7 +85,9 @@ export default function AdminCalendar() {
     }
 
     const [consultants, setConsultants] = useState<ConsultantProfile[]>([]);
-    const [selectedConsultant, setSelectedConsultant] = useState<string>("all");
+    const [filterMode, setFilterMode] = useState<'role' | 'individual'>('role');
+    const [selectedRole, setSelectedRole] = useState<string>("all");
+    const [selectedConsultants, setSelectedConsultants] = useState<string[]>([]);
 
 
     const handleWaitlistBook = (item: any) => {
@@ -308,15 +314,25 @@ export default function AdminCalendar() {
         return Array.from(new Set(professions));
     }, [consultants]);
 
+    const hasUnassignedSessionsGlobal = useMemo(() => {
+        return sessionsWithEntitlementStatus.some(s => 
+            !s.therapist_id || !consultants.some(c => c.id === s.therapist_id)
+        );
+    }, [sessionsWithEntitlementStatus, consultants]);
+
     const sessions = useMemo(() => {
-        if (selectedConsultant === "all" || !selectedConsultant) return sessionsWithEntitlementStatus;
-        if (viewMode === "day") {
-            const clinicianIds = new Set(consultants.filter(c => c.profession === selectedConsultant).map(c => c.id));
-            return sessionsWithEntitlementStatus.filter(s => clinicianIds.has(s.therapist_id));
-        } else {
-            return sessionsWithEntitlementStatus.filter(s => s.therapist_id === selectedConsultant);
-        }
-    }, [sessionsWithEntitlementStatus, selectedConsultant, viewMode, consultants]);
+        return sessionsWithEntitlementStatus.filter(s => {
+            const isUnassigned = !s.therapist_id || !consultants.some(c => c.id === s.therapist_id);
+            if (filterMode === 'role') {
+                if (selectedRole === "all") return true;
+                return !isUnassigned && consultants.find(c => c.id === s.therapist_id)?.profession === selectedRole;
+            } else {
+                if (selectedConsultants.length === 0) return true;
+                if (isUnassigned) return selectedConsultants.includes('unassigned');
+                return selectedConsultants.includes(s.therapist_id);
+            }
+        });
+    }, [sessionsWithEntitlementStatus, filterMode, selectedRole, selectedConsultants, consultants]);
 
     // Mobile responsiveness
     const [isMobile, setIsMobile] = useState(false);
@@ -332,16 +348,42 @@ export default function AdminCalendar() {
     const [mobileSelectedClinicianId, setMobileSelectedClinicianId] = useState<string | null>(null);
 
     const activeClinicians = useMemo(() => {
-        if (selectedConsultant === "all" || !selectedConsultant) return consultants;
-        if (viewMode === "day") {
-            return consultants.filter(c => c.profession === selectedConsultant);
-        } else {
-            return consultants.filter(c => c.id === selectedConsultant);
+        const list = consultants.filter(c => {
+            if (filterMode === 'role') {
+                return selectedRole === "all" || c.profession === selectedRole;
+            } else {
+                return selectedConsultants.length === 0 || selectedConsultants.includes(c.id);
+            }
+        });
+
+        // Check if there are any unassigned sessions on the current date
+        const hasUnassignedToday = sessionsWithEntitlementStatus.some(s => 
+            isSameDay(parseISO(s.scheduled_start), currentDate) && 
+            (!s.therapist_id || !consultants.some(c => c.id === s.therapist_id))
+        );
+
+        if (hasUnassignedToday) {
+            const matchesRoleFilter = filterMode === 'role' && selectedRole === 'all';
+            const matchesIndividualFilter = filterMode === 'individual' && (selectedConsultants.length === 0 || selectedConsultants.includes('unassigned'));
+            
+            if (matchesRoleFilter || matchesIndividualFilter) {
+                list.push({
+                    id: 'unassigned',
+                    name: 'Unassigned',
+                    profession: 'Clinic Slot',
+                    avatar_url: null,
+                    emergency_alerts: []
+                });
+            }
         }
-    }, [consultants, selectedConsultant, viewMode]);
+
+        return list;
+    }, [consultants, filterMode, selectedRole, selectedConsultants, sessionsWithEntitlementStatus, currentDate]);
 
     useEffect(() => {
-        setSelectedConsultant("all");
+        setFilterMode("role");
+        setSelectedRole("all");
+        setSelectedConsultants([]);
     }, [viewMode]);
 
     // Automatically set/reset mobile selection
@@ -363,10 +405,48 @@ export default function AdminCalendar() {
         return activeClinicians;
     }, [isMobile, activeClinicians, mobileSelectedClinicianId]);
 
+    const calendarHoursRange = useMemo(() => {
+        let minHour = 8;
+        let maxHour = 20;
+
+        sessionsWithEntitlementStatus.forEach(s => {
+            const startD = parseISO(s.scheduled_start);
+            const endD = parseISO(s.scheduled_end);
+
+            let isRelevant = false;
+            if (viewMode === 'day') {
+                isRelevant = isSameDay(startD, currentDate);
+            } else if (viewMode === 'week') {
+                const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
+                const weekEnd = endOfWeek(currentDate, { weekStartsOn: 1 });
+                isRelevant = startD >= weekStart && startD <= weekEnd;
+            } else {
+                isRelevant = true;
+            }
+
+            if (isRelevant) {
+                const sHour = startD.getHours();
+                const eHour = Math.ceil(endD.getHours() + endD.getMinutes() / 60);
+                if (sHour < minHour) {
+                    minHour = sHour;
+                }
+                if (eHour > maxHour) {
+                    maxHour = eHour;
+                }
+            }
+        });
+
+        if (minHour >= maxHour) {
+            maxHour = minHour + 1;
+        }
+
+        return { minHour, maxHour };
+    }, [sessionsWithEntitlementStatus, viewMode, currentDate]);
+
     const timeSlots = useMemo(() => {
         const slots: { start: string; end: string; label: string }[] = [];
-        const startMinutes = 8 * 60; // 08:00 AM
-        const endMinutes = 20 * 60;   // 08:00 PM
+        const startMinutes = calendarHoursRange.minHour * 60;
+        const endMinutes = calendarHoursRange.maxHour * 60;
         const duration = Number(orgSettings?.default_slot_duration) || 30;
 
         for (let m = startMinutes; m < endMinutes; m += duration) {
@@ -392,7 +472,7 @@ export default function AdminCalendar() {
             });
         }
         return slots;
-    }, [orgSettings?.default_slot_duration]);
+    }, [orgSettings?.default_slot_duration, calendarHoursRange]);
 
     const timeToY = (timeStrOrDate: string | Date) => {
         let hours = 0;
@@ -406,8 +486,8 @@ export default function AdminCalendar() {
             minutes = parseInt(parts[1], 10) || 0;
         }
         const currentM = hours * 60 + minutes;
-        const startM = 8 * 60; // 08:00 AM
-        const totalM = 12 * 60; // 12 hours total
+        const startM = calendarHoursRange.minHour * 60;
+        const totalM = (calendarHoursRange.maxHour - calendarHoursRange.minHour) * 60;
         
         const offsetM = Math.max(0, Math.min(totalM, currentM - startM));
         const totalHeight = timeSlots.length * 60;
@@ -647,7 +727,7 @@ export default function AdminCalendar() {
     const renderWeekView = () => {
         const start = startOfWeek(currentDate, { weekStartsOn: 1 });
         const weekDays = eachDayOfInterval({ start, end: addDays(start, 6) });
-        const hours = Array.from({ length: 13 }, (_, i) => i + 8);
+        const hours = Array.from({ length: calendarHoursRange.maxHour - calendarHoursRange.minHour + 1 }, (_, i) => i + calendarHoursRange.minHour);
 
         return (
             <div className="flex flex-col border border-border/50 rounded-lg overflow-hidden bg-card">
@@ -695,10 +775,10 @@ export default function AdminCalendar() {
                                             const startHour = startD.getHours() + (startD.getMinutes() / 60);
                                             const durationHours = (endD.getTime() - startD.getTime()) / (1000 * 60 * 60);
 
-                                            const topPos = Math.max(0, (startHour - 8) * 80);
+                                            const topPos = Math.max(0, (startHour - calendarHoursRange.minHour) * 80);
                                             const height = durationHours * 80;
 
-                                            if (startHour > 20 || endD.getHours() < 8) return null;
+                                            if (startHour > calendarHoursRange.maxHour || endD.getHours() < calendarHoursRange.minHour) return null;
 
                                             return (
                                                 <div
@@ -716,7 +796,7 @@ export default function AdminCalendar() {
                                                         )}
                                                         {!event.is_guest && <VIPBadge isVIP={event.client?.is_vip} iconOnly size="sm" />}
                                                     </div>
-                                                    {selectedConsultant === "all" && height > 40 && (
+                                                    {((filterMode === 'role') || (filterMode === 'individual' && selectedConsultants.length !== 1)) && height > 40 && (
                                                         <div className="text-[8px] truncate opacity-80 mt-0.5 border-t border-current/20 pt-0.5 leading-none">
                                                             {event.therapist?.first_name} {event.therapist?.last_name}
                                                         </div>
@@ -862,6 +942,10 @@ export default function AdminCalendar() {
 
                             // Bookings logic
                             const clinicianSessions = sessions.filter(s => {
+                                const isUnassigned = !s.therapist_id || !consultants.some(c => c.id === s.therapist_id);
+                                if (clinician.id === 'unassigned') {
+                                    return isUnassigned && isSameDay(parseISO(s.scheduled_start), currentDate);
+                                }
                                 return s.therapist_id === clinician.id && isSameDay(parseISO(s.scheduled_start), currentDate);
                             });
 
@@ -1149,29 +1233,144 @@ export default function AdminCalendar() {
                                         </div>
 
                                         <div className="flex flex-wrap items-center gap-3">
-                                            <Select value={selectedConsultant} onValueChange={setSelectedConsultant}>
-                                                <SelectTrigger className="w-[180px] h-9 bg-background border-slate-200 rounded-xl text-xs font-medium">
-                                                    <SelectValue placeholder={viewMode === "day" ? "All Roles" : "All Specialists"} />
-                                                </SelectTrigger>
-                                                <SelectContent className="rounded-xl">
-                                                    <SelectItem value="all" className="text-xs font-bold text-slate-700">ALL SPECIALISTS</SelectItem>
-                                                    {viewMode === "day" ? (
-                                                        rolesList.map(role => (
-                                                            <SelectItem key={role} value={role} className="text-xs font-semibold text-slate-600 uppercase">
-                                                                {role}s
-                                                            </SelectItem>
-                                                        ))
-                                                    ) : (
-                                                        consultants.map(c => (
-                                                            <SelectItem key={c.id} value={c.id} className="text-xs font-semibold text-slate-600 uppercase">
-                                                                {c.name} {c.profession ? `(${c.profession})` : ''}
-                                                            </SelectItem>
-                                                        ))
-                                                    )}
-                                                </SelectContent>
-                                            </Select>
+                                            <Popover>
+                                                <PopoverTrigger asChild>
+                                                    <Button variant="outline" size="sm" className="h-9 gap-2 rounded-xl border-slate-200 text-slate-600 font-bold uppercase text-[10px] tracking-wider hover:bg-slate-50 transition-colors">
+                                                        <Filter className={cn("w-3.5 h-3.5", (filterMode === 'role' ? selectedRole !== 'all' : selectedConsultants.length > 0) ? "text-primary fill-primary/10" : "text-slate-500")} />
+                                                        <span>Filter</span>
+                                                        {(filterMode === 'role' ? selectedRole !== 'all' : selectedConsultants.length > 0) && (
+                                                            <span className="ml-1 px-1.5 py-0.5 text-[8px] font-extrabold bg-primary text-white rounded-full">
+                                                                {filterMode === 'role' ? 1 : selectedConsultants.length}
+                                                            </span>
+                                                        )}
+                                                    </Button>
+                                                </PopoverTrigger>
+                                                <PopoverContent className="w-80 p-4 rounded-2xl bg-white border border-slate-200 shadow-xl z-50" align="end">
+                                                    <div className="space-y-4">
+                                                        <div className="flex items-center justify-between border-b pb-2 border-slate-100">
+                                                            <h4 className="font-bold text-xs text-slate-800 uppercase tracking-wider">Calendar Filters</h4>
+                                                            <Button 
+                                                                variant="ghost" 
+                                                                size="sm" 
+                                                                onClick={() => {
+                                                                    setSelectedRole("all");
+                                                                    setSelectedConsultants([]);
+                                                                }}
+                                                                className="text-[9px] uppercase font-bold text-muted-foreground h-6 px-2 hover:bg-slate-100 rounded-lg"
+                                                            >
+                                                                Reset
+                                                            </Button>
+                                                        </div>
 
-                                            <div className="flex bg-slate-100 p-0.5 rounded-xl border border-slate-100">
+                                                        {/* Toggle between Role and Individual */}
+                                                        <div className="grid grid-cols-2 p-0.5 bg-slate-100 rounded-xl border border-slate-100">
+                                                            <button
+                                                                onClick={() => setFilterMode('role')}
+                                                                className={cn(
+                                                                    "py-1.5 text-[9px] font-black uppercase rounded-lg transition-all text-center",
+                                                                    filterMode === 'role' ? "bg-white text-primary shadow-sm" : "text-slate-600 hover:text-slate-900"
+                                                                )}
+                                                            >
+                                                                By Role
+                                                            </button>
+                                                            <button
+                                                                onClick={() => setFilterMode('individual')}
+                                                                className={cn(
+                                                                    "py-1.5 text-[9px] font-black uppercase rounded-lg transition-all text-center",
+                                                                    filterMode === 'individual' ? "bg-white text-primary shadow-sm" : "text-slate-600 hover:text-slate-900"
+                                                                )}
+                                                            >
+                                                                By Specialist
+                                                            </button>
+                                                        </div>
+
+                                                        {/* Content based on selected mode */}
+                                                        {filterMode === 'role' ? (
+                                                            <div className="space-y-2 pt-1">
+                                                                <Label className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Select Specialist Role</Label>
+                                                                <div className="space-y-1 max-h-[220px] overflow-y-auto pr-1 no-scrollbar">
+                                                                    <button
+                                                                        onClick={() => setSelectedRole("all")}
+                                                                        className={cn(
+                                                                            "w-full text-left px-3 py-2 rounded-xl text-xs font-semibold flex items-center justify-between transition-colors",
+                                                                            selectedRole === "all" ? "bg-primary/10 text-primary" : "hover:bg-slate-50 text-slate-700"
+                                                                        )}
+                                                                    >
+                                                                        <span>All Roles</span>
+                                                                        {selectedRole === "all" && <Check className="w-3.5 h-3.5" />}
+                                                                    </button>
+                                                                    {rolesList.map(role => (
+                                                                        <button
+                                                                            key={role}
+                                                                            onClick={() => setSelectedRole(role)}
+                                                                            className={cn(
+                                                                                "w-full text-left px-3 py-2 rounded-xl text-xs font-semibold flex items-center justify-between transition-colors uppercase",
+                                                                                selectedRole === role ? "bg-primary/10 text-primary" : "hover:bg-slate-50 text-slate-700"
+                                                                            )}
+                                                                        >
+                                                                            <span>{role}s</span>
+                                                                            {selectedRole === role && <Check className="w-3.5 h-3.5" />}
+                                                                        </button>
+                                                                    ))}
+                                                                </div>
+                                                            </div>
+                                                        ) : (
+                                                            <div className="space-y-2 pt-1">
+                                                                <div className="flex justify-between items-center">
+                                                                    <Label className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Select Specialists</Label>
+                                                                    <div className="flex gap-2">
+                                                                        <button
+                                                                            onClick={() => setSelectedConsultants([...consultants.map(c => c.id), ...(hasUnassignedSessionsGlobal ? ['unassigned'] : [])])}
+                                                                            className="text-[9px] font-bold uppercase text-primary hover:underline"
+                                                                        >
+                                                                            Select All
+                                                                        </button>
+                                                                        <span className="text-[9px] text-slate-300">|</span>
+                                                                        <button
+                                                                            onClick={() => setSelectedConsultants([])}
+                                                                            className="text-[9px] font-bold uppercase text-primary hover:underline"
+                                                                        >
+                                                                            Clear
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="space-y-1 max-h-[220px] overflow-y-auto pr-1 custom-scrollbar">
+                                                                    {[...consultants, ...(hasUnassignedSessionsGlobal ? [{ id: 'unassigned', name: 'Unassigned', profession: 'Clinic Slot', avatar_url: null, emergency_alerts: [] }] : [])].map(c => {
+                                                                        const isChecked = selectedConsultants.includes(c.id);
+                                                                        return (
+                                                                            <div
+                                                                                key={c.id}
+                                                                                onClick={() => {
+                                                                                    if (isChecked) {
+                                                                                        setSelectedConsultants(selectedConsultants.filter(id => id !== c.id));
+                                                                                    } else {
+                                                                                        setSelectedConsultants([...selectedConsultants, c.id]);
+                                                                                    }
+                                                                                }}
+                                                                                className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-slate-50 cursor-pointer transition-colors"
+                                                                            >
+                                                                                <Checkbox
+                                                                                    checked={isChecked}
+                                                                                    onCheckedChange={() => {}}
+                                                                                    className="rounded-[4px] border-slate-300 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+                                                                                />
+                                                                                <div className="min-w-0 flex-1">
+                                                                                    <p className="text-xs font-bold text-slate-800 truncate">{c.name}</p>
+                                                                                    {c.profession && (
+                                                                                        <p className="text-[9px] text-slate-400 font-medium uppercase truncate leading-none mt-0.5">{c.profession}</p>
+                                                                                    )}
+                                                                                </div>
+                                                                            </div>
+                                                                        );
+                                                                    })}
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </PopoverContent>
+                                            </Popover>
+ 
+                                             <div className="flex bg-slate-100 p-0.5 rounded-xl border border-slate-100">
                                                 {(["day", "week", "month"] as ViewMode[]).map((m) => (
                                                     <Button 
                                                         key={m} 
@@ -1230,7 +1429,11 @@ export default function AdminCalendar() {
                     setIsBookModalOpen(open);
                     if (!open) setWaitlistInitialData(null);
                 }} 
-                onSuccess={refetch} 
+                onSuccess={() => {
+                    queryClient.invalidateQueries({ queryKey: ["admin-master-sessions"] });
+                    queryClient.invalidateQueries({ queryKey: ["waitlist-summary"] });
+                    queryClient.invalidateQueries({ queryKey: ["planned-client-entitlements"] });
+                }} 
                 initialData={waitlistInitialData}
             />
 
@@ -1238,7 +1441,11 @@ export default function AdminCalendar() {
                 open={!!selectedSession}
                 onOpenChange={(open) => !open && setSelectedSession(null)}
                 session={selectedSession}
-                onSuccess={refetch}
+                onSuccess={() => {
+                    queryClient.invalidateQueries({ queryKey: ["admin-master-sessions"] });
+                    queryClient.invalidateQueries({ queryKey: ["waitlist-summary"] });
+                    queryClient.invalidateQueries({ queryKey: ["planned-client-entitlements"] });
+                }} 
             />
 
             <EmergencyResponseModal

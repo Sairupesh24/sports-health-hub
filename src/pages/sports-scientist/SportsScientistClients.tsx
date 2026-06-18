@@ -67,7 +67,7 @@ export default function SportsScientistClients() {
         <DashboardLayout role="sports_scientist">
             <div className="space-y-6">
                 <div>
-                    <h1 className="text-3xl font-display font-bold text-foreground">My Clients</h1>
+                    <h1 className="text-3xl font-display font-bold text-foreground">Clients</h1>
                     <p className="text-muted-foreground text-sm mt-1">Manage athletes and track their performance sessions</p>
                 </div>
 

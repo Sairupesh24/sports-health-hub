@@ -1,6 +1,12 @@
 import express from 'express';
 import { db } from './db.js';
 import { requireAuth } from './middleware.js';
+import path from 'path';
+import fs from 'fs/promises';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const router = express.Router();
 
@@ -291,12 +297,25 @@ router.get('/dashboard/stats', requireAuth, async (req, res) => {
         
         // 3. Template count
         const templatesRes = await db.query(`
-            SELECT COUNT(*) FROM SessionTemplates 
+            SELECT COUNT(*) FROM session_templates 
             WHERE scientist_id = $1
         `, [userId]);
         
+        const mappedSessions = sessionsRes.rows.map(r => ({
+            ...r,
+            client: r.client_id ? {
+                id: r.client_id,
+                first_name: r.first_name,
+                last_name: r.last_name
+            } : null,
+            session_type: r.service_id ? {
+                id: r.service_id,
+                name: r.session_type_name
+            } : null
+        }));
+        
         res.json({
-            todaySessions: sessionsRes.rows,
+            todaySessions: mappedSessions,
             clientCount: parseInt(clientsRes.rows[0].count),
             templateCount: parseInt(templatesRes.rows[0].count)
         });
@@ -385,7 +404,7 @@ router.post('/sessions/bulk', requireAuth, async (req, res) => {
             let idx = 3;
 
             for (const [k, v] of Object.entries(session)) {
-                if (v !== undefined) {
+                if (v !== undefined && !keys.includes(k)) {
                     keys.push(k);
                     values.push(v);
                     placeholders.push(`$${idx}`);
@@ -638,7 +657,25 @@ router.get('/exercises', requireAuth, async (req, res) => {
             query += ' LIMIT 1000';
         }
         
-        const result = await db.query(query, params);
+        let result = await db.query(query, params);
+        
+        if (result.rows.length === 0) {
+            // Check if exercises table is completely empty for global exercises
+            const checkRes = await db.query('SELECT COUNT(*) FROM exercises WHERE organization_id IS NULL');
+            const count = parseInt(checkRes.rows[0].count, 10);
+            if (count === 0) {
+                console.log('[API] Exercises table empty, dynamically seeding...');
+                const seedPath = path.join(__dirname, '../supabase/seed_exercises.sql');
+                let sql = await fs.readFile(seedPath, 'utf8');
+                sql = sql.replace(/DO\s+\$\s*BEGIN/i, '');
+                sql = sql.replace(/END\s+\$\$;/i, '');
+                sql = sql.replace(/RAISE\s+NOTICE\s+['"].*?['"]\s*;/gi, '');
+                await db.query(sql);
+                // Re-run the query
+                result = await db.query(query, params);
+            }
+        }
+        
         res.json(result.rows);
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -719,23 +756,34 @@ router.patch('/form-responses/:id', requireAuth, async (req, res) => {
 
             // 1. Alert strictly to the specific Assigner (Physician, Scientist, or PT - specialist_id)
             if (updatedRow.specialist_id) {
-                await db.query(`
-                    INSERT INTO notifications (
-                        organization_id, title, content, type, target_user_id, category, is_vip, sender_id
-                    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-                `, [
-                    orgId,
-                    'Questionnaire Completed',
-                    `Client ${clientName} has completed the questionnaire: ${formTitle}.`,
-                    'info',
-                    updatedRow.specialist_id,
-                    'in_app',
-                    isVip,
-                    updatedRow.client_id
-                ]);
+                const settingsRes = await db.query(
+                    'SELECT enable_in_app_notifications, notify_questionnaire_completed FROM organization_notification_settings WHERE organization_id = $1',
+                    [orgId]
+                );
+                const shouldNotify = settingsRes.rows.length > 0
+                    ? (settingsRes.rows[0].enable_in_app_notifications && settingsRes.rows[0].notify_questionnaire_completed)
+                    : true;
+
+                if (shouldNotify) {
+                    await db.query(`
+                        INSERT INTO notifications (
+                            organization_id, title, content, type, target_user_id, category, is_vip, sender_id
+                        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                    `, [
+                        orgId,
+                        'Questionnaire Completed',
+                        `Client ${clientName} has completed the questionnaire: ${formTitle}.`,
+                        'info',
+                        updatedRow.specialist_id,
+                        'in_app',
+                        isVip,
+                        updatedRow.client_id
+                    ]);
+                }
             }
 
-            // 2. Alert strictly to the Admin
+            // 2. Alert strictly to the Admin (Removed per user request: only assigner gets notified)
+            /*
             await db.query(`
                 INSERT INTO notifications (
                     organization_id, title, content, type, target_role, category, is_vip, sender_id
@@ -750,6 +798,7 @@ router.patch('/form-responses/:id', requireAuth, async (req, res) => {
                 isVip,
                 updatedRow.client_id
             ]);
+            */
         }
 
         res.json(updatedRow);
@@ -813,6 +862,23 @@ router.post('/form-responses/bulk', requireAuth, async (req, res) => {
         const specRes = await client.query('SELECT first_name, last_name FROM profiles WHERE id = $1', [req.user.id]);
         const specName = specRes.rows.length > 0 ? `${specRes.rows[0].first_name} ${specRes.rows[0].last_name}` : 'A specialist';
 
+        const formId = responses[0]?.form_id;
+        let formName = 'a new form';
+        if (formId) {
+            const formRes = await client.query('SELECT name FROM questionnaires WHERE id = $1', [formId]);
+            if (formRes.rows.length > 0) {
+                formName = formRes.rows[0].name;
+            }
+        }
+
+        const settingsRes = await client.query(
+            'SELECT enable_in_app_notifications, notify_questionnaire_assigned FROM organization_notification_settings WHERE organization_id = $1',
+            [req.user.organization_id]
+        );
+        const shouldNotify = settingsRes.rows.length > 0
+            ? (settingsRes.rows[0].enable_in_app_notifications && settingsRes.rows[0].notify_questionnaire_assigned)
+            : true;
+
         const results = [];
         for (const r of responses) {
             const insertRes = await client.query(`
@@ -826,20 +892,22 @@ router.post('/form-responses/bulk', requireAuth, async (req, res) => {
             const clientRes = await client.query('SELECT is_vip FROM clients WHERE id = $1', [r.client_id]);
             const isVip = clientRes.rows.length > 0 ? clientRes.rows[0].is_vip : false;
 
-            await client.query(`
-                INSERT INTO notifications (
-                    organization_id, title, content, type, target_user_id, category, is_vip, sender_id
-                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-            `, [
-                req.user.organization_id,
-                'New Form Assigned',
-                `${specName} has updated your training schedule / assigned a new form.`,
-                'info',
-                r.client_id,
-                'in_app',
-                isVip,
-                req.user.id
-            ]);
+            if (shouldNotify) {
+                await client.query(`
+                    INSERT INTO notifications (
+                        organization_id, title, content, type, target_user_id, category, is_vip, sender_id
+                    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                `, [
+                    req.user.organization_id,
+                    'New Questionnaire Assigned',
+                    `${specName} has assigned a new form: ${formName}. Please complete the assessment.`,
+                    'info',
+                    r.client_id,
+                    'in_app',
+                    isVip,
+                    req.user.id
+                ]);
+            }
         }
         await client.query('COMMIT');
         res.status(201).json(results);
@@ -880,6 +948,7 @@ router.get('/notifications', requireAuth, async (req, res) => {
     try {
         const userId = req.user.id;
         const orgId = req.user.organization_id;
+        const userRole = req.user.role;
         const result = await db.query(`
             SELECT n.*, 
                    p.first_name as sender_first_name, 
@@ -888,9 +957,17 @@ router.get('/notifications', requireAuth, async (req, res) => {
             FROM notifications n
             LEFT JOIN profiles p ON n.sender_id = p.id
             WHERE n.organization_id = $1 
-              AND (n.is_broadcast = true OR n.target_user_id = $2)
+              AND (
+                n.is_broadcast = true 
+                OR n.target_user_id = $2 
+                OR n.target_role = $3
+                OR (n.target_role = 'admin' AND $3 = 'super_admin')
+                OR (n.target_role = 'athlete' AND $3 IN ('athlete', 'client'))
+                OR (n.target_role = 'specialist' AND $3 IN ('sports_scientist', 'sports_physician', 'physiotherapist', 'nutritionist', 'massage_therapist', 'coach'))
+                OR (n.target_role IS NULL AND n.target_user_id IS NULL AND n.is_broadcast IS NOT TRUE AND ($3 = 'admin' OR $3 = 'super_admin'))
+              )
             ORDER BY n.created_at DESC
-        `, [orgId, userId]);
+        `, [orgId, userId, userRole]);
         
         const mapped = result.rows.map(row => ({
             ...row,
@@ -1396,6 +1473,15 @@ router.post('/program-assignments/bulk', requireAuth, async (req, res) => {
         const specRes = await client.query('SELECT first_name, last_name FROM profiles WHERE id = $1', [req.user.id]);
         const specName = specRes.rows.length > 0 ? `${specRes.rows[0].first_name} ${specRes.rows[0].last_name}` : 'A specialist';
 
+        const programId = assignments[0]?.program_id;
+        let programName = 'a new program';
+        if (programId) {
+            const progRes = await client.query('SELECT name FROM trainingprograms WHERE id = $1', [programId]);
+            if (progRes.rows.length > 0) {
+                programName = progRes.rows[0].name;
+            }
+        }
+
         const results = [];
         for (const a of assignments) {
             const insertRes = await client.query(`
@@ -1418,7 +1504,7 @@ router.post('/program-assignments/bulk', requireAuth, async (req, res) => {
                 `, [
                     orgId,
                     'New Program Assigned',
-                    `${specName} has updated your training schedule / assigned a new form.`,
+                    `${specName} has assigned a new program: ${programName}.`,
                     'info',
                     a.athlete_id,
                     'in_app',
@@ -1438,7 +1524,7 @@ router.post('/program-assignments/bulk', requireAuth, async (req, res) => {
                     `, [
                         orgId,
                         'New Program Assigned',
-                        `${specName} has updated your training schedule / assigned a new form.`,
+                        `${specName} has assigned a new program: ${programName}.`,
                         'info',
                         member.athlete_id,
                         'in_app',

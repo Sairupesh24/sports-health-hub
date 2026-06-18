@@ -31,7 +31,7 @@ export default function MyClients() {
         <DashboardLayout role="consultant">
             <div className="space-y-6">
                 <div>
-                    <h1 className="text-2xl font-display font-bold text-foreground">My Clients</h1>
+                    <h1 className="text-2xl font-display font-bold text-foreground">Clients</h1>
                     <p className="text-muted-foreground text-sm mt-0.5">View and manage clinical profiles for your assigned clients</p>
                 </div>
 

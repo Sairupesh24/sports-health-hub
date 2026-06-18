@@ -1,0 +1,1 @@
+"                                            <CardTitle className=\"text-xs font-bold uppercase tracking-widest text-slate-300\">Muscle Heatmap</CardTitle>"

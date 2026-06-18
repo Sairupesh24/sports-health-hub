@@ -1,0 +1,1 @@
+"function ClinicalReports({ role }: { role: ReportsPageProps['role'] }) {\n  const [activeTab, setActiveTab] = useState<\"soreness\" | \"templates\">(\"soreness\");\n  const [isGenerating, setIsGenerating] = useState(false);"

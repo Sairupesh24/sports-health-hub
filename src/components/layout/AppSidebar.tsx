@@ -49,7 +49,7 @@ const adminNav: NavItem[] = [
 
 const consultantNav: NavItem[] = [
   { label: "Dashboard", icon: LayoutDashboard, href: "/consultant" },
-  { label: "My Clients", icon: Users, href: "/consultant/clients" },
+  { label: "Clients", icon: Users, href: "/consultant/clients" },
   { label: "Schedule", icon: Calendar, href: "/consultant/schedule" },
   { label: "Availability", icon: Clock, href: "/consultant/availability" },
   { label: "Reports", icon: ClipboardList, href: "/consultant/reports" },
@@ -82,7 +82,7 @@ const foeNav: NavItem[] = [
 const sportsScientistNav: NavItem[] = [
   { label: "Dashboard", icon: LayoutDashboard, href: "/sports-scientist" },
   { label: "Schedule", icon: Calendar, href: "/sports-scientist/schedule" },
-  { label: "My Clients", icon: Users, href: "/sports-scientist/clients" },
+  { label: "Clients", icon: Users, href: "/sports-scientist/clients" },
   { label: "Reports", icon: ClipboardList, href: "/sports-scientist/reports" },
   { label: "Analytics", icon: Activity, href: "/sports-scientist/analytics" },
   { label: "Questionnaires", icon: ClipboardList, href: "/ams/questionnaires" },
@@ -194,6 +194,21 @@ export default function AppSidebar({ role, isMobile, className, onNavigate }: Ap
   
   let items = navMap[role] || adminNav;
 
+  // Filter and inject calendar access depending on permissions
+  const hasCalendarAccess = role === "admin" || profile?.has_calendar_access === true;
+  
+  if (hasCalendarAccess) {
+    if (!items.find(i => i.href === "/admin/calendar")) {
+      const dashboardIdx = items.findIndex(i => i.label.includes("Dashboard") || i.label === "Overview");
+      const insertIdx = dashboardIdx !== -1 ? dashboardIdx + 1 : 1;
+      
+      const newItems = [...items];
+      newItems.splice(insertIdx, 0, { label: "Admin Calendar", icon: CalendarDays, href: "/admin/calendar" });
+      items = newItems;
+    }
+  } else {
+    items = items.filter(item => item.href !== "/admin/calendar");
+  }
 
   if (role === "sports_scientist" || profile?.ams_role === "coach") {
     if (!items.find(i => i.label === "AMS Dashboard")) {

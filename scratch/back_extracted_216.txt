@@ -1,0 +1,69 @@
+Created At: 2026-05-29T12:41:29Z
+Completed At: 2026-05-29T12:41:33Z
+
+				The command completed successfully.
+				Output:
+				<truncated 40 lines>
+    { id: "lats_r", label: "Lats (R)", view: "back", path: "M122,92 L100,92 L100,135 L128,125 C130,110 128,100 122,92 Z" },
+    { id: "tricep_l", label: "Triceps (L)", view: "back", path: "M60,108 L76,110 L72,140 L54,135 C52,125 55,115 60,108 Z" },
+    { id: "tricep_r", label: "Triceps (R)", view: "back", path: "M140,108 L124,110 L128,140 L146,135 C148,125 145,115 140,108 Z" },
+    { id: "lower_back", label: "Lower Back", view: "back", path: "M85,135 L115,135 L112,158 L88,158 Z" },
+    { id: "glute_l", label: "Gluteus (L)", view: "back", path: "M75,160 C72,175 72,190 75,195 L100,195 L100,160 Z" },
+    { id: "glute_r", label: "Gluteus (R)", view: "back", path: "M125,160 C128,175 128,190 125,195 L100,195 L100,160 Z" },
+    { id: "hamstring_l", label: "Hamstrings (L)", view: "back", path: "M72,200 L95,200 L90,250 L70,250 C68,230 68,215 72,200 Z" },
+    { id: "hamstring_r", label: "Hamstrings (R)", view: "back", path: "M128,200 L105,200 L110,250 L130,250 C132,230 132,215 128,200 Z" },
+    { id: "calf_l", label: "Calf (L)", view: "back", path: "M78,255 L95,255 L90,300 L82,300 Z" },
+    { id: "calf_r", label: "Calf (R)", view: "back", path: "M122,255 L105,255 L110,300 L118,300 Z" },
+];
+
+
+interface SorenessHeatmapProps {
+    onZoneToggle?: (zoneId: string) => void;
+    selectedZones: string[];
+    readOnly?: boolean;
+}
+
+export default function SorenessHeatmap({ onZoneToggle, selectedZones, readOnly = false }: SorenessHeatmapProps) {
+    // Map old IDs to new ones for backward compatibility
+    // Map old/database IDs to current ones for maximum compatibility
+    const zones = Array.isArray(selectedZones) ? selectedZones : [];
+    const normalizedSelectedZones = zones.map(id => {
+        // Universal normalization: remove _ant/_post for checking existence if needed
+        // but since we render both views, it's better to map specifically
+        if (id === "left_shoulder" || i
+<truncated 4166 bytes>
+ssName="flex-1 w-full text-center space-y-3">
+                    <span className="text-[9px] font-black tracking-[0.2em] text-muted-foreground/60 uppercase block">Anterior View</span>
+                    <div className="bg-slate-50 dark:bg-slate-900 rounded-[2.5rem] p-6 border border-slate-200 dark:border-slate-800 shadow-inner relative overflow-hidden group transition-all hover:border-primary/30 duration-500">
+                        {renderSilhouette("front")}
+                    </div>
+                </div>
+                <div className="flex-1 w-full text-center space-y-3">
+                    <span className="text-[9px] font-black tracking-[0.2em] text-muted-foreground/60 uppercase block">Posterior View</span>
+                    <div className="bg-slate-50 dark:bg-slate-900 rounded-[2.5rem] p-6 border border-slate-200 dark:border-slate-800 shadow-inner relative overflow-hidden group transition-all hover:border-primary/30 duration-500">
+                        {renderSilhouette("back")}
+                    </div>
+                </div>
+            </div>
+
+
+            {!readOnly && normalizedSelectedZones.length > 0 && (
+                <div className="mt-10 flex flex-wrap gap-2 justify-center animate-in fade-in zoom-in-95 duration-700">
+                    {normalizedSelectedZones.map(id => {
+                        const part = bodyParts.find(p => p.id === id);
+                        if (!part) return null;
+                        return (
+                            <div key={id} className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-red-500/10 dark:bg-red-500/20 border border-red-500/30 text-red-600 dark:text-red-400 text-[11px] font-bold shadow-sm backdrop-blur-md">
+                                <div className="w-2 h-2 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)] animate-pulse" />
+                                {part.label}
+                            </div>
+                        );
+                    })}
+                </div>
+            )}
+        </div>
+    );
+}
+
+
+

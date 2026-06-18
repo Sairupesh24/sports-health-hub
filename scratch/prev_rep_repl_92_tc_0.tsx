@@ -1,0 +1,1 @@
+"          <DialogFooter className=\"p-6 bg-black/20\"><Button onClick={() => setIsLibraryModalOpen(false)} className=\"bg-white/20 text-white font-black\">Close Library</Button></DialogFooter>\n        </DialogContent>\n      </Dialog>\n        </>\n      )}\n    </div>\n  );\n}"

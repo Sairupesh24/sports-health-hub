@@ -1,0 +1,1 @@
+"- `[x]` Step 3: Create the Frontend `SorenessMappingModule` Component\n- `[x]` Step 4: Integrate the Module in `src/pages/shared/ReportsPage.tsx`"

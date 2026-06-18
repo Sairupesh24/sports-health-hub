@@ -94,6 +94,9 @@ export function AdminSessionStatusModal({ open, onOpenChange, session, onSuccess
                     const serviceKey = (session.service_type || "").toLowerCase().trim();
                     setRemainingSessions(data.byServiceName[serviceKey] || 0);
                 }
+            } catch (error) {
+                console.error("Error fetching balance:", error);
+                setRemainingSessions(0);
             } finally {
                 setBalanceLoading(false);
             }

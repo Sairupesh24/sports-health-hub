@@ -5,9 +5,10 @@ import { getDashboardPath, isUserApproved } from "@/utils/navigation";
 interface ProtectedRouteProps {
   children: React.ReactNode;
   requiredRole?: string | string[];
+  checkCalendarAccess?: boolean;
 }
 
-export default function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) {
+export default function ProtectedRoute({ children, requiredRole, checkCalendarAccess }: ProtectedRouteProps) {
   const { user, profile, roles, loading } = useAuth();
 
   if (loading) {
@@ -30,6 +31,14 @@ export default function ProtectedRoute({ children, requiredRole }: ProtectedRout
   // Check approval status using shared utility
   if (!isUserApproved(profile, roles)) {
     return <Navigate to="/pending-approval" replace />;
+  }
+
+  if (checkCalendarAccess) {
+    const isAdmin = roles.includes("admin");
+    const isGranted = profile?.has_calendar_access === true;
+    if (!isAdmin && !isGranted) {
+      return <Navigate to={getDashboardPath(roles)} replace />;
+    }
   }
 
   if (requiredRole) {
