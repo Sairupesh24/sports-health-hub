@@ -19,7 +19,6 @@ import { calculateACWR, calculateAcuteLoad, calculateChronicLoad } from "@/lib/a
 import WorkloadChart from "@/components/ams/charts/WorkloadChart";
 import WellnessRadarChart from "@/components/ams/charts/WellnessRadarChart";
 import ReturnToPlayChart from "@/components/ams/charts/ReturnToPlayChart";
-import SorenessHeatmap from "@/components/ams/SorenessHeatmap";
 import { DocumentManager } from "@/components/admin/documents/DocumentManager";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -181,36 +180,7 @@ export default function AthleteList({ athletes, dateRange }: AthleteListProps) {
               <div className="lg:col-span-2">
                 <ReturnToPlayChart athleteId={selectedAthlete.id} />
               </div>
-              
-              {/* Soreness Heatmap Section */}
-              {selectedAthlete.wellness_logs?.[0]?.soreness_data && (selectedAthlete.wellness_logs[0].soreness_data as string[]).length > 0 && (
-                <Card className="lg:col-span-2 border-red-100 bg-red-50/30">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-bold flex items-center gap-2 text-red-700">
-                      <AlertCircle className="w-4 h-4" /> Active Soreness Hotspots
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="flex flex-col md:flex-row items-center gap-6">
-                    <div className="w-full max-w-[150px]">
-                      <SorenessHeatmap selectedZones={selectedAthlete.wellness_logs[0].soreness_data as string[]} readOnly />
-                    </div>
-                    <div className="flex-1 space-y-2">
-                      <p className="text-xs font-semibold text-red-800 uppercase tracking-wider">Affected Zones</p>
-                      <div className="flex flex-wrap gap-2">
-                        {(selectedAthlete.wellness_logs[0].soreness_data as string[]).map(zone => (
-                          <Badge key={zone} variant="outline" className="bg-white border-red-200 text-red-700 capitalize">
-                            {zone.replace(/_/g, ' ')}
-                          </Badge>
-                        ))}
-                      </div>
-                      <p className="text-[10px] text-red-600 italic mt-2">
-                        Reported on {format(new Date(selectedAthlete.wellness_logs[0].created_at), 'MMM d, h:mm a')}
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
- 
+
               <div className="space-y-4">
                 <WorkloadChart sessions={selectedAthlete.training_sessions || []} />
               </div>

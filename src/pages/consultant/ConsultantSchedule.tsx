@@ -87,7 +87,7 @@ export default function ConsultantSchedule() {
 
             const start = dateRange.start;
             const end = dateRange.end;
-            const data = await apiFetch(`/api/appointments?therapist_id=${profile.id}&start=${start}&end=${end}`);
+            const data = await apiFetch(`/api/appointments?specialist_id=${profile.id}&start=${start}&end=${end}`);
 
             return (data as any[]).map(session => {
                 // Determine end time from DB or fallback to 60 mins after start
@@ -165,7 +165,7 @@ export default function ConsultantSchedule() {
         queryKey: ["pending-soap-notes", profile?.id],
         queryFn: async () => {
             if (!profile?.id) return [];
-            const data = await apiFetch(`/api/appointments?therapist_id=${profile.id}&status=Completed`);
+            const data = await apiFetch(`/api/appointments?specialist_id=${profile.id}&status=Completed`);
             // Only keep sessions that have NO physio_session_details
             return (data ?? []).filter((s: any) =>
                 !s.physio_session_details || (Array.isArray(s.physio_session_details) && s.physio_session_details.length === 0)

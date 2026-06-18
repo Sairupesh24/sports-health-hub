@@ -1,5 +1,5 @@
 import express from 'express';
-import { db } from './db.js';
+import { db, autoAllocateStaffServices } from './db.js';
 import { requireAuth } from './middleware.js';
 
 const router = express.Router();
@@ -226,6 +226,11 @@ router.post('/users/:id/approve', requireAuth, async (req, res) => {
         // 2. Update User Role
         await client.query('UPDATE users SET role = $1 WHERE id = $2', [role, id]);
 
+        // --- Auto-allocation trigger ---
+        if (profession) {
+            await autoAllocateStaffServices(id, profession, orgId, client);
+        }
+
         await client.query('COMMIT');
         res.json({ success: true });
     } catch (error) {
@@ -241,8 +246,13 @@ router.patch('/users/:id/role', requireAuth, async (req, res) => {
     const client = await db.connect();
     try {
         const { id } = req.params;
-        const { role, profession, ams_role, uhid } = req.body;
+        const { role, profession, ams_role, uhid, has_calendar_access } = req.body;
         const orgId = req.user.organization_id;
+
+        // Security check for calendar access change
+        if (has_calendar_access !== undefined && req.user.role !== 'admin') {
+            return res.status(403).json({ error: 'Forbidden: Only administrators can modify calendar access' });
+        }
 
         await client.query('BEGIN');
 
@@ -264,12 +274,21 @@ router.patch('/users/:id/role', requireAuth, async (req, res) => {
             updates.push(`uhid = $${params.length + 1}`);
             params.push(uhid);
         }
+        if (has_calendar_access !== undefined) {
+            updates.push(`has_calendar_access = $${params.length + 1}`);
+            params.push(has_calendar_access);
+        }
 
         if (updates.length > 0) {
             await client.query(`
                 UPDATE profiles SET ${updates.join(', ')}
                 WHERE id = $1 AND organization_id = $2
             `, params);
+        }
+
+        // --- Auto-allocation trigger ---
+        if (profession) {
+            await autoAllocateStaffServices(id, profession, orgId, client);
         }
 
         await client.query('COMMIT');
@@ -329,6 +348,11 @@ router.post('/users', requireAuth, async (req, res) => {
             'INSERT INTO profiles (id, first_name, last_name, organization_id, is_approved, profession, uhid, ams_role) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
             [userId, firstName, lastName, orgId, true, profession || null, uhid || null, ams_role || null]
         );
+
+        // --- Auto-allocation trigger ---
+        if (profession) {
+            await autoAllocateStaffServices(userId, profession, orgId, client);
+        }
 
         await client.query('COMMIT');
         res.json({ success: true, user: { email, password } });
@@ -484,21 +508,31 @@ router.post('/emergency-alerts', requireAuth, async (req, res) => {
         const staffRes = await client.query('SELECT first_name, last_name FROM profiles WHERE id = $1', [staffId]);
         const staffName = staffRes.rows.length > 0 ? `${staffRes.rows[0].first_name} ${staffRes.rows[0].last_name}` : 'A staff member';
 
-        await client.query(`
-            INSERT INTO notifications (
-                organization_id, title, content, type, target_role, category, action_payload, action_status, sender_id
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-        `, [
-            orgId,
-            'Emergency Leave Activated',
-            `${staffName} has activated Emergency Leave.`,
-            'red',
-            'admin',
-            'direct_action',
-            JSON.stringify({ staffId, alertId: alertRes.rows[0].id }),
-            'pending',
-            staffId
-        ]);
+        const settingsRes = await client.query(
+            'SELECT enable_in_app_notifications, notify_emergency_leave FROM organization_notification_settings WHERE organization_id = $1',
+            [orgId]
+        );
+        const shouldNotify = settingsRes.rows.length > 0
+            ? (settingsRes.rows[0].enable_in_app_notifications && settingsRes.rows[0].notify_emergency_leave)
+            : true;
+
+        if (shouldNotify) {
+            await client.query(`
+                INSERT INTO notifications (
+                    organization_id, title, content, type, target_role, category, action_payload, action_status, sender_id
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+            `, [
+                orgId,
+                'Emergency Leave Activated',
+                `${staffName} has activated Emergency Leave.`,
+                'red',
+                'admin',
+                'direct_action',
+                JSON.stringify({ staffId, alertId: alertRes.rows[0].id }),
+                'pending',
+                staffId
+            ]);
+        }
 
         // 2. Handle auto checkout/leave
         const today = new Date().toISOString().split('T')[0];
@@ -570,19 +604,28 @@ router.get('/notifications/unread-count', requireAuth, async (req, res) => {
     try {
         const userId = req.user.id;
         const orgId = req.user.organization_id;
+        const userRole = req.user.role;
         
-        const totalResult = await db.query(`
-            SELECT COUNT(*) FROM notifications
-            WHERE organization_id = $1 AND (is_broadcast = true OR target_user_id = $2)
-        `, [orgId, userId]);
+        const result = await db.query(`
+            SELECT COUNT(*)::int as count
+            FROM notifications n
+            WHERE n.organization_id = $1
+            AND (
+                n.is_broadcast = true 
+                OR n.target_user_id = $2 
+                OR n.target_role = $3
+                OR (n.target_role = 'admin' AND $3 = 'super_admin')
+                OR (n.target_role = 'athlete' AND $3 IN ('athlete', 'client'))
+                OR (n.target_role = 'specialist' AND $3 IN ('sports_scientist', 'sports_physician', 'physiotherapist', 'nutritionist', 'massage_therapist', 'coach'))
+                OR (n.target_role IS NULL AND n.target_user_id IS NULL AND n.is_broadcast IS NOT TRUE AND ($3 = 'admin' OR $3 = 'super_admin'))
+            )
+            AND NOT EXISTS (
+                SELECT 1 FROM notification_reads nr 
+                WHERE nr.notification_id = n.id AND nr.user_id = $2
+            )
+        `, [orgId, userId, userRole]);
         
-        const readResult = await db.query(`
-            SELECT COUNT(*) FROM notification_reads
-            WHERE user_id = $1
-        `, [userId]);
-        
-        const unreadCount = Math.max(0, parseInt(totalResult.rows[0].count) - parseInt(readResult.rows[0].count));
-        res.json({ unreadCount });
+        res.json({ unreadCount: result.rows[0].count });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }

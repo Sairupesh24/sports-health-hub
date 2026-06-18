@@ -31,6 +31,7 @@ import { ScientificResourcesManager } from "@/components/sports-scientist/resour
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useAuth } from "@/contexts/AuthContext";
 import type { Database } from "@/integrations/supabase/types";
+import { AssessmentReportsList } from "@/components/shared/assessment/AssessmentReportsList";
 
 
 
@@ -66,7 +67,10 @@ export default function ConsultantClientProfile() {
     const navigate = useNavigate();
     const [client, setClient] = useState<Database['public']['Tables']['clients']['Row'] | null>(null);
     const [injuries, setInjuries] = useState<Database['public']['Tables']['injuries']['Row'][]>([]);
-    const [sessions, setSessions] = useState<(Database['public']['Tables']['sessions']['Row'] & { physio_session_details: Database['public']['Tables']['physio_session_details']['Row'][] })[]>([]);
+    const [sessions, setSessions] = useState<(Database['public']['Tables']['sessions']['Row'] & { 
+        physio_session_details: Database['public']['Tables']['physio_session_details']['Row'][];
+        therapist?: { first_name: string | null; last_name: string | null };
+    })[]>([]);
     const [loading, setLoading] = useState(true);
 
     const [selectedSession, setSelectedSession] = useState<Database['public']['Tables']['sessions']['Row'] | null>(null);
@@ -141,6 +145,9 @@ export default function ConsultantClientProfile() {
             'Date': s.scheduled_start ? format(new Date(s.scheduled_start), "dd MMM yyyy") : "-",
             'Time': s.scheduled_start ? format(new Date(s.scheduled_start), "hh:mm a") : "-",
             'Type': s.service_type || "-",
+            'Consultant': s.therapist?.first_name || s.therapist?.last_name 
+                ? `${s.therapist.first_name || ""} ${s.therapist.last_name || ""}`.trim() 
+                : "-",
             'Status': s.status,
             'Pain Score': (s.physio_session_details as any)?.[0]?.pain_score ?? "-",
             'Clinical Notes': (s.physio_session_details as any)?.[0]?.clinical_notes || "-"
@@ -441,12 +448,13 @@ export default function ConsultantClientProfile() {
                                         No sessions found matching filters.
                                     </div>
                                 ) : (
-                                     <div className="rounded-md border overflow-x-auto">
+                                    <div className="rounded-md border overflow-x-auto">
                                         <Table>
                                             <TableHeader className="bg-muted/50">
                                                 <TableRow>
                                                     <TableHead className="text-[10px] font-bold uppercase tracking-wider">Date & Time</TableHead>
                                                     <TableHead className="text-[10px] font-bold uppercase tracking-wider">Type</TableHead>
+                                                    <TableHead className="text-[10px] font-bold uppercase tracking-wider">Consultant</TableHead>
                                                     <TableHead className="text-[10px] font-bold uppercase tracking-wider">Status</TableHead>
                                                     <TableHead className="text-[10px] font-bold uppercase tracking-wider">SOAP Note</TableHead>
                                                     <TableHead className="text-right text-[10px] font-bold uppercase tracking-wider">Actions</TableHead>
@@ -461,17 +469,23 @@ export default function ConsultantClientProfile() {
                                                         <TableCell className="text-sm">
                                                             <Badge variant="outline" className="font-normal">{session.service_type || "Performance"}</Badge>
                                                         </TableCell>
-                                                         <TableCell>
-                                                             <Badge variant={session.status === 'Completed' ? 'default' : 'secondary'} className="text-[10px] uppercase font-bold">
-                                                                 {session.status}
-                                                             </Badge>
-                                                             {session.is_unentitled && isAdminOrFoe && (
-                                                                 <Badge variant="destructive" className="ml-2 text-[8px] h-4 px-1 font-black animate-pulse">
-                                                                     UN-ENTITLED
-                                                                 </Badge>
-                                                             )}
-                                                         </TableCell>
-
+                                                        <TableCell className="text-sm text-muted-foreground">
+                                                            {session.therapist?.first_name || session.therapist?.last_name ? (
+                                                                `${session.therapist.first_name || ""} ${session.therapist.last_name || ""}`.trim()
+                                                            ) : (
+                                                                "—"
+                                                            )}
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            <Badge variant={session.status === 'Completed' ? 'default' : 'secondary'} className="text-[10px] uppercase font-bold">
+                                                                {session.status}
+                                                            </Badge>
+                                                            {session.is_unentitled && isAdminOrFoe && (
+                                                                <Badge variant="destructive" className="ml-2 text-[8px] h-4 px-1 font-black animate-pulse">
+                                                                    UN-ENTITLED
+                                                                </Badge>
+                                                            )}
+                                                        </TableCell>
                                                         <TableCell>
                                                             {session.physio_session_details && session.physio_session_details.length > 0 ? (
                                                                 <span className="text-emerald-600 flex items-center gap-1 text-xs font-semibold">
@@ -494,6 +508,9 @@ export default function ConsultantClientProfile() {
                                 )}
                             </CardContent>
                         </Card>
+
+                        {/* Assessment Reports */}
+                        <AssessmentReportsList clientId={client.id} showDelete={false} />
                     </div>
 
                     {/* Right Column: AMS Load & Quick Actions */}

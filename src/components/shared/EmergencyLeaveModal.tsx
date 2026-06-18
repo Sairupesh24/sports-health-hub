@@ -49,7 +49,9 @@ export default function EmergencyLeaveModal({ open, onOpenChange }: EmergencyLea
       const start = new Date().toISOString();
       const end = addHours(new Date(), 24).toISOString();
 
-      const data = await apiFetch(`/api/appointments?therapist_id=${profile?.id}&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`);
+      const isScientist = profile?.ams_role === 'sports_scientist' || profile?.profession === 'Sports Scientist';
+      const roleFilter = isScientist ? 'scientist_id' : 'therapist_id';
+      const data = await apiFetch(`/api/appointments?${roleFilter}=${profile?.id}&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`);
       
       const mappedData = (data || []).map((session: any) => ({
         ...session,

@@ -1,0 +1,73 @@
+Created At: 2026-06-10T07:40:19Z
+Completed At: 2026-06-10T07:40:20Z
+
+				The command completed successfully.
+				Output:
+				warning: in the working copy of 'src/components/ams/SorenessHeatmap.tsx', LF will be replaced by CRLF the next time Git touches it
+diff --git a/src/components/ams/SorenessHeatmap.tsx b/src/components/ams/SorenessHeatmap.tsx
+index 3c03032..2d429fe 100644
+--- a/src/components/ams/SorenessHeatmap.tsx
++++ b/src/components/ams/SorenessHeatmap.tsx
+@@ -50,7 +50,6 @@ const bodyParts: BodyPart[] = [
+     { id: "calf_r", label: "Calf (R)", view: "back", path: "M122,255 L105,255 L110,300 L118,300 Z" },
+ ];
+ 
+-
+ interface SorenessHeatmapProps {
+     onZoneToggle?: (zoneId: string) => void;
+     selectedZones: string[];
+@@ -58,23 +57,35 @@ interface SorenessHeatmapProps {
+ }
+ 
+ export default function SorenessHeatmap({ onZoneToggle, selectedZones, readOnly = false }: SorenessHeatmapProps) {
+-    // Map old IDs to new ones for backward compatibility
+-    // Map old/database IDs to current ones for maximum compatibility
+     const zones = Array.isArray(selectedZones) ? selectedZones : [];
+     const normalizedSelectedZones = zones.map(id => {
+-        // Universal normalization: remove _ant/_post for checking existence if needed
+-        // but since we render both views, it's better to map specifically
+-        if (id === "left_shoulder" || id === "shoulder_l") return ["shoulder_l_ant", "shoulder_l_post"];
+-        if (id === "right_shoulder" || id === "shoulder_r") return ["shoulder_r_ant", "shoulder_r_post"];
+-        if (id === "left_quad" || id === "quad_l") return ["quad_l"];
+-        if (id === "right_quad" || id === "quad_r") return ["quad_r"];
+-        if (id === "left_hamstring" || id === "hamstring_l") return ["hamstring_l"];
+-        if (id === "right_hamstring" || id === "hamstring_r") return ["hamstring_r"];
+-        if (id === "neck") return ["neck_ant", "neck_post"];
+-        if (id === "shin_l" || id === "left_shin") return ["shin_l"];
+-        if (id === "shin_r" || id === "right_shin") 
+<truncated 2965 bytes>
+22 125,38 C125,48 118,55 100,55 C82,55 75,48 75,38 C75,22 85,12 100,12 Z M80,55 C65,55 55,65 52,85 L48,140 C47,150 55,155 60,150 L65,115 L72,115 L68,155 C67,165 75,170 80,165 L100,155 L100,300 L110,300 L110,155 L120,165 C125,170 133,165 132,155 L128,115 L135,115 L140,150 C145,155 153,150 152,140 L148,85 C145,65 135,55 120,55 L80,55 Z"
+                 fill="currentColor"
+                 className="text-slate-200 dark:text-slate-800 transition-colors duration-500 stroke-slate-300 dark:stroke-slate-700 stroke-[1]"
+             />
+-            {/* Skeleton Layer - More visible markers */}
++            {/* Skeleton Layer */}
+             <g className="opacity-40 stroke-slate-400 dark:stroke-slate-500 stroke-[0.8] fill-none pointer-events-none">
+-                <path d="M100,55 L100,155" /> {/* Spine */}
+-                <path d="M85,85 Q100,75 115,85" /> {/* Ribcage top */}
+-                <path d="M80,105 Q100,95 120,105" /> {/* Ribcage mid */}
+-                <path d="M78,125 Q100,115 122,125" /> {/* Ribcage bottom */}
+-                <path d="M100,155 L85,175 M100,155 L115,175" /> {/* Pelvis */}
++                <path d="M100,55 L100,155" />
++                <path d="M85,85 Q100,75 115,85" />
++                <path d="M80,105 Q100,95 120,105" />
++                <path d="M78,125 Q100,115 122,125" />
++                <path d="M100,155 L85,175 M100,155 L115,175" />
+             </g>
+             {/* Interactive Muscle Parts */}
+             {bodyParts.filter(p => p.view === view).map((part) => {
+@@ -147,7 +158,6 @@ export default function SorenessHeatmap({ onZoneToggle, selectedZones, readOnly
+                 </div>
+             </div>
+ 
+-
+             {!readOnly && normalizedSelectedZones.length > 0 && (
+                 <div className="mt-10 flex flex-wrap gap-2 justify-center animate-in fade-in zoom-in-95 duration-700">
+                     {normalizedSelectedZones.map(id => {
+@@ -165,5 +175,3 @@ export default function SorenessHeatmap({ onZoneToggle, selectedZones, readOnly
+         </div>
+     );
+ }
+-
+-
+

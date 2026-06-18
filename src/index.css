@@ -23,6 +23,32 @@
   }
 }
 
+/* Modern translucent scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.2); /* slate-400 with 0.2 opacity */
+  border-radius: 9999px;
+  border: 1.5px solid transparent; /* creates padding around thumb */
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.4);
+  border: 1.5px solid transparent;
+  background-clip: padding-box;
+}
+
+/* Firefox support */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.2) transparent;
+}
+
 @layer base {
   :root {
     --background: 220 20% 97%;
@@ -402,6 +428,62 @@
   .bg-slate-900 {
     background-color: #0f172a !important;
   }
+
+  /* Muscle Heatmap print overrides */
+  .print-heatmap-card img {
+    opacity: 1 !important;
+    width: 200% !important;
+    max-width: none !important;
+    height: 100% !important;
+  }
+  .print-heatmap-card-front img {
+    left: 0 !important;
+  }
+  .print-heatmap-card-back img {
+    left: -100% !important;
+  }
+
+  /* Ensure the soreness report is isolated and visible during printing */
+  #soreness-report-capture-area, #soreness-report-capture-area * {
+    visibility: visible !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  #soreness-report-capture-area {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 210mm !important;
+    min-height: 297mm !important;
+    display: block !important;
+    background: #ffffff !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+}
+
+/* Muscle Heatmap print overrides for html2canvas offscreen rendering */
+.print-heatmap-card img {
+  opacity: 1 !important;
+  width: 200% !important;
+  max-width: none !important;
+  height: 100% !important;
+}
+.print-heatmap-card-front img {
+  left: 0 !important;
+}
+.print-heatmap-card-back img {
+  left: -100% !important;
+}
+
+/* Ensure the soreness report off-screen wrapper matches standard dimensions for html2canvas */
+#soreness-report-capture-area {
+  width: 210mm !important;
+  background: #ffffff !important;
+  box-sizing: border-box !important;
+  padding: 0 !important;
 }
 
 /* Touchscreen optimization: scale down unread badge counts by exactly 15% */
@@ -411,3 +493,12 @@
     transform-origin: center !important;
   }
 }
+
+/* Scoped status colors for ISHPO Assessment Report */
+.ishpo-report {
+  --status-good: #22C55E;       /* ≥ +10% vs ref  */
+  --status-moderate: #F59E0B;   /* -10% to +9.9%  */
+  --status-needs-work: #F97316; /* -30% to -10.1% */
+  --status-priority: #EF4444;   /* below -30%     */
+}
+

@@ -1,0 +1,1 @@
+"    const [tempComment, setTempComment] = useState<string>(\"\");\n    const [hoveredZone, setHoveredZone] = useState<string | null>(null);"

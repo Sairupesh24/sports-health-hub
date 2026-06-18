@@ -412,15 +412,27 @@ router.post('/injuries', requireSuperAdmin, async (req, res) => {
     const { organizationId, items } = req.body;
     
     try {
+        let insertedCount = 0;
         for (const item of items) {
-            await db.query(
-                `INSERT INTO injury_master_data (organization_id, region, injury_type, diagnosis) 
-                 VALUES ($1, $2, $3, $4) 
-                 ON CONFLICT (organization_id, region, injury_type, diagnosis) DO NOTHING`,
-                [organizationId, item.region, item.injury_type, item.diagnosis]
+            const check = await db.query(
+                `SELECT id FROM injury_master_data 
+                 WHERE (organization_id = $1 OR (organization_id IS NULL AND $1 IS NULL)) 
+                   AND region = $2 
+                   AND injury_type = $3 
+                   AND diagnosis = $4`,
+                [organizationId || null, item.region, item.injury_type, item.diagnosis]
             );
+            
+            if (check.rows.length === 0) {
+                await db.query(
+                    `INSERT INTO injury_master_data (organization_id, region, injury_type, diagnosis) 
+                     VALUES ($1, $2, $3, $4)`,
+                    [organizationId || null, item.region, item.injury_type, item.diagnosis]
+                );
+                insertedCount++;
+            }
         }
-        res.json({ success: true });
+        res.json({ success: true, count: insertedCount });
     } catch (error) {
         console.error('Error upserting injuries:', error);
         res.status(500).json({ error: 'Failed to save injury data' });

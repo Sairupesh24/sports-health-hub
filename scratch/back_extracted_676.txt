@@ -1,0 +1,68 @@
+Created At: 2026-06-10T07:42:26Z
+Completed At: 2026-06-10T07:42:27Z
+
+				The command completed successfully.
+				Output:
+				<truncated 123 lines>
++                <path d="M100,55 L100,155" /> {/* Spine */}
++                <path d="M85,85 Q100,75 115,85" /> {/* Ribcage top */}
++                <path d="M80,105 Q100,95 120,105" /> {/* Ribcage mid */}
++                <path d="M78,125 Q100,115 122,125" /> {/* Ribcage bottom */}
++                <path d="M100,155 L85,175 M100,155 L115,175" /> {/* Pelvis */}
++            </g>
+             {/* Interactive Muscle Parts */}
+             {bodyParts.filter(p => p.view === view).map((part) => {
+                 const isSelected = normalizedSelectedZones.includes(part.id);
+@@ -99,10 +116,10 @@ export default function SorenessHeatmap({ onZoneToggle, selectedZones, readOnly
+                         d={part.path}
+                         onClick={() => !readOnly && onZoneToggle?.(part.id)}
+                         className={cn(
+-                            "cursor-pointer transition-all duration-300 stroke-[0.5] stroke-muted-foreground/20",
++                            "cursor-pointer transition-all duration-300",
+                             isSelected 
+-                                ? "fill-red-500 hover:fill-red-600 drop-shadow-[0_0_12px_rgba(239,68,68,0.7)]" 
+-                                : "fill-primary/5 hover:fill-primary/25",
++                                ? "fill-[url(#painGradient)] filter-[url(#glow)] stroke-red-800 stroke-[0.5]" 
++                                : "fill-white/80 dark:fill-slate-700/80 hover:fill-primary/30 stroke-slate-400/50 dark:stroke-slate-500/50 stroke-[0.5]",
+                             readOnly && "pointer-events-none"
+                         )}
+                     >
+@@ -118,15 +135,13 @@ export default function SorenessHeatmap({ onZoneToggle, selectedZones, readOnly
+             <div className="flex flex-col sm:flex-row items-stretch justify-center gap-6 md:gap-10">
+                 <div className="flex-1 w-full text-center spa
+<truncated 4126 bytes>
+08,225 Z" },
+     { id: "hamstring_l", label: "Hamstrings (L)", view: "back", path: "M72,188 L92,188 L88,235 L70,235 Z" },
+     { id: "hamstring_r", label: "Hamstrings (R)", view: "back", path: "M128,188 L108,188 L112,235 L130,235 Z" },
+     { id: "calf_l", label: "Calves (L)", view: "back", path: "M75,240 L95,240 L90,285 L80,285 Z" },
+@@ -75,6 +77,8 @@ export default function SorenessHeatmap({ onZoneToggle, selectedZones, readOnly
+         if (id === "neck") return ["neck_ant", "neck_post"];
+         if (id === "shin_l" || id === "left_shin") return ["shin_l"];
+         if (id === "shin_r" || id === "right_shin") return ["shin_r"];
++        if (id === "hip_adductor_l" || id === "left_groin") return ["groin_l"];
++        if (id === "hip_adductor_r" || id === "right_groin") return ["groin_r"];
+         return [id];
+     }).flat();
+ 
+
+commit 2f433b8c50bee270cda1e07b6e58377e996b1ffe
+Author: Sai Rupesh Kavuturi <sairupesh.kavuturi@slu.edu>
+Date:   Tue Apr 7 13:25:19 2026 +0530
+
+    feat: clinical dashboard fixes, dynamic greetings, and interactive SOAP note heatmap
+
+diff --git a/src/components/ams/SorenessHeatmap.tsx b/src/components/ams/SorenessHeatmap.tsx
+index 312a054..7cb2f2c 100644
+--- a/src/components/ams/SorenessHeatmap.tsx
++++ b/src/components/ams/SorenessHeatmap.tsx
+@@ -62,7 +62,8 @@ interface SorenessHeatmapProps {
+ export default function SorenessHeatmap({ onZoneToggle, selectedZones, readOnly = false }: SorenessHeatmapProps) {
+     // Map old IDs to new ones for backward compatibility
+     // Map old/database IDs to current ones for maximum compatibility
+-    const normalizedSelectedZones = selectedZones.map(id => {
++    const zones = Array.isArray(selectedZones) ? selectedZones : [];
++    const normalizedSelectedZones = zones.map(id => {
+         // Universal normalization: remove _ant/_post for checking existence if needed
+         // but since we render both views, it's better to map specifically
+         if (id === "left_shoulder" || id === "shoulder_l") return ["shoulder_l_ant", "shoulder_l_post"];
+

@@ -1,0 +1,1 @@
+"                            <div className=\"relative border border-slate-200 bg-slate-50 rounded-xl overflow-hidden\" style={{ width: \"70%\", margin: \"0 auto\", position: \"relative\" }}>"

@@ -1,0 +1,1 @@
+"                        margin: 0 auto !important;\n                    }\n                    .print-heatmap-card img {\n                        opacity: 1 !important;\n                    }\n                }\n            `}} />"

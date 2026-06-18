@@ -15,6 +15,7 @@ interface Profile {
   uhid: string | null;
   ams_role?: "coach" | "athlete" | "client" | "sports_scientist" | null;
   profession?: string | null;
+  has_calendar_access?: boolean;
 }
 
 interface AuthContextType {

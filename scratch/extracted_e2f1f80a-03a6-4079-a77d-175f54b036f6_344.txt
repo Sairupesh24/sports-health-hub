@@ -1,0 +1,89 @@
+Created At: 2026-06-01T11:40:55Z
+Completed At: 2026-06-01T11:40:56Z
+File Path: `file:///d:/Sports_Physio_Software/sports-health-hub-main/src/components/ams/SorenessHeatmap.tsx`
+Total Lines: 398
+Total Bytes: 16217
+Showing lines 1 to 398
+The following code has been modified to include a line number before every line, in the format: <line_number>: <original_line>. Please note that any changes targeting the original code should remove the line number, colon, and leading space.
+1: import React from "react";
+2: import { cn } from "@/lib/utils";
+3: 
+4: interface BodyPart {
+5:     id: string;
+6:     label: string;
+7:     path: string;
+8:     view: "front" | "back";
+9: }
+10: 
+11: const bodyParts: BodyPart[] = [
+12:     // FRONT VIEW (ANTERIOR)
+13:     { 
+14:         id: "neck_ant", 
+15:         label: "Neck", 
+16:         view: "front", 
+17:         path: "M235,160 C235,175 250,215 265,220 C280,215 295,175 295,160 C280,165 250,165 235,160 Z" 
+18:     },
+19:     { 
+20:         id: "shoulder_l_ant", 
+21:         label: "Shoulder (L)", 
+22:         view: "front", 
+23:         path: "M180,205 C150,210 135,230 123,285 C145,295 170,285 180,280 C182,250 182,220 180,205 Z" 
+24:     },
+25:     { 
+26:         id: "shoulder_r_ant", 
+27:         label: "Shoulder (R)", 
+28:         view: "front", 
+29:         path: "M350,205 C380,210 395,230 407,285 C385,295 360,285 350,280 C348,250 348,220 350,205 Z" 
+30:     },
+31:     { 
+32:         id: "chest_l", 
+33:         label: "Pectorals (L)", 
+34:         view: "front", 
+35:         path: "M185,215 C175,250 180,300 215,310 C240,312 260,300 265,290 L265,222 C240,222 210,215 185,215 Z" 
+36:     },
+37:     { 
+38:         id: "chest_r", 
+39:         label: "Pectorals (R)", 
+40:         view: "front", 
+41:         path: "M345,215 C355,250 350,300 315,310 C290,312 270,300 265,290 L265,222 C290,222 320,215 345,215 Z" 
+42:     },
+43:     { 
+44:         id: "bicep_l", 
+45:         label: "Bicep (L)", 
+46:         view: "front", 
+47:         path: "M123,285 C115,320 118,360 132,375 C145,370 160,350 1
+<truncated 14564 bytes>
+lex flex-col sm:flex-row items-stretch justify-center gap-6 md:gap-8">
+367:                 {/* Front (Anterior) View */}
+368:                 <div className="flex-1 w-full text-center space-y-3">
+369:                     <span className="text-[10px] font-black tracking-[0.25em] text-muted-foreground/60 uppercase block">Anterior View</span>
+370:                     {renderHeatmap("front")}
+371:                 </div>
+372:                 
+373:                 {/* Back (Posterior) View */}
+374:                 <div className="flex-1 w-full text-center space-y-3">
+375:                     <span className="text-[10px] font-black tracking-[0.25em] text-muted-foreground/60 uppercase block">Posterior View</span>
+376:                     {renderHeatmap("back")}
+377:                 </div>
+378:             </div>
+379: 
+380:             {/* Selected Soreness Badges */}
+381:             {!readOnly && normalizedSelectedZones.length > 0 && (
+382:                 <div className="mt-8 flex flex-wrap gap-2 justify-center animate-in fade-in zoom-in-95 duration-500">
+383:                     {normalizedSelectedZones.map(id => {
+384:                         const part = bodyParts.find(p => p.id === id);
+385:                         if (!part) return null;
+386:                         return (
+387:                             <div key={id} className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-red-500/10 dark:bg-red-500/15 border border-red-500/25 text-red-600 dark:text-red-400 text-[11px] font-bold shadow-sm backdrop-blur-md transition-all hover:bg-red-500/20">
+388:                                 <div className="w-1.5 h-1.5 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)] animate-pulse" />
+389:                                 {part.label}
+390:                             </div>
+391:                         );
+392:                     })}
+393:                 </div>
+394:             )}
+395:         </div>
+396:     );
+397: }
+398: 
+The above content shows the entire, complete file contents of the requested file.

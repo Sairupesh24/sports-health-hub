@@ -12,12 +12,12 @@ import billingRoutes from './billing.js';
 import clinicalRoutes from './clinical.js';
 import amsRoutes from './ams.js';
 import adminRoutes from './admin.js';
-import reportRoutes from './reports.js';
 import { requireAuth } from './middleware.js';
 import { db } from './db.js';
 
 import path from 'path';
 import { fileURLToPath } from 'url';
+import fs from 'fs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -25,11 +25,34 @@ const uploadsDir = path.join(__dirname, '..', 'public', 'uploads');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+console.log('DATABASE_URL is:', process.env.DATABASE_URL);
+console.log('PGHOST:', process.env.PGHOST);
+console.log('PGPORT:', process.env.PGPORT);
+console.log('PGDATABASE:', process.env.PGDATABASE);
+console.log('PGUSER:', process.env.PGUSER);
 
 // Middleware
 app.use(cors()); // Used for dev, but Nginx proxy will bypass CORS anyway
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use('/uploads', express.static(uploadsDir));
+
+// Debug log middleware for responses >= 400
+app.use((req, res, next) => {
+  const originalSend = res.send;
+  res.send = function (body) {
+    if (res.statusCode >= 400) {
+      try {
+        const logMsg = `[${new Date().toISOString()}] ${req.method} ${req.url} - Status: ${res.statusCode} - Body: ${body}\nHeaders: ${JSON.stringify(req.headers)}\n\n`;
+        fs.appendFileSync(path.join(__dirname, 'debug_requests.log'), logMsg);
+      } catch (err) {
+        console.error('Error writing debug request log:', err);
+      }
+    }
+    return originalSend.apply(this, arguments);
+  };
+  next();
+});
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -42,7 +65,6 @@ app.use('/api/billing', billingRoutes);
 app.use('/api/clinical', clinicalRoutes);
 app.use('/api/ams', amsRoutes);
 app.use('/api/admin', adminRoutes);
-app.use('/api/reports', reportRoutes);
 
 // --- Public Routes ---
 app.get('/api/public/orgs/:slug', async (req, res) => {
@@ -173,14 +195,15 @@ async function startPgListener() {
           // Check multi-tenant isolation
           if (conn.orgId === notification.organization_id) {
             // Target checks
-            const matchesUser = !notification.target_user_id || conn.userId === notification.target_user_id;
-            const matchesRole = !notification.target_role || conn.role === notification.target_role;
-            const isBroadcast = notification.is_broadcast;
+            const isBroadcast = notification.is_broadcast || notification.category === 'global_announcement';
+            const matchesUser = notification.target_user_id === conn.userId;
+            const matchesRole = notification.target_role === conn.role 
+              || (notification.target_role === 'admin' && conn.role === 'super_admin')
+              || (notification.target_role === 'athlete' && (conn.role === 'athlete' || conn.role === 'client'))
+              || (notification.target_role === 'specialist' && ['sports_scientist', 'sports_physician', 'physiotherapist', 'nutritionist', 'massage_therapist', 'coach'].includes(conn.role));
+            const isLegacyAdmin = !notification.target_user_id && !notification.target_role && !notification.is_broadcast && (conn.role === 'admin' || conn.role === 'super_admin');
 
-            // Global announcements also matching
-            const isGlobalAnnounce = notification.category === 'global_announcement';
-
-            if (isGlobalAnnounce || isBroadcast || (matchesUser && matchesRole)) {
+            if (isBroadcast || matchesUser || matchesRole || isLegacyAdmin) {
               conn.res.write(`data: ${JSON.stringify(notification)}\n\n`);
             }
           }

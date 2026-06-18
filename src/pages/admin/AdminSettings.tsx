@@ -9,7 +9,8 @@ import {
     ShieldCheck, 
     LayoutGrid,
     Bell,
-    Clock
+    Clock,
+    Activity
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -35,6 +36,15 @@ const SETTINGS_ITEMS: SettingItem[] = [
         isActive: true
     },
     {
+        id: "injury-master-data",
+        title: "Injury Master Data",
+        description: "Bulk upload or configure custom injury regions, types, and diagnoses.",
+        icon: Activity,
+        href: "/admin/settings/injuries",
+        category: "Clinical",
+        isActive: true
+    },
+    {
         id: "resource-schedule",
         title: "Resource Schedule Manager",
         description: "Configure custom working hours and break schedules for each clinician.",
@@ -46,20 +56,20 @@ const SETTINGS_ITEMS: SettingItem[] = [
     {
         id: "roles-permissions",
         title: "Roles & Permissions",
-        description: "Define access levels and organizational hierarchy.",
+        description: "Define custom access permissions and calendar visibility for staff.",
         icon: ShieldCheck,
-        href: "#",
+        href: "/admin/settings/permissions",
         category: "System",
-        isActive: false
+        isActive: true
     },
     {
         id: "notifications",
         title: "Notification Settings",
         description: "Configure automated email and push notifications.",
         icon: Bell,
-        href: "#",
+        href: "/admin/settings/notifications",
         category: "System",
-        isActive: false
+        isActive: true
     }
 ];
 
