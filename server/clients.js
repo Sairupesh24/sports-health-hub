@@ -66,18 +66,28 @@ router.post('/referral-sources', requireAuth, async (req, res) => {
     }
 });
 
-// GET Client List with search
+// GET Client List with search and date range
 router.get('/', requireAuth, async (req, res) => {
     try {
         const orgId = req.user.organization_id;
-        const { search } = req.query;
+        const { search, startDate, endDate } = req.query;
 
         let query = 'SELECT * FROM clients WHERE organization_id = $1';
         const params = [orgId];
 
         if (search) {
-            query += ' AND (first_name ILIKE $2 OR last_name ILIKE $2 OR uhid ILIKE $2 OR mobile_no ILIKE $2)';
             params.push(`%${search}%`);
+            query += ` AND (first_name ILIKE $${params.length} OR last_name ILIKE $${params.length} OR uhid ILIKE $${params.length} OR mobile_no ILIKE $${params.length})`;
+        }
+
+        if (startDate) {
+            params.push(startDate);
+            query += ` AND registered_on::date >= $${params.length}::date`;
+        }
+
+        if (endDate) {
+            params.push(endDate);
+            query += ` AND registered_on::date <= $${params.length}::date`;
         }
 
         query += ' ORDER BY created_at DESC LIMIT 200';
@@ -624,7 +634,7 @@ router.post('/bulk', requireAuth, async (req, res) => {
             // Generate UHID if not provided
             let uhid = c.uhid;
             if (!uhid) {
-                const uhidRes = await client.query('SELECT generate_uhid($1)', [orgId]);
+                const uhidRes = await client.query('SELECT generate_uhid_func($1) as generate_uhid', [orgId]);
                 uhid = uhidRes.rows[0].generate_uhid;
             }
             
