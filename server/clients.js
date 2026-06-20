@@ -90,7 +90,7 @@ router.get('/', requireAuth, async (req, res) => {
             query += ` AND registered_on::date <= $${params.length}::date`;
         }
 
-        query += ' ORDER BY created_at DESC LIMIT 200';
+        query += ' ORDER BY created_at DESC';
 
         const result = await db.query(query, params);
         res.json(result.rows);

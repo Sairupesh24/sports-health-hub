@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -293,11 +293,14 @@ export function SportsScientistBookSessionModal({ open, onOpenChange, onSuccess 
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent aria-describedby={undefined} className="sm:max-w-[500px] p-0 overflow-hidden border-none bg-slate-50 dark:bg-slate-950 rounded-[2.5rem]">
+            <DialogContent className="sm:max-w-[500px] p-0 overflow-hidden border-none bg-slate-50 dark:bg-slate-950 rounded-[2.5rem]">
                 <DialogHeader className="p-6 pb-0">
                     <DialogTitle className="text-xl font-black italic tracking-tight text-slate-900 dark:text-white">
                        Schedule Session
                     </DialogTitle>
+                    <DialogDescription className="sr-only">
+                        Form to schedule a standard, group, or other training session.
+                    </DialogDescription>
                 </DialogHeader>
                 
                 <div className="max-h-[85vh] overflow-y-auto px-6 py-4 custom-scrollbar">
