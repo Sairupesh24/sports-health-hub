@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -308,12 +308,15 @@ export function SportsScientistSessionStatusModal({ open, onOpenChange, session,
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent aria-describedby={undefined} className="sm:max-w-[480px]">
+            <DialogContent className="sm:max-w-[480px] max-h-[90dvh] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
                         {editInfo.isLocked ? <Lock className="w-4 h-4 text-muted-foreground" /> : <Clock className="w-4 h-4 text-primary" />}
                         Update Session Status
                     </DialogTitle>
+                    <DialogDescription className="sr-only">
+                        Form to update the current training session's status, notes, or rescheduling details.
+                    </DialogDescription>
                 </DialogHeader>
 
                 <div className="grid gap-4 py-2">

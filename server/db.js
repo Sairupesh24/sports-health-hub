@@ -2,6 +2,7 @@ import pg from 'pg';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs/promises';
+import * as XLSX from 'xlsx';
 
 const { Pool } = pg;
 
@@ -1092,12 +1093,67 @@ async function runMigrations() {
         const checkRes = await pool.query('SELECT COUNT(*) FROM injury_master_data WHERE organization_id IS NULL');
         const count = parseInt(checkRes.rows[0].count, 10);
         if (count === 0) {
-            console.log('[DB] Seeding global injury master data...');
-            const seedPath = path.join(__dirname, '../supabase/seed_global_injuries.sql');
-            let sql = await fs.readFile(seedPath, 'utf8');
-            sql = sql.replace('DELETE FROM public.injury_master_data;', 'DELETE FROM public.injury_master_data WHERE organization_id IS NULL;');
-            await pool.query(sql);
-            console.log('[DB] Global injury master data seeded successfully.');
+            const excelPath = path.join(__dirname, '../default_injuries.xlsx');
+            let seededFromExcel = false;
+            
+            try {
+                await fs.access(excelPath);
+                console.log('[DB] Found default_injuries.xlsx. Seeding global injury master data from Excel...');
+                
+                const fileBuffer = await fs.readFile(excelPath);
+                const workbook = XLSX.read(fileBuffer, { type: 'buffer' });
+                const sheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[sheetName];
+                const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false });
+
+                if (rows.length > 1 && rows[0][0] === 'Region' && rows[0][1] === 'Injury Type' && rows[0][2] === 'Diagnosis') {
+                    await pool.query('BEGIN');
+                    let insertedCount = 0;
+                    for (let i = 1; i < rows.length; i++) {
+                        const row = rows[i];
+                        if (!row || row.length === 0) continue;
+                        
+                        const region = row[0]?.toString().trim();
+                        const injuryType = row[1]?.toString().trim();
+                        const diagnosis = row[2]?.toString().trim();
+
+                        if (region && injuryType && diagnosis) {
+                            // Check uniqueness
+                            const check = await pool.query(
+                                `SELECT id FROM injury_master_data 
+                                 WHERE organization_id IS NULL 
+                                   AND region = $1 
+                                   AND injury_type = $2 
+                                   AND diagnosis = $3`,
+                                [region, injuryType, diagnosis]
+                            );
+                            
+                            if (check.rows.length === 0) {
+                                await pool.query(
+                                    `INSERT INTO injury_master_data (organization_id, region, injury_type, diagnosis) 
+                                     VALUES (NULL, $1, $2, $3)`,
+                                    [region, injuryType, diagnosis]
+                                );
+                                insertedCount++;
+                            }
+                        }
+                    }
+                    await pool.query('COMMIT');
+                    console.log(`[DB] Global injury master data seeded successfully from Excel (${insertedCount} records).`);
+                    seededFromExcel = true;
+                }
+            } catch (excelErr) {
+                console.log('[DB] Could not seed from default_injuries.xlsx, falling back to SQL seed:', excelErr.message);
+            }
+
+            if (!seededFromExcel) {
+                console.log('[DB] Seeding global injury master data from SQL seed...');
+                const seedPath = path.join(__dirname, '../supabase/seed_global_injuries.sql');
+                let sql = await fs.readFile(seedPath, 'utf8');
+                sql = sql.replace('DELETE FROM public.injury_master_data;', 'DELETE FROM public.injury_master_data WHERE organization_id IS NULL;');
+                await pool.query(sql);
+                console.log('[DB] Global injury master data seeded successfully from SQL seed.');
+            }
         }
     } catch (err) {
         console.error('[DB] Error seeding global injury master data:', err);

@@ -141,7 +141,7 @@ export function AnnouncementsManager({ open, onOpenChange }: AnnouncementsManage
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent aria-describedby={undefined} className="sm:max-w-[600px] w-[95vw] h-[85vh] p-0 overflow-hidden border-none rounded-[32px] sm:rounded-[40px] bg-slate-50 shadow-2xl flex flex-col">
+        <DialogContent className="sm:max-w-[600px] w-[95vw] h-[85vh] p-0 overflow-hidden border-none rounded-[32px] sm:rounded-[40px] bg-slate-50 shadow-2xl flex flex-col">
                 {/* Custom Modal Header */}
                 <div className="p-5 sm:p-8 pb-4 sm:pb-6 border-b border-slate-100 bg-white relative">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -153,9 +153,12 @@ export function AnnouncementsManager({ open, onOpenChange }: AnnouncementsManage
                                 {mode === 'list' ? <Bell className="w-5 h-5 sm:w-6 sm:h-6" /> : <Mic className="w-5 h-5 sm:w-6 sm:h-6" />}
                             </div>
                             <div>
-                                <h2 className="text-xl sm:text-2xl font-black tracking-tight text-slate-900 leading-none">
+                                <DialogTitle className="text-xl sm:text-2xl font-black tracking-tight text-slate-900 leading-none">
                                     {mode === 'list' ? 'Notification History' : 'New Broadcast'}
-                                </h2>
+                                </DialogTitle>
+                                <DialogDescription className="sr-only">
+                                    View organizational notifications or send new announcement broadcasts.
+                                </DialogDescription>
                                 <p className="text-[9px] sm:text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] mt-1 sm:mt-1.5">
                                     {mode === 'list' ? 'Organisational Timeline' : 'Live Announcement Form'}
                                 </p>
