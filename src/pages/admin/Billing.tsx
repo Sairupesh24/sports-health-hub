@@ -22,7 +22,7 @@ import { cn, getImageDimensions } from "@/lib/utils";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { format } from "date-fns";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { RefundModal } from "@/components/admin/RefundModal";
 import { generateRefundVoucher } from "@/lib/refundActions";
 import { Textarea } from "@/components/ui/textarea";
@@ -79,6 +79,8 @@ type ReferralSource = { id: string; name: string };
 export default function BillingPage() {
     const { profile } = useAuth();
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
+    const clientIdParam = searchParams.get("clientId");
     const queryClient = useQueryClient();
     const orgName = "Integration Sports Clinic";
 
@@ -93,10 +95,51 @@ export default function BillingPage() {
     });
 
     const [clients, setClients] = useState<Client[]>([]);
-    const [bills, setBills] = useState<Bill[]>([]);
     const [referralSources, setReferralSources] = useState<ReferralSource[]>([]);
     const [packages, setPackages] = useState<Package[]>([]);
     const [orgDetails, setOrgDetails] = useState<any>(null);
+
+    // Fetch Invoices via React Query to enable automatic caching and reactive updates
+    const { data: bills = [] } = useQuery({
+        queryKey: ["admin-bills", profile?.organization_id],
+        queryFn: async () => {
+            if (!profile?.organization_id) return [];
+            const billsData = await apiFetch<any[]>('/billing/invoices');
+            return billsData.map(b => ({
+                id: b.id,
+                client_id: b.client_id,
+                client: { id: b.client_id, full_name: b.client_name, is_vip: b.client_is_vip },
+                organization: { id: b.organization_id, name: b.organization_name },
+                client_name: b.client_name,
+                client_is_vip: b.client_is_vip,
+                client_uhid: b.client_uhid || "",
+                client_mobile: b.client_mobile || "",
+                items: b.items,
+                referral_source: b.referral_source_name || "-",
+                referral_source_name: b.referral_source_name || "-",
+                subtotal: Number(b.amount),
+                discount_type: "flat",
+                discount_value: Number(b.discount || 0),
+                total_amount: Number(b.total),
+                status: b.status,
+                transaction_id: b.transaction_id || undefined,
+                date: b.created_at,
+                notes: b.notes || undefined,
+                discount_authorized_by: b.discount_authorized_by || undefined,
+                billing_staff_name: b.billing_staff_name || undefined,
+                billed_by_id: b.billed_by_id || undefined,
+                billed_by_name: b.billed_by_name || undefined,
+                invoice_number: b.invoice_number || undefined,
+                include_notes_in_invoice: b.include_notes_in_invoice || false,
+                organization_logo: b.organization_logo,
+                organization_address: b.organization_official_address,
+                organization_official_name: b.organization_official_name || b.organization_name,
+                paid_amount: Number(b.paid_amount),
+                remaining_due: Number(b.remaining_due)
+            }));
+        },
+        enabled: !!profile?.organization_id
+    });
 
     // Form States
     const [selectedClient, setSelectedClient] = useState("");
@@ -166,7 +209,7 @@ export default function BillingPage() {
                 }
             });
             queryClient.invalidateQueries({ queryKey: ["subscription-history", selectedSub?.id] });
-            queryClient.invalidateQueries({ queryKey: ["bills"] });
+            queryClient.invalidateQueries({ queryKey: ["admin-bills"] });
             toast.success("Early invoice generated successfully");
         },
         onError: (err: any) => toast.error(err.message)
@@ -197,7 +240,15 @@ export default function BillingPage() {
     const [refundBillObj, setRefundBillObj] = useState<Bill | null>(null);
 
     // Transaction Ledger State
-    const [refunds, setRefunds] = useState<Database['public']['Tables']['refunds']['Row'][]>([]);
+    // Fetch Refunds via React Query to enable automatic caching and reactive updates
+    const { data: refunds = [] } = useQuery({
+        queryKey: ["admin-refunds", profile?.organization_id],
+        queryFn: async () => {
+            if (!profile?.organization_id) return [];
+            return await apiFetch<any[]>('/billing/refunds');
+        },
+        enabled: !!profile?.organization_id
+    });
     const [selectedTransaction, setSelectedTransaction] = useState<TransactionDetail | null>(null);
     const [isDrawerOpen, setIsDrawerOpen] = useState(false);
     const [ledgerSearch, setLedgerSearch] = useState("");
@@ -211,7 +262,6 @@ export default function BillingPage() {
     useEffect(() => {
         if (profile?.organization_id) {
             fetchData();
-            fetchRefunds();
         }
     }, [profile]);
 
@@ -221,9 +271,14 @@ export default function BillingPage() {
         try {
             // Fetch Clients
             const clientsData = await apiFetch<any[]>('/clients');
-            setClients(clientsData.map(c => ({
+            const parsedClients = clientsData.map(c => ({
                 id: c.id, first_name: c.first_name, last_name: c.last_name, uhid: c.uhid, email: c.email, mobile_no: c.mobile_no, is_vip: c.is_vip
-            })));
+            }));
+            setClients(parsedClients);
+
+            if (clientIdParam && parsedClients.some(c => c.id === clientIdParam)) {
+                setSelectedClient(clientIdParam);
+            }
 
             // Fetch Packages
             const pkgData = await apiFetch<any[]>('/billing/packages');
@@ -237,53 +292,8 @@ export default function BillingPage() {
             // Fetch Org Details
             const orgData = await apiFetch<any>(`/organizations/${profile.organization_id}`);
             if (orgData.data) setOrgDetails(orgData.data);
-
-            // Fetch Bills
-            const billsData = await apiFetch<any[]>('/billing/invoices');
-            setBills(billsData.map(b => ({
-                id: b.id,
-                client_id: b.client_id,
-                client: { id: b.client_id, full_name: b.client_name, is_vip: b.client_is_vip },
-                organization: { id: b.organization_id, name: b.organization_name },
-                client_name: b.client_name,
-                client_is_vip: b.client_is_vip,
-                client_uhid: b.client_uhid || "",
-                client_mobile: b.client_mobile || "",
-                items: b.items,
-                referral_source: b.referral_source_name || "-",
-                referral_source_name: b.referral_source_name || "-",
-                subtotal: Number(b.amount),
-                discount_type: "flat",
-                discount_value: Number(b.discount || 0),
-                total_amount: Number(b.total),
-                status: b.status,
-                transaction_id: b.transaction_id || undefined,
-                date: b.created_at,
-                notes: b.notes || undefined,
-                discount_authorized_by: b.discount_authorized_by || undefined,
-                billing_staff_name: b.billing_staff_name || undefined,
-                billed_by_id: b.billed_by_id || undefined,
-                billed_by_name: b.billed_by_name || undefined,
-                invoice_number: b.invoice_number || undefined,
-                include_notes_in_invoice: b.include_notes_in_invoice || false,
-                organization_logo: b.organization_logo,
-                organization_address: b.organization_official_address,
-                organization_official_name: b.organization_official_name || b.organization_name,
-                paid_amount: Number(b.paid_amount),
-                remaining_due: Number(b.remaining_due)
-            })));
         } catch (err: any) {
             toast({ title: "Failed to fetch data", description: err.message, variant: "destructive" });
-        }
-    };
-
-    const fetchRefunds = async () => {
-        if (!profile?.organization_id) return;
-        try {
-            const data = await apiFetch<any[]>('/billing/refunds');
-            setRefunds(data);
-        } catch (err) {
-            console.error("Refunds fetch error:", err);
         }
     };
 
@@ -311,7 +321,8 @@ export default function BillingPage() {
 
     const handleRefundSuccess = (refund: any) => {
         fetchData();
-        fetchRefunds();
+        queryClient.invalidateQueries({ queryKey: ["admin-bills"] });
+        queryClient.invalidateQueries({ queryKey: ["admin-refunds"] });
         queryClient.invalidateQueries({ queryKey: ['client-refunds'] });
         queryClient.invalidateQueries({ queryKey: ['billing-stats'] });
         
@@ -480,6 +491,7 @@ export default function BillingPage() {
 
             toast({ title: "Bill Created Successfully" });
             fetchData();
+            queryClient.invalidateQueries({ queryKey: ["admin-bills"] });
             // Reset form
             setCart([]);
             setSelectedClient("");
@@ -528,6 +540,7 @@ export default function BillingPage() {
             });
 
             fetchData();
+            queryClient.invalidateQueries({ queryKey: ["admin-bills"] });
             setIsPaymentModalOpen(false);
             setPaymentRows([{ id: Math.random().toString(), method: "Cash", amount: 0, transactionId: "" }]);
             toast({ title: "Payment Recorded Successfully" });
@@ -813,14 +826,14 @@ export default function BillingPage() {
                                                     </PopoverTrigger>
                                                     <PopoverContent className="w-[300px] p-0">
                                                         <Command>
-                                                            <CommandInput placeholder="Search client by name or UHID..." />
+                                                            <CommandInput placeholder="Search client by name, UHID, or mobile..." />
                                                             <CommandEmpty>No client found.</CommandEmpty>
                                                             <CommandList>
                                                                 <CommandGroup>
                                                                     {clients.map((c) => (
                                                                         <CommandItem
                                                                             key={c.id}
-                                                                            value={`${c.first_name} ${c.last_name} ${c.uhid}`}
+                                                                            value={`${c.first_name} ${c.last_name} ${c.uhid} ${c.mobile_no || ""}`}
                                                                             onSelect={() => {
                                                                                 setSelectedClient(c.id);
                                                                                 setOpenCombobox(false);
@@ -837,7 +850,15 @@ export default function BillingPage() {
                                                                                         {c.first_name} {c.last_name}
                                                                                         <VIPBadge isVIP={c.is_vip} iconOnly size="sm" />
                                                                                     </div>
-                                                                                    <div className="text-[10px] text-muted-foreground">{c.uhid}</div>
+                                                                                    <div className="text-[10px] text-muted-foreground flex items-center gap-2">
+                                                                                        <span>{c.uhid}</span>
+                                                                                        {c.mobile_no && (
+                                                                                            <>
+                                                                                                <span>•</span>
+                                                                                                <span>{c.mobile_no}</span>
+                                                                                            </>
+                                                                                        )}
+                                                                                    </div>
                                                                                 </div>
                                                                         </CommandItem>
                                                                     ))}
@@ -1162,7 +1183,7 @@ export default function BillingPage() {
                                                 <Table>
                                                     <TableHeader>
                                                         <TableRow className="bg-muted/50">
-                                                            <TableHead>Invoice #</TableHead>
+                                                            <TableHead>Package</TableHead>
                                                             <TableHead>Client</TableHead>
                                                             <TableHead>Source</TableHead>
                                                             <TableHead>Staff</TableHead>
@@ -1178,7 +1199,7 @@ export default function BillingPage() {
                                                             </TableRow>
                                                         ) : filteredBills.map((bill) => (
                                                             <TableRow key={bill.id} className="hover:bg-muted/10 transition-colors cursor-pointer" onClick={() => openTransactionDetail(ledgerEntries.find(t => t.id === bill.id && t.type === 'invoice')!)}>
-                                                                <TableCell className="font-mono text-[10px]">{bill.invoice_number || bill.id.substring(0, 8).toUpperCase()}</TableCell>
+                                                                <TableCell className="text-[10px] font-bold text-primary uppercase truncate max-w-[180px]" title={bill.items?.map((i: any) => i.name).join(', ')}>{bill.items?.map((i: any) => i.name).join(', ') || '-'}</TableCell>
                                                                 <TableCell>
                                                                     <div className="font-medium text-xs truncate max-w-[150px]">
                                                                         <VIPName name={bill.client_name} isVIP={(bill as any).client_is_vip} />
@@ -1279,7 +1300,7 @@ export default function BillingPage() {
                                                     <TableHeader>
                                                         <TableRow className="bg-muted/50">
                                                             <TableHead>Client</TableHead>
-                                                            <TableHead>Invoice #</TableHead>
+                                                            <TableHead>Package</TableHead>
                                                             <TableHead>Created</TableHead>
                                                             <TableHead className="text-right">Balance</TableHead>
                                                             <TableHead className="text-center">Action</TableHead>
@@ -1298,7 +1319,7 @@ export default function BillingPage() {
                                                                     </div>
                                                                     <div className="text-[10px] text-muted-foreground">UHID: {bill.client_uhid || '-'}</div>
                                                                 </TableCell>
-                                                                <TableCell className="font-mono text-[10px]">{bill.invoice_number || bill.id.substring(0, 8).toUpperCase()}</TableCell>
+                                                                <TableCell className="text-[10px] font-bold text-primary uppercase truncate max-w-[150px]" title={bill.items?.map((i: any) => i.name).join(', ')}>{bill.items?.map((i: any) => i.name).join(', ') || '-'}</TableCell>
                                                                 <TableCell className="text-[10px] text-muted-foreground">
                                                                     {format(new Date(bill.date), "dd MMM yyyy")}
                                                                 </TableCell>
@@ -1562,6 +1583,11 @@ export default function BillingPage() {
                 open={isSubscriptionModalOpen}
                 onOpenChange={setIsSubscriptionModalOpen}
                 orgId={profile?.organization_id || ""}
+                onSuccess={() => {
+                    fetchData();
+                    queryClient.invalidateQueries({ queryKey: ["admin-bills"] });
+                    queryClient.invalidateQueries({ queryKey: ["admin-refunds"] });
+                }}
             />
             <SubscriptionDetailDrawer 
                 open={isSubDrawerOpen}

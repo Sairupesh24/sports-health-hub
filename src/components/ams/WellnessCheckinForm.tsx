@@ -30,7 +30,6 @@ type WellnessFormValues = z.infer<typeof wellnessSchema>;
 
 export default function WellnessCheckinForm({ onComplete }: { onComplete?: () => void }) {
   const [step, setStep] = useState(1);
-  const { session } = useAuth();
   const queryClient = useQueryClient();
 
   const form = useForm<WellnessFormValues>({
@@ -50,7 +49,7 @@ export default function WellnessCheckinForm({ onComplete }: { onComplete?: () =>
     mutationFn: async (values: WellnessFormValues) => {
       return await apiFetch('/ams/wellness-logs', {
         method: 'POST',
-        body: values
+        data: values
       });
     },
     onSuccess: () => {

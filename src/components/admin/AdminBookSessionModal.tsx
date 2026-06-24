@@ -116,6 +116,23 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess, initialDa
         return groups;
     }, [clientPackageEntitlements]);
 
+    const selectedServiceEntitlementStatus = useMemo(() => {
+        if (!clientId || !serviceType || isGuest) return { hasEntitlement: true, sessionsRemaining: 0, exists: false };
+        
+        const matches = clientPackageEntitlements.filter(
+            (ent: any) => ent.service_name?.toLowerCase() === serviceType?.toLowerCase()
+        );
+        
+        const totalRemaining = matches.reduce((sum: number, ent: any) => sum + (ent.sessions_remaining || 0), 0);
+        
+        return {
+            exists: matches.length > 0,
+            hasEntitlement: matches.length > 0 && totalRemaining > 0,
+            sessionsRemaining: totalRemaining
+        };
+    }, [clientId, serviceType, clientPackageEntitlements, isGuest]);
+
+
     useEffect(() => {
         if (open && profile?.organization_id) {
             setIsDurationManuallySet(false);
@@ -817,6 +834,29 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess, initialDa
                                                     </div>
                                                 </div>
                                             )}
+
+                                            {clientId && !isGuest && clientPackageEntitlements.length === 0 && (
+                                                <div className="mt-2 p-3 rounded-xl border border-destructive/20 bg-destructive/5 text-destructive flex items-start gap-2.5 animate-in fade-in slide-in-from-top-2 duration-300">
+                                                    <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                                                    <div className="space-y-0.5">
+                                                        <p className="text-xs font-bold uppercase tracking-wider">No Entitlements</p>
+                                                        <p className="text-[11px] leading-relaxed opacity-90">This client has no active packages or remaining entitlements.</p>
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {clientId && !isGuest && serviceType && !selectedServiceEntitlementStatus.hasEntitlement && (
+                                                <div className="mt-2 p-3 rounded-xl border border-amber-200 bg-amber-50 text-amber-800 flex items-start gap-2.5 animate-in fade-in slide-in-from-top-2 duration-300">
+                                                    <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                                                    <div className="space-y-0.5">
+                                                        <p className="text-xs font-bold uppercase tracking-wider text-amber-900">Entitlement Warning</p>
+                                                        <p className="text-[11px] leading-relaxed text-amber-700">
+                                                            This client has no {serviceType.toLowerCase()} sessions left in their active packages.
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            )}
+
 
                                             {clientId && (outstandingBalance > 0 || adminRemarks) && (
                                                 <div className={cn(

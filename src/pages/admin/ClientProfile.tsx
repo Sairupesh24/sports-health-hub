@@ -452,17 +452,28 @@ export default function ClientProfile() {
                             </p>
                         </div>
                         
-                        <div className="flex items-center gap-3 bg-muted/30 p-3 rounded-lg border">
-                           <Label htmlFor="ams-toggle" className="text-sm font-semibold cursor-pointer">
-                               {amsRole === "athlete" ? "AMS Access: Active" : "AMS Access: Inactive"}
-                           </Label>
-                           <Switch 
-                             id="ams-toggle" 
-                             className="data-[state=checked]:bg-green-500"
-                             checked={amsRole === "athlete"}
-                             onCheckedChange={toggleAmsAccess}
-                             disabled={isFOE}
-                           />
+                        <div className="flex items-center gap-3 flex-wrap">
+                            {isAdminOrFoe && (
+                                <Button
+                                    onClick={() => navigate(`/admin/billing?clientId=${client.id}`)}
+                                    className="flex items-center gap-2 font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-sm"
+                                >
+                                    <Plus className="w-4 h-4" />
+                                    Generate Bill
+                                </Button>
+                            )}
+                            <div className="flex items-center gap-3 bg-muted/30 p-3 rounded-lg border">
+                               <Label htmlFor="ams-toggle" className="text-sm font-semibold cursor-pointer">
+                                   {amsRole === "athlete" ? "AMS Access: Active" : "AMS Access: Inactive"}
+                               </Label>
+                               <Switch 
+                                 id="ams-toggle" 
+                                 className="data-[state=checked]:bg-green-500"
+                                 checked={amsRole === "athlete"}
+                                 onCheckedChange={toggleAmsAccess}
+                                 disabled={isFOE}
+                               />
+                            </div>
                         </div>
                     </div>
                 </div>

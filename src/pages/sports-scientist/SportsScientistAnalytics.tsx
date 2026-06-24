@@ -42,7 +42,7 @@ export default function SportsScientistAnalytics() {
             if (!user) return null;
 
             const sixMonthsAgo = subMonths(new Date(), 6).toISOString();
-            const sessions = await apiFetch(`/api/appointments?specialist_id=${user.id}&start=${sixMonthsAgo}`);
+            const sessions = await apiFetch<any[]>(`/api/appointments?specialist_id=${user.id}&start=${sixMonthsAgo}`);
 
             const months = eachMonthOfInterval({
                 start: subMonths(new Date(), 5),
@@ -99,10 +99,10 @@ export default function SportsScientistAnalytics() {
             if (!clientId) return null;
 
             // 1. Fetch Client Info
-            const client = await apiFetch(`/api/clients/${clientId}`);
+            const client = await apiFetch<any>(`/api/clients/${clientId}`);
 
             // 2. Fetch Sessions & Pain Scores
-            const sessions = await apiFetch(`/api/appointments?client_id=${clientId}`);
+            const sessions = await apiFetch<any[]>(`/api/appointments?client_id=${clientId}`);
 
             // 3. Process Pain Scores for Chart
             const painData = (sessions || [])
@@ -113,7 +113,7 @@ export default function SportsScientistAnalytics() {
                 }));
 
             // 4. Fetch Injuries
-            const injuries = await apiFetch(`/api/clinical/injuries?client_id=${clientId}`);
+            const injuries = await apiFetch<any[]>(`/api/clinical/injuries?client_id=${clientId}`);
 
             return {
                 client,
