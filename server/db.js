@@ -124,6 +124,9 @@ async function runMigrations() {
     try {
       await pool.query(`ALTER TABLE profiles ADD COLUMN has_calendar_access BOOLEAN DEFAULT FALSE;`);
     } catch (e) {}
+    try {
+      await pool.query(`ALTER TABLE profiles ADD COLUMN has_analytics_access BOOLEAN DEFAULT FALSE;`);
+    } catch (e) {}
 
 
     // Create authsessions table for OTP
@@ -673,6 +676,7 @@ async function runMigrations() {
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
         client_id UUID NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+        package_id UUID REFERENCES packages(id) ON DELETE SET NULL,
         amount NUMERIC NOT NULL DEFAULT 0,
         discount NUMERIC DEFAULT 0,
         total NUMERIC NOT NULL DEFAULT 0,
@@ -686,6 +690,7 @@ async function runMigrations() {
         billing_staff_name TEXT,
         transaction_id TEXT,
         payment_method TEXT,
+        date DATE DEFAULT CURRENT_DATE,
         updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
         deleted_at TIMESTAMPTZ,
         created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
@@ -704,7 +709,9 @@ async function runMigrations() {
         ['billing_staff_name', 'TEXT'],
         ['updated_at', 'TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP'],
         ['subscription_id', 'UUID REFERENCES subscriptions(id) ON DELETE SET NULL'],
-        ['due_date', 'DATE']
+        ['due_date', 'DATE'],
+        ['package_id', 'UUID REFERENCES packages(id) ON DELETE SET NULL'],
+        ['date', 'DATE DEFAULT CURRENT_DATE']
     ];
     for (const [col, type] of billCols) {
         try {
@@ -1218,6 +1225,22 @@ async function runMigrations() {
       )
     `);
 
+    // Recurring Questionnaires
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS recurring_questionnaires (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+        questionnaire_id UUID NOT NULL REFERENCES questionnaires(id) ON DELETE CASCADE,
+        specialist_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+        client_ids UUID[] NOT NULL DEFAULT '{}'::uuid[],
+        recurrence_type TEXT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'active',
+        next_run TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        last_run TIMESTAMPTZ,
+        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
     // Wellness Logs
     await pool.query(`
       CREATE TABLE IF NOT EXISTS wellness_logs (
@@ -1413,6 +1436,7 @@ async function runMigrations() {
         v_serial INT;
         v_prefix TEXT;
         v_uhid TEXT;
+        v_max_existing INT;
       BEGIN
         v_month := LPAD(EXTRACT(MONTH FROM now())::TEXT, 2, '0');
         v_year := LPAD((EXTRACT(YEAR FROM now())::INT % 100)::TEXT, 2, '0');
@@ -1420,10 +1444,22 @@ async function runMigrations() {
 
         SELECT COALESCE(uhid_prefix, 'CSH') INTO v_prefix FROM organizations WHERE id = p_organization_id;
 
+        -- Find the maximum sequence number already used in the clients table for this month and prefix
+        SELECT COALESCE(
+          MAX(NULLIF(regexp_replace(uhid, '^' || v_prefix || v_year_month, ''), '')::INT),
+          0
+        ) INTO v_max_existing
+        FROM clients
+        WHERE organization_id = p_organization_id
+          AND uhid LIKE v_prefix || v_year_month || '%'
+          -- Ensure that the suffix after prefix + year_month consists only of digits to prevent casting errors
+          AND regexp_replace(uhid, '^' || v_prefix || v_year_month, '') ~ '^[0-9]+$';
+
+        -- Insert or update the sequence tracking. Ensure it is at least v_max_existing + 1
         INSERT INTO uhidsequences (organization_id, year_month, last_serial)
-        VALUES (p_organization_id, v_year_month, 1)
+        VALUES (p_organization_id, v_year_month, v_max_existing + 1)
         ON CONFLICT (organization_id, year_month)
-        DO UPDATE SET last_serial = uhidsequences.last_serial + 1
+        DO UPDATE SET last_serial = GREATEST(uhidsequences.last_serial + 1, v_max_existing + 1)
         RETURNING last_serial INTO v_serial;
 
         v_uhid := v_prefix || v_year_month || LPAD(v_serial::TEXT, 4, '0');

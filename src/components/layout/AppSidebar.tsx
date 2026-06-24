@@ -19,6 +19,7 @@ import {
   MessageSquare,
   CalendarClock,
   CheckSquare,
+  TrendingUp,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
@@ -76,7 +77,6 @@ const foeNav: NavItem[] = [
   { label: "Questionnaires", icon: ClipboardList, href: "/ams/questionnaires" },
   { label: "User Approvals", icon: UserCheck, href: "/admin/users" },
   { label: "Attendance", icon: CalendarClock, href: "/my-attendance" },
-  { label: "Settings", icon: Settings, href: "/admin/settings" },
 ];
 
 const sportsScientistNav: NavItem[] = [
@@ -208,6 +208,22 @@ export default function AppSidebar({ role, isMobile, className, onNavigate }: Ap
     }
   } else {
     items = items.filter(item => item.href !== "/admin/calendar");
+  }
+
+  // Filter and inject managerial analytics access depending on permissions
+  const hasAnalyticsAccess = ["admin", "manager", "hr_manager"].includes(role) || profile?.has_analytics_access === true;
+  
+  if (hasAnalyticsAccess) {
+    if (!items.find(i => i.href === "/admin/analytics/managerial")) {
+      const dashboardIdx = items.findIndex(i => i.label.includes("Dashboard") || i.label === "Overview");
+      const insertIdx = dashboardIdx !== -1 ? dashboardIdx + 1 : 1;
+      
+      const newItems = [...items];
+      newItems.splice(insertIdx, 0, { label: "Staff Efficiency", icon: TrendingUp, href: "/admin/analytics/managerial" });
+      items = newItems;
+    }
+  } else {
+    items = items.filter(item => item.href !== "/admin/analytics/managerial");
   }
 
   if (role === "sports_scientist" || profile?.ams_role === "coach") {

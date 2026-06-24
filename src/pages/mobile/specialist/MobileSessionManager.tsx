@@ -41,6 +41,16 @@ import {
 } from "date-fns";
 import { SportsScientistBookSessionModal } from "@/components/sports-scientist/SportsScientistBookSessionModal";
 import { SportsScientistSessionStatusModal } from "@/components/sports-scientist/SportsScientistSessionStatusModal";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+  AlertDialogAction,
+} from "@/components/ui/alert-dialog";
 
 export default function MobileSessionManager() {
   const { user } = useAuth();
@@ -48,6 +58,7 @@ export default function MobileSessionManager() {
   const queryClient = useQueryClient();
   const [isBookModalOpen, setIsBookModalOpen] = useState(false);
   const [selectedSession, setSelectedSession] = useState<any>(null);
+  const [sessionToEnd, setSessionToEnd] = useState<any>(null);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<'day' | 'week' | 'month'>('day');
 
@@ -145,6 +156,30 @@ export default function MobileSessionManager() {
       toast({ title: "Session Started" });
     } catch (error) {
       toast({ title: "Failed to start session", variant: "destructive" });
+    }
+  };
+
+  const handleEndSession = (session: any) => {
+    haptic.warning();
+    setSessionToEnd(session);
+  };
+
+  const confirmEndSession = async (session: any) => {
+    try {
+      const now = new Date().toISOString();
+      const actual_start = session.actual_start || now;
+      await apiFetch(`/appointments/${session.id}/complete`, {
+        method: "POST",
+        body: JSON.stringify({
+          actual_start,
+          actual_end: now
+        })
+      });
+      queryClient.invalidateQueries({ queryKey: ["mobile-sessions"] });
+      toast({ title: "Session Ended", description: "Session completed successfully." });
+      setSessionToEnd(null);
+    } catch (error: any) {
+      toast({ title: "Failed to end session", description: error.message, variant: "destructive" });
     }
   };
 
@@ -310,10 +345,13 @@ export default function MobileSessionManager() {
                                   </div>
                                   <div>
                                      <p className="text-[8px] font-black uppercase text-muted-foreground/60 leading-none mb-0.5">Athlete</p>
-                                     <p className="text-xs font-bold text-slate-800 dark:text-white leading-none">
+                                     <p className="text-xs font-bold text-slate-800 dark:text-white leading-none flex items-center gap-1.5">
                                         {session.session_mode === "Group"
                                             ? `👥 Group: ${session.group_name}`
                                             : session.client?.first_name ? `${session.client.first_name} ${session.client.last_name}` : "N/A"}
+                                        {session.session_mode === "Individual" && session.client?.outstanding_balance > 0 && (
+                                            <span className="text-[7px] bg-rose-500 text-white font-black uppercase tracking-widest px-1 py-0.5 rounded leading-none shrink-0 animate-pulse">DUE</span>
+                                        )}
                                      </p>
                                   </div>
                                </div>
@@ -337,7 +375,7 @@ export default function MobileSessionManager() {
                             )}
                             {isInProgress && (
                               <button 
-                                onClick={() => { haptic.warning(); setSelectedSession(session); }}
+                                onClick={() => handleEndSession(session)}
                                 className="flex-1 bg-rose-500 hover:bg-rose-600 text-white h-10 rounded-xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-1.5 shadow-md shadow-rose-500/10 active:scale-95 transition-all"
                               >
                                  <Square className="w-3.5 h-3.5 fill-current" /> End Session
@@ -444,9 +482,12 @@ export default function MobileSessionManager() {
                                         {modeStyle.label}
                                       </span>
                                     </div>
-                                    <h4 className="font-bold text-sm text-slate-900 dark:text-white truncate mt-0.5">
-                                      {session.client ? `${session.client.first_name} ${session.client.last_name}` : "No Athlete"}
-                                    </h4>
+                                     <h4 className="font-bold text-sm text-slate-900 dark:text-white truncate mt-0.5 flex items-center gap-1.5">
+                                       {session.client ? `${session.client.first_name} ${session.client.last_name}` : "No Athlete"}
+                                       {session.session_mode === "Individual" && session.client?.outstanding_balance > 0 && (
+                                           <span className="text-[7px] bg-rose-500 text-white font-black uppercase tracking-widest px-1 py-0.5 rounded leading-none shrink-0 animate-pulse">DUE</span>
+                                       )}
+                                     </h4>
                                     <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 truncate leading-none">
                                       {session.session_type?.name || "Standard Session"} {session.session_mode === 'Group' && session.group_name ? `• ${session.group_name}` : ''}
                                     </p>
@@ -702,6 +743,30 @@ export default function MobileSessionManager() {
           setSelectedSession(null);
         }}
       />
+
+      <AlertDialog open={!!sessionToEnd} onOpenChange={(open) => !open && setSessionToEnd(null)}>
+        <AlertDialogContent className="max-w-[340px] rounded-[24px]">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-slate-900 dark:text-white italic font-black text-center">End Training Session?</AlertDialogTitle>
+            <AlertDialogDescription className="text-center text-xs font-medium text-slate-500">
+              Are you sure you want to end this training session? This will mark the session as completed.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex flex-row gap-2 mt-4">
+            <AlertDialogCancel className="flex-1 rounded-xl h-11 font-bold text-[11px] uppercase tracking-wider">Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => {
+                if (sessionToEnd) {
+                  confirmEndSession(sessionToEnd);
+                }
+              }}
+              className="flex-1 rounded-xl h-11 bg-rose-500 hover:bg-rose-600 text-white font-bold text-[11px] uppercase tracking-wider"
+            >
+              End Session
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </MobileSpecialistLayout>
   );
 }

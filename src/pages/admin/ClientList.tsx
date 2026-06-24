@@ -14,6 +14,7 @@ import { ClientBulkUpload } from "@/components/admin/ClientBulkUpload";
 import { VIPBadge, VIPName } from "@/components/ui/VIPBadge";
 import { toast } from "@/hooks/use-toast";
 import * as XLSX from "xlsx";
+import { ClientGroupsModal } from "@/components/admin/ClientGroupsModal";
 
 export default function ClientList() {
   const navigate = useNavigate();
@@ -21,6 +22,7 @@ export default function ClientList() {
   const todayStr = format(new Date(), "yyyy-MM-dd");
   const [startDate, setStartDate] = useState<string>(todayStr);
   const [endDate, setEndDate] = useState<string>(todayStr);
+  const [isGroupsModalOpen, setIsGroupsModalOpen] = useState(false);
 
   const { data: clients, isLoading } = useQuery({
     queryKey: ["clients", search, startDate, endDate],
@@ -173,6 +175,10 @@ export default function ClientList() {
           </div>
           <div className="flex items-center gap-2 w-full sm:w-auto">
             <ClientBulkUpload />
+            <Button onClick={() => setIsGroupsModalOpen(true)} variant="outline" className="gap-2 shrink-0">
+              <Users className="w-4 h-4" />
+              Manage Groups
+            </Button>
             <Button onClick={() => navigate("/admin/clients/register")} className="gap-2 shrink-0">
               <UserPlus className="w-4 h-4" />
               Register Client
@@ -300,6 +306,11 @@ export default function ClientList() {
           </CardContent>
         </Card>
       </div>
+
+      <ClientGroupsModal 
+        open={isGroupsModalOpen} 
+        onOpenChange={setIsGroupsModalOpen} 
+      />
     </DashboardLayout>
   );
 }

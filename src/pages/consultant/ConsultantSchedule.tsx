@@ -119,7 +119,7 @@ export default function ConsultantSchedule() {
             if (!plannedClientIds.length) return {};
             const results = await Promise.all(
                 plannedClientIds.map(async (clientId: string) => {
-                    const data = await apiFetch(`/api/billing/entitlements/balance/${clientId}`);
+                    const data = await apiFetch<any>(`/api/billing/entitlements/balance/${clientId}`);
                     const byServiceId: Record<string, number> = {};
                     const byServiceName: Record<string, number> = {};
                     (data?.balances ?? []).forEach((b: any) => {
@@ -165,7 +165,7 @@ export default function ConsultantSchedule() {
         queryKey: ["pending-soap-notes", profile?.id],
         queryFn: async () => {
             if (!profile?.id) return [];
-            const data = await apiFetch(`/api/appointments?specialist_id=${profile.id}&status=Completed`);
+            const data = await apiFetch<any[]>(`/api/appointments?specialist_id=${profile.id}&status=Completed`);
             // Only keep sessions that have NO physio_session_details
             return (data ?? []).filter((s: any) =>
                 !s.physio_session_details || (Array.isArray(s.physio_session_details) && s.physio_session_details.length === 0)

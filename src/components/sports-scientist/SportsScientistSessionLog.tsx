@@ -76,7 +76,7 @@ export function SportsScientistSessionLog() {
         queryKey: ["ss-sessions-log", user?.id, dateRange.start, dateRange.end],
         queryFn: async () => {
             if (!user) return [];
-            return await apiFetch(`/api/appointments?specialist_id=${user.id}&start=${dateRange.start}&end=${dateRange.end}`);
+            return await apiFetch<any[]>(`/api/appointments?specialist_id=${user.id}&start=${dateRange.start}&end=${dateRange.end}`);
         },
         enabled: !!user,
     });

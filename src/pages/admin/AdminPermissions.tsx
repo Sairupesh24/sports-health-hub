@@ -30,6 +30,7 @@ interface StaffUser {
     profession?: string | null;
     avatar_url?: string | null;
     has_calendar_access: boolean;
+    has_analytics_access: boolean;
 }
 
 export default function AdminPermissions() {
@@ -66,7 +67,8 @@ export default function AdminPermissions() {
                     current_role: u.current_role,
                     profession: u.profession,
                     avatar_url: u.avatar_url,
-                    has_calendar_access: !!u.has_calendar_access
+                    has_calendar_access: !!u.has_calendar_access,
+                    has_analytics_access: !!u.has_analytics_access
                 }));
 
             setUsers(staff);
@@ -100,6 +102,38 @@ export default function AdminPermissions() {
             toast({
                 title: "Permission Updated",
                 description: `Admin Calendar access has been successfully ${targetVal ? 'granted' : 'revoked'}.`,
+                variant: "default"
+            });
+        } catch (error: any) {
+            toast({
+                title: "Update Failed",
+                description: error.message,
+                variant: "destructive"
+            });
+        } finally {
+            setTogglingId(null);
+        }
+    };
+
+    const handleToggleAnalyticsAccess = async (userId: string, currentVal: boolean) => {
+        try {
+            setTogglingId(userId);
+            const targetVal = !currentVal;
+
+            await apiFetch(`/hr/users/${userId}/role`, {
+                method: "PATCH",
+                body: {
+                    has_analytics_access: targetVal
+                }
+            });
+
+            setUsers(prev => 
+                prev.map(u => u.id === userId ? { ...u, has_analytics_access: targetVal } : u)
+            );
+
+            toast({
+                title: "Permission Updated",
+                description: `Managerial Analytics access has been successfully ${targetVal ? 'granted' : 'revoked'}.`,
                 variant: "default"
             });
         } catch (error: any) {
@@ -292,24 +326,42 @@ export default function AdminPermissions() {
                                         {/* Toggle Action */}
                                         <div className="flex items-center gap-4 self-end sm:self-auto shrink-0">
                                             {isUserAdmin ? (
-                                                <div className="flex items-center gap-2 text-xs font-bold text-emerald-600 bg-emerald-50 px-4 py-2 rounded-2xl border border-emerald-100">
-                                                    <Check className="w-4 h-4" />
-                                                    Unconditional Access
+                                                <div className="flex flex-col gap-2">
+                                                    <div className="flex items-center gap-2 text-xs font-bold text-emerald-600 bg-emerald-50 px-4 py-2 rounded-2xl border border-emerald-100">
+                                                        <Check className="w-4 h-4" />
+                                                        Unconditional Access
+                                                    </div>
                                                 </div>
                                             ) : (
-                                                <div className="flex items-center gap-3">
-                                                    <span className={cn(
-                                                        "text-xs font-bold tracking-wide uppercase",
-                                                        user.has_calendar_access ? "text-primary" : "text-slate-400"
-                                                    )}>
-                                                        {user.has_calendar_access ? "Access Granted" : "Access Revoked"}
-                                                    </span>
-                                                    <Switch
-                                                        checked={user.has_calendar_access}
-                                                        disabled={togglingId === user.id}
-                                                        onCheckedChange={() => handleToggleCalendarAccess(user.id, user.has_calendar_access)}
-                                                        className="data-[state=checked]:bg-primary"
-                                                    />
+                                                <div className="flex flex-col gap-3 sm:items-end">
+                                                    <div className="flex items-center gap-3">
+                                                        <span className={cn(
+                                                            "text-[10px] font-bold tracking-wide uppercase",
+                                                            user.has_calendar_access ? "text-primary" : "text-slate-400"
+                                                        )}>
+                                                            Calendar: {user.has_calendar_access ? "Granted" : "Revoked"}
+                                                        </span>
+                                                        <Switch
+                                                            checked={user.has_calendar_access}
+                                                            disabled={togglingId === user.id}
+                                                            onCheckedChange={() => handleToggleCalendarAccess(user.id, user.has_calendar_access)}
+                                                            className="data-[state=checked]:bg-primary scale-90"
+                                                        />
+                                                    </div>
+                                                    <div className="flex items-center gap-3">
+                                                        <span className={cn(
+                                                            "text-[10px] font-bold tracking-wide uppercase",
+                                                            user.has_analytics_access ? "text-primary" : "text-slate-400"
+                                                        )}>
+                                                            Analytics: {user.has_analytics_access ? "Granted" : "Revoked"}
+                                                        </span>
+                                                        <Switch
+                                                            checked={user.has_analytics_access}
+                                                            disabled={togglingId === user.id}
+                                                            onCheckedChange={() => handleToggleAnalyticsAccess(user.id, user.has_analytics_access)}
+                                                            className="data-[state=checked]:bg-primary scale-90"
+                                                        />
+                                                    </div>
                                                 </div>
                                             )}
                                         </div>
