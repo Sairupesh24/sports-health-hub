@@ -16,7 +16,6 @@ import {
 } from "@/components/ui/dialog";
 
 const TEMPLATE_HEADERS = [
-  "uhid",
   "registration_date",
   "honorific",
   "first_name",
@@ -27,7 +26,6 @@ const TEMPLATE_HEADERS = [
   "aadhaar_no",
   "blood_group",
   "dob",
-  "age",
   "email",
   "alternate_mobile_no",
   "occupation",
@@ -64,86 +62,15 @@ export function ClientBulkUpload() {
     errors: string[];
   } | null>(null);
 
-  const parseSafeDate = (val: any): string | null => {
-    if (val === undefined || val === null || val === '') return null;
-    
-    // 1. If it's already a JS Date object
-    if (val instanceof Date) {
-      if (isNaN(val.getTime())) return null;
-      const y = val.getUTCFullYear();
-      const m = String(val.getUTCMonth() + 1).padStart(2, '0');
-      const d = String(val.getUTCDate()).padStart(2, '0');
-      return `${y}-${m}-${d}`;
+  const parseSafeDate = (val: any) => {
+    if (!val) return null;
+    try {
+      const date = new Date(val);
+      if (isNaN(date.getTime())) return null;
+      return date.toISOString().split('T')[0];
+    } catch (e) {
+      return null;
     }
-    
-    // 2. If it's a number (Excel serial date)
-    if (typeof val === 'number') {
-      try {
-        const date = new Date(Math.round((val - 25569) * 86400 * 1000));
-        if (!isNaN(date.getTime())) {
-          const y = date.getUTCFullYear();
-          const m = String(date.getUTCMonth() + 1).padStart(2, '0');
-          const d = String(date.getUTCDate()).padStart(2, '0');
-          return `${y}-${m}-${d}`;
-        }
-      } catch (e) {
-        // ignore
-      }
-    }
-    
-    // 3. If it's a string
-    if (typeof val === 'string') {
-      const trimmed = val.trim();
-      if (!trimmed) return null;
-      
-      // Match DD/MM/YYYY or DD-MM-YYYY
-      const dmyRegex = /^(\d{1,2})[/\-](\d{1,2})[/\-](\d{4})$/;
-      const dmyMatch = trimmed.match(dmyRegex);
-      if (dmyMatch) {
-        const day = parseInt(dmyMatch[1], 10);
-        const month = parseInt(dmyMatch[2], 10);
-        const year = parseInt(dmyMatch[3], 10);
-        
-        if (month >= 1 && month <= 12 && day >= 1 && day <= 31) {
-          const m = String(month).padStart(2, '0');
-          const d = String(day).padStart(2, '0');
-          return `${year}-${m}-${d}`;
-        }
-      }
-      
-      // Match YYYY/MM/DD or YYYY-MM-DD
-      const ymdRegex = /^(\d{4})[/\-](\d{1,2})[/\-](\d{1,2})$/;
-      const ymdMatch = trimmed.match(ymdRegex);
-      if (ymdMatch) {
-        const year = parseInt(ymdMatch[1], 10);
-        const month = parseInt(ymdMatch[2], 10);
-        const day = parseInt(ymdMatch[3], 10);
-        
-        if (month >= 1 && month <= 12 && day >= 1 && day <= 31) {
-          const m = String(month).padStart(2, '0');
-          const d = String(day).padStart(2, '0');
-          return `${year}-${m}-${d}`;
-        }
-      }
-
-      // Fallback: standard parse
-      try {
-        const date = new Date(trimmed);
-        if (!isNaN(date.getTime())) {
-          if (trimmed.includes('T')) {
-            return trimmed.split('T')[0];
-          }
-          const y = date.getFullYear();
-          const m = String(date.getMonth() + 1).padStart(2, '0');
-          const d = String(date.getDate()).padStart(2, '0');
-          return `${y}-${m}-${d}`;
-        }
-      } catch (e) {
-        // ignore
-      }
-    }
-    
-    return null;
   };
 
   const exportTemplate = () => {
@@ -203,13 +130,10 @@ export function ClientBulkUpload() {
           }
 
           const dob = parseSafeDate(row.dob);
-          const parsedAge = row.age ? parseInt(String(row.age), 10) : null;
-          const age = parsedAge && !isNaN(parsedAge) ? parsedAge : (dob ? calculateAge(dob) : null);
           const insuranceValidity = parseSafeDate(row.insurance_validity);
           const registrationDate = parseSafeDate(row.registration_date) || new Date().toISOString().split('T')[0];
 
           preparedClients.push({
-            uhid: row.uhid ? String(row.uhid).trim() : null,
             registered_on: registrationDate,
             honorific: row.honorific || null,
             first_name: row.first_name,
@@ -220,7 +144,7 @@ export function ClientBulkUpload() {
             aadhaar_no: row.aadhaar_no ? String(row.aadhaar_no) : null,
             blood_group: row.blood_group || null,
             dob: dob,
-            age: age,
+            age: dob ? calculateAge(new Date(dob)) : null,
             email: row.email || null,
             alternate_mobile_no: row.alternate_mobile_no ? String(row.alternate_mobile_no) : null,
             occupation: row.occupation || null,
@@ -284,16 +208,7 @@ export function ClientBulkUpload() {
     event.target.value = "";
   };
 
-  const calculateAge = (dobStr: string): number | null => {
-    const parts = dobStr.split('-');
-    if (parts.length !== 3) return null;
-    const year = parseInt(parts[0], 10);
-    const month = parseInt(parts[1], 10) - 1;
-    const day = parseInt(parts[2], 10);
-    
-    const birthDate = new Date(year, month, day);
-    if (isNaN(birthDate.getTime())) return null;
-    
+  const calculateAge = (birthDate: Date) => {
     const today = new Date();
     let age = today.getFullYear() - birthDate.getFullYear();
     const m = today.getMonth() - birthDate.getMonth();
@@ -331,12 +246,12 @@ export function ClientBulkUpload() {
                   onChange={handleFileUpload}
                   className="hidden"
                   id="bulk-upload-input"
-                  accept=".xlsx, .xls, .csv"
+                  accept=".xlsx, .xls"
                 />
                 <label htmlFor="bulk-upload-input" className="cursor-pointer space-y-2">
                   <Upload className="w-10 h-10 mx-auto text-muted-foreground" />
                   <p className="text-sm font-medium">Click to select file</p>
-                  <p className="text-xs text-muted-foreground">Excel or CSV files (.xlsx, .xls, .csv)</p>
+                  <p className="text-xs text-muted-foreground">Excel files (.xlsx, .xls) only</p>
                 </label>
               </div>
             )}

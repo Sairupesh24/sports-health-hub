@@ -5,7 +5,7 @@ import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, User, Phone, MapPin, Shield, Activity, CalendarDays, FileText, Download, Users, Banknote, Smartphone, Landmark, CreditCard, Plus, X } from "lucide-react";
+import { ArrowLeft, User, Phone, MapPin, Shield, Activity, CalendarDays, FileText, Download, Users, Banknote, Smartphone, Landmark, CreditCard, Plus, X, Pencil } from "lucide-react";
 import { apiFetch } from "@/utils/api";
 import { format, parse } from "date-fns";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -13,7 +13,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Textarea } from "@/components/ui/textarea";
 import { ClientEntitlements } from "./ClientEntitlements";
 import { DocumentManager } from "@/components/admin/documents/DocumentManager";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -70,6 +70,85 @@ export default function ClientProfile() {
 
     const [amsRole, setAmsRole] = useState<string | null>(null);
     const [profileId, setProfileId] = useState<string | null>(null);
+
+    // Edit Client General Details state
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [editHonorific, setEditHonorific] = useState("");
+    const [editFirstName, setEditFirstName] = useState("");
+    const [editLastName, setEditLastName] = useState("");
+    const [editGender, setEditGender] = useState("");
+    const [editDob, setEditDob] = useState("");
+    const [editMobileNo, setEditMobileNo] = useState("");
+    const [editEmail, setEditEmail] = useState("");
+    const [editAddress, setEditAddress] = useState("");
+    const [editLocality, setEditLocality] = useState("");
+    const [editCity, setEditCity] = useState("");
+    const [editState, setEditState] = useState("");
+    const [editPincode, setEditPincode] = useState("");
+    const [editCountry, setEditCountry] = useState("");
+    const [savingEdit, setSavingEdit] = useState(false);
+
+    const openEditModal = () => {
+        if (!client) return;
+        setEditHonorific(client.honorific || "Mr.");
+        setEditFirstName(client.first_name || "");
+        setEditLastName(client.last_name || "");
+        setEditGender(client.gender || "Male");
+        setEditDob(client.dob ? format(new Date(client.dob), "yyyy-MM-dd") : "");
+        setEditMobileNo(client.mobile_no || "");
+        setEditEmail(client.email || "");
+        setEditAddress(client.address || "");
+        setEditLocality(client.locality || "");
+        setEditCity(client.city || "");
+        setEditState(client.state || "");
+        setEditPincode(client.pincode || "");
+        setEditCountry(client.country || "India");
+        setIsEditModalOpen(true);
+    };
+
+    const handleSaveClientDetails = async () => {
+        if (!editFirstName.trim() || !editLastName.trim() || !editMobileNo.trim()) {
+            toast({ title: "Validation Error", description: "First Name, Last Name and Mobile number are required.", variant: "destructive" });
+            return;
+        }
+        
+        try {
+            setSavingEdit(true);
+            const payload = {
+                honorific: editHonorific,
+                first_name: editFirstName,
+                last_name: editLastName,
+                gender: editGender,
+                dob: editDob || null,
+                mobile_no: editMobileNo,
+                email: editEmail || null,
+                address: editAddress || null,
+                locality: editLocality || null,
+                city: editCity || null,
+                state: editState || null,
+                pincode: editPincode || null,
+                country: editCountry || null
+            };
+
+            await apiFetch(`/clients/${id}`, {
+                method: 'PATCH',
+                data: payload
+            });
+
+            toast({ title: "Success", description: "Client details updated successfully." });
+            
+            // Refresh client data
+            const updated = await apiFetch<any>(`/clients/${id}`);
+            setClient(updated);
+            
+            setIsEditModalOpen(false);
+        } catch (err: any) {
+            toast({ title: "Error", description: err.message || "Failed to update client details", variant: "destructive" });
+        } finally {
+            setSavingEdit(false);
+        }
+    };
+
     const { roles, profile: currentUserProfile } = useAuth();
     const isAdmin = roles.includes('admin');
     const isFOE = roles.includes('foe');
@@ -452,16 +531,17 @@ export default function ClientProfile() {
                             </p>
                         </div>
                         
-                        <div className="flex items-center gap-3 flex-wrap">
-                            {isAdminOrFoe && (
-                                <Button
-                                    onClick={() => navigate(`/admin/billing?clientId=${client.id}`)}
-                                    className="flex items-center gap-2 font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-sm"
-                                >
-                                    <Plus className="w-4 h-4" />
-                                    Generate Bill
-                                </Button>
-                            )}
+                        <div className="flex items-center gap-3">
+                            <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="h-10 border-primary/20 hover:bg-primary/5 text-primary font-semibold gap-2 rounded-xl shadow-sm"
+                                onClick={openEditModal}
+                            >
+                                <Pencil className="w-4 h-4" />
+                                Edit Profile
+                            </Button>
+
                             <div className="flex items-center gap-3 bg-muted/30 p-3 rounded-lg border">
                                <Label htmlFor="ams-toggle" className="text-sm font-semibold cursor-pointer">
                                    {amsRole === "athlete" ? "AMS Access: Active" : "AMS Access: Inactive"}
@@ -1237,6 +1317,179 @@ export default function ClientProfile() {
                             onClick={markAsPaid}
                         >
                             Confirm & Post Payment
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Edit Client Details Modal */}
+            <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+                <DialogContent className="max-w-2xl overflow-y-auto max-h-[85vh]">
+                    <DialogHeader>
+                        <DialogTitle className="text-xl font-bold flex items-center gap-2">
+                            <Pencil className="w-5 h-5 text-primary" />
+                            Edit Client General Details
+                        </DialogTitle>
+                        <DialogDescription>
+                            Modify personal and contact information for this client.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
+                        {/* Title / Honorific */}
+                        <div className="space-y-1">
+                            <Label>Title</Label>
+                            <Select value={editHonorific} onValueChange={setEditHonorific}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select Title" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="Mr.">Mr.</SelectItem>
+                                    <SelectItem value="Mrs.">Mrs.</SelectItem>
+                                    <SelectItem value="Ms.">Ms.</SelectItem>
+                                    <SelectItem value="Dr.">Dr.</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        {/* Gender */}
+                        <div className="space-y-1">
+                            <Label>Gender</Label>
+                            <Select value={editGender} onValueChange={setEditGender}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select Gender" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="Male">Male</SelectItem>
+                                    <SelectItem value="Female">Female</SelectItem>
+                                    <SelectItem value="Other">Other</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        {/* First Name */}
+                        <div className="space-y-1">
+                            <Label>First Name *</Label>
+                            <Input 
+                                value={editFirstName} 
+                                onChange={(e) => setEditFirstName(e.target.value)} 
+                                placeholder="Enter first name"
+                            />
+                        </div>
+
+                        {/* Last Name */}
+                        <div className="space-y-1">
+                            <Label>Last Name *</Label>
+                            <Input 
+                                value={editLastName} 
+                                onChange={(e) => setEditLastName(e.target.value)} 
+                                placeholder="Enter last name"
+                            />
+                        </div>
+
+                        {/* DOB */}
+                        <div className="space-y-1">
+                            <Label>Date of Birth</Label>
+                            <Input 
+                                type="date"
+                                value={editDob} 
+                                onChange={(e) => setEditDob(e.target.value)} 
+                            />
+                        </div>
+
+                        {/* Mobile */}
+                        <div className="space-y-1">
+                            <Label>Mobile Number *</Label>
+                            <Input 
+                                value={editMobileNo} 
+                                onChange={(e) => setEditMobileNo(e.target.value)} 
+                                placeholder="Enter mobile number"
+                            />
+                        </div>
+
+                        {/* Email */}
+                        <div className="space-y-1 md:col-span-2">
+                            <Label>Email Address</Label>
+                            <Input 
+                                type="email"
+                                value={editEmail} 
+                                onChange={(e) => setEditEmail(e.target.value)} 
+                                placeholder="Enter email address"
+                            />
+                        </div>
+
+                        <div className="md:col-span-2">
+                            <hr className="my-2 border-slate-200" />
+                            <h4 className="font-bold text-xs uppercase text-slate-400 tracking-wider mb-2">Address Information</h4>
+                        </div>
+
+                        {/* Address */}
+                        <div className="space-y-1 md:col-span-2">
+                            <Label>Address Street</Label>
+                            <Input 
+                                value={editAddress} 
+                                onChange={(e) => setEditAddress(e.target.value)} 
+                                placeholder="Street address"
+                            />
+                        </div>
+
+                        {/* Locality */}
+                        <div className="space-y-1">
+                            <Label>Locality</Label>
+                            <Input 
+                                value={editLocality} 
+                                onChange={(e) => setEditLocality(e.target.value)} 
+                                placeholder="Locality / Area"
+                            />
+                        </div>
+
+                        {/* City */}
+                        <div className="space-y-1">
+                            <Label>City</Label>
+                            <Input 
+                                value={editCity} 
+                                onChange={(e) => setEditCity(e.target.value)} 
+                                placeholder="City"
+                            />
+                        </div>
+
+                        {/* State */}
+                        <div className="space-y-1">
+                            <Label>State</Label>
+                            <Input 
+                                value={editState} 
+                                onChange={(e) => setEditState(e.target.value)} 
+                                placeholder="State"
+                            />
+                        </div>
+
+                        {/* Pincode */}
+                        <div className="space-y-1">
+                            <Label>Pincode</Label>
+                            <Input 
+                                value={editPincode} 
+                                onChange={(e) => setEditPincode(e.target.value)} 
+                                placeholder="Pincode"
+                            />
+                        </div>
+
+                        {/* Country */}
+                        <div className="space-y-1">
+                            <Label>Country</Label>
+                            <Input 
+                                value={editCountry} 
+                                onChange={(e) => setEditCountry(e.target.value)} 
+                                placeholder="Country"
+                            />
+                        </div>
+                    </div>
+
+                    <DialogFooter className="gap-2">
+                        <Button variant="outline" onClick={() => setIsEditModalOpen(false)} disabled={savingEdit}>
+                            Cancel
+                        </Button>
+                        <Button onClick={handleSaveClientDetails} disabled={savingEdit}>
+                            {savingEdit ? "Saving..." : "Save Changes"}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

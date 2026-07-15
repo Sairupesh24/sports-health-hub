@@ -206,7 +206,9 @@ const REGION_CENTERS: Record<"male" | "female", Record<string, { x: number; y: n
     hamstrings_left: { x: 1054, y: 862 },
     hamstrings_right: { x: 1232, y: 862 },
     calves_left: { x: 1091, y: 1191 },
-    calves_right: { x: 1195, y: 1191 }
+    calves_right: { x: 1195, y: 1191 },
+    left_foot: { x: 1091, y: 1395 },
+    right_foot: { x: 1194, y: 1395 }
   }
 };
 

@@ -61,8 +61,6 @@ interface SessionEvent {
     guest_name?: string;
     guest_contact?: string;
     enquiry_id?: string;
-    session_mode?: string;
-    group_name?: string | null;
 }
 
 export default function AdminCalendar() {
@@ -258,9 +256,9 @@ export default function AdminCalendar() {
     });
 
     // ── Pre-completion entitlement check for Planned sessions ─────────────────
-    // Get unique client IDs that have upcoming Planned or Checked In sessions
+    // Get unique client IDs that have upcoming Planned sessions
     const plannedClientIds = useMemo(() =>
-        [...new Set(allSessions.filter(s => s.status === 'Planned' || s.status === 'Checked In').map(s => s.client_id))],
+        [...new Set(allSessions.filter(s => s.status === 'Planned').map(s => s.client_id))],
         [allSessions]
     );
 
@@ -290,11 +288,11 @@ export default function AdminCalendar() {
     // Enrich sessions with pre-unentitled flag
     const sessionsWithEntitlementStatus = useMemo(() =>
         allSessions.map(s => {
-            if (s.status !== 'Planned' && s.status !== 'Checked In') return s;
+            if (s.status !== 'Planned') return s;
             const clientBalance = clientEntitlementMap?.[s.client_id];
             
-            let hasNoBalance = false;
-            if (clientEntitlementMap && clientBalance) {
+            let hasNoBalance = true;
+            if (clientBalance) {
                 if (s.service_type) {
                     const serviceKey = s.service_type.toLowerCase().trim();
                     hasNoBalance = clientBalance.byServiceName[serviceKey] === undefined || clientBalance.byServiceName[serviceKey] <= 0;
@@ -529,99 +527,11 @@ export default function AdminCalendar() {
         return activeBreaksList;
     };
 
-    const getSlotStats = (clinicianId: string, clinicianSessions: any[]) => {
-        const schedule = staffSchedules.find((s: any) => s.consultant_id === clinicianId);
-        let shiftStartStr = "08:00";
-        let shiftEndStr = "17:00";
-        if (schedule) {
-            if (schedule.shift_start) {
-                shiftStartStr = String(schedule.shift_start).substring(0, 5);
-            }
-            if (schedule.shift_end) {
-                shiftEndStr = String(schedule.shift_end).substring(0, 5);
-            }
-        }
-
-        const breaksList = getClinicianBreaks(clinicianId);
-
-        const timeToMins = (t: string) => {
-            const parts = t.split(':');
-            return (parseInt(parts[0], 10) || 0) * 60 + (parseInt(parts[1], 10) || 0);
-        };
-
-        const shiftStartMins = timeToMins(shiftStartStr);
-        const shiftEndMins = timeToMins(shiftEndStr);
-
-        let availableCount = 0;
-        const bookedCount = clinicianSessions.length;
-
-        timeSlots.forEach(slot => {
-            const slotStartMins = timeToMins(slot.start);
-            const slotEndMins = timeToMins(slot.end);
-
-            // 1. Must be within shift
-            if (slotStartMins < shiftStartMins || slotEndMins > shiftEndMins) {
-                return;
-            }
-
-            // 2. Must not overlap with break
-            const overlapsBreak = breaksList.some((b: any) => {
-                const bStartMins = timeToMins(b.start_time || b.startTime);
-                const bEndMins = timeToMins(b.end_time || b.endTime);
-                return slotStartMins < bEndMins && slotEndMins > bStartMins;
-            });
-
-            if (overlapsBreak) {
-                return;
-            }
-
-            // 3. Must not overlap with booked session
-            const overlapsSession = clinicianSessions.some((s: any) => {
-                const sStart = parseISO(s.scheduled_start);
-                const sEnd = parseISO(s.scheduled_end);
-
-                const sStartStr = `${String(sStart.getHours()).padStart(2, '0')}:${String(sStart.getMinutes()).padStart(2, '0')}`;
-                const sEndStr = `${String(sEnd.getHours()).padStart(2, '0')}:${String(sEnd.getMinutes()).padStart(2, '0')}`;
-
-                const sStartMins = timeToMins(sStartStr);
-                const sEndMins = timeToMins(sEndStr);
-
-                return slotStartMins < sEndMins && slotEndMins > sStartMins;
-            });
-
-            if (!overlapsSession) {
-                availableCount++;
-            }
-        });
-
-        return {
-            booked: bookedCount,
-            available: availableCount
-        };
-    };
-
     const getBookingStyleAndElements = (session: any) => {
         const start = parseISO(session.scheduled_start);
         const end = parseISO(session.scheduled_end);
         const now = new Date();
         
-        if (session.session_mode === 'Group') {
-            let cardClasses = "";
-            if (session.status === 'Completed') {
-                cardClasses = "bg-slate-100 text-slate-700 border-slate-200";
-            } else if (session.status === 'Cancelled' || session.status === 'Rescheduled') {
-                cardClasses = "bg-slate-100 text-slate-700 border-slate-200 opacity-60";
-            } else {
-                cardClasses = "border-indigo-500 bg-indigo-50 text-indigo-900 dark:bg-indigo-950/30 dark:text-indigo-300 dark:border-indigo-800";
-            }
-            const indicatorElement = (
-                <span className="text-[8px] font-bold text-indigo-600 dark:text-indigo-400 uppercase">
-                    👥 Group Planned
-                </span>
-            );
-            return { cardClasses, indicatorElement };
-        }
-
         let state: 'completed' | 'in_progress' | 'overdue' | 'planned' | 'other' = 'planned';
 
         if (session.status === 'Completed') {
@@ -663,30 +573,16 @@ export default function AdminCalendar() {
                 );
                 break;
             case 'overdue':
-                const isUnentitled = session.is_unentitled || session.is_pre_unentitled;
-                if (isUnentitled) {
-                    cardClasses = "border-red-500 bg-red-50 text-red-800";
-                    indicatorElement = (
-                        <span className="flex items-center gap-1 text-[8px] font-bold text-red-600 uppercase">
-                            <span className="relative flex h-2 w-2">
-                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                              <AlertCircle className="w-2 h-2 text-red-500 relative" />
-                            </span>
-                            Overdue
+                cardClasses = "border-red-500 bg-red-50 text-red-800";
+                indicatorElement = (
+                    <span className="flex items-center gap-1 text-[8px] font-bold text-red-600 uppercase">
+                        <span className="relative flex h-2 w-2">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                          <AlertCircle className="w-2 h-2 text-red-500 relative" />
                         </span>
-                    );
-                } else {
-                    cardClasses = "border-amber-300 bg-amber-50/60 text-amber-800";
-                    indicatorElement = (
-                        <span className="flex items-center gap-1 text-[8px] font-bold text-amber-600 dark:text-amber-400 uppercase">
-                            <span className="relative flex h-2 w-2">
-                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-                              <AlertCircle className="w-2 h-2 text-amber-500 relative" />
-                            </span>
-                            Elapsed
-                        </span>
-                    );
-                }
+                        Overdue
+                    </span>
+                );
                 break;
             case 'planned':
             default:
@@ -717,13 +613,8 @@ export default function AdminCalendar() {
         return renderDayView();
     };
 
-    const getStatusColor = (event: SessionEvent) => {
-        if (event.session_mode === 'Group') {
-            if (event.status === 'Completed') return 'bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/20 dark:text-indigo-400 dark:border-indigo-800';
-            if (event.status === 'Cancelled' || event.status === 'Rescheduled') return 'bg-indigo-50/50 text-indigo-700/60 border-indigo-200/50 opacity-60';
-            return 'bg-indigo-100 text-indigo-900 border-indigo-300 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-700';
-        }
-        switch (event.status) {
+    const getStatusColor = (status: string) => {
+        switch (status) {
             case 'Planned': return 'bg-blue-100 text-blue-800 border-blue-200';
             case 'Completed': return 'bg-gray-100 text-gray-800 border-gray-200';
             case 'Missed': return 'bg-red-100 text-red-800 border-red-200';
@@ -783,14 +674,12 @@ export default function AdminCalendar() {
                                 <div
                                     key={event.id}
                                     onClick={() => setSelectedSession(event)}
-                                    className={`text-[9px] leading-tight p-1 rounded border truncate cursor-pointer hover:opacity-80 transition-opacity ${getStatusColor(event)}`}
+                                    className={`text-[9px] leading-tight p-1 rounded border truncate cursor-pointer hover:opacity-80 transition-opacity ${getStatusColor(event.status)}`}
                                 >
                                     <span className="font-semibold">{format(parseISO(event.scheduled_start), "HH:mm")}</span>
                                     {" "}
                                     <span className={event.client?.is_vip ? "text-[#D4AF37] font-bold" : ""}>
-                                        {event.session_mode === 'Group' ? (
-                                            <span className="font-bold opacity-90">👥 {event.group_name || 'Unnamed Group'}</span>
-                                        ) : event.is_guest ? (
+                                        {event.is_guest ? (
                                             <span className="italic opacity-80 flex items-center gap-1">
                                                 G: {event.guest_name}
                                                 <span className="px-1 bg-orange-100 text-orange-600 rounded-[2px] text-[7px] font-bold uppercase tracking-tighter">Prov</span>
@@ -799,7 +688,7 @@ export default function AdminCalendar() {
                                             `${event.client?.first_name} ${event.client?.last_name}`
                                         )}
                                     </span>
-                                    {event.session_mode !== 'Group' && !event.is_guest && <VIPBadge isVIP={event.client?.is_vip} iconOnly size="sm" className="ml-1 inline-flex" />}
+                                    {!event.is_guest && <VIPBadge isVIP={event.client?.is_vip} iconOnly size="sm" className="ml-1 inline-flex" />}
                                     {event.is_unentitled && (
                                         <span className="ml-1 px-1 bg-red-500 text-white rounded-[2px] text-[8px] font-bold animate-pulse">
                                             UN
@@ -895,19 +784,17 @@ export default function AdminCalendar() {
                                                 <div
                                                     key={event.id}
                                                     onClick={() => setSelectedSession(event)}
-                                                    className={`absolute left-1 right-1 rounded border p-1.5 overflow-hidden shadow-sm hover:shadow-md cursor-pointer transition-all ${getStatusColor(event)}`}
+                                                    className={`absolute left-1 right-1 rounded border p-1.5 overflow-hidden shadow-sm hover:shadow-md cursor-pointer transition-all ${getStatusColor(event.status)}`}
                                                     style={{ top: `${topPos}px`, height: `${height}px`, minHeight: '24px' }}
                                                 >
                                                     <div className="text-[9px] font-bold leading-none mb-0.5">{format(startD, "HH:mm")} - {format(endD, "HH:mm")}</div>
                                                     <div className={cn("text-[9px] truncate font-medium flex items-center gap-1 leading-none", event.client?.is_vip && "text-[#D4AF37] font-bold")}>
-                                                        {event.session_mode === 'Group' ? (
-                                                            <span className="font-bold">👥 {event.group_name || 'Unnamed Group'}</span>
-                                                        ) : event.is_guest ? (
+                                                        {event.is_guest ? (
                                                             <span className="italic">G: {event.guest_name} <span className="text-[8px] bg-orange-100 text-orange-600 px-1 rounded font-bold uppercase ml-1">PROV</span></span>
                                                         ) : (
                                                             <>C: {event.client?.first_name} {event.client?.last_name}</>
                                                         )}
-                                                        {event.session_mode !== 'Group' && !event.is_guest && <VIPBadge isVIP={event.client?.is_vip} iconOnly size="sm" />}
+                                                        {!event.is_guest && <VIPBadge isVIP={event.client?.is_vip} iconOnly size="sm" />}
                                                     </div>
                                                     {((filterMode === 'role') || (filterMode === 'individual' && selectedConsultants.length !== 1)) && height > 40 && (
                                                         <div className="text-[8px] truncate opacity-80 mt-0.5 border-t border-current/20 pt-0.5 leading-none">
@@ -1017,7 +904,7 @@ export default function AdminCalendar() {
                     >
                         {/* Time Column (Y-Axis) */}
                         <div className="flex flex-col select-none">
-                            <div className="h-[88px] border-b border-border/50 bg-muted/30 flex items-center justify-center font-bold text-xs text-muted-foreground">
+                            <div className="h-[75px] border-b border-border/50 bg-muted/30 flex items-center justify-center font-bold text-xs text-muted-foreground">
                                 Time
                             </div>
                             <div className="relative" style={{ height: `${totalHeight}px` }}>
@@ -1061,9 +948,6 @@ export default function AdminCalendar() {
                                 }
                                 return s.therapist_id === clinician.id && isSameDay(parseISO(s.scheduled_start), currentDate);
                             });
-
-                            const stats = getSlotStats(clinician.id, clinicianSessions);
-                            const isUnassigned = clinician.id === 'unassigned';
 
                             // Overlap tracking
                             const sortedSessions = [...clinicianSessions].sort((a, b) => {
@@ -1122,7 +1006,7 @@ export default function AdminCalendar() {
                             return (
                                 <div key={clinician.id} className="flex flex-col relative">
                                     {/* Clinician Column Header */}
-                                    <div className="h-[88px] border-b border-border/50 bg-muted/10 p-2 flex flex-col justify-center relative select-none">
+                                    <div className="h-[75px] border-b border-border/50 bg-muted/10 p-2 flex flex-col justify-center relative select-none">
                                         <div className="flex items-center gap-2">
                                             {clinician.avatar_url ? (
                                                 <img 
@@ -1135,20 +1019,10 @@ export default function AdminCalendar() {
                                                     {initials}
                                                 </div>
                                             )}
-                                            <div className="min-w-0 font-sans">
+                                            <div className="min-w-0">
                                                 <div className="text-xs font-bold text-slate-800 truncate">{clinician.name}</div>
-                                                <div className="text-[10px] text-muted-foreground truncate uppercase font-medium leading-none">
+                                                <div className="text-[10px] text-muted-foreground truncate uppercase font-medium">
                                                     {clinician.profession || "Clinician"}
-                                                </div>
-                                                <div className="flex items-center gap-1.5 mt-1 select-none">
-                                                    <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-primary/10 text-primary text-[9px] font-bold">
-                                                        {stats.booked} booked
-                                                    </span>
-                                                    {!isUnassigned && (
-                                                        <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 text-[9px] font-bold">
-                                                            {stats.available} available
-                                                        </span>
-                                                    )}
                                                 </div>
                                             </div>
                                         </div>
@@ -1236,14 +1110,12 @@ export default function AdminCalendar() {
                                                             </div>
 
                                                             <div className={cn("font-bold text-xs truncate mt-0.5 flex items-center gap-1", event.client?.is_vip && "text-[#D4AF37]")}>
-                                                                {event.session_mode === 'Group' ? (
-                                                                    <span className="font-bold flex items-center gap-1">👥 {event.group_name || 'Unnamed Group'}</span>
-                                                                ) : event.is_guest ? (
+                                                                {event.is_guest ? (
                                                                     <span className="italic opacity-85">G: {event.guest_name}</span>
                                                                 ) : (
                                                                     <span>{event.client?.first_name} {event.client?.last_name}</span>
                                                                 )}
-                                                                {event.session_mode !== 'Group' && !event.is_guest && <VIPBadge isVIP={event.client?.is_vip} size="sm" iconOnly />}
+                                                                {!event.is_guest && <VIPBadge isVIP={event.client?.is_vip} size="sm" iconOnly />}
                                                             </div>
 
                                                             <div className="text-[10px] opacity-80 truncate leading-tight mt-0.5">

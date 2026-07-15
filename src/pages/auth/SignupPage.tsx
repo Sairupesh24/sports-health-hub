@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Activity, ArrowRight, Info } from "lucide-react";
+import { Activity, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -33,7 +33,7 @@ export default function SignupPage() {
       });
       
       setSent(true);
-      toast({ title: "Account created", description: "Your account is pending admin approval." });
+      toast({ title: "Check your email", description: "Your account is pending admin approval." });
     } catch (err: any) {
       toast({ title: "Signup failed", description: err.message, variant: "destructive" });
     } finally {
@@ -48,9 +48,10 @@ export default function SignupPage() {
           <div className="w-12 h-12 rounded-xl gradient-primary flex items-center justify-center mx-auto">
             <Activity className="w-6 h-6 text-primary-foreground" />
           </div>
-          <h2 className="font-display text-2xl font-bold text-foreground">Account Created</h2>
+          <h2 className="font-display text-2xl font-bold text-foreground">Verify your email</h2>
           <p className="text-muted-foreground">
-            Your account has been successfully created and is pending admin approval. An admin will review and approve your account.
+            We've sent a confirmation link to <strong className="text-foreground">{email}</strong>.
+            Please verify your email, then an admin will approve your account.
           </p>
           <Link to="/login" className="text-primary text-sm hover:underline inline-block mt-4">
             Back to login
@@ -137,12 +138,6 @@ export default function SignupPage() {
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
             <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required placeholder="you@clinic.com" />
-            <div className="flex items-start gap-2 mt-1.5 p-2 rounded-md bg-muted/60 border border-border/80">
-              <Info className="w-3.5 h-3.5 text-primary mt-0.5 shrink-0" />
-              <p className="text-[11px] text-muted-foreground leading-normal">
-                <span className="font-semibold text-foreground">Important:</span> Please use a functional email ID so that it is easy to recover your account in case you forgot your password.
-              </p>
-            </div>
           </div>
 
           <div className="space-y-2">

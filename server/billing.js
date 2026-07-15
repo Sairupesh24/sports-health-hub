@@ -296,7 +296,7 @@ router.get('/subscriptions', requireAuth, async (req, res) => {
 router.post('/invoices', requireAuth, async (req, res) => {
     const client = await db.connect();
     try {
-        const { client_id, subtotal, discount, total, referral_source_id, notes, include_notes_in_invoice, discount_authorized_by, items } = req.body;
+        const { client_id, subtotal, discount, tax_amount, total, referral_source_id, notes, include_notes_in_invoice, discount_authorized_by, items } = req.body;
         const orgId = req.user.organization_id;
         const staffId = req.user.id;
         
@@ -311,13 +311,13 @@ router.post('/invoices', requireAuth, async (req, res) => {
         // 1. Create Bill
         const billResult = await client.query(`
             INSERT INTO bills (
-                organization_id, client_id, amount, discount, total, status, 
+                organization_id, client_id, amount, discount, tax_amount, total, status, 
                 referral_source_id, notes, include_notes_in_invoice, 
                 discount_authorized_by, billed_by_id, billed_by_name, billing_staff_name
-            ) VALUES ($1, $2, $3, $4, $5, 'Pending', $6, $7, $8, $9, $10, $11, $11)
+            ) VALUES ($1, $2, $3, $4, $5, $6, 'Pending', $7, $8, $9, $10, $11, $12, $12)
             RETURNING *
         `, [
-            orgId, client_id, subtotal, discount, total, referral_source_id || null, 
+            orgId, client_id, subtotal, discount, tax_amount || 0, total, referral_source_id || null, 
             notes, include_notes_in_invoice || false, discount_authorized_by || null,
             staffId, staffName
         ]);
@@ -327,9 +327,9 @@ router.post('/invoices', requireAuth, async (req, res) => {
         if (items && items.length > 0) {
             for (const item of items) {
                 await client.query(`
-                    INSERT INTO billitems (organization_id, bill_id, package_id, amount, discount, total)
-                    VALUES ($1, $2, $3, $4, $5, $6)
-                `, [orgId, bill.id, item.package_id, item.amount, item.discount || 0, item.total]);
+                    INSERT INTO billitems (organization_id, bill_id, package_id, amount, discount, tax_amount, total)
+                    VALUES ($1, $2, $3, $4, $5, $6, $7)
+                `, [orgId, bill.id, item.package_id, item.amount, item.discount || 0, item.tax_amount || 0, item.total]);
             }
         }
 
@@ -543,104 +543,51 @@ router.get('/debug/packages', async (req, res) => {
 
 // POST create subscription
 router.post('/subscriptions', requireAuth, async (req, res) => {
-    const client = await db.connect();
     try {
         const { client_id, package_id, billing_cycle, start_date, package_name, package_price } = req.body;
         const orgId = req.user.organization_id;
-        const staffId = req.user.id;
-
-        // Fetch staff name from profiles
-        const staffProfile = await client.query('SELECT first_name, last_name FROM profiles WHERE id = $1', [staffId]);
-        const staffName = staffProfile.rows.length > 0 
-            ? `${staffProfile.rows[0].first_name} ${staffProfile.rows[0].last_name}`
-            : 'Staff User';
-
-        await client.query('BEGIN');
-
-        // Calculate next billing date based on start_date and cycle
-        let monthsToAdd = 1;
-        if (billing_cycle === 'Quarterly') monthsToAdd = 3;
-        else if (billing_cycle === 'Annual') monthsToAdd = 12;
-        
-        const nextBillingDate = new Date(start_date);
-        nextBillingDate.setMonth(nextBillingDate.getMonth() + monthsToAdd);
-        const nextBillingStr = nextBillingDate.toISOString().split('T')[0];
 
         // 1. Create Subscription
-        const subResult = await client.query(`
+        const subResult = await db.query(`
             INSERT INTO subscriptions (organization_id, client_id, package_id, billing_cycle, current_period_start, next_billing_date, status)
-            VALUES ($1, $2, $3, $4, $5, $6, 'Active')
+            VALUES ($1, $2, $3, $4, $5, $5, 'Active')
             RETURNING *
-        `, [orgId, client_id, package_id, billing_cycle, start_date, nextBillingStr]);
+        `, [orgId, client_id, package_id, billing_cycle, start_date]);
         const sub = subResult.rows[0];
 
         // 2. Create Initial Bill
-        const notes = `Initial membership bill for ${package_name || 'Package'}`;
-        const billResult = await client.query(`
-            INSERT INTO bills (
-                organization_id, client_id, amount, total, status, date, notes, subscription_id, package_id, billed_by_id, billed_by_name, billing_staff_name
-            ) VALUES ($1, $2, $3, $3, 'Pending', $4, $5, $6, $7, $8, $9, $9)
-            RETURNING *
-        `, [orgId, client_id, package_price || 0, start_date, notes, sub.id, package_id, staffId, staffName]);
-        const bill = billResult.rows[0];
+        await db.query(`
+            INSERT INTO bills (organization_id, client_id, package_id, subscription_id, amount, total, status, date, notes)
+            VALUES ($1, $2, $3, $4, $5, $5, 'Pending', $6, $7)
+        `, [orgId, client_id, package_id, sub.id, package_price || 0, start_date, `Initial membership bill for ${package_name || 'Package'}`]);
 
-        // 3. Create Bill Item
-        await client.query(`
-            INSERT INTO billitems (organization_id, bill_id, package_id, amount, total)
-            VALUES ($1, $2, $3, $4, $4)
-        `, [orgId, bill.id, package_id, package_price || 0]);
-
-        await client.query('COMMIT');
         res.status(201).json(sub);
     } catch (error) {
-        await client.query('ROLLBACK');
         res.status(500).json({ error: error.message });
-    } finally {
-        client.release();
     }
 });
 
 // POST generate early invoice for subscription
 router.post('/subscriptions/:id/generate-invoice', requireAuth, async (req, res) => {
-    const client = await db.connect();
     try {
         const { id } = req.params;
         const orgId = req.user.organization_id;
 
-        await client.query('BEGIN');
-
-        const subResult = await client.query('SELECT s.*, p.name as package_name, p.price as package_price FROM subscriptions s LEFT JOIN servicepackages p ON s.package_id = p.id WHERE s.id = $1 AND s.organization_id = $2', [id, orgId]);
-        if (subResult.rows.length === 0) {
-            await client.query('ROLLBACK');
-            return res.status(404).json({ error: 'Subscription not found' });
-        }
+        const subResult = await db.query('SELECT s.*, p.name as package_name, p.price as package_price FROM subscriptions s LEFT JOIN servicepackages p ON s.package_id = p.id WHERE s.id = $1 AND s.organization_id = $2', [id, orgId]);
+        if (subResult.rows.length === 0) return res.status(404).json({ error: 'Subscription not found' });
         const sub = subResult.rows[0];
 
-        const notes = `Billing cycle invoice for ${sub.package_name || 'Package'}`;
-        const billResult = await client.query(`
-            INSERT INTO bills (
-                organization_id, client_id, amount, total, status, date, notes, subscription_id, package_id, billed_by_name, billing_staff_name
-            ) VALUES ($1, $2, $3, $3, 'Pending', CURRENT_DATE, $4, $5, $6, 'Staff User', 'Staff User')
+        const billResult = await db.query(`
+            INSERT INTO bills (organization_id, client_id, package_id, subscription_id, amount, total, status, date, notes)
+            VALUES ($1, $2, $3, $4, $5, $5, 'Pending', CURRENT_DATE, $6)
             RETURNING *
-        `, [orgId, sub.client_id, sub.package_price || 0, notes, id, sub.package_id]);
-        const bill = billResult.rows[0];
+        `, [orgId, sub.client_id, sub.package_id, id, sub.package_price || 0, `Billing cycle invoice for ${sub.package_name || 'Package'}`]);
 
-        await client.query(`
-            INSERT INTO billitems (organization_id, bill_id, package_id, amount, total)
-            VALUES ($1, $2, $3, $4, $4)
-        `, [orgId, bill.id, sub.package_id, sub.package_price || 0]);
-
-        await client.query('COMMIT');
-        res.status(201).json(bill);
+        res.status(201).json(billResult.rows[0]);
     } catch (error) {
-        await client.query('ROLLBACK');
         res.status(500).json({ error: error.message });
-    } finally {
-        client.release();
     }
 });
-
-
 
 // POST cancel subscription
 router.post('/subscriptions/:id/cancel', requireAuth, async (req, res) => {
@@ -661,14 +608,14 @@ router.post('/subscriptions/:id/cancel', requireAuth, async (req, res) => {
 // POST create package
 router.post('/packages', requireAuth, async (req, res) => {
     try {
-        const { name, price, is_recurring } = req.body;
+        const { name, price, is_recurring, category, tax_percentage } = req.body;
         const orgId = req.user.organization_id;
 
         const result = await db.query(`
-            INSERT INTO packages (organization_id, name, price, is_recurring)
-            VALUES ($1, $2, $3, $4)
+            INSERT INTO packages (organization_id, name, price, is_recurring, category, tax_percentage)
+            VALUES ($1, $2, $3, $4, $5, $6)
             RETURNING *
-        `, [orgId, name, price, is_recurring || false]);
+        `, [orgId, name, price, is_recurring || false, category || 'Others', Number(tax_percentage) || 0]);
 
         res.status(201).json(result.rows[0]);
     } catch (error) {
@@ -711,72 +658,5 @@ router.get('/dues', requireAuth, async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 });
-
-export async function processRecurringSubscriptions() {
-    console.log('[SCHEDULER] Checking recurring subscriptions...');
-    const client = await db.connect();
-    try {
-        await client.query('BEGIN');
-        
-        // Find subscriptions whose next_billing_date is today or in the past, and status is 'Active'
-        const query = `
-            SELECT s.*, p.name as package_name, p.price as package_price
-            FROM subscriptions s
-            JOIN servicepackages p ON s.package_id = p.id
-            WHERE s.status = 'Active' AND s.next_billing_date <= CURRENT_DATE
-        `;
-        const res = await client.query(query);
-        console.log(`[SCHEDULER] Found ${res.rows.length} subscriptions due for billing.`);
-        
-        for (const sub of res.rows) {
-            // 1. Create a bill for this cycle
-            const notes = `Billing cycle invoice for ${sub.package_name || 'Package'}`;
-            const billResult = await client.query(`
-                INSERT INTO bills (
-                    organization_id, client_id, amount, total, status, date, notes, subscription_id, package_id, billed_by_name, billing_staff_name
-                ) VALUES ($1, $2, $3, $3, 'Pending', CURRENT_DATE, $4, $5, $6, 'System Scheduler', 'System Scheduler')
-                RETURNING *
-            `, [sub.organization_id, sub.client_id, sub.package_price || 0, notes, sub.id, sub.package_id]);
-            const bill = billResult.rows[0];
-            
-            // 2. Create corresponding bill item
-            await client.query(`
-                INSERT INTO billitems (organization_id, bill_id, package_id, amount, total)
-                VALUES ($1, $2, $3, $4, $4)
-            `, [sub.organization_id, bill.id, sub.package_id, sub.package_price || 0]);
-            
-            // 3. Update subscription next billing date based on billing cycle
-            let monthsToAdd = 1;
-            if (sub.billing_cycle === 'Quarterly') monthsToAdd = 3;
-            else if (sub.billing_cycle === 'Annual') monthsToAdd = 12;
-            
-            const nextBillingDate = new Date(sub.next_billing_date);
-            nextBillingDate.setMonth(nextBillingDate.getMonth() + monthsToAdd);
-            const nextBillingStr = nextBillingDate.toISOString().split('T')[0];
-            
-            await client.query(`
-                UPDATE subscriptions
-                SET last_billing_date = next_billing_date,
-                    next_billing_date = $1,
-                    updated_at = CURRENT_TIMESTAMP
-                WHERE id = $2
-            `, [nextBillingStr, sub.id]);
-            
-            console.log(`[SCHEDULER] Generated invoice ${bill.id} for subscription ${sub.id}. Next billing: ${nextBillingStr}`);
-        }
-        
-        await client.query('COMMIT');
-    } catch (error) {
-        await client.query('ROLLBACK');
-        console.error('[SCHEDULER] Error processing subscriptions:', error);
-    } finally {
-        client.release();
-    }
-}
-
-// Run immediately on startup (after 5 seconds to let db initialize)
-setTimeout(processRecurringSubscriptions, 5000);
-// Check every hour
-setInterval(processRecurringSubscriptions, 3600000);
 
 export default router;

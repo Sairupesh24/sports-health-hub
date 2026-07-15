@@ -20,6 +20,8 @@ interface ServicePackageItem {
 interface ServicePackage {
     id: string;
     name: string;
+    category?: string;
+    tax_percentage?: number;
     description: string;
     price: number;
     items?: ServicePackageItem[];
@@ -27,6 +29,8 @@ interface ServicePackage {
 
 const BASE_HEADERS = [
     "Package Name",
+    "Category",
+    "Tax Amount",
     "Description",
     "Price (Rs)"
 ];
@@ -59,6 +63,8 @@ export default function OrganizationPackages({ organizationId }: OrganizationPac
             const formatted: ServicePackage[] = (data || []).map((pkg) => ({
                 id: pkg.id,
                 name: pkg.name,
+                category: pkg.category || "Others",
+                tax_percentage: Number(pkg.tax_percentage) || 0,
                 description: pkg.description || "",
                 price: pkg.price || 0,
                 items: (pkg.items || []).filter((i: any) => i.id !== null).map((item: any) => ({
@@ -88,7 +94,7 @@ export default function OrganizationPackages({ organizationId }: OrganizationPac
 
         if (packages.length > 0) {
             packages.forEach(pkg => {
-                const row = [pkg.name, pkg.description || "", pkg.price || 0];
+                const row = [pkg.name, pkg.category || "Others", pkg.tax_percentage || 0, pkg.description || "", pkg.price || 0];
                 allServices.forEach(service => {
                     const sessionCount = pkg.items?.find(i => i.service_type === service)?.default_sessions || 0;
                     row.push(sessionCount);
@@ -96,8 +102,8 @@ export default function OrganizationPackages({ organizationId }: OrganizationPac
                 aoaData.push(row);
             });
         } else {
-            aoaData.push(["Standard Rehab Pack", "10 Physio sessions to get you back on your feet", 1500, 10, 0, 0, 1, 0, 0]);
-            aoaData.push(["Rehab to Performance", "Full transition from rehab to strength training", 3500, 5, 10, 2, 0, 0, 0]);
+            aoaData.push(["Standard Rehab Pack", "Rehab Session", 12, "10 Physio sessions to get you back on your feet", 1500, 10, 0, 0, 1, 0, 0]);
+            aoaData.push(["Rehab to Performance", "Assessment", 18, "Full transition from rehab to strength training", 3500, 5, 10, 2, 0, 0, 0]);
         }
 
         const ws = XLSX.utils.aoa_to_sheet(aoaData);
@@ -126,12 +132,12 @@ export default function OrganizationPackages({ organizationId }: OrganizationPac
             }
 
             const headerRow = rows[0].map(h => (h || "").toString());
-            if (headerRow.length < 3 || headerRow[0] !== "Package Name" || headerRow[1] !== "Description" || headerRow[2] !== "Price (Rs)") {
-                throw new Error("Invalid headers. The first 3 columns must be Package Name, Description, and Price (Rs).");
+            if (headerRow.length < 5 || headerRow[0] !== "Package Name" || headerRow[1] !== "Category" || headerRow[2] !== "Tax Amount" || headerRow[3] !== "Description" || headerRow[4] !== "Price (Rs)") {
+                throw new Error("Invalid headers. The first 5 columns must be Package Name, Category, Tax Amount, Description, and Price (Rs).");
             }
 
             const serviceTypes: string[] = [];
-            for (let col = 3; col < headerRow.length; col++) {
+            for (let col = 5; col < headerRow.length; col++) {
                 let headerName = headerRow[col]?.trim() || "";
                 if (headerName.endsWith(" Sessions")) {
                     headerName = headerName.substring(0, headerName.lastIndexOf(" Sessions")).trim();
@@ -146,17 +152,19 @@ export default function OrganizationPackages({ organizationId }: OrganizationPac
                 if (!row[0] || row[0].toString().startsWith('*')) continue;
 
                 const name = row[0]?.toString().trim();
-                const description = row[1]?.toString().trim() || null;
-                const priceValue = row[2]?.toString() || "0";
+                const category = row[1]?.toString().trim() || "Others";
+                const tax_percentage = parseFloat(row[2]?.toString() || "0");
+                const description = row[3]?.toString().trim() || null;
+                const priceValue = row[4]?.toString() || "0";
                 const price = parseFloat(priceValue);
 
                 if (!name) continue;
 
                 const items = [];
-                for (let col = 3; col < headerRow.length; col++) {
+                for (let col = 5; col < headerRow.length; col++) {
                     const sessionCount = parseInt(row[col]?.toString() || "0", 10);
                     if (!isNaN(sessionCount) && sessionCount > 0) {
-                        const serviceType = serviceTypes[col - 3];
+                        const serviceType = serviceTypes[col - 5];
                         if (serviceType) {
                             items.push({
                                 service_name: serviceType,
@@ -168,6 +176,8 @@ export default function OrganizationPackages({ organizationId }: OrganizationPac
 
                 packagesToUpload.push({
                     name,
+                    category,
+                    tax_percentage,
                     description,
                     price,
                     items
@@ -231,6 +241,8 @@ export default function OrganizationPackages({ organizationId }: OrganizationPac
                     <TableHeader>
                         <TableRow>
                             <TableHead className="w-1/4">Package Name</TableHead>
+                            <TableHead>Category</TableHead>
+                            <TableHead>Tax Rate</TableHead>
                             <TableHead>Price</TableHead>
                             <TableHead className="w-1/3">Included Services</TableHead>
                             <TableHead>Total Sessions</TableHead>
@@ -240,11 +252,11 @@ export default function OrganizationPackages({ organizationId }: OrganizationPac
                     <TableBody>
                         {loading ? (
                             <TableRow>
-                                <TableCell colSpan={5} className="text-center py-6 text-muted-foreground">Loading packages...</TableCell>
+                                <TableCell colSpan={7} className="text-center py-6 text-muted-foreground">Loading packages...</TableCell>
                             </TableRow>
                         ) : packages.length === 0 ? (
                             <TableRow>
-                                <TableCell colSpan={5} className="text-center py-8">
+                                <TableCell colSpan={7} className="text-center py-8">
                                     <div className="flex flex-col items-center justify-center text-muted-foreground">
                                         <AlertCircle className="w-10 h-10 mb-2 opacity-20" />
                                         <p>No packages found.</p>
@@ -259,6 +271,12 @@ export default function OrganizationPackages({ organizationId }: OrganizationPac
                                 return (
                                     <TableRow key={pkg.id}>
                                         <TableCell className="font-medium text-foreground">{pkg.name}</TableCell>
+                                        <TableCell>
+                                            <Badge variant="outline" className="font-medium capitalize text-[10px]">
+                                                {pkg.category || "Others"}
+                                            </Badge>
+                                        </TableCell>
+                                        <TableCell className="font-mono text-xs">{pkg.tax_percentage || 0}%</TableCell>
                                         <TableCell className="font-semibold text-primary">Rs. {pkg.price}</TableCell>
                                         <TableCell>
                                             <div className="flex flex-wrap gap-2">

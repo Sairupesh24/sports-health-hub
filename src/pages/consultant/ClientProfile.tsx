@@ -66,9 +66,7 @@ export default function ConsultantClientProfile() {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
     const [client, setClient] = useState<Database['public']['Tables']['clients']['Row'] | null>(null);
-    const [injuries, setInjuries] = useState<(Database['public']['Tables']['injuries']['Row'] & {
-        resolved_date?: string | null;
-    })[]>([]);
+    const [injuries, setInjuries] = useState<Database['public']['Tables']['injuries']['Row'][]>([]);
     const [sessions, setSessions] = useState<(Database['public']['Tables']['sessions']['Row'] & { 
         physio_session_details: Database['public']['Tables']['physio_session_details']['Row'][];
         therapist?: { first_name: string | null; last_name: string | null };

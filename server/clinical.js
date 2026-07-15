@@ -376,10 +376,7 @@ router.delete('/documents/:id', requireAuth, async (req, res) => {
 router.get('/master-data/regions', requireAuth, async (req, res) => {
     try {
         const orgId = req.user.organization_id;
-        const result = await db.query(
-            'SELECT DISTINCT region FROM injury_master_data WHERE organization_id = $1 OR organization_id IS NULL ORDER BY region',
-            [orgId]
-        );
+        const result = await db.query('SELECT DISTINCT region FROM injury_master_data WHERE organization_id = $1 ORDER BY region', [orgId]);
         res.json(result.rows.map(r => r.region));
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -391,10 +388,7 @@ router.get('/master-data/types', requireAuth, async (req, res) => {
     try {
         const orgId = req.user.organization_id;
         const { region } = req.query;
-        const result = await db.query(
-            'SELECT DISTINCT injury_type FROM injury_master_data WHERE (organization_id = $1 OR organization_id IS NULL) AND region = $2 ORDER BY injury_type',
-            [orgId, region]
-        );
+        const result = await db.query('SELECT DISTINCT injury_type FROM injury_master_data WHERE organization_id = $1 AND region = $2 ORDER BY injury_type', [orgId, region]);
         res.json(result.rows.map(r => r.injury_type));
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -406,83 +400,8 @@ router.get('/master-data/diagnoses', requireAuth, async (req, res) => {
     try {
         const orgId = req.user.organization_id;
         const { region, type } = req.query;
-        const result = await db.query(
-            'SELECT DISTINCT diagnosis FROM injury_master_data WHERE (organization_id = $1 OR organization_id IS NULL) AND region = $2 AND injury_type = $3 ORDER BY diagnosis',
-            [orgId, region, type]
-        );
+        const result = await db.query('SELECT DISTINCT diagnosis FROM injury_master_data WHERE organization_id = $1 AND region = $2 AND injury_type = $3 ORDER BY diagnosis', [orgId, region, type]);
         res.json(result.rows.map(r => r.diagnosis));
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-});
-
-// GET custom injury master data list for organization
-router.get('/master-data/list', requireAuth, async (req, res) => {
-    try {
-        const orgId = req.user.organization_id;
-        const result = await db.query(
-            'SELECT id, region, injury_type, diagnosis FROM injury_master_data WHERE organization_id = $1 ORDER BY region ASC, injury_type ASC, diagnosis ASC',
-            [orgId]
-        );
-        res.json(result.rows);
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-});
-
-// DELETE all custom injury master data for organization
-router.delete('/master-data/clear', requireAuth, async (req, res) => {
-    try {
-        const orgId = req.user.organization_id;
-        await db.query(
-            'DELETE FROM injury_master_data WHERE organization_id = $1',
-            [orgId]
-        );
-        res.json({ message: 'Custom injury master data cleared successfully' });
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-});
-
-// POST upload custom injury master data
-router.post('/master-data/upload', requireAuth, async (req, res) => {
-    try {
-        const orgId = req.user.organization_id;
-        const { items } = req.body;
-        
-        if (!Array.isArray(items)) {
-            return res.status(400).json({ error: 'Items must be an array' });
-        }
-        
-        let insertedCount = 0;
-        for (const item of items) {
-            const region = item.region?.trim();
-            const injuryType = item.injury_type?.trim();
-            const diagnosis = item.diagnosis?.trim();
-            
-            if (!region || !injuryType || !diagnosis) continue;
-            
-            // Check-Then-Insert pattern
-            const check = await db.query(
-                `SELECT id FROM injury_master_data 
-                 WHERE organization_id = $1 
-                   AND region = $2 
-                   AND injury_type = $3 
-                   AND diagnosis = $4`,
-                [orgId, region, injuryType, diagnosis]
-            );
-            
-            if (check.rows.length === 0) {
-                await db.query(
-                    `INSERT INTO injury_master_data (organization_id, region, injury_type, diagnosis) 
-                     VALUES ($1, $2, $3, $4)`,
-                    [orgId, region, injuryType, diagnosis]
-                );
-                insertedCount++;
-            }
-        }
-        
-        res.json({ success: true, count: insertedCount });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }

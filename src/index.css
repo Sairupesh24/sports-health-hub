@@ -502,3 +502,58 @@
   --status-priority: #EF4444;   /* below -30%     */
 }
 
+/* Print CSS layout: Constrain the invoice printing to exactly half an A4 page (A5 size) */
+@media screen {
+  #print-section {
+    display: none !important;
+  }
+}
+
+@media print {
+  /* Hide normal screen elements */
+  body {
+    visibility: hidden !important;
+    background-color: white !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Show only print-section */
+  #print-section, #print-section * {
+    visibility: visible !important;
+  }
+
+  #print-section {
+    display: block !important;
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 210mm !important;
+    height: 148mm !important;
+    max-height: 148mm !important;
+    box-sizing: border-box !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    overflow: hidden !important;
+  }
+
+  .invoice-container-halfpage {
+    width: 210mm !important;
+    height: 148mm !important;
+    max-height: 148mm !important;
+    box-sizing: border-box !important;
+    border: 1px solid #ccc !important;
+    border-radius: 0 !important;
+    padding: 10mm !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+    overflow: hidden !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+    background-color: white !important;
+    color: black !important;
+  }
+}
+
