@@ -65,6 +65,7 @@ CREATE TABLE "billitems" (
     "discount" DECIMAL DEFAULT 0,
     "total" DECIMAL NOT NULL DEFAULT 0,
     "created_at" TIMESTAMPTZ(6) DEFAULT CURRENT_TIMESTAMP,
+    "tax_amount" DECIMAL DEFAULT 0,
 
     CONSTRAINT "billitems_pkey" PRIMARY KEY ("id")
 );
@@ -107,6 +108,7 @@ CREATE TABLE "bills" (
     "created_at" TIMESTAMPTZ(6) DEFAULT CURRENT_TIMESTAMP,
     "subscription_id" UUID,
     "due_date" DATE,
+    "tax_amount" DECIMAL DEFAULT 0,
 
     CONSTRAINT "bills_pkey" PRIMARY KEY ("id")
 );
@@ -162,19 +164,6 @@ CREATE TABLE "client_groups" (
     "created_at" TIMESTAMPTZ(6) DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "client_groups_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "client_soreness_reports" (
-    "report_id" UUID NOT NULL DEFAULT gen_random_uuid(),
-    "organization_id" VARCHAR(50) NOT NULL,
-    "client_uhid" VARCHAR(50) NOT NULL,
-    "created_at" TIMESTAMPTZ(6) DEFAULT CURRENT_TIMESTAMP,
-    "assigned_by_staff_id" UUID NOT NULL,
-    "soreness_data" JSONB NOT NULL,
-    "global_clinical_interpretation" TEXT NOT NULL,
-
-    CONSTRAINT "client_soreness_reports_pkey" PRIMARY KEY ("report_id")
 );
 
 -- CreateTable
@@ -273,11 +262,11 @@ CREATE TABLE "clients" (
     "is_vip" BOOLEAN DEFAULT false,
     "referral_source" TEXT,
     "referral_source_detail" TEXT,
+    "assigned_consultant_id" UUID,
     "created_by" UUID,
     "created_at" TIMESTAMPTZ(6) DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMPTZ(6) DEFAULT CURRENT_TIMESTAMP,
     "profile_id" UUID,
-    "assigned_consultant_id" UUID,
     "primary_scientist_id" UUID,
     "deleted_at" TIMESTAMPTZ(6),
 
@@ -317,6 +306,8 @@ CREATE TABLE "emergency_alerts" (
     "latitude" DECIMAL,
     "longitude" DECIMAL,
     "created_at" TIMESTAMPTZ(6) DEFAULT CURRENT_TIMESTAMP,
+    "admin_decision" TEXT,
+    "updated_at" TIMESTAMPTZ(6) DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "emergency_alerts_pkey" PRIMARY KEY ("id")
 );
@@ -337,9 +328,9 @@ CREATE TABLE "enquiries" (
     "notes" TEXT,
     "status" TEXT DEFAULT 'pending',
     "linked_client_id" UUID,
-    "created_at" TIMESTAMPTZ(6) DEFAULT CURRENT_TIMESTAMP,
     "next_follow_up_at" TIMESTAMPTZ(6),
     "last_interaction_at" TIMESTAMPTZ(6),
+    "created_at" TIMESTAMPTZ(6) DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "enquiries_pkey" PRIMARY KEY ("id")
 );
@@ -350,10 +341,10 @@ CREATE TABLE "enquiryinteractions" (
     "enquiry_id" UUID NOT NULL,
     "interaction_type" TEXT NOT NULL,
     "response_text" TEXT,
-    "created_by" UUID,
-    "created_at" TIMESTAMPTZ(6) DEFAULT CURRENT_TIMESTAMP,
     "follow_up_required" BOOLEAN DEFAULT false,
     "follow_up_at" TIMESTAMPTZ(6),
+    "created_by" UUID,
+    "created_at" TIMESTAMPTZ(6) DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "enquiryinteractions_pkey" PRIMARY KEY ("id")
 );
@@ -379,9 +370,8 @@ CREATE TABLE "exercises" (
     "id" UUID NOT NULL DEFAULT gen_random_uuid(),
     "organization_id" UUID,
     "name" TEXT NOT NULL,
-    "category" TEXT,
-    "created_at" TIMESTAMPTZ(6) DEFAULT CURRENT_TIMESTAMP,
     "description" TEXT,
+    "category" TEXT,
     "equipment_type" TEXT,
     "difficulty_level" TEXT,
     "muscle_groups" TEXT[],
@@ -391,6 +381,7 @@ CREATE TABLE "exercises" (
     "video_url" TEXT,
     "is_rehabilitation" BOOLEAN DEFAULT false,
     "is_active" BOOLEAN DEFAULT true,
+    "created_at" TIMESTAMPTZ(6) DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMPTZ(6) DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "exercises_pkey" PRIMARY KEY ("id")
@@ -663,6 +654,8 @@ CREATE TABLE "packages" (
     "deleted_at" TIMESTAMPTZ(6),
     "created_at" TIMESTAMPTZ(6) DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMPTZ(6) DEFAULT CURRENT_TIMESTAMP,
+    "category" TEXT DEFAULT 'Others',
+    "tax_percentage" DECIMAL NOT NULL DEFAULT 0,
 
     CONSTRAINT "packages_pkey" PRIMARY KEY ("id")
 );
@@ -737,6 +730,7 @@ CREATE TABLE "program_assignments" (
     "batch_id" UUID,
     "start_date" DATE NOT NULL,
     "status" TEXT DEFAULT 'active',
+    "organization_id" UUID,
     "created_at" TIMESTAMPTZ(6) DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "program_assignments_pkey" PRIMARY KEY ("id")
@@ -880,16 +874,20 @@ CREATE TABLE "sessions" (
     "status" TEXT NOT NULL DEFAULT 'Planned',
     "cancellation_reason" TEXT,
     "is_unentitled" BOOLEAN DEFAULT false,
+    "preference_type" TEXT DEFAULT 'Strict',
+    "is_flexible_routing" BOOLEAN DEFAULT false,
     "created_by" UUID,
     "created_at" TIMESTAMPTZ(6) DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMPTZ(6) DEFAULT CURRENT_TIMESTAMP,
-    "preference_type" TEXT DEFAULT 'Strict',
-    "is_flexible_routing" BOOLEAN DEFAULT false,
     "group_name" TEXT,
     "session_location" TEXT,
     "session_notes" TEXT,
     "attachments" JSONB DEFAULT '[]',
     "session_type_id" UUID,
+    "is_guest" BOOLEAN DEFAULT false,
+    "guest_name" TEXT,
+    "guest_contact" TEXT,
+    "enquiry_id" UUID,
 
     CONSTRAINT "sessions_pkey" PRIMARY KEY ("id")
 );
@@ -1377,6 +1375,9 @@ ALTER TABLE "profiles" ADD CONSTRAINT "profiles_organization_id_fkey" FOREIGN KE
 ALTER TABLE "program_assignments" ADD CONSTRAINT "program_assignments_athlete_id_fkey" FOREIGN KEY ("athlete_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE NO ACTION;
 
 -- AddForeignKey
+ALTER TABLE "program_assignments" ADD CONSTRAINT "program_assignments_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "organizations"("id") ON DELETE CASCADE ON UPDATE NO ACTION;
+
+-- AddForeignKey
 ALTER TABLE "program_assignments" ADD CONSTRAINT "program_assignments_program_id_fkey" FOREIGN KEY ("program_id") REFERENCES "trainingprograms"("id") ON DELETE CASCADE ON UPDATE NO ACTION;
 
 -- AddForeignKey
@@ -1432,6 +1433,9 @@ ALTER TABLE "sessions" ADD CONSTRAINT "sessions_client_id_fkey" FOREIGN KEY ("cl
 
 -- AddForeignKey
 ALTER TABLE "sessions" ADD CONSTRAINT "sessions_created_by_fkey" FOREIGN KEY ("created_by") REFERENCES "users"("id") ON DELETE NO ACTION ON UPDATE NO ACTION;
+
+-- AddForeignKey
+ALTER TABLE "sessions" ADD CONSTRAINT "sessions_enquiry_id_fkey" FOREIGN KEY ("enquiry_id") REFERENCES "enquiries"("id") ON DELETE SET NULL ON UPDATE NO ACTION;
 
 -- AddForeignKey
 ALTER TABLE "sessions" ADD CONSTRAINT "sessions_entitlement_id_fkey" FOREIGN KEY ("entitlement_id") REFERENCES "cliententitlements"("id") ON DELETE SET NULL ON UPDATE NO ACTION;

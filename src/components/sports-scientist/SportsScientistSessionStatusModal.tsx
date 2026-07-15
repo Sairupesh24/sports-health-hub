@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -71,23 +71,8 @@ export function SportsScientistSessionStatusModal({ open, onOpenChange, session,
     const [cancellationReason, setCancellationReason] = useState("");
     const [rescheduledDate, setRescheduledDate] = useState("");
     const [rescheduledTime, setRescheduledTime] = useState("");
-    const [attendees, setAttendees] = useState<any[]>([]);
-    const [attendeesLoading, setAttendeesLoading] = useState(false);
 
     const editInfo = getSessionEditability(session);
-
-    // Fetch attendees for Group sessions
-    useEffect(() => {
-        if (!open || !session?.id || session.session_mode !== "Group") {
-            setAttendees([]);
-            return;
-        }
-        setAttendeesLoading(true);
-        apiFetch<any[]>(`/api/appointments/${session.id}/attendees`)
-            .then((data) => { setAttendees(data || []); })
-            .catch(() => setAttendees([]))
-            .finally(() => setAttendeesLoading(false));
-    }, [open, session?.id, session?.session_mode]);
 
     // Auto-mark as Missed if the session was Planned but is now 2+ days old
     const autoMarkMissed = useCallback(async () => {
@@ -311,7 +296,6 @@ export function SportsScientistSessionStatusModal({ open, onOpenChange, session,
             case "Planned": return session?.actual_start ? "bg-emerald-100 text-emerald-800 border-emerald-300" : "bg-blue-100 text-blue-800 border-blue-300";
             case "Missed": return "bg-rose-100 text-rose-800 border-rose-300";
             case "Checked In": return "bg-emerald-100 text-emerald-800 border-emerald-300";
-            case "In Progress": return "bg-emerald-100 text-emerald-800 border-emerald-300";
             case "Cancelled": return "bg-slate-100 text-slate-600 border-slate-300";
             case "Rescheduled": return "bg-amber-100 text-amber-800 border-amber-300";
             default: return "bg-muted text-muted-foreground border-border";
@@ -324,15 +308,12 @@ export function SportsScientistSessionStatusModal({ open, onOpenChange, session,
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[480px] max-h-[90dvh] overflow-y-auto">
+            <DialogContent aria-describedby={undefined} className="sm:max-w-[480px]">
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
                         {editInfo.isLocked ? <Lock className="w-4 h-4 text-muted-foreground" /> : <Clock className="w-4 h-4 text-primary" />}
                         Update Session Status
                     </DialogTitle>
-                    <DialogDescription className="sr-only">
-                        Form to update the current training session's status, notes, or rescheduling details.
-                    </DialogDescription>
                 </DialogHeader>
 
                 <div className="grid gap-4 py-2">
@@ -354,14 +335,6 @@ export function SportsScientistSessionStatusModal({ open, onOpenChange, session,
                             <div className="flex items-start gap-2 w-full rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800">
                                 <Info className="w-4 h-4 mt-0.5 shrink-0" />
                                 <span>{editInfo.isToday ? "Today's session" : "Yesterday's session"} — fully editable until midnight tonight.</span>
-                            </div>
-                        )}
-                        {session.session_mode === "Individual" && session.client?.outstanding_balance > 0 && (
-                            <div className="flex items-start gap-2 w-full rounded-lg border border-rose-200 bg-rose-50 dark:bg-rose-950/20 p-3 text-sm text-rose-800 dark:text-rose-300">
-                                <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0 text-rose-600 dark:text-rose-400" />
-                                <span>
-                                    <strong>Payment Overdue:</strong> This athlete has pending dues. Please advise them to clear dues.
-                                </span>
                             </div>
                         )}
                     </div>
@@ -391,7 +364,7 @@ export function SportsScientistSessionStatusModal({ open, onOpenChange, session,
                         <div className="flex justify-between items-center">
                             <span className="text-muted-foreground font-medium">Current Status</span>
                             <span className={`px-2 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wide border ${getStatusStyle(status)}`}>
-                                {(status === "Checked In" || status === "In Progress" || (status === "Planned" && session?.actual_start)) ? "IN PROGRESS" : status}
+                                {(status === "Checked In" || (status === "Planned" && session?.actual_start)) ? "IN PROGRESS" : status}
                             </span>
                         </div>
                         {session?.actual_start && (
@@ -408,46 +381,8 @@ export function SportsScientistSessionStatusModal({ open, onOpenChange, session,
                         )}
                     </div>
 
-                    {/* Group Session Attendees */}
-                    {session.session_mode === 'Group' && (
-                        <div className="space-y-2 pt-1">
-                            <Label className="font-semibold text-foreground flex items-center gap-2">
-                                👥 Attendees ({attendees.length})
-                            </Label>
-                            {attendeesLoading ? (
-                                <div className="flex items-center gap-2 text-xs text-muted-foreground py-1">
-                                    <Loader2 className="w-3 h-3 animate-spin" /> Loading attendees...
-                                </div>
-                            ) : attendees.length > 0 ? (
-                                <div className="bg-muted/30 border border-border/50 rounded-lg p-3 max-h-[150px] overflow-y-auto space-y-1.5 custom-scrollbar text-xs">
-                                    {attendees.map((attendee) => (
-                                        <div key={attendee.id} className="flex justify-between items-center py-0.5">
-                                            <div className="flex items-center gap-2">
-                                                <span className="font-medium text-slate-800 dark:text-slate-200">{attendee.first_name} {attendee.last_name}</span>
-                                                {attendee.outstanding_balance > 0 && (
-                                                    <span className="text-[7px] bg-rose-500 text-white px-2 py-0.5 rounded font-black uppercase tracking-widest leading-none">
-                                                        DUE PENDING
-                                                    </span>
-                                                )}
-                                            </div>
-                                            {attendee.uhid && (
-                                                <span className="font-mono text-[10px] text-muted-foreground bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
-                                                    {attendee.uhid}
-                                                </span>
-                                            )}
-                                        </div>
-                                    ))}
-                                </div>
-                            ) : (
-                                <div className="text-xs text-muted-foreground bg-slate-50 border border-slate-200 rounded-md px-3 py-2 italic">
-                                    No attendees registered for this group session.
-                                </div>
-                            )}
-                        </div>
-                    )}
-
                     {/* Quick Actions */}
-                    {!editInfo.isLocked && !editInfo.isFuture && (status === "Planned" || status === "Checked In" || status === "In Progress" || (status === "Planned" && session?.actual_start)) && (
+                    {!editInfo.isLocked && !editInfo.isFuture && (status === "Planned" || status === "Checked In" || (status === "Planned" && session?.actual_start)) && (
                         <div className="grid gap-3 pt-2">
                             <Label className="font-semibold text-muted-foreground">Quick Actions</Label>
                             <div className="flex gap-2">
@@ -470,7 +405,7 @@ export function SportsScientistSessionStatusModal({ open, onOpenChange, session,
                                         </Button>
                                     </>
                                 )}
-                                {(status === "Checked In" || status === "In Progress" || (status === "Planned" && session?.actual_start)) && (
+                                {(status === "Checked In" || (status === "Planned" && session?.actual_start)) && (
                                     <div className="flex flex-col gap-2 w-full">
                                         <div className="flex items-center justify-center gap-2 text-emerald-700 bg-emerald-50 py-2 rounded-lg font-bold border border-emerald-200">
                                             <Loader2 className="w-4 h-4 animate-spin" />

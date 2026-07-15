@@ -22,7 +22,7 @@ import { cn, getImageDimensions } from "@/lib/utils";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { format } from "date-fns";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { RefundModal } from "@/components/admin/RefundModal";
 import { generateRefundVoucher } from "@/lib/refundActions";
 import { Textarea } from "@/components/ui/textarea";
@@ -38,6 +38,8 @@ type CartItem = {
     package_id: string;
     name: string;
     price: number;
+    tax_type?: "percentage" | "flat";
+    tax_value?: number;
     items?: { service_type: string; default_sessions: number; }[];
 };
 
@@ -51,7 +53,9 @@ type Bill = {
     discount_type: "percentage" | "flat";
     discount_value: number;
     total_amount: number;
-    status: "Pending" | "Paid";
+    status: "Pending" | "Paid" | "Partially Paid";
+    client_uhid?: string;
+    client_is_vip?: boolean;
     payment_method?: string;
     transaction_id?: string;
     date: string;
@@ -73,14 +77,12 @@ type Bill = {
 };
 
 type Client = { id: string; first_name: string; last_name: string; uhid: string; email?: string; mobile_no?: string; is_vip?: boolean };
-type Package = { id: string; name: string; price: number; service_package_items?: { service_type: string; default_sessions: number; }[] };
+type Package = { id: string; name: string; price: number; category?: string; tax_percentage?: number; service_package_items?: { service_type: string; default_sessions: number; }[] };
 type ReferralSource = { id: string; name: string };
 
 export default function BillingPage() {
-    const { profile } = useAuth();
+    const { profile, roles } = useAuth();
     const navigate = useNavigate();
-    const [searchParams] = useSearchParams();
-    const clientIdParam = searchParams.get("clientId");
     const queryClient = useQueryClient();
     const orgName = "Integration Sports Clinic";
 
@@ -95,51 +97,10 @@ export default function BillingPage() {
     });
 
     const [clients, setClients] = useState<Client[]>([]);
+    const [bills, setBills] = useState<Bill[]>([]);
     const [referralSources, setReferralSources] = useState<ReferralSource[]>([]);
     const [packages, setPackages] = useState<Package[]>([]);
     const [orgDetails, setOrgDetails] = useState<any>(null);
-
-    // Fetch Invoices via React Query to enable automatic caching and reactive updates
-    const { data: bills = [] } = useQuery({
-        queryKey: ["admin-bills", profile?.organization_id],
-        queryFn: async () => {
-            if (!profile?.organization_id) return [];
-            const billsData = await apiFetch<any[]>('/billing/invoices');
-            return billsData.map(b => ({
-                id: b.id,
-                client_id: b.client_id,
-                client: { id: b.client_id, full_name: b.client_name, is_vip: b.client_is_vip },
-                organization: { id: b.organization_id, name: b.organization_name },
-                client_name: b.client_name,
-                client_is_vip: b.client_is_vip,
-                client_uhid: b.client_uhid || "",
-                client_mobile: b.client_mobile || "",
-                items: b.items,
-                referral_source: b.referral_source_name || "-",
-                referral_source_name: b.referral_source_name || "-",
-                subtotal: Number(b.amount),
-                discount_type: "flat",
-                discount_value: Number(b.discount || 0),
-                total_amount: Number(b.total),
-                status: b.status,
-                transaction_id: b.transaction_id || undefined,
-                date: b.created_at,
-                notes: b.notes || undefined,
-                discount_authorized_by: b.discount_authorized_by || undefined,
-                billing_staff_name: b.billing_staff_name || undefined,
-                billed_by_id: b.billed_by_id || undefined,
-                billed_by_name: b.billed_by_name || undefined,
-                invoice_number: b.invoice_number || undefined,
-                include_notes_in_invoice: b.include_notes_in_invoice || false,
-                organization_logo: b.organization_logo,
-                organization_address: b.organization_official_address,
-                organization_official_name: b.organization_official_name || b.organization_name,
-                paid_amount: Number(b.paid_amount),
-                remaining_due: Number(b.remaining_due)
-            }));
-        },
-        enabled: !!profile?.organization_id
-    });
 
     // Form States
     const [selectedClient, setSelectedClient] = useState("");
@@ -149,6 +110,8 @@ export default function BillingPage() {
     const [includeNotesInInvoice, setIncludeNotesInInvoice] = useState(false);
     const [discountAuthorizedBy, setDiscountAuthorizedBy] = useState("");
     const [cart, setCart] = useState<CartItem[]>([]);
+    const [selectedCategory, setSelectedCategory] = useState("All");
+    const [activePaymentBill, setActivePaymentBill] = useState<any>(null);
 
     // Discount States
     const [discountType, setDiscountType] = useState<"percentage" | "flat">("flat");
@@ -209,10 +172,10 @@ export default function BillingPage() {
                 }
             });
             queryClient.invalidateQueries({ queryKey: ["subscription-history", selectedSub?.id] });
-            queryClient.invalidateQueries({ queryKey: ["admin-bills"] });
-            toast.success("Early invoice generated successfully");
+            queryClient.invalidateQueries({ queryKey: ["bills"] });
+            toast({ title: "Success", description: "Early invoice generated successfully" });
         },
-        onError: (err: any) => toast.error(err.message)
+        onError: (err: any) => toast({ title: "Error", description: err.message, variant: "destructive" })
     });
 
     const cancelSubscription = useMutation({
@@ -230,9 +193,9 @@ export default function BillingPage() {
                     if (found) setSelectedSub(found);
                 }
             });
-            toast.success("Membership cancelled successfully");
+            toast({ title: "Success", description: "Membership cancelled successfully" });
         },
-        onError: (err: any) => toast.error(err.message)
+        onError: (err: any) => toast({ title: "Error", description: err.message, variant: "destructive" })
     });
 
     // Refund State
@@ -240,15 +203,7 @@ export default function BillingPage() {
     const [refundBillObj, setRefundBillObj] = useState<Bill | null>(null);
 
     // Transaction Ledger State
-    // Fetch Refunds via React Query to enable automatic caching and reactive updates
-    const { data: refunds = [] } = useQuery({
-        queryKey: ["admin-refunds", profile?.organization_id],
-        queryFn: async () => {
-            if (!profile?.organization_id) return [];
-            return await apiFetch<any[]>('/billing/refunds');
-        },
-        enabled: !!profile?.organization_id
-    });
+    const [refunds, setRefunds] = useState<any[]>([]);
     const [selectedTransaction, setSelectedTransaction] = useState<TransactionDetail | null>(null);
     const [isDrawerOpen, setIsDrawerOpen] = useState(false);
     const [ledgerSearch, setLedgerSearch] = useState("");
@@ -262,6 +217,7 @@ export default function BillingPage() {
     useEffect(() => {
         if (profile?.organization_id) {
             fetchData();
+            fetchRefunds();
         }
     }, [profile]);
 
@@ -271,14 +227,9 @@ export default function BillingPage() {
         try {
             // Fetch Clients
             const clientsData = await apiFetch<any[]>('/clients');
-            const parsedClients = clientsData.map(c => ({
+            setClients(clientsData.map(c => ({
                 id: c.id, first_name: c.first_name, last_name: c.last_name, uhid: c.uhid, email: c.email, mobile_no: c.mobile_no, is_vip: c.is_vip
-            }));
-            setClients(parsedClients);
-
-            if (clientIdParam && parsedClients.some(c => c.id === clientIdParam)) {
-                setSelectedClient(clientIdParam);
-            }
+            })));
 
             // Fetch Packages
             const pkgData = await apiFetch<any[]>('/billing/packages');
@@ -292,8 +243,53 @@ export default function BillingPage() {
             // Fetch Org Details
             const orgData = await apiFetch<any>(`/organizations/${profile.organization_id}`);
             if (orgData.data) setOrgDetails(orgData.data);
+
+            // Fetch Bills
+            const billsData = await apiFetch<any[]>('/billing/invoices');
+            setBills(billsData.map(b => ({
+                id: b.id,
+                client_id: b.client_id,
+                client: { id: b.client_id, full_name: b.client_name, is_vip: b.client_is_vip },
+                organization: { id: b.organization_id, name: b.organization_name },
+                client_name: b.client_name,
+                client_is_vip: b.client_is_vip,
+                client_uhid: b.client_uhid || "",
+                client_mobile: b.client_mobile || "",
+                items: b.items,
+                referral_source: b.referral_source_name || "-",
+                referral_source_name: b.referral_source_name || "-",
+                subtotal: Number(b.amount),
+                discount_type: "flat",
+                discount_value: Number(b.discount || 0),
+                total_amount: Number(b.total),
+                status: b.status,
+                transaction_id: b.transaction_id || undefined,
+                date: b.created_at,
+                notes: b.notes || undefined,
+                discount_authorized_by: b.discount_authorized_by || undefined,
+                billing_staff_name: b.billing_staff_name || undefined,
+                billed_by_id: b.billed_by_id || undefined,
+                billed_by_name: b.billed_by_name || undefined,
+                invoice_number: b.invoice_number || undefined,
+                include_notes_in_invoice: b.include_notes_in_invoice || false,
+                organization_logo: b.organization_logo,
+                organization_address: b.organization_official_address,
+                organization_official_name: b.organization_official_name || b.organization_name,
+                paid_amount: Number(b.paid_amount),
+                remaining_due: Number(b.remaining_due)
+            })));
         } catch (err: any) {
             toast({ title: "Failed to fetch data", description: err.message, variant: "destructive" });
+        }
+    };
+
+    const fetchRefunds = async () => {
+        if (!profile?.organization_id) return;
+        try {
+            const data = await apiFetch<any[]>('/billing/refunds');
+            setRefunds(data);
+        } catch (err) {
+            console.error("Refunds fetch error:", err);
         }
     };
 
@@ -321,8 +317,7 @@ export default function BillingPage() {
 
     const handleRefundSuccess = (refund: any) => {
         fetchData();
-        queryClient.invalidateQueries({ queryKey: ["admin-bills"] });
-        queryClient.invalidateQueries({ queryKey: ["admin-refunds"] });
+        fetchRefunds();
         queryClient.invalidateQueries({ queryKey: ['client-refunds'] });
         queryClient.invalidateQueries({ queryKey: ['billing-stats'] });
         
@@ -405,6 +400,8 @@ export default function BillingPage() {
                 package_id: pkg.id,
                 name: pkg.name,
                 price: Number(pkg.price),
+                tax_type: "percentage",
+                tax_value: Number(pkg.tax_percentage) || 0,
                 items: pkg.service_package_items
             }]);
         }
@@ -414,7 +411,18 @@ export default function BillingPage() {
         setCart(cart.filter(item => item.id !== cartItemId));
     };
 
+    const updateCartItemTax = (itemId: string, val: number, type: "percentage" | "flat") => {
+        setCart(cart.map(item => item.id === itemId ? { ...item, tax_value: val, tax_type: type } : item));
+    };
+
     const subtotal = cart.reduce((sum, item) => sum + Number(item.price), 0);
+
+    const totalTax = cart.reduce((sum, item) => {
+        const val = item.tax_value || 0;
+        const type = item.tax_type || "percentage";
+        const taxAmount = type === "percentage" ? (item.price * val) / 100 : val;
+        return sum + taxAmount;
+    }, 0);
 
     const calculatedDiscountAmount = () => {
         const dVal = Number(discountValue) || 0;
@@ -424,7 +432,7 @@ export default function BillingPage() {
         return dVal;
     };
 
-    const totalPayable = Math.max(0, subtotal - calculatedDiscountAmount());
+    const totalPayable = Math.max(0, subtotal + totalTax - calculatedDiscountAmount());
 
     const handleCreateBill = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -460,26 +468,32 @@ export default function BillingPage() {
             }
 
             const billItems = cart.map(item => {
-                const itemRatio = item.price / subtotal;
+                const itemRatio = subtotal > 0 ? item.price / subtotal : 0;
                 const itemDiscount = discountType === "percentage" 
                     ? (item.price * (Number(discountValue) || 0) / 100) 
                     : ((Number(discountValue) || 0) * itemRatio);
-                const itemTotal = Math.max(0, item.price - itemDiscount);
+                const taxVal = item.tax_value || 0;
+                const taxType = item.tax_type || "percentage";
+                const taxAmount = taxType === "percentage" ? (item.price * taxVal) / 100 : taxVal;
+                const itemTotal = Math.max(0, item.price + taxAmount - itemDiscount);
 
                 return {
                     package_id: item.package_id,
+                    name: item.name,
                     amount: item.price,
                     discount: itemDiscount,
+                    tax_amount: taxAmount,
                     total: itemTotal
                 };
             });
 
-            await apiFetch('/billing/invoices', {
+            const newBill = await apiFetch<any>('/billing/invoices', {
                 method: 'POST',
                 data: {
                     client_id: selectedClient,
                     subtotal: subtotal,
                     discount: calculatedDiscountAmount(),
+                    tax_amount: totalTax,
                     total: totalPayable,
                     referral_source_id: referralId || null,
                     notes: remarks,
@@ -491,7 +505,19 @@ export default function BillingPage() {
 
             toast({ title: "Bill Created Successfully" });
             fetchData();
-            queryClient.invalidateQueries({ queryKey: ["admin-bills"] });
+            
+            // Set payment modal rows and trigger popup
+            setPaymentBillId(newBill.id);
+            setActivePaymentBill({
+                id: newBill.id,
+                invoice_number: newBill.invoice_number || newBill.id.substring(0, 8).toUpperCase(),
+                total_amount: Number(newBill.total),
+                paid_amount: 0,
+                remaining_due: Number(newBill.total)
+            });
+            setPaymentRows([{ id: Math.random().toString(), method: "Cash", amount: Number(newBill.total), transactionId: "" }]);
+            setIsPaymentModalOpen(true);
+
             // Reset form
             setCart([]);
             setSelectedClient("");
@@ -504,7 +530,7 @@ export default function BillingPage() {
 
     const markAsPaid = async () => {
         const totalPaid = paymentRows.reduce((a, b) => a + (Number(b.amount) || 0), 0);
-        const bill = bills.find(b => b.id === paymentBillId);
+        const bill = bills.find(b => b.id === paymentBillId) || activePaymentBill;
         
         if (!bill) return;
         
@@ -540,7 +566,6 @@ export default function BillingPage() {
             });
 
             fetchData();
-            queryClient.invalidateQueries({ queryKey: ["admin-bills"] });
             setIsPaymentModalOpen(false);
             setPaymentRows([{ id: Math.random().toString(), method: "Cash", amount: 0, transactionId: "" }]);
             toast({ title: "Payment Recorded Successfully" });
@@ -550,7 +575,11 @@ export default function BillingPage() {
     };
 
     const handleDownloadInvoice = async (bill: any) => {
-        const d = new jsPDF();
+        const d = new jsPDF({
+            orientation: 'portrait',
+            unit: 'mm',
+            format: 'a4'
+        });
         const c = clients.find(x => x.id === bill.client_id);
         
         const orgDisplayName = bill.organization_official_name || orgDetails?.official_name || orgDetails?.name || orgName;
@@ -558,8 +587,8 @@ export default function BillingPage() {
         const logoUrl = bill.organization_logo || orgDetails?.logo_url || "/logo.png";
         
         const addHeader = async (doc: jsPDF) => {
-            const topMargin = 5; // 0.5cm from top
-            const maxLogoHeight = 20; 
+            const topMargin = 12;
+            const maxLogoHeight = 15; 
             let contentStartY = topMargin;
 
             if (logoUrl && logoUrl !== "/logo.png") {
@@ -567,162 +596,185 @@ export default function BillingPage() {
                     const { width, height, img } = await getImageDimensions(logoUrl);
                     const aspectRatio = width / height;
                     
-                    if (aspectRatio > 2) {
-                        const targetWidth = 180;
-                        const targetHeight = targetWidth / aspectRatio;
-                        const finalHeight = Math.min(targetHeight, maxLogoHeight);
-                        const finalWidth = finalHeight * aspectRatio;
-                        
-                        doc.addImage(img, 'PNG', (210 - finalWidth) / 2, topMargin, finalWidth, finalHeight);
-                        contentStartY = topMargin + finalHeight + 8;
-                    } else {
-                        const finalHeight = Math.min(25, maxLogoHeight);
-                        const finalWidth = finalHeight * aspectRatio;
-                        doc.addImage(img, 'PNG', (210 - finalWidth) / 2, topMargin, finalWidth, finalHeight); // Centering small logo too as per user request for "center aligned"
-                        contentStartY = topMargin + finalHeight + 8;
-                    }
+                    const finalHeight = Math.min(maxLogoHeight, 12);
+                    const finalWidth = finalHeight * aspectRatio;
+                    doc.addImage(img, 'PNG', 12, topMargin, finalWidth, finalHeight);
+                    contentStartY = topMargin + finalHeight + 4;
                 } catch (e) {
-                    doc.setFontSize(22);
-                    doc.setTextColor(15, 23, 42); 
-                    doc.text(orgDisplayName, 105, topMargin + 10, { align: "center" });
-                    contentStartY = topMargin + 20;
+                    doc.setFontSize(14);
+                    doc.setFont("helvetica", "bold");
+                    doc.setTextColor(15, 118, 110); // teal-800
+                    doc.text(orgDisplayName, 12, topMargin + 5);
+                    contentStartY = topMargin + 10;
                 }
             } else {
-                doc.setFontSize(22);
-                doc.setTextColor(15, 23, 42); 
-                doc.text(orgDisplayName, 105, topMargin + 10, { align: "center" });
-                contentStartY = topMargin + 20;
+                doc.setFontSize(14);
+                doc.setFont("helvetica", "bold");
+                doc.setTextColor(15, 118, 110); // teal-800
+                doc.text(orgDisplayName, 12, topMargin + 5);
+                contentStartY = topMargin + 10;
             }
 
-            // Centered INVOICE Label
-            doc.setFontSize(16);
+            // Right-aligned INVOICE Label
+            doc.setFontSize(14);
             doc.setFont("helvetica", "bold");
             doc.setTextColor(15, 23, 42); 
-            doc.text("INVOICE", 105, contentStartY, { align: "center" });
+            doc.text("INVOICE", 198, topMargin + 5, { align: "right" });
             
-            return contentStartY + 12; // Start for metadata
+            return contentStartY + 2; // Start for metadata
         };
 
-        const addFooter = (doc: jsPDF) => {
-            const pageCount = doc.internal.getNumberOfPages();
-            for (let i = 1; i <= pageCount; i++) {
-                doc.setPage(i);
-                doc.setFontSize(8);
-                doc.setTextColor(148, 163, 184); 
-                
-                if (orgAddress) {
-                    const splitAddress = doc.splitTextToSize(orgAddress, 180);
-                    doc.text(splitAddress, 105, 285, { align: "center" });
-                }
-                
-                doc.text(`Page ${i} of ${pageCount}`, 105, 292, { align: "center" });
-            }
-        };
+        // Draw Outer Box Border for A5 (half page)
+        d.rect(8, 8, 194, 134);
 
         const metadataTopY = await addHeader(d);
 
-        // Two Column Layout
-        d.setFontSize(11);
+        // Grid divider line below header
+        d.setDrawColor(229, 231, 235); // gray-200
+        d.setLineWidth(0.3);
+        d.line(8, metadataTopY - 1, 202, metadataTopY - 1);
+
+        // Two Column Layout for Billing / Invoice Details
+        d.setFontSize(9);
         d.setFont("helvetica", "bold");
         d.setTextColor(15, 23, 42);
         
         // Left Column: Bill To
-        d.text("Bill To:", 14, metadataTopY);
+        d.text("Bill To:", 12, metadataTopY + 5);
         d.setFont("helvetica", "normal");
-        d.setFontSize(10);
+        d.setFontSize(8);
         d.setTextColor(71, 85, 105);
-        d.text(bill.client_name, 14, metadataTopY + 7);
-        if (c?.uhid) d.text(`UHID : ${c.uhid}`, 14, metadataTopY + 13);
-        if (c?.mobile_no) d.text(`Mobile : ${c.mobile_no}`, 14, metadataTopY + 19);
-        if (bill.referral_source_name && bill.referral_source_name !== "-") {
-            d.text(`Referral: ${bill.referral_source_name}`, 14, metadataTopY + 25);
+        d.text(bill.client_name || "Client", 12, metadataTopY + 10);
+        let leftOffset = 15;
+        if (c?.uhid) {
+            d.text(`UHID : ${c.uhid}`, 12, metadataTopY + leftOffset);
+            leftOffset += 5;
+        }
+        if (c?.mobile_no) {
+            d.text(`Mobile : ${c.mobile_no}`, 12, metadataTopY + leftOffset);
         }
 
         // Right Column: Invoice Details
-        d.setFontSize(11);
+        d.setFontSize(9);
         d.setFont("helvetica", "bold");
         d.setTextColor(15, 23, 42);
-        d.text("Invoice Details:", 130, metadataTopY);
+        d.text("Invoice Details:", 134, metadataTopY + 5);
         
         d.setFont("helvetica", "normal");
-        d.setFontSize(10);
+        d.setFontSize(8);
         d.setTextColor(71, 85, 105);
-        d.text(`Invoice # : ${bill.invoice_number || bill.id.substring(0, 8).toUpperCase()}`, 130, metadataTopY + 7);
-        d.text(`Date : ${format(new Date(bill.date), "dd MMM yyyy")}`, 130, metadataTopY + 13);
+        d.text(`Invoice # : ${bill.invoice_number || bill.id.substring(0, 8).toUpperCase()}`, 134, metadataTopY + 10);
+        d.text(`Date : ${format(new Date(bill.date), "dd MMM yyyy")}`, 134, metadataTopY + 15);
         if (bill.billed_by_name || bill.billing_staff_name) {
-            d.text(`Billed By: ${bill.billed_by_name || bill.billing_staff_name}`, 130, metadataTopY + 19);
+            d.text(`Billed By: ${bill.billed_by_name || bill.billing_staff_name}`, 134, metadataTopY + 20);
         }
 
-        const tableStartY = metadataTopY + 35;
+        const tableStartY = metadataTopY + 26;
+
+        // Grid divider line below metadata
+        d.line(8, tableStartY - 2, 202, tableStartY - 2);
 
         const tableData = bill.items.map((item: any, index: number) => {
-            let description = item.name;
+            let description = item.name || item.package_name || "Service Package";
             if (item.entitlements && item.entitlements.length > 0) {
                 const entitlementList = item.entitlements
                     .map((e: any) => `  • ${e.service_type}: ${e.default_sessions} sessions`)
                     .join('\n');
                 description += `\n${entitlementList}`;
             }
+            const basePrice = Number(item.amount || item.price || 0);
+            const tax = Number(item.tax_amount || 0);
+            const discount = Number(item.discount || 0);
+            const total = basePrice + tax - discount;
             return [
                 (index + 1).toString(),
                 description,
-                `Rs. ${item.price.toFixed(2)}`
+                `Rs. ${basePrice.toFixed(2)}`,
+                `Rs. ${tax.toFixed(2)}`,
+                `Rs. ${total.toFixed(2)}`
             ];
         });
 
         autoTable(d, {
             startY: tableStartY,
-            head: [["#", "Description", "Amount"]],
+            head: [["#", "Description", "Rate", "Tax", "Total"]],
             body: tableData,
-            theme: 'striped',
-            headStyles: { fillColor: [15, 118, 110] }, 
-            styles: { fontSize: 10, cellPadding: 5, overflow: 'linebreak' },
+            theme: 'grid',
+            headStyles: { fillColor: [13, 148, 136] }, // teal-600
+            styles: { fontSize: 8, cellPadding: 3, overflow: 'linebreak' },
+            margin: { left: 8, right: 8 },
             columnStyles: {
-                1: { cellWidth: 120 }
+                0: { cellWidth: 10 },
+                1: { cellWidth: 94 },
+                2: { cellWidth: 30, halign: 'right' },
+                3: { cellWidth: 30, halign: 'right' },
+                4: { cellWidth: 30, halign: 'right' }
             }
         });
 
-        let finalY = (d as any).lastAutoTable.finalY + 10;
-        d.setFontSize(10);
-        d.setTextColor(15, 23, 42);
-        
-        if (Number(bill.discount_value) > 0) {
-            d.text(`Discount: Rs. ${bill.discount_value.toFixed(2)}`, 14, finalY);
-            if (bill.discount_authorized_by) {
-                d.text(`Auth By: ${bill.discount_authorized_by}`, 14, finalY + 6);
-            }
-            finalY += 12;
-        }
-        
-        d.setFontSize(12);
-        d.setFont("helvetica", "bold");
-        d.text(`Total Amount: Rs. ${bill.total_amount.toFixed(2)}`, 140, finalY);
+        // Footer divider line at Y=126
+        d.line(8, 126, 202, 126);
 
+        // Remarks on the Left Column
+        d.setFontSize(8);
+        d.setTextColor(71, 85, 105);
+        d.setFont("helvetica", "normal");
         if (bill.notes && bill.include_notes_in_invoice) {
-            d.setFontSize(9);
-            d.setTextColor(100, 116, 139);
-            d.setFont("helvetica", "normal");
-            d.text(`Remarks:`, 14, finalY + 10);
-            const splitRemarks = d.splitTextToSize(bill.notes, 180);
-            d.text(splitRemarks, 14, finalY + 16);
-            finalY += (splitRemarks.length * 5) + 15;
-        } else {
-            finalY += 15;
+            d.text("Remarks:", 12, 129);
+            const splitRemarks = d.splitTextToSize(bill.notes, 110);
+            d.text(splitRemarks, 12, 133);
         }
 
-        // Add Payment Status
-        d.setFontSize(11);
+        // Payment status on the bottom left
         d.setFont("helvetica", "bold");
+        d.setFontSize(9);
         if (bill.status === "Paid") {
             d.setTextColor(16, 185, 129); // emerald-500
-            const payMethodStatus = `STATUS: PAID ${bill.payment_method ? `VIA ${bill.payment_method.toUpperCase()}` : ""}${bill.transaction_id ? ` (TXN: ${bill.transaction_id})` : ""}`;
-            d.text(payMethodStatus, 14, finalY);
+            const payMethodStatus = `STATUS: PAID ${bill.payment_method ? `VIA ${bill.payment_method.toUpperCase()}` : ""}`;
+            d.text(payMethodStatus, 12, 138);
         } else {
             d.setTextColor(245, 158, 11); // amber-500
-            d.text("STATUS: PENDING PAYMENT", 14, finalY);
+            d.text("STATUS: PENDING PAYMENT", 12, 138);
         }
 
-        addFooter(d);
+        // Totals on the Right Column (X: 140)
+        d.setFont("helvetica", "normal");
+        d.setFontSize(8);
+        d.setTextColor(71, 85, 105);
+        const totalsX = 140;
+        let totalsY = 129;
+
+        // Subtotal (Base)
+        d.text(`Subtotal:`, totalsX, totalsY);
+        d.text(`Rs. ${parseFloat(bill.amount || bill.subtotal || 0).toFixed(2)}`, 198, totalsY, { align: "right" });
+        totalsY += 4;
+
+        // Tax
+        const totalTaxAmt = bill.tax_amount || bill.items?.reduce((sum: number, item: any) => sum + Number(item.tax_amount || 0), 0) || 0;
+        d.text(`Total Tax:`, totalsX, totalsY);
+        d.text(`Rs. ${parseFloat(totalTaxAmt).toFixed(2)}`, 198, totalsY, { align: "right" });
+        totalsY += 4;
+
+        // Discount
+        const discVal = Number(bill.discount || bill.discount_value || 0);
+        if (discVal > 0) {
+            d.text(`Discount:`, totalsX, totalsY);
+            d.text(`-Rs. ${discVal.toFixed(2)}`, 198, totalsY, { align: "right" });
+            totalsY += 4;
+        }
+
+        d.setFont("helvetica", "bold");
+        d.setFontSize(9);
+        d.setTextColor(15, 118, 110); // teal-800
+        d.text(`Grand Total:`, totalsX, totalsY);
+        d.text(`Rs. ${parseFloat(bill.total_amount || bill.total || 0).toFixed(2)}`, 198, totalsY, { align: "right" });
+
+        // A5 Page Clinic Footer
+        d.setFont("helvetica", "normal");
+        d.setFontSize(6);
+        d.setTextColor(148, 163, 184);
+        d.text("THANK YOU FOR YOUR BUSINESS! POWERED BY ISHPO", 105, 141, { align: "center" });
+
         d.save(`Invoice_${bill.id.substring(0, 8)}.pdf`);
     };
 
@@ -736,6 +788,12 @@ export default function BillingPage() {
             bill.id.toLowerCase().includes(s)
         );
     });
+
+    const uniqueCategories = ["All", ...Array.from(new Set(packages.map(p => p.category || "Others").filter(Boolean)))];
+    
+    const filteredPackages = selectedCategory === "All"
+        ? packages
+        : packages.filter(p => (p.category || "Others") === selectedCategory);
 
     return (
         <DashboardLayout role="admin">
@@ -766,7 +824,7 @@ export default function BillingPage() {
                     </div>
                 </header>
 
-                {profile?.role === 'Admin' && (
+                {roles.includes('admin') && (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                         <KPICard 
                             title="Total Revenue" 
@@ -826,14 +884,14 @@ export default function BillingPage() {
                                                     </PopoverTrigger>
                                                     <PopoverContent className="w-[300px] p-0">
                                                         <Command>
-                                                            <CommandInput placeholder="Search client by name, UHID, or mobile..." />
+                                                            <CommandInput placeholder="Search client by name or UHID..." />
                                                             <CommandEmpty>No client found.</CommandEmpty>
                                                             <CommandList>
                                                                 <CommandGroup>
                                                                     {clients.map((c) => (
                                                                         <CommandItem
                                                                             key={c.id}
-                                                                            value={`${c.first_name} ${c.last_name} ${c.uhid} ${c.mobile_no || ""}`}
+                                                                            value={`${c.first_name} ${c.last_name} ${c.uhid}`}
                                                                             onSelect={() => {
                                                                                 setSelectedClient(c.id);
                                                                                 setOpenCombobox(false);
@@ -850,15 +908,7 @@ export default function BillingPage() {
                                                                                         {c.first_name} {c.last_name}
                                                                                         <VIPBadge isVIP={c.is_vip} iconOnly size="sm" />
                                                                                     </div>
-                                                                                    <div className="text-[10px] text-muted-foreground flex items-center gap-2">
-                                                                                        <span>{c.uhid}</span>
-                                                                                        {c.mobile_no && (
-                                                                                            <>
-                                                                                                <span>•</span>
-                                                                                                <span>{c.mobile_no}</span>
-                                                                                            </>
-                                                                                        )}
-                                                                                    </div>
+                                                                                    <div className="text-[10px] text-muted-foreground">{c.uhid}</div>
                                                                                 </div>
                                                                         </CommandItem>
                                                                     ))}
@@ -955,51 +1005,91 @@ export default function BillingPage() {
                                                 />
                                             </div>
 
-                                            <div className="space-y-2">
-                                                <Label>Packages / Services <span className="text-destructive">*</span></Label>
-                                                <Popover>
-                                                    <PopoverTrigger asChild>
-                                                        <Button variant="outline" className="w-full justify-start text-muted-foreground font-normal overflow-hidden">
-                                                            <ShoppingCart className="w-4 h-4 mr-2" />
-                                                            Search Packages...
-                                                        </Button>
-                                                    </PopoverTrigger>
-                                                    <PopoverContent className="p-0 w-[300px]" align="start">
-                                                        <Command>
-                                                            <CommandInput placeholder="Type package name..." />
-                                                            <CommandList className="max-h-[300px] overflow-y-auto">
-                                                                <CommandEmpty>No packages found.</CommandEmpty>
-                                                                <CommandGroup heading={`Available Packages (${packages.length})`}>
-                                                                    {packages.map(p => (
-                                                                        <CommandItem key={p.id} value={p.name} onSelect={() => addToCart(p.id)}>
-                                                                            <div className="flex justify-between w-full items-center">
-                                                                                <span>{p.name}</span>
-                                                                                <span className="font-bold text-xs">Rs. {p.price}</span>
-                                                                            </div>
-                                                                        </CommandItem>
-                                                                    ))}
-                                                                </CommandGroup>
-                                                            </CommandList>
-                                                        </Command>
-                                                    </PopoverContent>
-                                                </Popover>
+                                             <div className="grid grid-cols-2 gap-4">
+                                                 <div className="space-y-2">
+                                                     <Label>Package Category</Label>
+                                                     <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                                                         <SelectTrigger className="h-9">
+                                                             <SelectValue placeholder="Select Category" />
+                                                         </SelectTrigger>
+                                                         <SelectContent>
+                                                             {uniqueCategories.map(cat => (
+                                                                 <SelectItem key={cat} value={cat}>{cat === "All" ? "All Categories" : cat}</SelectItem>
+                                                             ))}
+                                                         </SelectContent>
+                                                     </Select>
+                                                 </div>
+                                                 <div className="space-y-2">
+                                                     <Label>Packages / Services <span className="text-destructive">*</span></Label>
+                                                     <Popover>
+                                                         <PopoverTrigger asChild>
+                                                             <Button variant="outline" className="w-full justify-start text-muted-foreground font-normal overflow-hidden h-9">
+                                                                 <ShoppingCart className="w-4 h-4 mr-2" />
+                                                                 Search Packages...
+                                                             </Button>
+                                                         </PopoverTrigger>
+                                                         <PopoverContent className="p-0 w-[300px]" align="start">
+                                                             <Command>
+                                                                 <CommandInput placeholder="Type package name..." />
+                                                                 <CommandList className="max-h-[300px] overflow-y-auto">
+                                                                     <CommandEmpty>No packages found.</CommandEmpty>
+                                                                     <CommandGroup heading={`Available Packages (${filteredPackages.length})`}>
+                                                                         {filteredPackages.map(p => (
+                                                                             <CommandItem key={p.id} value={p.name} onSelect={() => addToCart(p.id)}>
+                                                                                 <div className="flex justify-between w-full items-center">
+                                                                                     <span>{p.name}</span>
+                                                                                     <span className="font-bold text-xs">Rs. {p.price}</span>
+                                                                                 </div>
+                                                                             </CommandItem>
+                                                                         ))}
+                                                                     </CommandGroup>
+                                                                 </CommandList>
+                                                             </Command>
+                                                         </PopoverContent>
+                                                     </Popover>
+                                                 </div>
+                                             </div>
 
-                                                {cart.length > 0 && (
-                                                    <div className="bg-muted/30 border rounded-md p-2 space-y-1 mt-2">
-                                                        {cart.map(item => (
-                                                            <div key={item.id} className="flex justify-between items-center text-sm p-1.5 bg-background rounded border">
-                                                                <span className="truncate pr-2">{item.name}</span>
-                                                                <div className="flex items-center gap-2">
-                                                                    <span className="font-semibold text-xs">Rs.{item.price}</span>
-                                                                    <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => removeFromCart(item.id)}>
-                                                                        <Trash2 className="w-3 h-3" />
-                                                                    </Button>
-                                                                </div>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                )}
-                                            </div>
+                                             {cart.length > 0 && (
+                                                 <div className="space-y-2 mt-2 max-h-[250px] overflow-y-auto pr-1">
+                                                     {cart.map(item => {
+                                                         const taxVal = item.tax_value || 0;
+                                                         const taxType = item.tax_type || "percentage";
+                                                         const taxAmount = taxType === "percentage" ? (item.price * taxVal) / 100 : taxVal;
+                                                         const lineTotal = item.price + taxAmount;
+                                                         
+                                                         return (
+                                                             <div key={item.id} className="p-2.5 bg-background rounded-lg border space-y-2 shadow-sm">
+                                                                 <div className="flex justify-between items-start gap-2">
+                                                                     <span className="font-medium text-xs text-foreground truncate">{item.name}</span>
+                                                                     <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive shrink-0" onClick={() => removeFromCart(item.id)}>
+                                                                         <Trash2 className="w-3.5 h-3.5" />
+                                                                     </Button>
+                                                                 </div>
+                                                                 
+                                                                 <div className="grid grid-cols-3 gap-2 items-center">
+                                                                     <div className="text-[10px]">
+                                                                         <span className="text-muted-foreground block text-[8px] uppercase font-bold">Base Price</span>
+                                                                         <span className="font-semibold text-gray-700">Rs. {item.price}</span>
+                                                                     </div>
+                                                                     
+                                                                     <div className="text-[10px]">
+                                                                          <span className="text-muted-foreground block text-[8px] uppercase font-bold">Tax Rate</span>
+                                                                          <span className="font-semibold text-gray-700">
+                                                                              {taxVal}{taxType === "percentage" ? "%" : " Rs"}
+                                                                          </span>
+                                                                      </div>
+                                                                     
+                                                                     <div className="text-right text-[10px]">
+                                                                         <span className="text-muted-foreground block text-[8px] uppercase font-bold">Total</span>
+                                                                         <span className="font-bold text-teal-800">Rs. {lineTotal.toFixed(2)}</span>
+                                                                     </div>
+                                                                 </div>
+                                                             </div>
+                                                         );
+                                                     })}
+                                                 </div>
+                                             )}
 
                                             <div className="grid grid-cols-2 gap-4">
                                                 <div className="space-y-2">
@@ -1028,36 +1118,48 @@ export default function BillingPage() {
                                         </div>
 
                                         <div className="space-y-4">
-                                            <div className="bg-muted/20 border rounded-lg p-4 space-y-4">
-                                                <div className="flex justify-between text-sm">
-                                                    <span className="text-muted-foreground">Subtotal</span>
-                                                    <span className="font-bold text-foreground">Rs. {subtotal.toFixed(2)}</span>
-                                                </div>
-                                                
-                                                <div className="space-y-2">
-                                                    <Label className="text-xs">Apply Discount</Label>
-                                                    <div className="flex gap-2">
-                                                        <Select value={discountType} onValueChange={(v) => setDiscountType(v as any)}>
-                                                            <SelectTrigger className="w-24 h-8 text-xs"><SelectValue /></SelectTrigger>
-                                                            <SelectContent>
-                                                                <SelectItem value="flat">Rs</SelectItem>
-                                                                <SelectItem value="percentage">%</SelectItem>
-                                                            </SelectContent>
-                                                        </Select>
-                                                        <Input 
-                                                            type="number" 
-                                                            className="h-8 text-xs" 
-                                                            value={discountValue} 
-                                                            onChange={e => setDiscountValue(e.target.value)}
-                                                        />
-                                                    </div>
-                                                </div>
-
-                                                <div className="pt-2 border-t flex justify-between items-end">
-                                                    <span className="text-sm font-bold">Total Amount</span>
-                                                    <span className="text-2xl font-black text-primary">Rs. {totalPayable.toFixed(2)}</span>
-                                                </div>
-                                            </div>
+                                             <div className="bg-muted/20 border rounded-lg p-4 space-y-4">
+                                                 <div className="flex justify-between text-sm">
+                                                     <span className="text-muted-foreground">Subtotal</span>
+                                                     <span className="font-bold text-foreground">Rs. {subtotal.toFixed(2)}</span>
+                                                 </div>
+                                                 
+                                                 <div className="flex justify-between text-sm">
+                                                     <span className="text-muted-foreground">Total Tax</span>
+                                                     <span className="font-bold text-foreground">Rs. {totalTax.toFixed(2)}</span>
+                                                 </div>
+                                                 
+                                                 {calculatedDiscountAmount() > 0 && (
+                                                     <div className="flex justify-between text-sm text-destructive">
+                                                         <span>Discount</span>
+                                                         <span className="font-bold">-Rs. {calculatedDiscountAmount().toFixed(2)}</span>
+                                                     </div>
+                                                 )}
+                                                 
+                                                 <div className="space-y-2">
+                                                     <Label className="text-xs">Apply Discount</Label>
+                                                     <div className="flex gap-2">
+                                                         <Select value={discountType} onValueChange={(v) => setDiscountType(v as any)}>
+                                                             <SelectTrigger className="w-24 h-8 text-xs"><SelectValue /></SelectTrigger>
+                                                             <SelectContent>
+                                                                 <SelectItem value="flat">Rs</SelectItem>
+                                                                 <SelectItem value="percentage">%</SelectItem>
+                                                             </SelectContent>
+                                                         </Select>
+                                                         <Input 
+                                                             type="number" 
+                                                             className="h-8 text-xs" 
+                                                             value={discountValue} 
+                                                             onChange={e => setDiscountValue(e.target.value)}
+                                                         />
+                                                     </div>
+                                                 </div>
+ 
+                                                 <div className="pt-2 border-t flex justify-between items-end">
+                                                     <span className="text-sm font-bold">Total Amount</span>
+                                                     <span className="text-2xl font-black text-primary">Rs. {totalPayable.toFixed(2)}</span>
+                                                 </div>
+                                             </div>
                                             <Button type="submit" className="w-full h-12 text-lg shadow-lg" disabled={cart.length === 0}>
                                                 Generate Bill
                                             </Button>
@@ -1183,7 +1285,7 @@ export default function BillingPage() {
                                                 <Table>
                                                     <TableHeader>
                                                         <TableRow className="bg-muted/50">
-                                                            <TableHead>Package</TableHead>
+                                                            <TableHead>Invoice #</TableHead>
                                                             <TableHead>Client</TableHead>
                                                             <TableHead>Source</TableHead>
                                                             <TableHead>Staff</TableHead>
@@ -1199,7 +1301,7 @@ export default function BillingPage() {
                                                             </TableRow>
                                                         ) : filteredBills.map((bill) => (
                                                             <TableRow key={bill.id} className="hover:bg-muted/10 transition-colors cursor-pointer" onClick={() => openTransactionDetail(ledgerEntries.find(t => t.id === bill.id && t.type === 'invoice')!)}>
-                                                                <TableCell className="text-[10px] font-bold text-primary uppercase truncate max-w-[180px]" title={bill.items?.map((i: any) => i.name).join(', ')}>{bill.items?.map((i: any) => i.name).join(', ') || '-'}</TableCell>
+                                                                <TableCell className="font-mono text-[10px]">{bill.invoice_number || bill.id.substring(0, 8).toUpperCase()}</TableCell>
                                                                 <TableCell>
                                                                     <div className="font-medium text-xs truncate max-w-[150px]">
                                                                         <VIPName name={bill.client_name} isVIP={(bill as any).client_is_vip} />
@@ -1300,7 +1402,7 @@ export default function BillingPage() {
                                                     <TableHeader>
                                                         <TableRow className="bg-muted/50">
                                                             <TableHead>Client</TableHead>
-                                                            <TableHead>Package</TableHead>
+                                                            <TableHead>Invoice #</TableHead>
                                                             <TableHead>Created</TableHead>
                                                             <TableHead className="text-right">Balance</TableHead>
                                                             <TableHead className="text-center">Action</TableHead>
@@ -1319,7 +1421,7 @@ export default function BillingPage() {
                                                                     </div>
                                                                     <div className="text-[10px] text-muted-foreground">UHID: {bill.client_uhid || '-'}</div>
                                                                 </TableCell>
-                                                                <TableCell className="text-[10px] font-bold text-primary uppercase truncate max-w-[150px]" title={bill.items?.map((i: any) => i.name).join(', ')}>{bill.items?.map((i: any) => i.name).join(', ') || '-'}</TableCell>
+                                                                <TableCell className="font-mono text-[10px]">{bill.invoice_number || bill.id.substring(0, 8).toUpperCase()}</TableCell>
                                                                 <TableCell className="text-[10px] text-muted-foreground">
                                                                     {format(new Date(bill.date), "dd MMM yyyy")}
                                                                 </TableCell>
@@ -1461,113 +1563,125 @@ export default function BillingPage() {
             {/* Payment Modal (Split Payments) */}
             <Dialog open={isPaymentModalOpen} onOpenChange={setIsPaymentModalOpen}>
                 <DialogContent aria-describedby={undefined} className="sm:max-w-[480px]">
-                    <DialogHeader>
-                        <DialogTitle>Collect Payment</DialogTitle>
-                        <p className="text-xs text-muted-foreground">
-                            Invoice: {bills.find(b => b.id === paymentBillId)?.invoice_number || "..."} | 
-                            Total: <span className="font-bold">Rs. {bills.find(b => b.id === paymentBillId)?.total_amount.toFixed(2)}</span> |
-                            Already Paid: <span className="font-bold text-emerald-600">Rs. {bills.find(b => b.id === paymentBillId)?.paid_amount?.toFixed(2)}</span> |
-                            Balance Due: <span className="font-bold text-primary">Rs. {bills.find(b => b.id === paymentBillId)?.remaining_due?.toFixed(2)}</span>
-                        </p>
-                    </DialogHeader>
-                    
-                    <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto pr-2">
-                        {paymentRows.map((row, index) => (
-                            <div key={row.id} className="p-4 rounded-xl border bg-muted/20 space-y-3 relative">
-                                {paymentRows.length > 1 && (
-                                    <Button 
-                                        variant="ghost" 
-                                        size="icon" 
-                                        className="h-6 w-6 absolute top-2 right-2 text-muted-foreground hover:text-destructive"
-                                        onClick={() => setPaymentRows(paymentRows.filter(r => r.id !== row.id))}
-                                    >
-                                        <X className="w-3 h-3" />
-                                    </Button>
-                                )}
+                    {(() => {
+                        const currentBill = bills.find(b => b.id === paymentBillId) || activePaymentBill;
+                        const remainingDue = currentBill?.remaining_due ?? currentBill?.total_amount ?? 0;
+                        const totalAmount = currentBill?.total_amount ?? 0;
+                        const paidAmount = currentBill?.paid_amount ?? 0;
+                        const invoiceNumber = currentBill?.invoice_number || "...";
+
+                        return (
+                            <>
+                                <DialogHeader>
+                                    <DialogTitle>Collect Payment</DialogTitle>
+                                    <p className="text-xs text-muted-foreground">
+                                        Invoice: {invoiceNumber} | 
+                                        Total: <span className="font-bold">Rs. {Number(totalAmount).toFixed(2)}</span> |
+                                        Already Paid: <span className="font-bold text-emerald-600">Rs. {Number(paidAmount).toFixed(2)}</span> |
+                                        Balance Due: <span className="font-bold text-primary">Rs. {Number(remainingDue).toFixed(2)}</span>
+                                    </p>
+                                </DialogHeader>
                                 
-                                <div className="grid grid-cols-2 gap-3">
-                                    <div className="space-y-1.5">
-                                        <Label className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground">Mode</Label>
-                                        <Select 
-                                            value={row.method} 
-                                            onValueChange={(val) => {
-                                                const newRows = [...paymentRows];
-                                                newRows[index].method = val;
-                                                setPaymentRows(newRows);
-                                            }}
-                                        >
-                                            <SelectTrigger className="h-9 text-xs">
-                                                <SelectValue />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="Cash">Cash</SelectItem>
-                                                <SelectItem value="UPI">UPI / Digital</SelectItem>
-                                                <SelectItem value="Card">Card</SelectItem>
-                                                <SelectItem value="Online Bank Transfer">Bank Transfer</SelectItem>
-                                            </SelectContent>
-                                        </Select>
+                                <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto pr-2">
+                                    {paymentRows.map((row, index) => (
+                                        <div key={row.id} className="p-4 rounded-xl border bg-muted/20 space-y-3 relative">
+                                            {paymentRows.length > 1 && (
+                                                <Button 
+                                                    variant="ghost" 
+                                                    size="icon" 
+                                                    className="h-6 w-6 absolute top-2 right-2 text-muted-foreground hover:text-destructive"
+                                                    onClick={() => setPaymentRows(paymentRows.filter(r => r.id !== row.id))}
+                                                >
+                                                    <X className="w-3 h-3" />
+                                                </Button>
+                                            )}
+                                            
+                                            <div className="grid grid-cols-2 gap-3">
+                                                <div className="space-y-1.5">
+                                                    <Label className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground">Mode</Label>
+                                                    <Select 
+                                                        value={row.method} 
+                                                        onValueChange={(val) => {
+                                                            const newRows = [...paymentRows];
+                                                            newRows[index].method = val;
+                                                            setPaymentRows(newRows);
+                                                        }}
+                                                    >
+                                                        <SelectTrigger className="h-9 text-xs">
+                                                            <SelectValue />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            <SelectItem value="Cash">Cash</SelectItem>
+                                                            <SelectItem value="UPI">UPI / Digital</SelectItem>
+                                                            <SelectItem value="Card">Card</SelectItem>
+                                                            <SelectItem value="Online Bank Transfer">Bank Transfer</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
+                                                </div>
+                                                <div className="space-y-1.5">
+                                                    <Label className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground">Amount (Rs.)</Label>
+                                                    <Input 
+                                                        type="number" 
+                                                        className="h-9 text-xs font-bold"
+                                                        value={row.amount}
+                                                        onChange={(e) => {
+                                                            const newRows = [...paymentRows];
+                                                            newRows[index].amount = Number(e.target.value);
+                                                            setPaymentRows(newRows);
+                                                        }}
+                                                    />
+                                                </div>
+                                            </div>
+                                            
+                                            {(row.method === 'UPI' || row.method === 'Card' || row.method === 'Online Bank Transfer') && (
+                                                <div className="space-y-1.5 pt-1">
+                                                    <Label className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground">Transaction ID / Ref</Label>
+                                                    <Input 
+                                                        placeholder="Mandatory for digital payments"
+                                                        className="h-9 text-xs"
+                                                        value={row.transactionId}
+                                                        onChange={(e) => {
+                                                            const newRows = [...paymentRows];
+                                                            newRows[index].transactionId = e.target.value;
+                                                            setPaymentRows(newRows);
+                                                        }}
+                                                    />
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
+                                    
+                                    <Button 
+                                        variant="outline" 
+                                        className="w-full h-9 border-dashed gap-2 text-xs"
+                                        onClick={() => setPaymentRows([...paymentRows, { id: Math.random().toString(), method: "UPI", amount: 0, transactionId: "" }])}
+                                    >
+                                        <Plus className="w-3 h-3" /> Add Split Payment Mode
+                                    </Button>
+                                </div>
+ 
+                                <div className="bg-primary/5 p-4 rounded-xl border border-primary/10 flex items-center justify-between">
+                                    <div>
+                                        <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">Total Collected</p>
+                                        <p className={cn(
+                                            "text-lg font-black",
+                                            Math.abs(paymentRows.reduce((a, b) => a + (Number(b.amount) || 0), 0) - remainingDue) < 0.01 
+                                                ? "text-emerald-600" 
+                                                : "text-rose-600"
+                                        )}>
+                                            Rs. {paymentRows.reduce((a, b) => a + (Number(b.amount) || 0), 0).toFixed(2)}
+                                        </p>
                                     </div>
-                                    <div className="space-y-1.5">
-                                        <Label className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground">Amount (Rs.)</Label>
-                                        <Input 
-                                            type="number" 
-                                            className="h-9 text-xs font-bold"
-                                            value={row.amount}
-                                            onChange={(e) => {
-                                                const newRows = [...paymentRows];
-                                                newRows[index].amount = Number(e.target.value);
-                                                setPaymentRows(newRows);
-                                            }}
-                                        />
+                                    <div className="text-right">
+                                        <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">Balance After</p>
+                                        <p className="text-sm font-bold">
+                                            Rs. {(remainingDue - paymentRows.reduce((a, b) => a + (Number(b.amount) || 0), 0)).toFixed(2)}
+                                        </p>
                                     </div>
                                 </div>
-                                
-                                {(row.method === 'UPI' || row.method === 'Card' || row.method === 'Online Bank Transfer') && (
-                                    <div className="space-y-1.5 pt-1">
-                                        <Label className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground">Transaction ID / Ref</Label>
-                                        <Input 
-                                            placeholder="Mandatory for digital payments"
-                                            className="h-9 text-xs"
-                                            value={row.transactionId}
-                                            onChange={(e) => {
-                                                const newRows = [...paymentRows];
-                                                newRows[index].transactionId = e.target.value;
-                                                setPaymentRows(newRows);
-                                            }}
-                                        />
-                                    </div>
-                                )}
-                            </div>
-                        ))}
-                        
-                        <Button 
-                            variant="outline" 
-                            className="w-full h-9 border-dashed gap-2 text-xs"
-                            onClick={() => setPaymentRows([...paymentRows, { id: Math.random().toString(), method: "UPI", amount: 0, transactionId: "" }])}
-                        >
-                            <Plus className="w-3 h-3" /> Add Split Payment Mode
-                        </Button>
-                    </div>
-
-                    <div className="bg-primary/5 p-4 rounded-xl border border-primary/10 flex items-center justify-between">
-                        <div>
-                            <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">Total Collected</p>
-                            <p className={cn(
-                                "text-lg font-black",
-                                Math.abs(paymentRows.reduce((a, b) => a + (Number(b.amount) || 0), 0) - (bills.find(b => b.id === paymentBillId)?.remaining_due || 0)) < 0.01 
-                                    ? "text-emerald-600" 
-                                    : "text-rose-600"
-                            )}>
-                                Rs. {paymentRows.reduce((a, b) => a + (Number(b.amount) || 0), 0).toFixed(2)}
-                            </p>
-                        </div>
-                        <div className="text-right">
-                            <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">Balance After</p>
-                            <p className="text-sm font-bold">
-                                Rs. {((bills.find(b => b.id === paymentBillId)?.remaining_due || 0) - paymentRows.reduce((a, b) => a + (Number(b.amount) || 0), 0)).toFixed(2)}
-                            </p>
-                        </div>
-                    </div>
+                            </>
+                        );
+                    })()}
 
                     <DialogFooter>
                         <Button 
@@ -1583,11 +1697,6 @@ export default function BillingPage() {
                 open={isSubscriptionModalOpen}
                 onOpenChange={setIsSubscriptionModalOpen}
                 orgId={profile?.organization_id || ""}
-                onSuccess={() => {
-                    fetchData();
-                    queryClient.invalidateQueries({ queryKey: ["admin-bills"] });
-                    queryClient.invalidateQueries({ queryKey: ["admin-refunds"] });
-                }}
             />
             <SubscriptionDetailDrawer 
                 open={isSubDrawerOpen}

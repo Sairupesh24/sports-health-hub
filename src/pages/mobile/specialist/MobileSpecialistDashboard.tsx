@@ -151,7 +151,7 @@ export default function MobileSpecialistDashboard() {
                   </div>
                   <div>
                      <h3 className="text-xl font-black tracking-tight">{dashboardData?.activeClients || 0}</h3>
-                     <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Total Athletes</p>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Active Clients</p>
                   </div>
                 </div>
                 <div className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-400">

@@ -177,7 +177,7 @@ export default function MobileClients() {
     };
 
     return (
-        <Layout title="Athlete Directory">
+        <Layout title="Clients Directory">
             <div className="space-y-6 pb-20">
                 <Tabs defaultValue="all" className="w-full">
                     {/* Sticky Header with Search and TabsList */}
@@ -210,7 +210,7 @@ export default function MobileClients() {
                             {clientsLoading || activeLoading ? (
                                 <div className="flex justify-center p-8"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>
                             ) : (
-                                renderClientList(activeClients, "No active athletes found for this month.")
+                                renderClientList(activeClients, "No active clients found for this month.")
                             )}
                         </TabsContent>
 
@@ -218,7 +218,7 @@ export default function MobileClients() {
                             {clientsLoading ? (
                                 <div className="flex justify-center p-8"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>
                             ) : (
-                                renderClientList(allClients || [], "No athletes found in the system.")
+                                renderClientList(allClients || [], "No clients found in the system.")
                             )}
                         </TabsContent>
 
@@ -230,7 +230,7 @@ export default function MobileClients() {
                                     <div className="w-16 h-16 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center mb-4">
                                         <Users className="w-8 h-8 text-slate-400" />
                                     </div>
-                                    <p className="text-slate-500 dark:text-slate-400 text-sm mb-6">No athlete groups created yet.</p>
+                                    <p className="text-slate-500 dark:text-slate-400 text-sm mb-6">No client groups created yet.</p>
                                     <Button onClick={() => setCreateGroupOpen(true)} className="rounded-full shadow-md px-6">
                                         <Plus className="w-4 h-4 mr-2" />
                                         Create Group

@@ -28,10 +28,9 @@ interface SubscriptionModalProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     orgId: string;
-    onSuccess?: () => void;
 }
 
-export function SubscriptionModal({ open, onOpenChange, orgId, onSuccess }: SubscriptionModalProps) {
+export function SubscriptionModal({ open, onOpenChange, orgId }: SubscriptionModalProps) {
     const queryClient = useQueryClient();
     const [selectedClient, setSelectedClient] = useState("");
     const [selectedPackage, setSelectedPackage] = useState("");
@@ -74,7 +73,6 @@ export function SubscriptionModal({ open, onOpenChange, orgId, onSuccess }: Subs
             queryClient.invalidateQueries({ queryKey: ["ss-subscriptions"] });
             queryClient.invalidateQueries({ queryKey: ["admin-subscriptions"] });
             toast.success("Subscription started successfully");
-            onSuccess?.();
             onOpenChange(false);
         },
         onError: (error: any) => {
@@ -113,14 +111,12 @@ export function SubscriptionModal({ open, onOpenChange, orgId, onSuccess }: Subs
                                     variant="outline"
                                     role="combobox"
                                     aria-expanded={packageOpen}
-                                    className="w-full justify-between font-normal text-left min-w-0"
+                                    className="w-full justify-between font-normal text-left"
                                 >
-                                    <span className="truncate flex-1">
-                                        {selectedPackage ? (() => {
-                                            const pkg = packages?.find((p: any) => p.id === selectedPackage);
-                                            return pkg ? `${pkg.name} - ₹${pkg.price}` : "Select plan...";
-                                        })() : "Select plan..."}
-                                    </span>
+                                    {selectedPackage ? (() => {
+                                        const pkg = packages?.find((p: any) => p.id === selectedPackage);
+                                        return pkg ? `${pkg.name} - ₹${pkg.price}` : "Select plan...";
+                                    })() : "Select plan..."}
                                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                 </Button>
                             </PopoverTrigger>

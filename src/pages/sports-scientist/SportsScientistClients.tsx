@@ -16,7 +16,6 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import { ClientGroupsModal } from "@/components/admin/ClientGroupsModal";
 
 export default function SportsScientistClients() {
     const navigate = useNavigate();
@@ -24,7 +23,6 @@ export default function SportsScientistClients() {
     const [search, setSearch] = useState("");
     const [populationFilter, setPopulationFilter] = useState("all");
     const [orgFilter, setOrgFilter] = useState("all");
-    const [isGroupsModalOpen, setIsGroupsModalOpen] = useState(false);
 
     // Fetch unique organizations/academies for the filter
     const { data: organizations } = useQuery({
@@ -32,7 +30,7 @@ export default function SportsScientistClients() {
         queryFn: async () => {
             if (!user) return [];
             try {
-                const clients = await apiFetch<any[]>('/api/clients?fields=org_name');
+                const clients = await apiFetch('/api/clients?fields=org_name');
                 const uniqueOrgs = Array.from(new Set((clients || []).map((d: any) => d.org_name).filter(Boolean))).sort();
                 return uniqueOrgs;
             } catch {
@@ -54,7 +52,7 @@ export default function SportsScientistClients() {
             if (orgFilter !== 'all') params.set('org_name', orgFilter);
             params.set('limit', '100');
 
-            const data = await apiFetch<any[]>(`/api/clients?${params.toString()}`);
+            const data = await apiFetch(`/api/clients?${params.toString()}`);
 
             return (data || []).map((c: any) => ({
                 ...c,
@@ -68,15 +66,9 @@ export default function SportsScientistClients() {
     return (
         <DashboardLayout role="sports_scientist">
             <div className="space-y-6">
-                <div className="flex justify-between items-center">
-                    <div>
-                        <h1 className="text-3xl font-display font-bold text-foreground">Clients</h1>
-                        <p className="text-muted-foreground text-sm mt-1">Manage athletes and track their performance sessions</p>
-                    </div>
-                    <Button onClick={() => setIsGroupsModalOpen(true)} variant="outline" className="gap-2 shrink-0">
-                        <Users className="w-4 h-4" />
-                        Manage Groups
-                    </Button>
+                <div>
+                    <h1 className="text-3xl font-display font-bold text-foreground">Clients</h1>
+                    <p className="text-muted-foreground text-sm mt-1">Manage athletes and track their performance sessions</p>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -225,11 +217,6 @@ export default function SportsScientistClients() {
                     </CardContent>
                 </Card>
             </div>
-
-            <ClientGroupsModal 
-                open={isGroupsModalOpen} 
-                onOpenChange={setIsGroupsModalOpen} 
-            />
         </DashboardLayout>
     );
 }

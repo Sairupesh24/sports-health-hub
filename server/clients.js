@@ -66,40 +66,21 @@ router.post('/referral-sources', requireAuth, async (req, res) => {
     }
 });
 
-// GET Client List with search and date range
+// GET Client List with search
 router.get('/', requireAuth, async (req, res) => {
     try {
         const orgId = req.user.organization_id;
-        const { search, startDate, endDate } = req.query;
+        const { search } = req.query;
 
-        let query = `
-            SELECT c.*,
-                   COALESCE((
-                       SELECT SUM(b.total - COALESCE((SELECT SUM(bp.amount) FROM billpayments bp WHERE bp.bill_id = b.id), 0))
-                       FROM bills b
-                       WHERE b.client_id = c.id AND b.status IN ('Pending', 'Partially Paid')
-                   ), 0) as outstanding_balance
-            FROM clients c
-            WHERE c.organization_id = $1
-        `;
+        let query = 'SELECT * FROM clients WHERE organization_id = $1';
         const params = [orgId];
 
         if (search) {
+            query += ' AND (first_name ILIKE $2 OR last_name ILIKE $2 OR uhid ILIKE $2 OR mobile_no ILIKE $2)';
             params.push(`%${search}%`);
-            query += ` AND (c.first_name ILIKE $${params.length} OR c.last_name ILIKE $${params.length} OR c.uhid ILIKE $${params.length} OR c.mobile_no ILIKE $${params.length})`;
         }
 
-        if (startDate) {
-            params.push(startDate);
-            query += ` AND c.registered_on::date >= $${params.length}::date`;
-        }
-
-        if (endDate) {
-            params.push(endDate);
-            query += ` AND c.registered_on::date <= $${params.length}::date`;
-        }
-
-        query += ' ORDER BY c.created_at DESC';
+        query += ' ORDER BY created_at DESC LIMIT 200';
 
         const result = await db.query(query, params);
         res.json(result.rows);
@@ -156,7 +137,7 @@ router.get('/:id', requireAuth, async (req, res) => {
     }
 });
 
-// PATCH Client (VIP, Remarks)
+// PATCH Client (VIP, Remarks, General Details)
 router.patch('/:id', requireAuth, async (req, res) => {
     try {
         const { id } = req.params;
@@ -181,6 +162,31 @@ router.patch('/:id', requireAuth, async (req, res) => {
             await db.query(
                 'UPDATE clients SET assigned_consultant_id = $1 WHERE id = $2 AND organization_id = $3',
                 [assigned_consultant_id, id, orgId]
+            );
+        }
+
+        // General fields update
+        const generalUpdates = {};
+        const generalFields = [
+            'honorific', 'first_name', 'last_name', 'gender', 'mobile_no', 'dob', 'age', 'email',
+            'blood_group', 'occupation', 'sport', 'org_name',
+            'address', 'locality', 'pincode', 'city', 'state', 'country'
+        ];
+
+        generalFields.forEach(field => {
+            if (req.body[field] !== undefined) {
+                generalUpdates[field] = req.body[field];
+            }
+        });
+
+        if (Object.keys(generalUpdates).length > 0) {
+            const keys = Object.keys(generalUpdates);
+            const setClause = keys.map((key, i) => `${key} = $${i + 1}`).join(', ');
+            const values = Object.values(generalUpdates);
+            values.push(id, orgId);
+            await db.query(
+                `UPDATE clients SET ${setClause} WHERE id = $${keys.length + 1} AND organization_id = $${keys.length + 2}`,
+                values
             );
         }
 
@@ -643,8 +649,8 @@ router.post('/bulk', requireAuth, async (req, res) => {
             // Generate UHID if not provided
             let uhid = c.uhid;
             if (!uhid) {
-                const uhidRes = await client.query('SELECT generate_uhid_func($1) as generate_uhid', [orgId]);
-                uhid = uhidRes.rows[0].generate_uhid;
+                const uhidRes = await client.query('SELECT generate_uhid_func($1) as uhid', [orgId]);
+                uhid = uhidRes.rows[0].uhid;
             }
             
             const keys = Object.keys(c).filter(k => k !== 'uhid' && k !== 'organization_id');
@@ -792,19 +798,6 @@ router.post('/groups/:id/members', requireAuth, async (req, res) => {
         res.status(500).json({ error: error.message });
     } finally {
         client.release();
-    }
-});
-
-// DELETE Client Group
-router.delete('/groups/:id', requireAuth, async (req, res) => {
-    try {
-        const { id } = req.params;
-        const orgId = req.user.organization_id;
-        
-        await db.query('DELETE FROM client_groups WHERE id = $1 AND organization_id = $2', [id, orgId]);
-        res.json({ success: true });
-    } catch (error) {
-        res.status(500).json({ error: error.message });
     }
 });
 

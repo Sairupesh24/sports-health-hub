@@ -33,7 +33,6 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
-import { Switch } from "@/components/ui/switch";
 
 interface BulkAssignmentModalProps {
   isOpen: boolean;
@@ -54,11 +53,6 @@ export default function BulkAssignmentModal({
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
   
-  // Recurring Setup State
-  const [isRecurring, setIsRecurring] = useState(false);
-  const [recurrenceType, setRecurrenceType] = useState<"daily" | "weekly" | "biweekly" | "monthly">("weekly");
-  const [startDate, setStartDate] = useState(new Date().toISOString().split("T")[0]);
-
   // Filters
   const [sportFilter, setSportFilter] = useState("all");
   const [teamFilter, setTeamFilter] = useState("all");
@@ -142,51 +136,35 @@ export default function BulkAssignmentModal({
       const orgId = profile?.organization_id;
       if (!orgId) throw new Error("Organization not found");
 
-      if (isRecurring) {
-        // Create Recurring Questionnaire Schedule
-        await apiFetch('/ams/recurring-questionnaires', {
-          method: 'POST',
-          body: {
-            questionnaire_id: form.id,
-            client_ids: selectedClientIds,
-            recurrence_type: recurrenceType,
-            next_run: new Date(startDate).toISOString()
-          }
-        });
+      // 1. Create Bulk Assignment Record
+      const bulkData = await apiFetch<any>('/ams/bulk-assignments', {
+        method: 'POST',
+        body: {
+          questionnaire_id: form.id,
+          total_clients: selectedClientIds.length,
+          status: 'active'
+        }
+      });
 
-        toast({
-          title: "Recurring Assignment Scheduled",
-          description: `Successfully scheduled ${form.name} to recur ${recurrenceType} for ${selectedClientIds.length} clients.`
-        });
-      } else {
-        // 1. Create Bulk Assignment Record
-        const bulkData = await apiFetch<any>('/ams/bulk-assignments', {
-          method: 'POST',
-          body: {
-            questionnaire_id: form.id,
-            total_clients: selectedClientIds.length,
-            status: 'active'
-          }
-        });
+      // 2. Create individual form_responses
+      const responses = selectedClientIds.map(clientId => ({
+        form_id: form.id,
+        client_id: clientId,
+        bulk_assignment_id: bulkData.id,
+        status: 'pending'
+      }));
 
-        // 2. Create individual form_responses
-        const responses = selectedClientIds.map(clientId => ({
-          form_id: form.id,
-          client_id: clientId,
-          bulk_assignment_id: bulkData.id,
-          status: 'pending'
-        }));
+      await apiFetch('/ams/form-responses/bulk', {
+        method: 'POST',
+        body: responses
+      });
 
-        await apiFetch('/ams/form-responses/bulk', {
-          method: 'POST',
-          body: responses
-        });
+      // 3. Create notifications for each client (Removed: backend handles this inside /ams/form-responses/bulk)
 
-        toast({
-          title: "Bulk Assignment Successful",
-          description: `Successfully assigned ${form.name} to ${selectedClientIds.length} clients.`
-        });
-      }
+      toast({
+        title: "Bulk Assignment Successful",
+        description: `Successfully assigned ${form.name} to ${selectedClientIds.length} clients.`
+      });
       
       onSuccess();
       onClose();
@@ -270,43 +248,6 @@ export default function BulkAssignmentModal({
                 />
               </div>
             </div>
-        </div>
-
-        {/* Recurrence Setup Row */}
-        <div className="px-4 sm:px-8 py-3 bg-white/[0.02] border-b border-white/5 flex flex-wrap gap-4 items-center justify-between flex-shrink-0">
-          <div className="flex items-center gap-3">
-            <Switch id="recurrence-toggle" checked={isRecurring} onCheckedChange={setIsRecurring} className="data-[state=checked]:bg-primary" />
-            <Label htmlFor="recurrence-toggle" className="text-xs font-black uppercase tracking-wider cursor-pointer">
-              Schedule as Recurring Assessment
-            </Label>
-          </div>
-          
-          {isRecurring && (
-            <div className="flex items-center gap-4 animate-in fade-in slide-in-from-top-1 flex-1 sm:flex-none justify-end">
-              <div className="space-y-1 sm:w-[130px] w-full">
-                <Select value={recurrenceType} onValueChange={(val: any) => setRecurrenceType(val)}>
-                  <SelectTrigger className="h-9 bg-white/[0.05] border-white/10 rounded-xl text-[10px] font-black uppercase text-white hover:bg-white/[0.08]">
-                    <SelectValue placeholder="Frequency" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-[#0F172A] border border-white/20 text-white shadow-2xl z-[100]">
-                    <SelectItem value="daily" className="font-black uppercase text-[9px] tracking-widest !text-white focus:bg-primary">Daily</SelectItem>
-                    <SelectItem value="weekly" className="font-black uppercase text-[9px] tracking-widest !text-white focus:bg-primary">Weekly</SelectItem>
-                    <SelectItem value="biweekly" className="font-black uppercase text-[9px] tracking-widest !text-white focus:bg-primary">Bi-weekly</SelectItem>
-                    <SelectItem value="monthly" className="font-black uppercase text-[9px] tracking-widest !text-white focus:bg-primary">Monthly</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-1 sm:w-[150px] w-full">
-                <Input 
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                  className="h-9 bg-white/[0.05] border-white/10 rounded-xl text-[10px] font-black text-white hover:bg-white/[0.08] focus-visible:ring-0"
-                />
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Selection Area */}

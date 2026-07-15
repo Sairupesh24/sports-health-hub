@@ -35,7 +35,6 @@ import ServiceMapping from "./pages/admin/ServiceMapping";
 import AdminSettings from "./pages/admin/AdminSettings";
 import AdminInjuries from "./pages/admin/AdminInjuries";
 import AdminPermissions from "./pages/admin/AdminPermissions";
-import ManagerialAnalytics from "./pages/admin/ManagerialAnalytics";
 import ResourceScheduleManager from "./pages/admin/ResourceScheduleManager";
 import NotificationSettings from "./pages/admin/NotificationSettings";
 import ConsultantDashboard from "./pages/consultant/ConsultantDashboard";
@@ -143,7 +142,6 @@ const App = () => (
               <Route path="/admin/settings/resource-schedule" element={<ProtectedRoute requiredRole="admin"><ResourceScheduleManager /></ProtectedRoute>} />
               <Route path="/admin/settings/injuries" element={<ProtectedRoute requiredRole="admin"><AdminInjuries /></ProtectedRoute>} />
               <Route path="/admin/settings/permissions" element={<ProtectedRoute requiredRole="admin"><AdminPermissions /></ProtectedRoute>} />
-              <Route path="/admin/analytics/managerial" element={<ProtectedRoute><ManagerialAnalytics /></ProtectedRoute>} />
               <Route path="/admin/settings/notifications" element={<ProtectedRoute requiredRole="admin"><NotificationSettings /></ProtectedRoute>} />
               <Route path="/admin/billing" element={<ProtectedRoute requiredRole={["admin", "foe"]}><BillingPage /></ProtectedRoute>} />
               <Route path="/admin/users" element={<ProtectedRoute requiredRole={["admin", "foe"]}><UserApproval /></ProtectedRoute>} />

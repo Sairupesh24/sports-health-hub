@@ -33,7 +33,7 @@ export default function ReportsPage({ role }: ReportsPageProps) {
   }
 
   return (
-    <DashboardLayout role={role}>
+    <DashboardLayout>
       {renderContent()}
     </DashboardLayout>
   );
