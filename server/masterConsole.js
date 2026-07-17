@@ -273,23 +273,23 @@ router.post('/bulk-create-users', requireSuperAdmin, async (req, res) => {
 router.get('/packages', requireSuperAdmin, async (req, res) => {
     const { organization_id } = req.query;
     try {
-        const query = `
-            SELECT 
-                p.id, p.name, p.description, p.price, p.category, p.tax_percentage,
-                json_agg(
-                    json_build_object(
-                        'id', ps.id,
-                        'sessions_included', ps.sessions_included,
-                        'service', json_build_object('name', s.name)
-                    )
-                ) as items
-            FROM packages p
-            LEFT JOIN packageservices ps ON p.id = ps.package_id
-            LEFT JOIN services s ON ps.service_id = s.id
-            WHERE p.organization_id = $1 AND p.deleted_at IS NULL
-            GROUP BY p.id
-            ORDER BY p.created_at DESC
-        `;
+            const query = `
+                SELECT 
+                    p.id, p.name, p.description, p.price, p.category, p.tax_amount,
+                    json_agg(
+                        json_build_object(
+                            'id', ps.id,
+                            'sessions_included', ps.sessions_included,
+                            'service', json_build_object('name', s.name)
+                        )
+                    ) as items
+                FROM packages p
+                LEFT JOIN packageservices ps ON p.id = ps.package_id
+                LEFT JOIN services s ON ps.service_id = s.id
+                WHERE p.organization_id = $1 AND p.deleted_at IS NULL
+                GROUP BY p.id, p.category, p.tax_amount
+                ORDER BY p.created_at DESC
+            `;
         const result = await db.query(query, [organization_id]);
         console.log(`[BILLING] Found ${result.rows.length} packages`);
         res.json(result.rows);
@@ -345,12 +345,12 @@ router.post('/packages', requireSuperAdmin, async (req, res) => {
         for (const pkg of packages) {
             console.log(`[MASTER CONSOLE] Upserting package: ${pkg.name} for org: ${organizationId}`);
             const pkgRes = await client.query(
-                `INSERT INTO packages (organization_id, name, description, price, category, tax_percentage) 
+                `INSERT INTO packages (organization_id, name, description, price, category, tax_amount) 
                  VALUES ($1, $2, $3, $4, $5, $6) 
                  ON CONFLICT (organization_id, name) 
-                 DO UPDATE SET description = EXCLUDED.description, price = EXCLUDED.price, category = EXCLUDED.category, tax_percentage = EXCLUDED.tax_percentage, deleted_at = NULL, updated_at = CURRENT_TIMESTAMP
+                 DO UPDATE SET description = EXCLUDED.description, price = EXCLUDED.price, category = EXCLUDED.category, tax_amount = EXCLUDED.tax_amount, deleted_at = NULL, updated_at = CURRENT_TIMESTAMP
                  RETURNING id`,
-                [organizationId, pkg.name, pkg.description, pkg.price, pkg.category || 'Others', Number(pkg.tax_percentage) || 0]
+                [organizationId, pkg.name, pkg.description, pkg.price, pkg.category || 'Others', pkg.tax_amount || 0]
             );
             const packageId = pkgRes.rows[0].id;
             console.log(`[MASTER CONSOLE] Package upserted with ID: ${packageId}`);

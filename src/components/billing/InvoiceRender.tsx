@@ -1,176 +1,194 @@
 import { format } from "date-fns";
-import { cn } from "@/lib/utils";
 
-interface InvoiceRenderProps {
-    transaction: {
+export type InvoiceRenderProps = {
+    bill: {
         id: string;
+        invoice_number?: string;
         date: string;
         client_name: string;
         client_uhid?: string;
-        amount: number;
-        status?: string;
-        package_name?: string;
+        client_mobile?: string;
+        referral_source_name?: string;
+        billed_by_name?: string;
+        billing_staff_name?: string;
+        subtotal: number;
+        discount_value?: number;
+        discount?: number;
+        tax_amount?: number;
+        total_amount: number;
+        status: string;
         payment_method?: string;
         transaction_id?: string;
-        referral_source?: string;
-        billing_staff?: string;
         notes?: string;
-        discount_value?: number;
-        discount_authorized_by?: string;
-        items?: any[];
+        include_notes_in_invoice?: boolean;
+        organization_logo?: string;
+        organization_address?: string;
+        organization_official_name?: string;
+        items?: Array<{
+            id: string;
+            name: string;
+            amount: number;
+            price?: number;
+            tax_amount?: number;
+            total: number;
+            entitlements?: Array<{ service_type: string; default_sessions: number }>;
+        }>;
     };
-    orgDetails?: {
-        official_name?: string;
-        name?: string;
-        official_address?: string;
-        logo_url?: string;
-    } | null;
-}
+};
 
-export function InvoiceRender({ transaction, orgDetails }: InvoiceRenderProps) {
-    const orgDisplayName = orgDetails?.official_name || orgDetails?.name || "Integrated Sports Clinic";
-    const orgAddress = orgDetails?.official_address || "123 Sports Health Way, Hub City";
-    
-    // Sum of items base price
-    const subtotal = transaction.items?.reduce((sum, item) => sum + Number(item.amount || item.price || 0), 0) || transaction.amount;
-    // Sum of items tax
-    const totalTax = transaction.items?.reduce((sum, item) => sum + Number(item.tax_amount || 0), 0) || 0;
-    
+export function InvoiceRender({ bill }: InvoiceRenderProps) {
+    const orgName = bill.organization_official_name || "Center for Spine & Sports Health (CSSH)";
+    const orgAddress = bill.organization_address || "";
+    const logoUrl = bill.organization_logo || "";
+
+    const discountAmount = bill.discount_value || bill.discount || 0;
+    const taxAmount = bill.tax_amount || 0;
+    const subtotal = bill.subtotal || 0;
+
     return (
-        <div 
-            className="invoice-container-halfpage border border-gray-300 rounded-md p-4 bg-white text-black font-sans flex flex-col justify-between"
-            style={{ 
-                height: '148mm', 
-                maxHeight: '148mm', 
-                width: '100%', 
-                boxSizing: 'border-box',
-                backgroundColor: '#ffffff',
-                color: '#000000',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
-            }}
-        >
-            <div className="space-y-3">
-                {/* Header Grid: Logo/Title and Invoice Details */}
-                <div className="grid grid-cols-2 border-b border-gray-200 pb-2 gap-4">
-                    <div>
-                        <h2 className="text-xs font-bold text-teal-800 tracking-wide uppercase">{orgDisplayName}</h2>
-                        <p className="text-[9px] text-gray-500 leading-normal">{orgAddress}</p>
-                        <div className="text-xs font-bold text-gray-900 mt-1.5 tracking-wider">INVOICE</div>
-                    </div>
-                    <div className="text-right border-l border-gray-100 pl-4">
-                        <div className="text-[9px] text-gray-400 uppercase font-bold tracking-widest">Invoice Details</div>
-                        <div className="text-[10px] font-bold text-gray-900 mt-1">Invoice #: {transaction.id.substring(0, 8).toUpperCase()}</div>
-                        <div className="text-[9px] text-gray-600 mt-0.5">Date: {format(new Date(transaction.date), "dd MMM yyyy")}</div>
-                        <div className="text-[9px] text-gray-600 mt-0.5">Billed By: {transaction.billing_staff || "Staff"}</div>
-                    </div>
-                </div>
-
-                {/* Client Billing Info */}
-                <div className="grid grid-cols-2 border-b border-gray-200 pb-2 gap-4">
-                    <div>
-                        <div className="text-[8px] text-gray-400 font-bold uppercase tracking-wider">Bill To:</div>
-                        <div className="text-[11px] font-bold text-gray-800">{transaction.client_name}</div>
-                        {transaction.client_uhid && <div className="text-[9px] text-gray-500 font-mono mt-0.5">UHID: {transaction.client_uhid}</div>}
-                    </div>
-                    <div className="text-right">
-                        <div className="text-[8px] text-gray-400 font-bold uppercase tracking-wider">Payment Details:</div>
-                        <div className="text-[11px] font-semibold text-gray-800">{transaction.payment_method || "Pending"}</div>
-                        {transaction.transaction_id && <div className="text-[9px] text-gray-500 mt-0.5">Txn: {transaction.transaction_id}</div>}
-                        <div className="text-[9px] mt-1">
-                            <span className={cn(
-                                "inline-flex items-center px-1.5 py-0.2 rounded-full text-[8px] font-bold border uppercase",
-                                transaction.status === "Paid"
-                                    ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                                    : "bg-amber-50 text-amber-700 border-amber-200"
-                            )}>
-                                {transaction.status || "PENDING"}
-                            </span>
+        <div id="print-invoice-box" className="w-full bg-white text-slate-800 border border-slate-300 p-8 font-sans text-xs flex flex-col justify-between" style={{ boxSizing: "border-box", minHeight: "140mm" }}>
+            
+            {/* Header section with Logo & Organization Details */}
+            <div className="flex justify-between items-center mb-6">
+                <div className="flex items-center gap-3">
+                    {logoUrl ? (
+                        <img src={logoUrl} alt="Logo" className="max-h-16 object-contain" />
+                    ) : (
+                        <div className="flex flex-col">
+                            <span className="text-sm font-bold text-slate-900 tracking-tight">{orgName}</span>
+                            {orgAddress && <span className="text-[9px] text-slate-400 max-w-[250px] mt-0.5">{orgAddress}</span>}
                         </div>
-                    </div>
+                    )}
+                </div>
+                <div className="text-right">
+                    <h1 className="text-2xl font-black text-slate-900 tracking-wider">INVOICE</h1>
+                </div>
+            </div>
+
+            {/* Metadata Info (Bill To vs Invoice details) inside a clean border box */}
+            <div className="grid grid-cols-2 gap-4 border border-slate-200 p-4 mb-6 rounded-none bg-slate-50/30">
+                <div className="space-y-1 text-[11px]">
+                    <h3 className="font-bold text-slate-900 mb-1 text-xs">Bill To:</h3>
+                    <p className="font-semibold text-slate-800 uppercase">{bill.client_name}</p>
+                    <p className="text-slate-600"><span className="text-slate-400 font-medium">UHID :</span> {bill.client_uhid || "-"}</p>
+                    <p className="text-slate-600"><span className="text-slate-400 font-medium">Mobile :</span> {bill.client_mobile || "-"}</p>
+                    {bill.referral_source_name && bill.referral_source_name !== "-" && (
+                        <p className="text-slate-600"><span className="text-slate-400 font-medium">Referral :</span> {bill.referral_source_name}</p>
+                    )}
                 </div>
 
-                {/* Items Table */}
-                <div className="border border-gray-200 rounded overflow-hidden">
-                    <table className="w-full text-left border-collapse text-[10px]">
-                        <thead>
-                            <tr className="bg-gray-50 border-b border-gray-200 text-gray-600 font-bold uppercase tracking-wider text-[8px]">
-                                <th className="p-1 px-2 border-r border-gray-200">#</th>
-                                <th className="p-1 px-2 border-r border-gray-200 w-3/5">Description</th>
-                                <th className="p-1 px-2 text-right border-r border-gray-200">Rate</th>
-                                <th className="p-1 px-2 text-right border-r border-gray-200">Tax</th>
-                                <th className="p-1 px-2 text-right">Total</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-200">
-                            {transaction.items && transaction.items.length > 0 ? (
-                                transaction.items.map((item, idx) => {
-                                    const basePrice = Number(item.amount || item.price || 0);
-                                    const tax = Number(item.tax_amount || 0);
-                                    const disc = Number(item.discount || 0);
-                                    const lineTotal = basePrice + tax - disc;
-                                    return (
-                                        <tr key={idx} className="hover:bg-gray-50/50">
-                                            <td className="p-1 px-2 border-r border-gray-200 text-gray-500">{idx + 1}</td>
-                                            <td className="p-1 px-2 border-r border-gray-200 font-medium text-gray-800">{item.name || item.package_name}</td>
-                                            <td className="p-1 px-2 text-right border-r border-gray-200 text-gray-600 font-mono">Rs.{basePrice.toFixed(2)}</td>
-                                            <td className="p-1 px-2 text-right border-r border-gray-200 text-gray-600 font-mono">Rs.{tax.toFixed(2)}</td>
-                                            <td className="p-1 px-2 text-right font-bold text-gray-900 font-mono">Rs.{lineTotal.toFixed(2)}</td>
-                                        </tr>
-                                    );
-                                })
-                            ) : (
-                                <tr>
-                                    <td className="p-1 px-2 border-r border-gray-200 text-gray-500">1</td>
-                                    <td className="p-1 px-2 border-r border-gray-200 font-medium text-gray-800">{transaction.package_name || "Service Package"}</td>
-                                    <td className="p-1 px-2 text-right border-r border-gray-200 text-gray-600 font-mono">Rs.{(subtotal).toFixed(2)}</td>
-                                    <td className="p-1 px-2 text-right border-r border-gray-200 text-gray-600 font-mono">Rs.{totalTax.toFixed(2)}</td>
-                                    <td className="p-1 px-2 text-right font-bold text-gray-900 font-mono">Rs.{transaction.amount.toFixed(2)}</td>
+                <div className="space-y-1 text-left pl-6 border-l border-slate-200 text-[11px]">
+                    <h3 className="font-bold text-slate-900 mb-1 text-xs">Invoice Details:</h3>
+                    <p className="text-slate-600">
+                        <span className="text-slate-400 font-medium">Invoice # :</span> {bill.invoice_number || bill.id.substring(0, 8).toUpperCase()}
+                    </p>
+                    <p className="text-slate-600">
+                        <span className="text-slate-400 font-medium">Date :</span> {format(new Date(bill.date), "dd MMM yyyy")}
+                    </p>
+                    {(bill.billed_by_name || bill.billing_staff_name) && (
+                        <p className="text-slate-600">
+                            <span className="text-slate-400 font-medium">Billed By:</span> {bill.billed_by_name || bill.billing_staff_name}
+                        </p>
+                    )}
+                </div>
+            </div>
+
+            {/* Line Items Table with Border and Dividers */}
+            <div className="flex-1 min-h-[50px] mb-6">
+                <table className="w-full text-[11px] leading-normal text-left border border-slate-200 border-collapse">
+                    <thead>
+                        <tr className="bg-[#0d9488] text-white font-bold text-[10px] uppercase tracking-wider">
+                            <th className="py-2.5 px-3 border border-slate-200 w-8">#</th>
+                            <th className="py-2.5 px-3 border border-slate-200">Description</th>
+                            <th className="py-2.5 px-3 border border-slate-200 text-right w-28">Rate</th>
+                            <th className="py-2.5 px-3 border border-slate-200 text-right w-28">Tax</th>
+                            <th className="py-2.5 px-3 border border-slate-200 text-right w-28">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-200 bg-white">
+                        {bill.items?.map((item, idx) => {
+                            const basePrice = Number(item.amount || item.price || 0);
+                            const itemTax = Number(item.tax_amount || 0);
+                            const total = Number(item.total || (basePrice + itemTax));
+                            const taxPercent = basePrice > 0 ? Math.round((itemTax / basePrice) * 100) : 0;
+
+                            return (
+                                <tr key={item.id || idx} className="text-slate-700">
+                                    <td className="py-3 px-3 border border-slate-200 font-medium align-top">{idx + 1}</td>
+                                    <td className="py-3 px-3 border border-slate-200 align-top">
+                                        <p className="font-semibold text-slate-800 uppercase">{item.name}</p>
+                                        {item.entitlements && item.entitlements.length > 0 && (
+                                            <ul className="mt-1 list-none pl-0 text-[10px] text-slate-500 space-y-0.5">
+                                                {item.entitlements.map((ent, eIdx) => (
+                                                    <li key={eIdx}>• {ent.service_type}: {ent.default_sessions} sessions</li>
+                                                ))}
+                                            </ul>
+                                        )}
+                                    </td>
+                                    <td className="py-3 px-3 border border-slate-200 text-right align-top font-medium text-slate-600">Rs. {basePrice.toFixed(2)}</td>
+                                    <td className="py-3 px-3 border border-slate-200 text-right align-top font-medium text-slate-600">Rs. {itemTax.toFixed(2)} ({taxPercent}%)</td>
+                                    <td className="py-3 px-3 border border-slate-200 text-right align-top font-bold text-slate-800">Rs. {total.toFixed(2)}</td>
                                 </tr>
-                            )}
-                        </tbody>
-                    </table>
-                </div>
+                            );
+                        })}
+                    </tbody>
+                </table>
             </div>
 
-            {/* Bottom Section: Totals, Remarks & Footer */}
-            <div className="space-y-1.5 border-t border-gray-200 pt-2 mt-auto">
-                <div className="flex justify-between items-end gap-4">
-                    <div className="max-w-[60%]">
-                        {transaction.notes && (
-                            <div className="text-[8px] text-gray-500 italic bg-gray-50 p-1 rounded border border-gray-100 leading-normal">
-                                <span className="font-bold not-italic">Notes:</span> {transaction.notes}
-                            </div>
-                        )}
-                    </div>
-                    <div className="w-[40%] space-y-0.5 text-right text-[10px] shrink-0 border-l border-gray-100 pl-3">
-                        <div className="flex justify-between text-gray-600">
-                            <span>Subtotal:</span>
-                            <span className="font-mono">Rs. {subtotal.toFixed(2)}</span>
-                        </div>
-                        {totalTax > 0 && (
-                            <div className="flex justify-between text-gray-600">
-                                <span>Tax:</span>
-                                <span className="font-mono">Rs. {totalTax.toFixed(2)}</span>
-                            </div>
-                        )}
-                        {(transaction.discount_value ?? 0) > 0 && (
-                            <div className="flex justify-between text-gray-600">
-                                <span>Discount:</span>
-                                <span className="font-mono">-Rs. {Number(transaction.discount_value).toFixed(2)}</span>
-                            </div>
-                        )}
-                        <div className="flex justify-between font-bold text-[11px] border-t border-gray-200 pt-1 text-teal-800 mt-1">
-                            <span>Grand Total:</span>
-                            <span className="font-mono">Rs. {transaction.amount.toFixed(2)}</span>
-                        </div>
-                    </div>
-                </div>
+            {/* Calculations Summary Panel & Footer */}
+            <div className="border-t border-slate-200 pt-4 flex flex-col gap-4">
                 
-                {/* Clinic Footer */}
-                <div className="text-[7px] text-center text-gray-400 border-t border-gray-100 pt-1 uppercase tracking-wide">
-                    Thank you for choosing {orgDisplayName}! Powered by ISHPO
+                <div className="flex justify-between items-end">
+                    {/* Status on Left */}
+                    <div className="space-y-1 text-left">
+                        {bill.status === "Paid" ? (
+                            <span className="text-xs font-black text-emerald-600 uppercase tracking-wide">
+                                STATUS: PAID {bill.payment_method ? `VIA ${bill.payment_method.toUpperCase()}` : ""}
+                            </span>
+                        ) : (
+                            <span className="text-xs font-black text-amber-600 uppercase tracking-wide">
+                                STATUS: PENDING PAYMENT
+                            </span>
+                        )}
+                        {bill.notes && bill.include_notes_in_invoice && (
+                            <p className="text-[10px] text-slate-400 mt-1 max-w-[300px]">Remarks: {bill.notes}</p>
+                        )}
+                    </div>
+
+                    {/* Totals table on Right */}
+                    <div className="w-[240px] text-[11px] font-medium text-slate-500 space-y-1.5">
+                        <div className="flex justify-between">
+                            <span>Subtotal:</span>
+                            <span className="text-slate-800 font-semibold">Rs. {subtotal.toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                            <span>Total Tax:</span>
+                            <span className="text-slate-800 font-semibold">Rs. {taxAmount.toFixed(2)}</span>
+                        </div>
+                        {discountAmount > 0 && (
+                            <div className="flex justify-between text-rose-600">
+                                <span>Discount:</span>
+                                <span>-Rs. {discountAmount.toFixed(2)}</span>
+                            </div>
+                        )}
+                        <div className="flex justify-between text-xs font-black text-[#0d9488] border-t border-slate-200 pt-2 mt-2">
+                            <span className="font-bold">Grand Total:</span>
+                            <span className="text-sm font-black">Rs. {bill.total_amount.toFixed(2)}</span>
+                        </div>
+                    </div>
                 </div>
+
+                {/* Footer Brand Label */}
+                <div className="flex justify-between items-center text-[9px] text-slate-400 uppercase tracking-wider pt-4 border-t border-slate-100">
+                    <div></div>
+                    <div className="text-center text-slate-400 font-medium">
+                        THANK YOU FOR YOUR BUSINESS! POWERED BY ISHPO
+                    </div>
+                    <div></div>
+                </div>
+
             </div>
+
         </div>
     );
 }

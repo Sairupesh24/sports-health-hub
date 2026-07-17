@@ -2,6 +2,7 @@ import pg from 'pg';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs/promises';
+import * as XLSX from 'xlsx';
 
 const { Pool } = pg;
 
@@ -122,6 +123,9 @@ async function runMigrations() {
     } catch (e) {}
     try {
       await pool.query(`ALTER TABLE profiles ADD COLUMN has_calendar_access BOOLEAN DEFAULT FALSE;`);
+    } catch (e) {}
+    try {
+      await pool.query(`ALTER TABLE profiles ADD COLUMN has_analytics_access BOOLEAN DEFAULT FALSE;`);
     } catch (e) {}
 
 
@@ -376,6 +380,7 @@ async function runMigrations() {
         description TEXT,
         price NUMERIC NOT NULL DEFAULT 0,
         category TEXT DEFAULT 'Others',
+        tax_amount NUMERIC NOT NULL DEFAULT 0,
         deleted_at TIMESTAMPTZ,
         created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
@@ -383,43 +388,18 @@ async function runMigrations() {
       )
     `);
 
+    // Safely add missing columns to packages
     try {
         await pool.query(`ALTER TABLE packages ADD COLUMN IF NOT EXISTS category TEXT DEFAULT 'Others';`);
-        await pool.query(`ALTER TABLE packages ADD COLUMN IF NOT EXISTS tax_percentage NUMERIC NOT NULL DEFAULT 0;`);
+    } catch (e) {}
+    try {
+        await pool.query(`ALTER TABLE packages ADD COLUMN IF NOT EXISTS tax_amount NUMERIC NOT NULL DEFAULT 0;`);
     } catch (e) {}
 
     // Backwards compatibility for 'servicepackages' name
     try {
         await pool.query('DROP VIEW IF EXISTS servicepackages CASCADE');
-    } catch (e) {}
-    try {
-        await pool.query('DROP TABLE IF EXISTS servicepackages CASCADE');
-    } catch (e) {}
-    try {
         await pool.query('CREATE VIEW servicepackages AS SELECT * FROM packages');
-    } catch (e) {}
-
-    try {
-        await pool.query(`
-            UPDATE packages 
-            SET category = 'Rehab Session' 
-            WHERE (category IS NULL OR category = 'Others') AND (name ILIKE '%rehab%' OR name ILIKE '%physio%' OR name ILIKE '%taping%' OR name ILIKE '%dry needling%' OR name ILIKE '%sports-health%');
-        `);
-        await pool.query(`
-            UPDATE packages 
-            SET category = 'Assessment' 
-            WHERE (category IS NULL OR category = 'Others') AND (name ILIKE '%assessment%' OR name ILIKE '%screening%' OR name ILIKE '%testing%' OR name ILIKE '%consultation%');
-        `);
-        await pool.query(`
-            UPDATE packages 
-            SET category = 'Equipment' 
-            WHERE (category IS NULL OR category = 'Others') AND (name ILIKE '%band%' OR name ILIKE '%tube%' OR name ILIKE '%wrap%');
-        `);
-        
-        // Seed default tax percentages based on category
-        await pool.query(`UPDATE packages SET tax_percentage = 18 WHERE category = 'Assessment' AND tax_percentage = 0;`);
-        await pool.query(`UPDATE packages SET tax_percentage = 12 WHERE category = 'Rehab Session' AND tax_percentage = 0;`);
-        await pool.query(`UPDATE packages SET tax_percentage = 5 WHERE category = 'Equipment' AND tax_percentage = 0;`);
     } catch (e) {}
 
     // Package services (Mapping sessions to packages)
@@ -496,10 +476,6 @@ async function runMigrations() {
         is_unentitled BOOLEAN DEFAULT false,
         preference_type TEXT DEFAULT 'Strict',
         is_flexible_routing BOOLEAN DEFAULT false,
-        is_guest BOOLEAN DEFAULT false,
-        guest_name TEXT,
-        guest_contact TEXT,
-        enquiry_id UUID REFERENCES enquiries(id) ON DELETE SET NULL,
         created_by UUID REFERENCES users(id),
         created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
@@ -516,11 +492,7 @@ async function runMigrations() {
         ['session_location', 'TEXT'],
         ['session_notes', 'TEXT'],
         ['attachments', "JSONB DEFAULT '[]'::jsonb"],
-        ['session_type_id', 'UUID REFERENCES services(id) ON DELETE SET NULL'],
-        ['is_guest', 'BOOLEAN DEFAULT false'],
-        ['guest_name', 'TEXT'],
-        ['guest_contact', 'TEXT'],
-        ['enquiry_id', 'UUID REFERENCES enquiries(id) ON DELETE SET NULL']
+        ['session_type_id', 'UUID REFERENCES services(id) ON DELETE SET NULL']
     ];
     for (const [col, type] of sessionCols) {
         try {
@@ -714,8 +686,10 @@ async function runMigrations() {
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
         client_id UUID NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+        package_id UUID REFERENCES packages(id) ON DELETE SET NULL,
         amount NUMERIC NOT NULL DEFAULT 0,
         discount NUMERIC DEFAULT 0,
+        tax_amount NUMERIC DEFAULT 0,
         total NUMERIC NOT NULL DEFAULT 0,
         status TEXT NOT NULL DEFAULT 'unpaid',
         referral_source_id UUID,
@@ -727,6 +701,7 @@ async function runMigrations() {
         billing_staff_name TEXT,
         transaction_id TEXT,
         payment_method TEXT,
+        date DATE DEFAULT CURRENT_DATE,
         updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
         deleted_at TIMESTAMPTZ,
         created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
@@ -746,7 +721,9 @@ async function runMigrations() {
         ['billing_staff_name', 'TEXT'],
         ['updated_at', 'TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP'],
         ['subscription_id', 'UUID REFERENCES subscriptions(id) ON DELETE SET NULL'],
-        ['due_date', 'DATE']
+        ['due_date', 'DATE'],
+        ['package_id', 'UUID REFERENCES packages(id) ON DELETE SET NULL'],
+        ['date', 'DATE DEFAULT CURRENT_DATE']
     ];
     for (const [col, type] of billCols) {
         try {
@@ -1140,12 +1117,67 @@ async function runMigrations() {
         const checkRes = await pool.query('SELECT COUNT(*) FROM injury_master_data WHERE organization_id IS NULL');
         const count = parseInt(checkRes.rows[0].count, 10);
         if (count === 0) {
-            console.log('[DB] Seeding global injury master data...');
-            const seedPath = path.join(__dirname, '../supabase/seed_global_injuries.sql');
-            let sql = await fs.readFile(seedPath, 'utf8');
-            sql = sql.replace('DELETE FROM public.injury_master_data;', 'DELETE FROM public.injury_master_data WHERE organization_id IS NULL;');
-            await pool.query(sql);
-            console.log('[DB] Global injury master data seeded successfully.');
+            const excelPath = path.join(__dirname, '../default_injuries.xlsx');
+            let seededFromExcel = false;
+            
+            try {
+                await fs.access(excelPath);
+                console.log('[DB] Found default_injuries.xlsx. Seeding global injury master data from Excel...');
+                
+                const fileBuffer = await fs.readFile(excelPath);
+                const workbook = XLSX.read(fileBuffer, { type: 'buffer' });
+                const sheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[sheetName];
+                const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false });
+
+                if (rows.length > 1 && rows[0][0] === 'Region' && rows[0][1] === 'Injury Type' && rows[0][2] === 'Diagnosis') {
+                    await pool.query('BEGIN');
+                    let insertedCount = 0;
+                    for (let i = 1; i < rows.length; i++) {
+                        const row = rows[i];
+                        if (!row || row.length === 0) continue;
+                        
+                        const region = row[0]?.toString().trim();
+                        const injuryType = row[1]?.toString().trim();
+                        const diagnosis = row[2]?.toString().trim();
+
+                        if (region && injuryType && diagnosis) {
+                            // Check uniqueness
+                            const check = await pool.query(
+                                `SELECT id FROM injury_master_data 
+                                 WHERE organization_id IS NULL 
+                                   AND region = $1 
+                                   AND injury_type = $2 
+                                   AND diagnosis = $3`,
+                                [region, injuryType, diagnosis]
+                            );
+                            
+                            if (check.rows.length === 0) {
+                                await pool.query(
+                                    `INSERT INTO injury_master_data (organization_id, region, injury_type, diagnosis) 
+                                     VALUES (NULL, $1, $2, $3)`,
+                                    [region, injuryType, diagnosis]
+                                );
+                                insertedCount++;
+                            }
+                        }
+                    }
+                    await pool.query('COMMIT');
+                    console.log(`[DB] Global injury master data seeded successfully from Excel (${insertedCount} records).`);
+                    seededFromExcel = true;
+                }
+            } catch (excelErr) {
+                console.log('[DB] Could not seed from default_injuries.xlsx, falling back to SQL seed:', excelErr.message);
+            }
+
+            if (!seededFromExcel) {
+                console.log('[DB] Seeding global injury master data from SQL seed...');
+                const seedPath = path.join(__dirname, '../supabase/seed_global_injuries.sql');
+                let sql = await fs.readFile(seedPath, 'utf8');
+                sql = sql.replace('DELETE FROM public.injury_master_data;', 'DELETE FROM public.injury_master_data WHERE organization_id IS NULL;');
+                await pool.query(sql);
+                console.log('[DB] Global injury master data seeded successfully from SQL seed.');
+            }
         }
     } catch (err) {
         console.error('[DB] Error seeding global injury master data:', err);
@@ -1206,6 +1238,22 @@ async function runMigrations() {
         total_clients INTEGER NOT NULL DEFAULT 0,
         responded_count INTEGER NOT NULL DEFAULT 0,
         status TEXT DEFAULT 'active',
+        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // Recurring Questionnaires
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS recurring_questionnaires (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+        questionnaire_id UUID NOT NULL REFERENCES questionnaires(id) ON DELETE CASCADE,
+        specialist_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+        client_ids UUID[] NOT NULL DEFAULT '{}'::uuid[],
+        recurrence_type TEXT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'active',
+        next_run TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        last_run TIMESTAMPTZ,
         created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
       )
     `);
@@ -1405,6 +1453,7 @@ async function runMigrations() {
         v_serial INT;
         v_prefix TEXT;
         v_uhid TEXT;
+        v_max_existing INT;
       BEGIN
         v_month := LPAD(EXTRACT(MONTH FROM now())::TEXT, 2, '0');
         v_year := LPAD((EXTRACT(YEAR FROM now())::INT % 100)::TEXT, 2, '0');
@@ -1412,10 +1461,22 @@ async function runMigrations() {
 
         SELECT COALESCE(uhid_prefix, 'CSH') INTO v_prefix FROM organizations WHERE id = p_organization_id;
 
+        -- Find the maximum sequence number already used in the clients table for this month and prefix
+        SELECT COALESCE(
+          MAX(NULLIF(regexp_replace(uhid, '^' || v_prefix || v_year_month, ''), '')::INT),
+          0
+        ) INTO v_max_existing
+        FROM clients
+        WHERE organization_id = p_organization_id
+          AND uhid LIKE v_prefix || v_year_month || '%'
+          -- Ensure that the suffix after prefix + year_month consists only of digits to prevent casting errors
+          AND regexp_replace(uhid, '^' || v_prefix || v_year_month, '') ~ '^[0-9]+$';
+
+        -- Insert or update the sequence tracking. Ensure it is at least v_max_existing + 1
         INSERT INTO uhidsequences (organization_id, year_month, last_serial)
-        VALUES (p_organization_id, v_year_month, 1)
+        VALUES (p_organization_id, v_year_month, v_max_existing + 1)
         ON CONFLICT (organization_id, year_month)
-        DO UPDATE SET last_serial = uhidsequences.last_serial + 1
+        DO UPDATE SET last_serial = GREATEST(uhidsequences.last_serial + 1, v_max_existing + 1)
         RETURNING last_serial INTO v_serial;
 
         v_uhid := v_prefix || v_year_month || LPAD(v_serial::TEXT, 4, '0');

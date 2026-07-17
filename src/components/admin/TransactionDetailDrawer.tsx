@@ -1,6 +1,7 @@
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { InvoiceRender } from "../billing/InvoiceRender";
 import { Separator } from "@/components/ui/separator";
 import {
     Receipt, Banknote, Smartphone, Landmark, CreditCard,
@@ -10,7 +11,6 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
-import { InvoiceRender } from "@/components/billing/InvoiceRender";
 
 export type TransactionType = "invoice" | "refund";
 
@@ -33,7 +33,13 @@ export interface TransactionDetail {
     discount_authorized_by?: string;
     paid_amount?: number;
     remaining_due?: number;
+    subtotal?: number;
+    tax_amount?: number;
     items?: any[];
+    organization_logo?: string;
+    organization_address?: string;
+    organization_official_name?: string;
+    client_mobile?: string;
     // Refund-specific
     refund_mode?: string;
     refund_transaction_id?: string;
@@ -130,55 +136,33 @@ export function TransactionDetailDrawer({ open, onOpenChange, transaction }: Tra
                                 {modeIcon(isRefund ? transaction.refund_mode : transaction.payment_method)}
                             </div>
                         </div>
-
-                        {!isRefund && (
-                            <Button 
-                                size="sm" 
-                                variant="outline" 
-                                className="w-full text-xs font-semibold gap-2 border-teal-200/50 hover:bg-teal-500/10 hover:text-teal-700 mt-2 print:hidden"
-                                onClick={() => window.print()}
-                            >
-                                <FileText className="w-3.5 h-3.5" />
-                                Print Invoice (Half-Page)
-                            </Button>
-                        )}
                     </SheetHeader>
                 </div>
 
-                <div className="p-6 space-y-6 print:hidden">
-                    {/* Render Boxed Invoice Preview if it's an Invoice */}
-                    {!isRefund ? (
-                        <div className="space-y-4">
-                            <div className="flex items-center gap-2">
-                                <FileText className="w-3.5 h-3.5 text-primary" />
-                                <h3 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Invoice Box</h3>
-                            </div>
-                            <div className="border border-gray-200 rounded-lg overflow-hidden bg-white">
-                                <InvoiceRender transaction={transaction} orgDetails={null} />
-                            </div>
+                <div className="p-6 space-y-6">
+                    {/* Client Info */}
+                    <section>
+                        <div className="flex items-center gap-2 mb-3">
+                            <User className="w-3.5 h-3.5 text-primary" />
+                            <h3 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Client</h3>
                         </div>
-                    ) : (
-                        <>
-                            {/* Client Info */}
-                            <section>
-                                <div className="flex items-center gap-2 mb-3">
-                                    <User className="w-3.5 h-3.5 text-primary" />
-                                    <h3 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Client</h3>
-                                </div>
-                                <div className="bg-muted/30 rounded-lg p-3 space-y-0 divide-y divide-border/40">
-                                    <DetailRow label="Name" value={transaction.client_name} />
-                                    {transaction.client_uhid && <DetailRow label="UHID" value={transaction.client_uhid} />}
-                                </div>
-                            </section>
+                        <div className="bg-muted/30 rounded-lg p-3 space-y-0 divide-y divide-border/40">
+                            <DetailRow label="Name" value={transaction.client_name} />
+                            {transaction.client_uhid && <DetailRow label="UHID" value={transaction.client_uhid} />}
+                        </div>
+                    </section>
 
-                            {/* Transaction Info */}
-                            <section>
-                                <div className="flex items-center gap-2 mb-3">
-                                    <Hash className="w-3.5 h-3.5 text-primary" />
-                                    <h3 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Transaction Details</h3>
-                                </div>
-                                <div className="bg-muted/30 rounded-lg p-3 space-y-0 divide-y divide-border/40">
-                                    <DetailRow label="Date" value={format(new Date(transaction.date), "dd MMM yyyy, hh:mm a")} />
+                    {/* Transaction Info */}
+                    <section>
+                        <div className="flex items-center gap-2 mb-3">
+                            <Hash className="w-3.5 h-3.5 text-primary" />
+                            <h3 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Transaction Details</h3>
+                        </div>
+                        <div className="bg-muted/30 rounded-lg p-3 space-y-0 divide-y divide-border/40">
+                            <DetailRow label="Date" value={format(new Date(transaction.date), "dd MMM yyyy, hh:mm a")} />
+
+                            {isRefund ? (
+                                <>
                                     <DetailRow label="Mode" value={
                                         <span className="flex items-center gap-1.5">
                                             {modeIcon(transaction.refund_mode)}
@@ -191,9 +175,68 @@ export function TransactionDetailDrawer({ open, onOpenChange, transaction }: Tra
                                     {transaction.original_invoice_id && (
                                         <DetailRow label="Original Invoice" value={`#${transaction.original_invoice_id.substring(0, 8).toUpperCase()}`} />
                                     )}
-                                </div>
-                            </section>
+                                </>
+                            ) : (
+                                <>
+                                    {transaction.package_name && <DetailRow label="Packages" value={
+                                        <div className="flex flex-col items-end gap-1">
+                                            {transaction.package_name.split(", ").map((ps, i) => (
+                                                <span key={i}>{ps}</span>
+                                            ))}
+                                        </div>
+                                    } />}
+                                    {transaction.payment_method && (
+                                        <DetailRow label="Payment" value={
+                                            <span className="flex items-center gap-1.5">
+                                                {modeIcon(transaction.payment_method)}
+                                                {transaction.payment_method}
+                                            </span>
+                                        } />
+                                    )}
+                                    {transaction.transaction_id && <DetailRow label="Txn ID" value={transaction.transaction_id} />}
+                                    {transaction.referral_source && <DetailRow label="Referral" value={transaction.referral_source} />}
+                                    {transaction.billing_staff && <DetailRow label="Billed By" value={transaction.billing_staff} />}
+                                    {(transaction.discount_value ?? 0) > 0 && (
+                                        <DetailRow label="Discount" value={`Rs. ${Number(transaction.discount_value).toFixed(2)}`} />
+                                    )}
+                                    {transaction.discount_authorized_by && (
+                                        <DetailRow label="Discount Auth" value={transaction.discount_authorized_by} />
+                                    )}
+                                    {transaction.notes && <DetailRow label="Notes" value={transaction.notes} />}
+                                </>
+                            )}
+                        </div>
+                    </section>
 
+                    {!isRefund && (
+                        <section className="space-y-4 print:hidden">
+                            <div className="flex items-center justify-between">
+                                <h3 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Invoice Preview</h3>
+                                <Button 
+                                    size="sm" 
+                                    className="h-8 px-3 text-[10px] font-bold gap-1 bg-primary hover:bg-primary/90"
+                                    onClick={() => window.print()}
+                                >
+                                    <ExternalLink className="w-3.5 h-3.5" />
+                                    Print A5 Invoice
+                                </Button>
+                            </div>
+                            <div className="border border-slate-200 rounded-lg overflow-hidden p-1 bg-slate-50">
+                                <InvoiceRender bill={transaction as any} />
+                            </div>
+                        </section>
+                    )}
+
+                    {/* Print-only container to render invoice when print action is triggered */}
+                    {!isRefund && (
+                        <div className="hidden print:block absolute inset-0 bg-white">
+                            <InvoiceRender bill={transaction as any} />
+                        </div>
+                    )}
+
+                    {/* Refund-specific: Authorization & Entitlements */}
+                    {isRefund && (
+                        <>
                             <section>
                                 <div className="flex items-center gap-2 mb-3">
                                     <ShieldCheck className="w-3.5 h-3.5 text-primary" />
@@ -293,13 +336,6 @@ export function TransactionDetailDrawer({ open, onOpenChange, transaction }: Tra
                         </>
                     )}
                 </div>
-
-                {/* Print section (Only visible when printing) */}
-                {!isRefund && (
-                    <div id="print-section">
-                        <InvoiceRender transaction={transaction} orgDetails={null} />
-                    </div>
-                )}
             </SheetContent>
         </Sheet>
     );

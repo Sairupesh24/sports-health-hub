@@ -7,7 +7,7 @@ import ReportsPage from '../pages/shared/ReportsPage';
 
 // Mock Lucide React icons because they can cause issues in testing environments
 vi.mock('lucide-react', async (importOriginal) => {
-  const actual = await importOriginal() as any;
+  const actual = await importOriginal();
   return {
     ...actual,
   };
@@ -51,7 +51,7 @@ describe('ReportsPage Render Test', () => {
         </BrowserRouter>
       </QueryClientProvider>
     );
-    expect(container).toBeDefined();
+    expect(container.innerHTML).toContain('Loading clinical directories...');
     console.log("RENDER SUCCESSFUL! HTML length:", container.innerHTML.length);
   });
 });

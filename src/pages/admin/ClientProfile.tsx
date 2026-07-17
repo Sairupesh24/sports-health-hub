@@ -5,7 +5,7 @@ import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, User, Phone, MapPin, Shield, Activity, CalendarDays, FileText, Download, Users, Banknote, Smartphone, Landmark, CreditCard, Plus, X, Pencil } from "lucide-react";
+import { ArrowLeft, User, Phone, MapPin, Shield, Activity, CalendarDays, FileText, Download, Users, Banknote, Smartphone, Landmark, CreditCard, Plus, X } from "lucide-react";
 import { apiFetch } from "@/utils/api";
 import { format, parse } from "date-fns";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -13,7 +13,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Textarea } from "@/components/ui/textarea";
 import { ClientEntitlements } from "./ClientEntitlements";
 import { DocumentManager } from "@/components/admin/documents/DocumentManager";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -33,6 +33,7 @@ import { TherapistAssignmentCard } from "@/components/client/TherapistAssignment
 import { ShieldCheck, History } from "lucide-react";
 import { EnquiryContextWindow } from "@/components/admin/EnquiryContextWindow";
 import { AssessmentReportsList } from "@/components/shared/assessment/AssessmentReportsList";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 
 
 
@@ -70,85 +71,6 @@ export default function ClientProfile() {
 
     const [amsRole, setAmsRole] = useState<string | null>(null);
     const [profileId, setProfileId] = useState<string | null>(null);
-
-    // Edit Client General Details state
-    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-    const [editHonorific, setEditHonorific] = useState("");
-    const [editFirstName, setEditFirstName] = useState("");
-    const [editLastName, setEditLastName] = useState("");
-    const [editGender, setEditGender] = useState("");
-    const [editDob, setEditDob] = useState("");
-    const [editMobileNo, setEditMobileNo] = useState("");
-    const [editEmail, setEditEmail] = useState("");
-    const [editAddress, setEditAddress] = useState("");
-    const [editLocality, setEditLocality] = useState("");
-    const [editCity, setEditCity] = useState("");
-    const [editState, setEditState] = useState("");
-    const [editPincode, setEditPincode] = useState("");
-    const [editCountry, setEditCountry] = useState("");
-    const [savingEdit, setSavingEdit] = useState(false);
-
-    const openEditModal = () => {
-        if (!client) return;
-        setEditHonorific(client.honorific || "Mr.");
-        setEditFirstName(client.first_name || "");
-        setEditLastName(client.last_name || "");
-        setEditGender(client.gender || "Male");
-        setEditDob(client.dob ? format(new Date(client.dob), "yyyy-MM-dd") : "");
-        setEditMobileNo(client.mobile_no || "");
-        setEditEmail(client.email || "");
-        setEditAddress(client.address || "");
-        setEditLocality(client.locality || "");
-        setEditCity(client.city || "");
-        setEditState(client.state || "");
-        setEditPincode(client.pincode || "");
-        setEditCountry(client.country || "India");
-        setIsEditModalOpen(true);
-    };
-
-    const handleSaveClientDetails = async () => {
-        if (!editFirstName.trim() || !editLastName.trim() || !editMobileNo.trim()) {
-            toast({ title: "Validation Error", description: "First Name, Last Name and Mobile number are required.", variant: "destructive" });
-            return;
-        }
-        
-        try {
-            setSavingEdit(true);
-            const payload = {
-                honorific: editHonorific,
-                first_name: editFirstName,
-                last_name: editLastName,
-                gender: editGender,
-                dob: editDob || null,
-                mobile_no: editMobileNo,
-                email: editEmail || null,
-                address: editAddress || null,
-                locality: editLocality || null,
-                city: editCity || null,
-                state: editState || null,
-                pincode: editPincode || null,
-                country: editCountry || null
-            };
-
-            await apiFetch(`/clients/${id}`, {
-                method: 'PATCH',
-                data: payload
-            });
-
-            toast({ title: "Success", description: "Client details updated successfully." });
-            
-            // Refresh client data
-            const updated = await apiFetch<any>(`/clients/${id}`);
-            setClient(updated);
-            
-            setIsEditModalOpen(false);
-        } catch (err: any) {
-            toast({ title: "Error", description: err.message || "Failed to update client details", variant: "destructive" });
-        } finally {
-            setSavingEdit(false);
-        }
-    };
-
     const { roles, profile: currentUserProfile } = useAuth();
     const isAdmin = roles.includes('admin');
     const isFOE = roles.includes('foe');
@@ -173,6 +95,24 @@ export default function ClientProfile() {
     // Refund State
     const [isRefundModalOpen, setIsRefundModalOpen] = useState(false);
     const [refundBillId, setRefundBillId] = useState("");
+
+    // Edit Profile State
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [editForm, setEditForm] = useState({
+        honorific: "",
+        first_name: "",
+        last_name: "",
+        dob: "",
+        age: "",
+        mobile_no: "",
+        email: "",
+        address: "",
+        locality: "",
+        city: "",
+        state: "",
+        pincode: "",
+        country: ""
+    });
 
     useEffect(() => {
         async function fetchClient() {
@@ -202,6 +142,64 @@ export default function ClientProfile() {
         }
         fetchClient();
     }, [id, isAdmin]);
+
+    useEffect(() => {
+        if (client) {
+            setEditForm({
+                honorific: client.honorific || "",
+                first_name: client.first_name || "",
+                last_name: client.last_name || "",
+                dob: client.dob ? format(new Date(client.dob), "yyyy-MM-dd") : "",
+                age: client.age !== null && client.age !== undefined ? String(client.age) : "",
+                mobile_no: client.mobile_no || "",
+                email: client.email || "",
+                address: client.address || "",
+                locality: client.locality || "",
+                city: client.city || "",
+                state: client.state || "",
+                pincode: client.pincode || "",
+                country: client.country || ""
+            });
+        }
+    }, [client, isEditModalOpen]);
+
+    const handleSaveProfile = async () => {
+        if (!id) return;
+        try {
+            const payload = {
+                honorific: editForm.honorific,
+                first_name: editForm.first_name,
+                last_name: editForm.last_name,
+                dob: editForm.dob || null,
+                age: editForm.age ? parseInt(editForm.age, 10) : null,
+                mobile_no: editForm.mobile_no,
+                email: editForm.email || null,
+                address: editForm.address,
+                locality: editForm.locality,
+                city: editForm.city,
+                state: editForm.state,
+                pincode: editForm.pincode,
+                country: editForm.country
+            };
+            
+            await apiFetch(`/clients/${id}`, {
+                method: 'PATCH',
+                data: payload
+            });
+
+            setClient((prev: any) => ({
+                ...prev,
+                ...payload
+            }));
+
+            queryClient.invalidateQueries({ queryKey: ['client-bills', id] });
+            
+            setIsEditModalOpen(false);
+            toast({ title: "Profile updated successfully" });
+        } catch (err: any) {
+            toast({ title: "Failed to update profile", description: err.message, variant: "destructive" });
+        }
+    };
 
     const { data: sessions, isLoading: sessionsLoading } = useQuery({
         queryKey: ['client-sessions', id, startDate, endDate, sessionTypeFilter],
@@ -531,17 +529,41 @@ export default function ClientProfile() {
                             </p>
                         </div>
                         
-                        <div className="flex items-center gap-3">
-                            <Button 
-                                variant="outline" 
-                                size="sm" 
-                                className="h-10 border-primary/20 hover:bg-primary/5 text-primary font-semibold gap-2 rounded-xl shadow-sm"
-                                onClick={openEditModal}
-                            >
-                                <Pencil className="w-4 h-4" />
-                                Edit Profile
-                            </Button>
-
+                        <div className="flex items-center gap-3 flex-wrap">
+                            {isAdminOrFoe && (
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Button
+                                            onClick={() => setIsEditModalOpen(true)}
+                                            variant="outline"
+                                            size="icon"
+                                            className="h-9 w-9 rounded-xl border-primary/20 text-primary hover:bg-primary/5 hover:text-primary shrink-0"
+                                        >
+                                            <User className="w-4 h-4" />
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        <p>Edit Profile</p>
+                                    </TooltipContent>
+                                </Tooltip>
+                            )}
+                            {isAdminOrFoe && (
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Button
+                                            onClick={() => navigate(`/admin/billing?clientId=${client.id}`)}
+                                            variant="default"
+                                            size="icon"
+                                            className="h-9 w-9 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm shrink-0"
+                                        >
+                                            <Plus className="w-4 h-4" />
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        <p>Generate Bill</p>
+                                    </TooltipContent>
+                                </Tooltip>
+                            )}
                             <div className="flex items-center gap-3 bg-muted/30 p-3 rounded-lg border">
                                <Label htmlFor="ams-toggle" className="text-sm font-semibold cursor-pointer">
                                    {amsRole === "athlete" ? "AMS Access: Active" : "AMS Access: Inactive"}
@@ -1322,174 +1344,205 @@ export default function ClientProfile() {
                 </DialogContent>
             </Dialog>
 
-            {/* Edit Client Details Modal */}
+            {/* Edit Profile Modal */}
             <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
-                <DialogContent className="max-w-2xl overflow-y-auto max-h-[85vh]">
+                <DialogContent aria-describedby={undefined} className="sm:max-w-[550px] max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
-                        <DialogTitle className="text-xl font-bold flex items-center gap-2">
-                            <Pencil className="w-5 h-5 text-primary" />
-                            Edit Client General Details
-                        </DialogTitle>
-                        <DialogDescription>
-                            Modify personal and contact information for this client.
-                        </DialogDescription>
+                        <DialogTitle>Edit Client Profile</DialogTitle>
                     </DialogHeader>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
-                        {/* Title / Honorific */}
-                        <div className="space-y-1">
-                            <Label>Title</Label>
-                            <Select value={editHonorific} onValueChange={setEditHonorific}>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Select Title" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="Mr.">Mr.</SelectItem>
-                                    <SelectItem value="Mrs.">Mrs.</SelectItem>
-                                    <SelectItem value="Ms.">Ms.</SelectItem>
-                                    <SelectItem value="Dr.">Dr.</SelectItem>
-                                </SelectContent>
-                            </Select>
+                    
+                    <div className="space-y-4 py-4 text-xs">
+                        {/* Name Section */}
+                        <div className="space-y-2">
+                            <h4 className="font-bold text-primary uppercase tracking-wide text-[10px]">Name & Honorific</h4>
+                            <div className="grid grid-cols-6 gap-3">
+                                <div className="col-span-2 space-y-1.5">
+                                    <Label htmlFor="edit-honorific">Honorific</Label>
+                                    <Select 
+                                        value={editForm.honorific} 
+                                        onValueChange={(val) => setEditForm(prev => ({ ...prev, honorific: val }))}
+                                    >
+                                        <SelectTrigger id="edit-honorific" className="h-9 text-xs">
+                                            <SelectValue placeholder="Select" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="Mr.">Mr.</SelectItem>
+                                            <SelectItem value="Mrs.">Mrs.</SelectItem>
+                                            <SelectItem value="Ms.">Ms.</SelectItem>
+                                            <SelectItem value="Dr.">Dr.</SelectItem>
+                                            <SelectItem value="Master">Master</SelectItem>
+                                            <SelectItem value="Baby">Baby</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="col-span-2 space-y-1.5">
+                                    <Label htmlFor="edit-first-name">First Name *</Label>
+                                    <Input 
+                                        id="edit-first-name"
+                                        className="h-9 text-xs" 
+                                        value={editForm.first_name} 
+                                        onChange={e => setEditForm(prev => ({ ...prev, first_name: e.target.value }))} 
+                                    />
+                                </div>
+                                <div className="col-span-2 space-y-1.5">
+                                    <Label htmlFor="edit-last-name">Last Name *</Label>
+                                    <Input 
+                                        id="edit-last-name"
+                                        className="h-9 text-xs" 
+                                        value={editForm.last_name} 
+                                        onChange={e => setEditForm(prev => ({ ...prev, last_name: e.target.value }))} 
+                                    />
+                                </div>
+                            </div>
                         </div>
 
-                        {/* Gender */}
-                        <div className="space-y-1">
-                            <Label>Gender</Label>
-                            <Select value={editGender} onValueChange={setEditGender}>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Select Gender" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="Male">Male</SelectItem>
-                                    <SelectItem value="Female">Female</SelectItem>
-                                    <SelectItem value="Other">Other</SelectItem>
-                                </SelectContent>
-                            </Select>
+                        {/* Personal Details: Age, DOB, Gender, Blood Group */}
+                        <div className="space-y-2">
+                            <h4 className="font-bold text-primary uppercase tracking-wide text-[10px]">Personal Information</h4>
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="edit-dob">Date of Birth</Label>
+                                    <Input 
+                                        id="edit-dob"
+                                        type="date"
+                                        className="h-9 text-xs" 
+                                        value={editForm.dob} 
+                                        onChange={e => {
+                                            const dobVal = e.target.value;
+                                            let computedAge = editForm.age;
+                                            if (dobVal) {
+                                                const birthDate = new Date(dobVal);
+                                                const today = new Date();
+                                                let ageNum = today.getFullYear() - birthDate.getFullYear();
+                                                const m = today.getMonth() - birthDate.getMonth();
+                                                if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+                                                    ageNum--;
+                                                }
+                                                computedAge = String(ageNum >= 0 ? ageNum : 0);
+                                            }
+                                            setEditForm(prev => ({ ...prev, dob: dobVal, age: computedAge }));
+                                        }} 
+                                    />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="edit-age">Age (Years)</Label>
+                                    <Input 
+                                        id="edit-age"
+                                        type="number"
+                                        className="h-9 text-xs" 
+                                        value={editForm.age} 
+                                        onChange={e => setEditForm(prev => ({ ...prev, age: e.target.value }))} 
+                                    />
+                                </div>
+                            </div>
                         </div>
 
-                        {/* First Name */}
-                        <div className="space-y-1">
-                            <Label>First Name *</Label>
-                            <Input 
-                                value={editFirstName} 
-                                onChange={(e) => setEditFirstName(e.target.value)} 
-                                placeholder="Enter first name"
-                            />
+                        {/* Contact details */}
+                        <div className="space-y-2">
+                            <h4 className="font-bold text-primary uppercase tracking-wide text-[10px]">Contact Details</h4>
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="edit-mobile">Mobile Number *</Label>
+                                    <Input 
+                                        id="edit-mobile"
+                                        className="h-9 text-xs" 
+                                        value={editForm.mobile_no} 
+                                        onChange={e => setEditForm(prev => ({ ...prev, mobile_no: e.target.value }))} 
+                                    />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="edit-email">Email Address</Label>
+                                    <Input 
+                                        id="edit-email"
+                                        type="email"
+                                        className="h-9 text-xs" 
+                                        value={editForm.email} 
+                                        onChange={e => setEditForm(prev => ({ ...prev, email: e.target.value }))} 
+                                    />
+                                </div>
+                            </div>
                         </div>
 
-                        {/* Last Name */}
-                        <div className="space-y-1">
-                            <Label>Last Name *</Label>
-                            <Input 
-                                value={editLastName} 
-                                onChange={(e) => setEditLastName(e.target.value)} 
-                                placeholder="Enter last name"
-                            />
-                        </div>
-
-                        {/* DOB */}
-                        <div className="space-y-1">
-                            <Label>Date of Birth</Label>
-                            <Input 
-                                type="date"
-                                value={editDob} 
-                                onChange={(e) => setEditDob(e.target.value)} 
-                            />
-                        </div>
-
-                        {/* Mobile */}
-                        <div className="space-y-1">
-                            <Label>Mobile Number *</Label>
-                            <Input 
-                                value={editMobileNo} 
-                                onChange={(e) => setEditMobileNo(e.target.value)} 
-                                placeholder="Enter mobile number"
-                            />
-                        </div>
-
-                        {/* Email */}
-                        <div className="space-y-1 md:col-span-2">
-                            <Label>Email Address</Label>
-                            <Input 
-                                type="email"
-                                value={editEmail} 
-                                onChange={(e) => setEditEmail(e.target.value)} 
-                                placeholder="Enter email address"
-                            />
-                        </div>
-
-                        <div className="md:col-span-2">
-                            <hr className="my-2 border-slate-200" />
-                            <h4 className="font-bold text-xs uppercase text-slate-400 tracking-wider mb-2">Address Information</h4>
-                        </div>
-
-                        {/* Address */}
-                        <div className="space-y-1 md:col-span-2">
-                            <Label>Address Street</Label>
-                            <Input 
-                                value={editAddress} 
-                                onChange={(e) => setEditAddress(e.target.value)} 
-                                placeholder="Street address"
-                            />
-                        </div>
-
-                        {/* Locality */}
-                        <div className="space-y-1">
-                            <Label>Locality</Label>
-                            <Input 
-                                value={editLocality} 
-                                onChange={(e) => setEditLocality(e.target.value)} 
-                                placeholder="Locality / Area"
-                            />
-                        </div>
-
-                        {/* City */}
-                        <div className="space-y-1">
-                            <Label>City</Label>
-                            <Input 
-                                value={editCity} 
-                                onChange={(e) => setEditCity(e.target.value)} 
-                                placeholder="City"
-                            />
-                        </div>
-
-                        {/* State */}
-                        <div className="space-y-1">
-                            <Label>State</Label>
-                            <Input 
-                                value={editState} 
-                                onChange={(e) => setEditState(e.target.value)} 
-                                placeholder="State"
-                            />
-                        </div>
-
-                        {/* Pincode */}
-                        <div className="space-y-1">
-                            <Label>Pincode</Label>
-                            <Input 
-                                value={editPincode} 
-                                onChange={(e) => setEditPincode(e.target.value)} 
-                                placeholder="Pincode"
-                            />
-                        </div>
-
-                        {/* Country */}
-                        <div className="space-y-1">
-                            <Label>Country</Label>
-                            <Input 
-                                value={editCountry} 
-                                onChange={(e) => setEditCountry(e.target.value)} 
-                                placeholder="Country"
-                            />
+                        {/* Address details */}
+                        <div className="space-y-2">
+                            <h4 className="font-bold text-primary uppercase tracking-wide text-[10px]">Address Details</h4>
+                            <div className="space-y-3">
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="edit-address">Flat/House/Street Address</Label>
+                                    <Input 
+                                        id="edit-address"
+                                        className="h-9 text-xs" 
+                                        value={editForm.address} 
+                                        onChange={e => setEditForm(prev => ({ ...prev, address: e.target.value }))} 
+                                    />
+                                </div>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div className="space-y-1.5">
+                                        <Label htmlFor="edit-locality">Locality</Label>
+                                        <Input 
+                                            id="edit-locality"
+                                            className="h-9 text-xs" 
+                                            value={editForm.locality} 
+                                            onChange={e => setEditForm(prev => ({ ...prev, locality: e.target.value }))} 
+                                        />
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <Label htmlFor="edit-city">City</Label>
+                                        <Input 
+                                            id="edit-city"
+                                            className="h-9 text-xs" 
+                                            value={editForm.city} 
+                                            onChange={e => setEditForm(prev => ({ ...prev, city: e.target.value }))} 
+                                        />
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-3 gap-3">
+                                    <div className="space-y-1.5">
+                                        <Label htmlFor="edit-state">State</Label>
+                                        <Input 
+                                            id="edit-state"
+                                            className="h-9 text-xs" 
+                                            value={editForm.state} 
+                                            onChange={e => setEditForm(prev => ({ ...prev, state: e.target.value }))} 
+                                        />
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <Label htmlFor="edit-pincode">Pincode</Label>
+                                        <Input 
+                                            id="edit-pincode"
+                                            className="h-9 text-xs" 
+                                            value={editForm.pincode} 
+                                            onChange={e => setEditForm(prev => ({ ...prev, pincode: e.target.value }))} 
+                                        />
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <Label htmlFor="edit-country">Country</Label>
+                                        <Input 
+                                            id="edit-country"
+                                            className="h-9 text-xs" 
+                                            value={editForm.country} 
+                                            onChange={e => setEditForm(prev => ({ ...prev, country: e.target.value }))} 
+                                        />
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
-                    <DialogFooter className="gap-2">
-                        <Button variant="outline" onClick={() => setIsEditModalOpen(false)} disabled={savingEdit}>
+                    <DialogFooter className="gap-2 sm:gap-0 pt-2 border-t mt-2">
+                        <Button 
+                            variant="outline" 
+                            className="text-xs"
+                            onClick={() => setIsEditModalOpen(false)}
+                        >
                             Cancel
                         </Button>
-                        <Button onClick={handleSaveClientDetails} disabled={savingEdit}>
-                            {savingEdit ? "Saving..." : "Save Changes"}
+                        <Button 
+                            className="text-xs font-bold" 
+                            disabled={!editForm.first_name.trim() || !editForm.last_name.trim() || !editForm.mobile_no.trim()}
+                            onClick={handleSaveProfile}
+                        >
+                            Save Updates
                         </Button>
                     </DialogFooter>
                 </DialogContent>
