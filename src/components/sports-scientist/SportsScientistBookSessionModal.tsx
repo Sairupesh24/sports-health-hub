@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
 import { apiFetch } from "@/utils/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { Calendar as CalendarIcon, Clock, Users, User, Plus, Loader2, Check, ChevronsUpDown, X, Trash2, Repeat } from "lucide-react";
+import { Calendar as CalendarIcon, Clock, Users, User, Plus, Loader2, Check, ChevronsUpDown, X, Trash2, Repeat, AlertTriangle } from "lucide-react";
 import { format, parse, addHours, differenceInCalendarDays, startOfDay, addWeeks, addDays } from "date-fns";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
@@ -293,11 +293,14 @@ export function SportsScientistBookSessionModal({ open, onOpenChange, onSuccess 
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent aria-describedby={undefined} className="sm:max-w-[500px] p-0 overflow-hidden border-none bg-slate-50 dark:bg-slate-950 rounded-[2.5rem]">
+            <DialogContent className="sm:max-w-[500px] p-0 overflow-hidden border-none bg-slate-50 dark:bg-slate-950 rounded-[2.5rem]">
                 <DialogHeader className="p-6 pb-0">
                     <DialogTitle className="text-xl font-black italic tracking-tight text-slate-900 dark:text-white">
                        Schedule Session
                     </DialogTitle>
+                    <DialogDescription className="sr-only">
+                        Form to schedule a standard, group, or other training session.
+                    </DialogDescription>
                 </DialogHeader>
                 
                 <div className="max-h-[85vh] overflow-y-auto px-6 py-4 custom-scrollbar">
@@ -495,20 +498,47 @@ export function SportsScientistBookSessionModal({ open, onOpenChange, onSuccess 
                                                             key={c.id}
                                                             value={`${c.first_name} ${c.last_name} ${c.uhid}`}
                                                             onSelect={() => toggleClient(c.id)}
-                                                            className="py-3 px-4"
+                                                            className="py-3 px-4 flex items-center justify-between"
                                                         >
-                                                            <Check className={cn("mr-2 h-4 w-4 text-primary", selectedClientIds.includes(c.id) ? "opacity-100" : "opacity-0")} />
-                                                            <div className="flex flex-col">
-                                                                <span className="font-bold">{c.first_name} {c.last_name}</span>
-                                                                <span className="text-[10px] text-muted-foreground uppercase font-black">{c.uhid}</span>
+                                                            <div className="flex items-center">
+                                                                <Check className={cn("mr-2 h-4 w-4 text-primary", selectedClientIds.includes(c.id) ? "opacity-100" : "opacity-0")} />
+                                                                <div className="flex flex-col">
+                                                                    <span className="font-bold">{c.first_name} {c.last_name}</span>
+                                                                    <span className="text-[10px] text-muted-foreground uppercase font-black">{c.uhid}</span>
+                                                                </div>
                                                             </div>
+                                                            {c.outstanding_balance > 0 && (
+                                                                <div className="text-right">
+                                                                    <span className="text-[7px] bg-rose-500 text-white px-2 py-0.5 rounded font-black uppercase tracking-widest inline-block leading-none">
+                                                                        DUE PENDING
+                                                                    </span>
+                                                                </div>
+                                                            )}
                                                         </CommandItem>
                                                     ))}
                                                 </CommandGroup>
                                             </CommandList>
                                         </Command>
+                                        {selectedClientIds.some(id => (clients.find(x => x.id === id)?.outstanding_balance > 0)) && (
+                                            <div className="p-3.5 bg-rose-50 dark:bg-rose-950/20 border-t border-rose-200 dark:border-rose-900/50 flex items-start gap-3 text-xs text-rose-800 dark:text-rose-300">
+                                                <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0 text-rose-600 dark:text-rose-400" />
+                                                <div>
+                                                    <span className="font-black uppercase tracking-wider text-[10px] block mb-0.5 text-rose-700 dark:text-rose-400">Payment Overdue Notice</span>
+                                                    One or more selected athletes have pending payments. Please advise them to clear dues.
+                                                </div>
+                                            </div>
+                                        )}
                                     </PopoverContent>
                                 </Popover>
+                                {selectedClientIds.some(id => (clients.find(x => x.id === id)?.outstanding_balance > 0)) && (
+                                    <div className="mt-2.5 p-3.5 bg-rose-50 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-900/50 rounded-2xl flex items-start gap-3 text-xs text-rose-800 dark:text-rose-300 animate-in fade-in slide-in-from-top-1">
+                                        <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0 text-rose-600 dark:text-rose-400" />
+                                        <div>
+                                            <span className="font-black uppercase tracking-wider text-[10px] block mb-0.5 text-rose-700 dark:text-rose-400">Payment Overdue Notice</span>
+                                            One or more selected athletes have pending payments. Please advise them to clear dues.
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         )}
 

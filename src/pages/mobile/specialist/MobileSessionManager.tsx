@@ -41,6 +41,16 @@ import {
 } from "date-fns";
 import { SportsScientistBookSessionModal } from "@/components/sports-scientist/SportsScientistBookSessionModal";
 import { SportsScientistSessionStatusModal } from "@/components/sports-scientist/SportsScientistSessionStatusModal";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+  AlertDialogAction,
+} from "@/components/ui/alert-dialog";
 
 export default function MobileSessionManager() {
   const { user } = useAuth();
@@ -48,6 +58,7 @@ export default function MobileSessionManager() {
   const queryClient = useQueryClient();
   const [isBookModalOpen, setIsBookModalOpen] = useState(false);
   const [selectedSession, setSelectedSession] = useState<any>(null);
+  const [sessionToEnd, setSessionToEnd] = useState<any>(null);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<'day' | 'week' | 'month'>('day');
 
@@ -145,6 +156,30 @@ export default function MobileSessionManager() {
       toast({ title: "Session Started" });
     } catch (error) {
       toast({ title: "Failed to start session", variant: "destructive" });
+    }
+  };
+
+  const handleEndSession = (session: any) => {
+    haptic.warning();
+    setSessionToEnd(session);
+  };
+
+  const confirmEndSession = async (session: any) => {
+    try {
+      const now = new Date().toISOString();
+      const actual_start = session.actual_start || now;
+      await apiFetch(`/appointments/${session.id}/complete`, {
+        method: "POST",
+        body: JSON.stringify({
+          actual_start,
+          actual_end: now
+        })
+      });
+      queryClient.invalidateQueries({ queryKey: ["mobile-sessions"] });
+      toast({ title: "Session Ended", description: "Session completed successfully." });
+      setSessionToEnd(null);
+    } catch (error: any) {
+      toast({ title: "Failed to end session", description: error.message, variant: "destructive" });
     }
   };
 
@@ -251,91 +286,112 @@ export default function MobileSessionManager() {
                   <p className="text-[10px] uppercase tracking-widest text-slate-400 mt-1">Tap 'Plan Session' to get started</p>
                </div>
              ) : (
-               sessions?.map((session: any) => {
-                 const modeStyle = getSessionModeStyle(session.session_mode);
-                 return (
-                   <Card 
-                    key={session.id}
-                    className={cn(
-                      "bg-white dark:bg-slate-900 border-border/50 shadow-sm rounded-[2.5rem] overflow-hidden transition-all active:scale-[0.98]",
-                      session.status === "In Progress" && "border-emerald-500/50 shadow-lg shadow-emerald-500/5"
-                    )}
-                   >
-                      <CardContent className="p-6">
-                         <div className="flex justify-between items-start mb-4">
-                            <div className="flex items-center gap-3">
-                               <div className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center">
-                                  <Clock className="w-5 h-5 text-slate-400" />
-                               </div>
-                               <div>
-                                  <div className="flex items-center gap-2">
-                                     <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-                                       {format(parseISO(session.scheduled_start), "hh:mm a")}
-                                     </p>
-                                     <span className={cn("text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded border leading-none", modeStyle.bg, modeStyle.text)}>
-                                       {modeStyle.label}
-                                     </span>
-                                  </div>
-                                  <h4 className="font-black text-slate-900 dark:text-white italic mt-0.5">
-                                    {session.session_type?.name || "Standard Session"}
-                                  </h4>
-                               </div>
+                sessions?.map((session: any) => {
+                  const modeStyle = getSessionModeStyle(session.session_mode);
+                  const isUpcoming = session.status === "Planned" || session.status === "Scheduled";
+                  const isInProgress = session.status === "Checked In" || session.status === "In Progress";
+                  const isCompleted = session.status === "Completed";
+                  const isMissed = session.status === "Missed";
+                  const isCancelled = session.status === "Cancelled";
+                  
+                  const displayStatus = isInProgress ? "In Progress" : isUpcoming ? "Scheduled" : session.status;
+                  
+                  const getStatusBadgeStyle = () => {
+                     if (isInProgress) return "bg-emerald-500/10 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400 border border-emerald-200/50 dark:border-emerald-800/30 animate-pulse";
+                     if (isUpcoming) return "bg-blue-500/10 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400 border border-blue-200/50 dark:border-blue-800/30";
+                     if (isCompleted) return "bg-slate-100 text-slate-700 dark:bg-slate-800/50 dark:text-slate-350 border border-slate-200/50 dark:border-slate-800/30";
+                     if (isMissed || isCancelled) return "bg-rose-500/10 text-rose-700 dark:bg-rose-500/20 dark:text-rose-400 border border-rose-200/50 dark:border-rose-800/30";
+                     return "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400";
+                  };
+
+                  return (
+                    <Card 
+                     key={session.id}
+                     className={cn(
+                       "bg-white dark:bg-slate-900 border border-border/50 shadow-sm rounded-[2rem] overflow-hidden transition-all active:scale-[0.99]",
+                       isInProgress && "border-emerald-500/30 shadow-lg shadow-emerald-500/5"
+                     )}
+                    >
+                      <CardContent className="p-5">
+                         {/* Header: Time & Status */}
+                         <div className="flex justify-between items-center mb-3">
+                            <div className="flex items-center gap-2">
+                               <span className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-tight">
+                                 {format(parseISO(session.scheduled_start), "hh:mm a")}
+                               </span>
+                               <span className={cn("text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded border leading-none", modeStyle.bg, modeStyle.text)}>
+                                 {modeStyle.label}
+                               </span>
                             </div>
-                            <Badge className={cn(
-                              "px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border-none",
-                              session.status === "Scheduled" ? "bg-blue-500 text-white" :
-                              session.status === "In Progress" ? "bg-emerald-500 text-white animate-pulse" :
-                              "bg-slate-200 text-slate-500"
+                            <Badge variant="outline" className={cn(
+                              "px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-widest border-none",
+                              getStatusBadgeStyle()
                             )}>
-                              {session.status}
+                              {displayStatus}
                             </Badge>
                          </div>
-    
-                         <div className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-4 flex items-center justify-between mb-6">
-                            <div className="flex items-center gap-3">
-                               <div className="w-10 h-10 rounded-full bg-white dark:bg-slate-900 flex items-center justify-center shadow-sm">
-                                  <User className="w-5 h-5 text-primary" />
+
+                         {/* Session Title */}
+                         <h4 className="font-black text-slate-900 dark:text-white italic text-base leading-snug mb-3">
+                            {session.session_type?.name || "Standard Session"}
+                         </h4>
+
+                         {/* Athlete Row */}
+                         {session.session_mode !== "Other" && (
+                            <div className="flex items-center justify-between border-t border-slate-100 dark:border-slate-800/50 pt-3 mt-3">
+                               <div className="flex items-center gap-2.5">
+                                  <div className="w-8 h-8 rounded-full bg-slate-50 dark:bg-slate-800 flex items-center justify-center border border-slate-100 dark:border-slate-800/50">
+                                     <User className="w-4 h-4 text-primary" />
+                                  </div>
+                                  <div>
+                                     <p className="text-[8px] font-black uppercase text-muted-foreground/60 leading-none mb-0.5">Athlete</p>
+                                     <p className="text-xs font-bold text-slate-800 dark:text-white leading-none flex items-center gap-1.5">
+                                        {session.session_mode === "Group"
+                                            ? `👥 Group: ${session.group_name}`
+                                            : session.client?.first_name ? `${session.client.first_name} ${session.client.last_name}` : "N/A"}
+                                        {session.session_mode === "Individual" && session.client?.outstanding_balance > 0 && (
+                                            <span className="text-[7px] bg-rose-500 text-white font-black uppercase tracking-widest px-1 py-0.5 rounded leading-none shrink-0 animate-pulse">DUE</span>
+                                        )}
+                                     </p>
+                                  </div>
                                </div>
-                               <div>
-                                  <p className="text-[9px] font-black uppercase tracking-tighter text-muted-foreground/60">Athlete</p>
-                                  <p className="text-sm font-bold text-slate-900 dark:text-white">
-                                    {session.client?.first_name} {session.client?.last_name}
-                                  </p>
-                               </div>
+                               {session.session_mode !== "Group" && session.client?.uhid && (
+                                  <span className="text-[9px] font-bold text-slate-400 font-mono bg-slate-100/50 dark:bg-slate-800/50 px-2 py-0.5 rounded">
+                                     {session.client.uhid}
+                                  </span>
+                               )}
                             </div>
-                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 bg-slate-200/50 dark:bg-slate-700/50 px-2 py-1 rounded">
-                              {session.client?.uhid}
-                            </span>
-                         </div>
-    
-                         <div className="flex gap-3">
-                            {session.status === "Scheduled" && (
+                         )}
+
+                         {/* Action Buttons */}
+                         <div className="flex gap-2 mt-4 pt-3 border-t border-slate-100 dark:border-slate-800/50">
+                            {isUpcoming && (
                               <button 
                                 onClick={() => handleStartSession(session)}
-                                className="flex-1 bg-emerald-500 text-white h-12 rounded-2xl font-black uppercase tracking-widest text-[11px] flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 active:scale-95 transition-all"
+                                className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white h-10 rounded-xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-1.5 shadow-md shadow-emerald-500/10 active:scale-95 transition-all"
                               >
-                                 <Play className="w-4 h-4 fill-current" /> Start Session
+                                 <Play className="w-3.5 h-3.5 fill-current" /> Start Session
                               </button>
                             )}
-                            {session.status === "In Progress" && (
+                            {isInProgress && (
                               <button 
-                                onClick={() => { haptic.warning(); setSelectedSession(session); }}
-                                className="flex-1 bg-rose-500 text-white h-12 rounded-2xl font-black uppercase tracking-widest text-[11px] flex items-center justify-center gap-2 shadow-lg shadow-rose-500/20 active:scale-95 transition-all"
+                                onClick={() => handleEndSession(session)}
+                                className="flex-1 bg-rose-500 hover:bg-rose-600 text-white h-10 rounded-xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-1.5 shadow-md shadow-rose-500/10 active:scale-95 transition-all"
                               >
-                                 <Square className="w-4 h-4 fill-current" /> End Session
+                                 <Square className="w-3.5 h-3.5 fill-current" /> End Session
                               </button>
                             )}
                             <button 
                               onClick={() => { haptic.light(); setSelectedSession(session); }}
-                              className="w-12 h-12 rounded-2xl border border-border/50 flex items-center justify-center text-slate-400 active:scale-95 transition-all"
+                              className="w-10 h-10 rounded-xl border border-border/50 flex items-center justify-center text-slate-400 active:scale-95 transition-all hover:bg-slate-50 dark:hover:bg-slate-800"
                             >
-                               <ClipboardList className="w-5 h-5" />
+                               <ClipboardList className="w-4 h-4" />
                             </button>
                          </div>
                       </CardContent>
-                   </Card>
-                 );
-               })
+                    </Card>
+                  );
+                })
              )}
           </div>
         )}
@@ -426,9 +482,12 @@ export default function MobileSessionManager() {
                                         {modeStyle.label}
                                       </span>
                                     </div>
-                                    <h4 className="font-bold text-sm text-slate-900 dark:text-white truncate mt-0.5">
-                                      {session.client ? `${session.client.first_name} ${session.client.last_name}` : "No Athlete"}
-                                    </h4>
+                                     <h4 className="font-bold text-sm text-slate-900 dark:text-white truncate mt-0.5 flex items-center gap-1.5">
+                                       {session.client ? `${session.client.first_name} ${session.client.last_name}` : "No Athlete"}
+                                       {session.session_mode === "Individual" && session.client?.outstanding_balance > 0 && (
+                                           <span className="text-[7px] bg-rose-500 text-white font-black uppercase tracking-widest px-1 py-0.5 rounded leading-none shrink-0 animate-pulse">DUE</span>
+                                       )}
+                                     </h4>
                                     <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 truncate leading-none">
                                       {session.session_type?.name || "Standard Session"} {session.session_mode === 'Group' && session.group_name ? `• ${session.group_name}` : ''}
                                     </p>
@@ -679,11 +738,35 @@ export default function MobileSessionManager() {
         open={!!selectedSession}
         onOpenChange={(open) => !open && setSelectedSession(null)}
         session={selectedSession}
-        onStatusUpdate={() => {
+        onSuccess={() => {
           queryClient.invalidateQueries({ queryKey: ["mobile-sessions"] });
           setSelectedSession(null);
         }}
       />
+
+      <AlertDialog open={!!sessionToEnd} onOpenChange={(open) => !open && setSessionToEnd(null)}>
+        <AlertDialogContent className="max-w-[340px] rounded-[24px]">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-slate-900 dark:text-white italic font-black text-center">End Training Session?</AlertDialogTitle>
+            <AlertDialogDescription className="text-center text-xs font-medium text-slate-500">
+              Are you sure you want to end this training session? This will mark the session as completed.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex flex-row gap-2 mt-4">
+            <AlertDialogCancel className="flex-1 rounded-xl h-11 font-bold text-[11px] uppercase tracking-wider">Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => {
+                if (sessionToEnd) {
+                  confirmEndSession(sessionToEnd);
+                }
+              }}
+              className="flex-1 rounded-xl h-11 bg-rose-500 hover:bg-rose-600 text-white font-bold text-[11px] uppercase tracking-wider"
+            >
+              End Session
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </MobileSpecialistLayout>
   );
 }
