@@ -379,6 +379,8 @@ async function runMigrations() {
         name TEXT NOT NULL,
         description TEXT,
         price NUMERIC NOT NULL DEFAULT 0,
+        category TEXT DEFAULT 'Others',
+        tax_amount NUMERIC NOT NULL DEFAULT 0,
         deleted_at TIMESTAMPTZ,
         created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
@@ -386,9 +388,17 @@ async function runMigrations() {
       )
     `);
 
+    // Safely add missing columns to packages
+    try {
+        await pool.query(`ALTER TABLE packages ADD COLUMN IF NOT EXISTS category TEXT DEFAULT 'Others';`);
+    } catch (e) {}
+    try {
+        await pool.query(`ALTER TABLE packages ADD COLUMN IF NOT EXISTS tax_amount NUMERIC NOT NULL DEFAULT 0;`);
+    } catch (e) {}
+
     // Backwards compatibility for 'servicepackages' name
     try {
-        await pool.query('DROP TABLE IF EXISTS servicepackages CASCADE');
+        await pool.query('DROP VIEW IF EXISTS servicepackages CASCADE');
         await pool.query('CREATE VIEW servicepackages AS SELECT * FROM packages');
     } catch (e) {}
 
@@ -679,6 +689,7 @@ async function runMigrations() {
         package_id UUID REFERENCES packages(id) ON DELETE SET NULL,
         amount NUMERIC NOT NULL DEFAULT 0,
         discount NUMERIC DEFAULT 0,
+        tax_amount NUMERIC DEFAULT 0,
         total NUMERIC NOT NULL DEFAULT 0,
         status TEXT NOT NULL DEFAULT 'unpaid',
         referral_source_id UUID,
@@ -701,6 +712,7 @@ async function runMigrations() {
     const billCols = [
         ['amount', 'NUMERIC DEFAULT 0'],
         ['discount', 'NUMERIC DEFAULT 0'],
+        ['tax_amount', 'NUMERIC DEFAULT 0'],
         ['referral_source_id', 'UUID'],
         ['include_notes_in_invoice', 'BOOLEAN DEFAULT false'],
         ['discount_authorized_by', 'TEXT'],
@@ -728,10 +740,15 @@ async function runMigrations() {
         package_id UUID,
         amount NUMERIC NOT NULL DEFAULT 0,
         discount NUMERIC DEFAULT 0,
+        tax_amount NUMERIC DEFAULT 0,
         total NUMERIC NOT NULL DEFAULT 0,
         created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
       )
     `);
+
+    try {
+        await pool.query(`ALTER TABLE billitems ADD COLUMN IF NOT EXISTS tax_amount NUMERIC DEFAULT 0;`);
+    } catch (e) {}
 
     // Bill Payments
     await pool.query(`

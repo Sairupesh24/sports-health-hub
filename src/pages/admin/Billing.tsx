@@ -38,6 +38,7 @@ type CartItem = {
     package_id: string;
     name: string;
     price: number;
+    tax_amount: number;
     items?: { service_type: string; default_sessions: number; }[];
 };
 
@@ -73,7 +74,7 @@ type Bill = {
 };
 
 type Client = { id: string; first_name: string; last_name: string; uhid: string; email?: string; mobile_no?: string; is_vip?: boolean };
-type Package = { id: string; name: string; price: number; service_package_items?: { service_type: string; default_sessions: number; }[] };
+type Package = { id: string; name: string; price: number; category?: string; tax_amount?: number; service_package_items?: { service_type: string; default_sessions: number; }[] };
 type ReferralSource = { id: string; name: string };
 
 export default function BillingPage() {
@@ -149,6 +150,7 @@ export default function BillingPage() {
     const [includeNotesInInvoice, setIncludeNotesInInvoice] = useState(false);
     const [discountAuthorizedBy, setDiscountAuthorizedBy] = useState("");
     const [cart, setCart] = useState<CartItem[]>([]);
+    const [selectedCategory, setSelectedCategory] = useState<string>("all");
 
     // Discount States
     const [discountType, setDiscountType] = useState<"percentage" | "flat">("flat");
@@ -310,9 +312,9 @@ export default function BillingPage() {
 
     const handleAddPackage = () => {
         if (!newPkgName.trim() || !newPkgPrice) return;
-        const newPkg = { id: Date.now().toString(), name: newPkgName, price: Number(newPkgPrice) };
+        const newPkg = { id: Date.now().toString(), name: newPkgName, price: Number(newPkgPrice), category: "Custom", tax_amount: 0 };
         setPackages([...packages, newPkg]);
-        setCart([...cart, { id: Date.now().toString(), package_id: newPkg.id, name: newPkg.name, price: newPkg.price }]);
+        setCart([...cart, { id: Date.now().toString(), package_id: newPkg.id, name: newPkg.name, price: newPkg.price, tax_amount: 0 }]);
         setNewPkgName("");
         setNewPkgPrice("");
         setIsPkgModalOpen(false);
@@ -350,6 +352,7 @@ export default function BillingPage() {
             date: b.date,
             client_name: b.client_name,
             client_uhid: (b as any).client_uhid,
+            client_mobile: (b as any).client_mobile,
             amount: b.total_amount,
             status: b.status,
             package_name: b.items?.map(i => i.name).join(", "),
@@ -361,7 +364,13 @@ export default function BillingPage() {
             discount_value: b.discount_value,
             discount_authorized_by: b.discount_authorized_by,
             paid_amount: b.paid_amount,
-            remaining_due: b.remaining_due
+            remaining_due: b.remaining_due,
+            subtotal: b.subtotal,
+            tax_amount: b.tax_amount,
+            items: b.items,
+            organization_logo: b.organization_logo,
+            organization_address: b.organization_address,
+            organization_official_name: b.organization_official_name
         })),
         ...refunds.map(r => {
             const client = r.clients as any;
@@ -405,6 +414,7 @@ export default function BillingPage() {
                 package_id: pkg.id,
                 name: pkg.name,
                 price: Number(pkg.price),
+                tax_amount: Number(pkg.tax_amount || 0),
                 items: pkg.service_package_items
             }]);
         }
@@ -415,6 +425,7 @@ export default function BillingPage() {
     };
 
     const subtotal = cart.reduce((sum, item) => sum + Number(item.price), 0);
+    const overallTaxAmount = cart.reduce((sum, item) => sum + Number(item.tax_amount || 0), 0);
 
     const calculatedDiscountAmount = () => {
         const dVal = Number(discountValue) || 0;
@@ -424,7 +435,7 @@ export default function BillingPage() {
         return dVal;
     };
 
-    const totalPayable = Math.max(0, subtotal - calculatedDiscountAmount());
+    const totalPayable = Math.max(0, subtotal + overallTaxAmount - calculatedDiscountAmount());
 
     const handleCreateBill = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -464,22 +475,24 @@ export default function BillingPage() {
                 const itemDiscount = discountType === "percentage" 
                     ? (item.price * (Number(discountValue) || 0) / 100) 
                     : ((Number(discountValue) || 0) * itemRatio);
-                const itemTotal = Math.max(0, item.price - itemDiscount);
+                const itemTotal = Math.max(0, item.price - itemDiscount + item.tax_amount);
 
                 return {
                     package_id: item.package_id,
                     amount: item.price,
                     discount: itemDiscount,
+                    tax_amount: item.tax_amount,
                     total: itemTotal
                 };
             });
 
-            await apiFetch('/billing/invoices', {
+            const createdBill = await apiFetch<any>('/billing/invoices', {
                 method: 'POST',
                 data: {
                     client_id: selectedClient,
                     subtotal: subtotal,
                     discount: calculatedDiscountAmount(),
+                    tax_amount: overallTaxAmount,
                     total: totalPayable,
                     referral_source_id: referralId || null,
                     notes: remarks,
@@ -497,6 +510,19 @@ export default function BillingPage() {
             setSelectedClient("");
             setRemarks("");
             setDiscountValue("0");
+            setDiscountAuthorizedBy("");
+
+            // Automatically open cash collection modal prefilled with grand total!
+            if (createdBill && createdBill.id) {
+                setPaymentBillId(createdBill.id);
+                setPaymentRows([{
+                    id: Math.random().toString(),
+                    method: "Cash",
+                    amount: Number(createdBill.total || createdBill.total_amount || totalPayable),
+                    transactionId: ""
+                }]);
+                setIsPaymentModalOpen(true);
+            }
         } catch (err: any) {
             toast({ title: "Error creating bill", description: err.message, variant: "destructive" });
         }
@@ -558,7 +584,7 @@ export default function BillingPage() {
         const logoUrl = bill.organization_logo || orgDetails?.logo_url || "/logo.png";
         
         const addHeader = async (doc: jsPDF) => {
-            const topMargin = 5; // 0.5cm from top
+            const topMargin = 10;
             const maxLogoHeight = 20; 
             let contentStartY = topMargin;
 
@@ -566,41 +592,29 @@ export default function BillingPage() {
                 try {
                     const { width, height, img } = await getImageDimensions(logoUrl);
                     const aspectRatio = width / height;
-                    
-                    if (aspectRatio > 2) {
-                        const targetWidth = 180;
-                        const targetHeight = targetWidth / aspectRatio;
-                        const finalHeight = Math.min(targetHeight, maxLogoHeight);
-                        const finalWidth = finalHeight * aspectRatio;
-                        
-                        doc.addImage(img, 'PNG', (210 - finalWidth) / 2, topMargin, finalWidth, finalHeight);
-                        contentStartY = topMargin + finalHeight + 8;
-                    } else {
-                        const finalHeight = Math.min(25, maxLogoHeight);
-                        const finalWidth = finalHeight * aspectRatio;
-                        doc.addImage(img, 'PNG', (210 - finalWidth) / 2, topMargin, finalWidth, finalHeight); // Centering small logo too as per user request for "center aligned"
-                        contentStartY = topMargin + finalHeight + 8;
-                    }
+                    const finalHeight = Math.min(20, maxLogoHeight);
+                    const finalWidth = finalHeight * aspectRatio;
+                    doc.addImage(img, 'PNG', 14, topMargin, finalWidth, finalHeight);
                 } catch (e) {
-                    doc.setFontSize(22);
+                    doc.setFontSize(16);
+                    doc.setFont("helvetica", "bold");
                     doc.setTextColor(15, 23, 42); 
-                    doc.text(orgDisplayName, 105, topMargin + 10, { align: "center" });
-                    contentStartY = topMargin + 20;
+                    doc.text(orgDisplayName, 14, topMargin + 10);
                 }
             } else {
-                doc.setFontSize(22);
+                doc.setFontSize(16);
+                doc.setFont("helvetica", "bold");
                 doc.setTextColor(15, 23, 42); 
-                doc.text(orgDisplayName, 105, topMargin + 10, { align: "center" });
-                contentStartY = topMargin + 20;
+                doc.text(orgDisplayName, 14, topMargin + 10);
             }
 
-            // Centered INVOICE Label
-            doc.setFontSize(16);
+            // Draw INVOICE title on the right, aligned horizontally with the logo
+            doc.setFontSize(22);
             doc.setFont("helvetica", "bold");
             doc.setTextColor(15, 23, 42); 
-            doc.text("INVOICE", 105, contentStartY, { align: "center" });
-            
-            return contentStartY + 12; // Start for metadata
+            doc.text("INVOICE", 196, topMargin + 12, { align: "right" });
+
+            return topMargin + 25; // Y coordinate where the metadata box will start
         };
 
         const addFooter = (doc: jsPDF) => {
@@ -610,50 +624,48 @@ export default function BillingPage() {
                 doc.setFontSize(8);
                 doc.setTextColor(148, 163, 184); 
                 
-                if (orgAddress) {
-                    const splitAddress = doc.splitTextToSize(orgAddress, 180);
-                    doc.text(splitAddress, 105, 285, { align: "center" });
-                }
-                
+                doc.text("THANK YOU FOR YOUR BUSINESS! POWERED BY ISHPO", 105, 285, { align: "center" });
                 doc.text(`Page ${i} of ${pageCount}`, 105, 292, { align: "center" });
             }
         };
 
         const metadataTopY = await addHeader(d);
 
-        // Two Column Layout
-        d.setFontSize(11);
-        d.setFont("helvetica", "bold");
-        d.setTextColor(15, 23, 42);
-        
+        // Draw Box around metadata (Bill To vs Invoice Details)
+        d.setDrawColor(226, 232, 240);
+        d.setFillColor(249, 250, 251);
+        d.rect(14, metadataTopY, 182, 32, "FD");
+        d.line(105, metadataTopY, 105, metadataTopY + 32);
+
         // Left Column: Bill To
-        d.text("Bill To:", 14, metadataTopY);
-        d.setFont("helvetica", "normal");
         d.setFontSize(10);
-        d.setTextColor(71, 85, 105);
-        d.text(bill.client_name, 14, metadataTopY + 7);
-        if (c?.uhid) d.text(`UHID : ${c.uhid}`, 14, metadataTopY + 13);
-        if (c?.mobile_no) d.text(`Mobile : ${c.mobile_no}`, 14, metadataTopY + 19);
-        if (bill.referral_source_name && bill.referral_source_name !== "-") {
-            d.text(`Referral: ${bill.referral_source_name}`, 14, metadataTopY + 25);
-        }
-
-        // Right Column: Invoice Details
-        d.setFontSize(11);
         d.setFont("helvetica", "bold");
         d.setTextColor(15, 23, 42);
-        d.text("Invoice Details:", 130, metadataTopY);
+        d.text("Bill To:", 18, metadataTopY + 6);
+
+        d.setFont("helvetica", "normal");
+        d.setFontSize(9);
+        d.setTextColor(71, 85, 105);
+        d.text(bill.client_name, 18, metadataTopY + 12);
+        d.text(`UHID : ${c?.uhid || "-"}`, 18, metadataTopY + 18);
+        d.text(`Mobile : ${c?.mobile_no || "-"}`, 18, metadataTopY + 24);
+        
+        // Right Column: Invoice Details
+        d.setFontSize(10);
+        d.setFont("helvetica", "bold");
+        d.setTextColor(15, 23, 42);
+        d.text("Invoice Details:", 110, metadataTopY + 6);
         
         d.setFont("helvetica", "normal");
-        d.setFontSize(10);
+        d.setFontSize(9);
         d.setTextColor(71, 85, 105);
-        d.text(`Invoice # : ${bill.invoice_number || bill.id.substring(0, 8).toUpperCase()}`, 130, metadataTopY + 7);
-        d.text(`Date : ${format(new Date(bill.date), "dd MMM yyyy")}`, 130, metadataTopY + 13);
+        d.text(`Invoice # : ${bill.invoice_number || bill.id.substring(0, 8).toUpperCase()}`, 110, metadataTopY + 12);
+        d.text(`Date : ${format(new Date(bill.date), "dd MMM yyyy")}`, 110, metadataTopY + 18);
         if (bill.billed_by_name || bill.billing_staff_name) {
-            d.text(`Billed By: ${bill.billed_by_name || bill.billing_staff_name}`, 130, metadataTopY + 19);
+            d.text(`Billed By: ${bill.billed_by_name || bill.billing_staff_name}`, 110, metadataTopY + 24);
         }
 
-        const tableStartY = metadataTopY + 35;
+        const tableStartY = metadataTopY + 38;
 
         const tableData = bill.items.map((item: any, index: number) => {
             let description = item.name;
@@ -663,51 +675,97 @@ export default function BillingPage() {
                     .join('\n');
                 description += `\n${entitlementList}`;
             }
+
+            const basePrice = Number(item.amount || item.price || 0);
+            const itemTax = Number(item.tax_amount || 0);
+            const itemTotal = Number(item.total || (basePrice + itemTax));
+            const taxPercent = basePrice > 0 ? Math.round((itemTax / basePrice) * 100) : 0;
+
             return [
                 (index + 1).toString(),
                 description,
-                `Rs. ${item.price.toFixed(2)}`
+                `Rs. ${basePrice.toFixed(2)}`,
+                `Rs. ${itemTax.toFixed(2)} (${taxPercent}%)`,
+                `Rs. ${itemTotal.toFixed(2)}`
             ];
         });
 
         autoTable(d, {
             startY: tableStartY,
-            head: [["#", "Description", "Amount"]],
+            head: [["#", "Description", "Rate", "Tax", "Total"]],
             body: tableData,
-            theme: 'striped',
-            headStyles: { fillColor: [15, 118, 110] }, 
-            styles: { fontSize: 10, cellPadding: 5, overflow: 'linebreak' },
+            theme: 'grid',
+            headStyles: { fillColor: [13, 148, 136] }, 
+            styles: { fontSize: 9, cellPadding: 4, overflow: 'linebreak', lineColor: [226, 232, 240], lineWidth: 0.5 },
             columnStyles: {
-                1: { cellWidth: 120 }
+                0: { cellWidth: 10 },
+                1: { cellWidth: 90 },
+                2: { cellWidth: 28, halign: "right" },
+                3: { cellWidth: 28, halign: "right" },
+                4: { cellWidth: 28, halign: "right" }
             }
         });
 
         let finalY = (d as any).lastAutoTable.finalY + 10;
+        
+        // Right-aligned summary block
         d.setFontSize(10);
-        d.setTextColor(15, 23, 42);
-        
-        if (Number(bill.discount_value) > 0) {
-            d.text(`Discount: Rs. ${bill.discount_value.toFixed(2)}`, 14, finalY);
-            if (bill.discount_authorized_by) {
-                d.text(`Auth By: ${bill.discount_authorized_by}`, 14, finalY + 6);
-            }
-            finalY += 12;
+        d.setFont("helvetica", "normal");
+        d.setTextColor(71, 85, 105);
+
+        // Subtotal row
+        d.text("Subtotal:", 130, finalY);
+        d.text(`Rs. ${Number(bill.subtotal || bill.amount || 0).toFixed(2)}`, 196, finalY, { align: "right" });
+        finalY += 6;
+
+        // Tax row
+        d.text("Total Tax:", 130, finalY);
+        d.text(`Rs. ${Number(bill.tax_amount || 0).toFixed(2)}`, 196, finalY, { align: "right" });
+        finalY += 6;
+
+        // Discount row (if any)
+        if (Number(bill.discount_value || bill.discount || 0) > 0) {
+            d.text("Discount:", 130, finalY);
+            d.text(`-Rs. ${Number(bill.discount_value || bill.discount || 0).toFixed(2)}`, 196, finalY, { align: "right" });
+            finalY += 6;
         }
-        
-        d.setFontSize(12);
+
+        // Divider line
+        d.setDrawColor(203, 213, 225);
+        d.line(130, finalY - 2, 196, finalY - 2);
+
+        // Grand Total row
         d.setFont("helvetica", "bold");
-        d.text(`Total Amount: Rs. ${bill.total_amount.toFixed(2)}`, 140, finalY);
+        d.setTextColor(13, 148, 136); // primary teal color
+        d.setFontSize(11);
+        d.text("Grand Total:", 130, finalY + 2);
+        d.text(`Rs. ${Number(bill.total_amount || bill.total || 0).toFixed(2)}`, 196, finalY + 2, { align: "right" });
+        finalY += 12;
+
+        // Left Side metadata info
+        d.setFontSize(10);
+        d.setFont("helvetica", "normal");
+        d.setTextColor(71, 85, 105);
+
+        let leftSideY = (d as any).lastAutoTable.finalY + 10;
+        if (Number(bill.discount_value || bill.discount || 0) > 0 && bill.discount_authorized_by) {
+            d.text(`Discount Authorized By: ${bill.discount_authorized_by}`, 14, leftSideY);
+            leftSideY += 6;
+        }
+
+        finalY = Math.max(finalY, leftSideY) + 4;
 
         if (bill.notes && bill.include_notes_in_invoice) {
             d.setFontSize(9);
             d.setTextColor(100, 116, 139);
+            d.setFont("helvetica", "bold");
+            d.text(`Remarks:`, 14, finalY);
             d.setFont("helvetica", "normal");
-            d.text(`Remarks:`, 14, finalY + 10);
             const splitRemarks = d.splitTextToSize(bill.notes, 180);
-            d.text(splitRemarks, 14, finalY + 16);
-            finalY += (splitRemarks.length * 5) + 15;
+            d.text(splitRemarks, 14, finalY + 5);
+            finalY += (splitRemarks.length * 5) + 12;
         } else {
-            finalY += 15;
+            finalY += 5;
         }
 
         // Add Payment Status
@@ -955,45 +1013,90 @@ export default function BillingPage() {
                                                 />
                                             </div>
 
-                                            <div className="space-y-2">
-                                                <Label>Packages / Services <span className="text-destructive">*</span></Label>
-                                                <Popover>
-                                                    <PopoverTrigger asChild>
-                                                        <Button variant="outline" className="w-full justify-start text-muted-foreground font-normal overflow-hidden">
-                                                            <ShoppingCart className="w-4 h-4 mr-2" />
-                                                            Search Packages...
-                                                        </Button>
-                                                    </PopoverTrigger>
-                                                    <PopoverContent className="p-0 w-[300px]" align="start">
-                                                        <Command>
-                                                            <CommandInput placeholder="Type package name..." />
-                                                            <CommandList className="max-h-[300px] overflow-y-auto">
-                                                                <CommandEmpty>No packages found.</CommandEmpty>
-                                                                <CommandGroup heading={`Available Packages (${packages.length})`}>
-                                                                    {packages.map(p => (
-                                                                        <CommandItem key={p.id} value={p.name} onSelect={() => addToCart(p.id)}>
-                                                                            <div className="flex justify-between w-full items-center">
-                                                                                <span>{p.name}</span>
-                                                                                <span className="font-bold text-xs">Rs. {p.price}</span>
-                                                                            </div>
-                                                                        </CommandItem>
-                                                                    ))}
-                                                                </CommandGroup>
-                                                            </CommandList>
-                                                        </Command>
-                                                    </PopoverContent>
-                                                </Popover>
+                                            <div className="space-y-4">
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                                    <div className="space-y-1.5">
+                                                        <Label className="text-xs">Category</Label>
+                                                        <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                                                            <SelectTrigger className="w-full h-9 text-xs">
+                                                                <SelectValue placeholder="All Categories" />
+                                                            </SelectTrigger>
+                                                            <SelectContent>
+                                                                <SelectItem value="all">All Categories</SelectItem>
+                                                                {Array.from(new Set(packages.map(p => p.category || "Others").filter(Boolean))).map(cat => (
+                                                                    <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                                                                ))}
+                                                            </SelectContent>
+                                                        </Select>
+                                                    </div>
+
+                                                    <div className="space-y-1.5">
+                                                        <Label className="text-xs">Packages / Services <span className="text-destructive">*</span></Label>
+                                                        <Popover>
+                                                            <PopoverTrigger asChild>
+                                                                <Button variant="outline" className="w-full h-9 justify-start text-muted-foreground font-normal text-xs overflow-hidden">
+                                                                    <ShoppingCart className="w-3.5 h-3.5 mr-2" />
+                                                                    Search Packages...
+                                                                </Button>
+                                                            </PopoverTrigger>
+                                                            <PopoverContent className="p-0 w-[300px]" align="start">
+                                                                <Command>
+                                                                    <CommandInput placeholder="Type package name..." />
+                                                                    <CommandList className="max-h-[300px] overflow-y-auto">
+                                                                        <CommandEmpty>No packages found.</CommandEmpty>
+                                                                        {(() => {
+                                                                            const filteredPkgs = selectedCategory === "all"
+                                                                                ? packages
+                                                                                : packages.filter(p => (p.category || "Others") === selectedCategory);
+                                                                            return (
+                                                                                <CommandGroup heading={`Available Packages (${filteredPkgs.length})`}>
+                                                                                    {filteredPkgs.map(p => (
+                                                                                        <CommandItem key={p.id} value={p.name} onSelect={() => addToCart(p.id)}>
+                                                                                            <div className="flex justify-between w-full items-center text-xs">
+                                                                                                <span>{p.name}</span>
+                                                                                                <span className="font-bold">Rs. {p.price}</span>
+                                                                                            </div>
+                                                                                        </CommandItem>
+                                                                                    ))}
+                                                                                </CommandGroup>
+                                                                            );
+                                                                        })()}
+                                                                    </CommandList>
+                                                                </Command>
+                                                            </PopoverContent>
+                                                        </Popover>
+                                                    </div>
+                                                </div>
 
                                                 {cart.length > 0 && (
-                                                    <div className="bg-muted/30 border rounded-md p-2 space-y-1 mt-2">
+                                                    <div className="bg-muted/30 border rounded-md p-2 space-y-2 mt-2">
                                                         {cart.map(item => (
-                                                            <div key={item.id} className="flex justify-between items-center text-sm p-1.5 bg-background rounded border">
-                                                                <span className="truncate pr-2">{item.name}</span>
-                                                                <div className="flex items-center gap-2">
-                                                                    <span className="font-semibold text-xs">Rs.{item.price}</span>
-                                                                    <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => removeFromCart(item.id)}>
+                                                            <div key={item.id} className="flex flex-col gap-2 p-2 bg-background rounded border">
+                                                                <div className="flex justify-between items-center text-xs">
+                                                                    <span className="font-semibold truncate pr-2">{item.name}</span>
+                                                                    <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive shrink-0" onClick={() => removeFromCart(item.id)}>
                                                                         <Trash2 className="w-3 h-3" />
                                                                     </Button>
+                                                                </div>
+                                                                <div className="flex items-center justify-between gap-4 mt-1">
+                                                                    <div className="flex flex-col">
+                                                                        <span className="text-[10px] text-muted-foreground uppercase font-medium">Base Price</span>
+                                                                        <span className="text-xs font-semibold">Rs. {item.price}</span>
+                                                                    </div>
+                                                                    <div className="flex flex-col w-[120px]">
+                                                                        <span className="text-[10px] text-muted-foreground uppercase font-medium mb-1">Set Tax Amount</span>
+                                                                        <Input 
+                                                                            type="number" 
+                                                                            value={item.tax_amount} 
+                                                                            readOnly 
+                                                                            disabled
+                                                                            className="h-7 text-xs bg-muted cursor-not-allowed w-full"
+                                                                        />
+                                                                    </div>
+                                                                    <div className="flex flex-col items-end">
+                                                                        <span className="text-[10px] text-muted-foreground uppercase font-medium">Total</span>
+                                                                        <span className="text-xs font-bold text-primary">Rs. {item.price + item.tax_amount}</span>
+                                                                    </div>
                                                                 </div>
                                                             </div>
                                                         ))}
@@ -1032,6 +1135,11 @@ export default function BillingPage() {
                                                 <div className="flex justify-between text-sm">
                                                     <span className="text-muted-foreground">Subtotal</span>
                                                     <span className="font-bold text-foreground">Rs. {subtotal.toFixed(2)}</span>
+                                                </div>
+                                                
+                                                <div className="flex justify-between text-sm">
+                                                    <span className="text-muted-foreground">Tax Amount</span>
+                                                    <span className="font-bold text-foreground">Rs. {overallTaxAmount.toFixed(2)}</span>
                                                 </div>
                                                 
                                                 <div className="space-y-2">

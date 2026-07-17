@@ -156,35 +156,62 @@ router.get('/:id', requireAuth, async (req, res) => {
     }
 });
 
-// PATCH Client (VIP, Remarks)
+// PATCH Client
 router.patch('/:id', requireAuth, async (req, res) => {
     try {
         const { id } = req.params;
         const orgId = req.user.organization_id;
-        const { is_vip, admin_remarks, assigned_consultant_id } = req.body;
+        
+        const allowedKeys = [
+            'first_name', 'last_name', 'honorific', 'middle_name',
+            'gender', 'mobile_no', 'aadhaar_no', 'blood_group',
+            'dob', 'age', 'email', 'alternate_mobile_no',
+            'occupation', 'sport', 'athlete_type', 'org_name',
+            'address', 'locality', 'pincode', 'city', 'district', 'state', 'country',
+            'has_insurance', 'insurance_provider', 'insurance_policy_no', 'insurance_coverage_amount',
+            'is_vip', 'assigned_consultant_id'
+        ];
 
-        if (is_vip !== undefined) {
-            await db.query(
-                'UPDATE clients SET is_vip = $1 WHERE id = $2 AND organization_id = $3',
-                [is_vip, id, orgId]
-            );
+        const updates = {};
+        for (const key of allowedKeys) {
+            if (req.body[key] !== undefined) {
+                // Ensure dob is formatted correctly if passed
+                if (key === 'dob' && req.body[key] === '') {
+                    updates[key] = null;
+                } else {
+                    updates[key] = req.body[key];
+                }
+            }
         }
 
-        if (admin_remarks !== undefined && (req.user.role === 'admin' || req.user.role === 'super_admin')) {
-            await db.query(
-                'INSERT INTO clientadminnotes (client_id, remarks, updated_by) VALUES ($1, $2, $3) ON CONFLICT (client_id) DO UPDATE SET remarks = EXCLUDED.remarks, updated_by = EXCLUDED.updated_by',
-                [id, admin_remarks, req.user.id]
-            );
-        }
+        const clientDb = await db.connect();
+        try {
+            await clientDb.query('BEGIN');
 
-        if (assigned_consultant_id !== undefined) {
-            await db.query(
-                'UPDATE clients SET assigned_consultant_id = $1 WHERE id = $2 AND organization_id = $3',
-                [assigned_consultant_id, id, orgId]
-            );
-        }
+            const updateKeys = Object.keys(updates);
+            if (updateKeys.length > 0) {
+                const setClause = updateKeys.map((k, i) => `${k} = $${i + 1}`).join(', ');
+                const updateQuery = `UPDATE clients SET ${setClause} WHERE id = $${updateKeys.length + 1} AND organization_id = $${updateKeys.length + 2}`;
+                const updateValues = [...Object.values(updates), id, orgId];
+                await clientDb.query(updateQuery, updateValues);
+            }
 
-        res.json({ success: true });
+            const { admin_remarks } = req.body;
+            if (admin_remarks !== undefined && (req.user.role === 'admin' || req.user.role === 'super_admin')) {
+                await clientDb.query(
+                    'INSERT INTO clientadminnotes (client_id, remarks, updated_by) VALUES ($1, $2, $3) ON CONFLICT (client_id) DO UPDATE SET remarks = EXCLUDED.remarks, updated_by = EXCLUDED.updated_by',
+                    [id, admin_remarks, req.user.id]
+                );
+            }
+
+            await clientDb.query('COMMIT');
+            res.json({ success: true });
+        } catch (err) {
+            await clientDb.query('ROLLBACK');
+            throw err;
+        } finally {
+            clientDb.release();
+        }
     } catch (error) {
         res.status(500).json({ error: error.message });
     }

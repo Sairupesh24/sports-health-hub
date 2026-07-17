@@ -296,7 +296,7 @@ router.get('/subscriptions', requireAuth, async (req, res) => {
 router.post('/invoices', requireAuth, async (req, res) => {
     const client = await db.connect();
     try {
-        const { client_id, subtotal, discount, total, referral_source_id, notes, include_notes_in_invoice, discount_authorized_by, items } = req.body;
+        const { client_id, subtotal, discount, tax_amount, total, referral_source_id, notes, include_notes_in_invoice, discount_authorized_by, items } = req.body;
         const orgId = req.user.organization_id;
         const staffId = req.user.id;
         
@@ -311,13 +311,13 @@ router.post('/invoices', requireAuth, async (req, res) => {
         // 1. Create Bill
         const billResult = await client.query(`
             INSERT INTO bills (
-                organization_id, client_id, amount, discount, total, status, 
+                organization_id, client_id, amount, discount, tax_amount, total, status, 
                 referral_source_id, notes, include_notes_in_invoice, 
                 discount_authorized_by, billed_by_id, billed_by_name, billing_staff_name
-            ) VALUES ($1, $2, $3, $4, $5, 'Pending', $6, $7, $8, $9, $10, $11, $11)
+            ) VALUES ($1, $2, $3, $4, $5, $6, 'Pending', $7, $8, $9, $10, $11, $12, $12)
             RETURNING *
         `, [
-            orgId, client_id, subtotal, discount, total, referral_source_id || null, 
+            orgId, client_id, subtotal, discount, tax_amount || 0, total, referral_source_id || null, 
             notes, include_notes_in_invoice || false, discount_authorized_by || null,
             staffId, staffName
         ]);
@@ -327,9 +327,9 @@ router.post('/invoices', requireAuth, async (req, res) => {
         if (items && items.length > 0) {
             for (const item of items) {
                 await client.query(`
-                    INSERT INTO billitems (organization_id, bill_id, package_id, amount, discount, total)
-                    VALUES ($1, $2, $3, $4, $5, $6)
-                `, [orgId, bill.id, item.package_id, item.amount, item.discount || 0, item.total]);
+                    INSERT INTO billitems (organization_id, bill_id, package_id, amount, discount, tax_amount, total)
+                    VALUES ($1, $2, $3, $4, $5, $6, $7)
+                `, [orgId, bill.id, item.package_id, item.amount, item.discount || 0, item.tax_amount || 0, item.total]);
             }
         }
 

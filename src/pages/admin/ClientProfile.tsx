@@ -33,6 +33,7 @@ import { TherapistAssignmentCard } from "@/components/client/TherapistAssignment
 import { ShieldCheck, History } from "lucide-react";
 import { EnquiryContextWindow } from "@/components/admin/EnquiryContextWindow";
 import { AssessmentReportsList } from "@/components/shared/assessment/AssessmentReportsList";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 
 
 
@@ -95,6 +96,24 @@ export default function ClientProfile() {
     const [isRefundModalOpen, setIsRefundModalOpen] = useState(false);
     const [refundBillId, setRefundBillId] = useState("");
 
+    // Edit Profile State
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [editForm, setEditForm] = useState({
+        honorific: "",
+        first_name: "",
+        last_name: "",
+        dob: "",
+        age: "",
+        mobile_no: "",
+        email: "",
+        address: "",
+        locality: "",
+        city: "",
+        state: "",
+        pincode: "",
+        country: ""
+    });
+
     useEffect(() => {
         async function fetchClient() {
             if (!id) return;
@@ -123,6 +142,64 @@ export default function ClientProfile() {
         }
         fetchClient();
     }, [id, isAdmin]);
+
+    useEffect(() => {
+        if (client) {
+            setEditForm({
+                honorific: client.honorific || "",
+                first_name: client.first_name || "",
+                last_name: client.last_name || "",
+                dob: client.dob ? format(new Date(client.dob), "yyyy-MM-dd") : "",
+                age: client.age !== null && client.age !== undefined ? String(client.age) : "",
+                mobile_no: client.mobile_no || "",
+                email: client.email || "",
+                address: client.address || "",
+                locality: client.locality || "",
+                city: client.city || "",
+                state: client.state || "",
+                pincode: client.pincode || "",
+                country: client.country || ""
+            });
+        }
+    }, [client, isEditModalOpen]);
+
+    const handleSaveProfile = async () => {
+        if (!id) return;
+        try {
+            const payload = {
+                honorific: editForm.honorific,
+                first_name: editForm.first_name,
+                last_name: editForm.last_name,
+                dob: editForm.dob || null,
+                age: editForm.age ? parseInt(editForm.age, 10) : null,
+                mobile_no: editForm.mobile_no,
+                email: editForm.email || null,
+                address: editForm.address,
+                locality: editForm.locality,
+                city: editForm.city,
+                state: editForm.state,
+                pincode: editForm.pincode,
+                country: editForm.country
+            };
+            
+            await apiFetch(`/clients/${id}`, {
+                method: 'PATCH',
+                data: payload
+            });
+
+            setClient((prev: any) => ({
+                ...prev,
+                ...payload
+            }));
+
+            queryClient.invalidateQueries({ queryKey: ['client-bills', id] });
+            
+            setIsEditModalOpen(false);
+            toast({ title: "Profile updated successfully" });
+        } catch (err: any) {
+            toast({ title: "Failed to update profile", description: err.message, variant: "destructive" });
+        }
+    };
 
     const { data: sessions, isLoading: sessionsLoading } = useQuery({
         queryKey: ['client-sessions', id, startDate, endDate, sessionTypeFilter],
@@ -454,13 +531,38 @@ export default function ClientProfile() {
                         
                         <div className="flex items-center gap-3 flex-wrap">
                             {isAdminOrFoe && (
-                                <Button
-                                    onClick={() => navigate(`/admin/billing?clientId=${client.id}`)}
-                                    className="flex items-center gap-2 font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-sm"
-                                >
-                                    <Plus className="w-4 h-4" />
-                                    Generate Bill
-                                </Button>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Button
+                                            onClick={() => setIsEditModalOpen(true)}
+                                            variant="outline"
+                                            size="icon"
+                                            className="h-9 w-9 rounded-xl border-primary/20 text-primary hover:bg-primary/5 hover:text-primary shrink-0"
+                                        >
+                                            <User className="w-4 h-4" />
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        <p>Edit Profile</p>
+                                    </TooltipContent>
+                                </Tooltip>
+                            )}
+                            {isAdminOrFoe && (
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Button
+                                            onClick={() => navigate(`/admin/billing?clientId=${client.id}`)}
+                                            variant="default"
+                                            size="icon"
+                                            className="h-9 w-9 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm shrink-0"
+                                        >
+                                            <Plus className="w-4 h-4" />
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        <p>Generate Bill</p>
+                                    </TooltipContent>
+                                </Tooltip>
                             )}
                             <div className="flex items-center gap-3 bg-muted/30 p-3 rounded-lg border">
                                <Label htmlFor="ams-toggle" className="text-sm font-semibold cursor-pointer">
@@ -1237,6 +1339,210 @@ export default function ClientProfile() {
                             onClick={markAsPaid}
                         >
                             Confirm & Post Payment
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Edit Profile Modal */}
+            <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+                <DialogContent aria-describedby={undefined} className="sm:max-w-[550px] max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                        <DialogTitle>Edit Client Profile</DialogTitle>
+                    </DialogHeader>
+                    
+                    <div className="space-y-4 py-4 text-xs">
+                        {/* Name Section */}
+                        <div className="space-y-2">
+                            <h4 className="font-bold text-primary uppercase tracking-wide text-[10px]">Name & Honorific</h4>
+                            <div className="grid grid-cols-6 gap-3">
+                                <div className="col-span-2 space-y-1.5">
+                                    <Label htmlFor="edit-honorific">Honorific</Label>
+                                    <Select 
+                                        value={editForm.honorific} 
+                                        onValueChange={(val) => setEditForm(prev => ({ ...prev, honorific: val }))}
+                                    >
+                                        <SelectTrigger id="edit-honorific" className="h-9 text-xs">
+                                            <SelectValue placeholder="Select" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="Mr.">Mr.</SelectItem>
+                                            <SelectItem value="Mrs.">Mrs.</SelectItem>
+                                            <SelectItem value="Ms.">Ms.</SelectItem>
+                                            <SelectItem value="Dr.">Dr.</SelectItem>
+                                            <SelectItem value="Master">Master</SelectItem>
+                                            <SelectItem value="Baby">Baby</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="col-span-2 space-y-1.5">
+                                    <Label htmlFor="edit-first-name">First Name *</Label>
+                                    <Input 
+                                        id="edit-first-name"
+                                        className="h-9 text-xs" 
+                                        value={editForm.first_name} 
+                                        onChange={e => setEditForm(prev => ({ ...prev, first_name: e.target.value }))} 
+                                    />
+                                </div>
+                                <div className="col-span-2 space-y-1.5">
+                                    <Label htmlFor="edit-last-name">Last Name *</Label>
+                                    <Input 
+                                        id="edit-last-name"
+                                        className="h-9 text-xs" 
+                                        value={editForm.last_name} 
+                                        onChange={e => setEditForm(prev => ({ ...prev, last_name: e.target.value }))} 
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Personal Details: Age, DOB, Gender, Blood Group */}
+                        <div className="space-y-2">
+                            <h4 className="font-bold text-primary uppercase tracking-wide text-[10px]">Personal Information</h4>
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="edit-dob">Date of Birth</Label>
+                                    <Input 
+                                        id="edit-dob"
+                                        type="date"
+                                        className="h-9 text-xs" 
+                                        value={editForm.dob} 
+                                        onChange={e => {
+                                            const dobVal = e.target.value;
+                                            let computedAge = editForm.age;
+                                            if (dobVal) {
+                                                const birthDate = new Date(dobVal);
+                                                const today = new Date();
+                                                let ageNum = today.getFullYear() - birthDate.getFullYear();
+                                                const m = today.getMonth() - birthDate.getMonth();
+                                                if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+                                                    ageNum--;
+                                                }
+                                                computedAge = String(ageNum >= 0 ? ageNum : 0);
+                                            }
+                                            setEditForm(prev => ({ ...prev, dob: dobVal, age: computedAge }));
+                                        }} 
+                                    />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="edit-age">Age (Years)</Label>
+                                    <Input 
+                                        id="edit-age"
+                                        type="number"
+                                        className="h-9 text-xs" 
+                                        value={editForm.age} 
+                                        onChange={e => setEditForm(prev => ({ ...prev, age: e.target.value }))} 
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Contact details */}
+                        <div className="space-y-2">
+                            <h4 className="font-bold text-primary uppercase tracking-wide text-[10px]">Contact Details</h4>
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="edit-mobile">Mobile Number *</Label>
+                                    <Input 
+                                        id="edit-mobile"
+                                        className="h-9 text-xs" 
+                                        value={editForm.mobile_no} 
+                                        onChange={e => setEditForm(prev => ({ ...prev, mobile_no: e.target.value }))} 
+                                    />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="edit-email">Email Address</Label>
+                                    <Input 
+                                        id="edit-email"
+                                        type="email"
+                                        className="h-9 text-xs" 
+                                        value={editForm.email} 
+                                        onChange={e => setEditForm(prev => ({ ...prev, email: e.target.value }))} 
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Address details */}
+                        <div className="space-y-2">
+                            <h4 className="font-bold text-primary uppercase tracking-wide text-[10px]">Address Details</h4>
+                            <div className="space-y-3">
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="edit-address">Flat/House/Street Address</Label>
+                                    <Input 
+                                        id="edit-address"
+                                        className="h-9 text-xs" 
+                                        value={editForm.address} 
+                                        onChange={e => setEditForm(prev => ({ ...prev, address: e.target.value }))} 
+                                    />
+                                </div>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div className="space-y-1.5">
+                                        <Label htmlFor="edit-locality">Locality</Label>
+                                        <Input 
+                                            id="edit-locality"
+                                            className="h-9 text-xs" 
+                                            value={editForm.locality} 
+                                            onChange={e => setEditForm(prev => ({ ...prev, locality: e.target.value }))} 
+                                        />
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <Label htmlFor="edit-city">City</Label>
+                                        <Input 
+                                            id="edit-city"
+                                            className="h-9 text-xs" 
+                                            value={editForm.city} 
+                                            onChange={e => setEditForm(prev => ({ ...prev, city: e.target.value }))} 
+                                        />
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-3 gap-3">
+                                    <div className="space-y-1.5">
+                                        <Label htmlFor="edit-state">State</Label>
+                                        <Input 
+                                            id="edit-state"
+                                            className="h-9 text-xs" 
+                                            value={editForm.state} 
+                                            onChange={e => setEditForm(prev => ({ ...prev, state: e.target.value }))} 
+                                        />
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <Label htmlFor="edit-pincode">Pincode</Label>
+                                        <Input 
+                                            id="edit-pincode"
+                                            className="h-9 text-xs" 
+                                            value={editForm.pincode} 
+                                            onChange={e => setEditForm(prev => ({ ...prev, pincode: e.target.value }))} 
+                                        />
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <Label htmlFor="edit-country">Country</Label>
+                                        <Input 
+                                            id="edit-country"
+                                            className="h-9 text-xs" 
+                                            value={editForm.country} 
+                                            onChange={e => setEditForm(prev => ({ ...prev, country: e.target.value }))} 
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <DialogFooter className="gap-2 sm:gap-0 pt-2 border-t mt-2">
+                        <Button 
+                            variant="outline" 
+                            className="text-xs"
+                            onClick={() => setIsEditModalOpen(false)}
+                        >
+                            Cancel
+                        </Button>
+                        <Button 
+                            className="text-xs font-bold" 
+                            disabled={!editForm.first_name.trim() || !editForm.last_name.trim() || !editForm.mobile_no.trim()}
+                            onClick={handleSaveProfile}
+                        >
+                            Save Updates
                         </Button>
                     </DialogFooter>
                 </DialogContent>

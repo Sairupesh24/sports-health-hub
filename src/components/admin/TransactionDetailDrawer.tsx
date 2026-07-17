@@ -1,6 +1,7 @@
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { InvoiceRender } from "../billing/InvoiceRender";
 import { Separator } from "@/components/ui/separator";
 import {
     Receipt, Banknote, Smartphone, Landmark, CreditCard,
@@ -32,6 +33,13 @@ export interface TransactionDetail {
     discount_authorized_by?: string;
     paid_amount?: number;
     remaining_due?: number;
+    subtotal?: number;
+    tax_amount?: number;
+    items?: any[];
+    organization_logo?: string;
+    organization_address?: string;
+    organization_official_name?: string;
+    client_mobile?: string;
     // Refund-specific
     refund_mode?: string;
     refund_transaction_id?: string;
@@ -199,6 +207,32 @@ export function TransactionDetailDrawer({ open, onOpenChange, transaction }: Tra
                             )}
                         </div>
                     </section>
+
+                    {!isRefund && (
+                        <section className="space-y-4 print:hidden">
+                            <div className="flex items-center justify-between">
+                                <h3 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Invoice Preview</h3>
+                                <Button 
+                                    size="sm" 
+                                    className="h-8 px-3 text-[10px] font-bold gap-1 bg-primary hover:bg-primary/90"
+                                    onClick={() => window.print()}
+                                >
+                                    <ExternalLink className="w-3.5 h-3.5" />
+                                    Print A5 Invoice
+                                </Button>
+                            </div>
+                            <div className="border border-slate-200 rounded-lg overflow-hidden p-1 bg-slate-50">
+                                <InvoiceRender bill={transaction as any} />
+                            </div>
+                        </section>
+                    )}
+
+                    {/* Print-only container to render invoice when print action is triggered */}
+                    {!isRefund && (
+                        <div className="hidden print:block absolute inset-0 bg-white">
+                            <InvoiceRender bill={transaction as any} />
+                        </div>
+                    )}
 
                     {/* Refund-specific: Authorization & Entitlements */}
                     {isRefund && (
