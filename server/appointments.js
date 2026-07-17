@@ -12,7 +12,7 @@ router.get('/', requireAuth, async (req, res) => {
         let query = `
             SELECT s.id, s.organization_id, s.client_id, s.scientist_id, s.entitlement_id, s.service_id, s.service_type, s.session_mode, s.scheduled_start, s.scheduled_end, s.actual_start, s.actual_end, s.status, s.cancellation_reason, s.is_unentitled, s.preference_type, s.is_flexible_routing, s.created_by, s.created_at, s.updated_at, s.group_name, s.session_location, s.session_notes, s.attachments, s.session_type_id,
                    COALESCE(s.therapist_id, s.scientist_id) as therapist_id,
-                   CASE WHEN s.client_id IS NOT NULL THEN
+                    CASE WHEN s.client_id IS NOT NULL THEN
                        json_build_object(
                            'id', c.id, 
                            'first_name', c.first_name, 
@@ -21,7 +21,12 @@ router.get('/', requireAuth, async (req, res) => {
                            'is_vip', c.is_vip,
                            'mobile_no', c.mobile_no,
                            'email', c.email,
-                           'sport', c.sport
+                           'sport', c.sport,
+                           'outstanding_balance', COALESCE((
+                               SELECT SUM(b.total - COALESCE((SELECT SUM(bp.amount) FROM billpayments bp WHERE bp.bill_id = b.id), 0))
+                               FROM bills b
+                               WHERE b.client_id = c.id AND b.status IN ('Pending', 'Partially Paid')
+                           ), 0)
                        )
                    ELSE NULL END as client,
                    json_build_object('first_name', p.first_name, 'last_name', p.last_name) as therapist,
@@ -84,8 +89,7 @@ router.post('/', requireAuth, async (req, res) => {
         const orgId = req.user.organization_id;
         const {
             client_id, therapist_id, service_id, service_type, scheduled_start, scheduled_end,
-            entitlement_id, session_mode, is_unentitled, preference_type, is_flexible_routing,
-            is_guest, guest_name, guest_contact, enquiry_id
+            entitlement_id, session_mode, is_unentitled, preference_type, is_flexible_routing
         } = req.body;
 
         await client.query('BEGIN');
@@ -155,18 +159,15 @@ router.post('/', requireAuth, async (req, res) => {
             INSERT INTO sessions (
                 organization_id, client_id, therapist_id, service_id, service_type, 
                 scheduled_start, scheduled_end, entitlement_id, 
-                session_mode, is_unentitled, preference_type, is_flexible_routing,
-                is_guest, guest_name, guest_contact, enquiry_id, created_by
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
+                session_mode, is_unentitled, preference_type, is_flexible_routing, created_by
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
             RETURNING *
         `;
         const values = [
-            orgId, client_id || null, therapist_id, service_id || null, service_type,
+            orgId, client_id, therapist_id, service_id || null, service_type,
             scheduled_start, scheduled_end, entitlement_id || null,
             session_mode || 'Individual', is_unentitled || false, 
-            preference_type || 'Strict', is_flexible_routing || false,
-            is_guest || false, guest_name || null, guest_contact || null, enquiry_id || null,
-            req.user.id
+            preference_type || 'Strict', is_flexible_routing || false, req.user.id
         ];
 
         const sessionRes = await client.query(insertQuery, values);
@@ -833,6 +834,31 @@ router.post('/:id/reschedule', requireAuth, async (req, res) => {
         // Call reschedule_session RPC via direct query
         const result = await db.query('SELECT reschedule_session($1, $2, $3)', [id, new_start, new_end]);
         res.json({ new_session_id: result.rows[0].reschedule_session });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// GET attendees for a group session
+router.get('/:id/attendees', requireAuth, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const orgId = req.user.organization_id;
+
+        const query = `
+            SELECT c.id, c.first_name, c.last_name, c.uhid,
+                   COALESCE((
+                       SELECT SUM(b.total - COALESCE((SELECT SUM(bp.amount) FROM billpayments bp WHERE bp.bill_id = b.id), 0))
+                       FROM bills b
+                       WHERE b.client_id = c.id AND b.status IN ('Pending', 'Partially Paid')
+                   ), 0) as outstanding_balance
+            FROM group_attendance ga
+            JOIN clients c ON ga.client_id = c.id
+            JOIN sessions s ON ga.session_id = s.id
+            WHERE ga.session_id = $1 AND s.organization_id = $2
+        `;
+        const result = await db.query(query, [id, orgId]);
+        res.json(result.rows);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }

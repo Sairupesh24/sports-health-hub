@@ -2150,4 +2150,170 @@ router.get('/performance-assessments', requireAuth, async (req, res) => {
     }
 });
 
+// GET Recurring Questionnaires
+router.get('/recurring-questionnaires', requireAuth, async (req, res) => {
+    try {
+        const orgId = req.user.organization_id;
+        const result = await db.query(`
+            SELECT rq.*, q.name as questionnaire_name,
+                   p.first_name || ' ' || p.last_name as specialist_name
+            FROM recurring_questionnaires rq
+            LEFT JOIN questionnaires q ON rq.questionnaire_id = q.id
+            LEFT JOIN profiles p ON rq.specialist_id = p.id
+            WHERE rq.organization_id = $1
+            ORDER BY rq.created_at DESC
+        `, [orgId]);
+        res.json(result.rows);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// POST Create Recurring Questionnaire
+router.post('/recurring-questionnaires', requireAuth, async (req, res) => {
+    try {
+        const { questionnaire_id, client_ids, recurrence_type, next_run } = req.body;
+        const orgId = req.user.organization_id;
+        if (!questionnaire_id || !client_ids || !recurrence_type) {
+            return res.status(400).json({ error: 'Missing required fields' });
+        }
+        const result = await db.query(`
+            INSERT INTO recurring_questionnaires (organization_id, questionnaire_id, specialist_id, client_ids, recurrence_type, status, next_run)
+            VALUES ($1, $2, $3, $4, $5, 'active', COALESCE($6, CURRENT_TIMESTAMP))
+            RETURNING *
+        `, [orgId, questionnaire_id, req.user.id, client_ids, recurrence_type, next_run]);
+        res.status(201).json(result.rows[0]);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// PATCH Update Recurring Questionnaire
+router.patch('/recurring-questionnaires/:id', requireAuth, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const orgId = req.user.organization_id;
+        const { status, client_ids, recurrence_type, next_run } = req.body;
+        const result = await db.query(`
+            UPDATE recurring_questionnaires
+            SET status = COALESCE($1, status),
+                client_ids = COALESCE($2, client_ids),
+                recurrence_type = COALESCE($3, recurrence_type),
+                next_run = COALESCE($4, next_run)
+            WHERE id = $5 AND organization_id = $6
+            RETURNING *
+        `, [status, client_ids, recurrence_type, next_run, id, orgId]);
+        res.json(result.rows[0]);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// DELETE Recurring Questionnaire
+router.delete('/recurring-questionnaires/:id', requireAuth, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const orgId = req.user.organization_id;
+        await db.query('DELETE FROM recurring_questionnaires WHERE id = $1 AND organization_id = $2', [id, orgId]);
+        res.json({ success: true });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Background Scheduler for Recurring Questionnaires
+async function processRecurringQuestionnaires() {
+    const client = await db.connect();
+    try {
+        await client.query('BEGIN');
+        
+        // Find due recurring questionnaires
+        const dueRes = await client.query(`
+            SELECT rq.*, q.name as questionnaire_name, p.first_name || ' ' || p.last_name as specialist_name
+            FROM recurring_questionnaires rq
+            JOIN questionnaires q ON rq.questionnaire_id = q.id
+            JOIN profiles p ON rq.specialist_id = p.id
+            WHERE rq.status = 'active' AND rq.next_run <= CURRENT_TIMESTAMP
+        `);
+
+        if (dueRes.rows.length > 0) {
+            console.log(`[QUESTIONNAIRE SCHEDULER] Found ${dueRes.rows.length} recurring questionnaires due.`);
+            
+            for (const rq of dueRes.rows) {
+                // 1. Create a bulk assignment record
+                const bulkRes = await client.query(`
+                    INSERT INTO bulk_assignments (organization_id, questionnaire_id, specialist_id, total_clients, responded_count, status)
+                    VALUES ($1, $2, $3, $4, 0, 'active')
+                    RETURNING id
+                `, [rq.organization_id, rq.questionnaire_id, rq.specialist_id, rq.client_ids.length]);
+                const bulkId = bulkRes.rows[0].id;
+
+                // 2. Fetch notification settings for the organization
+                const settingsRes = await client.query(
+                    'SELECT enable_in_app_notifications, notify_questionnaire_assigned FROM organization_notification_settings WHERE organization_id = $1',
+                    [rq.organization_id]
+                );
+                const shouldNotify = settingsRes.rows.length > 0
+                    ? (settingsRes.rows[0].enable_in_app_notifications && settingsRes.rows[0].notify_questionnaire_assigned)
+                    : true;
+
+                // 3. Create individual form responses & notifications
+                for (const clientId of rq.client_ids) {
+                    await client.query(`
+                        INSERT INTO form_responses (organization_id, form_id, client_id, specialist_id, bulk_assignment_id, status)
+                        VALUES ($1, $2, $3, $4, $5, 'pending')
+                    `, [rq.organization_id, rq.questionnaire_id, clientId, rq.specialist_id, bulkId]);
+
+                    if (shouldNotify) {
+                        // Check if client is VIP
+                        const vipRes = await client.query('SELECT is_vip FROM clients WHERE id = $1', [clientId]);
+                        const isVip = vipRes.rows.length > 0 ? vipRes.rows[0].is_vip : false;
+
+                        await client.query(`
+                            INSERT INTO notifications (
+                                organization_id, title, content, type, target_user_id, category, is_vip, sender_id
+                            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                        `, [
+                            rq.organization_id,
+                            'New Questionnaire Assigned',
+                            `${rq.specialist_name} has assigned a new form: ${rq.questionnaire_name}. Please complete the assessment.`,
+                            'info',
+                            clientId,
+                            'in_app',
+                            isVip,
+                            rq.specialist_id
+                        ]);
+                    }
+                }
+
+                // 4. Calculate next_run date based on recurrence_type
+                let intervalStr = '7 days';
+                if (rq.recurrence_type === 'daily') intervalStr = '1 day';
+                else if (rq.recurrence_type === 'biweekly') intervalStr = '14 days';
+                else if (rq.recurrence_type === 'monthly') intervalStr = '1 month';
+
+                await client.query(`
+                    UPDATE recurring_questionnaires
+                    SET last_run = CURRENT_TIMESTAMP,
+                        next_run = next_run + CAST($1 AS INTERVAL)
+                    WHERE id = $2
+                `, [intervalStr, rq.id]);
+
+                console.log(`[QUESTIONNAIRE SCHEDULER] Dispatched bulk assignment ${bulkId} for schedule ${rq.id}.`);
+            }
+        }
+        await client.query('COMMIT');
+    } catch (error) {
+        await client.query('ROLLBACK');
+        console.error('[QUESTIONNAIRE SCHEDULER] Error processing schedules:', error);
+    } finally {
+        client.release();
+    }
+}
+
+// Run immediately on startup after 8 seconds
+setTimeout(processRecurringQuestionnaires, 8000);
+// Check every 10 minutes
+setInterval(processRecurringQuestionnaires, 600000);
+
 export default router;

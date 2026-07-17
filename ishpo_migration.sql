@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict qOIxbVypbv0GNDiMLlgnbYCU6eymVXpS097YPCq6TwH52WqsiI1BPtXSle5gCCG
+\restrict XVkdWjIhrNfV4WkRO17mG2JpVKfcf19lEFBOvzsZiwpe5RjHssyd9F8Rpdg9sYK
 
 -- Dumped from database version 18.3
 -- Dumped by pg_dump version 18.3
@@ -19,8 +19,268 @@ SET xmloption = content;
 SET client_min_messages = warning;
 SET row_security = off;
 
+ALTER TABLE ONLY public.workoutitems DROP CONSTRAINT workoutitems_workout_day_id_fkey;
+ALTER TABLE ONLY public.workoutdays DROP CONSTRAINT workoutdays_program_id_fkey;
+ALTER TABLE ONLY public.workoutdays DROP CONSTRAINT workoutdays_organization_id_fkey;
+ALTER TABLE ONLY public.wellness_logs DROP CONSTRAINT wellness_logs_organization_id_fkey;
+ALTER TABLE ONLY public.wellness_logs DROP CONSTRAINT wellness_logs_athlete_id_fkey;
+ALTER TABLE ONLY public.waitlist DROP CONSTRAINT waitlist_therapist_id_fkey;
+ALTER TABLE ONLY public.waitlist DROP CONSTRAINT waitlist_service_id_fkey;
+ALTER TABLE ONLY public.waitlist DROP CONSTRAINT waitlist_organization_id_fkey;
+ALTER TABLE ONLY public.waitlist DROP CONSTRAINT waitlist_client_id_fkey;
+ALTER TABLE ONLY public.uhidsequences DROP CONSTRAINT uhidsequences_organization_id_fkey;
+ALTER TABLE ONLY public.trainingprograms DROP CONSTRAINT trainingprograms_scientist_id_fkey;
+ALTER TABLE ONLY public.trainingprograms DROP CONSTRAINT trainingprograms_organization_id_fkey;
+ALTER TABLE ONLY public.subscriptions DROP CONSTRAINT subscriptions_package_id_fkey;
+ALTER TABLE ONLY public.subscriptions DROP CONSTRAINT subscriptions_organization_id_fkey;
+ALTER TABLE ONLY public.subscriptions DROP CONSTRAINT subscriptions_client_id_fkey;
+ALTER TABLE ONLY public.subscription_logs DROP CONSTRAINT subscription_logs_subscription_id_fkey;
+ALTER TABLE ONLY public.subscription_logs DROP CONSTRAINT subscription_logs_organization_id_fkey;
+ALTER TABLE ONLY public.sessions DROP CONSTRAINT sessions_therapist_id_fkey;
+ALTER TABLE ONLY public.sessions DROP CONSTRAINT sessions_service_id_fkey;
+ALTER TABLE ONLY public.sessions DROP CONSTRAINT sessions_scientist_id_fkey;
+ALTER TABLE ONLY public.sessions DROP CONSTRAINT sessions_organization_id_fkey;
+ALTER TABLE ONLY public.sessions DROP CONSTRAINT sessions_entitlement_id_fkey;
+ALTER TABLE ONLY public.sessions DROP CONSTRAINT sessions_created_by_fkey;
+ALTER TABLE ONLY public.sessions DROP CONSTRAINT sessions_client_id_fkey;
+ALTER TABLE ONLY public.services DROP CONSTRAINT services_organization_id_fkey;
+ALTER TABLE ONLY public.scientific_resources DROP CONSTRAINT scientific_resources_organization_id_fkey;
+ALTER TABLE ONLY public.scientific_resources DROP CONSTRAINT scientific_resources_created_by_fkey;
+ALTER TABLE ONLY public.scientific_resources DROP CONSTRAINT scientific_resources_athlete_id_fkey;
+ALTER TABLE ONLY public.report_templates DROP CONSTRAINT report_templates_organization_id_fkey;
+ALTER TABLE ONLY public.report_templates DROP CONSTRAINT report_templates_created_by_fkey;
+ALTER TABLE ONLY public.rehab_progress DROP CONSTRAINT rehab_progress_recorded_by_fkey;
+ALTER TABLE ONLY public.rehab_progress DROP CONSTRAINT rehab_progress_injury_id_fkey;
+ALTER TABLE ONLY public.refunds DROP CONSTRAINT refunds_organization_id_fkey;
+ALTER TABLE ONLY public.refunds DROP CONSTRAINT refunds_client_id_fkey;
+ALTER TABLE ONLY public.refunds DROP CONSTRAINT refunds_bill_id_fkey;
+ALTER TABLE ONLY public.referralsources DROP CONSTRAINT referralsources_organization_id_fkey;
+ALTER TABLE ONLY public.questionnaires DROP CONSTRAINT questionnaires_organization_id_fkey;
+ALTER TABLE ONLY public.questionnaires DROP CONSTRAINT questionnaires_created_by_fkey;
+ALTER TABLE ONLY public.program_assignments DROP CONSTRAINT program_assignments_program_id_fkey;
+ALTER TABLE ONLY public.program_assignments DROP CONSTRAINT program_assignments_athlete_id_fkey;
+ALTER TABLE ONLY public.profiles DROP CONSTRAINT profiles_organization_id_fkey;
+ALTER TABLE ONLY public.profiles DROP CONSTRAINT profiles_id_fkey;
+ALTER TABLE ONLY public.physiosessiondetails DROP CONSTRAINT physiosessiondetails_session_id_fkey;
+ALTER TABLE ONLY public.performance_assessments DROP CONSTRAINT performance_assessments_recorded_by_fkey;
+ALTER TABLE ONLY public.performance_assessments DROP CONSTRAINT performance_assessments_organization_id_fkey;
+ALTER TABLE ONLY public.performance_assessments DROP CONSTRAINT performance_assessments_athlete_id_fkey;
+ALTER TABLE ONLY public.packageservices DROP CONSTRAINT packageservices_service_id_fkey;
+ALTER TABLE ONLY public.packageservices DROP CONSTRAINT packageservices_package_id_fkey;
+ALTER TABLE ONLY public.packages DROP CONSTRAINT packages_organization_id_fkey;
+ALTER TABLE ONLY public.notifications DROP CONSTRAINT notifications_organization_id_fkey;
+ALTER TABLE ONLY public.notifications DROP CONSTRAINT notifications_created_by_fkey;
+ALTER TABLE ONLY public.notification_reads DROP CONSTRAINT notification_reads_user_id_fkey;
+ALTER TABLE ONLY public.notification_reads DROP CONSTRAINT notification_reads_notification_id_fkey;
+ALTER TABLE ONLY public.max_pr_records DROP CONSTRAINT max_pr_records_exercise_id_fkey;
+ALTER TABLE ONLY public.max_pr_records DROP CONSTRAINT max_pr_records_athlete_id_fkey;
+ALTER TABLE ONLY public.locations DROP CONSTRAINT locations_organization_id_fkey;
+ALTER TABLE ONLY public.liftitems DROP CONSTRAINT liftitems_workout_item_id_fkey;
+ALTER TABLE ONLY public.liftitems DROP CONSTRAINT liftitems_exercise_id_fkey;
+ALTER TABLE ONLY public.injury_master_data DROP CONSTRAINT injury_master_data_organization_id_fkey;
+ALTER TABLE ONLY public.injuries DROP CONSTRAINT injuries_organization_id_fkey;
+ALTER TABLE ONLY public.injuries DROP CONSTRAINT injuries_client_id_fkey;
+ALTER TABLE ONLY public.hrleaves DROP CONSTRAINT hrleaves_organization_id_fkey;
+ALTER TABLE ONLY public.hrleaves DROP CONSTRAINT hrleaves_employee_id_fkey;
+ALTER TABLE ONLY public.hrleaves DROP CONSTRAINT hrleaves_approved_by_fkey;
+ALTER TABLE ONLY public.hrattendancelogs DROP CONSTRAINT hrattendancelogs_profile_id_fkey;
+ALTER TABLE ONLY public.hrattendancelogs DROP CONSTRAINT hrattendancelogs_organization_id_fkey;
+ALTER TABLE ONLY public.hr_jobs DROP CONSTRAINT hr_jobs_organization_id_fkey;
+ALTER TABLE ONLY public.hr_employees DROP CONSTRAINT hr_employees_profile_id_fkey;
+ALTER TABLE ONLY public.hr_employees DROP CONSTRAINT hr_employees_organization_id_fkey;
+ALTER TABLE ONLY public.hr_employees DROP CONSTRAINT hr_employees_job_id_fkey;
+ALTER TABLE ONLY public.group_attendance DROP CONSTRAINT group_attendance_session_id_fkey;
+ALTER TABLE ONLY public.group_attendance DROP CONSTRAINT group_attendance_client_id_fkey;
+ALTER TABLE ONLY public.form_responses DROP CONSTRAINT form_responses_specialist_id_fkey;
+ALTER TABLE ONLY public.form_responses DROP CONSTRAINT form_responses_organization_id_fkey;
+ALTER TABLE ONLY public.form_responses DROP CONSTRAINT form_responses_client_id_fkey;
+ALTER TABLE ONLY public.form_responses DROP CONSTRAINT form_responses_bulk_assignment_id_fkey;
+ALTER TABLE ONLY public.exercises DROP CONSTRAINT exercises_organization_id_fkey;
+ALTER TABLE ONLY public.enquiryinteractions DROP CONSTRAINT enquiryinteractions_enquiry_id_fkey;
+ALTER TABLE ONLY public.enquiryinteractions DROP CONSTRAINT enquiryinteractions_created_by_fkey;
+ALTER TABLE ONLY public.enquiries DROP CONSTRAINT enquiries_organization_id_fkey;
+ALTER TABLE ONLY public.enquiries DROP CONSTRAINT enquiries_linked_client_id_fkey;
+ALTER TABLE ONLY public.emergency_alerts DROP CONSTRAINT emergency_alerts_staff_id_fkey;
+ALTER TABLE ONLY public.emergency_alerts DROP CONSTRAINT emergency_alerts_organization_id_fkey;
+ALTER TABLE ONLY public.consultantavailability DROP CONSTRAINT consultantavailability_organization_id_fkey;
+ALTER TABLE ONLY public.consultantavailability DROP CONSTRAINT consultantavailability_consultant_id_fkey;
+ALTER TABLE ONLY public.consultant_services DROP CONSTRAINT consultant_services_service_id_fkey;
+ALTER TABLE ONLY public.consultant_services DROP CONSTRAINT consultant_services_organization_id_fkey;
+ALTER TABLE ONLY public.consultant_services DROP CONSTRAINT consultant_services_consultant_id_fkey;
+ALTER TABLE ONLY public.clients DROP CONSTRAINT clients_profile_id_fkey;
+ALTER TABLE ONLY public.clients DROP CONSTRAINT clients_organization_id_fkey;
+ALTER TABLE ONLY public.clients DROP CONSTRAINT clients_location_id_fkey;
+ALTER TABLE ONLY public.clients DROP CONSTRAINT clients_created_by_fkey;
+ALTER TABLE ONLY public.clients DROP CONSTRAINT clients_assigned_consultant_id_fkey;
+ALTER TABLE ONLY public.clientorganizations DROP CONSTRAINT clientorganizations_organization_id_fkey;
+ALTER TABLE ONLY public.cliententitlements DROP CONSTRAINT cliententitlements_service_id_fkey;
+ALTER TABLE ONLY public.cliententitlements DROP CONSTRAINT cliententitlements_package_id_fkey;
+ALTER TABLE ONLY public.cliententitlements DROP CONSTRAINT cliententitlements_organization_id_fkey;
+ALTER TABLE ONLY public.cliententitlements DROP CONSTRAINT cliententitlements_client_id_fkey;
+ALTER TABLE ONLY public.clientdocuments DROP CONSTRAINT clientdocuments_uploaded_by_fkey;
+ALTER TABLE ONLY public.clientdocuments DROP CONSTRAINT clientdocuments_organization_id_fkey;
+ALTER TABLE ONLY public.clientdocuments DROP CONSTRAINT clientdocuments_client_id_fkey;
+ALTER TABLE ONLY public.clientadminnotes DROP CONSTRAINT clientadminnotes_updated_by_fkey;
+ALTER TABLE ONLY public.clientadminnotes DROP CONSTRAINT clientadminnotes_client_id_fkey;
+ALTER TABLE ONLY public.client_groups DROP CONSTRAINT client_groups_organization_id_fkey;
+ALTER TABLE ONLY public.client_groups DROP CONSTRAINT client_groups_created_by_fkey;
+ALTER TABLE ONLY public.client_group_members DROP CONSTRAINT client_group_members_group_id_fkey;
+ALTER TABLE ONLY public.client_group_members DROP CONSTRAINT client_group_members_client_id_fkey;
+ALTER TABLE ONLY public.client_group_members DROP CONSTRAINT client_group_members_added_by_fkey;
+ALTER TABLE ONLY public.bulk_assignments DROP CONSTRAINT bulk_assignments_specialist_id_fkey;
+ALTER TABLE ONLY public.bulk_assignments DROP CONSTRAINT bulk_assignments_organization_id_fkey;
+ALTER TABLE ONLY public.bills DROP CONSTRAINT bills_subscription_id_fkey;
+ALTER TABLE ONLY public.bills DROP CONSTRAINT bills_organization_id_fkey;
+ALTER TABLE ONLY public.bills DROP CONSTRAINT bills_client_id_fkey;
+ALTER TABLE ONLY public.bills DROP CONSTRAINT bills_billed_by_id_fkey;
+ALTER TABLE ONLY public.billpayments DROP CONSTRAINT billpayments_organization_id_fkey;
+ALTER TABLE ONLY public.billpayments DROP CONSTRAINT billpayments_client_id_fkey;
+ALTER TABLE ONLY public.billpayments DROP CONSTRAINT billpayments_bill_id_fkey;
+ALTER TABLE ONLY public.billitems DROP CONSTRAINT billitems_organization_id_fkey;
+ALTER TABLE ONLY public.billitems DROP CONSTRAINT billitems_bill_id_fkey;
+ALTER TABLE ONLY public.availabilityexceptions DROP CONSTRAINT availabilityexceptions_organization_id_fkey;
+ALTER TABLE ONLY public.availabilityexceptions DROP CONSTRAINT availabilityexceptions_consultant_id_fkey;
+ALTER TABLE ONLY public.authsessions DROP CONSTRAINT authsessions_user_id_fkey;
+ALTER TABLE ONLY public.athlete_workout_completions DROP CONSTRAINT athlete_workout_completions_workout_day_id_fkey;
+ALTER TABLE ONLY public.athlete_workout_completions DROP CONSTRAINT athlete_workout_completions_organization_id_fkey;
+ALTER TABLE ONLY public.athlete_workout_completions DROP CONSTRAINT athlete_workout_completions_athlete_id_fkey;
+ALTER TABLE ONLY public.athlete_item_logs DROP CONSTRAINT athlete_item_logs_workout_item_id_fkey;
+ALTER TABLE ONLY public.athlete_item_logs DROP CONSTRAINT athlete_item_logs_organization_id_fkey;
+ALTER TABLE ONLY public.athlete_item_logs DROP CONSTRAINT athlete_item_logs_athlete_id_fkey;
+ALTER TABLE ONLY public.workoutitems DROP CONSTRAINT workoutitems_pkey;
+ALTER TABLE ONLY public.workoutdays DROP CONSTRAINT workoutdays_pkey;
+ALTER TABLE ONLY public.wellness_logs DROP CONSTRAINT wellness_logs_pkey;
+ALTER TABLE ONLY public.waitlist DROP CONSTRAINT waitlist_pkey;
+ALTER TABLE ONLY public.users DROP CONSTRAINT users_pkey;
+ALTER TABLE ONLY public.users DROP CONSTRAINT users_email_key;
+ALTER TABLE ONLY public.uhidsequences DROP CONSTRAINT uhidsequences_pkey;
+ALTER TABLE ONLY public.uhidsequences DROP CONSTRAINT uhidsequences_organization_id_year_month_key;
+ALTER TABLE ONLY public.trainingprograms DROP CONSTRAINT trainingprograms_pkey;
+ALTER TABLE ONLY public.subscriptions DROP CONSTRAINT subscriptions_pkey;
+ALTER TABLE ONLY public.subscription_logs DROP CONSTRAINT subscription_logs_pkey;
+ALTER TABLE ONLY public.sessions DROP CONSTRAINT sessions_pkey;
+ALTER TABLE ONLY public.services DROP CONSTRAINT services_pkey;
+ALTER TABLE ONLY public.scientific_resources DROP CONSTRAINT scientific_resources_pkey;
+ALTER TABLE ONLY public.report_templates DROP CONSTRAINT report_templates_pkey;
+ALTER TABLE ONLY public.rehab_progress DROP CONSTRAINT rehab_progress_pkey;
+ALTER TABLE ONLY public.refunds DROP CONSTRAINT refunds_pkey;
+ALTER TABLE ONLY public.referralsources DROP CONSTRAINT referralsources_pkey;
+ALTER TABLE ONLY public.referralsources DROP CONSTRAINT referralsources_organization_id_name_key;
+ALTER TABLE ONLY public.questionnaires DROP CONSTRAINT questionnaires_pkey;
+ALTER TABLE ONLY public.program_assignments DROP CONSTRAINT program_assignments_pkey;
+ALTER TABLE ONLY public.profiles DROP CONSTRAINT profiles_pkey;
+ALTER TABLE ONLY public.physiosessiondetails DROP CONSTRAINT physiosessiondetails_session_id_key;
+ALTER TABLE ONLY public.physiosessiondetails DROP CONSTRAINT physiosessiondetails_pkey;
+ALTER TABLE ONLY public.performance_assessments DROP CONSTRAINT performance_assessments_pkey;
+ALTER TABLE ONLY public.packageservices DROP CONSTRAINT packageservices_pkey;
+ALTER TABLE ONLY public.packages DROP CONSTRAINT packages_pkey;
+ALTER TABLE ONLY public.packages DROP CONSTRAINT packages_organization_id_name_key;
+ALTER TABLE ONLY public.organizations DROP CONSTRAINT organizations_pkey;
+ALTER TABLE ONLY public.notifications DROP CONSTRAINT notifications_pkey;
+ALTER TABLE ONLY public.notification_reads DROP CONSTRAINT notification_reads_pkey;
+ALTER TABLE ONLY public.max_pr_records DROP CONSTRAINT max_pr_records_pkey;
+ALTER TABLE ONLY public.locations DROP CONSTRAINT locations_pkey;
+ALTER TABLE ONLY public.liftitems DROP CONSTRAINT liftitems_pkey;
+ALTER TABLE ONLY public.injury_master_data DROP CONSTRAINT injury_master_data_pkey;
+ALTER TABLE ONLY public.injury_master_data DROP CONSTRAINT injury_master_data_organization_id_region_injury_type_diagn_key;
+ALTER TABLE ONLY public.injuries DROP CONSTRAINT injuries_pkey;
+ALTER TABLE ONLY public.hrleaves DROP CONSTRAINT hrleaves_pkey;
+ALTER TABLE ONLY public.hrattendancelogs DROP CONSTRAINT hrattendancelogs_pkey;
+ALTER TABLE ONLY public.hr_jobs DROP CONSTRAINT hr_jobs_pkey;
+ALTER TABLE ONLY public.hr_employees DROP CONSTRAINT hr_employees_profile_id_key;
+ALTER TABLE ONLY public.hr_employees DROP CONSTRAINT hr_employees_pkey;
+ALTER TABLE ONLY public.group_attendance DROP CONSTRAINT group_attendance_session_id_client_id_key;
+ALTER TABLE ONLY public.group_attendance DROP CONSTRAINT group_attendance_pkey;
+ALTER TABLE ONLY public.form_responses DROP CONSTRAINT form_responses_pkey;
+ALTER TABLE ONLY public.exercises DROP CONSTRAINT exercises_pkey;
+ALTER TABLE ONLY public.exercises DROP CONSTRAINT exercises_organization_id_name_key;
+ALTER TABLE ONLY public.enquiryinteractions DROP CONSTRAINT enquiryinteractions_pkey;
+ALTER TABLE ONLY public.enquiries DROP CONSTRAINT enquiries_pkey;
+ALTER TABLE ONLY public.emergency_alerts DROP CONSTRAINT emergency_alerts_pkey;
+ALTER TABLE ONLY public.consultantavailability DROP CONSTRAINT consultantavailability_pkey;
+ALTER TABLE ONLY public.consultantavailability DROP CONSTRAINT consultantavailability_consultant_id_day_of_week_key;
+ALTER TABLE ONLY public.consultant_services DROP CONSTRAINT consultant_services_pkey;
+ALTER TABLE ONLY public.clients DROP CONSTRAINT clients_uhid_key;
+ALTER TABLE ONLY public.clients DROP CONSTRAINT clients_pkey;
+ALTER TABLE ONLY public.clientorganizations DROP CONSTRAINT clientorganizations_pkey;
+ALTER TABLE ONLY public.clientorganizations DROP CONSTRAINT clientorganizations_organization_id_name_key;
+ALTER TABLE ONLY public.cliententitlements DROP CONSTRAINT cliententitlements_pkey;
+ALTER TABLE ONLY public.clientdocuments DROP CONSTRAINT clientdocuments_pkey;
+ALTER TABLE ONLY public.clientadminnotes DROP CONSTRAINT clientadminnotes_pkey;
+ALTER TABLE ONLY public.client_groups DROP CONSTRAINT client_groups_pkey;
+ALTER TABLE ONLY public.client_groups DROP CONSTRAINT client_groups_organization_id_name_key;
+ALTER TABLE ONLY public.client_group_members DROP CONSTRAINT client_group_members_pkey;
+ALTER TABLE ONLY public.bulk_assignments DROP CONSTRAINT bulk_assignments_pkey;
+ALTER TABLE ONLY public.bills DROP CONSTRAINT bills_pkey;
+ALTER TABLE ONLY public.billpayments DROP CONSTRAINT billpayments_pkey;
+ALTER TABLE ONLY public.billitems DROP CONSTRAINT billitems_pkey;
+ALTER TABLE ONLY public.availabilityexceptions DROP CONSTRAINT availabilityexceptions_pkey;
+ALTER TABLE ONLY public.authsessions DROP CONSTRAINT authsessions_pkey;
+ALTER TABLE ONLY public.athlete_workout_completions DROP CONSTRAINT athlete_workout_completions_pkey;
+ALTER TABLE ONLY public.athlete_item_logs DROP CONSTRAINT athlete_item_logs_pkey;
+DROP TABLE public.workoutitems;
+DROP TABLE public.workoutdays;
+DROP TABLE public.wellness_logs;
+DROP TABLE public.waitlist;
+DROP TABLE public.users;
+DROP TABLE public.uhidsequences;
+DROP TABLE public.trainingprograms;
+DROP TABLE public.subscriptions;
+DROP TABLE public.subscription_logs;
+DROP VIEW public.sessiontypes;
+DROP TABLE public.sessions;
+DROP TABLE public.services;
+DROP VIEW public.servicepackages;
+DROP TABLE public.scientific_resources;
+DROP TABLE public.report_templates;
+DROP TABLE public.rehab_progress;
+DROP TABLE public.refunds;
+DROP TABLE public.referralsources;
+DROP TABLE public.questionnaires;
+DROP TABLE public.program_assignments;
+DROP TABLE public.profiles;
+DROP TABLE public.physiosessiondetails;
+DROP TABLE public.performance_assessments;
+DROP TABLE public.packageservices;
+DROP TABLE public.packages;
+DROP TABLE public.organizations;
+DROP TABLE public.notifications;
+DROP TABLE public.notification_reads;
+DROP TABLE public.max_pr_records;
+DROP TABLE public.locations;
+DROP TABLE public.liftitems;
+DROP TABLE public.injury_master_data;
+DROP TABLE public.injuries;
+DROP TABLE public.hrleaves;
+DROP TABLE public.hrattendancelogs;
+DROP TABLE public.hr_jobs;
+DROP TABLE public.hr_employees;
+DROP TABLE public.group_attendance;
+DROP TABLE public.form_responses;
+DROP TABLE public.exercises;
+DROP TABLE public.enquiryinteractions;
+DROP TABLE public.enquiries;
+DROP TABLE public.emergency_alerts;
+DROP TABLE public.consultantavailability;
+DROP TABLE public.consultant_services;
+DROP TABLE public.clients;
+DROP TABLE public.clientorganizations;
+DROP TABLE public.cliententitlements;
+DROP TABLE public.clientdocuments;
+DROP TABLE public.clientadminnotes;
+DROP TABLE public.client_groups;
+DROP TABLE public.client_group_members;
+DROP TABLE public.bulk_assignments;
+DROP TABLE public.bills;
+DROP TABLE public.billpayments;
+DROP TABLE public.billitems;
+DROP TABLE public.availabilityexceptions;
+DROP TABLE public.authsessions;
+DROP TABLE public.athlete_workout_completions;
+DROP TABLE public.athlete_item_logs;
+DROP FUNCTION public.generate_uhid_func(p_organization_id uuid);
 --
--- Name: generate_uhid_func(uuid); Type: FUNCTION; Schema: public; Owner: -
+-- Name: generate_uhid_func(uuid); Type: FUNCTION; Schema: public; Owner: skavuturi
 --
 
 CREATE FUNCTION public.generate_uhid_func(p_organization_id uuid) RETURNS text
@@ -52,26 +312,14 @@ CREATE FUNCTION public.generate_uhid_func(p_organization_id uuid) RETURNS text
       $$;
 
 
---
--- Name: notify_system_notification(); Type: FUNCTION; Schema: public; Owner: -
---
-
-CREATE FUNCTION public.notify_system_notification() RETURNS trigger
-    LANGUAGE plpgsql
-    AS $$
-      BEGIN
-        PERFORM pg_notify('system_notifications', row_to_json(NEW)::text);
-        RETURN NEW;
-      END;
-      $$;
-
+ALTER FUNCTION public.generate_uhid_func(p_organization_id uuid) OWNER TO skavuturi;
 
 SET default_tablespace = '';
 
 SET default_table_access_method = heap;
 
 --
--- Name: athlete_item_logs; Type: TABLE; Schema: public; Owner: -
+-- Name: athlete_item_logs; Type: TABLE; Schema: public; Owner: skavuturi
 --
 
 CREATE TABLE public.athlete_item_logs (
@@ -88,8 +336,10 @@ CREATE TABLE public.athlete_item_logs (
 );
 
 
+ALTER TABLE public.athlete_item_logs OWNER TO skavuturi;
+
 --
--- Name: athlete_workout_completions; Type: TABLE; Schema: public; Owner: -
+-- Name: athlete_workout_completions; Type: TABLE; Schema: public; Owner: skavuturi
 --
 
 CREATE TABLE public.athlete_workout_completions (
@@ -104,8 +354,10 @@ CREATE TABLE public.athlete_workout_completions (
 );
 
 
+ALTER TABLE public.athlete_workout_completions OWNER TO skavuturi;
+
 --
--- Name: authsessions; Type: TABLE; Schema: public; Owner: -
+-- Name: authsessions; Type: TABLE; Schema: public; Owner: skavuturi
 --
 
 CREATE TABLE public.authsessions (
@@ -116,8 +368,10 @@ CREATE TABLE public.authsessions (
 );
 
 
+ALTER TABLE public.authsessions OWNER TO skavuturi;
+
 --
--- Name: availabilityexceptions; Type: TABLE; Schema: public; Owner: -
+-- Name: availabilityexceptions; Type: TABLE; Schema: public; Owner: skavuturi
 --
 
 CREATE TABLE public.availabilityexceptions (
@@ -132,8 +386,10 @@ CREATE TABLE public.availabilityexceptions (
 );
 
 
+ALTER TABLE public.availabilityexceptions OWNER TO skavuturi;
+
 --
--- Name: billitems; Type: TABLE; Schema: public; Owner: -
+-- Name: billitems; Type: TABLE; Schema: public; Owner: skavuturi
 --
 
 CREATE TABLE public.billitems (
@@ -148,8 +404,10 @@ CREATE TABLE public.billitems (
 );
 
 
+ALTER TABLE public.billitems OWNER TO skavuturi;
+
 --
--- Name: billpayments; Type: TABLE; Schema: public; Owner: -
+-- Name: billpayments; Type: TABLE; Schema: public; Owner: skavuturi
 --
 
 CREATE TABLE public.billpayments (
@@ -165,8 +423,10 @@ CREATE TABLE public.billpayments (
 );
 
 
+ALTER TABLE public.billpayments OWNER TO skavuturi;
+
 --
--- Name: bills; Type: TABLE; Schema: public; Owner: -
+-- Name: bills; Type: TABLE; Schema: public; Owner: skavuturi
 --
 
 CREATE TABLE public.bills (
@@ -194,8 +454,10 @@ CREATE TABLE public.bills (
 );
 
 
+ALTER TABLE public.bills OWNER TO skavuturi;
+
 --
--- Name: bulk_assignments; Type: TABLE; Schema: public; Owner: -
+-- Name: bulk_assignments; Type: TABLE; Schema: public; Owner: skavuturi
 --
 
 CREATE TABLE public.bulk_assignments (
@@ -210,8 +472,10 @@ CREATE TABLE public.bulk_assignments (
 );
 
 
+ALTER TABLE public.bulk_assignments OWNER TO skavuturi;
+
 --
--- Name: client_group_members; Type: TABLE; Schema: public; Owner: -
+-- Name: client_group_members; Type: TABLE; Schema: public; Owner: skavuturi
 --
 
 CREATE TABLE public.client_group_members (
@@ -222,8 +486,10 @@ CREATE TABLE public.client_group_members (
 );
 
 
+ALTER TABLE public.client_group_members OWNER TO skavuturi;
+
 --
--- Name: client_groups; Type: TABLE; Schema: public; Owner: -
+-- Name: client_groups; Type: TABLE; Schema: public; Owner: skavuturi
 --
 
 CREATE TABLE public.client_groups (
@@ -236,8 +502,10 @@ CREATE TABLE public.client_groups (
 );
 
 
+ALTER TABLE public.client_groups OWNER TO skavuturi;
+
 --
--- Name: clientadminnotes; Type: TABLE; Schema: public; Owner: -
+-- Name: clientadminnotes; Type: TABLE; Schema: public; Owner: skavuturi
 --
 
 CREATE TABLE public.clientadminnotes (
@@ -248,8 +516,10 @@ CREATE TABLE public.clientadminnotes (
 );
 
 
+ALTER TABLE public.clientadminnotes OWNER TO skavuturi;
+
 --
--- Name: clientdocuments; Type: TABLE; Schema: public; Owner: -
+-- Name: clientdocuments; Type: TABLE; Schema: public; Owner: skavuturi
 --
 
 CREATE TABLE public.clientdocuments (
@@ -268,8 +538,10 @@ CREATE TABLE public.clientdocuments (
 );
 
 
+ALTER TABLE public.clientdocuments OWNER TO skavuturi;
+
 --
--- Name: cliententitlements; Type: TABLE; Schema: public; Owner: -
+-- Name: cliententitlements; Type: TABLE; Schema: public; Owner: skavuturi
 --
 
 CREATE TABLE public.cliententitlements (
@@ -290,8 +562,10 @@ CREATE TABLE public.cliententitlements (
 );
 
 
+ALTER TABLE public.cliententitlements OWNER TO skavuturi;
+
 --
--- Name: clientorganizations; Type: TABLE; Schema: public; Owner: -
+-- Name: clientorganizations; Type: TABLE; Schema: public; Owner: skavuturi
 --
 
 CREATE TABLE public.clientorganizations (
@@ -302,8 +576,10 @@ CREATE TABLE public.clientorganizations (
 );
 
 
+ALTER TABLE public.clientorganizations OWNER TO skavuturi;
+
 --
--- Name: clients; Type: TABLE; Schema: public; Owner: -
+-- Name: clients; Type: TABLE; Schema: public; Owner: skavuturi
 --
 
 CREATE TABLE public.clients (
@@ -351,8 +627,10 @@ CREATE TABLE public.clients (
 );
 
 
+ALTER TABLE public.clients OWNER TO skavuturi;
+
 --
--- Name: consultant_services; Type: TABLE; Schema: public; Owner: -
+-- Name: consultant_services; Type: TABLE; Schema: public; Owner: skavuturi
 --
 
 CREATE TABLE public.consultant_services (
@@ -362,8 +640,10 @@ CREATE TABLE public.consultant_services (
 );
 
 
+ALTER TABLE public.consultant_services OWNER TO skavuturi;
+
 --
--- Name: consultantavailability; Type: TABLE; Schema: public; Owner: -
+-- Name: consultantavailability; Type: TABLE; Schema: public; Owner: skavuturi
 --
 
 CREATE TABLE public.consultantavailability (
@@ -378,8 +658,10 @@ CREATE TABLE public.consultantavailability (
 );
 
 
+ALTER TABLE public.consultantavailability OWNER TO skavuturi;
+
 --
--- Name: emergency_alerts; Type: TABLE; Schema: public; Owner: -
+-- Name: emergency_alerts; Type: TABLE; Schema: public; Owner: skavuturi
 --
 
 CREATE TABLE public.emergency_alerts (
@@ -394,8 +676,10 @@ CREATE TABLE public.emergency_alerts (
 );
 
 
+ALTER TABLE public.emergency_alerts OWNER TO skavuturi;
+
 --
--- Name: enquiries; Type: TABLE; Schema: public; Owner: -
+-- Name: enquiries; Type: TABLE; Schema: public; Owner: skavuturi
 --
 
 CREATE TABLE public.enquiries (
@@ -419,8 +703,10 @@ CREATE TABLE public.enquiries (
 );
 
 
+ALTER TABLE public.enquiries OWNER TO skavuturi;
+
 --
--- Name: enquiryinteractions; Type: TABLE; Schema: public; Owner: -
+-- Name: enquiryinteractions; Type: TABLE; Schema: public; Owner: skavuturi
 --
 
 CREATE TABLE public.enquiryinteractions (
@@ -435,8 +721,10 @@ CREATE TABLE public.enquiryinteractions (
 );
 
 
+ALTER TABLE public.enquiryinteractions OWNER TO skavuturi;
+
 --
--- Name: exercises; Type: TABLE; Schema: public; Owner: -
+-- Name: exercises; Type: TABLE; Schema: public; Owner: skavuturi
 --
 
 CREATE TABLE public.exercises (
@@ -448,8 +736,10 @@ CREATE TABLE public.exercises (
 );
 
 
+ALTER TABLE public.exercises OWNER TO skavuturi;
+
 --
--- Name: form_responses; Type: TABLE; Schema: public; Owner: -
+-- Name: form_responses; Type: TABLE; Schema: public; Owner: skavuturi
 --
 
 CREATE TABLE public.form_responses (
@@ -467,8 +757,10 @@ CREATE TABLE public.form_responses (
 );
 
 
+ALTER TABLE public.form_responses OWNER TO skavuturi;
+
 --
--- Name: group_attendance; Type: TABLE; Schema: public; Owner: -
+-- Name: group_attendance; Type: TABLE; Schema: public; Owner: skavuturi
 --
 
 CREATE TABLE public.group_attendance (
@@ -481,8 +773,10 @@ CREATE TABLE public.group_attendance (
 );
 
 
+ALTER TABLE public.group_attendance OWNER TO skavuturi;
+
 --
--- Name: hr_employees; Type: TABLE; Schema: public; Owner: -
+-- Name: hr_employees; Type: TABLE; Schema: public; Owner: skavuturi
 --
 
 CREATE TABLE public.hr_employees (
@@ -501,8 +795,10 @@ CREATE TABLE public.hr_employees (
 );
 
 
+ALTER TABLE public.hr_employees OWNER TO skavuturi;
+
 --
--- Name: hr_jobs; Type: TABLE; Schema: public; Owner: -
+-- Name: hr_jobs; Type: TABLE; Schema: public; Owner: skavuturi
 --
 
 CREATE TABLE public.hr_jobs (
@@ -515,8 +811,10 @@ CREATE TABLE public.hr_jobs (
 );
 
 
+ALTER TABLE public.hr_jobs OWNER TO skavuturi;
+
 --
--- Name: hrattendancelogs; Type: TABLE; Schema: public; Owner: -
+-- Name: hrattendancelogs; Type: TABLE; Schema: public; Owner: skavuturi
 --
 
 CREATE TABLE public.hrattendancelogs (
@@ -533,8 +831,10 @@ CREATE TABLE public.hrattendancelogs (
 );
 
 
+ALTER TABLE public.hrattendancelogs OWNER TO skavuturi;
+
 --
--- Name: hrleaves; Type: TABLE; Schema: public; Owner: -
+-- Name: hrleaves; Type: TABLE; Schema: public; Owner: skavuturi
 --
 
 CREATE TABLE public.hrleaves (
@@ -551,8 +851,10 @@ CREATE TABLE public.hrleaves (
 );
 
 
+ALTER TABLE public.hrleaves OWNER TO skavuturi;
+
 --
--- Name: injuries; Type: TABLE; Schema: public; Owner: -
+-- Name: injuries; Type: TABLE; Schema: public; Owner: skavuturi
 --
 
 CREATE TABLE public.injuries (
@@ -573,8 +875,10 @@ CREATE TABLE public.injuries (
 );
 
 
+ALTER TABLE public.injuries OWNER TO skavuturi;
+
 --
--- Name: injury_master_data; Type: TABLE; Schema: public; Owner: -
+-- Name: injury_master_data; Type: TABLE; Schema: public; Owner: skavuturi
 --
 
 CREATE TABLE public.injury_master_data (
@@ -587,8 +891,10 @@ CREATE TABLE public.injury_master_data (
 );
 
 
+ALTER TABLE public.injury_master_data OWNER TO skavuturi;
+
 --
--- Name: liftitems; Type: TABLE; Schema: public; Owner: -
+-- Name: liftitems; Type: TABLE; Schema: public; Owner: skavuturi
 --
 
 CREATE TABLE public.liftitems (
@@ -606,8 +912,10 @@ CREATE TABLE public.liftitems (
 );
 
 
+ALTER TABLE public.liftitems OWNER TO skavuturi;
+
 --
--- Name: locations; Type: TABLE; Schema: public; Owner: -
+-- Name: locations; Type: TABLE; Schema: public; Owner: skavuturi
 --
 
 CREATE TABLE public.locations (
@@ -620,8 +928,10 @@ CREATE TABLE public.locations (
 );
 
 
+ALTER TABLE public.locations OWNER TO skavuturi;
+
 --
--- Name: max_pr_records; Type: TABLE; Schema: public; Owner: -
+-- Name: max_pr_records; Type: TABLE; Schema: public; Owner: skavuturi
 --
 
 CREATE TABLE public.max_pr_records (
@@ -635,8 +945,10 @@ CREATE TABLE public.max_pr_records (
 );
 
 
+ALTER TABLE public.max_pr_records OWNER TO skavuturi;
+
 --
--- Name: notification_reads; Type: TABLE; Schema: public; Owner: -
+-- Name: notification_reads; Type: TABLE; Schema: public; Owner: skavuturi
 --
 
 CREATE TABLE public.notification_reads (
@@ -646,8 +958,10 @@ CREATE TABLE public.notification_reads (
 );
 
 
+ALTER TABLE public.notification_reads OWNER TO skavuturi;
+
 --
--- Name: notifications; Type: TABLE; Schema: public; Owner: -
+-- Name: notifications; Type: TABLE; Schema: public; Owner: skavuturi
 --
 
 CREATE TABLE public.notifications (
@@ -661,17 +975,14 @@ CREATE TABLE public.notifications (
     is_broadcast boolean DEFAULT false,
     priority text DEFAULT 'normal'::text,
     created_by uuid,
-    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
-    category text DEFAULT 'in_app'::text,
-    action_payload jsonb DEFAULT '{}'::jsonb,
-    action_status text DEFAULT 'pending'::text,
-    is_vip boolean DEFAULT false,
-    sender_id uuid
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP
 );
 
 
+ALTER TABLE public.notifications OWNER TO skavuturi;
+
 --
--- Name: organizations; Type: TABLE; Schema: public; Owner: -
+-- Name: organizations; Type: TABLE; Schema: public; Owner: skavuturi
 --
 
 CREATE TABLE public.organizations (
@@ -701,8 +1012,10 @@ CREATE TABLE public.organizations (
 );
 
 
+ALTER TABLE public.organizations OWNER TO skavuturi;
+
 --
--- Name: packages; Type: TABLE; Schema: public; Owner: -
+-- Name: packages; Type: TABLE; Schema: public; Owner: skavuturi
 --
 
 CREATE TABLE public.packages (
@@ -717,8 +1030,10 @@ CREATE TABLE public.packages (
 );
 
 
+ALTER TABLE public.packages OWNER TO skavuturi;
+
 --
--- Name: packageservices; Type: TABLE; Schema: public; Owner: -
+-- Name: packageservices; Type: TABLE; Schema: public; Owner: skavuturi
 --
 
 CREATE TABLE public.packageservices (
@@ -729,8 +1044,10 @@ CREATE TABLE public.packageservices (
 );
 
 
+ALTER TABLE public.packageservices OWNER TO skavuturi;
+
 --
--- Name: performance_assessments; Type: TABLE; Schema: public; Owner: -
+-- Name: performance_assessments; Type: TABLE; Schema: public; Owner: skavuturi
 --
 
 CREATE TABLE public.performance_assessments (
@@ -745,8 +1062,10 @@ CREATE TABLE public.performance_assessments (
 );
 
 
+ALTER TABLE public.performance_assessments OWNER TO skavuturi;
+
 --
--- Name: physiosessiondetails; Type: TABLE; Schema: public; Owner: -
+-- Name: physiosessiondetails; Type: TABLE; Schema: public; Owner: skavuturi
 --
 
 CREATE TABLE public.physiosessiondetails (
@@ -767,8 +1086,10 @@ CREATE TABLE public.physiosessiondetails (
 );
 
 
+ALTER TABLE public.physiosessiondetails OWNER TO skavuturi;
+
 --
--- Name: profiles; Type: TABLE; Schema: public; Owner: -
+-- Name: profiles; Type: TABLE; Schema: public; Owner: skavuturi
 --
 
 CREATE TABLE public.profiles (
@@ -786,8 +1107,10 @@ CREATE TABLE public.profiles (
 );
 
 
+ALTER TABLE public.profiles OWNER TO skavuturi;
+
 --
--- Name: program_assignments; Type: TABLE; Schema: public; Owner: -
+-- Name: program_assignments; Type: TABLE; Schema: public; Owner: skavuturi
 --
 
 CREATE TABLE public.program_assignments (
@@ -801,8 +1124,10 @@ CREATE TABLE public.program_assignments (
 );
 
 
+ALTER TABLE public.program_assignments OWNER TO skavuturi;
+
 --
--- Name: questionnaires; Type: TABLE; Schema: public; Owner: -
+-- Name: questionnaires; Type: TABLE; Schema: public; Owner: skavuturi
 --
 
 CREATE TABLE public.questionnaires (
@@ -816,8 +1141,10 @@ CREATE TABLE public.questionnaires (
 );
 
 
+ALTER TABLE public.questionnaires OWNER TO skavuturi;
+
 --
--- Name: referralsources; Type: TABLE; Schema: public; Owner: -
+-- Name: referralsources; Type: TABLE; Schema: public; Owner: skavuturi
 --
 
 CREATE TABLE public.referralsources (
@@ -828,8 +1155,10 @@ CREATE TABLE public.referralsources (
 );
 
 
+ALTER TABLE public.referralsources OWNER TO skavuturi;
+
 --
--- Name: refunds; Type: TABLE; Schema: public; Owner: -
+-- Name: refunds; Type: TABLE; Schema: public; Owner: skavuturi
 --
 
 CREATE TABLE public.refunds (
@@ -851,8 +1180,10 @@ CREATE TABLE public.refunds (
 );
 
 
+ALTER TABLE public.refunds OWNER TO skavuturi;
+
 --
--- Name: rehab_progress; Type: TABLE; Schema: public; Owner: -
+-- Name: rehab_progress; Type: TABLE; Schema: public; Owner: skavuturi
 --
 
 CREATE TABLE public.rehab_progress (
@@ -866,8 +1197,10 @@ CREATE TABLE public.rehab_progress (
 );
 
 
+ALTER TABLE public.rehab_progress OWNER TO skavuturi;
+
 --
--- Name: report_templates; Type: TABLE; Schema: public; Owner: -
+-- Name: report_templates; Type: TABLE; Schema: public; Owner: skavuturi
 --
 
 CREATE TABLE public.report_templates (
@@ -881,8 +1214,10 @@ CREATE TABLE public.report_templates (
 );
 
 
+ALTER TABLE public.report_templates OWNER TO skavuturi;
+
 --
--- Name: scientific_resources; Type: TABLE; Schema: public; Owner: -
+-- Name: scientific_resources; Type: TABLE; Schema: public; Owner: skavuturi
 --
 
 CREATE TABLE public.scientific_resources (
@@ -903,8 +1238,10 @@ CREATE TABLE public.scientific_resources (
 );
 
 
+ALTER TABLE public.scientific_resources OWNER TO skavuturi;
+
 --
--- Name: servicepackages; Type: VIEW; Schema: public; Owner: -
+-- Name: servicepackages; Type: VIEW; Schema: public; Owner: skavuturi
 --
 
 CREATE VIEW public.servicepackages AS
@@ -919,8 +1256,10 @@ CREATE VIEW public.servicepackages AS
    FROM public.packages;
 
 
+ALTER VIEW public.servicepackages OWNER TO skavuturi;
+
 --
--- Name: services; Type: TABLE; Schema: public; Owner: -
+-- Name: services; Type: TABLE; Schema: public; Owner: skavuturi
 --
 
 CREATE TABLE public.services (
@@ -933,8 +1272,10 @@ CREATE TABLE public.services (
 );
 
 
+ALTER TABLE public.services OWNER TO skavuturi;
+
 --
--- Name: sessions; Type: TABLE; Schema: public; Owner: -
+-- Name: sessions; Type: TABLE; Schema: public; Owner: skavuturi
 --
 
 CREATE TABLE public.sessions (
@@ -962,8 +1303,10 @@ CREATE TABLE public.sessions (
 );
 
 
+ALTER TABLE public.sessions OWNER TO skavuturi;
+
 --
--- Name: sessiontypes; Type: VIEW; Schema: public; Owner: -
+-- Name: sessiontypes; Type: VIEW; Schema: public; Owner: skavuturi
 --
 
 CREATE VIEW public.sessiontypes AS
@@ -976,24 +1319,10 @@ CREATE VIEW public.sessiontypes AS
    FROM public.services;
 
 
---
--- Name: staff_schedules; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.staff_schedules (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    organization_id uuid NOT NULL,
-    consultant_id uuid NOT NULL,
-    shift_start time without time zone DEFAULT '08:00:00'::time without time zone NOT NULL,
-    shift_end time without time zone DEFAULT '17:00:00'::time without time zone NOT NULL,
-    breaks jsonb DEFAULT '[]'::jsonb NOT NULL,
-    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
-    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP
-);
-
+ALTER VIEW public.sessiontypes OWNER TO skavuturi;
 
 --
--- Name: subscription_logs; Type: TABLE; Schema: public; Owner: -
+-- Name: subscription_logs; Type: TABLE; Schema: public; Owner: skavuturi
 --
 
 CREATE TABLE public.subscription_logs (
@@ -1006,8 +1335,10 @@ CREATE TABLE public.subscription_logs (
 );
 
 
+ALTER TABLE public.subscription_logs OWNER TO skavuturi;
+
 --
--- Name: subscriptions; Type: TABLE; Schema: public; Owner: -
+-- Name: subscriptions; Type: TABLE; Schema: public; Owner: skavuturi
 --
 
 CREATE TABLE public.subscriptions (
@@ -1032,8 +1363,10 @@ CREATE TABLE public.subscriptions (
 );
 
 
+ALTER TABLE public.subscriptions OWNER TO skavuturi;
+
 --
--- Name: trainingprograms; Type: TABLE; Schema: public; Owner: -
+-- Name: trainingprograms; Type: TABLE; Schema: public; Owner: skavuturi
 --
 
 CREATE TABLE public.trainingprograms (
@@ -1046,8 +1379,10 @@ CREATE TABLE public.trainingprograms (
 );
 
 
+ALTER TABLE public.trainingprograms OWNER TO skavuturi;
+
 --
--- Name: uhidsequences; Type: TABLE; Schema: public; Owner: -
+-- Name: uhidsequences; Type: TABLE; Schema: public; Owner: skavuturi
 --
 
 CREATE TABLE public.uhidsequences (
@@ -1058,8 +1393,10 @@ CREATE TABLE public.uhidsequences (
 );
 
 
+ALTER TABLE public.uhidsequences OWNER TO skavuturi;
+
 --
--- Name: users; Type: TABLE; Schema: public; Owner: -
+-- Name: users; Type: TABLE; Schema: public; Owner: skavuturi
 --
 
 CREATE TABLE public.users (
@@ -1071,8 +1408,10 @@ CREATE TABLE public.users (
 );
 
 
+ALTER TABLE public.users OWNER TO skavuturi;
+
 --
--- Name: waitlist; Type: TABLE; Schema: public; Owner: -
+-- Name: waitlist; Type: TABLE; Schema: public; Owner: skavuturi
 --
 
 CREATE TABLE public.waitlist (
@@ -1090,8 +1429,10 @@ CREATE TABLE public.waitlist (
 );
 
 
+ALTER TABLE public.waitlist OWNER TO skavuturi;
+
 --
--- Name: wellness_logs; Type: TABLE; Schema: public; Owner: -
+-- Name: wellness_logs; Type: TABLE; Schema: public; Owner: skavuturi
 --
 
 CREATE TABLE public.wellness_logs (
@@ -1107,8 +1448,10 @@ CREATE TABLE public.wellness_logs (
 );
 
 
+ALTER TABLE public.wellness_logs OWNER TO skavuturi;
+
 --
--- Name: workoutdays; Type: TABLE; Schema: public; Owner: -
+-- Name: workoutdays; Type: TABLE; Schema: public; Owner: skavuturi
 --
 
 CREATE TABLE public.workoutdays (
@@ -1121,8 +1464,10 @@ CREATE TABLE public.workoutdays (
 );
 
 
+ALTER TABLE public.workoutdays OWNER TO skavuturi;
+
 --
--- Name: workoutitems; Type: TABLE; Schema: public; Owner: -
+-- Name: workoutitems; Type: TABLE; Schema: public; Owner: skavuturi
 --
 
 CREATE TABLE public.workoutitems (
@@ -1134,8 +1479,652 @@ CREATE TABLE public.workoutitems (
 );
 
 
+ALTER TABLE public.workoutitems OWNER TO skavuturi;
+
 --
--- Name: athlete_item_logs athlete_item_logs_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Data for Name: athlete_item_logs; Type: TABLE DATA; Schema: public; Owner: skavuturi
+--
+
+COPY public.athlete_item_logs (id, organization_id, workout_item_id, athlete_id, logged_at, sets_completed, rpe, notes, skipped, created_at) FROM stdin;
+\.
+
+
+--
+-- Data for Name: athlete_workout_completions; Type: TABLE DATA; Schema: public; Owner: skavuturi
+--
+
+COPY public.athlete_workout_completions (id, athlete_id, workout_day_id, organization_id, completed_at, overall_notes, completion_status, created_at) FROM stdin;
+\.
+
+
+--
+-- Data for Name: authsessions; Type: TABLE DATA; Schema: public; Owner: skavuturi
+--
+
+COPY public.authsessions (id, user_id, otp_code, expires_at) FROM stdin;
+\.
+
+
+--
+-- Data for Name: availabilityexceptions; Type: TABLE DATA; Schema: public; Owner: skavuturi
+--
+
+COPY public.availabilityexceptions (id, organization_id, consultant_id, exception_date, start_time, end_time, is_blocked, reason) FROM stdin;
+\.
+
+
+--
+-- Data for Name: billitems; Type: TABLE DATA; Schema: public; Owner: skavuturi
+--
+
+COPY public.billitems (id, organization_id, bill_id, package_id, amount, discount, total, created_at) FROM stdin;
+ce91e162-514a-4b02-b5b2-2a050f641cb0	d735732c-5951-45e6-bb16-7668b8a95925	74bcb5d6-a661-4162-88b6-b94025fc4104	6b337afc-963c-49e6-bbd9-77da497202fd	15000	3000	12000	2026-05-20 11:15:47.637727+00
+\.
+
+
+--
+-- Data for Name: billpayments; Type: TABLE DATA; Schema: public; Owner: skavuturi
+--
+
+COPY public.billpayments (id, organization_id, bill_id, client_id, amount, payment_method, transaction_id, recorded_by, created_at) FROM stdin;
+68164f52-6cc5-4678-904b-23c06aab3f99	d735732c-5951-45e6-bb16-7668b8a95925	74bcb5d6-a661-4162-88b6-b94025fc4104	a5ba9385-757c-4647-b02b-ec44df42425f	12000	Cash		fd35fa21-0837-4d8a-a722-90595356aaec	2026-05-20 11:16:07.181604+00
+\.
+
+
+--
+-- Data for Name: bills; Type: TABLE DATA; Schema: public; Owner: skavuturi
+--
+
+COPY public.bills (id, organization_id, client_id, amount, discount, total, status, referral_source_id, notes, include_notes_in_invoice, discount_authorized_by, billed_by_id, billed_by_name, billing_staff_name, transaction_id, payment_method, updated_at, deleted_at, created_at, subscription_id, due_date) FROM stdin;
+74bcb5d6-a661-4162-88b6-b94025fc4104	d735732c-5951-45e6-bb16-7668b8a95925	a5ba9385-757c-4647-b02b-ec44df42425f	15000	3000	12000	Paid	\N		f	CEO	fd35fa21-0837-4d8a-a722-90595356aaec	Sai Rupesh Kavuturi	Sai Rupesh Kavuturi	\N	\N	2026-05-20 11:16:07.181604+00	\N	2026-05-20 11:15:47.637727+00	\N	\N
+\.
+
+
+--
+-- Data for Name: bulk_assignments; Type: TABLE DATA; Schema: public; Owner: skavuturi
+--
+
+COPY public.bulk_assignments (id, organization_id, questionnaire_id, specialist_id, total_clients, responded_count, status, created_at) FROM stdin;
+\.
+
+
+--
+-- Data for Name: client_group_members; Type: TABLE DATA; Schema: public; Owner: skavuturi
+--
+
+COPY public.client_group_members (group_id, client_id, added_by, added_at) FROM stdin;
+\.
+
+
+--
+-- Data for Name: client_groups; Type: TABLE DATA; Schema: public; Owner: skavuturi
+--
+
+COPY public.client_groups (id, organization_id, name, description, created_by, created_at) FROM stdin;
+\.
+
+
+--
+-- Data for Name: clientadminnotes; Type: TABLE DATA; Schema: public; Owner: skavuturi
+--
+
+COPY public.clientadminnotes (client_id, remarks, updated_by, updated_at) FROM stdin;
+\.
+
+
+--
+-- Data for Name: clientdocuments; Type: TABLE DATA; Schema: public; Owner: skavuturi
+--
+
+COPY public.clientdocuments (id, client_id, organization_id, document_name, category, document_type, file_path, uploaded_by, uploaded_by_role, notes, access_level, created_at) FROM stdin;
+\.
+
+
+--
+-- Data for Name: cliententitlements; Type: TABLE DATA; Schema: public; Owner: skavuturi
+--
+
+COPY public.cliententitlements (id, organization_id, client_id, invoice_id, package_id, service_id, service_type, granted_sessions, sessions_used, status, bill_item_id, notes, created_at, updated_at) FROM stdin;
+fd8270c5-0c4b-460b-8ba2-ed1472084bc9	d735732c-5951-45e6-bb16-7668b8a95925	a5ba9385-757c-4647-b02b-ec44df42425f	\N	\N	9a74b3e0-5a4b-4cc3-8dfa-5ebd4523f25f	Physiotherapy	10	0	active	ce91e162-514a-4b02-b5b2-2a050f641cb0	\N	2026-05-20 11:16:07.181604+00	2026-05-20 11:16:07.181604+00
+\.
+
+
+--
+-- Data for Name: clientorganizations; Type: TABLE DATA; Schema: public; Owner: skavuturi
+--
+
+COPY public.clientorganizations (id, organization_id, name, created_at) FROM stdin;
+\.
+
+
+--
+-- Data for Name: clients; Type: TABLE DATA; Schema: public; Owner: skavuturi
+--
+
+COPY public.clients (id, organization_id, location_id, uhid, registered_on, honorific, first_name, middle_name, last_name, gender, mobile_no, aadhaar_no, blood_group, dob, age, email, alternate_mobile_no, occupation, sport, athlete_type, org_name, address, locality, pincode, city, district, state, country, has_insurance, insurance_provider, insurance_policy_no, insurance_validity, insurance_coverage_amount, is_vip, referral_source, referral_source_detail, created_by, created_at, updated_at, profile_id, assigned_consultant_id) FROM stdin;
+a5ba9385-757c-4647-b02b-ec44df42425f	d735732c-5951-45e6-bb16-7668b8a95925	\N	ISH05260002	2026-05-20 10:05:12.232259+00	Mr.	Sai Pavan		Kavuturi	Male	+91 8179830658		O+	2001-02-28	25	saipavan@gmail.com	\N	General Population	\N		\N	12-10-416/8/C/1, Apt 301, Adi Lakshmi Residency, SBI Lane	Warasiguda	500061	Secunderabad	Hyderabad	Telangana	India	f	\N	\N	\N	\N	t	\N	\N	fd35fa21-0837-4d8a-a722-90595356aaec	2026-05-20 10:05:12.232259+00	2026-05-20 10:05:12.232259+00	\N	62970e9a-5030-4acb-9837-d170f3161667
+\.
+
+
+--
+-- Data for Name: consultant_services; Type: TABLE DATA; Schema: public; Owner: skavuturi
+--
+
+COPY public.consultant_services (organization_id, consultant_id, service_id) FROM stdin;
+d735732c-5951-45e6-bb16-7668b8a95925	62970e9a-5030-4acb-9837-d170f3161667	2225c71e-8a92-4313-a8c6-46364fe49979
+d735732c-5951-45e6-bb16-7668b8a95925	62970e9a-5030-4acb-9837-d170f3161667	9a74b3e0-5a4b-4cc3-8dfa-5ebd4523f25f
+d735732c-5951-45e6-bb16-7668b8a95925	62970e9a-5030-4acb-9837-d170f3161667	9f816a75-ebe2-48e1-a983-c55659f50930
+\.
+
+
+--
+-- Data for Name: consultantavailability; Type: TABLE DATA; Schema: public; Owner: skavuturi
+--
+
+COPY public.consultantavailability (id, organization_id, consultant_id, day_of_week, start_time, end_time, slot_duration_interval, buffer_time) FROM stdin;
+cb0a1bcd-a96f-415a-9e0e-43b0dc240fb9	d735732c-5951-45e6-bb16-7668b8a95925	62970e9a-5030-4acb-9837-d170f3161667	1	09:00:00	17:00:00	\N	0
+308ccd3a-f39e-477c-9636-24335356cd05	d735732c-5951-45e6-bb16-7668b8a95925	62970e9a-5030-4acb-9837-d170f3161667	2	09:00:00	17:00:00	\N	0
+8867ed2e-64cb-4f49-8c12-a37f92a160e2	d735732c-5951-45e6-bb16-7668b8a95925	62970e9a-5030-4acb-9837-d170f3161667	3	09:00:00	17:00:00	\N	0
+c05016bc-1807-46b1-811d-b59686797457	d735732c-5951-45e6-bb16-7668b8a95925	62970e9a-5030-4acb-9837-d170f3161667	4	09:00:00	17:00:00	\N	0
+b4d8592e-c350-4f93-8857-482d65eaae5d	d735732c-5951-45e6-bb16-7668b8a95925	62970e9a-5030-4acb-9837-d170f3161667	5	09:00:00	17:00:00	\N	0
+193b531b-1a6a-4ee8-afd9-754ee8feb53f	d735732c-5951-45e6-bb16-7668b8a95925	62970e9a-5030-4acb-9837-d170f3161667	6	09:00:00	17:00:00	\N	0
+\.
+
+
+--
+-- Data for Name: emergency_alerts; Type: TABLE DATA; Schema: public; Owner: skavuturi
+--
+
+COPY public.emergency_alerts (id, organization_id, staff_id, status, reason, latitude, longitude, created_at) FROM stdin;
+\.
+
+
+--
+-- Data for Name: enquiries; Type: TABLE DATA; Schema: public; Owner: skavuturi
+--
+
+COPY public.enquiries (id, organization_id, first_name, last_name, mobile_no, email, looking_for, preferred_call_time, referral_source, referral_details, work_place, notes, status, linked_client_id, created_at, next_follow_up_at, last_interaction_at) FROM stdin;
+\.
+
+
+--
+-- Data for Name: enquiryinteractions; Type: TABLE DATA; Schema: public; Owner: skavuturi
+--
+
+COPY public.enquiryinteractions (id, enquiry_id, interaction_type, response_text, created_by, created_at, follow_up_required, follow_up_at) FROM stdin;
+\.
+
+
+--
+-- Data for Name: exercises; Type: TABLE DATA; Schema: public; Owner: skavuturi
+--
+
+COPY public.exercises (id, organization_id, name, category, created_at) FROM stdin;
+\.
+
+
+--
+-- Data for Name: form_responses; Type: TABLE DATA; Schema: public; Owner: skavuturi
+--
+
+COPY public.form_responses (id, organization_id, form_id, client_id, specialist_id, bulk_assignment_id, status, response_data, clinical_interpretation, submitted_at, created_at) FROM stdin;
+\.
+
+
+--
+-- Data for Name: group_attendance; Type: TABLE DATA; Schema: public; Owner: skavuturi
+--
+
+COPY public.group_attendance (id, session_id, client_id, attendance_status, notes, created_at) FROM stdin;
+\.
+
+
+--
+-- Data for Name: hr_employees; Type: TABLE DATA; Schema: public; Owner: skavuturi
+--
+
+COPY public.hr_employees (id, organization_id, profile_id, job_id, date_of_joining, employment_type, bank_name, bank_account_no, ifsc_code, emergency_contact_name, emergency_contact_phone, created_at) FROM stdin;
+\.
+
+
+--
+-- Data for Name: hr_jobs; Type: TABLE DATA; Schema: public; Owner: skavuturi
+--
+
+COPY public.hr_jobs (id, organization_id, name, description, is_active, created_at) FROM stdin;
+\.
+
+
+--
+-- Data for Name: hrattendancelogs; Type: TABLE DATA; Schema: public; Owner: skavuturi
+--
+
+COPY public.hrattendancelogs (id, organization_id, profile_id, type, latitude, longitude, distance_from_center, is_within_geofence, metadata, created_at) FROM stdin;
+581bd479-44c6-4777-b612-55dacdeb3994	d735732c-5951-45e6-bb16-7668b8a95925	fd35fa21-0837-4d8a-a722-90595356aaec	check_in	17.43911088986147	78.34846880093718	87.34946706564288	t	{"accuracy": 59, "ip_address": "183.82.122.72", "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36", "is_ip_allowed": true}	2026-05-20 08:52:04.152706+00
+22551221-bd6d-47de-92ba-ab935d071dc9	d735732c-5951-45e6-bb16-7668b8a95925	fd35fa21-0837-4d8a-a722-90595356aaec	check_out	17.439097612782415	78.34845794094356	85.24818931677362	t	{"accuracy": 59, "ip_address": "183.82.102.75", "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36", "is_ip_allowed": true}	2026-05-20 11:18:58.332804+00
+\.
+
+
+--
+-- Data for Name: hrleaves; Type: TABLE DATA; Schema: public; Owner: skavuturi
+--
+
+COPY public.hrleaves (id, organization_id, employee_id, leave_type, start_date, end_date, reason, status, approved_by, created_at) FROM stdin;
+\.
+
+
+--
+-- Data for Name: injuries; Type: TABLE DATA; Schema: public; Owner: skavuturi
+--
+
+COPY public.injuries (id, organization_id, client_id, diagnosis, injury_type, region, injury_date, status, side, onset, mechanism, notes, created_at, updated_at) FROM stdin;
+\.
+
+
+--
+-- Data for Name: injury_master_data; Type: TABLE DATA; Schema: public; Owner: skavuturi
+--
+
+COPY public.injury_master_data (id, organization_id, region, injury_type, diagnosis, created_at) FROM stdin;
+\.
+
+
+--
+-- Data for Name: liftitems; Type: TABLE DATA; Schema: public; Owner: skavuturi
+--
+
+COPY public.liftitems (id, workout_item_id, exercise_id, sets, reps, load_type, load_value, tempo, rest_time_secs, additional_info, workout_grouping) FROM stdin;
+\.
+
+
+--
+-- Data for Name: locations; Type: TABLE DATA; Schema: public; Owner: skavuturi
+--
+
+COPY public.locations (id, organization_id, name, address, created_at, updated_at) FROM stdin;
+\.
+
+
+--
+-- Data for Name: max_pr_records; Type: TABLE DATA; Schema: public; Owner: skavuturi
+--
+
+COPY public.max_pr_records (id, athlete_id, exercise_id, value, is_current, recorded_at, created_at) FROM stdin;
+\.
+
+
+--
+-- Data for Name: notification_reads; Type: TABLE DATA; Schema: public; Owner: skavuturi
+--
+
+COPY public.notification_reads (notification_id, user_id, read_at) FROM stdin;
+\.
+
+
+--
+-- Data for Name: notifications; Type: TABLE DATA; Schema: public; Owner: skavuturi
+--
+
+COPY public.notifications (id, organization_id, title, content, type, target_role, target_user_id, is_broadcast, priority, created_by, created_at) FROM stdin;
+\.
+
+
+--
+-- Data for Name: organizations; Type: TABLE DATA; Schema: public; Owner: skavuturi
+--
+
+COPY public.organizations (id, name, created_at, updated_at, deleted_at, org_code, slug, subscription_plan, status, uhid_prefix, logo_url, official_name, official_address, contact_email, contact_phone, clinic_latitude, clinic_longitude, geofence_radius, enable_geofencing, enable_ip_locking, allowed_ips, allow_custom_duration, default_slot_duration) FROM stdin;
+d735732c-5951-45e6-bb16-7668b8a95925	ISHPO Headquarters	2026-05-12 12:34:34.865286+00	2026-05-20 07:25:57.126711+00	\N	106356	\N	pro	active	ISH	/uploads/logo-1779261957084-264629890.jpg	\N	\N	\N	\N	17.43860308864784	78.3490910368821	\N	t	f	\N	f	60
+5ca011df-5a6a-4848-a8b2-80da87d5bae5	Main Clinic	2026-05-20 10:07:06.733711+00	2026-05-20 10:07:06.733711+00	\N	123456	\N	pro	active	\N	\N	\N	\N	\N	\N	\N	\N	\N	f	f	\N	f	60
+\.
+
+
+--
+-- Data for Name: packages; Type: TABLE DATA; Schema: public; Owner: skavuturi
+--
+
+COPY public.packages (id, organization_id, name, description, price, deleted_at, created_at, updated_at) FROM stdin;
+458f40db-18b3-49ce-a438-d310370503b8	d735732c-5951-45e6-bb16-7668b8a95925	ACTIVE RECOVERY TRAINING -CAT  A	\N	200	\N	2026-05-13 10:10:25.048674+00	2026-05-13 10:10:25.048674+00
+7e3865a8-e032-46b4-a6a5-39ca5bec4104	d735732c-5951-45e6-bb16-7668b8a95925	ACTIVE RECOVERY TRAINING -CAT  B	\N	1000	\N	2026-05-13 10:10:25.048674+00	2026-05-13 10:10:25.048674+00
+a6d695b7-81ad-45d1-a69c-8428eaf3482c	d735732c-5951-45e6-bb16-7668b8a95925	ACTIVE RECOVERY TRAINING -CAT  C	\N	2000	\N	2026-05-13 10:10:25.048674+00	2026-05-13 10:10:25.048674+00
+5be22e1b-57b6-48d6-a286-c7c3df3788de	d735732c-5951-45e6-bb16-7668b8a95925	ADDITIONAL JOINT TAPING	\N	150	\N	2026-05-13 10:10:25.048674+00	2026-05-13 10:10:25.048674+00
+6c79ca49-09b7-4fae-87ad-c3ad31847d5b	d735732c-5951-45e6-bb16-7668b8a95925	ANKLE TAPING	\N	500	\N	2026-05-13 10:10:25.048674+00	2026-05-13 10:10:25.048674+00
+77ef52e7-0538-4ba3-94aa-a015f39ffdfc	d735732c-5951-45e6-bb16-7668b8a95925	ATHLETE BLOOD PROFILE	\N	3000	\N	2026-05-13 10:10:25.048674+00	2026-05-13 10:10:25.048674+00
+1530ed03-4446-479e-998a-bd06063383e1	d735732c-5951-45e6-bb16-7668b8a95925	ATHLETE HEALTH  AND PERFORMANCE TRAINING	\N	15000	\N	2026-05-13 10:10:25.048674+00	2026-05-13 10:10:25.048674+00
+eb2ae758-8ef8-43f0-98d7-eae7b8aaa6a1	d735732c-5951-45e6-bb16-7668b8a95925	ATHLETE HEALTH AND PERFORMANCE TRAINING (CRICKET) CAT -I	\N	50000	\N	2026-05-13 10:10:25.048674+00	2026-05-13 10:10:25.048674+00
+22f4c593-012e-4dca-be67-8363ea8f19b3	d735732c-5951-45e6-bb16-7668b8a95925	ATHLETE HEALTH AND PERFORMANCE TRAINING (CRICKET) CAT -II	\N	100000	\N	2026-05-13 10:10:25.048674+00	2026-05-13 10:10:25.048674+00
+f54cdde3-ff97-4ba2-a9b7-0e7ded7fa329	d735732c-5951-45e6-bb16-7668b8a95925	ATHLETE MUSCULOSKELETON (MSK) HEALTH STRENGTH AND MOBILITY ASSESSMENT	\N	10000	\N	2026-05-13 10:10:25.048674+00	2026-05-13 10:10:25.048674+00
+b66dd457-dd34-4e78-ae96-feace9aebc64	d735732c-5951-45e6-bb16-7668b8a95925	ATHLETES  PERFORMANCE  & ASSESSMENT PROGRAM	\N	6000	\N	2026-05-13 10:10:25.048674+00	2026-05-13 10:10:25.048674+00
+d09c9742-d050-49c9-9b6d-3d87b8de68a0	d735732c-5951-45e6-bb16-7668b8a95925	BODY COMPOSITION ANALYSIS (INBODY)	\N	1500	\N	2026-05-13 10:10:25.048674+00	2026-05-13 10:10:25.048674+00
+28c8d98a-8e1e-4e24-955e-b2da23865985	d735732c-5951-45e6-bb16-7668b8a95925	CHAMP Jr	\N	5000	\N	2026-05-13 10:10:25.048674+00	2026-05-13 10:10:25.048674+00
+4c59ace0-7039-4b59-8ff8-0ab17f830e4d	d735732c-5951-45e6-bb16-7668b8a95925	CHAMP Sr	\N	5000	\N	2026-05-13 10:10:25.048674+00	2026-05-13 10:10:25.048674+00
+2274ad34-60cf-4b3b-aa35-a528ca9c7937	d735732c-5951-45e6-bb16-7668b8a95925	ELBOW TAPING	\N	300	\N	2026-05-13 10:10:25.048674+00	2026-05-13 10:10:25.048674+00
+6b337afc-963c-49e6-bbd9-77da497202fd	d735732c-5951-45e6-bb16-7668b8a95925	ELBOW & WRIST SPECIALIZED PHYSIOTHERAPY - 10 SESSIONS	\N	15000	\N	2026-05-13 10:10:25.048674+00	2026-05-13 10:10:25.048674+00
+124528c8-3d7e-4e3f-bab5-2f7d104e5773	d735732c-5951-45e6-bb16-7668b8a95925	ELBOW & WRIST SPECIALIZED PHYSIOTHERAPY - 5 SESSIONS	\N	9000	\N	2026-05-13 10:10:25.048674+00	2026-05-13 10:10:25.048674+00
+3d8812c3-c9f9-47db-847e-fd6dc5ddeb21	d735732c-5951-45e6-bb16-7668b8a95925	FOOT & ANKLE SPECIALIZED PHYSIOTHERAPY - 10 SESSIONS	\N	15000	\N	2026-05-13 10:10:25.048674+00	2026-05-13 10:10:25.048674+00
+d7dfd7cb-757b-451c-bd31-ad5533e3d1f0	d735732c-5951-45e6-bb16-7668b8a95925	FOOT & ANKLE SPECIALIZED PHYSIOTHERAPY - 5 SESSIONS	\N	9000	\N	2026-05-13 10:10:25.048674+00	2026-05-13 10:10:25.048674+00
+67c34da9-d9cd-4c59-90b5-ffc6cf00b28b	d735732c-5951-45e6-bb16-7668b8a95925	FOREARM TAPING	\N	300	\N	2026-05-13 10:10:25.048674+00	2026-05-13 10:10:25.048674+00
+0541330f-f409-41b8-9fdb-b286370eb059	d735732c-5951-45e6-bb16-7668b8a95925	GENERAL NUTRITION PACKAGE 1 MONTH	\N	10000	\N	2026-05-13 10:10:25.048674+00	2026-05-13 10:10:25.048674+00
+0e3de44f-76f9-45aa-89fd-a1eced2ba1f4	d735732c-5951-45e6-bb16-7668b8a95925	GENERAL NUTRITION PACKAGE 3 MONTHS	\N	25000	\N	2026-05-13 10:10:25.048674+00	2026-05-13 10:10:25.048674+00
+8f28fb3c-ccf9-4385-aa12-873eb3796adc	d735732c-5951-45e6-bb16-7668b8a95925	GENERAL NUTRITION PACKAGE 6 MONTHS	\N	45000	\N	2026-05-13 10:10:25.048674+00	2026-05-13 10:10:25.048674+00
+5bb7e360-2ab0-4b10-b3c3-643ed83abc3f	d735732c-5951-45e6-bb16-7668b8a95925	HIP ASSESSMENT (Re-Assessment / HipDevices)	\N	2500	\N	2026-05-13 10:10:25.048674+00	2026-05-13 10:10:25.048674+00
+bd5ba0dd-f4a5-461b-b6fb-c818be74384b	d735732c-5951-45e6-bb16-7668b8a95925	HIP & KNEE JOINTS-MUSCLE  STRENGTH AND MOBILITY ASSESSMENT	\N	8000	\N	2026-05-13 10:10:25.048674+00	2026-05-13 10:10:25.048674+00
+f9784876-8bc2-4f49-9edb-ef81510df6c3	d735732c-5951-45e6-bb16-7668b8a95925	HIP & KNEE SPECIALIZED PHYSIOTHERAPY - 10 SESSIONS	\N	15000	\N	2026-05-13 10:10:25.048674+00	2026-05-13 10:10:25.048674+00
+4b9224c9-2613-4946-9937-a1f7e30ad25d	d735732c-5951-45e6-bb16-7668b8a95925	HIP & KNEE SPECIALIZED PHYSIOTHERAPY - 5 SESSIONS	\N	9000	\N	2026-05-13 10:10:25.048674+00	2026-05-13 10:10:25.048674+00
+28d2c2f8-36cf-499b-94b2-598d2961f631	d735732c-5951-45e6-bb16-7668b8a95925	HIP STRENGTH AND MOBILITY ASSESSMENT	\N	4000	\N	2026-05-13 10:10:25.048674+00	2026-05-13 10:10:25.048674+00
+2cd07632-a2d0-47d7-81d8-a81925d059f4	d735732c-5951-45e6-bb16-7668b8a95925	HIP TAPING	\N	600	\N	2026-05-13 10:10:25.048674+00	2026-05-13 10:10:25.048674+00
+bc6ece84-8fc5-45d6-a6db-ce8af85131a8	d735732c-5951-45e6-bb16-7668b8a95925	INJURY MANAGEMENT - 12 Sessions	\N	15000	\N	2026-05-13 10:10:25.048674+00	2026-05-13 10:10:25.048674+00
+12a06d97-6560-4628-a587-b9f5ee285371	d735732c-5951-45e6-bb16-7668b8a95925	INJURY MANAGEMENT - 24 Sessions	\N	30000	\N	2026-05-13 10:10:25.048674+00	2026-05-13 10:10:25.048674+00
+aa4328e0-6693-4463-adbd-29fe4d6128a3	d735732c-5951-45e6-bb16-7668b8a95925	INJURY MANAGEMENT - Single Session	\N	1500	\N	2026-05-13 10:10:25.048674+00	2026-05-13 10:10:25.048674+00
+a432c427-168c-49e2-b52b-c103c25aea57	d735732c-5951-45e6-bb16-7668b8a95925	KINESIO TAPE	\N	700	\N	2026-05-13 10:10:25.048674+00	2026-05-13 10:10:25.048674+00
+055e2de8-aa5e-4287-9c63-90c786578b0d	d735732c-5951-45e6-bb16-7668b8a95925	KNEE ASSESSMENT (Re-Assessment / KneeDevices)	\N	2500	\N	2026-05-13 10:10:25.048674+00	2026-05-13 10:10:25.048674+00
+3c3c6d21-91c9-4cb5-b942-5a549e13b0bd	d735732c-5951-45e6-bb16-7668b8a95925	KNEE STRENGTH AND MOBILITY ASSESSMENT	\N	4000	\N	2026-05-13 10:10:25.048674+00	2026-05-13 10:10:25.048674+00
+c3b34a5e-4e0e-4990-ae05-2cd75f3e2247	d735732c-5951-45e6-bb16-7668b8a95925	KNEE TAPING	\N	400	\N	2026-05-13 10:10:25.048674+00	2026-05-13 10:10:25.048674+00
+c09617bb-67ae-45e4-a5a1-583c122db93c	d735732c-5951-45e6-bb16-7668b8a95925	LOOP BAND BLUE	\N	700	\N	2026-05-13 10:10:25.048674+00	2026-05-13 10:10:25.048674+00
+d673d06b-61d1-4768-b492-2707960d135b	d735732c-5951-45e6-bb16-7668b8a95925	LOOP BAND GREEN	\N	600	\N	2026-05-13 10:10:25.048674+00	2026-05-13 10:10:25.048674+00
+51b6d741-6dc4-48bf-a839-1f2e32e9c3bd	d735732c-5951-45e6-bb16-7668b8a95925	LOW BACK & HIP  & KNEE STRENGTH AND MOBILITY ASSESSMENT	\N	10000	\N	2026-05-13 10:10:25.048674+00	2026-05-13 10:10:25.048674+00
+fb038aa3-d1d4-4a3b-92c2-01ecdaefeee4	d735732c-5951-45e6-bb16-7668b8a95925	LOW BACK & HIP   STRENGTH AND MOBILITY ASSESSMENT	\N	8000	\N	2026-05-13 10:10:25.048674+00	2026-05-13 10:10:25.048674+00
+f0084af4-4f92-47d8-b4be-05743fca7bf1	d735732c-5951-45e6-bb16-7668b8a95925	LOW BACK STRENGTH AND MOBILITY ASSESSMENT	\N	6000	\N	2026-05-13 10:10:25.048674+00	2026-05-13 10:10:25.048674+00
+0ad0aacb-e088-4668-a294-dd7b74a2f7e7	d735732c-5951-45e6-bb16-7668b8a95925	LYMPHATIC DRAINAGE	\N	500	\N	2026-05-13 10:10:25.048674+00	2026-05-13 10:10:25.048674+00
+c74d3600-3e83-4707-bc81-500ea9cf71a7	d735732c-5951-45e6-bb16-7668b8a95925	MUSCULOSKELETON(MSK) HEALTH & FITNESS TRAINING PROGRAM - 12 SESSESIONS ULTERNATE DAY	\N	18000	\N	2026-05-13 10:10:25.048674+00	2026-05-13 10:10:25.048674+00
+133fbbd4-e0c8-451d-a6c7-a7bffd96781d	d735732c-5951-45e6-bb16-7668b8a95925	MUSCULOSKELETON(MSK) HEALTH & FITNESS TRAINING PROGRAM - 1 MONTH CAT-1	\N	15000	\N	2026-05-13 10:10:25.048674+00	2026-05-13 10:10:25.048674+00
+e2d2a289-39f8-449f-85c5-75ae0db07c97	d735732c-5951-45e6-bb16-7668b8a95925	MUSCULOSKELETON(MSK) HEALTH & FITNESS TRAINING PROGRAM - 1 MONTH CAT-2	\N	25000	\N	2026-05-13 10:10:25.048674+00	2026-05-13 10:10:25.048674+00
+fbafe001-ccca-453b-8634-4c763cabe095	d735732c-5951-45e6-bb16-7668b8a95925	MUSCULOSKELETON(MSK) HEALTH & FITNESS TRAINING PROGRAM - Membership	\N	25000	\N	2026-05-13 10:10:25.048674+00	2026-05-13 10:10:25.048674+00
+60651b3c-897f-4243-8c53-219cf613a3f9	d735732c-5951-45e6-bb16-7668b8a95925	MUSCULOSKELETON (MSK)  HEALTH STRENGTH AND MOBILITY ASSESSMENT	\N	15000	\N	2026-05-13 10:10:25.048674+00	2026-05-13 10:10:25.048674+00
+7094521e-d85c-4b53-8a6d-6ff19d02daed	d735732c-5951-45e6-bb16-7668b8a95925	MUSCULOSKELETON (MSK) SPECIALIZED  PHYSIOTHERAPY	\N	2000	\N	2026-05-13 10:10:25.048674+00	2026-05-13 10:10:25.048674+00
+fc40a443-8d23-43f5-bde9-3d052343a409	d735732c-5951-45e6-bb16-7668b8a95925	NECK(CERVICAL SPINE ) &  SHOULDER   STRENGTH AND MOBILITY ASSESSMENT	\N	8000	\N	2026-05-13 10:10:25.048674+00	2026-05-13 10:10:25.048674+00
+2621b6db-58b3-4ba2-b0f5-75afaebb6de1	d735732c-5951-45e6-bb16-7668b8a95925	NECK(CERVICAL spine )  STRENGTH AND MOBILITY ASSESSMENT	\N	4000	\N	2026-05-13 10:10:25.048674+00	2026-05-13 10:10:25.048674+00
+ca502473-ade8-440d-beae-28e30578261e	d735732c-5951-45e6-bb16-7668b8a95925	NUTRITION PROGRAM (Regular) - 1 Week	\N	2500	\N	2026-05-13 10:10:25.048674+00	2026-05-13 10:10:25.048674+00
+6efeeb9f-317d-48db-bba0-f1cd80934043	d735732c-5951-45e6-bb16-7668b8a95925	P TAPE	\N	1100	\N	2026-05-13 10:10:25.048674+00	2026-05-13 10:10:25.048674+00
+0b543e95-abc3-4ab0-af93-d2f0179cf1a0	d735732c-5951-45e6-bb16-7668b8a95925	RIGID TAPE	\N	800	\N	2026-05-13 10:10:25.048674+00	2026-05-13 10:10:25.048674+00
+e54eaa4f-5e1e-435c-92ca-2bfb13927a6b	d735732c-5951-45e6-bb16-7668b8a95925	RIGID TAPING	\N	500	\N	2026-05-13 10:10:25.048674+00	2026-05-13 10:10:25.048674+00
+77d9432b-29fe-46b0-8729-ee62fbbefb68	d735732c-5951-45e6-bb16-7668b8a95925	SHOULDER ASSESSMENT (Re-Assessment / ShoulderDevices)	\N	2500	\N	2026-05-13 10:10:25.048674+00	2026-05-13 10:10:25.048674+00
+0a136418-99d9-4fe4-b789-b4feb39a854b	d735732c-5951-45e6-bb16-7668b8a95925	SHOULDER SPECIALIZED PHYSIOTHERAPY - 10 SESSIONS	\N	15000	\N	2026-05-13 10:10:25.048674+00	2026-05-13 10:10:25.048674+00
+d4a57887-2b14-4c1d-85b0-f9c618861be9	d735732c-5951-45e6-bb16-7668b8a95925	SHOULDER SPECIALIZED PHYSIOTHERAPY - 5 SESSIONS	\N	9000	\N	2026-05-13 10:10:25.048674+00	2026-05-13 10:10:25.048674+00
+875fe359-634a-4891-ad54-04e0c38abe09	d735732c-5951-45e6-bb16-7668b8a95925	SHOULDER STRENGTH AND MOBILITY ASSESSMENT	\N	6000	\N	2026-05-13 10:10:25.048674+00	2026-05-13 10:10:25.048674+00
+0b7d4a9f-49a8-4fc2-8f48-afaf4dce6d05	d735732c-5951-45e6-bb16-7668b8a95925	SHOULDER TAPING	\N	400	\N	2026-05-13 10:10:25.048674+00	2026-05-13 10:10:25.048674+00
+7291d989-95c4-44c5-99b7-3e52be703bdd	d735732c-5951-45e6-bb16-7668b8a95925	SPINE HEALTH  ASSESSMENT (Re-Assessment / SpineDevices)	\N	3000	\N	2026-05-13 10:10:25.048674+00	2026-05-13 10:10:25.048674+00
+32324f9f-3496-49e4-9ac7-6c2af9d8aef1	d735732c-5951-45e6-bb16-7668b8a95925	SPINE HEALTH -MUSCLE  STRENGTH AND MOBILITY ASSESSMENT	\N	8000	\N	2026-05-13 10:10:25.048674+00	2026-05-13 10:10:25.048674+00
+02ddc595-943e-4c2c-811c-2a40ee4dab8d	d735732c-5951-45e6-bb16-7668b8a95925	SPINE SPECIALIZED PHYSIOTHERAPY	\N	2000	\N	2026-05-13 10:10:25.048674+00	2026-05-13 10:10:25.048674+00
+814bf1d1-035f-407f-a40f-c88167175cdb	d735732c-5951-45e6-bb16-7668b8a95925	SPINE SPECIALIZED PHYSIOTHERAPY - 10 SESSIONS	\N	15000	\N	2026-05-13 10:10:25.048674+00	2026-05-13 10:10:25.048674+00
+75a62267-8724-4f56-8ba7-8b8959004d1c	d735732c-5951-45e6-bb16-7668b8a95925	SPINE SPECIALIZED PHYSIOTHERAPY - 5 SESSIONS	\N	9000	\N	2026-05-13 10:10:25.048674+00	2026-05-13 10:10:25.048674+00
+a1760a9e-1002-46e1-82be-4d8be761a0d7	d735732c-5951-45e6-bb16-7668b8a95925	SPINE TAPING	\N	600	\N	2026-05-13 10:10:25.048674+00	2026-05-13 10:10:25.048674+00
+01454f1c-7fb3-4e86-8295-6f332782bebd	d735732c-5951-45e6-bb16-7668b8a95925	SPORTS NUTRITION PROGRAM - 1 WEEK	\N	3500	\N	2026-05-13 10:10:25.048674+00	2026-05-13 10:10:25.048674+00
+02f52b53-3218-4689-b203-14d930485d8d	d735732c-5951-45e6-bb16-7668b8a95925	SPORTS NUTRITION PROGRAM - 1 Year	\N	100000	\N	2026-05-13 10:10:25.048674+00	2026-05-13 10:10:25.048674+00
+8e171123-d9b7-4f81-bd93-92287e8b61f8	d735732c-5951-45e6-bb16-7668b8a95925	SPORTS NUTRITION PROGRAM - 8 WEEKS	\N	15000	\N	2026-05-13 10:10:25.048674+00	2026-05-13 10:10:25.048674+00
+f1695094-135a-4072-b82a-2987abdafeb7	d735732c-5951-45e6-bb16-7668b8a95925	SPORTS SPECIALIZED PHYSIOTHERAPY	\N	2000	\N	2026-05-13 10:10:25.048674+00	2026-05-13 10:10:25.048674+00
+8a295ccb-cd3f-44e2-8dca-c4e66e7ca156	d735732c-5951-45e6-bb16-7668b8a95925	STRENGTH AND CONDITIONING (1 Month)	\N	15000	\N	2026-05-13 10:10:25.048674+00	2026-05-13 10:10:25.048674+00
+8df4e47a-baaa-40a7-b9d4-ec62c68d3e64	d735732c-5951-45e6-bb16-7668b8a95925	STRENGTH AND CONDITIONING (1 Year)	\N	120000	\N	2026-05-13 10:10:25.048674+00	2026-05-13 10:10:25.048674+00
+43feb767-facb-4fe6-98c0-ea318c1807ae	d735732c-5951-45e6-bb16-7668b8a95925	STRENGTH AND CONDITIONING (3 Months)	\N	40000	\N	2026-05-13 10:10:25.048674+00	2026-05-13 10:10:25.048674+00
+ae556bf5-2395-4e90-867f-4260c9be8cc5	d735732c-5951-45e6-bb16-7668b8a95925	STRENGTH AND CONDITIONING (6 Months)	\N	70000	\N	2026-05-13 10:10:25.048674+00	2026-05-13 10:10:25.048674+00
+8f3ec80f-75cb-4206-93bd-2906ed9cc8f6	d735732c-5951-45e6-bb16-7668b8a95925	STRENGTH AND CONDITIONING (Regular)	\N	2000	\N	2026-05-13 10:10:25.048674+00	2026-05-13 10:10:25.048674+00
+52423ff4-dd2c-4a37-9bbc-5e590951d9e9	d735732c-5951-45e6-bb16-7668b8a95925	SUPER LOOP BAND BLUE	\N	4500	\N	2026-05-13 10:10:25.048674+00	2026-05-13 10:10:25.048674+00
+e2cd2427-ca90-4123-bdde-edbd7e3432c8	d735732c-5951-45e6-bb16-7668b8a95925	SUPER LOOP BAND ORANGE	\N	2500	\N	2026-05-13 10:10:25.048674+00	2026-05-13 10:10:25.048674+00
+39678c87-61cc-4f25-a390-67c89c9f32bf	d735732c-5951-45e6-bb16-7668b8a95925	SUPER LOOP BAND RED	\N	4000	\N	2026-05-13 10:10:25.048674+00	2026-05-13 10:10:25.048674+00
+728dd1c3-aa80-4d96-bd6c-6a3a32e60c0b	d735732c-5951-45e6-bb16-7668b8a95925	TAPING (Rigid / Kinesio Tape)	\N	1500	\N	2026-05-13 10:10:25.048674+00	2026-05-13 10:10:25.048674+00
+7544085a-2b80-416a-986c-acfca6c004bf	d735732c-5951-45e6-bb16-7668b8a95925	THERA BAND  BLUE	\N	550	\N	2026-05-13 10:10:25.048674+00	2026-05-13 10:10:25.048674+00
+eef0df4e-3e6a-4a8c-b96e-a24b49422f4c	d735732c-5951-45e6-bb16-7668b8a95925	THERA BAND  GREEN	\N	500	\N	2026-05-13 10:10:25.048674+00	2026-05-13 10:10:25.048674+00
+618a7714-42b6-4774-aebe-5dc30f227509	d735732c-5951-45e6-bb16-7668b8a95925	THERA TUBE BLACK	\N	1100	\N	2026-05-13 10:10:25.048674+00	2026-05-13 10:10:25.048674+00
+1e69a0be-53fc-4b91-b976-f26c4968f58a	d735732c-5951-45e6-bb16-7668b8a95925	THERA TUBE BLUE	\N	1000	\N	2026-05-13 10:10:25.048674+00	2026-05-13 10:10:25.048674+00
+6bada1ae-97ca-47aa-a5de-338bcf4be1f9	d735732c-5951-45e6-bb16-7668b8a95925	THERA TUBE GREEN	\N	1000	\N	2026-05-13 10:10:25.048674+00	2026-05-13 10:10:25.048674+00
+855e1b37-463d-4797-86d1-a5d1ee7909d4	d735732c-5951-45e6-bb16-7668b8a95925	THERA TUBE YELLOW	\N	900	\N	2026-05-13 10:10:25.048674+00	2026-05-13 10:10:25.048674+00
+f1dc80b1-5257-4031-892c-3487b0e7aa86	d735732c-5951-45e6-bb16-7668b8a95925	UNDER WRAP	\N	450	\N	2026-05-13 10:10:25.048674+00	2026-05-13 10:10:25.048674+00
+3d3dac3f-91a2-4c78-b6ae-1dd4ee084b10	d735732c-5951-45e6-bb16-7668b8a95925	VO2 TESTING (METABOLIC CART)	\N	3000	\N	2026-05-13 10:10:25.048674+00	2026-05-13 10:10:25.048674+00
+3eba0edd-50d1-4130-baa7-e588f32060f2	d735732c-5951-45e6-bb16-7668b8a95925	WRIST TAPING	\N	300	\N	2026-05-13 10:10:25.048674+00	2026-05-13 10:10:25.048674+00
+8249970b-9270-4864-ac9d-813316543028	d735732c-5951-45e6-bb16-7668b8a95925	YOUNG ATHLETES HEALTH PERFORMANCE  & ASSESSMENT PROGRAM	\N	3000	\N	2026-05-13 10:10:25.048674+00	2026-05-13 10:10:25.048674+00
+\.
+
+
+--
+-- Data for Name: packageservices; Type: TABLE DATA; Schema: public; Owner: skavuturi
+--
+
+COPY public.packageservices (id, package_id, service_id, sessions_included) FROM stdin;
+b3dabbd4-b5c4-42ab-a93d-6a2253584a95	458f40db-18b3-49ce-a438-d310370503b8	82c3671e-b089-44d7-a7c6-9a944eb16b9a	1
+12714fc6-8e68-433c-976a-c854c66aae2d	7e3865a8-e032-46b4-a6a5-39ca5bec4104	82c3671e-b089-44d7-a7c6-9a944eb16b9a	1
+0f48a742-575c-442c-9ff2-ab2056583284	a6d695b7-81ad-45d1-a69c-8428eaf3482c	82c3671e-b089-44d7-a7c6-9a944eb16b9a	1
+816ac29c-d5f7-46d4-83c6-2b3866ba42a9	77ef52e7-0538-4ba3-94aa-a015f39ffdfc	9da5a8de-b923-4f59-a462-14f3c878d005	1
+e40b9b6c-ee80-4646-8957-28861e171254	1530ed03-4446-479e-998a-bd06063383e1	9a74b3e0-5a4b-4cc3-8dfa-5ebd4523f25f	1
+516b0266-92cc-4617-8ed4-7acee6f609a6	eb2ae758-8ef8-43f0-98d7-eae7b8aaa6a1	2dffb483-df29-4461-9d5d-8dd86ab30339	96
+c4738089-45a5-4b14-a513-90313bc6ae38	22f4c593-012e-4dca-be67-8363ea8f19b3	2dffb483-df29-4461-9d5d-8dd86ab30339	192
+4686e09b-0822-4561-8ee8-d920e8faf4bd	f54cdde3-ff97-4ba2-a9b7-0e7ded7fa329	9f816a75-ebe2-48e1-a983-c55659f50930	1
+56ccd732-9060-4aae-88a9-82ff3d0c7445	b66dd457-dd34-4e78-ae96-feace9aebc64	9f816a75-ebe2-48e1-a983-c55659f50930	1
+7d888bdf-b345-4f1a-86cc-53ae29436f03	d09c9742-d050-49c9-9b6d-3d87b8de68a0	9f816a75-ebe2-48e1-a983-c55659f50930	1
+05eb5c01-1cb1-4ec6-a4c5-a6b987c339a2	28c8d98a-8e1e-4e24-955e-b2da23865985	2dffb483-df29-4461-9d5d-8dd86ab30339	8
+ed1c06a3-4b03-4b11-83c5-5d09766bebda	4c59ace0-7039-4b59-8ff8-0ab17f830e4d	2dffb483-df29-4461-9d5d-8dd86ab30339	8
+0831c6ae-60b6-4ee9-b512-54211314e1a5	6b337afc-963c-49e6-bbd9-77da497202fd	9a74b3e0-5a4b-4cc3-8dfa-5ebd4523f25f	10
+e01d05b8-5142-49ae-9aed-2b47d3ce2a09	124528c8-3d7e-4e3f-bab5-2f7d104e5773	9a74b3e0-5a4b-4cc3-8dfa-5ebd4523f25f	5
+99475586-aa76-4524-ad22-7b2495fc2553	3d8812c3-c9f9-47db-847e-fd6dc5ddeb21	9a74b3e0-5a4b-4cc3-8dfa-5ebd4523f25f	10
+e1642499-faa2-458a-8c9b-36c167932bda	d7dfd7cb-757b-451c-bd31-ad5533e3d1f0	9a74b3e0-5a4b-4cc3-8dfa-5ebd4523f25f	5
+2f555172-774b-47a6-9c4a-09655ea212ec	5bb7e360-2ab0-4b10-b3c3-643ed83abc3f	9f816a75-ebe2-48e1-a983-c55659f50930	1
+03bef186-4ee8-410f-883e-5b0d349f02b8	bd5ba0dd-f4a5-461b-b6fb-c818be74384b	9f816a75-ebe2-48e1-a983-c55659f50930	1
+8f071dfd-b6c3-41b6-abc8-4de1d1a6e7ac	f9784876-8bc2-4f49-9edb-ef81510df6c3	9a74b3e0-5a4b-4cc3-8dfa-5ebd4523f25f	10
+95bf10cf-01e1-406f-9351-270300da2ace	4b9224c9-2613-4946-9937-a1f7e30ad25d	9a74b3e0-5a4b-4cc3-8dfa-5ebd4523f25f	5
+a1ceffae-0c37-4d58-a99d-31cb2af61662	28d2c2f8-36cf-499b-94b2-598d2961f631	9f816a75-ebe2-48e1-a983-c55659f50930	1
+dd812a2c-62a7-45ef-a9d2-f79f51a90878	bc6ece84-8fc5-45d6-a6db-ce8af85131a8	9a74b3e0-5a4b-4cc3-8dfa-5ebd4523f25f	12
+32748311-476f-42a6-b3f9-78ec2dae5d76	12a06d97-6560-4628-a587-b9f5ee285371	9a74b3e0-5a4b-4cc3-8dfa-5ebd4523f25f	24
+33859ceb-c616-4863-983d-4a777c8995c3	aa4328e0-6693-4463-adbd-29fe4d6128a3	9a74b3e0-5a4b-4cc3-8dfa-5ebd4523f25f	1
+1e8b0ab6-07e2-408a-8800-c912eca07229	055e2de8-aa5e-4287-9c63-90c786578b0d	9f816a75-ebe2-48e1-a983-c55659f50930	1
+a543f557-fc4e-47c6-b64f-8410c263e6cb	3c3c6d21-91c9-4cb5-b942-5a549e13b0bd	9f816a75-ebe2-48e1-a983-c55659f50930	1
+b523cee0-8d4e-465b-ab3c-f25ea100d361	51b6d741-6dc4-48bf-a839-1f2e32e9c3bd	9f816a75-ebe2-48e1-a983-c55659f50930	1
+4610ea05-82e3-4a4b-9a43-646c6510c7b0	fb038aa3-d1d4-4a3b-92c2-01ecdaefeee4	9f816a75-ebe2-48e1-a983-c55659f50930	1
+51d0e80d-2227-45d5-97e6-04a4e4c5742d	f0084af4-4f92-47d8-b4be-05743fca7bf1	9f816a75-ebe2-48e1-a983-c55659f50930	1
+1d1019e8-1856-403a-9048-7460a704ef8f	c74d3600-3e83-4707-bc81-500ea9cf71a7	2dffb483-df29-4461-9d5d-8dd86ab30339	12
+5656f1ed-6d4a-451c-b3b0-0b1306524e58	133fbbd4-e0c8-451d-a6c7-a7bffd96781d	2dffb483-df29-4461-9d5d-8dd86ab30339	96
+d5531ddc-7515-48d0-8bed-4749319a73ed	e2d2a289-39f8-449f-85c5-75ae0db07c97	2dffb483-df29-4461-9d5d-8dd86ab30339	192
+efb782c6-68da-4915-9520-3b1e2b4e0f9d	fbafe001-ccca-453b-8634-4c763cabe095	9a74b3e0-5a4b-4cc3-8dfa-5ebd4523f25f	12
+d2a0f666-5d42-469a-87de-c8fd7d0b0bd8	fbafe001-ccca-453b-8634-4c763cabe095	2dffb483-df29-4461-9d5d-8dd86ab30339	8
+2e58cd6a-d3dc-47f2-9bbe-0c4ad76943c1	fbafe001-ccca-453b-8634-4c763cabe095	f1fe2574-ea14-40c8-ae17-ebb1277b00b8	1
+bbe48aed-ded5-48cb-8ee9-a84540773832	fbafe001-ccca-453b-8634-4c763cabe095	2225c71e-8a92-4313-a8c6-46364fe49979	1
+361ddf9e-29ea-4e15-898e-9e4381c41929	60651b3c-897f-4243-8c53-219cf613a3f9	9f816a75-ebe2-48e1-a983-c55659f50930	1
+cf69c995-bdee-446b-b492-ac6b1c02401f	7094521e-d85c-4b53-8a6d-6ff19d02daed	9a74b3e0-5a4b-4cc3-8dfa-5ebd4523f25f	1
+88f3382e-71a0-4c47-8476-93a89ea3a12f	fc40a443-8d23-43f5-bde9-3d052343a409	9f816a75-ebe2-48e1-a983-c55659f50930	1
+324819be-a4c5-41fd-84f3-8e295e573ade	2621b6db-58b3-4ba2-b0f5-75afaebb6de1	9f816a75-ebe2-48e1-a983-c55659f50930	1
+f9419d20-28f3-4de8-b5a5-c27a9e4eda1c	77d9432b-29fe-46b0-8729-ee62fbbefb68	9f816a75-ebe2-48e1-a983-c55659f50930	1
+bbc01aba-20e8-4ced-985f-36857989f128	0a136418-99d9-4fe4-b789-b4feb39a854b	9a74b3e0-5a4b-4cc3-8dfa-5ebd4523f25f	10
+afc68baa-5bee-47ca-b12a-fe117b3a2d73	d4a57887-2b14-4c1d-85b0-f9c618861be9	9a74b3e0-5a4b-4cc3-8dfa-5ebd4523f25f	5
+1afcdbfa-c7ca-4cd5-a881-c2fe724e8c7d	875fe359-634a-4891-ad54-04e0c38abe09	9f816a75-ebe2-48e1-a983-c55659f50930	1
+4abb4706-e1ef-4bb3-b705-da1414d8e127	7291d989-95c4-44c5-99b7-3e52be703bdd	9f816a75-ebe2-48e1-a983-c55659f50930	1
+f4a6c808-738c-49c7-ba1f-4646cbd936f6	32324f9f-3496-49e4-9ac7-6c2af9d8aef1	9f816a75-ebe2-48e1-a983-c55659f50930	1
+f19cffc0-e142-4eb1-94a0-42485d026176	02ddc595-943e-4c2c-811c-2a40ee4dab8d	9a74b3e0-5a4b-4cc3-8dfa-5ebd4523f25f	1
+34923503-22fa-48bf-ac32-00c72b834db7	814bf1d1-035f-407f-a40f-c88167175cdb	9a74b3e0-5a4b-4cc3-8dfa-5ebd4523f25f	10
+fa50c9cc-c72b-4ef7-b70f-5f2659545fff	75a62267-8724-4f56-8ba7-8b8959004d1c	9a74b3e0-5a4b-4cc3-8dfa-5ebd4523f25f	5
+b8165d56-a80b-43b4-a74c-921fdefbf203	f1695094-135a-4072-b82a-2987abdafeb7	9a74b3e0-5a4b-4cc3-8dfa-5ebd4523f25f	1
+ca954a95-a417-47cd-812b-02efc2f39f1c	8a295ccb-cd3f-44e2-8dca-c4e66e7ca156	2dffb483-df29-4461-9d5d-8dd86ab30339	12
+00c119c3-6266-4991-982c-61981c4aca9a	8df4e47a-baaa-40a7-b9d4-ec62c68d3e64	2dffb483-df29-4461-9d5d-8dd86ab30339	144
+c194fe75-52eb-4685-86b6-048917a8f527	43feb767-facb-4fe6-98c0-ea318c1807ae	2dffb483-df29-4461-9d5d-8dd86ab30339	36
+1b62b721-6392-4cb6-90fb-ee019d0410f6	ae556bf5-2395-4e90-867f-4260c9be8cc5	2dffb483-df29-4461-9d5d-8dd86ab30339	72
+5bea3df3-e5cf-433f-95af-e36a03727788	8f3ec80f-75cb-4206-93bd-2906ed9cc8f6	2dffb483-df29-4461-9d5d-8dd86ab30339	12
+9394b845-ff20-48da-858b-43e14e7f308d	8249970b-9270-4864-ac9d-813316543028	9f816a75-ebe2-48e1-a983-c55659f50930	1
+\.
+
+
+--
+-- Data for Name: performance_assessments; Type: TABLE DATA; Schema: public; Owner: skavuturi
+--
+
+COPY public.performance_assessments (id, organization_id, athlete_id, category, test_name, metrics, recorded_by, created_at) FROM stdin;
+\.
+
+
+--
+-- Data for Name: physiosessiondetails; Type: TABLE DATA; Schema: public; Owner: skavuturi
+--
+
+COPY public.physiosessiondetails (id, session_id, injury_id, pain_score, modality_used, treatment_type, manual_therapy, exercise_given, range_of_motion, strength_progress, clinical_notes, next_plan, soreness_data, updated_at) FROM stdin;
+35984aa2-d3e4-4949-985a-635aa732957d	24eb701b-3f89-4656-8d76-7e104e14b776	\N	3	UST						Feeling sore muscles	Frequent follow-ups	["forearm_l_ant", "forearm_r_ant", "calf_l", "calf_r"]	2026-05-20 10:32:37.405211+00
+\.
+
+
+--
+-- Data for Name: profiles; Type: TABLE DATA; Schema: public; Owner: skavuturi
+--
+
+COPY public.profiles (id, first_name, last_name, organization_id, is_approved, uhid, ams_role, profession, created_at, avatar_url, mobile_no) FROM stdin;
+3b1a76ab-5272-437f-aa8a-9059e674200a	Super	Admin	d735732c-5951-45e6-bb16-7668b8a95925	t	\N	\N	\N	2026-05-12 12:34:34.89312+00	\N	\N
+fd35fa21-0837-4d8a-a722-90595356aaec	Sai Rupesh	Kavuturi	d735732c-5951-45e6-bb16-7668b8a95925	t	\N	\N	\N	2026-05-20 07:27:11.150749+00	\N	\N
+62970e9a-5030-4acb-9837-d170f3161667	Sandeep	S	d735732c-5951-45e6-bb16-7668b8a95925	t	\N	\N	Sports Physician	2026-05-20 08:55:00.741349+00	\N	\N
+\.
+
+
+--
+-- Data for Name: program_assignments; Type: TABLE DATA; Schema: public; Owner: skavuturi
+--
+
+COPY public.program_assignments (id, athlete_id, program_id, batch_id, start_date, status, created_at) FROM stdin;
+\.
+
+
+--
+-- Data for Name: questionnaires; Type: TABLE DATA; Schema: public; Owner: skavuturi
+--
+
+COPY public.questionnaires (id, organization_id, name, classification, questions, created_by, created_at) FROM stdin;
+\.
+
+
+--
+-- Data for Name: referralsources; Type: TABLE DATA; Schema: public; Owner: skavuturi
+--
+
+COPY public.referralsources (id, organization_id, name, created_at) FROM stdin;
+\.
+
+
+--
+-- Data for Name: refunds; Type: TABLE DATA; Schema: public; Owner: skavuturi
+--
+
+COPY public.refunds (id, organization_id, client_id, bill_id, amount, refund_mode, transaction_id, refund_proof_url, reason, notes, status, is_override, authorized_by, is_entitlement_reversed, created_at) FROM stdin;
+\.
+
+
+--
+-- Data for Name: rehab_progress; Type: TABLE DATA; Schema: public; Owner: skavuturi
+--
+
+COPY public.rehab_progress (id, injury_id, status, notes, metrics, recorded_by, created_at) FROM stdin;
+\.
+
+
+--
+-- Data for Name: report_templates; Type: TABLE DATA; Schema: public; Owner: skavuturi
+--
+
+COPY public.report_templates (id, organization_id, name, file_path, description, created_by, created_at) FROM stdin;
+\.
+
+
+--
+-- Data for Name: scientific_resources; Type: TABLE DATA; Schema: public; Owner: skavuturi
+--
+
+COPY public.scientific_resources (id, organization_id, athlete_id, title, category, type, description, url, thumbnail_url, tags, is_public, created_by, created_at, updated_at) FROM stdin;
+\.
+
+
+--
+-- Data for Name: services; Type: TABLE DATA; Schema: public; Owner: skavuturi
+--
+
+COPY public.services (id, organization_id, name, category, is_active, created_at) FROM stdin;
+82c3671e-b089-44d7-a7c6-9a944eb16b9a	d735732c-5951-45e6-bb16-7668b8a95925	Active Recovery Training	General	t	2026-05-13 10:10:25.048674+00
+9da5a8de-b923-4f59-a462-14f3c878d005	d735732c-5951-45e6-bb16-7668b8a95925	Lab Services	General	t	2026-05-13 10:10:25.048674+00
+9a74b3e0-5a4b-4cc3-8dfa-5ebd4523f25f	d735732c-5951-45e6-bb16-7668b8a95925	Physiotherapy	General	t	2026-05-13 10:10:25.048674+00
+2dffb483-df29-4461-9d5d-8dd86ab30339	d735732c-5951-45e6-bb16-7668b8a95925	Strength & Conditioning	General	t	2026-05-13 10:10:25.048674+00
+9f816a75-ebe2-48e1-a983-c55659f50930	d735732c-5951-45e6-bb16-7668b8a95925	Assessment	General	t	2026-05-13 10:10:25.048674+00
+f1fe2574-ea14-40c8-ae17-ebb1277b00b8	d735732c-5951-45e6-bb16-7668b8a95925	Nutrition Consultation	General	t	2026-05-13 10:10:25.048674+00
+2225c71e-8a92-4313-a8c6-46364fe49979	d735732c-5951-45e6-bb16-7668b8a95925	Consultation	General	t	2026-05-13 10:10:25.048674+00
+\.
+
+
+--
+-- Data for Name: sessions; Type: TABLE DATA; Schema: public; Owner: skavuturi
+--
+
+COPY public.sessions (id, organization_id, client_id, therapist_id, scientist_id, entitlement_id, service_id, service_type, session_mode, scheduled_start, scheduled_end, actual_start, actual_end, status, cancellation_reason, is_unentitled, created_by, created_at, updated_at, preference_type, is_flexible_routing) FROM stdin;
+24eb701b-3f89-4656-8d76-7e104e14b776	d735732c-5951-45e6-bb16-7668b8a95925	a5ba9385-757c-4647-b02b-ec44df42425f	62970e9a-5030-4acb-9837-d170f3161667	\N	\N	2225c71e-8a92-4313-a8c6-46364fe49979	Consultation	Individual	2026-05-20 03:30:00+00	2026-05-20 04:30:00+00	2026-05-20 10:32:37.405211+00	2026-05-20 10:32:37.405211+00	Completed	\N	t	fd35fa21-0837-4d8a-a722-90595356aaec	2026-05-20 10:06:03.974654+00	2026-05-20 10:32:37.405211+00	Flexible	t
+\.
+
+
+--
+-- Data for Name: subscription_logs; Type: TABLE DATA; Schema: public; Owner: skavuturi
+--
+
+COPY public.subscription_logs (id, organization_id, subscription_id, event, details, created_at) FROM stdin;
+\.
+
+
+--
+-- Data for Name: subscriptions; Type: TABLE DATA; Schema: public; Owner: skavuturi
+--
+
+COPY public.subscriptions (id, organization_id, client_id, package_id, status, current_period_start, current_period_end, billing_cycle, auto_pay, next_billing_date, grace_period_end, cancel_at_period_end, created_at, updated_at, dunning_step, last_dunning_at, last_billing_date) FROM stdin;
+\.
+
+
+--
+-- Data for Name: trainingprograms; Type: TABLE DATA; Schema: public; Owner: skavuturi
+--
+
+COPY public.trainingprograms (id, organization_id, name, description, scientist_id, created_at) FROM stdin;
+\.
+
+
+--
+-- Data for Name: uhidsequences; Type: TABLE DATA; Schema: public; Owner: skavuturi
+--
+
+COPY public.uhidsequences (id, organization_id, year_month, last_serial) FROM stdin;
+cd94d5be-ce10-41a1-961b-59b74d066739	d735732c-5951-45e6-bb16-7668b8a95925	0526	2
+\.
+
+
+--
+-- Data for Name: users; Type: TABLE DATA; Schema: public; Owner: skavuturi
+--
+
+COPY public.users (id, email, password_hash, role, created_at) FROM stdin;
+fd35fa21-0837-4d8a-a722-90595356aaec	saikavuturi24@gmail.com	$2b$10$NUXqyUd3Zb89kZtXiTxc5.n12KI90BKqjdNtNS2PUjfiphr0IuzP2	admin	2026-05-20 07:27:11.144314+00
+62970e9a-5030-4acb-9837-d170f3161667	sandeeps@ishpo.com	$2b$10$mOqhXvbA1Op6F0f/LVOOw.e1i24QsnFE7.cC3WRlxWB8QeJLD7kOi	sports_physician	2026-05-20 08:55:00.736385+00
+3b1a76ab-5272-437f-aa8a-9059e674200a	admin@ishpo.local	$2b$10$lS0RYJ7zFjeKQr5bPJObaeqN4n1L3IHUyfipLDKRlmNPH5kjhJrlS	super_admin	2026-05-12 12:34:34.885254+00
+\.
+
+
+--
+-- Data for Name: waitlist; Type: TABLE DATA; Schema: public; Owner: skavuturi
+--
+
+COPY public.waitlist (id, organization_id, client_id, therapist_id, service_id, preferred_date, preferred_time_slot, preference_type, status, created_at, updated_at) FROM stdin;
+\.
+
+
+--
+-- Data for Name: wellness_logs; Type: TABLE DATA; Schema: public; Owner: skavuturi
+--
+
+COPY public.wellness_logs (id, organization_id, athlete_id, sleep_score, stress_level, soreness_level, fatigue_level, soreness_data, created_at) FROM stdin;
+\.
+
+
+--
+-- Data for Name: workoutdays; Type: TABLE DATA; Schema: public; Owner: skavuturi
+--
+
+COPY public.workoutdays (id, program_id, organization_id, title, display_order, created_at) FROM stdin;
+\.
+
+
+--
+-- Data for Name: workoutitems; Type: TABLE DATA; Schema: public; Owner: skavuturi
+--
+
+COPY public.workoutitems (id, workout_day_id, item_type, display_order, created_at) FROM stdin;
+\.
+
+
+--
+-- Name: athlete_item_logs athlete_item_logs_pkey; Type: CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.athlete_item_logs
@@ -1143,7 +2132,7 @@ ALTER TABLE ONLY public.athlete_item_logs
 
 
 --
--- Name: athlete_workout_completions athlete_workout_completions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: athlete_workout_completions athlete_workout_completions_pkey; Type: CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.athlete_workout_completions
@@ -1151,7 +2140,7 @@ ALTER TABLE ONLY public.athlete_workout_completions
 
 
 --
--- Name: authsessions authsessions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: authsessions authsessions_pkey; Type: CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.authsessions
@@ -1159,7 +2148,7 @@ ALTER TABLE ONLY public.authsessions
 
 
 --
--- Name: availabilityexceptions availabilityexceptions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: availabilityexceptions availabilityexceptions_pkey; Type: CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.availabilityexceptions
@@ -1167,7 +2156,7 @@ ALTER TABLE ONLY public.availabilityexceptions
 
 
 --
--- Name: billitems billitems_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: billitems billitems_pkey; Type: CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.billitems
@@ -1175,7 +2164,7 @@ ALTER TABLE ONLY public.billitems
 
 
 --
--- Name: billpayments billpayments_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: billpayments billpayments_pkey; Type: CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.billpayments
@@ -1183,7 +2172,7 @@ ALTER TABLE ONLY public.billpayments
 
 
 --
--- Name: bills bills_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: bills bills_pkey; Type: CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.bills
@@ -1191,7 +2180,7 @@ ALTER TABLE ONLY public.bills
 
 
 --
--- Name: bulk_assignments bulk_assignments_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: bulk_assignments bulk_assignments_pkey; Type: CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.bulk_assignments
@@ -1199,7 +2188,7 @@ ALTER TABLE ONLY public.bulk_assignments
 
 
 --
--- Name: client_group_members client_group_members_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: client_group_members client_group_members_pkey; Type: CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.client_group_members
@@ -1207,7 +2196,7 @@ ALTER TABLE ONLY public.client_group_members
 
 
 --
--- Name: client_groups client_groups_organization_id_name_key; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: client_groups client_groups_organization_id_name_key; Type: CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.client_groups
@@ -1215,7 +2204,7 @@ ALTER TABLE ONLY public.client_groups
 
 
 --
--- Name: client_groups client_groups_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: client_groups client_groups_pkey; Type: CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.client_groups
@@ -1223,7 +2212,7 @@ ALTER TABLE ONLY public.client_groups
 
 
 --
--- Name: clientadminnotes clientadminnotes_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: clientadminnotes clientadminnotes_pkey; Type: CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.clientadminnotes
@@ -1231,7 +2220,7 @@ ALTER TABLE ONLY public.clientadminnotes
 
 
 --
--- Name: clientdocuments clientdocuments_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: clientdocuments clientdocuments_pkey; Type: CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.clientdocuments
@@ -1239,7 +2228,7 @@ ALTER TABLE ONLY public.clientdocuments
 
 
 --
--- Name: cliententitlements cliententitlements_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: cliententitlements cliententitlements_pkey; Type: CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.cliententitlements
@@ -1247,7 +2236,7 @@ ALTER TABLE ONLY public.cliententitlements
 
 
 --
--- Name: clientorganizations clientorganizations_organization_id_name_key; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: clientorganizations clientorganizations_organization_id_name_key; Type: CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.clientorganizations
@@ -1255,7 +2244,7 @@ ALTER TABLE ONLY public.clientorganizations
 
 
 --
--- Name: clientorganizations clientorganizations_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: clientorganizations clientorganizations_pkey; Type: CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.clientorganizations
@@ -1263,7 +2252,7 @@ ALTER TABLE ONLY public.clientorganizations
 
 
 --
--- Name: clients clients_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: clients clients_pkey; Type: CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.clients
@@ -1271,7 +2260,7 @@ ALTER TABLE ONLY public.clients
 
 
 --
--- Name: clients clients_uhid_key; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: clients clients_uhid_key; Type: CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.clients
@@ -1279,7 +2268,7 @@ ALTER TABLE ONLY public.clients
 
 
 --
--- Name: consultant_services consultant_services_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: consultant_services consultant_services_pkey; Type: CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.consultant_services
@@ -1287,7 +2276,7 @@ ALTER TABLE ONLY public.consultant_services
 
 
 --
--- Name: consultantavailability consultantavailability_consultant_id_day_of_week_key; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: consultantavailability consultantavailability_consultant_id_day_of_week_key; Type: CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.consultantavailability
@@ -1295,7 +2284,7 @@ ALTER TABLE ONLY public.consultantavailability
 
 
 --
--- Name: consultantavailability consultantavailability_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: consultantavailability consultantavailability_pkey; Type: CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.consultantavailability
@@ -1303,7 +2292,7 @@ ALTER TABLE ONLY public.consultantavailability
 
 
 --
--- Name: emergency_alerts emergency_alerts_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: emergency_alerts emergency_alerts_pkey; Type: CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.emergency_alerts
@@ -1311,7 +2300,7 @@ ALTER TABLE ONLY public.emergency_alerts
 
 
 --
--- Name: enquiries enquiries_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: enquiries enquiries_pkey; Type: CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.enquiries
@@ -1319,7 +2308,7 @@ ALTER TABLE ONLY public.enquiries
 
 
 --
--- Name: enquiryinteractions enquiryinteractions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: enquiryinteractions enquiryinteractions_pkey; Type: CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.enquiryinteractions
@@ -1327,7 +2316,7 @@ ALTER TABLE ONLY public.enquiryinteractions
 
 
 --
--- Name: exercises exercises_organization_id_name_key; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: exercises exercises_organization_id_name_key; Type: CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.exercises
@@ -1335,7 +2324,7 @@ ALTER TABLE ONLY public.exercises
 
 
 --
--- Name: exercises exercises_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: exercises exercises_pkey; Type: CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.exercises
@@ -1343,7 +2332,7 @@ ALTER TABLE ONLY public.exercises
 
 
 --
--- Name: form_responses form_responses_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: form_responses form_responses_pkey; Type: CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.form_responses
@@ -1351,7 +2340,7 @@ ALTER TABLE ONLY public.form_responses
 
 
 --
--- Name: group_attendance group_attendance_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: group_attendance group_attendance_pkey; Type: CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.group_attendance
@@ -1359,7 +2348,7 @@ ALTER TABLE ONLY public.group_attendance
 
 
 --
--- Name: group_attendance group_attendance_session_id_client_id_key; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: group_attendance group_attendance_session_id_client_id_key; Type: CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.group_attendance
@@ -1367,7 +2356,7 @@ ALTER TABLE ONLY public.group_attendance
 
 
 --
--- Name: hr_employees hr_employees_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: hr_employees hr_employees_pkey; Type: CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.hr_employees
@@ -1375,7 +2364,7 @@ ALTER TABLE ONLY public.hr_employees
 
 
 --
--- Name: hr_employees hr_employees_profile_id_key; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: hr_employees hr_employees_profile_id_key; Type: CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.hr_employees
@@ -1383,7 +2372,7 @@ ALTER TABLE ONLY public.hr_employees
 
 
 --
--- Name: hr_jobs hr_jobs_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: hr_jobs hr_jobs_pkey; Type: CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.hr_jobs
@@ -1391,7 +2380,7 @@ ALTER TABLE ONLY public.hr_jobs
 
 
 --
--- Name: hrattendancelogs hrattendancelogs_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: hrattendancelogs hrattendancelogs_pkey; Type: CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.hrattendancelogs
@@ -1399,7 +2388,7 @@ ALTER TABLE ONLY public.hrattendancelogs
 
 
 --
--- Name: hrleaves hrleaves_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: hrleaves hrleaves_pkey; Type: CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.hrleaves
@@ -1407,7 +2396,7 @@ ALTER TABLE ONLY public.hrleaves
 
 
 --
--- Name: injuries injuries_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: injuries injuries_pkey; Type: CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.injuries
@@ -1415,7 +2404,7 @@ ALTER TABLE ONLY public.injuries
 
 
 --
--- Name: injury_master_data injury_master_data_organization_id_region_injury_type_diagn_key; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: injury_master_data injury_master_data_organization_id_region_injury_type_diagn_key; Type: CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.injury_master_data
@@ -1423,7 +2412,7 @@ ALTER TABLE ONLY public.injury_master_data
 
 
 --
--- Name: injury_master_data injury_master_data_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: injury_master_data injury_master_data_pkey; Type: CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.injury_master_data
@@ -1431,7 +2420,7 @@ ALTER TABLE ONLY public.injury_master_data
 
 
 --
--- Name: liftitems liftitems_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: liftitems liftitems_pkey; Type: CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.liftitems
@@ -1439,7 +2428,7 @@ ALTER TABLE ONLY public.liftitems
 
 
 --
--- Name: locations locations_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: locations locations_pkey; Type: CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.locations
@@ -1447,7 +2436,7 @@ ALTER TABLE ONLY public.locations
 
 
 --
--- Name: max_pr_records max_pr_records_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: max_pr_records max_pr_records_pkey; Type: CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.max_pr_records
@@ -1455,7 +2444,7 @@ ALTER TABLE ONLY public.max_pr_records
 
 
 --
--- Name: notification_reads notification_reads_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: notification_reads notification_reads_pkey; Type: CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.notification_reads
@@ -1463,7 +2452,7 @@ ALTER TABLE ONLY public.notification_reads
 
 
 --
--- Name: notifications notifications_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: notifications notifications_pkey; Type: CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.notifications
@@ -1471,7 +2460,7 @@ ALTER TABLE ONLY public.notifications
 
 
 --
--- Name: organizations organizations_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: organizations organizations_pkey; Type: CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.organizations
@@ -1479,7 +2468,7 @@ ALTER TABLE ONLY public.organizations
 
 
 --
--- Name: packages packages_organization_id_name_key; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: packages packages_organization_id_name_key; Type: CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.packages
@@ -1487,7 +2476,7 @@ ALTER TABLE ONLY public.packages
 
 
 --
--- Name: packages packages_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: packages packages_pkey; Type: CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.packages
@@ -1495,7 +2484,7 @@ ALTER TABLE ONLY public.packages
 
 
 --
--- Name: packageservices packageservices_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: packageservices packageservices_pkey; Type: CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.packageservices
@@ -1503,7 +2492,7 @@ ALTER TABLE ONLY public.packageservices
 
 
 --
--- Name: performance_assessments performance_assessments_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: performance_assessments performance_assessments_pkey; Type: CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.performance_assessments
@@ -1511,7 +2500,7 @@ ALTER TABLE ONLY public.performance_assessments
 
 
 --
--- Name: physiosessiondetails physiosessiondetails_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: physiosessiondetails physiosessiondetails_pkey; Type: CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.physiosessiondetails
@@ -1519,7 +2508,7 @@ ALTER TABLE ONLY public.physiosessiondetails
 
 
 --
--- Name: physiosessiondetails physiosessiondetails_session_id_key; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: physiosessiondetails physiosessiondetails_session_id_key; Type: CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.physiosessiondetails
@@ -1527,7 +2516,7 @@ ALTER TABLE ONLY public.physiosessiondetails
 
 
 --
--- Name: profiles profiles_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: profiles profiles_pkey; Type: CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.profiles
@@ -1535,7 +2524,7 @@ ALTER TABLE ONLY public.profiles
 
 
 --
--- Name: program_assignments program_assignments_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: program_assignments program_assignments_pkey; Type: CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.program_assignments
@@ -1543,7 +2532,7 @@ ALTER TABLE ONLY public.program_assignments
 
 
 --
--- Name: questionnaires questionnaires_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: questionnaires questionnaires_pkey; Type: CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.questionnaires
@@ -1551,7 +2540,7 @@ ALTER TABLE ONLY public.questionnaires
 
 
 --
--- Name: referralsources referralsources_organization_id_name_key; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: referralsources referralsources_organization_id_name_key; Type: CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.referralsources
@@ -1559,7 +2548,7 @@ ALTER TABLE ONLY public.referralsources
 
 
 --
--- Name: referralsources referralsources_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: referralsources referralsources_pkey; Type: CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.referralsources
@@ -1567,7 +2556,7 @@ ALTER TABLE ONLY public.referralsources
 
 
 --
--- Name: refunds refunds_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: refunds refunds_pkey; Type: CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.refunds
@@ -1575,7 +2564,7 @@ ALTER TABLE ONLY public.refunds
 
 
 --
--- Name: rehab_progress rehab_progress_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: rehab_progress rehab_progress_pkey; Type: CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.rehab_progress
@@ -1583,7 +2572,7 @@ ALTER TABLE ONLY public.rehab_progress
 
 
 --
--- Name: report_templates report_templates_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: report_templates report_templates_pkey; Type: CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.report_templates
@@ -1591,7 +2580,7 @@ ALTER TABLE ONLY public.report_templates
 
 
 --
--- Name: scientific_resources scientific_resources_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: scientific_resources scientific_resources_pkey; Type: CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.scientific_resources
@@ -1599,7 +2588,7 @@ ALTER TABLE ONLY public.scientific_resources
 
 
 --
--- Name: services services_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: services services_pkey; Type: CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.services
@@ -1607,7 +2596,7 @@ ALTER TABLE ONLY public.services
 
 
 --
--- Name: sessions sessions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: sessions sessions_pkey; Type: CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.sessions
@@ -1615,23 +2604,7 @@ ALTER TABLE ONLY public.sessions
 
 
 --
--- Name: staff_schedules staff_schedules_consultant_id_key; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.staff_schedules
-    ADD CONSTRAINT staff_schedules_consultant_id_key UNIQUE (consultant_id);
-
-
---
--- Name: staff_schedules staff_schedules_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.staff_schedules
-    ADD CONSTRAINT staff_schedules_pkey PRIMARY KEY (id);
-
-
---
--- Name: subscription_logs subscription_logs_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: subscription_logs subscription_logs_pkey; Type: CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.subscription_logs
@@ -1639,7 +2612,7 @@ ALTER TABLE ONLY public.subscription_logs
 
 
 --
--- Name: subscriptions subscriptions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: subscriptions subscriptions_pkey; Type: CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.subscriptions
@@ -1647,7 +2620,7 @@ ALTER TABLE ONLY public.subscriptions
 
 
 --
--- Name: trainingprograms trainingprograms_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: trainingprograms trainingprograms_pkey; Type: CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.trainingprograms
@@ -1655,7 +2628,7 @@ ALTER TABLE ONLY public.trainingprograms
 
 
 --
--- Name: uhidsequences uhidsequences_organization_id_year_month_key; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: uhidsequences uhidsequences_organization_id_year_month_key; Type: CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.uhidsequences
@@ -1663,7 +2636,7 @@ ALTER TABLE ONLY public.uhidsequences
 
 
 --
--- Name: uhidsequences uhidsequences_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: uhidsequences uhidsequences_pkey; Type: CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.uhidsequences
@@ -1671,7 +2644,7 @@ ALTER TABLE ONLY public.uhidsequences
 
 
 --
--- Name: users users_email_key; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: users users_email_key; Type: CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.users
@@ -1679,7 +2652,7 @@ ALTER TABLE ONLY public.users
 
 
 --
--- Name: users users_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: users users_pkey; Type: CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.users
@@ -1687,7 +2660,7 @@ ALTER TABLE ONLY public.users
 
 
 --
--- Name: waitlist waitlist_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: waitlist waitlist_pkey; Type: CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.waitlist
@@ -1695,7 +2668,7 @@ ALTER TABLE ONLY public.waitlist
 
 
 --
--- Name: wellness_logs wellness_logs_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: wellness_logs wellness_logs_pkey; Type: CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.wellness_logs
@@ -1703,7 +2676,7 @@ ALTER TABLE ONLY public.wellness_logs
 
 
 --
--- Name: workoutdays workoutdays_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: workoutdays workoutdays_pkey; Type: CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.workoutdays
@@ -1711,7 +2684,7 @@ ALTER TABLE ONLY public.workoutdays
 
 
 --
--- Name: workoutitems workoutitems_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: workoutitems workoutitems_pkey; Type: CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.workoutitems
@@ -1719,14 +2692,7 @@ ALTER TABLE ONLY public.workoutitems
 
 
 --
--- Name: notifications trigger_system_notification; Type: TRIGGER; Schema: public; Owner: -
---
-
-CREATE TRIGGER trigger_system_notification AFTER INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION public.notify_system_notification();
-
-
---
--- Name: athlete_item_logs athlete_item_logs_athlete_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: athlete_item_logs athlete_item_logs_athlete_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.athlete_item_logs
@@ -1734,7 +2700,7 @@ ALTER TABLE ONLY public.athlete_item_logs
 
 
 --
--- Name: athlete_item_logs athlete_item_logs_organization_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: athlete_item_logs athlete_item_logs_organization_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.athlete_item_logs
@@ -1742,7 +2708,7 @@ ALTER TABLE ONLY public.athlete_item_logs
 
 
 --
--- Name: athlete_item_logs athlete_item_logs_workout_item_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: athlete_item_logs athlete_item_logs_workout_item_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.athlete_item_logs
@@ -1750,7 +2716,7 @@ ALTER TABLE ONLY public.athlete_item_logs
 
 
 --
--- Name: athlete_workout_completions athlete_workout_completions_athlete_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: athlete_workout_completions athlete_workout_completions_athlete_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.athlete_workout_completions
@@ -1758,7 +2724,7 @@ ALTER TABLE ONLY public.athlete_workout_completions
 
 
 --
--- Name: athlete_workout_completions athlete_workout_completions_organization_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: athlete_workout_completions athlete_workout_completions_organization_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.athlete_workout_completions
@@ -1766,7 +2732,7 @@ ALTER TABLE ONLY public.athlete_workout_completions
 
 
 --
--- Name: athlete_workout_completions athlete_workout_completions_workout_day_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: athlete_workout_completions athlete_workout_completions_workout_day_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.athlete_workout_completions
@@ -1774,7 +2740,7 @@ ALTER TABLE ONLY public.athlete_workout_completions
 
 
 --
--- Name: authsessions authsessions_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: authsessions authsessions_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.authsessions
@@ -1782,7 +2748,7 @@ ALTER TABLE ONLY public.authsessions
 
 
 --
--- Name: availabilityexceptions availabilityexceptions_consultant_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: availabilityexceptions availabilityexceptions_consultant_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.availabilityexceptions
@@ -1790,7 +2756,7 @@ ALTER TABLE ONLY public.availabilityexceptions
 
 
 --
--- Name: availabilityexceptions availabilityexceptions_organization_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: availabilityexceptions availabilityexceptions_organization_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.availabilityexceptions
@@ -1798,7 +2764,7 @@ ALTER TABLE ONLY public.availabilityexceptions
 
 
 --
--- Name: billitems billitems_bill_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: billitems billitems_bill_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.billitems
@@ -1806,7 +2772,7 @@ ALTER TABLE ONLY public.billitems
 
 
 --
--- Name: billitems billitems_organization_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: billitems billitems_organization_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.billitems
@@ -1814,7 +2780,7 @@ ALTER TABLE ONLY public.billitems
 
 
 --
--- Name: billpayments billpayments_bill_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: billpayments billpayments_bill_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.billpayments
@@ -1822,7 +2788,7 @@ ALTER TABLE ONLY public.billpayments
 
 
 --
--- Name: billpayments billpayments_client_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: billpayments billpayments_client_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.billpayments
@@ -1830,7 +2796,7 @@ ALTER TABLE ONLY public.billpayments
 
 
 --
--- Name: billpayments billpayments_organization_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: billpayments billpayments_organization_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.billpayments
@@ -1838,7 +2804,7 @@ ALTER TABLE ONLY public.billpayments
 
 
 --
--- Name: bills bills_billed_by_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: bills bills_billed_by_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.bills
@@ -1846,7 +2812,7 @@ ALTER TABLE ONLY public.bills
 
 
 --
--- Name: bills bills_client_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: bills bills_client_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.bills
@@ -1854,7 +2820,7 @@ ALTER TABLE ONLY public.bills
 
 
 --
--- Name: bills bills_organization_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: bills bills_organization_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.bills
@@ -1862,7 +2828,7 @@ ALTER TABLE ONLY public.bills
 
 
 --
--- Name: bills bills_subscription_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: bills bills_subscription_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.bills
@@ -1870,7 +2836,7 @@ ALTER TABLE ONLY public.bills
 
 
 --
--- Name: bulk_assignments bulk_assignments_organization_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: bulk_assignments bulk_assignments_organization_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.bulk_assignments
@@ -1878,7 +2844,7 @@ ALTER TABLE ONLY public.bulk_assignments
 
 
 --
--- Name: bulk_assignments bulk_assignments_specialist_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: bulk_assignments bulk_assignments_specialist_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.bulk_assignments
@@ -1886,7 +2852,7 @@ ALTER TABLE ONLY public.bulk_assignments
 
 
 --
--- Name: client_group_members client_group_members_added_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: client_group_members client_group_members_added_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.client_group_members
@@ -1894,7 +2860,7 @@ ALTER TABLE ONLY public.client_group_members
 
 
 --
--- Name: client_group_members client_group_members_client_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: client_group_members client_group_members_client_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.client_group_members
@@ -1902,7 +2868,7 @@ ALTER TABLE ONLY public.client_group_members
 
 
 --
--- Name: client_group_members client_group_members_group_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: client_group_members client_group_members_group_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.client_group_members
@@ -1910,7 +2876,7 @@ ALTER TABLE ONLY public.client_group_members
 
 
 --
--- Name: client_groups client_groups_created_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: client_groups client_groups_created_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.client_groups
@@ -1918,7 +2884,7 @@ ALTER TABLE ONLY public.client_groups
 
 
 --
--- Name: client_groups client_groups_organization_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: client_groups client_groups_organization_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.client_groups
@@ -1926,7 +2892,7 @@ ALTER TABLE ONLY public.client_groups
 
 
 --
--- Name: clientadminnotes clientadminnotes_client_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: clientadminnotes clientadminnotes_client_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.clientadminnotes
@@ -1934,7 +2900,7 @@ ALTER TABLE ONLY public.clientadminnotes
 
 
 --
--- Name: clientadminnotes clientadminnotes_updated_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: clientadminnotes clientadminnotes_updated_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.clientadminnotes
@@ -1942,7 +2908,7 @@ ALTER TABLE ONLY public.clientadminnotes
 
 
 --
--- Name: clientdocuments clientdocuments_client_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: clientdocuments clientdocuments_client_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.clientdocuments
@@ -1950,7 +2916,7 @@ ALTER TABLE ONLY public.clientdocuments
 
 
 --
--- Name: clientdocuments clientdocuments_organization_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: clientdocuments clientdocuments_organization_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.clientdocuments
@@ -1958,7 +2924,7 @@ ALTER TABLE ONLY public.clientdocuments
 
 
 --
--- Name: clientdocuments clientdocuments_uploaded_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: clientdocuments clientdocuments_uploaded_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.clientdocuments
@@ -1966,7 +2932,7 @@ ALTER TABLE ONLY public.clientdocuments
 
 
 --
--- Name: cliententitlements cliententitlements_client_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: cliententitlements cliententitlements_client_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.cliententitlements
@@ -1974,7 +2940,7 @@ ALTER TABLE ONLY public.cliententitlements
 
 
 --
--- Name: cliententitlements cliententitlements_organization_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: cliententitlements cliententitlements_organization_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.cliententitlements
@@ -1982,7 +2948,7 @@ ALTER TABLE ONLY public.cliententitlements
 
 
 --
--- Name: cliententitlements cliententitlements_package_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: cliententitlements cliententitlements_package_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.cliententitlements
@@ -1990,7 +2956,7 @@ ALTER TABLE ONLY public.cliententitlements
 
 
 --
--- Name: cliententitlements cliententitlements_service_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: cliententitlements cliententitlements_service_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.cliententitlements
@@ -1998,7 +2964,7 @@ ALTER TABLE ONLY public.cliententitlements
 
 
 --
--- Name: clientorganizations clientorganizations_organization_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: clientorganizations clientorganizations_organization_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.clientorganizations
@@ -2006,7 +2972,7 @@ ALTER TABLE ONLY public.clientorganizations
 
 
 --
--- Name: clients clients_assigned_consultant_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: clients clients_assigned_consultant_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.clients
@@ -2014,7 +2980,7 @@ ALTER TABLE ONLY public.clients
 
 
 --
--- Name: clients clients_created_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: clients clients_created_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.clients
@@ -2022,7 +2988,7 @@ ALTER TABLE ONLY public.clients
 
 
 --
--- Name: clients clients_location_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: clients clients_location_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.clients
@@ -2030,7 +2996,7 @@ ALTER TABLE ONLY public.clients
 
 
 --
--- Name: clients clients_organization_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: clients clients_organization_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.clients
@@ -2038,7 +3004,7 @@ ALTER TABLE ONLY public.clients
 
 
 --
--- Name: clients clients_profile_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: clients clients_profile_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.clients
@@ -2046,7 +3012,7 @@ ALTER TABLE ONLY public.clients
 
 
 --
--- Name: consultant_services consultant_services_consultant_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: consultant_services consultant_services_consultant_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.consultant_services
@@ -2054,7 +3020,7 @@ ALTER TABLE ONLY public.consultant_services
 
 
 --
--- Name: consultant_services consultant_services_organization_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: consultant_services consultant_services_organization_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.consultant_services
@@ -2062,7 +3028,7 @@ ALTER TABLE ONLY public.consultant_services
 
 
 --
--- Name: consultant_services consultant_services_service_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: consultant_services consultant_services_service_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.consultant_services
@@ -2070,7 +3036,7 @@ ALTER TABLE ONLY public.consultant_services
 
 
 --
--- Name: consultantavailability consultantavailability_consultant_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: consultantavailability consultantavailability_consultant_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.consultantavailability
@@ -2078,7 +3044,7 @@ ALTER TABLE ONLY public.consultantavailability
 
 
 --
--- Name: consultantavailability consultantavailability_organization_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: consultantavailability consultantavailability_organization_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.consultantavailability
@@ -2086,7 +3052,7 @@ ALTER TABLE ONLY public.consultantavailability
 
 
 --
--- Name: emergency_alerts emergency_alerts_organization_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: emergency_alerts emergency_alerts_organization_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.emergency_alerts
@@ -2094,7 +3060,7 @@ ALTER TABLE ONLY public.emergency_alerts
 
 
 --
--- Name: emergency_alerts emergency_alerts_staff_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: emergency_alerts emergency_alerts_staff_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.emergency_alerts
@@ -2102,7 +3068,7 @@ ALTER TABLE ONLY public.emergency_alerts
 
 
 --
--- Name: enquiries enquiries_linked_client_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: enquiries enquiries_linked_client_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.enquiries
@@ -2110,7 +3076,7 @@ ALTER TABLE ONLY public.enquiries
 
 
 --
--- Name: enquiries enquiries_organization_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: enquiries enquiries_organization_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.enquiries
@@ -2118,7 +3084,7 @@ ALTER TABLE ONLY public.enquiries
 
 
 --
--- Name: enquiryinteractions enquiryinteractions_created_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: enquiryinteractions enquiryinteractions_created_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.enquiryinteractions
@@ -2126,7 +3092,7 @@ ALTER TABLE ONLY public.enquiryinteractions
 
 
 --
--- Name: enquiryinteractions enquiryinteractions_enquiry_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: enquiryinteractions enquiryinteractions_enquiry_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.enquiryinteractions
@@ -2134,7 +3100,7 @@ ALTER TABLE ONLY public.enquiryinteractions
 
 
 --
--- Name: exercises exercises_organization_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: exercises exercises_organization_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.exercises
@@ -2142,7 +3108,7 @@ ALTER TABLE ONLY public.exercises
 
 
 --
--- Name: form_responses form_responses_bulk_assignment_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: form_responses form_responses_bulk_assignment_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.form_responses
@@ -2150,7 +3116,7 @@ ALTER TABLE ONLY public.form_responses
 
 
 --
--- Name: form_responses form_responses_client_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: form_responses form_responses_client_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.form_responses
@@ -2158,7 +3124,7 @@ ALTER TABLE ONLY public.form_responses
 
 
 --
--- Name: form_responses form_responses_organization_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: form_responses form_responses_organization_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.form_responses
@@ -2166,7 +3132,7 @@ ALTER TABLE ONLY public.form_responses
 
 
 --
--- Name: form_responses form_responses_specialist_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: form_responses form_responses_specialist_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.form_responses
@@ -2174,7 +3140,7 @@ ALTER TABLE ONLY public.form_responses
 
 
 --
--- Name: group_attendance group_attendance_client_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: group_attendance group_attendance_client_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.group_attendance
@@ -2182,7 +3148,7 @@ ALTER TABLE ONLY public.group_attendance
 
 
 --
--- Name: group_attendance group_attendance_session_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: group_attendance group_attendance_session_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.group_attendance
@@ -2190,7 +3156,7 @@ ALTER TABLE ONLY public.group_attendance
 
 
 --
--- Name: hr_employees hr_employees_job_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: hr_employees hr_employees_job_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.hr_employees
@@ -2198,7 +3164,7 @@ ALTER TABLE ONLY public.hr_employees
 
 
 --
--- Name: hr_employees hr_employees_organization_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: hr_employees hr_employees_organization_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.hr_employees
@@ -2206,7 +3172,7 @@ ALTER TABLE ONLY public.hr_employees
 
 
 --
--- Name: hr_employees hr_employees_profile_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: hr_employees hr_employees_profile_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.hr_employees
@@ -2214,7 +3180,7 @@ ALTER TABLE ONLY public.hr_employees
 
 
 --
--- Name: hr_jobs hr_jobs_organization_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: hr_jobs hr_jobs_organization_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.hr_jobs
@@ -2222,7 +3188,7 @@ ALTER TABLE ONLY public.hr_jobs
 
 
 --
--- Name: hrattendancelogs hrattendancelogs_organization_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: hrattendancelogs hrattendancelogs_organization_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.hrattendancelogs
@@ -2230,7 +3196,7 @@ ALTER TABLE ONLY public.hrattendancelogs
 
 
 --
--- Name: hrattendancelogs hrattendancelogs_profile_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: hrattendancelogs hrattendancelogs_profile_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.hrattendancelogs
@@ -2238,7 +3204,7 @@ ALTER TABLE ONLY public.hrattendancelogs
 
 
 --
--- Name: hrleaves hrleaves_approved_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: hrleaves hrleaves_approved_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.hrleaves
@@ -2246,7 +3212,7 @@ ALTER TABLE ONLY public.hrleaves
 
 
 --
--- Name: hrleaves hrleaves_employee_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: hrleaves hrleaves_employee_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.hrleaves
@@ -2254,7 +3220,7 @@ ALTER TABLE ONLY public.hrleaves
 
 
 --
--- Name: hrleaves hrleaves_organization_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: hrleaves hrleaves_organization_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.hrleaves
@@ -2262,7 +3228,7 @@ ALTER TABLE ONLY public.hrleaves
 
 
 --
--- Name: injuries injuries_client_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: injuries injuries_client_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.injuries
@@ -2270,7 +3236,7 @@ ALTER TABLE ONLY public.injuries
 
 
 --
--- Name: injuries injuries_organization_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: injuries injuries_organization_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.injuries
@@ -2278,7 +3244,7 @@ ALTER TABLE ONLY public.injuries
 
 
 --
--- Name: injury_master_data injury_master_data_organization_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: injury_master_data injury_master_data_organization_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.injury_master_data
@@ -2286,7 +3252,7 @@ ALTER TABLE ONLY public.injury_master_data
 
 
 --
--- Name: liftitems liftitems_exercise_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: liftitems liftitems_exercise_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.liftitems
@@ -2294,7 +3260,7 @@ ALTER TABLE ONLY public.liftitems
 
 
 --
--- Name: liftitems liftitems_workout_item_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: liftitems liftitems_workout_item_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.liftitems
@@ -2302,7 +3268,7 @@ ALTER TABLE ONLY public.liftitems
 
 
 --
--- Name: locations locations_organization_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: locations locations_organization_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.locations
@@ -2310,7 +3276,7 @@ ALTER TABLE ONLY public.locations
 
 
 --
--- Name: max_pr_records max_pr_records_athlete_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: max_pr_records max_pr_records_athlete_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.max_pr_records
@@ -2318,7 +3284,7 @@ ALTER TABLE ONLY public.max_pr_records
 
 
 --
--- Name: max_pr_records max_pr_records_exercise_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: max_pr_records max_pr_records_exercise_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.max_pr_records
@@ -2326,7 +3292,7 @@ ALTER TABLE ONLY public.max_pr_records
 
 
 --
--- Name: notification_reads notification_reads_notification_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: notification_reads notification_reads_notification_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.notification_reads
@@ -2334,7 +3300,7 @@ ALTER TABLE ONLY public.notification_reads
 
 
 --
--- Name: notification_reads notification_reads_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: notification_reads notification_reads_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.notification_reads
@@ -2342,7 +3308,7 @@ ALTER TABLE ONLY public.notification_reads
 
 
 --
--- Name: notifications notifications_created_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: notifications notifications_created_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.notifications
@@ -2350,7 +3316,7 @@ ALTER TABLE ONLY public.notifications
 
 
 --
--- Name: notifications notifications_organization_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: notifications notifications_organization_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.notifications
@@ -2358,15 +3324,7 @@ ALTER TABLE ONLY public.notifications
 
 
 --
--- Name: notifications notifications_sender_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.notifications
-    ADD CONSTRAINT notifications_sender_id_fkey FOREIGN KEY (sender_id) REFERENCES public.profiles(id) ON DELETE SET NULL;
-
-
---
--- Name: packages packages_organization_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: packages packages_organization_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.packages
@@ -2374,7 +3332,7 @@ ALTER TABLE ONLY public.packages
 
 
 --
--- Name: packageservices packageservices_package_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: packageservices packageservices_package_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.packageservices
@@ -2382,7 +3340,7 @@ ALTER TABLE ONLY public.packageservices
 
 
 --
--- Name: packageservices packageservices_service_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: packageservices packageservices_service_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.packageservices
@@ -2390,7 +3348,7 @@ ALTER TABLE ONLY public.packageservices
 
 
 --
--- Name: performance_assessments performance_assessments_athlete_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: performance_assessments performance_assessments_athlete_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.performance_assessments
@@ -2398,7 +3356,7 @@ ALTER TABLE ONLY public.performance_assessments
 
 
 --
--- Name: performance_assessments performance_assessments_organization_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: performance_assessments performance_assessments_organization_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.performance_assessments
@@ -2406,7 +3364,7 @@ ALTER TABLE ONLY public.performance_assessments
 
 
 --
--- Name: performance_assessments performance_assessments_recorded_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: performance_assessments performance_assessments_recorded_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.performance_assessments
@@ -2414,7 +3372,7 @@ ALTER TABLE ONLY public.performance_assessments
 
 
 --
--- Name: physiosessiondetails physiosessiondetails_session_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: physiosessiondetails physiosessiondetails_session_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.physiosessiondetails
@@ -2422,7 +3380,7 @@ ALTER TABLE ONLY public.physiosessiondetails
 
 
 --
--- Name: profiles profiles_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: profiles profiles_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.profiles
@@ -2430,7 +3388,7 @@ ALTER TABLE ONLY public.profiles
 
 
 --
--- Name: profiles profiles_organization_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: profiles profiles_organization_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.profiles
@@ -2438,7 +3396,7 @@ ALTER TABLE ONLY public.profiles
 
 
 --
--- Name: program_assignments program_assignments_athlete_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: program_assignments program_assignments_athlete_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.program_assignments
@@ -2446,7 +3404,7 @@ ALTER TABLE ONLY public.program_assignments
 
 
 --
--- Name: program_assignments program_assignments_program_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: program_assignments program_assignments_program_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.program_assignments
@@ -2454,7 +3412,7 @@ ALTER TABLE ONLY public.program_assignments
 
 
 --
--- Name: questionnaires questionnaires_created_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: questionnaires questionnaires_created_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.questionnaires
@@ -2462,7 +3420,7 @@ ALTER TABLE ONLY public.questionnaires
 
 
 --
--- Name: questionnaires questionnaires_organization_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: questionnaires questionnaires_organization_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.questionnaires
@@ -2470,7 +3428,7 @@ ALTER TABLE ONLY public.questionnaires
 
 
 --
--- Name: referralsources referralsources_organization_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: referralsources referralsources_organization_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.referralsources
@@ -2478,7 +3436,7 @@ ALTER TABLE ONLY public.referralsources
 
 
 --
--- Name: refunds refunds_bill_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: refunds refunds_bill_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.refunds
@@ -2486,7 +3444,7 @@ ALTER TABLE ONLY public.refunds
 
 
 --
--- Name: refunds refunds_client_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: refunds refunds_client_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.refunds
@@ -2494,7 +3452,7 @@ ALTER TABLE ONLY public.refunds
 
 
 --
--- Name: refunds refunds_organization_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: refunds refunds_organization_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.refunds
@@ -2502,7 +3460,7 @@ ALTER TABLE ONLY public.refunds
 
 
 --
--- Name: rehab_progress rehab_progress_injury_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: rehab_progress rehab_progress_injury_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.rehab_progress
@@ -2510,7 +3468,7 @@ ALTER TABLE ONLY public.rehab_progress
 
 
 --
--- Name: rehab_progress rehab_progress_recorded_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: rehab_progress rehab_progress_recorded_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.rehab_progress
@@ -2518,7 +3476,7 @@ ALTER TABLE ONLY public.rehab_progress
 
 
 --
--- Name: report_templates report_templates_created_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: report_templates report_templates_created_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.report_templates
@@ -2526,7 +3484,7 @@ ALTER TABLE ONLY public.report_templates
 
 
 --
--- Name: report_templates report_templates_organization_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: report_templates report_templates_organization_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.report_templates
@@ -2534,7 +3492,7 @@ ALTER TABLE ONLY public.report_templates
 
 
 --
--- Name: scientific_resources scientific_resources_athlete_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: scientific_resources scientific_resources_athlete_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.scientific_resources
@@ -2542,7 +3500,7 @@ ALTER TABLE ONLY public.scientific_resources
 
 
 --
--- Name: scientific_resources scientific_resources_created_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: scientific_resources scientific_resources_created_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.scientific_resources
@@ -2550,7 +3508,7 @@ ALTER TABLE ONLY public.scientific_resources
 
 
 --
--- Name: scientific_resources scientific_resources_organization_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: scientific_resources scientific_resources_organization_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.scientific_resources
@@ -2558,7 +3516,7 @@ ALTER TABLE ONLY public.scientific_resources
 
 
 --
--- Name: services services_organization_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: services services_organization_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.services
@@ -2566,7 +3524,7 @@ ALTER TABLE ONLY public.services
 
 
 --
--- Name: sessions sessions_client_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: sessions sessions_client_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.sessions
@@ -2574,7 +3532,7 @@ ALTER TABLE ONLY public.sessions
 
 
 --
--- Name: sessions sessions_created_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: sessions sessions_created_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.sessions
@@ -2582,7 +3540,7 @@ ALTER TABLE ONLY public.sessions
 
 
 --
--- Name: sessions sessions_entitlement_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: sessions sessions_entitlement_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.sessions
@@ -2590,7 +3548,7 @@ ALTER TABLE ONLY public.sessions
 
 
 --
--- Name: sessions sessions_organization_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: sessions sessions_organization_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.sessions
@@ -2598,7 +3556,7 @@ ALTER TABLE ONLY public.sessions
 
 
 --
--- Name: sessions sessions_scientist_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: sessions sessions_scientist_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.sessions
@@ -2606,7 +3564,7 @@ ALTER TABLE ONLY public.sessions
 
 
 --
--- Name: sessions sessions_service_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: sessions sessions_service_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.sessions
@@ -2614,7 +3572,7 @@ ALTER TABLE ONLY public.sessions
 
 
 --
--- Name: sessions sessions_therapist_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: sessions sessions_therapist_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.sessions
@@ -2622,23 +3580,7 @@ ALTER TABLE ONLY public.sessions
 
 
 --
--- Name: staff_schedules staff_schedules_consultant_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.staff_schedules
-    ADD CONSTRAINT staff_schedules_consultant_id_fkey FOREIGN KEY (consultant_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
-
-
---
--- Name: staff_schedules staff_schedules_organization_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.staff_schedules
-    ADD CONSTRAINT staff_schedules_organization_id_fkey FOREIGN KEY (organization_id) REFERENCES public.organizations(id) ON DELETE CASCADE;
-
-
---
--- Name: subscription_logs subscription_logs_organization_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: subscription_logs subscription_logs_organization_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.subscription_logs
@@ -2646,7 +3588,7 @@ ALTER TABLE ONLY public.subscription_logs
 
 
 --
--- Name: subscription_logs subscription_logs_subscription_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: subscription_logs subscription_logs_subscription_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.subscription_logs
@@ -2654,7 +3596,7 @@ ALTER TABLE ONLY public.subscription_logs
 
 
 --
--- Name: subscriptions subscriptions_client_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: subscriptions subscriptions_client_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.subscriptions
@@ -2662,7 +3604,7 @@ ALTER TABLE ONLY public.subscriptions
 
 
 --
--- Name: subscriptions subscriptions_organization_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: subscriptions subscriptions_organization_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.subscriptions
@@ -2670,7 +3612,7 @@ ALTER TABLE ONLY public.subscriptions
 
 
 --
--- Name: subscriptions subscriptions_package_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: subscriptions subscriptions_package_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.subscriptions
@@ -2678,7 +3620,7 @@ ALTER TABLE ONLY public.subscriptions
 
 
 --
--- Name: trainingprograms trainingprograms_organization_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: trainingprograms trainingprograms_organization_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.trainingprograms
@@ -2686,7 +3628,7 @@ ALTER TABLE ONLY public.trainingprograms
 
 
 --
--- Name: trainingprograms trainingprograms_scientist_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: trainingprograms trainingprograms_scientist_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.trainingprograms
@@ -2694,7 +3636,7 @@ ALTER TABLE ONLY public.trainingprograms
 
 
 --
--- Name: uhidsequences uhidsequences_organization_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: uhidsequences uhidsequences_organization_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.uhidsequences
@@ -2702,7 +3644,7 @@ ALTER TABLE ONLY public.uhidsequences
 
 
 --
--- Name: waitlist waitlist_client_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: waitlist waitlist_client_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.waitlist
@@ -2710,7 +3652,7 @@ ALTER TABLE ONLY public.waitlist
 
 
 --
--- Name: waitlist waitlist_organization_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: waitlist waitlist_organization_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.waitlist
@@ -2718,7 +3660,7 @@ ALTER TABLE ONLY public.waitlist
 
 
 --
--- Name: waitlist waitlist_service_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: waitlist waitlist_service_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.waitlist
@@ -2726,7 +3668,7 @@ ALTER TABLE ONLY public.waitlist
 
 
 --
--- Name: waitlist waitlist_therapist_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: waitlist waitlist_therapist_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.waitlist
@@ -2734,7 +3676,7 @@ ALTER TABLE ONLY public.waitlist
 
 
 --
--- Name: wellness_logs wellness_logs_athlete_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: wellness_logs wellness_logs_athlete_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.wellness_logs
@@ -2742,7 +3684,7 @@ ALTER TABLE ONLY public.wellness_logs
 
 
 --
--- Name: wellness_logs wellness_logs_organization_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: wellness_logs wellness_logs_organization_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.wellness_logs
@@ -2750,7 +3692,7 @@ ALTER TABLE ONLY public.wellness_logs
 
 
 --
--- Name: workoutdays workoutdays_organization_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: workoutdays workoutdays_organization_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.workoutdays
@@ -2758,7 +3700,7 @@ ALTER TABLE ONLY public.workoutdays
 
 
 --
--- Name: workoutdays workoutdays_program_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: workoutdays workoutdays_program_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.workoutdays
@@ -2766,7 +3708,7 @@ ALTER TABLE ONLY public.workoutdays
 
 
 --
--- Name: workoutitems workoutitems_workout_day_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: workoutitems workoutitems_workout_day_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: skavuturi
 --
 
 ALTER TABLE ONLY public.workoutitems
@@ -2777,5 +3719,5 @@ ALTER TABLE ONLY public.workoutitems
 -- PostgreSQL database dump complete
 --
 
-\unrestrict qOIxbVypbv0GNDiMLlgnbYCU6eymVXpS097YPCq6TwH52WqsiI1BPtXSle5gCCG
+\unrestrict XVkdWjIhrNfV4WkRO17mG2JpVKfcf19lEFBOvzsZiwpe5RjHssyd9F8Rpdg9sYK
 
