@@ -84,7 +84,8 @@ router.post('/', requireAuth, async (req, res) => {
         const orgId = req.user.organization_id;
         const {
             client_id, therapist_id, service_id, service_type, scheduled_start, scheduled_end,
-            entitlement_id, session_mode, is_unentitled, preference_type, is_flexible_routing
+            entitlement_id, session_mode, is_unentitled, preference_type, is_flexible_routing,
+            is_guest, guest_name, guest_contact, enquiry_id
         } = req.body;
 
         await client.query('BEGIN');
@@ -154,15 +155,18 @@ router.post('/', requireAuth, async (req, res) => {
             INSERT INTO sessions (
                 organization_id, client_id, therapist_id, service_id, service_type, 
                 scheduled_start, scheduled_end, entitlement_id, 
-                session_mode, is_unentitled, preference_type, is_flexible_routing, created_by
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+                session_mode, is_unentitled, preference_type, is_flexible_routing,
+                is_guest, guest_name, guest_contact, enquiry_id, created_by
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
             RETURNING *
         `;
         const values = [
-            orgId, client_id, therapist_id, service_id || null, service_type,
+            orgId, client_id || null, therapist_id, service_id || null, service_type,
             scheduled_start, scheduled_end, entitlement_id || null,
             session_mode || 'Individual', is_unentitled || false, 
-            preference_type || 'Strict', is_flexible_routing || false, req.user.id
+            preference_type || 'Strict', is_flexible_routing || false,
+            is_guest || false, guest_name || null, guest_contact || null, enquiry_id || null,
+            req.user.id
         ];
 
         const sessionRes = await client.query(insertQuery, values);

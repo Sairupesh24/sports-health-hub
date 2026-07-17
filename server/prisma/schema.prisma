@@ -1,0 +1,1164 @@
+generator client {
+  provider        = "prisma-client"
+  output          = "../generated/prisma"
+  previewFeatures = ["partialIndexes"]
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model athlete_item_logs {
+  id              String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id String?        @db.Uuid
+  workout_item_id String         @db.Uuid
+  athlete_id      String?        @db.Uuid
+  logged_at       DateTime?      @default(now()) @db.Timestamptz(6)
+  sets_completed  Json?
+  rpe             Int?
+  notes           String?
+  skipped         Boolean?       @default(false)
+  created_at      DateTime?      @default(now()) @db.Timestamptz(6)
+  users           users?         @relation(fields: [athlete_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  organizations   organizations? @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  workoutitems    workoutitems   @relation(fields: [workout_item_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model athlete_workout_completions {
+  id                String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  athlete_id        String?        @db.Uuid
+  workout_day_id    String?        @db.Uuid
+  organization_id   String?        @db.Uuid
+  completed_at      DateTime?      @default(now()) @db.Timestamptz(6)
+  overall_notes     String?
+  completion_status String?        @default("completed")
+  created_at        DateTime?      @default(now()) @db.Timestamptz(6)
+  users             users?         @relation(fields: [athlete_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  organizations     organizations? @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  workoutdays       workoutdays?   @relation(fields: [workout_day_id], references: [id], onUpdate: NoAction)
+}
+
+model authsessions {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id    String   @db.Uuid
+  otp_code   String
+  expires_at DateTime @db.Timestamptz(6)
+  users      users    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model availabilityexceptions {
+  id              String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id String?        @db.Uuid
+  consultant_id   String         @db.Uuid
+  exception_date  DateTime       @db.Date
+  start_time      DateTime?      @db.Time(6)
+  end_time        DateTime?      @db.Time(6)
+  is_blocked      Boolean?       @default(true)
+  reason          String?
+  profiles        profiles       @relation(fields: [consultant_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  organizations   organizations? @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model billitems {
+  id              String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id String        @db.Uuid
+  bill_id         String        @db.Uuid
+  package_id      String?       @db.Uuid
+  amount          Decimal       @default(0) @db.Decimal
+  discount        Decimal?      @default(0) @db.Decimal
+  total           Decimal       @default(0) @db.Decimal
+  created_at      DateTime?     @default(now()) @db.Timestamptz(6)
+  tax_amount      Decimal?      @default(0) @db.Decimal
+  bills           bills         @relation(fields: [bill_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  organizations   organizations @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model billpayments {
+  id              String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id String        @db.Uuid
+  bill_id         String        @db.Uuid
+  client_id       String?       @db.Uuid
+  amount          Decimal       @db.Decimal
+  payment_method  String?
+  transaction_id  String?
+  recorded_by     String?       @db.Uuid
+  created_at      DateTime?     @default(now()) @db.Timestamptz(6)
+  bills           bills         @relation(fields: [bill_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  clients         clients?      @relation(fields: [client_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  organizations   organizations @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model bills {
+  id                       String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id          String         @db.Uuid
+  client_id                String         @db.Uuid
+  amount                   Decimal        @default(0) @db.Decimal
+  discount                 Decimal?       @default(0) @db.Decimal
+  total                    Decimal        @default(0) @db.Decimal
+  status                   String         @default("unpaid")
+  referral_source_id       String?        @db.Uuid
+  notes                    String?
+  include_notes_in_invoice Boolean?       @default(false)
+  discount_authorized_by   String?
+  billed_by_id             String?        @db.Uuid
+  billed_by_name           String?
+  billing_staff_name       String?
+  transaction_id           String?
+  payment_method           String?
+  updated_at               DateTime?      @default(now()) @db.Timestamptz(6)
+  deleted_at               DateTime?      @db.Timestamptz(6)
+  created_at               DateTime?      @default(now()) @db.Timestamptz(6)
+  subscription_id          String?        @db.Uuid
+  due_date                 DateTime?      @db.Date
+  tax_amount               Decimal?       @default(0) @db.Decimal
+  billitems                billitems[]
+  billpayments             billpayments[]
+  users                    users?         @relation(fields: [billed_by_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  clients                  clients        @relation(fields: [client_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  organizations            organizations  @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  subscriptions            subscriptions? @relation(fields: [subscription_id], references: [id], onUpdate: NoAction)
+  refunds                  refunds[]
+}
+
+model bulk_assignments {
+  id               String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id  String           @db.Uuid
+  questionnaire_id String           @db.Uuid
+  specialist_id    String           @db.Uuid
+  total_clients    Int              @default(0)
+  responded_count  Int              @default(0)
+  status           String?          @default("active")
+  created_at       DateTime?        @default(now()) @db.Timestamptz(6)
+  organizations    organizations    @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  profiles         profiles         @relation(fields: [specialist_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  form_responses   form_responses[]
+}
+
+model client_assessment_reports {
+  id                String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id   String        @db.Uuid
+  client_id         String        @db.Uuid
+  title             String
+  test_index        Int
+  assessment_data   Json
+  report_texts      Json
+  pain_data         Json
+  reassessment_date String?
+  created_by        String?       @db.Uuid
+  created_at        DateTime?     @default(now()) @db.Timestamptz(6)
+  clients           clients       @relation(fields: [client_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users             users?        @relation(fields: [created_by], references: [id], onUpdate: NoAction)
+  organizations     organizations @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model client_group_members {
+  group_id      String        @db.Uuid
+  client_id     String        @db.Uuid
+  added_by      String?       @db.Uuid
+  added_at      DateTime?     @default(now()) @db.Timestamptz(6)
+  users         users?        @relation(fields: [added_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  clients       clients       @relation(fields: [client_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  client_groups client_groups @relation(fields: [group_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([group_id, client_id])
+}
+
+model client_groups {
+  id                   String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id      String                 @db.Uuid
+  name                 String
+  description          String?
+  created_by           String?                @db.Uuid
+  created_at           DateTime?              @default(now()) @db.Timestamptz(6)
+  client_group_members client_group_members[]
+  users                users?                 @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  organizations        organizations          @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([organization_id, name])
+}
+
+model clientadminnotes {
+  client_id  String    @id @db.Uuid
+  remarks    String
+  updated_by String?   @db.Uuid
+  updated_at DateTime? @default(now()) @db.Timestamptz(6)
+  clients    clients   @relation(fields: [client_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users      users?    @relation(fields: [updated_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model clientdocuments {
+  id               String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  client_id        String        @db.Uuid
+  organization_id  String        @db.Uuid
+  document_name    String
+  category         String?
+  document_type    String?
+  file_path        String
+  uploaded_by      String?       @db.Uuid
+  uploaded_by_role String?
+  notes            String?
+  access_level     String?       @default("Medical_Staff_Only")
+  created_at       DateTime?     @default(now()) @db.Timestamptz(6)
+  clients          clients       @relation(fields: [client_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  organizations    organizations @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users            users?        @relation(fields: [uploaded_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model cliententitlements {
+  id               String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id  String        @db.Uuid
+  client_id        String        @db.Uuid
+  invoice_id       String?       @db.Uuid
+  package_id       String?       @db.Uuid
+  service_id       String?       @db.Uuid
+  service_type     String
+  granted_sessions Int
+  sessions_used    Int?          @default(0)
+  status           String?       @default("active")
+  bill_item_id     String?       @db.Uuid
+  notes            String?
+  created_at       DateTime?     @default(now()) @db.Timestamptz(6)
+  updated_at       DateTime?     @default(now()) @db.Timestamptz(6)
+  clients          clients       @relation(fields: [client_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  organizations    organizations @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  packages         packages?     @relation(fields: [package_id], references: [id], onUpdate: NoAction)
+  services         services?     @relation(fields: [service_id], references: [id], onUpdate: NoAction)
+  sessions         sessions[]
+}
+
+model clientorganizations {
+  id              String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id String        @db.Uuid
+  name            String
+  created_at      DateTime?     @default(now()) @db.Timestamptz(6)
+  organizations   organizations @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([organization_id, name])
+}
+
+model clients {
+  id                                              String                      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id                                 String                      @db.Uuid
+  location_id                                     String?                     @db.Uuid
+  uhid                                            String                      @unique
+  registered_on                                   DateTime?                   @default(now()) @db.Timestamptz(6)
+  honorific                                       String?
+  first_name                                      String
+  middle_name                                     String?
+  last_name                                       String
+  gender                                          String?
+  mobile_no                                       String
+  aadhaar_no                                      String?
+  blood_group                                     String?
+  dob                                             DateTime?                   @db.Date
+  age                                             Int?
+  email                                           String?
+  alternate_mobile_no                             String?
+  occupation                                      String?
+  sport                                           String?
+  athlete_type                                    String?
+  org_name                                        String?
+  address                                         String?
+  locality                                        String?
+  pincode                                         String?
+  city                                            String?
+  district                                        String?
+  state                                           String?
+  country                                         String?                     @default("India")
+  has_insurance                                   Boolean?                    @default(false)
+  insurance_provider                              String?
+  insurance_policy_no                             String?
+  insurance_validity                              DateTime?                   @db.Date
+  insurance_coverage_amount                       Decimal?                    @db.Decimal
+  is_vip                                          Boolean?                    @default(false)
+  referral_source                                 String?
+  referral_source_detail                          String?
+  assigned_consultant_id                          String?                     @db.Uuid
+  created_by                                      String?                     @db.Uuid
+  created_at                                      DateTime?                   @default(now()) @db.Timestamptz(6)
+  updated_at                                      DateTime?                   @default(now()) @db.Timestamptz(6)
+  profile_id                                      String?                     @db.Uuid
+  primary_scientist_id                            String?                     @db.Uuid
+  deleted_at                                      DateTime?                   @db.Timestamptz(6)
+  billpayments                                    billpayments[]
+  bills                                           bills[]
+  client_assessment_reports                       client_assessment_reports[]
+  client_group_members                            client_group_members[]
+  clientadminnotes                                clientadminnotes?
+  clientdocuments                                 clientdocuments[]
+  cliententitlements                              cliententitlements[]
+  users_clients_assigned_consultant_idTousers     users?                      @relation("clients_assigned_consultant_idTousers", fields: [assigned_consultant_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users_clients_created_byTousers                 users?                      @relation("clients_created_byTousers", fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  locations                                       locations?                  @relation(fields: [location_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  organizations                                   organizations               @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  profiles_clients_primary_scientist_idToprofiles profiles?                   @relation("clients_primary_scientist_idToprofiles", fields: [primary_scientist_id], references: [id], onUpdate: NoAction)
+  profiles_clients_profile_idToprofiles           profiles?                   @relation("clients_profile_idToprofiles", fields: [profile_id], references: [id], onUpdate: NoAction)
+  enquiries                                       enquiries[]
+  external_training_summary                       external_training_summary[]
+  form_responses                                  form_responses[]
+  group_attendance                                group_attendance[]
+  injuries                                        injuries[]
+  performance_assessments                         performance_assessments[]
+  refunds                                         refunds[]
+  scientific_resources                            scientific_resources[]
+  sessions                                        sessions[]
+  subscriptions                                   subscriptions[]
+  waitlist                                        waitlist[]
+}
+
+model consultant_services {
+  organization_id String        @db.Uuid
+  consultant_id   String        @db.Uuid
+  service_id      String        @db.Uuid
+  profiles        profiles      @relation(fields: [consultant_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  organizations   organizations @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  services        services      @relation(fields: [service_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([consultant_id, service_id])
+}
+
+model consultantavailability {
+  id                     String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id        String?        @db.Uuid
+  consultant_id          String         @db.Uuid
+  day_of_week            Int
+  start_time             DateTime       @db.Time(6)
+  end_time               DateTime       @db.Time(6)
+  slot_duration_interval Int?           @default(30)
+  buffer_time            Int?           @default(0)
+  profiles               profiles       @relation(fields: [consultant_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  organizations          organizations? @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([consultant_id, day_of_week])
+}
+
+model emergency_alerts {
+  id              String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id String        @db.Uuid
+  staff_id        String        @db.Uuid
+  status          String?       @default("unresolved")
+  reason          String?
+  latitude        Decimal?      @db.Decimal
+  longitude       Decimal?      @db.Decimal
+  created_at      DateTime?     @default(now()) @db.Timestamptz(6)
+  admin_decision  String?
+  updated_at      DateTime?     @default(now()) @db.Timestamptz(6)
+  organizations   organizations @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  profiles        profiles      @relation(fields: [staff_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model enquiries {
+  id                  String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id     String                @db.Uuid
+  first_name          String
+  last_name           String?
+  mobile_no           String
+  email               String?
+  looking_for         String?
+  preferred_call_time String?
+  referral_source     String?
+  referral_details    String?
+  work_place          String?
+  notes               String?
+  status              String?               @default("pending")
+  linked_client_id    String?               @db.Uuid
+  next_follow_up_at   DateTime?             @db.Timestamptz(6)
+  last_interaction_at DateTime?             @db.Timestamptz(6)
+  created_at          DateTime?             @default(now()) @db.Timestamptz(6)
+  clients             clients?              @relation(fields: [linked_client_id], references: [id], onUpdate: NoAction)
+  organizations       organizations         @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  enquiryinteractions enquiryinteractions[]
+  sessions            sessions[]
+}
+
+model enquiryinteractions {
+  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  enquiry_id         String    @db.Uuid
+  interaction_type   String
+  response_text      String?
+  follow_up_required Boolean?  @default(false)
+  follow_up_at       DateTime? @db.Timestamptz(6)
+  created_by         String?   @db.Uuid
+  created_at         DateTime? @default(now()) @db.Timestamptz(6)
+  users              users?    @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  enquiries          enquiries @relation(fields: [enquiry_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model excel_diagnostic_reports {
+  id                      String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id         String        @db.Uuid
+  client_uhid             String?
+  patient_name            String
+  dob                     DateTime?     @db.Date
+  test_history            Json
+  latest_metrics          Json
+  clinical_interpretation String?
+  created_by              String?       @db.Uuid
+  created_at              DateTime?     @default(now()) @db.Timestamptz(6)
+  users                   users?        @relation(fields: [created_by], references: [id], onUpdate: NoAction)
+  organizations           organizations @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model exercises {
+  id                 String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id    String?          @db.Uuid
+  name               String
+  description        String?
+  category           String?
+  equipment_type     String?
+  difficulty_level   String?
+  muscle_groups      String[]
+  body_region        String?
+  equipment_required String?
+  instructions       String?
+  video_url          String?
+  is_rehabilitation  Boolean?         @default(false)
+  is_active          Boolean?         @default(true)
+  created_at         DateTime?        @default(now()) @db.Timestamptz(6)
+  updated_at         DateTime?        @default(now()) @db.Timestamptz(6)
+  organizations      organizations?   @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  liftitems          liftitems[]
+  max_pr_records     max_pr_records[]
+
+  @@unique([organization_id, name])
+}
+
+model external_training_summary {
+  id                String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id   String        @db.Uuid
+  client_id         String        @db.Uuid
+  external_system   String        @default("TeamBuildr")
+  training_date     DateTime      @db.Date
+  workout_name      String?
+  duration_minutes  Int?
+  training_load     Decimal?      @db.Decimal
+  completion_status String?
+  created_at        DateTime?     @default(now()) @db.Timestamptz(6)
+  updated_at        DateTime?     @default(now()) @db.Timestamptz(6)
+  clients           clients       @relation(fields: [client_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  organizations     organizations @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([client_id, training_date(sort: Desc)], map: "idx_ext_training_client_date")
+}
+
+model form_responses {
+  id                      String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id         String            @db.Uuid
+  form_id                 String            @db.Uuid
+  client_id               String            @db.Uuid
+  specialist_id           String?           @db.Uuid
+  bulk_assignment_id      String?           @db.Uuid
+  status                  String?           @default("pending")
+  response_data           Json?
+  clinical_interpretation String?
+  submitted_at            DateTime?         @db.Timestamptz(6)
+  created_at              DateTime?         @default(now()) @db.Timestamptz(6)
+  bulk_assignments        bulk_assignments? @relation(fields: [bulk_assignment_id], references: [id], onUpdate: NoAction)
+  clients                 clients           @relation(fields: [client_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  organizations           organizations     @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  profiles                profiles?         @relation(fields: [specialist_id], references: [id], onUpdate: NoAction)
+}
+
+model group_attendance {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  session_id        String    @db.Uuid
+  client_id         String    @db.Uuid
+  attendance_status String    @default("Present")
+  notes             String?
+  created_at        DateTime? @default(now()) @db.Timestamptz(6)
+  clients           clients   @relation(fields: [client_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  sessions          sessions  @relation(fields: [session_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([session_id, client_id])
+}
+
+model hr_employees {
+  id                      String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id         String        @db.Uuid
+  profile_id              String        @unique @db.Uuid
+  job_id                  String?       @db.Uuid
+  date_of_joining         DateTime?     @db.Date
+  employment_type         String?
+  bank_name               String?
+  bank_account_no         String?
+  ifsc_code               String?
+  emergency_contact_name  String?
+  emergency_contact_phone String?
+  created_at              DateTime?     @default(now()) @db.Timestamptz(6)
+  hr_jobs                 hr_jobs?      @relation(fields: [job_id], references: [id], onUpdate: NoAction)
+  organizations           organizations @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  profiles                profiles      @relation(fields: [profile_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model hr_jobs {
+  id              String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id String         @db.Uuid
+  name            String
+  description     String?
+  is_active       Boolean?       @default(true)
+  created_at      DateTime?      @default(now()) @db.Timestamptz(6)
+  hr_employees    hr_employees[]
+  organizations   organizations  @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model hrattendancelogs {
+  id                   String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id      String        @db.Uuid
+  profile_id           String        @db.Uuid
+  type                 String
+  latitude             Decimal?      @db.Decimal
+  longitude            Decimal?      @db.Decimal
+  distance_from_center Decimal?      @db.Decimal
+  is_within_geofence   Boolean?      @default(true)
+  metadata             Json?
+  created_at           DateTime?     @default(now()) @db.Timestamptz(6)
+  organizations        organizations @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  profiles             profiles      @relation(fields: [profile_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model hrleaves {
+  id                                      String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id                         String        @db.Uuid
+  employee_id                             String        @db.Uuid
+  leave_type                              String
+  start_date                              DateTime      @db.Date
+  end_date                                DateTime      @db.Date
+  reason                                  String?
+  status                                  String?       @default("Requested")
+  approved_by                             String?       @db.Uuid
+  created_at                              DateTime?     @default(now()) @db.Timestamptz(6)
+  profiles_hrleaves_approved_byToprofiles profiles?     @relation("hrleaves_approved_byToprofiles", fields: [approved_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  profiles_hrleaves_employee_idToprofiles profiles      @relation("hrleaves_employee_idToprofiles", fields: [employee_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  organizations                           organizations @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model injuries {
+  id              String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id String           @db.Uuid
+  client_id       String           @db.Uuid
+  diagnosis       String
+  injury_type     String
+  region          String
+  injury_date     DateTime?        @default(now()) @db.Timestamptz(6)
+  status          String           @default("Active")
+  side            String?
+  onset           String?
+  mechanism       String?
+  notes           String?
+  created_at      DateTime?        @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime?        @default(now()) @db.Timestamptz(6)
+  clients         clients          @relation(fields: [client_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  organizations   organizations    @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  rehab_progress  rehab_progress[]
+}
+
+model injury_master_data {
+  id              String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id String?        @db.Uuid
+  region          String
+  injury_type     String
+  diagnosis       String
+  created_at      DateTime?      @default(now()) @db.Timestamptz(6)
+  organizations   organizations? @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([region, injury_type, diagnosis], map: "injury_master_data_global_unique_idx", where: raw("(organization_id IS NULL)"))
+  @@unique([organization_id, region, injury_type, diagnosis], map: "injury_master_data_org_unique_idx", where: raw("(organization_id IS NOT NULL)"))
+}
+
+model liftitems {
+  id               String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  workout_item_id  String       @db.Uuid
+  exercise_id      String       @db.Uuid
+  sets             Int          @default(1)
+  reps             String?
+  load_type        String?      @default("kg")
+  load_value       Decimal?     @db.Decimal
+  tempo            String?
+  rest_time_secs   Int?
+  additional_info  String?
+  workout_grouping String?
+  exercises        exercises    @relation(fields: [exercise_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  workoutitems     workoutitems @relation(fields: [workout_item_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model locations {
+  id              String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id String        @db.Uuid
+  name            String
+  address         String?
+  created_at      DateTime?     @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime?     @default(now()) @db.Timestamptz(6)
+  clients         clients[]
+  organizations   organizations @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model max_pr_records {
+  id          String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  athlete_id  String?    @db.Uuid
+  exercise_id String?    @db.Uuid
+  value       Decimal    @db.Decimal
+  is_current  Boolean?   @default(true)
+  recorded_at DateTime?  @default(now()) @db.Timestamptz(6)
+  created_at  DateTime?  @default(now()) @db.Timestamptz(6)
+  users       users?     @relation(fields: [athlete_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  exercises   exercises? @relation(fields: [exercise_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model notification_reads {
+  notification_id String        @db.Uuid
+  user_id         String        @db.Uuid
+  read_at         DateTime?     @default(now()) @db.Timestamptz(6)
+  notifications   notifications @relation(fields: [notification_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users           users         @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([notification_id, user_id])
+}
+
+model notifications {
+  id                 String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id    String               @db.Uuid
+  title              String
+  content            String
+  type               String?              @default("info")
+  target_role        String?
+  target_user_id     String?              @db.Uuid
+  is_broadcast       Boolean?             @default(false)
+  priority           String?              @default("normal")
+  created_by         String?              @db.Uuid
+  created_at         DateTime?            @default(now()) @db.Timestamptz(6)
+  category           String?              @default("in_app")
+  action_payload     Json?                @default("{}")
+  action_status      String?              @default("pending")
+  is_vip             Boolean?             @default(false)
+  sender_id          String?              @db.Uuid
+  notification_reads notification_reads[]
+  users              users?               @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  organizations      organizations        @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  profiles           profiles?            @relation(fields: [sender_id], references: [id], onUpdate: NoAction)
+}
+
+model organization_notification_settings {
+  organization_id                String        @id @db.Uuid
+  enable_email_notifications     Boolean?      @default(true)
+  enable_in_app_notifications    Boolean?      @default(true)
+  notify_signup_approval         Boolean?      @default(true)
+  notify_questionnaire_assigned  Boolean?      @default(true)
+  notify_questionnaire_completed Boolean?      @default(true)
+  notify_emergency_leave         Boolean?      @default(true)
+  notify_outstanding_balance     Boolean?      @default(true)
+  updated_at                     DateTime?     @default(now()) @db.Timestamptz(6)
+  organizations                  organizations @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model organizations {
+  id                                 String                              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name                               String
+  created_at                         DateTime?                           @default(now()) @db.Timestamptz(6)
+  updated_at                         DateTime?                           @default(now()) @db.Timestamptz(6)
+  deleted_at                         DateTime?                           @db.Timestamptz(6)
+  org_code                           String?
+  slug                               String?
+  subscription_plan                  String?                             @default("pro")
+  status                             String?                             @default("active")
+  uhid_prefix                        String?
+  logo_url                           String?
+  official_name                      String?
+  official_address                   String?
+  contact_email                      String?
+  contact_phone                      String?
+  clinic_latitude                    Decimal?                            @db.Decimal
+  clinic_longitude                   Decimal?                            @db.Decimal
+  geofence_radius                    Decimal?                            @db.Decimal
+  enable_geofencing                  Boolean?                            @default(false)
+  enable_ip_locking                  Boolean?                            @default(false)
+  allowed_ips                        String?
+  allow_custom_duration              Boolean?                            @default(false)
+  default_slot_duration              Int?                                @default(60)
+  athlete_item_logs                  athlete_item_logs[]
+  athlete_workout_completions        athlete_workout_completions[]
+  availabilityexceptions             availabilityexceptions[]
+  billitems                          billitems[]
+  billpayments                       billpayments[]
+  bills                              bills[]
+  bulk_assignments                   bulk_assignments[]
+  client_assessment_reports          client_assessment_reports[]
+  client_groups                      client_groups[]
+  clientdocuments                    clientdocuments[]
+  cliententitlements                 cliententitlements[]
+  clientorganizations                clientorganizations[]
+  clients                            clients[]
+  consultant_services                consultant_services[]
+  consultantavailability             consultantavailability[]
+  emergency_alerts                   emergency_alerts[]
+  enquiries                          enquiries[]
+  excel_diagnostic_reports           excel_diagnostic_reports[]
+  exercises                          exercises[]
+  external_training_summary          external_training_summary[]
+  form_responses                     form_responses[]
+  hr_employees                       hr_employees[]
+  hr_jobs                            hr_jobs[]
+  hrattendancelogs                   hrattendancelogs[]
+  hrleaves                           hrleaves[]
+  injuries                           injuries[]
+  injury_master_data                 injury_master_data[]
+  locations                          locations[]
+  notifications                      notifications[]
+  organization_notification_settings organization_notification_settings?
+  packages                           packages[]
+  performance_assessments            performance_assessments[]
+  profiles                           profiles[]
+  program_assignments                program_assignments[]
+  questionnaires                     questionnaires[]
+  referralsources                    referralsources[]
+  refunds                            refunds[]
+  report_templates                   report_templates[]
+  scientific_resources               scientific_resources[]
+  services                           services[]
+  sessions                           sessions[]
+  staff_schedules                    staff_schedules[]
+  subscription_logs                  subscription_logs[]
+  subscriptions                      subscriptions[]
+  trainingprograms                   trainingprograms[]
+  uhidsequences                      uhidsequences[]
+  waitlist                           waitlist[]
+  wellness_logs                      wellness_logs[]
+  workoutdays                        workoutdays[]
+}
+
+model packages {
+  id                 String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id    String               @db.Uuid
+  name               String
+  description        String?
+  price              Decimal              @default(0) @db.Decimal
+  deleted_at         DateTime?            @db.Timestamptz(6)
+  created_at         DateTime?            @default(now()) @db.Timestamptz(6)
+  updated_at         DateTime?            @default(now()) @db.Timestamptz(6)
+  category           String?              @default("Others")
+  tax_percentage     Decimal              @default(0) @db.Decimal
+  tax_amount         Decimal?             @default(0) @db.Decimal
+  cliententitlements cliententitlements[]
+  organizations      organizations        @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  packageservices    packageservices[]
+  subscriptions      subscriptions[]
+
+  @@unique([organization_id, name])
+}
+
+model packageservices {
+  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  package_id        String   @db.Uuid
+  service_id        String   @db.Uuid
+  sessions_included Int      @default(1)
+  packages          packages @relation(fields: [package_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  services          services @relation(fields: [service_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model performance_assessments {
+  id              String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id String?        @db.Uuid
+  athlete_id      String         @db.Uuid
+  category        String
+  test_name       String
+  metrics         Json           @default("{}")
+  recorded_by     String?        @db.Uuid
+  created_at      DateTime?      @default(now()) @db.Timestamptz(6)
+  clients         clients        @relation(fields: [athlete_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  organizations   organizations? @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  profiles        profiles?      @relation(fields: [recorded_by], references: [id], onUpdate: NoAction)
+}
+
+model physiosessiondetails {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  session_id        String?   @unique @db.Uuid
+  injury_id         String?   @db.Uuid
+  pain_score        Int?
+  modality_used     String?
+  treatment_type    String?
+  manual_therapy    String?
+  exercise_given    String?
+  range_of_motion   String?
+  strength_progress String?
+  clinical_notes    String?
+  next_plan         String?
+  soreness_data     Json?
+  updated_at        DateTime? @default(now()) @db.Timestamptz(6)
+  sessions          sessions? @relation(fields: [session_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model profiles {
+  id                                             String                    @id @db.Uuid
+  first_name                                     String
+  last_name                                      String
+  organization_id                                String?                   @db.Uuid
+  is_approved                                    Boolean?                  @default(false)
+  uhid                                           String?
+  ams_role                                       String?
+  profession                                     String?
+  created_at                                     DateTime?                 @default(now()) @db.Timestamptz(6)
+  avatar_url                                     String?
+  mobile_no                                      String?
+  has_calendar_access                            Boolean?                  @default(false)
+  availabilityexceptions                         availabilityexceptions[]
+  bulk_assignments                               bulk_assignments[]
+  clients_clients_primary_scientist_idToprofiles clients[]                 @relation("clients_primary_scientist_idToprofiles")
+  clients_clients_profile_idToprofiles           clients[]                 @relation("clients_profile_idToprofiles")
+  consultant_services                            consultant_services[]
+  consultantavailability                         consultantavailability[]
+  emergency_alerts                               emergency_alerts[]
+  form_responses                                 form_responses[]
+  hr_employees                                   hr_employees?
+  hrattendancelogs                               hrattendancelogs[]
+  hrleaves_hrleaves_approved_byToprofiles        hrleaves[]                @relation("hrleaves_approved_byToprofiles")
+  hrleaves_hrleaves_employee_idToprofiles        hrleaves[]                @relation("hrleaves_employee_idToprofiles")
+  notifications                                  notifications[]
+  performance_assessments                        performance_assessments[]
+  users                                          users                     @relation(fields: [id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  organizations                                  organizations?            @relation(fields: [organization_id], references: [id], onUpdate: NoAction)
+  rehab_progress                                 rehab_progress[]
+  session_templates                              session_templates[]
+  sessions_sessions_scientist_idToprofiles       sessions[]                @relation("sessions_scientist_idToprofiles")
+  sessions_sessions_therapist_idToprofiles       sessions[]                @relation("sessions_therapist_idToprofiles")
+  staff_schedules                                staff_schedules?
+  trainingprograms                               trainingprograms[]
+  waitlist                                       waitlist[]
+}
+
+model program_assignments {
+  id               String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  athlete_id       String?          @db.Uuid
+  program_id       String           @db.Uuid
+  batch_id         String?          @db.Uuid
+  start_date       DateTime         @db.Date
+  status           String?          @default("active")
+  organization_id  String?          @db.Uuid
+  created_at       DateTime?        @default(now()) @db.Timestamptz(6)
+  users            users?           @relation(fields: [athlete_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  organizations    organizations?   @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  trainingprograms trainingprograms @relation(fields: [program_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model questionnaires {
+  id              String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id String        @db.Uuid
+  name            String
+  classification  String?       @default("performance")
+  questions       Json          @default("[]")
+  created_by      String?       @db.Uuid
+  created_at      DateTime?     @default(now()) @db.Timestamptz(6)
+  users           users?        @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  organizations   organizations @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model referralsources {
+  id              String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id String        @db.Uuid
+  name            String
+  created_at      DateTime?     @default(now()) @db.Timestamptz(6)
+  organizations   organizations @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([organization_id, name])
+}
+
+model refunds {
+  id                      String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id         String        @db.Uuid
+  client_id               String        @db.Uuid
+  bill_id                 String?       @db.Uuid
+  amount                  Decimal       @db.Decimal
+  refund_mode             String?
+  transaction_id          String?
+  refund_proof_url        String?
+  reason                  String?
+  notes                   String?
+  status                  String?       @default("pending")
+  is_override             Boolean?      @default(false)
+  authorized_by           String?
+  is_entitlement_reversed Boolean?      @default(false)
+  created_at              DateTime?     @default(now()) @db.Timestamptz(6)
+  bills                   bills?        @relation(fields: [bill_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  clients                 clients       @relation(fields: [client_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  organizations           organizations @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model rehab_progress {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  injury_id   String    @db.Uuid
+  status      String
+  notes       String?
+  metrics     Json?     @default("{}")
+  recorded_by String?   @db.Uuid
+  created_at  DateTime? @default(now()) @db.Timestamptz(6)
+  injuries    injuries  @relation(fields: [injury_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  profiles    profiles? @relation(fields: [recorded_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model report_templates {
+  id              String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id String        @db.Uuid
+  name            String
+  file_path       String
+  description     String?
+  created_by      String?       @db.Uuid
+  created_at      DateTime?     @default(now()) @db.Timestamptz(6)
+  users           users?        @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  organizations   organizations @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model scientific_resources {
+  id              String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id String        @db.Uuid
+  athlete_id      String?       @db.Uuid
+  title           String
+  category        String
+  type            String
+  description     String?
+  url             String
+  thumbnail_url   String?
+  tags            String[]
+  is_public       Boolean?      @default(false)
+  created_by      String?       @db.Uuid
+  created_at      DateTime?     @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime?     @default(now()) @db.Timestamptz(6)
+  clients         clients?      @relation(fields: [athlete_id], references: [id], onUpdate: NoAction)
+  users           users?        @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  organizations   organizations @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model services {
+  id                                          String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id                             String                @db.Uuid
+  name                                        String
+  category                                    String?               @default("General")
+  is_active                                   Boolean?              @default(true)
+  created_at                                  DateTime?             @default(now()) @db.Timestamptz(6)
+  base_price                                  Decimal?              @default(0) @db.Decimal
+  min_duration                                Int?                  @default(30)
+  max_duration                                Int?                  @default(120)
+  is_universal                                Boolean?              @default(true)
+  cliententitlements                          cliententitlements[]
+  consultant_services                         consultant_services[]
+  packageservices                             packageservices[]
+  organizations                               organizations         @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  session_templates                           session_templates[]
+  sessions_sessions_service_idToservices      sessions[]            @relation("sessions_service_idToservices")
+  sessions_sessions_session_type_idToservices sessions[]            @relation("sessions_session_type_idToservices")
+  waitlist                                    waitlist[]
+}
+
+model session_templates {
+  id               String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  scientist_id     String                   @db.Uuid
+  template_name    String
+  session_type_id  String?                  @db.Uuid
+  default_duration Unsupported("interval")? @default(dbgenerated("'01:00:00'::interval"))
+  notes            String?
+  created_at       DateTime?                @default(now()) @db.Timestamptz(6)
+  updated_at       DateTime?                @default(now()) @db.Timestamptz(6)
+  profiles         profiles                 @relation(fields: [scientist_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  services         services?                @relation(fields: [session_type_id], references: [id], onUpdate: NoAction)
+}
+
+model sessions {
+  id                                          String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id                             String                @db.Uuid
+  client_id                                   String?               @db.Uuid
+  therapist_id                                String?               @db.Uuid
+  scientist_id                                String?               @db.Uuid
+  entitlement_id                              String?               @db.Uuid
+  service_id                                  String?               @db.Uuid
+  service_type                                String
+  session_mode                                String?               @default("Individual")
+  scheduled_start                             DateTime              @db.Timestamptz(6)
+  scheduled_end                               DateTime              @db.Timestamptz(6)
+  actual_start                                DateTime?             @db.Timestamptz(6)
+  actual_end                                  DateTime?             @db.Timestamptz(6)
+  status                                      String                @default("Planned")
+  cancellation_reason                         String?
+  is_unentitled                               Boolean?              @default(false)
+  preference_type                             String?               @default("Strict")
+  is_flexible_routing                         Boolean?              @default(false)
+  created_by                                  String?               @db.Uuid
+  created_at                                  DateTime?             @default(now()) @db.Timestamptz(6)
+  updated_at                                  DateTime?             @default(now()) @db.Timestamptz(6)
+  group_name                                  String?
+  session_location                            String?
+  session_notes                               String?
+  attachments                                 Json?                 @default("[]")
+  session_type_id                             String?               @db.Uuid
+  is_guest                                    Boolean?              @default(false)
+  guest_name                                  String?
+  guest_contact                               String?
+  enquiry_id                                  String?               @db.Uuid
+  group_attendance                            group_attendance[]
+  physiosessiondetails                        physiosessiondetails?
+  clients                                     clients?              @relation(fields: [client_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users                                       users?                @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  enquiries                                   enquiries?            @relation(fields: [enquiry_id], references: [id], onUpdate: NoAction)
+  cliententitlements                          cliententitlements?   @relation(fields: [entitlement_id], references: [id], onUpdate: NoAction)
+  organizations                               organizations         @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  profiles_sessions_scientist_idToprofiles    profiles?             @relation("sessions_scientist_idToprofiles", fields: [scientist_id], references: [id], onUpdate: NoAction)
+  services_sessions_service_idToservices      services?             @relation("sessions_service_idToservices", fields: [service_id], references: [id], onUpdate: NoAction)
+  services_sessions_session_type_idToservices services?             @relation("sessions_session_type_idToservices", fields: [session_type_id], references: [id], onUpdate: NoAction)
+  profiles_sessions_therapist_idToprofiles    profiles?             @relation("sessions_therapist_idToprofiles", fields: [therapist_id], references: [id], onUpdate: NoAction)
+}
+
+model staff_schedules {
+  id              String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id String        @db.Uuid
+  consultant_id   String        @unique @db.Uuid
+  shift_start     DateTime      @default(dbgenerated("'08:00:00'::time without time zone")) @db.Time(6)
+  shift_end       DateTime      @default(dbgenerated("'17:00:00'::time without time zone")) @db.Time(6)
+  breaks          Json          @default("[]")
+  created_at      DateTime?     @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime?     @default(now()) @db.Timestamptz(6)
+  profiles        profiles      @relation(fields: [consultant_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  organizations   organizations @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model subscription_logs {
+  id              String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id String        @db.Uuid
+  subscription_id String        @db.Uuid
+  event           String
+  details         Json?         @default("{}")
+  created_at      DateTime?     @default(now()) @db.Timestamptz(6)
+  organizations   organizations @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  subscriptions   subscriptions @relation(fields: [subscription_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model subscriptions {
+  id                   String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id      String              @db.Uuid
+  client_id            String              @db.Uuid
+  package_id           String              @db.Uuid
+  status               String              @default("Active")
+  current_period_start DateTime            @default(dbgenerated("CURRENT_DATE")) @db.Date
+  current_period_end   DateTime?           @db.Date
+  billing_cycle        String
+  auto_pay             Boolean?            @default(false)
+  next_billing_date    DateTime?           @db.Date
+  grace_period_end     DateTime?           @db.Date
+  cancel_at_period_end Boolean?            @default(false)
+  created_at           DateTime?           @default(now()) @db.Timestamptz(6)
+  updated_at           DateTime?           @default(now()) @db.Timestamptz(6)
+  dunning_step         Int?                @default(0)
+  last_dunning_at      DateTime?           @db.Timestamptz(6)
+  last_billing_date    DateTime?           @db.Date
+  bills                bills[]
+  subscription_logs    subscription_logs[]
+  clients              clients             @relation(fields: [client_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  organizations        organizations       @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  packages             packages            @relation(fields: [package_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model trainingprograms {
+  id                  String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id     String                @db.Uuid
+  name                String
+  description         String?
+  scientist_id        String?               @db.Uuid
+  created_at          DateTime?             @default(now()) @db.Timestamptz(6)
+  program_assignments program_assignments[]
+  organizations       organizations         @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  profiles            profiles?             @relation(fields: [scientist_id], references: [id], onUpdate: NoAction)
+  workoutdays         workoutdays[]
+}
+
+model uhidsequences {
+  id              String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id String        @db.Uuid
+  year_month      String
+  last_serial     Int           @default(0)
+  organizations   organizations @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([organization_id, year_month])
+}
+
+model users {
+  id                                            String                        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email                                         String                        @unique
+  password_hash                                 String?
+  role                                          String                        @default("user")
+  created_at                                    DateTime?                     @default(now()) @db.Timestamptz(6)
+  athlete_item_logs                             athlete_item_logs[]
+  athlete_workout_completions                   athlete_workout_completions[]
+  authsessions                                  authsessions[]
+  bills                                         bills[]
+  client_assessment_reports                     client_assessment_reports[]
+  client_group_members                          client_group_members[]
+  client_groups                                 client_groups[]
+  clientadminnotes                              clientadminnotes[]
+  clientdocuments                               clientdocuments[]
+  clients_clients_assigned_consultant_idTousers clients[]                     @relation("clients_assigned_consultant_idTousers")
+  clients_clients_created_byTousers             clients[]                     @relation("clients_created_byTousers")
+  enquiryinteractions                           enquiryinteractions[]
+  excel_diagnostic_reports                      excel_diagnostic_reports[]
+  max_pr_records                                max_pr_records[]
+  notification_reads                            notification_reads[]
+  notifications                                 notifications[]
+  profiles                                      profiles?
+  program_assignments                           program_assignments[]
+  questionnaires                                questionnaires[]
+  report_templates                              report_templates[]
+  scientific_resources                          scientific_resources[]
+  sessions                                      sessions[]
+  wellness_logs                                 wellness_logs[]
+}
+
+model waitlist {
+  id                  String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id     String        @db.Uuid
+  client_id           String        @db.Uuid
+  therapist_id        String?       @db.Uuid
+  service_id          String?       @db.Uuid
+  preferred_date      DateTime      @db.Date
+  preferred_time_slot String?
+  preference_type     String?
+  status              String?       @default("Waiting")
+  created_at          DateTime?     @default(now()) @db.Timestamptz(6)
+  updated_at          DateTime?     @default(now()) @db.Timestamptz(6)
+  clients             clients       @relation(fields: [client_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  organizations       organizations @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  services            services?     @relation(fields: [service_id], references: [id], onUpdate: NoAction)
+  profiles            profiles?     @relation(fields: [therapist_id], references: [id], onUpdate: NoAction)
+}
+
+model wellness_logs {
+  id              String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id String        @db.Uuid
+  athlete_id      String        @db.Uuid
+  sleep_score     Int?
+  stress_level    Int?
+  soreness_level  Int?
+  fatigue_level   Int?
+  soreness_data   Json?
+  created_at      DateTime?     @default(now()) @db.Timestamptz(6)
+  users           users         @relation(fields: [athlete_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  organizations   organizations @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model workoutdays {
+  id                          String                        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  program_id                  String                        @db.Uuid
+  organization_id             String?                       @db.Uuid
+  title                       String
+  display_order               Int
+  created_at                  DateTime?                     @default(now()) @db.Timestamptz(6)
+  athlete_workout_completions athlete_workout_completions[]
+  organizations               organizations?                @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  trainingprograms            trainingprograms              @relation(fields: [program_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  workoutitems                workoutitems[]
+}
+
+model workoutitems {
+  id                String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  workout_day_id    String              @db.Uuid
+  item_type         String
+  display_order     Int
+  created_at        DateTime?           @default(now()) @db.Timestamptz(6)
+  athlete_item_logs athlete_item_logs[]
+  liftitems         liftitems[]
+  workoutdays       workoutdays         @relation(fields: [workout_day_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}

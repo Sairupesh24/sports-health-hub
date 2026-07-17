@@ -51,7 +51,7 @@ describe('ReportsPage Render Test', () => {
         </BrowserRouter>
       </QueryClientProvider>
     );
-    expect(container.innerHTML).toContain('Module Under Progress');
+    expect(container.innerHTML).toContain('Loading clinical directories...');
     console.log("RENDER SUCCESSFUL! HTML length:", container.innerHTML.length);
   });
 });

@@ -41,6 +41,7 @@ import {
   Plus
 } from "lucide-react";
 import { LogEnquiryModal } from "@/components/admin/LogEnquiryModal";
+import type { Database } from "@/integrations/supabase/types";
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -100,7 +101,7 @@ export default function LeadsDashboard() {
     mutationFn: async ({ id, status }: { id: string, status: EnquiryStatus }) => {
       await apiFetch(`/clients/enquiries/${id}`, {
         method: 'PATCH',
-        body: { status }
+        data: { status }
       });
     },
     onSuccess: () => {
@@ -113,12 +114,12 @@ export default function LeadsDashboard() {
     mutationFn: async ({ id, type, response }: { id: string, type: string, response: string }) => {
       await apiFetch(`/clients/enquiries/${id}/interactions`, {
         method: 'POST',
-        body: { interaction_type: type, response_text: response }
+        data: { interaction_type: type, response_text: response }
       });
       
       await apiFetch(`/clients/enquiries/${id}`, {
         method: 'PATCH',
-        body: { last_interaction_at: new Date().toISOString() }
+        data: { last_interaction_at: new Date().toISOString() }
       });
     },
     onSuccess: () => {
@@ -141,12 +142,12 @@ export default function LeadsDashboard() {
     mutationFn: async ({ enquiryId, clientId }: { enquiryId: string, clientId: string }) => {
       const enqData = await apiFetch<any>(`/clients/enquiries/${enquiryId}`, {
         method: 'PATCH',
-        body: { status: 'converted', linked_client_id: clientId }
+        data: { status: 'converted', linked_client_id: clientId }
       });
 
       await apiFetch(`/clients/enquiries/${enquiryId}/interactions`, {
         method: 'POST',
-        body: {
+        data: {
           interaction_type: 'converted',
           response_text: `Lead linked to UHID: ${selectedClient?.uhid || 'Manual Selection'}`
         }
@@ -155,13 +156,13 @@ export default function LeadsDashboard() {
       if (enqData.notes) {
         await apiFetch(`/clients/${clientId}`, {
           method: 'PATCH',
-          body: { admin_remarks: `[Enquiry Conversion Note]: ${enqData.notes}` }
+          data: { admin_remarks: `[Enquiry Conversion Note]: ${enqData.notes}` }
         });
       }
 
       await apiFetch(`/appointments/sessions/bulk-update`, {
         method: 'PATCH',
-        body: { 
+        data: { 
           filters: { enquiry_id: enquiryId },
           updates: { client_id: clientId, is_guest: false }
         }
@@ -178,6 +179,9 @@ export default function LeadsDashboard() {
       setLinkSearchTerm("");
       toast({ title: "Client Linked", description: "Enquiry successfully converted and linked to client profile." });
     },
+    onError: (err: any) => {
+      toast({ title: "Failed to Link Client", description: err.message, variant: "destructive" });
+    }
   });
 
   const handleStatusChange = (id: string, status: EnquiryStatus) => {
@@ -316,7 +320,7 @@ export default function LeadsDashboard() {
                         key={enq.id} 
                         className="group hover:bg-slate-50 transition-colors border-slate-100 h-20 cursor-pointer"
                         onClick={(e) => {
-                          if ((e.target as HTMLElement).closest('button')) return;
+                          if ((e.target as HTMLElement).closest('button') || (e.target as HTMLElement).closest('a')) return;
                           setSelectedEnquiry(enq);
                           setIsDetailsOpen(true);
                         }}
@@ -407,15 +411,15 @@ export default function LeadsDashboard() {
                                 <Button variant="ghost" size="icon" className="h-8 w-8"><MoreVertical className="w-4 h-4" /></Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end" className="w-48">
-                                <DropdownMenuItem onClick={() => handleStatusChange(enq.id, 'converted')} className="gap-2">
+                                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleStatusChange(enq.id, 'converted'); }} className="gap-2">
                                   <CheckCircle2 className="w-4 h-4 text-emerald-500" />
                                   <span>Mark as Converted</span>
                                 </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => handleStatusChange(enq.id, 'not_interested')} className="gap-2">
+                                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleStatusChange(enq.id, 'not_interested'); }} className="gap-2">
                                   <XCircle className="w-4 h-4 text-slate-400" />
                                   <span>Not Interested</span>
                                 </DropdownMenuItem>
-                                <DropdownMenuItem className="gap-2" onClick={() => { setSelectedEnquiry(enq); setIsLinkModalOpen(true); }}>
+                                <DropdownMenuItem className="gap-2" onClick={(e) => { e.stopPropagation(); setSelectedEnquiry(enq); setIsLinkModalOpen(true); }}>
                                   <UserPlus className="w-4 h-4 text-blue-500" />
                                   <span>Link to Client</span>
                                 </DropdownMenuItem>

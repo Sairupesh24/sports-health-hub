@@ -502,3 +502,26 @@
   --status-priority: #EF4444;   /* below -30%     */
 }
 
+/* Print optimizations for half-page boxed A5 invoice layout */
+@media print {
+  body * {
+    visibility: hidden !important;
+  }
+  #print-invoice-box, #print-invoice-box * {
+    visibility: visible !important;
+  }
+  #print-invoice-box {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 210mm !important;
+    height: 148mm !important;
+    max-height: 148mm !important;
+    margin: 0 !important;
+    padding: 20px !important;
+    border: 1px solid #ccc !important;
+    box-shadow: none !important;
+    box-sizing: border-box !important;
+  }
+}
+
