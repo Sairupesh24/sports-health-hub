@@ -11,12 +11,14 @@ export type InvoiceRenderProps = {
         referral_source_name?: string;
         billed_by_name?: string;
         billing_staff_name?: string;
-        subtotal: number;
+        subtotal?: number;
+        amount?: number;
         discount_value?: number;
         discount?: number;
         tax_amount?: number;
-        total_amount: number;
-        status: string;
+        total_amount?: number;
+        total?: number;
+        status?: string;
         payment_method?: string;
         transaction_id?: string;
         notes?: string;
@@ -41,9 +43,10 @@ export function InvoiceRender({ bill }: InvoiceRenderProps) {
     const orgAddress = bill.organization_address || "";
     const logoUrl = bill.organization_logo || "";
 
-    const discountAmount = bill.discount_value || bill.discount || 0;
-    const taxAmount = bill.tax_amount || 0;
-    const subtotal = bill.subtotal || 0;
+    const discountAmount = Number(bill.discount_value || bill.discount || 0);
+    const taxAmount = Number(bill.tax_amount || 0);
+    const subtotal = Number(bill.subtotal || bill.amount || 0);
+    const totalAmount = Number(bill.total_amount || bill.total || bill.amount || 0);
 
     return (
         <div id="print-invoice-box" className="w-full bg-white text-slate-800 border border-slate-300 p-8 font-sans text-xs flex flex-col justify-between" style={{ boxSizing: "border-box", minHeight: "140mm" }}>
@@ -173,7 +176,7 @@ export function InvoiceRender({ bill }: InvoiceRenderProps) {
                         )}
                         <div className="flex justify-between text-xs font-black text-[#0d9488] border-t border-slate-200 pt-2 mt-2">
                             <span className="font-bold">Grand Total:</span>
-                            <span className="text-sm font-black">Rs. {bill.total_amount.toFixed(2)}</span>
+                            <span className="text-sm font-black">Rs. {totalAmount.toFixed(2)}</span>
                         </div>
                     </div>
                 </div>
