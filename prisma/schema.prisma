@@ -943,6 +943,7 @@ model Profile {
   mobileNo                                      String? @map("mobile_no")
   hasCalendarAccess                            Boolean? @default(false) @map("has_calendar_access")
   hasAnalyticsAccess                           Boolean? @default(false) @map("has_analytics_access")
+  hasAssignWorkAccess                          Boolean? @default(false) @map("has_assign_work_access")
   availabilityexceptions                         AvailabilityException[]
   bulkAssignments                               BulkAssignment[]
   clientsClientsPrimaryScientistIdToprofiles Client[]                 @relation("clients_primary_scientist_idToprofiles")
