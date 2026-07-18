@@ -61,9 +61,9 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="h-screen overflow-y-auto flex">
+    <div className="h-screen flex overflow-hidden">
       {/* Left Branding */}
-      <div className="hidden lg:flex lg:w-1/2 gradient-dark items-center justify-center p-12 relative overflow-hidden">
+      <div className="hidden lg:flex lg:w-1/2 gradient-dark items-center justify-center p-12 relative overflow-hidden h-full">
         <div className="absolute inset-0 opacity-10">
           <div className="absolute top-20 left-20 w-72 h-72 rounded-full bg-primary blur-[100px]" />
           <div className="absolute bottom-20 right-20 w-96 h-96 rounded-full bg-accent blur-[120px]" />
@@ -85,8 +85,8 @@ export default function SignupPage() {
       </div>
 
       {/* Right Form */}
-      <div className="flex-1 flex items-center justify-center p-4 sm:p-8 bg-background">
-        <form onSubmit={handleSignup} className="w-full max-w-md space-y-6">
+      <div className="flex-1 flex flex-col items-center overflow-y-auto p-6 sm:p-8 bg-background h-full custom-scrollbar">
+        <form onSubmit={handleSignup} className="w-full max-w-md space-y-4 my-auto py-6">
           <div className="lg:hidden flex items-center gap-3 mb-4">
             <div className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center">
               <Activity className="w-5 h-5 text-primary-foreground" />
@@ -137,10 +137,10 @@ export default function SignupPage() {
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
             <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required placeholder="you@clinic.com" />
-            <div className="flex items-start gap-2 mt-1.5 p-2 rounded-md bg-muted/60 border border-border/80">
+            <div className="flex items-start gap-2 mt-1.5 p-1.5 px-2.5 rounded-md bg-muted/60 border border-border/85">
               <Info className="w-3.5 h-3.5 text-primary mt-0.5 shrink-0" />
-              <p className="text-[11px] text-muted-foreground leading-normal">
-                <span className="font-semibold text-foreground">Important:</span> Please use a functional email ID so that it is easy to recover your account in case you forgot your password.
+              <p className="text-[10px] text-muted-foreground leading-normal">
+                <span className="font-semibold text-foreground">Important:</span> Please use a functional email ID to facilitate password recovery.
               </p>
             </div>
           </div>

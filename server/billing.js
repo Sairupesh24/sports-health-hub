@@ -714,8 +714,9 @@ router.get('/dues', requireAuth, async (req, res) => {
 
 export async function processRecurringSubscriptions() {
     console.log('[SCHEDULER] Checking recurring subscriptions...');
-    const client = await db.connect();
+    let client;
     try {
+        client = await db.connect();
         await client.query('BEGIN');
         
         // Find subscriptions whose next_billing_date is today or in the past, and status is 'Active'
@@ -767,10 +768,18 @@ export async function processRecurringSubscriptions() {
         
         await client.query('COMMIT');
     } catch (error) {
-        await client.query('ROLLBACK');
+        if (client) {
+            try {
+                await client.query('ROLLBACK');
+            } catch (rollbackErr) {
+                console.error('[SCHEDULER] Rollback error:', rollbackErr);
+            }
+        }
         console.error('[SCHEDULER] Error processing subscriptions:', error);
     } finally {
-        client.release();
+        if (client) {
+            client.release();
+        }
     }
 }
 

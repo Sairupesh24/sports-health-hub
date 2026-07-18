@@ -127,6 +127,9 @@ async function runMigrations() {
     try {
       await pool.query(`ALTER TABLE profiles ADD COLUMN has_analytics_access BOOLEAN DEFAULT FALSE;`);
     } catch (e) {}
+    try {
+      await pool.query(`ALTER TABLE profiles ADD COLUMN has_assign_work_access BOOLEAN DEFAULT FALSE;`);
+    } catch (e) {}
 
 
     // Create authsessions table for OTP

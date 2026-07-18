@@ -47,7 +47,7 @@ export function AddResourceModal({ isOpen, onClose, onSuccess, initialAthleteId 
 
   const fetchClients = async () => {
     try {
-        const data = await apiFetch("/api/clients");
+        const data = await apiFetch<any[]>("/api/clients");
         if (data) setClients(data);
     } catch (e) {
         console.error("Failed to fetch clients", e);
@@ -131,8 +131,8 @@ export function AddResourceModal({ isOpen, onClose, onSuccess, initialAthleteId 
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent aria-describedby={undefined} className="sm:max-w-[500px] rounded-[32px] p-0 border-none shadow-2xl overflow-hidden bg-white">
-        <ScrollArea className="max-h-[85vh] p-8">
+      <DialogContent aria-describedby={undefined} className="w-[95vw] sm:max-w-[500px] max-h-[90vh] flex flex-col p-0 border-none shadow-2xl overflow-hidden bg-white rounded-[32px]">
+        <ScrollArea className="flex-1 max-h-[85vh] p-8">
           <DialogHeader className="mb-6">
             <DialogTitle className="text-2xl font-black text-slate-900 tracking-tight">Add New Resource</DialogTitle>
             <div className="h-1 w-12 bg-primary rounded-full mt-2" />
@@ -195,7 +195,7 @@ export function AddResourceModal({ isOpen, onClose, onSuccess, initialAthleteId 
                       <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-[400px] p-0 rounded-2xl overflow-hidden border-none shadow-2xl">
+                  <PopoverContent disablePortal={true} className="w-[400px] p-0 rounded-2xl overflow-hidden border-none shadow-2xl">
                     <Command>
                       <CommandInput placeholder="Search athlete by name or UHID..." className="h-12" />
                       <CommandList>

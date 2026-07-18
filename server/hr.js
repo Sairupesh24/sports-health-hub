@@ -246,11 +246,11 @@ router.patch('/users/:id/role', requireAuth, async (req, res) => {
     const client = await db.connect();
     try {
         const { id } = req.params;
-        const { role, profession, ams_role, uhid, has_calendar_access, has_analytics_access } = req.body;
+        const { role, profession, ams_role, uhid, has_calendar_access, has_analytics_access, has_assign_work_access } = req.body;
         const orgId = req.user.organization_id;
 
-        // Security check for calendar access or analytics access change
-        if ((has_calendar_access !== undefined || has_analytics_access !== undefined) && req.user.role !== 'admin') {
+        // Security check for calendar access, analytics access, or assign work access change
+        if ((has_calendar_access !== undefined || has_analytics_access !== undefined || has_assign_work_access !== undefined) && req.user.role !== 'admin') {
             return res.status(403).json({ error: 'Forbidden: Only administrators can modify access permissions' });
         }
 
@@ -281,6 +281,10 @@ router.patch('/users/:id/role', requireAuth, async (req, res) => {
         if (has_analytics_access !== undefined) {
             updates.push(`has_analytics_access = $${params.length + 1}`);
             params.push(has_analytics_access);
+        }
+        if (has_assign_work_access !== undefined) {
+            updates.push(`has_assign_work_access = $${params.length + 1}`);
+            params.push(has_assign_work_access);
         }
 
         if (updates.length > 0) {
