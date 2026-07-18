@@ -2223,8 +2223,9 @@ router.delete('/recurring-questionnaires/:id', requireAuth, async (req, res) => 
 
 // Background Scheduler for Recurring Questionnaires
 async function processRecurringQuestionnaires() {
-    const client = await db.connect();
+    let client;
     try {
+        client = await db.connect();
         await client.query('BEGIN');
         
         // Find due recurring questionnaires
@@ -2304,10 +2305,18 @@ async function processRecurringQuestionnaires() {
         }
         await client.query('COMMIT');
     } catch (error) {
-        await client.query('ROLLBACK');
+        if (client) {
+            try {
+                await client.query('ROLLBACK');
+            } catch (rollbackErr) {
+                console.error('[QUESTIONNAIRE SCHEDULER] Rollback error:', rollbackErr);
+            }
+        }
         console.error('[QUESTIONNAIRE SCHEDULER] Error processing schedules:', error);
     } finally {
-        client.release();
+        if (client) {
+            client.release();
+        }
     }
 }
 

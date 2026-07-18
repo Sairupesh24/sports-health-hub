@@ -17,6 +17,7 @@ interface Profile {
   profession?: string | null;
   has_calendar_access?: boolean;
   has_analytics_access?: boolean;
+  has_assign_work_access?: boolean;
 }
 
 interface AuthContextType {

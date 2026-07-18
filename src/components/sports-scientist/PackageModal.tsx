@@ -50,7 +50,7 @@ export function PackageModal({ open, onOpenChange, orgId }: PackageModalProps) {
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent aria-describedby={undefined} className="sm:max-w-[400px]">
+            <DialogContent aria-describedby={undefined} className="w-[95vw] sm:max-w-[400px]">
                 <DialogHeader>
                     <DialogTitle>Create Membership Tier</DialogTitle>
                 </DialogHeader>
