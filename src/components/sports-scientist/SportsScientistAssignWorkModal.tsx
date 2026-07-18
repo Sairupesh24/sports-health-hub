@@ -12,10 +12,8 @@ import { apiFetch } from "@/utils/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { Calendar as CalendarIcon, Clock, Users, User, Plus, Loader2, Check, ChevronsUpDown, X, Trash2, Repeat, AlertTriangle } from "lucide-react";
-import { format, parse, addHours, differenceInCalendarDays, startOfDay, addWeeks, addDays } from "date-fns";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { format, differenceInCalendarDays, startOfDay, addWeeks, addDays } from "date-fns";
 import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 
 interface Props {
@@ -24,7 +22,7 @@ interface Props {
     onSuccess?: () => void;
 }
 
-export function SportsScientistBookSessionModal({ open, onOpenChange, onSuccess }: Props) {
+export function SportsScientistAssignWorkModal({ open, onOpenChange, onSuccess }: Props) {
     const { profile, user } = useAuth();
     const { toast } = useToast();
     const [loading, setLoading] = useState(false);
@@ -32,7 +30,9 @@ export function SportsScientistBookSessionModal({ open, onOpenChange, onSuccess 
     // Data lists
     const [clients, setClients] = useState<any[]>([]);
     const [sessionTypes, setSessionTypes] = useState<any[]>([]);
+    const [scientists, setScientists] = useState<any[]>([]);
 
+    const [selectedScientistId, setSelectedScientistId] = useState("");
     const [sessionMode, setSessionMode] = useState<"Individual" | "Group" | "Other">("Individual");
     const [groupName, setGroupName] = useState("");
     const [selectedClientIds, setSelectedClientIds] = useState<string[]>([]);
@@ -61,9 +61,38 @@ export function SportsScientistBookSessionModal({ open, onOpenChange, onSuccess 
             fetchClients();
             fetchSessionTypes();
             fetchGroups();
+            fetchScientists();
             setIsCreatingGroup(false);
         }
     }, [open, profile?.organization_id]);
+
+    const fetchScientists = async () => {
+        try {
+            const res = await apiFetch<{ data: any[] }>("/hr/users");
+            const allUsers = res.data || [];
+            
+            // Filter users who are sports scientists or general clinical staff
+            const clinicalStaff = allUsers.filter((u: any) => 
+                u.current_role === "sports_scientist" || 
+                u.profession?.toLowerCase().includes("scientist") ||
+                u.profession?.toLowerCase().includes("physio") ||
+                u.profession?.toLowerCase().includes("coach")
+            );
+            setScientists(clinicalStaff);
+            
+            // Set default selected scientist to logged-in user if they are in the list
+            if (user?.id) {
+                const isUserInList = clinicalStaff.some((s: any) => s.id === user.id);
+                if (isUserInList) {
+                    setSelectedScientistId(user.id);
+                } else if (clinicalStaff.length > 0) {
+                    setSelectedScientistId(clinicalStaff[0].id);
+                }
+            }
+        } catch (error) {
+            console.error("Error fetching scientists:", error);
+        }
+    };
 
     const fetchGroups = async () => {
         try {
@@ -105,6 +134,10 @@ export function SportsScientistBookSessionModal({ open, onOpenChange, onSuccess 
     };
 
     const handleSave = async () => {
+        if (!selectedScientistId) {
+            toast({ title: "Validation Error", description: "Please select a sports scientist.", variant: "destructive" });
+            return;
+        }
         if (sessionMode === "Individual" && selectedClientIds.length === 0) {
             toast({ title: "Validation Error", description: "Please select a client.", variant: "destructive" });
             return;
@@ -149,13 +182,13 @@ export function SportsScientistBookSessionModal({ open, onOpenChange, onSuccess 
             const sessionsToInsert: any[] = [];
 
             if (!isRecurring) {
-                // Single session logic
                 const startTimestamp = `${sessionDate}T${startTime}:00`;
                 const endTimestamp = `${sessionDate}T${endTime}:00`;
                 
                 const sessionData: any = {
                     organization_id: profile!.organization_id,
-                    scientist_id: user!.id,
+                    scientist_id: selectedScientistId,
+                    therapist_id: selectedScientistId,
                     session_mode: sessionMode,
                     session_type_id: sessionTypeId,
                     service_id: sessionTypeId || null,
@@ -180,7 +213,6 @@ export function SportsScientistBookSessionModal({ open, onOpenChange, onSuccess 
                 
                 sessionsToInsert.push(sessionData);
             } else {
-                // Multi-slot recurring logic
                 const limitDate = new Date(`${recurringEndDate}T23:59:59`);
                 const daysOfWeekMap: Record<string, number> = {
                     "Sunday": 0, "Monday": 1, "Tuesday": 2, "Wednesday": 3, "Thursday": 4, "Friday": 5, "Saturday": 6
@@ -190,7 +222,6 @@ export function SportsScientistBookSessionModal({ open, onOpenChange, onSuccess 
                     const targetDay = daysOfWeekMap[slot.day];
                     let currentDate = new Date(startDate);
                     
-                    // Align currentDate to the first occurrence of targetDay
                     while (currentDate.getDay() !== targetDay) {
                         currentDate = addDays(currentDate, 1);
                     }
@@ -202,7 +233,8 @@ export function SportsScientistBookSessionModal({ open, onOpenChange, onSuccess 
 
                         const sessionData: any = {
                             organization_id: profile!.organization_id,
-                            scientist_id: user!.id,
+                            scientist_id: selectedScientistId,
+                            therapist_id: selectedScientistId,
                             session_mode: sessionMode,
                             session_type_id: sessionTypeId,
                             service_id: sessionTypeId || null,
@@ -226,23 +258,21 @@ export function SportsScientistBookSessionModal({ open, onOpenChange, onSuccess 
                 }
             }
 
-            // Bulk book sessions
             await apiFetch('/api/ams/sessions/bulk', {
                 method: 'POST',
-                body: JSON.stringify({
+                data: {
                     sessions: sessionsToInsert,
                     sessionMode,
                     groupName,
                     selectedClientIds
-                })
+                }
             });
 
-            toast({ title: "Success", description: "Session booked successfully." });
+            toast({ title: "Success", description: "Session assigned successfully." });
             onSuccess?.();
             onOpenChange(false);
             resetForm();
         } catch (error: any) {
-
             toast({ title: "Error", description: error.message, variant: "destructive" });
         } finally {
             setLoading(false);
@@ -296,15 +326,36 @@ export function SportsScientistBookSessionModal({ open, onOpenChange, onSuccess 
             <DialogContent className="w-[95vw] sm:max-w-[500px] max-h-[90vh] flex flex-col p-0 overflow-hidden border-none bg-slate-50 dark:bg-slate-950 rounded-[2.5rem]">
                 <DialogHeader className="p-6 pb-0 shrink-0">
                     <DialogTitle className="text-xl font-black italic tracking-tight text-slate-900 dark:text-white">
-                       Schedule Session
+                       Assign Work
                     </DialogTitle>
                     <DialogDescription className="sr-only">
-                        Form to schedule a standard, group, or other training session.
+                        Form to assign a training session or work slot to a Sports Scientist.
                     </DialogDescription>
                 </DialogHeader>
                 
                 <div className="flex-1 overflow-y-auto px-6 py-4 custom-scrollbar">
                     <div className="space-y-6">
+                        {/* Sports Scientist Selector */}
+                        <div className="space-y-2 animate-in fade-in slide-in-from-top-1">
+                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Sports Scientist</Label>
+                            <Select value={selectedScientistId} onValueChange={setSelectedScientistId}>
+                                <SelectTrigger className="h-12 rounded-2xl border-border/50 font-bold bg-white dark:bg-slate-900 focus-visible:ring-primary shadow-sm">
+                                    <SelectValue placeholder="Select target scientist..." />
+                                </SelectTrigger>
+                                <SelectContent className="rounded-2xl border-slate-200 dark:border-slate-800 shadow-xl max-h-[200px]">
+                                    {scientists.map((scientist) => (
+                                        <SelectItem 
+                                            key={scientist.id} 
+                                            value={scientist.id} 
+                                            className="rounded-xl font-medium focus:bg-primary/5 focus:text-primary text-xs"
+                                        >
+                                            {scientist.first_name} {scientist.last_name} ({scientist.profession || "Sports Scientist"})
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+
                         {/* Mode Selection - Premium Segmented Control */}
                         <div className="p-1.5 bg-slate-200/50 dark:bg-slate-900/50 rounded-2xl flex items-center gap-1">
                             <button 
@@ -385,7 +436,7 @@ export function SportsScientistBookSessionModal({ open, onOpenChange, onSuccess 
                                         </PopoverTrigger>
                                         <PopoverContent 
                                             disablePortal={true}
-                                            className="w-[calc(100vw-3rem)] sm:w-[450px] p-0 rounded-2xl overflow-hidden shadow-2xl" 
+                                            className="w-[calc(100vw-3rem)] sm:w-[450px] p-0 rounded-2xl overflow-hidden shadow-2xl animate-in fade-in-50 duration-200" 
                                             align="start"
                                             onWheel={(e) => e.stopPropagation()}
                                         >
@@ -471,7 +522,7 @@ export function SportsScientistBookSessionModal({ open, onOpenChange, onSuccess 
                                     </PopoverTrigger>
                                     <PopoverContent 
                                         disablePortal={true}
-                                        className="w-[calc(100vw-3rem)] sm:w-[450px] p-0 rounded-2xl overflow-hidden shadow-2xl" 
+                                        className="w-[calc(100vw-3rem)] sm:w-[450px] p-0 rounded-2xl overflow-hidden shadow-2xl animate-in fade-in-50 duration-200" 
                                         align="start"
                                         onWheel={(e) => e.stopPropagation()}
                                     >
@@ -565,7 +616,7 @@ export function SportsScientistBookSessionModal({ open, onOpenChange, onSuccess 
                                     </PopoverTrigger>
                                     <PopoverContent 
                                         disablePortal={true}
-                                        className="w-[calc(100vw-3rem)] sm:w-[450px] p-0 rounded-2xl overflow-hidden shadow-2xl" 
+                                        className="w-[calc(100vw-3rem)] sm:w-[450px] p-0 rounded-2xl overflow-hidden shadow-2xl animate-in fade-in-50 duration-200" 
                                         align="start"
                                         onWheel={(e) => e.stopPropagation()}
                                     >
@@ -625,9 +676,9 @@ export function SportsScientistBookSessionModal({ open, onOpenChange, onSuccess 
                         <div className="flex items-center justify-between p-3.5 bg-primary/5 rounded-2xl border border-primary/10">
                             <div className="flex items-center gap-2">
                                 <Repeat className="w-4 h-4 text-primary" />
-                                <Label className="text-xs font-black uppercase cursor-pointer tracking-wider" htmlFor="recurring-mode">Recurring Series</Label>
+                                <Label className="text-xs font-black uppercase cursor-pointer tracking-wider" htmlFor="recurring-mode-assign">Recurring Series</Label>
                             </div>
-                            <Switch id="recurring-mode" checked={isRecurring} onCheckedChange={setIsRecurring} />
+                            <Switch id="recurring-mode-assign" checked={isRecurring} onCheckedChange={setIsRecurring} />
                         </div>
 
                         {/* Date & Time Selection (Conditional for Recurrence) */}
@@ -768,9 +819,9 @@ export function SportsScientistBookSessionModal({ open, onOpenChange, onSuccess 
 
                         {/* Notes */}
                         <div className="space-y-2">
-                            <Label htmlFor="notes" className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Session Plan & Notes</Label>
+                            <Label htmlFor="notes-assign" className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Session Plan & Notes</Label>
                             <Textarea 
-                                id="notes" 
+                                id="notes-assign" 
                                 placeholder="What's the core focus of this session? (Optional)" 
                                 value={notes}
                                 onChange={e => setNotes(e.target.value)}
@@ -787,7 +838,7 @@ export function SportsScientistBookSessionModal({ open, onOpenChange, onSuccess 
                                 <Loader2 className="w-5 h-5 animate-spin" />
                             ) : (
                                 <div className="flex items-center gap-2">
-                                   <Plus className="w-4 h-4" /> Create Session
+                                   <Plus className="w-4 h-4" /> Assign Session
                                 </div>
                             )}
                         </Button>

@@ -31,6 +31,7 @@ interface StaffUser {
     avatar_url?: string | null;
     has_calendar_access: boolean;
     has_analytics_access: boolean;
+    has_assign_work_access: boolean;
 }
 
 export default function AdminPermissions() {
@@ -68,7 +69,8 @@ export default function AdminPermissions() {
                     profession: u.profession,
                     avatar_url: u.avatar_url,
                     has_calendar_access: !!u.has_calendar_access,
-                    has_analytics_access: !!u.has_analytics_access
+                    has_analytics_access: !!u.has_analytics_access,
+                    has_assign_work_access: !!u.has_assign_work_access
                 }));
 
             setUsers(staff);
@@ -90,7 +92,7 @@ export default function AdminPermissions() {
 
             await apiFetch(`/hr/users/${userId}/role`, {
                 method: "PATCH",
-                body: {
+                data: {
                     has_calendar_access: targetVal
                 }
             });
@@ -122,7 +124,7 @@ export default function AdminPermissions() {
 
             await apiFetch(`/hr/users/${userId}/role`, {
                 method: "PATCH",
-                body: {
+                data: {
                     has_analytics_access: targetVal
                 }
             });
@@ -134,6 +136,38 @@ export default function AdminPermissions() {
             toast({
                 title: "Permission Updated",
                 description: `Managerial Analytics access has been successfully ${targetVal ? 'granted' : 'revoked'}.`,
+                variant: "default"
+            });
+        } catch (error: any) {
+            toast({
+                title: "Update Failed",
+                description: error.message,
+                variant: "destructive"
+            });
+        } finally {
+            setTogglingId(null);
+        }
+    };
+
+    const handleToggleAssignWorkAccess = async (userId: string, currentVal: boolean) => {
+        try {
+            setTogglingId(userId);
+            const targetVal = !currentVal;
+
+            await apiFetch(`/hr/users/${userId}/role`, {
+                method: "PATCH",
+                data: {
+                    has_assign_work_access: targetVal
+                }
+            });
+
+            setUsers(prev => 
+                prev.map(u => u.id === userId ? { ...u, has_assign_work_access: targetVal } : u)
+            );
+
+            toast({
+                title: "Permission Updated",
+                description: `Assign Work access has been successfully ${targetVal ? 'granted' : 'revoked'}.`,
                 variant: "default"
             });
         } catch (error: any) {
@@ -362,6 +396,20 @@ export default function AdminPermissions() {
                                                             className="data-[state=checked]:bg-primary scale-90"
                                                         />
                                                     </div>
+                                                    <div className="flex items-center gap-3">
+                                                        <span className={cn(
+                                                            "text-[10px] font-bold tracking-wide uppercase",
+                                                            user.has_assign_work_access ? "text-primary" : "text-slate-400"
+                                                        )}>
+                                                            Assign Work: {user.has_assign_work_access ? "Granted" : "Revoked"}
+                                                        </span>
+                                                        <Switch
+                                                            checked={user.has_assign_work_access}
+                                                            disabled={togglingId === user.id}
+                                                            onCheckedChange={() => handleToggleAssignWorkAccess(user.id, user.has_assign_work_access)}
+                                                            className="data-[state=checked]:bg-primary scale-90"
+                                                        />
+                                                    </div>
                                                 </div>
                                             )}
                                         </div>
@@ -382,6 +430,7 @@ export default function AdminPermissions() {
                                 <li>Administrators always have permanent, full access to the Admin Calendar and cannot be toggled.</li>
                                 <li>Granting access will immediately display the "Admin Calendar" sidebar route and allow the user to view all appointments, schedules, and book slots in the master workspace.</li>
                                 <li>Revoking access hides the navigation controls instantly, and any direct URL requests to `/admin/calendar` will be automatically blocked by the router gate.</li>
+                                <li>Granting "Assign Work" access allows selected staff members (such as Department Heads) to assign work and tasks to other staff members directly from their console.</li>
                             </ul>
                         </div>
                     </CardContent>

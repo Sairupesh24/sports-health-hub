@@ -84,11 +84,11 @@ export function SubscriptionModal({ open, onOpenChange, orgId, onSuccess }: Subs
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent aria-describedby={undefined} className="sm:max-w-[425px]">
-                <DialogHeader>
+            <DialogContent aria-describedby={undefined} className="w-[95vw] sm:max-w-[425px] max-h-[90vh] flex flex-col p-0 overflow-hidden">
+                <DialogHeader className="p-6 pb-0 shrink-0">
                     <DialogTitle>Assign Membership</DialogTitle>
                 </DialogHeader>
-                <div className="grid gap-4 py-4">
+                <div className="flex-1 overflow-y-auto px-6 py-4 grid gap-4">
                     <div className="grid gap-2">
                         <Label htmlFor="athlete">Select Athlete</Label>
                         <Select value={selectedClient} onValueChange={setSelectedClient}>
@@ -124,7 +124,7 @@ export function SubscriptionModal({ open, onOpenChange, orgId, onSuccess }: Subs
                                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                 </Button>
                             </PopoverTrigger>
-                            <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+                            <PopoverContent disablePortal={true} className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
                                 <Command>
                                     <CommandInput placeholder="Search plan..." />
                                     <CommandList>
@@ -179,7 +179,7 @@ export function SubscriptionModal({ open, onOpenChange, orgId, onSuccess }: Subs
                         />
                     </div>
                 </div>
-                <DialogFooter>
+                <DialogFooter className="p-6 pt-0 shrink-0">
                     <Button 
                         className="w-full" 
                         onClick={() => createSubscription.mutate()}
