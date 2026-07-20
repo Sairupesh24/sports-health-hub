@@ -94,11 +94,24 @@ router.post('/', requireAuth, async (req, res) => {
 
         await client.query('BEGIN');
 
-        // 1. Check for overlapping sessions for this therapist
-        const overlapRes = await client.query(`
+        // 1. Check capacity for this therapist
+        const providerRes = await client.query('SELECT ams_role, profession FROM profiles WHERE id = $1', [therapist_id]);
+        const provider = providerRes.rows.length > 0 ? providerRes.rows[0] : null;
+        const profession = provider?.profession?.toLowerCase();
+        const amsRole = provider?.ams_role?.toLowerCase();
+
+        let capacityLimit = 1;
+        if (profession === 'physiotherapist') {
+            capacityLimit = 2;
+        } else if (profession === 'sports scientist' || amsRole === 'sports_scientist') {
+            capacityLimit = 3;
+        }
+
+        const activeRes = await client.query(`
             SELECT id FROM sessions 
-            WHERE therapist_id = $1 
+            WHERE (therapist_id = $1 OR scientist_id = $1)
             AND status != 'Cancelled'
+            AND status != 'Waitlisted'
             AND (
                 (scheduled_start <= $2 AND scheduled_end > $2) OR
                 (scheduled_start < $3 AND scheduled_end >= $3) OR
@@ -106,8 +119,9 @@ router.post('/', requireAuth, async (req, res) => {
             )
         `, [therapist_id, scheduled_start, scheduled_end]);
 
-        if (overlapRes.rows.length > 0) {
-            throw new Error('Therapist is already booked for this time slot.');
+        let appointmentStatus = 'Planned';
+        if (activeRes.rows.length >= capacityLimit) {
+            appointmentStatus = 'Waitlisted';
         }
 
         // 1.5 Check if client has outstanding dues
@@ -159,22 +173,23 @@ router.post('/', requireAuth, async (req, res) => {
             INSERT INTO sessions (
                 organization_id, client_id, therapist_id, service_id, service_type, 
                 scheduled_start, scheduled_end, entitlement_id, 
-                session_mode, is_unentitled, preference_type, is_flexible_routing, created_by
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+                session_mode, is_unentitled, preference_type, is_flexible_routing, created_by, status
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
             RETURNING *
         `;
         const values = [
             orgId, client_id, therapist_id, service_id || null, service_type,
             scheduled_start, scheduled_end, entitlement_id || null,
             session_mode || 'Individual', is_unentitled || false, 
-            preference_type || 'Strict', is_flexible_routing || false, req.user.id
+            preference_type || 'Strict', is_flexible_routing || false, req.user.id,
+            appointmentStatus
         ];
 
         const sessionRes = await client.query(insertQuery, values);
         const session = sessionRes.rows[0];
 
         // 3. Update Entitlement if linked
-        if (entitlement_id && !is_unentitled) {
+        if (entitlement_id && !is_unentitled && appointmentStatus !== 'Waitlisted') {
             await client.query(
                 'UPDATE cliententitlements SET sessions_used = sessions_used + 1 WHERE id = $1',
                 [entitlement_id]
@@ -273,7 +288,37 @@ router.post('/:id/reschedule', requireAuth, async (req, res) => {
         const oldRes = await client.query('SELECT * FROM sessions WHERE id = $1', [id]);
         const old = oldRes.rows[0];
 
-        // 3. Insert new Planned session
+        // 2.5 Check capacity for the new slot
+        const providerRes = await client.query('SELECT ams_role, profession FROM profiles WHERE id = $1', [old.therapist_id]);
+        const provider = providerRes.rows.length > 0 ? providerRes.rows[0] : null;
+        const profession = provider?.profession?.toLowerCase();
+        const amsRole = provider?.ams_role?.toLowerCase();
+
+        let capacityLimit = 1;
+        if (profession === 'physiotherapist') {
+            capacityLimit = 2;
+        } else if (profession === 'sports scientist' || amsRole === 'sports_scientist') {
+            capacityLimit = 3;
+        }
+
+        const activeRes = await client.query(`
+            SELECT id FROM sessions 
+            WHERE (therapist_id = $1 OR scientist_id = $1)
+            AND status != 'Cancelled'
+            AND status != 'Waitlisted'
+            AND (
+                (scheduled_start <= $2 AND scheduled_end > $2) OR
+                (scheduled_start < $3 AND scheduled_end >= $3) OR
+                (scheduled_start >= $2 AND scheduled_end <= $3)
+            )
+        `, [old.therapist_id, new_start, new_end]);
+
+        let newStatus = 'Planned';
+        if (activeRes.rows.length >= capacityLimit) {
+            newStatus = 'Waitlisted';
+        }
+
+        // 3. Insert new session
         const newRes = await client.query(`
             INSERT INTO sessions (
                 organization_id, client_id, therapist_id, service_id, service_type,
@@ -282,7 +327,7 @@ router.post('/:id/reschedule', requireAuth, async (req, res) => {
             RETURNING id
         `, [
             orgId, old.client_id, old.therapist_id, old.service_id, old.service_type,
-            new_start, new_end, 'Planned', old.entitlement_id, old.is_unentitled, req.user.id
+            new_start, new_end, newStatus, old.entitlement_id, old.is_unentitled, req.user.id
         ]);
 
         await client.query('COMMIT');

@@ -148,11 +148,16 @@ app.get('/api/organizations/:id/settings', requireAuth, async (req, res) => {
 
 app.patch('/api/organizations/:id/settings', requireAuth, async (req, res) => {
   const { id } = req.params;
-  const { allow_custom_duration, default_slot_duration } = req.body;
+  const { allow_custom_duration, default_slot_duration, default_checkout_time } = req.body;
   try {
     const result = await db.query(
-      'UPDATE organizations SET allow_custom_duration = $1, default_slot_duration = $2 WHERE id = $3 RETURNING allow_custom_duration, default_slot_duration',
-      [allow_custom_duration, default_slot_duration, id]
+      `UPDATE organizations
+       SET allow_custom_duration = $1,
+           default_slot_duration = $2,
+           default_checkout_time = COALESCE($3::time, default_checkout_time)
+       WHERE id = $4
+       RETURNING allow_custom_duration, default_slot_duration, default_checkout_time`,
+      [allow_custom_duration, default_slot_duration, default_checkout_time || null, id]
     );
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Organization not found' });
@@ -165,6 +170,7 @@ app.patch('/api/organizations/:id/settings', requireAuth, async (req, res) => {
     res.status(500).json({ error: 'Failed to update organization settings' });
   }
 });
+
 
 // Sample Protected Route
 app.get('/api/patients', requireAuth, (req, res) => {

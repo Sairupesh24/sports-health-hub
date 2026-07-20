@@ -135,10 +135,13 @@ export default function DailyLogs() {
       let hasIpBlocked = false;
       let hasEmergencyLeave = false;
 
+      let hasAutoCheckout = false;
+
       dayLogs.forEach((log) => {
         if (!log.is_within_geofence) hasOutside = true;
         if (log.metadata?.is_ip_allowed === false) hasIpBlocked = true;
         if (log.type === 'emergency_leave') { hasEmergencyLeave = true; } // Don't return, act like checkout
+        if (log.type === 'check_out' && log.metadata?.auto_checkout === true) hasAutoCheckout = true;
         
         if (log.type === 'check_in') {
           currentCheckIn = log;
@@ -193,6 +196,7 @@ export default function DailyLogs() {
         firstIn: sessions[0]?.in,
         lastOut: sessions[sessions.length - 1]?.out,
         hasMissedCO,
+        hasAutoCheckout,
         hasOutside,
         hasIpBlocked,
         hasEmergencyLeave,
@@ -403,7 +407,13 @@ export default function DailyLogs() {
                               Estimated
                             </Badge>
                           )}
+                          {row.hasAutoCheckout && (
+                            <Badge variant="outline" className="bg-amber-100 text-amber-800 border-amber-300 text-[9px] h-5">
+                              Auto
+                            </Badge>
+                          )}
                         </div>
+
                       </TableCell>
                       <TableCell>
                         <div className="flex flex-col gap-1">
@@ -510,11 +520,18 @@ export default function DailyLogs() {
                     )} />
                     <div className="flex justify-between items-start mb-1">
                       <p className="font-bold text-sm tracking-wide">
-                        {log.type === 'check_in' ? 'CHECK-IN' : log.type === 'check_out' ? 'CHECK-OUT' : 'MISSED-CHECK-OUT'}
+                        {log.metadata?.auto_checkout === true
+                          ? 'AUTO CLOCK-OUT'
+                          : log.type === 'check_in'
+                            ? 'CHECK-IN'
+                            : log.type === 'check_out'
+                              ? 'CHECK-OUT'
+                              : 'MISSED-CHECK-OUT'}
                       </p>
                       <p className="text-xs text-slate-400">{format(parseISO(log.created_at), "hh:mm a")}</p>
                     </div>
                     <div className="text-[11px] text-slate-400 space-y-1">
+                      {log.remark && <p className="text-amber-400 font-medium italic mt-0.5">{log.remark}</p>}
                       <p className="flex items-center gap-1.5">
                         <Navigation className="w-3 h-3" />
                         {Math.round(log.distance_from_center || 0)}m from center
@@ -522,6 +539,7 @@ export default function DailyLogs() {
                       {!log.is_within_geofence && <p className="text-rose-400 font-bold uppercase text-[9px]">Geofence Violation</p>}
                       {log.metadata?.ip_address && <p className="opacity-60">IP: {log.metadata.ip_address}</p>}
                     </div>
+
                   </div>
                 ))}
               </div>

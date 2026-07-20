@@ -398,6 +398,38 @@ router.post('/sessions/bulk', requireAuth, async (req, res) => {
         // 1. Insert the sessions
         const insertedSessions = [];
         for (const session of sessions) {
+            const provider_id = session.scientist_id || session.therapist_id;
+            if (provider_id) {
+                // Check capacity
+                const providerRes = await client.query('SELECT ams_role, profession FROM profiles WHERE id = $1', [provider_id]);
+                const provider = providerRes.rows.length > 0 ? providerRes.rows[0] : null;
+                const profession = provider?.profession?.toLowerCase();
+                const amsRole = provider?.ams_role?.toLowerCase();
+
+                let capacityLimit = 1;
+                if (profession === 'physiotherapist') {
+                    capacityLimit = 2;
+                } else if (profession === 'sports scientist' || amsRole === 'sports_scientist') {
+                    capacityLimit = 3;
+                }
+
+                const activeRes = await client.query(`
+                    SELECT id FROM sessions 
+                    WHERE (therapist_id = $1 OR scientist_id = $1)
+                    AND status != 'Cancelled'
+                    AND status != 'Waitlisted'
+                    AND (
+                        (scheduled_start <= $2 AND scheduled_end > $2) OR
+                        (scheduled_start < $3 AND scheduled_end >= $3) OR
+                        (scheduled_start >= $2 AND scheduled_end <= $3)
+                    )
+                `, [provider_id, session.scheduled_start, session.scheduled_end]);
+
+                if (activeRes.rows.length >= capacityLimit) {
+                    session.status = 'Waitlisted';
+                }
+            }
+
             const keys = ['organization_id', 'created_by'];
             const values = [orgId, userId];
             let placeholders = ['$1', '$2'];
