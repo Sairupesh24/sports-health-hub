@@ -110,6 +110,7 @@ export default function AdminCalendar() {
         id: string;
         name: string;
         profession?: string | null;
+        role?: string | null;
         avatar_url?: string | null;
         emergency_alerts?: any[];
     }
@@ -1298,7 +1299,7 @@ export default function AdminCalendar() {
                                                                         ) : event.is_guest ? (
                                                                             <span>G: {event.guest_name}</span>
                                                                         ) : (
-                                                                            <span>{event.client?.first_name} {event.client?.last_name} ({event.client?.uhid || '-'})</span>
+                                                                            <span>{event.client?.first_name} {event.client?.last_name} ({(event.client as any)?.uhid || '-'})</span>
                                                                         )}
                                                                     </div>
                                                                     <span className="text-[8px] opacity-75 font-semibold shrink-0 leading-none">
