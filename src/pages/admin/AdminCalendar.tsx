@@ -1349,7 +1349,7 @@ export default function AdminCalendar() {
                             </div>
                         )}
                             <div className="flex flex-col lg:flex-row gap-6">
-                                <div className="flex-1 space-y-6">
+                                <div className="flex-1 space-y-6 min-w-0">
                                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-muted/20 p-4 rounded-xl border border-border/50">
                                         <div className="flex items-center gap-2.5">
                                             <Button 
