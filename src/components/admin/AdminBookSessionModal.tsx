@@ -446,35 +446,29 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess, initialDa
             });
 
             if (!isBreakOverlap) {
-                // 1. Is selected consultant free?
-                const isPrimaryBusy = allBookedSessions.some(s => 
-                    s.therapist_id === consultantId && 
+                // Calculate capacity limit for the selected consultant
+                const activeBookingsCount = allBookedSessions.filter(s => 
+                    (s.therapist_id === consultantId || s.scientist_id === consultantId) && 
+                    s.status !== 'Cancelled' &&
+                    s.status !== 'Waitlisted' &&
                     ( (startT >= new Date(s.scheduled_start).getTime() && startT < new Date(s.scheduled_end).getTime()) || 
-                      (endT > new Date(s.scheduled_start).getTime() && endT <= new Date(s.scheduled_end).getTime()) )
-                );
+                      (endT > new Date(s.scheduled_start).getTime() && endT <= new Date(s.scheduled_end).getTime()) ||
+                      (startT <= new Date(s.scheduled_start).getTime() && endT >= new Date(s.scheduled_end).getTime()) )
+                ).length;
+
+                const consultant = filteredConsultants.find(c => c.id === consultantId) || consultants.find(c => c.id === consultantId);
+                const prof = consultant?.profession?.toLowerCase();
+                const r = consultant?.role?.toLowerCase();
+                let limit = 1;
+                if (prof === 'physiotherapist') {
+                    limit = 2;
+                } else if (prof === 'sports scientist' || r === 'sports_scientist') {
+                    limit = 3;
+                }
 
                 let status: 'available' | 'flex' | 'waitlist' = 'available';
-                
-                if (isPrimaryBusy) {
-                    // 2. Is ANY qualified specialist free?
-                    const freeSpecialist = filteredConsultants.find(c => {
-                        if (c.id === consultantId) return false;
-                        const cAvail = allConsultantAvailability.find(a => a.consultant_id === c.id && a.day_of_week === dayOfWeek);
-                        if (!cAvail) return false;
-                        
-                        const cShiftS = parse(cAvail.start_time, "HH:mm:ss", dateObj).getTime();
-                        const cShiftE = parse(cAvail.end_time, "HH:mm:ss", dateObj).getTime();
-                        if (startT < cShiftS || endT > cShiftE) return false;
-
-                        const isBusy = allBookedSessions.some(s => 
-                            s.therapist_id === c.id && 
-                            ( (startT >= new Date(s.scheduled_start).getTime() && startT < new Date(s.scheduled_end).getTime()) || 
-                              (endT > new Date(s.scheduled_start).getTime() && endT <= new Date(s.scheduled_end).getTime()) )
-                        );
-                        return !isBusy;
-                    });
-
-                    status = freeSpecialist ? 'flex' : 'waitlist';
+                if (activeBookingsCount >= limit) {
+                    status = 'waitlist';
                 }
 
                 slots.push({
@@ -562,18 +556,30 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess, initialDa
                 return;
             }
 
-            const overlapping = allBookedSessions.some(s => {
+            const activeBookingsCount = allBookedSessions.filter(s => {
                 const sStart = new Date(s.scheduled_start).getTime();
                 const sEnd = new Date(s.scheduled_end).getTime();
-                return s.therapist_id === consultantId && 
+                return (s.therapist_id === consultantId || s.scientist_id === consultantId) && 
+                       s.status !== 'Cancelled' &&
+                       s.status !== 'Waitlisted' &&
                        ( (startTimestamp >= sStart && startTimestamp < sEnd) || 
                          (endTimestamp > sStart && endTimestamp <= sEnd) ||
                          (startTimestamp <= sStart && endTimestamp >= sEnd) );
-            });
+            }).length;
 
-            if (overlapping) {
+            const consultant = filteredConsultants.find(c => c.id === consultantId) || consultants.find(c => c.id === consultantId);
+            const prof = consultant?.profession?.toLowerCase();
+            const r = consultant?.role?.toLowerCase();
+            let limit = 1;
+            if (prof === 'physiotherapist') {
+                limit = 2;
+            } else if (prof === 'sports scientist' || r === 'sports_scientist') {
+                limit = 3;
+            }
+
+            if (activeBookingsCount >= limit) {
                 setIsAvailable(false);
-                setIsConflict(true);
+                setIsConflict(false);
                 return;
             }
 

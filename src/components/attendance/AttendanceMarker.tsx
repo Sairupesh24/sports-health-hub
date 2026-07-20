@@ -12,7 +12,8 @@ import {
   ShieldAlert, 
   ShieldCheck, 
   ChevronRight, 
-  Loader2 
+  Loader2,
+  AlertTriangle
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { calculateDistance, getCurrentLocation, detectMockLocation } from "@/utils/geofencing";
@@ -27,6 +28,7 @@ export default function AttendanceMarker() {
   const [lastLog, setLastLog] = useState<any>(null);
   const [orgSettings, setOrgSettings] = useState<any>(null);
   const [currentDistance, setCurrentDistance] = useState<number | null>(null);
+  const [autoCheckoutInfo, setAutoCheckoutInfo] = useState<{ time: string; remark: string } | null>(null);
 
   const [liveSecurity, setLiveSecurity] = useState<{ isIpAllowed: boolean; isWithinGeofence: boolean; distance: number | null }>({
     isIpAllowed: true,
@@ -126,16 +128,29 @@ export default function AttendanceMarker() {
         setLastLog(data[0]);
         
         // Find the most recent status-changing event
-        const lastStatusLog = data.find(l => ['check_in', 'check_out', 'emergency_leave'].includes(l.type));
+        const lastStatusLog = data.find((l: any) => ['check_in', 'check_out', 'emergency_leave'].includes(l.type));
         
         if (lastStatusLog?.type === 'check_in') {
           setStatus('checked_in');
+          setAutoCheckoutInfo(null); // actively checked in — no auto-checkout banner
         } else {
           setStatus('none');
+
+          // Detect if the latest check_out was an auto-checkout
+          const lastCheckout = data.find((l: any) => l.type === 'check_out');
+          if (lastCheckout?.metadata?.auto_checkout === true) {
+            const checkoutTime = lastCheckout.metadata.default_checkout_time || '22:00';
+            const remark = lastCheckout.metadata.remark ||
+              `Auto clock-out applied at ${checkoutTime}. Manual check-out was not recorded.`;
+            setAutoCheckoutInfo({ time: checkoutTime, remark });
+          } else {
+            setAutoCheckoutInfo(null);
+          }
         }
       } else {
         setStatus('none');
         setLastLog(null);
+        setAutoCheckoutInfo(null);
       }
     } catch (error) {
       console.error("Failed to fetch today's status:", error);
@@ -310,6 +325,23 @@ export default function AttendanceMarker() {
                       {!liveSecurity.isIpAllowed 
                         ? "Protocol: Check-in/out Restricted" 
                         : `Protocol: Range Violation (${Math.round(liveSecurity.distance || 0)}m)`}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Auto-Checkout Banner — shown when user was auto-checked-out */}
+              {autoCheckoutInfo && !isCheckedIn && (
+                <div className="px-3 py-2.5 rounded-xl border bg-amber-50 border-amber-200 dark:bg-amber-500/5 dark:border-amber-500/20 flex items-start gap-2.5 animate-in slide-in-from-top-2 duration-500">
+                  <div className="w-7 h-7 rounded-lg bg-amber-500 text-white flex items-center justify-center shadow-md shadow-amber-500/20 shrink-0 mt-0.5">
+                    <AlertTriangle className="w-3.5 h-3.5" />
+                  </div>
+                  <div>
+                    <p className="text-[9px] font-black uppercase tracking-widest leading-none text-amber-700 dark:text-amber-400">
+                      Auto Clock-Out Applied
+                    </p>
+                    <p className="text-[8px] font-semibold text-amber-600 dark:text-amber-500 mt-1 leading-snug">
+                      You were automatically clocked out at <span className="font-black">{autoCheckoutInfo.time}</span> because a manual check-out was not recorded.
                     </p>
                   </div>
                 </div>

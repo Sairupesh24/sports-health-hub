@@ -29,6 +29,7 @@ import {
   PhoneCall, 
   Calendar, 
   UserPlus, 
+  UserMinus,
   CheckCircle2, 
   MoreVertical,
   XCircle,
@@ -179,6 +180,30 @@ export default function LeadsDashboard() {
       toast({ title: "Client Linked", description: "Enquiry successfully converted and linked to client profile." });
     },
   });
+
+  const unlinkMutation = useMutation({
+    mutationFn: async (enquiryId: string) => {
+      await apiFetch(`/clients/enquiries/${enquiryId}`, {
+        method: 'PATCH',
+        body: { status: 'contacted', linked_client_id: null }
+      });
+
+      await apiFetch(`/clients/enquiries/${enquiryId}/interactions`, {
+        method: 'POST',
+        body: {
+          interaction_type: 'status_change',
+          response_text: `Client unlinked from lead.`
+        }
+      });
+
+      return true;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["enquiries"] });
+      toast({ title: "Client Unlinked", description: "Enquiry unlinked from client profile successfully." });
+    },
+  });
+
 
   const handleStatusChange = (id: string, status: EnquiryStatus) => {
     if (status === 'contacted') {
@@ -402,11 +427,22 @@ export default function LeadsDashboard() {
                               </>
                             )}
                             
-                            <DropdownMenu>
+                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-8 w-8"><MoreVertical className="w-4 h-4" /></Button>
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  className="h-8 w-8"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <MoreVertical className="w-4 h-4" />
+                                </Button>
                               </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end" className="w-48">
+                              <DropdownMenuContent 
+                                align="end" 
+                                className="w-48"
+                                onClick={(e) => e.stopPropagation()}
+                              >
                                 <DropdownMenuItem onClick={() => handleStatusChange(enq.id, 'converted')} className="gap-2">
                                   <CheckCircle2 className="w-4 h-4 text-emerald-500" />
                                   <span>Mark as Converted</span>
@@ -415,10 +451,23 @@ export default function LeadsDashboard() {
                                   <XCircle className="w-4 h-4 text-slate-400" />
                                   <span>Not Interested</span>
                                 </DropdownMenuItem>
-                                <DropdownMenuItem className="gap-2" onClick={() => { setSelectedEnquiry(enq); setIsLinkModalOpen(true); }}>
-                                  <UserPlus className="w-4 h-4 text-blue-500" />
-                                  <span>Link to Client</span>
-                                </DropdownMenuItem>
+                                {enq.linked_client_id ? (
+                                  <>
+                                    <DropdownMenuItem className="gap-2 text-rose-600 focus:text-rose-600 focus:bg-rose-50" onClick={() => unlinkMutation.mutate(enq.id)}>
+                                      <UserMinus className="w-4 h-4 text-rose-500" />
+                                      <span>Unlink Client</span>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem className="gap-2 text-blue-600 focus:text-blue-600 focus:bg-blue-50" onClick={() => { setSelectedEnquiry(enq); setIsLinkModalOpen(true); }}>
+                                      <UserPlus className="w-4 h-4 text-blue-500" />
+                                      <span>Reassign Client</span>
+                                    </DropdownMenuItem>
+                                  </>
+                                ) : (
+                                  <DropdownMenuItem className="gap-2 text-blue-600 focus:text-blue-600 focus:bg-blue-50" onClick={() => { setSelectedEnquiry(enq); setIsLinkModalOpen(true); }}>
+                                    <UserPlus className="w-4 h-4 text-blue-500" />
+                                    <span>Link to Client</span>
+                                  </DropdownMenuItem>
+                                )}
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </div>

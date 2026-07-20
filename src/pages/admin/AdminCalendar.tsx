@@ -40,8 +40,11 @@ import { AdminSessionStatusModal } from "@/components/admin/AdminSessionStatusMo
 import EmergencyResponseModal from "@/components/admin/EmergencyResponseModal";
 import { VIPBadge } from "@/components/ui/VIPBadge";
 import { WaitlistSidebar } from "@/components/admin/WaitlistSidebar";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 
-type ViewMode = "day" | "week" | "month";
+import { RosterScheduleView } from "@/components/admin/RosterScheduleView";
+
+type ViewMode = "day" | "week" | "month" | "roster";
 
 interface SessionEvent {
     id: string;
@@ -575,8 +578,8 @@ export default function AdminCalendar() {
                 return;
             }
 
-            // 3. Must not overlap with booked session
-            const overlapsSession = clinicianSessions.some((s: any) => {
+            // 3. Must not overlap with booked session (modified for capacity check)
+            const overlappingSessionsCount = clinicianSessions.filter((s: any) => {
                 const sStart = parseISO(s.scheduled_start);
                 const sEnd = parseISO(s.scheduled_end);
 
@@ -586,10 +589,23 @@ export default function AdminCalendar() {
                 const sStartMins = timeToMins(sStartStr);
                 const sEndMins = timeToMins(sEndStr);
 
-                return slotStartMins < sEndMins && slotEndMins > sStartMins;
-            });
+                // Exclude cancelled and waitlisted sessions from active capacity
+                if (s.status === 'Cancelled' || s.status === 'Waitlisted') return false;
 
-            if (!overlapsSession) {
+                return slotStartMins < sEndMins && slotEndMins > sStartMins;
+            }).length;
+
+            const clinicianObj = consultants.find((c: any) => c.id === clinicianId);
+            const prof = clinicianObj?.profession?.toLowerCase();
+            const r = clinicianObj?.role?.toLowerCase();
+            let limit = 1;
+            if (prof === 'physiotherapist') {
+                limit = 2;
+            } else if (prof === 'sports scientist' || r === 'sports_scientist') {
+                limit = 3;
+            }
+
+            if (overlappingSessionsCount < limit) {
                 availableCount++;
             }
         });
@@ -714,6 +730,12 @@ export default function AdminCalendar() {
     const renderMasterSchedule = () => {
         if (viewMode === "month") return renderMonthView();
         if (viewMode === "week") return renderWeekView();
+        if (viewMode === "roster") return (
+            <div className="flex flex-col items-center justify-center py-20 text-slate-400 font-bold uppercase tracking-widest text-xs gap-3 select-none">
+                <span>Roster View opened in pop-up window</span>
+                <Button size="sm" variant="outline" className="rounded-lg h-8 text-[10px]" onClick={() => setViewMode("day")}>Return to Day View</Button>
+            </div>
+        );
         return renderDayView();
     };
 
@@ -1007,7 +1029,7 @@ export default function AdminCalendar() {
                 )}
 
                 {/* Resource Matrix Grid */}
-                <div className="w-full overflow-x-auto custom-scrollbar">
+                <div className="w-full overflow-x-auto overflow-y-visible custom-scrollbar relative">
                     <div 
                         className="grid divide-x divide-border"
                         style={{
@@ -1016,11 +1038,11 @@ export default function AdminCalendar() {
                         }}
                     >
                         {/* Time Column (Y-Axis) */}
-                        <div className="flex flex-col select-none">
-                            <div className="h-[88px] border-b border-border/50 bg-muted/30 flex items-center justify-center font-bold text-xs text-muted-foreground">
+                        <div className="flex flex-col select-none sticky left-0 z-20 bg-white border-r border-border/50 shadow-sm">
+                            <div className="h-[88px] border-b border-border/50 bg-muted/40 flex items-center justify-center font-bold text-xs text-muted-foreground sticky top-0 left-0 z-30 bg-slate-50">
                                 Time
                             </div>
-                            <div className="relative" style={{ height: `${totalHeight}px` }}>
+                            <div className="relative bg-white" style={{ height: `${totalHeight}px` }}>
                                 {timeSlots.map((slot, i) => (
                                     <div 
                                         key={slot.start} 
@@ -1070,59 +1092,37 @@ export default function AdminCalendar() {
                                 return new Date(a.scheduled_start).getTime() - new Date(b.scheduled_start).getTime();
                             });
 
-                            const columns: any[][] = [];
-                            sortedSessions.forEach(session => {
-                                const start = new Date(session.scheduled_start).getTime();
-                                
-                                let placed = false;
-                                for (let c = 0; c < columns.length; c++) {
-                                    const lastSessionInCol = columns[c][columns[c].length - 1];
-                                    const lastEnd = new Date(lastSessionInCol.scheduled_end).getTime();
-                                    
-                                    if (start >= lastEnd) {
-                                        columns[c].push(session);
-                                        placed = true;
-                                        break;
-                                    }
-                                }
-
-                                if (!placed) {
-                                    columns.push([session]);
-                                }
-                            });
-
                             const getSessionLayout = (session: any) => {
-                                let colIndex = 0;
-                                let totalCols = 1;
+                                const start = parseISO(session.scheduled_start).getTime();
+                                const end = parseISO(session.scheduled_end).getTime();
 
-                                for (let c = 0; c < columns.length; c++) {
-                                    const idx = columns[c].findIndex(s => s.id === session.id);
-                                    if (idx !== -1) {
-                                        colIndex = c;
-                                        totalCols = columns.length;
-                                        break;
-                                    }
-                                }
+                                const overlapping = sortedSessions.filter((s: any) => {
+                                    const sStart = parseISO(s.scheduled_start).getTime();
+                                    const sEnd = parseISO(s.scheduled_end).getTime();
+                                    return start < sEnd && end > sStart;
+                                });
 
-                                const start = parseISO(session.scheduled_start);
-                                const end = parseISO(session.scheduled_end);
-                                const { top, height } = getTopAndHeight(start, end);
+                                const stackCount = overlapping.length;
+                                const stackIndex = overlapping.findIndex((s: any) => s.id === session.id);
 
-                                const widthPercent = 100 / totalCols;
-                                const leftPercent = colIndex * widthPercent;
+                                const { top, height } = getTopAndHeight(parseISO(session.scheduled_start), parseISO(session.scheduled_end));
+
+                                const cardHeight = height / (stackCount || 1);
+                                const cardTop = top + (stackIndex !== -1 ? stackIndex * cardHeight : 0);
 
                                 return {
-                                    top,
-                                    height,
-                                    left: `${leftPercent}%`,
-                                    width: `${widthPercent}%`
+                                    top: cardTop,
+                                    height: cardHeight,
+                                    left: '0%',
+                                    width: '100%',
+                                    isStacked: stackCount > 1
                                 };
                             };
 
                             return (
                                 <div key={clinician.id} className="flex flex-col relative">
                                     {/* Clinician Column Header */}
-                                    <div className="h-[88px] border-b border-border/50 bg-muted/10 p-2 flex flex-col justify-center relative select-none">
+                                    <div className="h-[88px] border-b border-border/50 bg-white/95 backdrop-blur-sm p-2 flex flex-col justify-center sticky top-0 z-10 select-none shadow-sm">
                                         <div className="flex items-center gap-2">
                                             {clinician.avatar_url ? (
                                                 <img 
@@ -1223,49 +1223,70 @@ export default function AdminCalendar() {
                                                         height: `${layout.height - 4}px`,
                                                         left: `calc(${layout.left} + 2px)`,
                                                         width: `calc(${layout.width} - 4px)`,
-                                                        minHeight: '45px'
+                                                        minHeight: layout.height > 40 ? '45px' : 'none'
                                                     }}
                                                 >
                                                     <div className="flex flex-col min-w-0 h-full justify-between">
-                                                        <div>
-                                                            <div className="flex justify-between items-start gap-1">
-                                                                <span className="font-bold text-[9px] leading-tight">
-                                                                    {format(startD, "h:mm a")} - {format(endD, "h:mm a")}
-                                                                </span>
-                                                                {indicatorElement}
-                                                            </div>
-
-                                                            <div className={cn("font-bold text-xs truncate mt-0.5 flex items-center gap-1", event.client?.is_vip && "text-[#D4AF37]")}>
-                                                                {event.session_mode === 'Group' ? (
-                                                                    <span className="font-bold flex items-center gap-1">👥 {event.group_name || 'Unnamed Group'}</span>
-                                                                ) : event.is_guest ? (
-                                                                    <span className="italic opacity-85">G: {event.guest_name}</span>
-                                                                ) : (
-                                                                    <span>{event.client?.first_name} {event.client?.last_name}</span>
-                                                                )}
-                                                                {event.session_mode !== 'Group' && !event.is_guest && <VIPBadge isVIP={event.client?.is_vip} size="sm" iconOnly />}
-                                                            </div>
-
-                                                            <div className="text-[10px] opacity-80 truncate leading-tight mt-0.5">
-                                                                {event.service_type || "No Service"}
-                                                            </div>
-                                                        </div>
-
-                                                        <div className="flex items-center justify-between gap-1 mt-1">
-                                                            {/* Entitlement Warnings */}
-                                                            <div className="flex gap-1">
-                                                                {event.is_unentitled && (
-                                                                    <span className="px-1 bg-red-600 text-white text-[7px] font-black rounded animate-pulse">
-                                                                        UN
+                                                        {layout.height < 45 ? (
+                                                            <div className="flex flex-col justify-center h-full min-w-0">
+                                                                <div className="flex items-center justify-between gap-1 w-full">
+                                                                    <div className="font-bold text-[9px] truncate flex-1 leading-none">
+                                                                        {event.session_mode === 'Group' ? (
+                                                                            <span>👥 {event.group_name || 'Group'}</span>
+                                                                        ) : event.is_guest ? (
+                                                                            <span>G: {event.guest_name}</span>
+                                                                        ) : (
+                                                                            <span>{event.client?.first_name} {event.client?.last_name} ({event.client?.uhid || '-'})</span>
+                                                                        )}
+                                                                    </div>
+                                                                    <span className="text-[8px] opacity-75 font-semibold shrink-0 leading-none">
+                                                                        {event.service_type || "Session"}
                                                                     </span>
-                                                                )}
-                                                                {(event as any).is_pre_unentitled && (
-                                                                    <span className="px-1 bg-orange-500 text-white text-[7px] font-black rounded" title="Client has no entitlements for this service">
-                                                                        ⚠ NO
-                                                                    </span>
-                                                                )}
+                                                                </div>
                                                             </div>
-                                                        </div>
+                                                        ) : (
+                                                            <>
+                                                                <div>
+                                                                    <div className="flex justify-between items-start gap-1">
+                                                                        <span className="font-bold text-[9px] leading-tight">
+                                                                            {format(startD, "h:mm a")} - {format(endD, "h:mm a")}
+                                                                        </span>
+                                                                        {indicatorElement}
+                                                                    </div>
+
+                                                                    <div className={cn("font-bold text-xs truncate mt-0.5 flex items-center gap-1", event.client?.is_vip && "text-[#D4AF37]")}>
+                                                                        {event.session_mode === 'Group' ? (
+                                                                            <span className="font-bold flex items-center gap-1">👥 {event.group_name || 'Unnamed Group'}</span>
+                                                                        ) : event.is_guest ? (
+                                                                            <span className="italic opacity-85">G: {event.guest_name}</span>
+                                                                        ) : (
+                                                                            <span>{event.client?.first_name} {event.client?.last_name}</span>
+                                                                        )}
+                                                                        {event.session_mode !== 'Group' && !event.is_guest && <VIPBadge isVIP={event.client?.is_vip} size="sm" iconOnly />}
+                                                                    </div>
+
+                                                                    <div className="text-[10px] opacity-80 truncate leading-tight mt-0.5">
+                                                                        {event.service_type || "No Service"}
+                                                                    </div>
+                                                                </div>
+
+                                                                <div className="flex items-center justify-between gap-1 mt-1">
+                                                                    {/* Entitlement Warnings */}
+                                                                    <div className="flex gap-1">
+                                                                        {event.is_unentitled && (
+                                                                            <span className="px-1 bg-red-600 text-white text-[7px] font-black rounded animate-pulse">
+                                                                                UN
+                                                                            </span>
+                                                                        )}
+                                                                        {(event as any).is_pre_unentitled && (
+                                                                            <span className="px-1 bg-orange-500 text-white text-[7px] font-black rounded" title="Client has no entitlements for this service">
+                                                                                ⚠ NO
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                            </>
+                                                        )}
                                                     </div>
                                                 </div>
                                             );
@@ -1499,7 +1520,7 @@ export default function AdminCalendar() {
                                             </Popover>
  
                                              <div className="flex bg-slate-100 p-0.5 rounded-xl border border-slate-100">
-                                                {(["day", "week", "month"] as ViewMode[]).map((m) => (
+                                                {(["day", "week", "month", "roster"] as ViewMode[]).map((m) => (
                                                     <Button 
                                                         key={m} 
                                                         variant={viewMode === m ? "default" : "ghost"} 
@@ -1507,7 +1528,7 @@ export default function AdminCalendar() {
                                                         onClick={() => setViewMode(m)} 
                                                         className={cn(
                                                             "h-8 px-3 text-[10px] font-bold uppercase rounded-lg transition-all", 
-                                                            viewMode === m ? "bg-white text-primary shadow-sm hover:bg-white" : "text-slate-600 hover:text-slate-900"
+                                                            viewMode === m ? "bg-white text-primary shadow-sm hover:bg-white" : "text-slate-600 hover:bg-white/50 hover:text-slate-900"
                                                         )}
                                                     >
                                                         {m}
@@ -1581,6 +1602,20 @@ export default function AdminCalendar() {
                 onOpenChange={setIsEmergencyModalOpen}
                 organizationId={profile?.organization_id || ""}
             />
+
+            <Dialog 
+                open={viewMode === "roster"} 
+                onOpenChange={(isOpen) => {
+                    if (!isOpen) setViewMode("day");
+                }}
+            >
+                <DialogContent className="max-w-none w-[98vw] h-[95vh] bg-slate-950 border-slate-900 p-0 overflow-hidden flex flex-col rounded-3xl">
+                    <RosterScheduleView 
+                        initialDate={currentDate} 
+                        onClose={() => setViewMode("day")} 
+                    />
+                </DialogContent>
+            </Dialog>
         </DashboardLayout>
     );
 }

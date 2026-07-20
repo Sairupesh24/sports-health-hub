@@ -52,12 +52,12 @@ type Bill = {
     discount_type: "percentage" | "flat";
     discount_value: number;
     total_amount: number;
-    status: "Pending" | "Paid";
+    status: "Pending" | "Paid" | "Partially Paid";
     payment_method?: string;
     transaction_id?: string;
     date: string;
     organization?: { name: string; id: string };
-    client?: { id: string; full_name: string };
+    client?: { id: string; full_name: string; is_vip?: boolean };
     notes?: string;
     discount_authorized_by?: string;
     billing_staff_name?: string;
@@ -71,6 +71,10 @@ type Bill = {
     organization_official_name?: string;
     paid_amount?: number;
     remaining_due?: number;
+    tax_amount?: number;
+    client_uhid?: string;
+    client_mobile?: string;
+    client_is_vip?: boolean;
 };
 
 type Client = { id: string; first_name: string; last_name: string; uhid: string; email?: string; mobile_no?: string; is_vip?: boolean };
@@ -78,7 +82,7 @@ type Package = { id: string; name: string; price: number; category?: string; tax
 type ReferralSource = { id: string; name: string };
 
 export default function BillingPage() {
-    const { profile } = useAuth();
+    const { profile, roles } = useAuth();
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
     const clientIdParam = searchParams.get("clientId");
@@ -106,7 +110,7 @@ export default function BillingPage() {
         queryFn: async () => {
             if (!profile?.organization_id) return [];
             const billsData = await apiFetch<any[]>('/billing/invoices');
-            return billsData.map(b => ({
+            return billsData.map((b): Bill => ({
                 id: b.id,
                 client_id: b.client_id,
                 client: { id: b.client_id, full_name: b.client_name, is_vip: b.client_is_vip },
@@ -119,7 +123,7 @@ export default function BillingPage() {
                 referral_source: b.referral_source_name || "-",
                 referral_source_name: b.referral_source_name || "-",
                 subtotal: Number(b.amount),
-                discount_type: "flat",
+                discount_type: "flat" as const,
                 discount_value: Number(b.discount || 0),
                 total_amount: Number(b.total),
                 status: b.status,
@@ -136,7 +140,8 @@ export default function BillingPage() {
                 organization_address: b.organization_official_address,
                 organization_official_name: b.organization_official_name || b.organization_name,
                 paid_amount: Number(b.paid_amount),
-                remaining_due: Number(b.remaining_due)
+                remaining_due: Number(b.remaining_due),
+                tax_amount: Number(b.tax_amount || 0)
             }));
         },
         enabled: !!profile?.organization_id
@@ -212,9 +217,9 @@ export default function BillingPage() {
             });
             queryClient.invalidateQueries({ queryKey: ["subscription-history", selectedSub?.id] });
             queryClient.invalidateQueries({ queryKey: ["admin-bills"] });
-            toast.success("Early invoice generated successfully");
+            toast({ title: "Early invoice generated successfully" });
         },
-        onError: (err: any) => toast.error(err.message)
+        onError: (err: any) => toast({ title: "Error", description: err.message, variant: "destructive" })
     });
 
     const cancelSubscription = useMutation({
@@ -232,9 +237,9 @@ export default function BillingPage() {
                     if (found) setSelectedSub(found);
                 }
             });
-            toast.success("Membership cancelled successfully");
+            toast({ title: "Membership cancelled successfully" });
         },
-        onError: (err: any) => toast.error(err.message)
+        onError: (err: any) => toast({ title: "Error", description: err.message, variant: "destructive" })
     });
 
     // Refund State
@@ -618,7 +623,7 @@ export default function BillingPage() {
         };
 
         const addFooter = (doc: jsPDF) => {
-            const pageCount = doc.internal.getNumberOfPages();
+            const pageCount = (doc as any).internal.getNumberOfPages();
             for (let i = 1; i <= pageCount; i++) {
                 doc.setPage(i);
                 doc.setFontSize(8);
@@ -824,7 +829,7 @@ export default function BillingPage() {
                     </div>
                 </header>
 
-                {profile?.role === 'Admin' && (
+                {roles.includes('admin') && (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                         <KPICard 
                             title="Total Revenue" 
