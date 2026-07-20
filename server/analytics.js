@@ -91,10 +91,10 @@ router.get('/managerial-view', requireAuth, async (req, res) => {
     const workingDaysCount = getWorkingDaysCount(startDate, endDate);
 
     // Fetch approved staff profiles
-    const staff = await prisma.profiles.findMany({
+    const staff = await prisma.profile.findMany({
       where: {
-        organization_id: orgId,
-        is_approved: true,
+        organizationId: orgId,
+        isApproved: true,
         users: {
           role: {
             notIn: ['client', 'athlete']
@@ -102,7 +102,7 @@ router.get('/managerial-view', requireAuth, async (req, res) => {
         }
       },
       include: {
-        staff_schedules: true,
+        staffSchedules: true,
         users: {
           select: {
             role: true,
@@ -113,13 +113,13 @@ router.get('/managerial-view', requireAuth, async (req, res) => {
     });
 
     // Fetch active sessions within date range
-    const sessions = await prisma.sessions.findMany({
+    const sessions = await prisma.session.findMany({
       where: {
-        organization_id: orgId,
-        scheduled_start: {
+        organizationId: orgId,
+        scheduledStart: {
           gte: startDate
         },
-        scheduled_end: {
+        scheduledEnd: {
           lte: endDate
         },
         status: {
@@ -132,19 +132,19 @@ router.get('/managerial-view', requireAuth, async (req, res) => {
     const teamData = staff.map(member => {
       // Find sessions where this member is therapist OR scientist
       const memberSessions = sessions.filter(
-        s => (s.therapist_id || s.therapistId) === member.id || (s.scientist_id || s.scientistId) === member.id
+        s => s.therapistId === member.id || s.scientistId === member.id
       );
 
       // Booked Hours sum
       const totalHoursBooked = memberSessions.reduce((acc, s) => {
-        const start = new Date(s.scheduled_start || s.scheduledStart);
-        const end = new Date(s.scheduled_end || s.scheduledEnd);
+        const start = new Date(s.scheduledStart);
+        const end = new Date(s.scheduledEnd);
         const diffHours = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
         return acc + (isNaN(diffHours) ? 0 : diffHours);
       }, 0);
 
       // Shift details & base working hours
-      const schedule = member.staff_schedules || member.staffSchedules;
+      const schedule = member.staffSchedules;
       const shiftHoursPerDay = getShiftHours(schedule);
       const totalShiftHours = shiftHoursPerDay * workingDaysCount;
 
@@ -153,13 +153,13 @@ router.get('/managerial-view', requireAuth, async (req, res) => {
         ? Math.round((totalHoursBooked / totalShiftHours) * 100 * 10) / 10 
         : 0;
 
-      const sStart = schedule ? (schedule.shift_start || schedule.shiftStart) : null;
-      const sEnd = schedule ? (schedule.shift_end || schedule.shiftEnd) : null;
+      const sStart = schedule ? (schedule.shiftStart || schedule.shift_start) : null;
+      const sEnd = schedule ? (schedule.shiftEnd || schedule.shift_end) : null;
 
       return {
         id: member.id,
-        firstName: member.first_name || member.firstName,
-        lastName: member.last_name || member.lastName,
+        firstName: member.firstName,
+        lastName: member.lastName,
         email: member.users.email,
         role: member.users.role,
         profession: member.profession || 'Staff',
