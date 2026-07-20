@@ -43,7 +43,7 @@ export function SubscriptionModal({ open, onOpenChange, orgId, onSuccess }: Subs
     const { data: packages } = useQuery({
         queryKey: ["recurring-packages", orgId],
         queryFn: async () => {
-            return await apiFetch('/api/billing/packages');
+            return await apiFetch<any[]>('/api/billing/packages');
         }
     });
 
@@ -51,7 +51,7 @@ export function SubscriptionModal({ open, onOpenChange, orgId, onSuccess }: Subs
     const { data: clients } = useQuery({
         queryKey: ["all-clients", orgId],
         queryFn: async () => {
-            return await apiFetch('/api/clients');
+            return await apiFetch<any[]>('/api/clients');
         }
     });
 
@@ -96,7 +96,7 @@ export function SubscriptionModal({ open, onOpenChange, orgId, onSuccess }: Subs
                                 <SelectValue placeholder="Select athlete..." />
                             </SelectTrigger>
                             <SelectContent>
-                                {clients?.map(c => (
+                                {clients?.map((c: any) => (
                                     <SelectItem key={c.id} value={c.id}>
                                         {c.first_name} {c.last_name} ({c.uhid})
                                     </SelectItem>

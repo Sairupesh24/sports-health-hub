@@ -77,6 +77,11 @@ async function runMigrations() {
     try {
       await pool.query(`ALTER TABLE organizations ADD COLUMN default_slot_duration INTEGER DEFAULT 60;`);
     } catch (e) {}
+    try {
+      // Default auto clock-out time — staff who forget to check out are auto-checked-out at this time
+      await pool.query(`ALTER TABLE organizations ADD COLUMN IF NOT EXISTS default_checkout_time TIME DEFAULT '22:00:00';`);
+    } catch (e) {}
+
 
     // Create users table
     await pool.query(`
@@ -842,13 +847,15 @@ async function runMigrations() {
         ['longitude', 'NUMERIC'],
         ['distance_from_center', 'NUMERIC'],
         ['is_within_geofence', 'BOOLEAN DEFAULT true'],
-        ['metadata', 'JSONB']
+        ['metadata', 'JSONB'],
+        ['remark', 'TEXT']   // stores auto-checkout notes
     ];
     for (const [col, type] of hrLogCols) {
         try {
             await pool.query(`ALTER TABLE hrattendancelogs ADD COLUMN ${col} ${type};`);
         } catch (e) {}
     }
+
 
     // HR Leaves
     await pool.query(`

@@ -350,41 +350,79 @@ export default function SportsScientistSchedule() {
 
                                 if (startHour > 21 || endD.getHours() < 7) return null;
 
+                                // Overlap / stack calculations
+                                const eventStart = startD.getTime();
+                                const eventEnd = endD.getTime();
+                                const overlapping = dayEvents.filter((s: any) => {
+                                    const sStart = parseISO(s.scheduled_start).getTime();
+                                    const sEnd = parseISO(s.scheduled_end).getTime();
+                                    return eventStart < sEnd && eventEnd > sStart;
+                                });
+
+                                const stackCount = overlapping.length;
+                                const stackIndex = overlapping.findIndex((s: any) => s.id === event.id);
+
+                                const cardHeight = height / (stackCount || 1);
+                                const cardTop = topPos + (stackIndex !== -1 ? stackIndex * cardHeight : 0);
+                                const isStacked = stackCount > 1;
+
                                 return (
                                     <div
                                         key={event.id}
                                         onClick={() => setSelectedSession(event)}
-                                        className={`absolute left-4 right-4 rounded-2xl border-2 p-4 overflow-hidden shadow-md hover:shadow-xl cursor-pointer transition-all hover:scale-[1.01] hover:z-30 group ${getStatusColor(event)}`}
-                                        style={{ top: `${topPos + 8}px`, height: `${height - 16}px` }}
+                                        className={cn(
+                                            "absolute left-4 right-4 rounded-2xl border-2 p-3 overflow-hidden shadow-md hover:shadow-xl cursor-pointer transition-all hover:scale-[1.01] hover:z-30 group flex flex-col justify-center",
+                                            getStatusColor(event)
+                                        )}
+                                        style={{ top: `${cardTop + 4}px`, height: `${cardHeight - 8}px` }}
                                     >
-                                        <div className="flex justify-between items-start">
-                                            <div className="space-y-1">
-                                                <div className="flex items-center gap-2">
-                                                    <span className="text-xs font-bold px-2 py-0.5 bg-white/50 dark:bg-slate-800/80 rounded-full border border-current shadow-sm">
-                                                        {format(startD, "HH:mm")} - {format(endD, "HH:mm")}
-                                                    </span>
-                                                    {event.session_mode === 'Group' && (
-                                                        <span className="text-[10px] font-black uppercase tracking-widest bg-primary/10 px-2 py-0.5 rounded-full">Group</span>
-                                                    )}
-                                                </div>
-                                                <h3 className="text-lg font-display font-bold leading-tight mt-1 group-hover:text-primary transition-colors">
-                                                    {event.session_mode === 'Group' ? `👥 ${event.group_name}` : event.session_mode === 'Other' ? `🏢 ${event.session_type?.name}` : `${event.client?.first_name} ${event.client?.last_name}`}
-                                                </h3>
-                                                <div className="flex items-center gap-4 text-xs font-medium opacity-70">
-                                                    <span className="flex items-center gap-1.5 capitalize">
-                                                        <div className="w-1.5 h-1.5 rounded-full bg-current" />
+                                        {isStacked ? (
+                                            <div className="flex flex-col justify-center h-full min-w-0">
+                                                <div className="flex items-center justify-between gap-1 w-full text-[10px]">
+                                                    <div className="font-bold truncate flex-1 leading-none">
+                                                        {event.session_mode === 'Group' ? (
+                                                            <span>👥 {event.group_name || 'Group'}</span>
+                                                        ) : event.session_mode === 'Other' ? (
+                                                            <span>🏢 {event.session_type?.name}</span>
+                                                        ) : (
+                                                            <span>{event.client?.first_name} {event.client?.last_name || ''} ({event.client?.uhid || '-'})</span>
+                                                        )}
+                                                    </div>
+                                                    <span className="opacity-75 font-semibold shrink-0 leading-none">
                                                         {event.session_type?.name || "Session"}
                                                     </span>
-                                                    <span className="flex items-center gap-1.5">
-                                                        <div className="w-1.5 h-1.5 rounded-full bg-current" />
-                                                        {(event.status === "Checked In" || (event.status === "Planned" && event.actual_start)) ? "In Progress" : event.status}
-                                                    </span>
                                                 </div>
                                             </div>
-                                            <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-                                                <Button size="sm" variant="outline" className="h-8 rounded-lg bg-background/50 border-current/20 hover:bg-background">View Details</Button>
+                                        ) : (
+                                            <div className="flex justify-between items-start">
+                                                <div className="space-y-1">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-xs font-bold px-2 py-0.5 bg-white/50 dark:bg-slate-800/80 rounded-full border border-current shadow-sm">
+                                                            {format(startD, "HH:mm")} - {format(endD, "HH:mm")}
+                                                        </span>
+                                                        {event.session_mode === 'Group' && (
+                                                            <span className="text-[10px] font-black uppercase tracking-widest bg-primary/10 px-2 py-0.5 rounded-full">Group</span>
+                                                        )}
+                                                    </div>
+                                                    <h3 className="text-lg font-display font-bold leading-tight mt-1 group-hover:text-primary transition-colors">
+                                                        {event.session_mode === 'Group' ? `👥 ${event.group_name}` : event.session_mode === 'Other' ? `🏢 ${event.session_type?.name}` : `${event.client?.first_name} ${event.client?.last_name}`}
+                                                    </h3>
+                                                    <div className="flex items-center gap-4 text-xs font-medium opacity-70">
+                                                        <span className="flex items-center gap-1.5 capitalize">
+                                                            <div className="w-1.5 h-1.5 rounded-full bg-current" />
+                                                            {event.session_type?.name || "Session"}
+                                                        </span>
+                                                        <span className="flex items-center gap-1.5">
+                                                            <div className="w-1.5 h-1.5 rounded-full bg-current" />
+                                                            {(event.status === "Checked In" || (event.status === "Planned" && event.actual_start)) ? "In Progress" : event.status}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                                <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    <Button size="sm" variant="outline" className="h-8 rounded-lg bg-background/50 border-current/20 hover:bg-background">View Details</Button>
+                                                </div>
                                             </div>
-                                        </div>
+                                        )}
                                     </div>
                                 )
                             })
