@@ -64,6 +64,7 @@ export type OrganizationsMinAggregateOutputType = {
   allowed_ips: string | null
   allow_custom_duration: boolean | null
   default_slot_duration: number | null
+  default_checkout_time: Date | null
 }
 
 export type OrganizationsMaxAggregateOutputType = {
@@ -90,6 +91,7 @@ export type OrganizationsMaxAggregateOutputType = {
   allowed_ips: string | null
   allow_custom_duration: boolean | null
   default_slot_duration: number | null
+  default_checkout_time: Date | null
 }
 
 export type OrganizationsCountAggregateOutputType = {
@@ -116,6 +118,7 @@ export type OrganizationsCountAggregateOutputType = {
   allowed_ips: number
   allow_custom_duration: number
   default_slot_duration: number
+  default_checkout_time: number
   _all: number
 }
 
@@ -158,6 +161,7 @@ export type OrganizationsMinAggregateInputType = {
   allowed_ips?: true
   allow_custom_duration?: true
   default_slot_duration?: true
+  default_checkout_time?: true
 }
 
 export type OrganizationsMaxAggregateInputType = {
@@ -184,6 +188,7 @@ export type OrganizationsMaxAggregateInputType = {
   allowed_ips?: true
   allow_custom_duration?: true
   default_slot_duration?: true
+  default_checkout_time?: true
 }
 
 export type OrganizationsCountAggregateInputType = {
@@ -210,6 +215,7 @@ export type OrganizationsCountAggregateInputType = {
   allowed_ips?: true
   allow_custom_duration?: true
   default_slot_duration?: true
+  default_checkout_time?: true
   _all?: true
 }
 
@@ -323,6 +329,7 @@ export type OrganizationsGroupByOutputType = {
   allowed_ips: string | null
   allow_custom_duration: boolean | null
   default_slot_duration: number | null
+  default_checkout_time: Date | null
   _count: OrganizationsCountAggregateOutputType | null
   _avg: OrganizationsAvgAggregateOutputType | null
   _sum: OrganizationsSumAggregateOutputType | null
@@ -372,6 +379,7 @@ export type organizationsWhereInput = {
   allowed_ips?: Prisma.StringNullableFilter<"organizations"> | string | null
   allow_custom_duration?: Prisma.BoolNullableFilter<"organizations"> | boolean | null
   default_slot_duration?: Prisma.IntNullableFilter<"organizations"> | number | null
+  default_checkout_time?: Prisma.DateTimeNullableFilter<"organizations"> | Date | string | null
   athlete_item_logs?: Prisma.Athlete_item_logsListRelationFilter
   athlete_workout_completions?: Prisma.Athlete_workout_completionsListRelationFilter
   availabilityexceptions?: Prisma.AvailabilityexceptionsListRelationFilter
@@ -447,6 +455,7 @@ export type organizationsOrderByWithRelationInput = {
   allowed_ips?: Prisma.SortOrderInput | Prisma.SortOrder
   allow_custom_duration?: Prisma.SortOrderInput | Prisma.SortOrder
   default_slot_duration?: Prisma.SortOrderInput | Prisma.SortOrder
+  default_checkout_time?: Prisma.SortOrderInput | Prisma.SortOrder
   athlete_item_logs?: Prisma.athlete_item_logsOrderByRelationAggregateInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsOrderByRelationAggregateInput
   availabilityexceptions?: Prisma.availabilityexceptionsOrderByRelationAggregateInput
@@ -525,6 +534,7 @@ export type organizationsWhereUniqueInput = Prisma.AtLeast<{
   allowed_ips?: Prisma.StringNullableFilter<"organizations"> | string | null
   allow_custom_duration?: Prisma.BoolNullableFilter<"organizations"> | boolean | null
   default_slot_duration?: Prisma.IntNullableFilter<"organizations"> | number | null
+  default_checkout_time?: Prisma.DateTimeNullableFilter<"organizations"> | Date | string | null
   athlete_item_logs?: Prisma.Athlete_item_logsListRelationFilter
   athlete_workout_completions?: Prisma.Athlete_workout_completionsListRelationFilter
   availabilityexceptions?: Prisma.AvailabilityexceptionsListRelationFilter
@@ -600,6 +610,7 @@ export type organizationsOrderByWithAggregationInput = {
   allowed_ips?: Prisma.SortOrderInput | Prisma.SortOrder
   allow_custom_duration?: Prisma.SortOrderInput | Prisma.SortOrder
   default_slot_duration?: Prisma.SortOrderInput | Prisma.SortOrder
+  default_checkout_time?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.organizationsCountOrderByAggregateInput
   _avg?: Prisma.organizationsAvgOrderByAggregateInput
   _max?: Prisma.organizationsMaxOrderByAggregateInput
@@ -634,6 +645,7 @@ export type organizationsScalarWhereWithAggregatesInput = {
   allowed_ips?: Prisma.StringNullableWithAggregatesFilter<"organizations"> | string | null
   allow_custom_duration?: Prisma.BoolNullableWithAggregatesFilter<"organizations"> | boolean | null
   default_slot_duration?: Prisma.IntNullableWithAggregatesFilter<"organizations"> | number | null
+  default_checkout_time?: Prisma.DateTimeNullableWithAggregatesFilter<"organizations"> | Date | string | null
 }
 
 export type organizationsCreateInput = {
@@ -660,6 +672,7 @@ export type organizationsCreateInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_checkout_time?: Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutOrganizationsInput
@@ -735,6 +748,7 @@ export type organizationsUncheckedCreateInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_checkout_time?: Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -810,6 +824,7 @@ export type organizationsUpdateInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutOrganizationsNestedInput
@@ -885,6 +900,7 @@ export type organizationsUncheckedUpdateInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -960,6 +976,7 @@ export type organizationsCreateManyInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_checkout_time?: Date | string | null
 }
 
 export type organizationsUpdateManyMutationInput = {
@@ -986,6 +1003,7 @@ export type organizationsUpdateManyMutationInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
 export type organizationsUncheckedUpdateManyInput = {
@@ -1012,6 +1030,7 @@ export type organizationsUncheckedUpdateManyInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
 export type OrganizationsNullableScalarRelationFilter = {
@@ -1048,6 +1067,7 @@ export type organizationsCountOrderByAggregateInput = {
   allowed_ips?: Prisma.SortOrder
   allow_custom_duration?: Prisma.SortOrder
   default_slot_duration?: Prisma.SortOrder
+  default_checkout_time?: Prisma.SortOrder
 }
 
 export type organizationsAvgOrderByAggregateInput = {
@@ -1081,6 +1101,7 @@ export type organizationsMaxOrderByAggregateInput = {
   allowed_ips?: Prisma.SortOrder
   allow_custom_duration?: Prisma.SortOrder
   default_slot_duration?: Prisma.SortOrder
+  default_checkout_time?: Prisma.SortOrder
 }
 
 export type organizationsMinOrderByAggregateInput = {
@@ -1107,6 +1128,7 @@ export type organizationsMinOrderByAggregateInput = {
   allowed_ips?: Prisma.SortOrder
   allow_custom_duration?: Prisma.SortOrder
   default_slot_duration?: Prisma.SortOrder
+  default_checkout_time?: Prisma.SortOrder
 }
 
 export type organizationsSumOrderByAggregateInput = {
@@ -1846,6 +1868,7 @@ export type organizationsCreateWithoutAthlete_item_logsInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_checkout_time?: Date | string | null
   athlete_workout_completions?: Prisma.athlete_workout_completionsCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutOrganizationsInput
   billitems?: Prisma.billitemsCreateNestedManyWithoutOrganizationsInput
@@ -1920,6 +1943,7 @@ export type organizationsUncheckedCreateWithoutAthlete_item_logsInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_checkout_time?: Date | string | null
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutOrganizationsInput
   billitems?: Prisma.billitemsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -2010,6 +2034,7 @@ export type organizationsUpdateWithoutAthlete_item_logsInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   athlete_workout_completions?: Prisma.athlete_workout_completionsUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutOrganizationsNestedInput
   billitems?: Prisma.billitemsUpdateManyWithoutOrganizationsNestedInput
@@ -2084,6 +2109,7 @@ export type organizationsUncheckedUpdateWithoutAthlete_item_logsInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutOrganizationsNestedInput
   billitems?: Prisma.billitemsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -2158,6 +2184,7 @@ export type organizationsCreateWithoutAthlete_workout_completionsInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_checkout_time?: Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutOrganizationsInput
   billitems?: Prisma.billitemsCreateNestedManyWithoutOrganizationsInput
@@ -2232,6 +2259,7 @@ export type organizationsUncheckedCreateWithoutAthlete_workout_completionsInput 
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_checkout_time?: Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutOrganizationsInput
   billitems?: Prisma.billitemsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -2322,6 +2350,7 @@ export type organizationsUpdateWithoutAthlete_workout_completionsInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutOrganizationsNestedInput
   billitems?: Prisma.billitemsUpdateManyWithoutOrganizationsNestedInput
@@ -2396,6 +2425,7 @@ export type organizationsUncheckedUpdateWithoutAthlete_workout_completionsInput 
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutOrganizationsNestedInput
   billitems?: Prisma.billitemsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -2470,6 +2500,7 @@ export type organizationsCreateWithoutAvailabilityexceptionsInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_checkout_time?: Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsCreateNestedManyWithoutOrganizationsInput
   billitems?: Prisma.billitemsCreateNestedManyWithoutOrganizationsInput
@@ -2544,6 +2575,7 @@ export type organizationsUncheckedCreateWithoutAvailabilityexceptionsInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_checkout_time?: Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedCreateNestedManyWithoutOrganizationsInput
   billitems?: Prisma.billitemsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -2634,6 +2666,7 @@ export type organizationsUpdateWithoutAvailabilityexceptionsInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUpdateManyWithoutOrganizationsNestedInput
   billitems?: Prisma.billitemsUpdateManyWithoutOrganizationsNestedInput
@@ -2708,6 +2741,7 @@ export type organizationsUncheckedUpdateWithoutAvailabilityexceptionsInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedUpdateManyWithoutOrganizationsNestedInput
   billitems?: Prisma.billitemsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -2782,6 +2816,7 @@ export type organizationsCreateWithoutBillitemsInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_checkout_time?: Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutOrganizationsInput
@@ -2856,6 +2891,7 @@ export type organizationsUncheckedCreateWithoutBillitemsInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_checkout_time?: Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -2946,6 +2982,7 @@ export type organizationsUpdateWithoutBillitemsInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutOrganizationsNestedInput
@@ -3020,6 +3057,7 @@ export type organizationsUncheckedUpdateWithoutBillitemsInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -3094,6 +3132,7 @@ export type organizationsCreateWithoutBillpaymentsInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_checkout_time?: Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutOrganizationsInput
@@ -3168,6 +3207,7 @@ export type organizationsUncheckedCreateWithoutBillpaymentsInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_checkout_time?: Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -3258,6 +3298,7 @@ export type organizationsUpdateWithoutBillpaymentsInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutOrganizationsNestedInput
@@ -3332,6 +3373,7 @@ export type organizationsUncheckedUpdateWithoutBillpaymentsInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -3406,6 +3448,7 @@ export type organizationsCreateWithoutBillsInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_checkout_time?: Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutOrganizationsInput
@@ -3480,6 +3523,7 @@ export type organizationsUncheckedCreateWithoutBillsInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_checkout_time?: Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -3570,6 +3614,7 @@ export type organizationsUpdateWithoutBillsInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutOrganizationsNestedInput
@@ -3644,6 +3689,7 @@ export type organizationsUncheckedUpdateWithoutBillsInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -3718,6 +3764,7 @@ export type organizationsCreateWithoutBulk_assignmentsInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_checkout_time?: Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutOrganizationsInput
@@ -3792,6 +3839,7 @@ export type organizationsUncheckedCreateWithoutBulk_assignmentsInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_checkout_time?: Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -3882,6 +3930,7 @@ export type organizationsUpdateWithoutBulk_assignmentsInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutOrganizationsNestedInput
@@ -3956,6 +4005,7 @@ export type organizationsUncheckedUpdateWithoutBulk_assignmentsInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -4030,6 +4080,7 @@ export type organizationsCreateWithoutClient_assessment_reportsInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_checkout_time?: Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutOrganizationsInput
@@ -4104,6 +4155,7 @@ export type organizationsUncheckedCreateWithoutClient_assessment_reportsInput = 
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_checkout_time?: Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -4194,6 +4246,7 @@ export type organizationsUpdateWithoutClient_assessment_reportsInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutOrganizationsNestedInput
@@ -4268,6 +4321,7 @@ export type organizationsUncheckedUpdateWithoutClient_assessment_reportsInput = 
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -4342,6 +4396,7 @@ export type organizationsCreateWithoutClient_groupsInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_checkout_time?: Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutOrganizationsInput
@@ -4416,6 +4471,7 @@ export type organizationsUncheckedCreateWithoutClient_groupsInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_checkout_time?: Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -4506,6 +4562,7 @@ export type organizationsUpdateWithoutClient_groupsInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutOrganizationsNestedInput
@@ -4580,6 +4637,7 @@ export type organizationsUncheckedUpdateWithoutClient_groupsInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -4654,6 +4712,7 @@ export type organizationsCreateWithoutClientdocumentsInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_checkout_time?: Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutOrganizationsInput
@@ -4728,6 +4787,7 @@ export type organizationsUncheckedCreateWithoutClientdocumentsInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_checkout_time?: Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -4818,6 +4878,7 @@ export type organizationsUpdateWithoutClientdocumentsInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutOrganizationsNestedInput
@@ -4892,6 +4953,7 @@ export type organizationsUncheckedUpdateWithoutClientdocumentsInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -4966,6 +5028,7 @@ export type organizationsCreateWithoutCliententitlementsInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_checkout_time?: Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutOrganizationsInput
@@ -5040,6 +5103,7 @@ export type organizationsUncheckedCreateWithoutCliententitlementsInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_checkout_time?: Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -5130,6 +5194,7 @@ export type organizationsUpdateWithoutCliententitlementsInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutOrganizationsNestedInput
@@ -5204,6 +5269,7 @@ export type organizationsUncheckedUpdateWithoutCliententitlementsInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -5278,6 +5344,7 @@ export type organizationsCreateWithoutClientorganizationsInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_checkout_time?: Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutOrganizationsInput
@@ -5352,6 +5419,7 @@ export type organizationsUncheckedCreateWithoutClientorganizationsInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_checkout_time?: Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -5442,6 +5510,7 @@ export type organizationsUpdateWithoutClientorganizationsInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutOrganizationsNestedInput
@@ -5516,6 +5585,7 @@ export type organizationsUncheckedUpdateWithoutClientorganizationsInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -5590,6 +5660,7 @@ export type organizationsCreateWithoutClientsInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_checkout_time?: Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutOrganizationsInput
@@ -5664,6 +5735,7 @@ export type organizationsUncheckedCreateWithoutClientsInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_checkout_time?: Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -5754,6 +5826,7 @@ export type organizationsUpdateWithoutClientsInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutOrganizationsNestedInput
@@ -5828,6 +5901,7 @@ export type organizationsUncheckedUpdateWithoutClientsInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -5902,6 +5976,7 @@ export type organizationsCreateWithoutConsultant_servicesInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_checkout_time?: Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutOrganizationsInput
@@ -5976,6 +6051,7 @@ export type organizationsUncheckedCreateWithoutConsultant_servicesInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_checkout_time?: Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -6066,6 +6142,7 @@ export type organizationsUpdateWithoutConsultant_servicesInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutOrganizationsNestedInput
@@ -6140,6 +6217,7 @@ export type organizationsUncheckedUpdateWithoutConsultant_servicesInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -6214,6 +6292,7 @@ export type organizationsCreateWithoutConsultantavailabilityInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_checkout_time?: Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutOrganizationsInput
@@ -6288,6 +6367,7 @@ export type organizationsUncheckedCreateWithoutConsultantavailabilityInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_checkout_time?: Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -6378,6 +6458,7 @@ export type organizationsUpdateWithoutConsultantavailabilityInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutOrganizationsNestedInput
@@ -6452,6 +6533,7 @@ export type organizationsUncheckedUpdateWithoutConsultantavailabilityInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -6526,6 +6608,7 @@ export type organizationsCreateWithoutEmergency_alertsInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_checkout_time?: Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutOrganizationsInput
@@ -6600,6 +6683,7 @@ export type organizationsUncheckedCreateWithoutEmergency_alertsInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_checkout_time?: Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -6690,6 +6774,7 @@ export type organizationsUpdateWithoutEmergency_alertsInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutOrganizationsNestedInput
@@ -6764,6 +6849,7 @@ export type organizationsUncheckedUpdateWithoutEmergency_alertsInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -6838,6 +6924,7 @@ export type organizationsCreateWithoutEnquiriesInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_checkout_time?: Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutOrganizationsInput
@@ -6912,6 +6999,7 @@ export type organizationsUncheckedCreateWithoutEnquiriesInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_checkout_time?: Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -7002,6 +7090,7 @@ export type organizationsUpdateWithoutEnquiriesInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutOrganizationsNestedInput
@@ -7076,6 +7165,7 @@ export type organizationsUncheckedUpdateWithoutEnquiriesInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -7150,6 +7240,7 @@ export type organizationsCreateWithoutExcel_diagnostic_reportsInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_checkout_time?: Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutOrganizationsInput
@@ -7224,6 +7315,7 @@ export type organizationsUncheckedCreateWithoutExcel_diagnostic_reportsInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_checkout_time?: Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -7314,6 +7406,7 @@ export type organizationsUpdateWithoutExcel_diagnostic_reportsInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutOrganizationsNestedInput
@@ -7388,6 +7481,7 @@ export type organizationsUncheckedUpdateWithoutExcel_diagnostic_reportsInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -7462,6 +7556,7 @@ export type organizationsCreateWithoutExercisesInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_checkout_time?: Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutOrganizationsInput
@@ -7536,6 +7631,7 @@ export type organizationsUncheckedCreateWithoutExercisesInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_checkout_time?: Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -7626,6 +7722,7 @@ export type organizationsUpdateWithoutExercisesInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutOrganizationsNestedInput
@@ -7700,6 +7797,7 @@ export type organizationsUncheckedUpdateWithoutExercisesInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -7774,6 +7872,7 @@ export type organizationsCreateWithoutExternal_training_summaryInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_checkout_time?: Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutOrganizationsInput
@@ -7848,6 +7947,7 @@ export type organizationsUncheckedCreateWithoutExternal_training_summaryInput = 
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_checkout_time?: Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -7938,6 +8038,7 @@ export type organizationsUpdateWithoutExternal_training_summaryInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutOrganizationsNestedInput
@@ -8012,6 +8113,7 @@ export type organizationsUncheckedUpdateWithoutExternal_training_summaryInput = 
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -8086,6 +8188,7 @@ export type organizationsCreateWithoutForm_responsesInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_checkout_time?: Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutOrganizationsInput
@@ -8160,6 +8263,7 @@ export type organizationsUncheckedCreateWithoutForm_responsesInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_checkout_time?: Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -8250,6 +8354,7 @@ export type organizationsUpdateWithoutForm_responsesInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutOrganizationsNestedInput
@@ -8324,6 +8429,7 @@ export type organizationsUncheckedUpdateWithoutForm_responsesInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -8398,6 +8504,7 @@ export type organizationsCreateWithoutHr_employeesInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_checkout_time?: Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutOrganizationsInput
@@ -8472,6 +8579,7 @@ export type organizationsUncheckedCreateWithoutHr_employeesInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_checkout_time?: Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -8562,6 +8670,7 @@ export type organizationsUpdateWithoutHr_employeesInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutOrganizationsNestedInput
@@ -8636,6 +8745,7 @@ export type organizationsUncheckedUpdateWithoutHr_employeesInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -8710,6 +8820,7 @@ export type organizationsCreateWithoutHr_jobsInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_checkout_time?: Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutOrganizationsInput
@@ -8784,6 +8895,7 @@ export type organizationsUncheckedCreateWithoutHr_jobsInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_checkout_time?: Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -8874,6 +8986,7 @@ export type organizationsUpdateWithoutHr_jobsInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutOrganizationsNestedInput
@@ -8948,6 +9061,7 @@ export type organizationsUncheckedUpdateWithoutHr_jobsInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -9022,6 +9136,7 @@ export type organizationsCreateWithoutHrattendancelogsInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_checkout_time?: Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutOrganizationsInput
@@ -9096,6 +9211,7 @@ export type organizationsUncheckedCreateWithoutHrattendancelogsInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_checkout_time?: Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -9186,6 +9302,7 @@ export type organizationsUpdateWithoutHrattendancelogsInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutOrganizationsNestedInput
@@ -9260,6 +9377,7 @@ export type organizationsUncheckedUpdateWithoutHrattendancelogsInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -9334,6 +9452,7 @@ export type organizationsCreateWithoutHrleavesInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_checkout_time?: Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutOrganizationsInput
@@ -9408,6 +9527,7 @@ export type organizationsUncheckedCreateWithoutHrleavesInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_checkout_time?: Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -9498,6 +9618,7 @@ export type organizationsUpdateWithoutHrleavesInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutOrganizationsNestedInput
@@ -9572,6 +9693,7 @@ export type organizationsUncheckedUpdateWithoutHrleavesInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -9646,6 +9768,7 @@ export type organizationsCreateWithoutInjuriesInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_checkout_time?: Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutOrganizationsInput
@@ -9720,6 +9843,7 @@ export type organizationsUncheckedCreateWithoutInjuriesInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_checkout_time?: Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -9810,6 +9934,7 @@ export type organizationsUpdateWithoutInjuriesInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutOrganizationsNestedInput
@@ -9884,6 +10009,7 @@ export type organizationsUncheckedUpdateWithoutInjuriesInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -9958,6 +10084,7 @@ export type organizationsCreateWithoutInjury_master_dataInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_checkout_time?: Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutOrganizationsInput
@@ -10032,6 +10159,7 @@ export type organizationsUncheckedCreateWithoutInjury_master_dataInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_checkout_time?: Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -10122,6 +10250,7 @@ export type organizationsUpdateWithoutInjury_master_dataInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutOrganizationsNestedInput
@@ -10196,6 +10325,7 @@ export type organizationsUncheckedUpdateWithoutInjury_master_dataInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -10270,6 +10400,7 @@ export type organizationsCreateWithoutLocationsInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_checkout_time?: Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutOrganizationsInput
@@ -10344,6 +10475,7 @@ export type organizationsUncheckedCreateWithoutLocationsInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_checkout_time?: Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -10434,6 +10566,7 @@ export type organizationsUpdateWithoutLocationsInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutOrganizationsNestedInput
@@ -10508,6 +10641,7 @@ export type organizationsUncheckedUpdateWithoutLocationsInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -10582,6 +10716,7 @@ export type organizationsCreateWithoutNotificationsInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_checkout_time?: Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutOrganizationsInput
@@ -10656,6 +10791,7 @@ export type organizationsUncheckedCreateWithoutNotificationsInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_checkout_time?: Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -10746,6 +10882,7 @@ export type organizationsUpdateWithoutNotificationsInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutOrganizationsNestedInput
@@ -10820,6 +10957,7 @@ export type organizationsUncheckedUpdateWithoutNotificationsInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -10894,6 +11032,7 @@ export type organizationsCreateWithoutOrganization_notification_settingsInput = 
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_checkout_time?: Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutOrganizationsInput
@@ -10968,6 +11107,7 @@ export type organizationsUncheckedCreateWithoutOrganization_notification_setting
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_checkout_time?: Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -11058,6 +11198,7 @@ export type organizationsUpdateWithoutOrganization_notification_settingsInput = 
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutOrganizationsNestedInput
@@ -11132,6 +11273,7 @@ export type organizationsUncheckedUpdateWithoutOrganization_notification_setting
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -11206,6 +11348,7 @@ export type organizationsCreateWithoutPackagesInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_checkout_time?: Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutOrganizationsInput
@@ -11280,6 +11423,7 @@ export type organizationsUncheckedCreateWithoutPackagesInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_checkout_time?: Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -11370,6 +11514,7 @@ export type organizationsUpdateWithoutPackagesInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutOrganizationsNestedInput
@@ -11444,6 +11589,7 @@ export type organizationsUncheckedUpdateWithoutPackagesInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -11518,6 +11664,7 @@ export type organizationsCreateWithoutPerformance_assessmentsInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_checkout_time?: Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutOrganizationsInput
@@ -11592,6 +11739,7 @@ export type organizationsUncheckedCreateWithoutPerformance_assessmentsInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_checkout_time?: Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -11682,6 +11830,7 @@ export type organizationsUpdateWithoutPerformance_assessmentsInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutOrganizationsNestedInput
@@ -11756,6 +11905,7 @@ export type organizationsUncheckedUpdateWithoutPerformance_assessmentsInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -11830,6 +11980,7 @@ export type organizationsCreateWithoutProfilesInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_checkout_time?: Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutOrganizationsInput
@@ -11904,6 +12055,7 @@ export type organizationsUncheckedCreateWithoutProfilesInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_checkout_time?: Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -11994,6 +12146,7 @@ export type organizationsUpdateWithoutProfilesInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutOrganizationsNestedInput
@@ -12068,6 +12221,7 @@ export type organizationsUncheckedUpdateWithoutProfilesInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -12142,6 +12296,7 @@ export type organizationsCreateWithoutProgram_assignmentsInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_checkout_time?: Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutOrganizationsInput
@@ -12216,6 +12371,7 @@ export type organizationsUncheckedCreateWithoutProgram_assignmentsInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_checkout_time?: Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -12306,6 +12462,7 @@ export type organizationsUpdateWithoutProgram_assignmentsInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutOrganizationsNestedInput
@@ -12380,6 +12537,7 @@ export type organizationsUncheckedUpdateWithoutProgram_assignmentsInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -12454,6 +12612,7 @@ export type organizationsCreateWithoutQuestionnairesInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_checkout_time?: Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutOrganizationsInput
@@ -12528,6 +12687,7 @@ export type organizationsUncheckedCreateWithoutQuestionnairesInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_checkout_time?: Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -12618,6 +12778,7 @@ export type organizationsUpdateWithoutQuestionnairesInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutOrganizationsNestedInput
@@ -12692,6 +12853,7 @@ export type organizationsUncheckedUpdateWithoutQuestionnairesInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -12766,6 +12928,7 @@ export type organizationsCreateWithoutReferralsourcesInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_checkout_time?: Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutOrganizationsInput
@@ -12840,6 +13003,7 @@ export type organizationsUncheckedCreateWithoutReferralsourcesInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_checkout_time?: Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -12930,6 +13094,7 @@ export type organizationsUpdateWithoutReferralsourcesInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutOrganizationsNestedInput
@@ -13004,6 +13169,7 @@ export type organizationsUncheckedUpdateWithoutReferralsourcesInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -13078,6 +13244,7 @@ export type organizationsCreateWithoutRefundsInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_checkout_time?: Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutOrganizationsInput
@@ -13152,6 +13319,7 @@ export type organizationsUncheckedCreateWithoutRefundsInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_checkout_time?: Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -13242,6 +13410,7 @@ export type organizationsUpdateWithoutRefundsInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutOrganizationsNestedInput
@@ -13316,6 +13485,7 @@ export type organizationsUncheckedUpdateWithoutRefundsInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -13390,6 +13560,7 @@ export type organizationsCreateWithoutReport_templatesInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_checkout_time?: Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutOrganizationsInput
@@ -13464,6 +13635,7 @@ export type organizationsUncheckedCreateWithoutReport_templatesInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_checkout_time?: Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -13554,6 +13726,7 @@ export type organizationsUpdateWithoutReport_templatesInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutOrganizationsNestedInput
@@ -13628,6 +13801,7 @@ export type organizationsUncheckedUpdateWithoutReport_templatesInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -13702,6 +13876,7 @@ export type organizationsCreateWithoutScientific_resourcesInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_checkout_time?: Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutOrganizationsInput
@@ -13776,6 +13951,7 @@ export type organizationsUncheckedCreateWithoutScientific_resourcesInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_checkout_time?: Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -13866,6 +14042,7 @@ export type organizationsUpdateWithoutScientific_resourcesInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutOrganizationsNestedInput
@@ -13940,6 +14117,7 @@ export type organizationsUncheckedUpdateWithoutScientific_resourcesInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -14014,6 +14192,7 @@ export type organizationsCreateWithoutServicesInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_checkout_time?: Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutOrganizationsInput
@@ -14088,6 +14267,7 @@ export type organizationsUncheckedCreateWithoutServicesInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_checkout_time?: Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -14178,6 +14358,7 @@ export type organizationsUpdateWithoutServicesInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutOrganizationsNestedInput
@@ -14252,6 +14433,7 @@ export type organizationsUncheckedUpdateWithoutServicesInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -14326,6 +14508,7 @@ export type organizationsCreateWithoutSessionsInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_checkout_time?: Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutOrganizationsInput
@@ -14400,6 +14583,7 @@ export type organizationsUncheckedCreateWithoutSessionsInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_checkout_time?: Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -14490,6 +14674,7 @@ export type organizationsUpdateWithoutSessionsInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutOrganizationsNestedInput
@@ -14564,6 +14749,7 @@ export type organizationsUncheckedUpdateWithoutSessionsInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -14638,6 +14824,7 @@ export type organizationsCreateWithoutStaff_schedulesInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_checkout_time?: Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutOrganizationsInput
@@ -14712,6 +14899,7 @@ export type organizationsUncheckedCreateWithoutStaff_schedulesInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_checkout_time?: Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -14802,6 +14990,7 @@ export type organizationsUpdateWithoutStaff_schedulesInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutOrganizationsNestedInput
@@ -14876,6 +15065,7 @@ export type organizationsUncheckedUpdateWithoutStaff_schedulesInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -14950,6 +15140,7 @@ export type organizationsCreateWithoutSubscription_logsInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_checkout_time?: Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutOrganizationsInput
@@ -15024,6 +15215,7 @@ export type organizationsUncheckedCreateWithoutSubscription_logsInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_checkout_time?: Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -15114,6 +15306,7 @@ export type organizationsUpdateWithoutSubscription_logsInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutOrganizationsNestedInput
@@ -15188,6 +15381,7 @@ export type organizationsUncheckedUpdateWithoutSubscription_logsInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -15262,6 +15456,7 @@ export type organizationsCreateWithoutSubscriptionsInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_checkout_time?: Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutOrganizationsInput
@@ -15336,6 +15531,7 @@ export type organizationsUncheckedCreateWithoutSubscriptionsInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_checkout_time?: Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -15426,6 +15622,7 @@ export type organizationsUpdateWithoutSubscriptionsInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutOrganizationsNestedInput
@@ -15500,6 +15697,7 @@ export type organizationsUncheckedUpdateWithoutSubscriptionsInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -15574,6 +15772,7 @@ export type organizationsCreateWithoutTrainingprogramsInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_checkout_time?: Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutOrganizationsInput
@@ -15648,6 +15847,7 @@ export type organizationsUncheckedCreateWithoutTrainingprogramsInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_checkout_time?: Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -15738,6 +15938,7 @@ export type organizationsUpdateWithoutTrainingprogramsInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutOrganizationsNestedInput
@@ -15812,6 +16013,7 @@ export type organizationsUncheckedUpdateWithoutTrainingprogramsInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -15886,6 +16088,7 @@ export type organizationsCreateWithoutUhidsequencesInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_checkout_time?: Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutOrganizationsInput
@@ -15960,6 +16163,7 @@ export type organizationsUncheckedCreateWithoutUhidsequencesInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_checkout_time?: Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -16050,6 +16254,7 @@ export type organizationsUpdateWithoutUhidsequencesInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutOrganizationsNestedInput
@@ -16124,6 +16329,7 @@ export type organizationsUncheckedUpdateWithoutUhidsequencesInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -16198,6 +16404,7 @@ export type organizationsCreateWithoutWaitlistInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_checkout_time?: Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutOrganizationsInput
@@ -16272,6 +16479,7 @@ export type organizationsUncheckedCreateWithoutWaitlistInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_checkout_time?: Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -16362,6 +16570,7 @@ export type organizationsUpdateWithoutWaitlistInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutOrganizationsNestedInput
@@ -16436,6 +16645,7 @@ export type organizationsUncheckedUpdateWithoutWaitlistInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -16510,6 +16720,7 @@ export type organizationsCreateWithoutWellness_logsInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_checkout_time?: Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutOrganizationsInput
@@ -16584,6 +16795,7 @@ export type organizationsUncheckedCreateWithoutWellness_logsInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_checkout_time?: Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -16674,6 +16886,7 @@ export type organizationsUpdateWithoutWellness_logsInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutOrganizationsNestedInput
@@ -16748,6 +16961,7 @@ export type organizationsUncheckedUpdateWithoutWellness_logsInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -16822,6 +17036,7 @@ export type organizationsCreateWithoutWorkoutdaysInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_checkout_time?: Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutOrganizationsInput
@@ -16896,6 +17111,7 @@ export type organizationsUncheckedCreateWithoutWorkoutdaysInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_checkout_time?: Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -16986,6 +17202,7 @@ export type organizationsUpdateWithoutWorkoutdaysInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutOrganizationsNestedInput
@@ -17060,6 +17277,7 @@ export type organizationsUncheckedUpdateWithoutWorkoutdaysInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -17588,6 +17806,7 @@ export type organizationsSelect<ExtArgs extends runtime.Types.Extensions.Interna
   allowed_ips?: boolean
   allow_custom_duration?: boolean
   default_slot_duration?: boolean
+  default_checkout_time?: boolean
   athlete_item_logs?: boolean | Prisma.organizations$athlete_item_logsArgs<ExtArgs>
   athlete_workout_completions?: boolean | Prisma.organizations$athlete_workout_completionsArgs<ExtArgs>
   availabilityexceptions?: boolean | Prisma.organizations$availabilityexceptionsArgs<ExtArgs>
@@ -17664,6 +17883,7 @@ export type organizationsSelectCreateManyAndReturn<ExtArgs extends runtime.Types
   allowed_ips?: boolean
   allow_custom_duration?: boolean
   default_slot_duration?: boolean
+  default_checkout_time?: boolean
 }, ExtArgs["result"]["organizations"]>
 
 export type organizationsSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -17690,6 +17910,7 @@ export type organizationsSelectUpdateManyAndReturn<ExtArgs extends runtime.Types
   allowed_ips?: boolean
   allow_custom_duration?: boolean
   default_slot_duration?: boolean
+  default_checkout_time?: boolean
 }, ExtArgs["result"]["organizations"]>
 
 export type organizationsSelectScalar = {
@@ -17716,9 +17937,10 @@ export type organizationsSelectScalar = {
   allowed_ips?: boolean
   allow_custom_duration?: boolean
   default_slot_duration?: boolean
+  default_checkout_time?: boolean
 }
 
-export type organizationsOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "created_at" | "updated_at" | "deleted_at" | "org_code" | "slug" | "subscription_plan" | "status" | "uhid_prefix" | "logo_url" | "official_name" | "official_address" | "contact_email" | "contact_phone" | "clinic_latitude" | "clinic_longitude" | "geofence_radius" | "enable_geofencing" | "enable_ip_locking" | "allowed_ips" | "allow_custom_duration" | "default_slot_duration", ExtArgs["result"]["organizations"]>
+export type organizationsOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "created_at" | "updated_at" | "deleted_at" | "org_code" | "slug" | "subscription_plan" | "status" | "uhid_prefix" | "logo_url" | "official_name" | "official_address" | "contact_email" | "contact_phone" | "clinic_latitude" | "clinic_longitude" | "geofence_radius" | "enable_geofencing" | "enable_ip_locking" | "allowed_ips" | "allow_custom_duration" | "default_slot_duration" | "default_checkout_time", ExtArgs["result"]["organizations"]>
 export type organizationsInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   athlete_item_logs?: boolean | Prisma.organizations$athlete_item_logsArgs<ExtArgs>
   athlete_workout_completions?: boolean | Prisma.organizations$athlete_workout_completionsArgs<ExtArgs>
@@ -17851,6 +18073,7 @@ export type $organizationsPayload<ExtArgs extends runtime.Types.Extensions.Inter
     allowed_ips: string | null
     allow_custom_duration: boolean | null
     default_slot_duration: number | null
+    default_checkout_time: Date | null
   }, ExtArgs["result"]["organizations"]>
   composites: {}
 }
@@ -18346,6 +18569,7 @@ export interface organizationsFieldRefs {
   readonly allowed_ips: Prisma.FieldRef<"organizations", 'String'>
   readonly allow_custom_duration: Prisma.FieldRef<"organizations", 'Boolean'>
   readonly default_slot_duration: Prisma.FieldRef<"organizations", 'Int'>
+  readonly default_checkout_time: Prisma.FieldRef<"organizations", 'DateTime'>
 }
     
 
