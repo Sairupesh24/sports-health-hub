@@ -9,8 +9,9 @@ import { apiFetch } from "@/utils/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { CheckCircle, Users, UserX, Plus, Copy, ExternalLink, Search, Trash2, Clock, UserCheck, Shield, Filter, RotateCcw } from "lucide-react";
+import { CheckCircle, Users, UserX, Plus, Copy, ExternalLink, Search, Trash2, Clock, UserCheck, Shield, Filter, RotateCcw, Maximize2 } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { useNavigate } from "react-router-dom";
 
 interface PendingUser {
@@ -89,6 +90,13 @@ export default function UserApproval() {
     acc[r] = (acc[r] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
+
+  const sortedRoles = Object.entries(roleBreakdown)
+    .filter(([_, count]) => count > 0)
+    .sort((a, b) => b[1] - a[1]);
+
+  const topRoles = sortedRoles.slice(0, 3);
+  const remainingRoles = sortedRoles.slice(3);
 
   const [addUserOpen, setAddUserOpen] = useState(false);
   const [newEmail, setNewEmail] = useState("");
@@ -505,45 +513,110 @@ export default function UserApproval() {
             </CardContent>
           </Card>
 
-          <Card className="gradient-card border-border">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between mb-1.5">
-                <div>
-                  <p className="text-xs font-medium text-muted-foreground">Role Distribution</p>
-                  <p className="text-[11px] text-muted-foreground">{staffCount} Staff · {clientCount} Clients/Athletes</p>
+          <Popover>
+            <Card className="gradient-card border-border">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between mb-1.5">
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground">Role Distribution</p>
+                    <p className="text-[11px] text-muted-foreground">{staffCount} Staff · {clientCount} Clients/Athletes</p>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    {sortedRoles.length > 3 && (
+                      <PopoverTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-purple-600 dark:text-purple-400 hover:bg-purple-500/10" title="Expand role counts">
+                          <Maximize2 className="w-3.5 h-3.5" />
+                        </Button>
+                      </PopoverTrigger>
+                    )}
+                    <div className="p-2 rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400">
+                      <Shield className="w-4 h-4" />
+                    </div>
+                  </div>
                 </div>
-                <div className="p-2 rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400">
-                  <Shield className="w-4 h-4" />
-                </div>
-              </div>
 
-              <div className="flex flex-wrap gap-1.5 mt-2">
-                {Object.entries(roleBreakdown).map(([roleKey, count]) => {
-                  if (count <= 0) return null;
-                  const label = getRoleLabel(roleKey);
-                  const isSelected = roleFilter === roleKey;
-                  return (
-                    <Badge
-                      key={roleKey}
-                      variant={isSelected ? "default" : "secondary"}
-                      onClick={() => setRoleFilter(isSelected ? "all" : roleKey)}
-                      className={`cursor-pointer text-[11px] px-2 py-0.5 transition-all hover:scale-105 ${
-                        isSelected 
-                          ? "bg-purple-600 text-white font-bold" 
-                          : "bg-purple-500/10 text-purple-700 dark:text-purple-300 hover:bg-purple-500/20"
-                      }`}
-                      title={`Click to filter by ${label}`}
-                    >
-                      {count} {label}
+                <div className="flex flex-wrap gap-1.5 mt-2">
+                  {topRoles.map(([roleKey, count]) => {
+                    const label = getRoleLabel(roleKey);
+                    const isSelected = roleFilter === roleKey;
+                    return (
+                      <Badge
+                        key={roleKey}
+                        variant={isSelected ? "default" : "secondary"}
+                        onClick={() => setRoleFilter(isSelected ? "all" : roleKey)}
+                        className={`cursor-pointer text-[11px] px-2 py-0.5 transition-all hover:scale-105 ${
+                          isSelected 
+                            ? "bg-purple-600 text-white font-bold" 
+                            : "bg-purple-500/10 text-purple-700 dark:text-purple-300 hover:bg-purple-500/20"
+                        }`}
+                        title={`Click to filter by ${label}`}
+                      >
+                        {count} {label}
+                      </Badge>
+                    );
+                  })}
+
+                  {remainingRoles.length > 0 && (
+                    <PopoverTrigger asChild>
+                      <Badge
+                        variant="outline"
+                        className="cursor-pointer text-[11px] px-2 py-0.5 bg-purple-500/15 text-purple-700 dark:text-purple-300 border-purple-300/50 hover:bg-purple-500/25 font-bold transition-all hover:scale-105"
+                        title="Click to view all role counts"
+                      >
+                        +{remainingRoles.length} more
+                      </Badge>
+                    </PopoverTrigger>
+                  )}
+
+                  {sortedRoles.length === 0 && (
+                    <span className="text-xs text-muted-foreground">No roles assigned</span>
+                  )}
+                </div>
+
+                <PopoverContent className="w-80 p-4 border-border bg-card shadow-xl" align="end">
+                  <div className="flex items-center justify-between pb-2 mb-3 border-b border-border">
+                    <div>
+                      <h4 className="text-xs font-bold text-foreground uppercase tracking-wider">All Role Breakdown</h4>
+                      <p className="text-[11px] text-muted-foreground">{sortedRoles.length} active roles</p>
+                    </div>
+                    <Badge variant="outline" className="text-xs font-mono font-bold">
+                      {totalCount} Total
                     </Badge>
-                  );
-                })}
-                {Object.keys(roleBreakdown).length === 0 && (
-                  <span className="text-xs text-muted-foreground">No roles assigned</span>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+                  </div>
+
+                  <div className="space-y-1.5 max-h-60 overflow-y-auto pr-1">
+                    {sortedRoles.map(([roleKey, count]) => {
+                      const label = getRoleLabel(roleKey);
+                      const isSelected = roleFilter === roleKey;
+                      return (
+                        <div 
+                          key={roleKey}
+                          onClick={() => setRoleFilter(isSelected ? "all" : roleKey)}
+                          className={`flex items-center justify-between p-2 rounded-md cursor-pointer transition-all ${
+                            isSelected 
+                              ? 'bg-purple-600 text-white font-bold' 
+                              : 'hover:bg-muted/50 text-foreground'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <Badge variant={isSelected ? "outline" : "secondary"} className={`h-5 text-[10px] font-mono px-1.5 ${isSelected ? 'border-white/50 text-white' : ''}`}>
+                              {count}
+                            </Badge>
+                            <span className="text-xs font-medium">
+                              {label}
+                            </span>
+                          </div>
+                          {isSelected && (
+                            <span className="text-[10px] font-bold uppercase tracking-wider">Active Filter</span>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </PopoverContent>
+              </CardContent>
+            </Card>
+          </Popover>
         </div>
 
         <Card className="gradient-card border-border">
