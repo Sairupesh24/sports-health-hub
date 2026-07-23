@@ -358,7 +358,9 @@ export default function UserApproval() {
       return;
     }
     const currentUser = users.find(u => u.id === userId);
-    setPendingActionAmsRole(currentUser?.ams_role || "none");
+    let defaultAmsRole = currentUser?.ams_role || "none";
+    if (role === "athlete") defaultAmsRole = "athlete";
+    setPendingActionAmsRole(defaultAmsRole);
     setPendingAction({ type: "approve", userId, role: role || pendingAction?.role || "client" });
     setPendingActionUhid(currentUser?.uhid || "");
     setPendingActionProfession(currentUser?.profession || "none");
@@ -851,7 +853,17 @@ export default function UserApproval() {
                           {u.first_name || u.last_name ? `${u.first_name} ${u.last_name}`.trim() : "No name provided"}
                         </p>
                         {u.ams_role && (
-                          <Badge variant="outline" className="text-[10px] h-5 px-1.5 uppercase font-bold border-primary/50 text-primary">
+                          <Badge 
+                            variant="outline" 
+                            onClick={() => {
+                              setPendingActionAmsRole(u.ams_role || "none");
+                              setPendingAction({ type: "change_role", userId: u.id, role: u.current_role || "sports_scientist" });
+                              setPendingActionUhid(u.uhid || "");
+                              setPendingActionProfession(u.profession || "none");
+                            }}
+                            className="cursor-pointer text-[10px] h-5 px-1.5 uppercase font-bold border-primary/50 text-primary hover:bg-primary/10 transition-colors"
+                            title="Click to change or remove AMS Access"
+                          >
                             AMS {u.ams_role}
                           </Badge>
                         )}

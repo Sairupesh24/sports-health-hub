@@ -25,10 +25,16 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { DateRange } from "react-day-picker";
-import { useAuth } from "@/contexts/AuthContext";
+import { Navigate } from "react-router-dom";
 
 export default function CoachDashboard() {
-  const { user } = useAuth();
+  const { user, profile, roles } = useAuth();
+  const hasAmsAccess = profile?.ams_role === 'coach' || roles?.includes('admin') || roles?.includes('super_admin');
+
+  if (profile && !hasAmsAccess) {
+    return <Navigate to="/" replace />;
+  }
+
   const [date, setDate] = useState<DateRange | undefined>({
     from: startOfWeek(new Date(), { weekStartsOn: 1 }),
     to: endOfWeek(new Date(), { weekStartsOn: 1 }),
