@@ -84,7 +84,7 @@ export default function LeadsDashboard() {
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [selectedEnquiry, setSelectedEnquiry] = useState<Enquiry | null>(null);
   const [linkSearchTerm, setLinkSearchTerm] = useState("");
-  const [selectedClient, setSelectedClient] = useState<Database['public']['Tables']['clients']['Row'] | null>(null);
+  const [selectedClient, setSelectedClient] = useState<any | null>(null);
   const [isLogModalOpen, setIsLogModalOpen] = useState(false);
 
   const { data: enquiries = [], isLoading } = useQuery({
@@ -101,7 +101,7 @@ export default function LeadsDashboard() {
     mutationFn: async ({ id, status }: { id: string, status: EnquiryStatus }) => {
       await apiFetch(`/clients/enquiries/${id}`, {
         method: 'PATCH',
-        body: { status }
+        data: { status }
       });
     },
     onSuccess: () => {
@@ -114,12 +114,12 @@ export default function LeadsDashboard() {
     mutationFn: async ({ id, type, response }: { id: string, type: string, response: string }) => {
       await apiFetch(`/clients/enquiries/${id}/interactions`, {
         method: 'POST',
-        body: { interaction_type: type, response_text: response }
+        data: { interaction_type: type, response_text: response }
       });
       
       await apiFetch(`/clients/enquiries/${id}`, {
         method: 'PATCH',
-        body: { last_interaction_at: new Date().toISOString() }
+        data: { last_interaction_at: new Date().toISOString() }
       });
     },
     onSuccess: () => {
@@ -142,12 +142,12 @@ export default function LeadsDashboard() {
     mutationFn: async ({ enquiryId, clientId }: { enquiryId: string, clientId: string }) => {
       const enqData = await apiFetch<any>(`/clients/enquiries/${enquiryId}`, {
         method: 'PATCH',
-        body: { status: 'converted', linked_client_id: clientId }
+        data: { status: 'converted', linked_client_id: clientId }
       });
 
       await apiFetch(`/clients/enquiries/${enquiryId}/interactions`, {
         method: 'POST',
-        body: {
+        data: {
           interaction_type: 'converted',
           response_text: `Lead linked to UHID: ${selectedClient?.uhid || 'Manual Selection'}`
         }
@@ -156,13 +156,13 @@ export default function LeadsDashboard() {
       if (enqData.notes) {
         await apiFetch(`/clients/${clientId}`, {
           method: 'PATCH',
-          body: { admin_remarks: `[Enquiry Conversion Note]: ${enqData.notes}` }
+          data: { admin_remarks: `[Enquiry Conversion Note]: ${enqData.notes}` }
         });
       }
 
       await apiFetch(`/appointments/sessions/bulk-update`, {
         method: 'PATCH',
-        body: { 
+        data: { 
           filters: { enquiry_id: enquiryId },
           updates: { client_id: clientId, is_guest: false }
         }
@@ -185,12 +185,12 @@ export default function LeadsDashboard() {
     mutationFn: async (enquiryId: string) => {
       await apiFetch(`/clients/enquiries/${enquiryId}`, {
         method: 'PATCH',
-        body: { status: 'contacted', linked_client_id: null }
+        data: { status: 'contacted', linked_client_id: null }
       });
 
       await apiFetch(`/clients/enquiries/${enquiryId}/interactions`, {
         method: 'POST',
-        body: {
+        data: {
           interaction_type: 'status_change',
           response_text: `Client unlinked from lead.`
         }
@@ -527,7 +527,7 @@ export default function LeadsDashboard() {
               {searchResults.map((client) => (
                 <div 
                   key={client.id} 
-                  onClick={() => setSelectedClient(client as Database['public']['Tables']['clients']['Row'])}
+                  onClick={() => setSelectedClient(client as any)}
                   className={cn(
                     "p-3 rounded-lg border cursor-pointer transition-all flex justify-between items-center",
                     selectedClient?.id === client.id ? "bg-primary/5 border-primary shadow-sm" : "hover:bg-slate-50 border-transparent"
