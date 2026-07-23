@@ -7,7 +7,7 @@ import ReportsPage from '../pages/shared/ReportsPage';
 
 // Mock Lucide React icons because they can cause issues in testing environments
 vi.mock('lucide-react', async (importOriginal) => {
-  const actual = await importOriginal();
+  const actual = await importOriginal() as object;
   return {
     ...actual,
   };

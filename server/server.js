@@ -193,6 +193,16 @@ async function startPgListener() {
   let pgListenClient;
   try {
     pgListenClient = await db.connect();
+    
+    // Attach error handler immediately to avoid unhandled error events
+    pgListenClient.on('error', (err) => {
+      console.error('[SSE] Postgres listener client error, reconnecting:', err.message);
+      try {
+        pgListenClient.release(true);
+      } catch (e) {}
+      setTimeout(startPgListener, 5000);
+    });
+
     await pgListenClient.query('LISTEN system_notifications');
     console.log('[SSE] Listening to Postgres system_notifications channel');
     
@@ -221,15 +231,11 @@ async function startPgListener() {
         console.error('Error handling pg notification payload:', e);
       }
     });
-
-    pgListenClient.on('error', async (err) => {
-      console.error('[SSE] Postgres listener client error, restarting:', err);
-      pgListenClient.release();
-      setTimeout(startPgListener, 5000);
-    });
   } catch (err) {
-    console.error('[SSE] Failed to establish Postgres listener, retrying:', err);
-    if (pgListenClient) pgListenClient.release();
+    console.error('[SSE] Failed to establish Postgres listener, retrying:', err.message);
+    if (pgListenClient) {
+      try { pgListenClient.release(true); } catch (e) {}
+    }
     setTimeout(startPgListener, 5000);
   }
 }

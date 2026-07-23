@@ -9,7 +9,7 @@ import { apiFetch } from "@/utils/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { CheckCircle, Users, UserX, Plus, Copy, ExternalLink, Search, Trash2 } from "lucide-react";
+import { CheckCircle, Users, UserX, Plus, Copy, ExternalLink, Search, Trash2, Clock, UserCheck, Shield, Filter, RotateCcw } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { useNavigate } from "react-router-dom";
 
@@ -33,19 +33,62 @@ export default function UserApproval() {
   const [selectedRoles, setSelectedRoles] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [roleFilter, setRoleFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
   const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
 
   const filteredUsers = users.filter((u) => {
-    if (!searchQuery.trim()) return true;
-    const query = searchQuery.toLowerCase();
-    const fullName = `${u.first_name || ""} ${u.last_name || ""}`.toLowerCase();
-    return (
-      fullName.includes(query) ||
-      (u.email && u.email.toLowerCase().includes(query)) ||
-      (u.current_role && u.current_role.toLowerCase().includes(query)) ||
-      (u.uhid && u.uhid.toLowerCase().includes(query))
-    );
+    // Search query filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      const fullName = `${u.first_name || ""} ${u.last_name || ""}`.toLowerCase();
+      const matchesSearch = (
+        fullName.includes(query) ||
+        (u.email && u.email.toLowerCase().includes(query)) ||
+        (u.current_role && u.current_role.toLowerCase().includes(query)) ||
+        (u.uhid && u.uhid.toLowerCase().includes(query))
+      );
+      if (!matchesSearch) return false;
+    }
+
+    // Status filter
+    if (statusFilter === "pending" && u.is_approved) return false;
+    if (statusFilter === "approved" && !u.is_approved) return false;
+
+    // Role filter
+    if (roleFilter !== "all" && u.current_role !== roleFilter) return false;
+
+    return true;
   });
+
+  const totalCount = users.length;
+  const pendingCount = users.filter(u => !u.is_approved).length;
+  const approvedCount = users.filter(u => u.is_approved).length;
+  const staffCount = users.filter(u => u.current_role && u.current_role !== 'client' && u.current_role !== 'athlete').length;
+  const clientCount = users.filter(u => u.current_role === 'client' || u.current_role === 'athlete').length;
+
+  const ROLE_LABELS: Record<string, string> = {
+    admin: "Admin",
+    sports_physician: "Sports Physician",
+    physiotherapist: "Physiotherapist",
+    nutritionist: "Nutritionist",
+    sports_scientist: "Sports Scientist",
+    foe: "Front Office",
+    hr_manager: "HR Manager",
+    client: "Client",
+    athlete: "Athlete",
+  };
+
+  const getRoleLabel = (roleKey: string) => {
+    if (ROLE_LABELS[roleKey]) return ROLE_LABELS[roleKey];
+    return roleKey.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+  };
+
+  const roleBreakdown = users.reduce((acc, u) => {
+    const r = u.current_role || 'unassigned';
+    acc[r] = (acc[r] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
 
   const [addUserOpen, setAddUserOpen] = useState(false);
   const [newEmail, setNewEmail] = useState("");
@@ -410,18 +453,114 @@ export default function UserApproval() {
           <p className="text-muted-foreground text-sm mt-1">Approve new staff, manage access, and assign roles</p>
         </div>
 
+        {/* Metrics Snapshot Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <Card 
+            className={`gradient-card border-border cursor-pointer transition-all hover:border-primary/50 ${statusFilter === 'all' && roleFilter === 'all' ? 'ring-2 ring-primary/30' : ''}`}
+            onClick={() => { setStatusFilter('all'); setRoleFilter('all'); }}
+          >
+            <CardContent className="p-4 flex items-center justify-between">
+              <div>
+                <p className="text-xs font-medium text-muted-foreground">Total Members</p>
+                <h3 className="text-2xl font-bold text-foreground mt-1">{totalCount}</h3>
+                <p className="text-[11px] text-muted-foreground mt-0.5">{staffCount} Staff · {clientCount} Clients/Athletes</p>
+              </div>
+              <div className="p-2.5 rounded-lg bg-primary/10 text-primary">
+                <Users className="w-5 h-5" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card 
+            className={`gradient-card border-border cursor-pointer transition-all hover:border-amber-500/50 ${statusFilter === 'pending' ? 'ring-2 ring-amber-500/50 bg-amber-500/5' : ''}`}
+            onClick={() => setStatusFilter(statusFilter === 'pending' ? 'all' : 'pending')}
+          >
+            <CardContent className="p-4 flex items-center justify-between">
+              <div>
+                <p className="text-xs font-medium text-amber-600 dark:text-amber-400">Pending Approval</p>
+                <h3 className="text-2xl font-bold text-amber-600 dark:text-amber-400 mt-1">{pendingCount}</h3>
+                <p className="text-[11px] text-muted-foreground mt-0.5">
+                  {pendingCount > 0 ? 'Requires action' : 'All caught up'}
+                </p>
+              </div>
+              <div className="p-2.5 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400">
+                <Clock className="w-5 h-5" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card 
+            className={`gradient-card border-border cursor-pointer transition-all hover:border-emerald-500/50 ${statusFilter === 'approved' ? 'ring-2 ring-emerald-500/50 bg-emerald-500/5' : ''}`}
+            onClick={() => setStatusFilter(statusFilter === 'approved' ? 'all' : 'approved')}
+          >
+            <CardContent className="p-4 flex items-center justify-between">
+              <div>
+                <p className="text-xs font-medium text-emerald-600 dark:text-emerald-400">Approved Members</p>
+                <h3 className="text-2xl font-bold text-emerald-600 dark:text-emerald-400 mt-1">{approvedCount}</h3>
+                <p className="text-[11px] text-muted-foreground mt-0.5">Active access granted</p>
+              </div>
+              <div className="p-2.5 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                <UserCheck className="w-5 h-5" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="gradient-card border-border">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between mb-1.5">
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground">Role Distribution</p>
+                  <p className="text-[11px] text-muted-foreground">{staffCount} Staff · {clientCount} Clients/Athletes</p>
+                </div>
+                <div className="p-2 rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400">
+                  <Shield className="w-4 h-4" />
+                </div>
+              </div>
+
+              <div className="flex flex-wrap gap-1.5 mt-2">
+                {Object.entries(roleBreakdown).map(([roleKey, count]) => {
+                  if (count <= 0) return null;
+                  const label = getRoleLabel(roleKey);
+                  const isSelected = roleFilter === roleKey;
+                  return (
+                    <Badge
+                      key={roleKey}
+                      variant={isSelected ? "default" : "secondary"}
+                      onClick={() => setRoleFilter(isSelected ? "all" : roleKey)}
+                      className={`cursor-pointer text-[11px] px-2 py-0.5 transition-all hover:scale-105 ${
+                        isSelected 
+                          ? "bg-purple-600 text-white font-bold" 
+                          : "bg-purple-500/10 text-purple-700 dark:text-purple-300 hover:bg-purple-500/20"
+                      }`}
+                      title={`Click to filter by ${label}`}
+                    >
+                      {count} {label}
+                    </Badge>
+                  );
+                })}
+                {Object.keys(roleBreakdown).length === 0 && (
+                  <span className="text-xs text-muted-foreground">No roles assigned</span>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
         <Card className="gradient-card border-border">
-          <CardHeader className="flex flex-col md:flex-row md:items-start justify-between gap-4">
+          <CardHeader className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
             <div>
               <CardTitle className="text-lg flex items-center gap-2">
                 <Users className="w-5 h-5 text-primary" />
                 Organization Members
+                <Badge variant="secondary" className="ml-2 font-mono text-xs">
+                  {filteredUsers.length}
+                </Badge>
               </CardTitle>
               <CardDescription>Manage your team's access to the platform</CardDescription>
             </div>
 
-            <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
-              <div className="relative w-full sm:w-64">
+            <div className="flex flex-col sm:flex-row flex-wrap items-center gap-3 w-full xl:w-auto">
+              <div className="relative w-full sm:w-52">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
                   placeholder="Search members..."
@@ -430,6 +569,53 @@ export default function UserApproval() {
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
               </div>
+
+              {/* Role Filter Dropdown */}
+              <Select value={roleFilter} onValueChange={setRoleFilter}>
+                <SelectTrigger className="w-full sm:w-44 bg-muted/30 border-border">
+                  <div className="flex items-center gap-2 truncate">
+                    <Filter className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                    <SelectValue placeholder="All Roles" />
+                  </div>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Roles</SelectItem>
+                  <SelectItem value="admin">Admin</SelectItem>
+                  <SelectItem value="sports_physician">Sports Physician</SelectItem>
+                  <SelectItem value="physiotherapist">Physiotherapist</SelectItem>
+                  <SelectItem value="nutritionist">Nutritionist</SelectItem>
+                  <SelectItem value="sports_scientist">Sports Scientist</SelectItem>
+                  <SelectItem value="foe">Front Office Executive</SelectItem>
+                  <SelectItem value="hr_manager">HR Manager</SelectItem>
+                  <SelectItem value="client">Client</SelectItem>
+                  <SelectItem value="athlete">Athlete</SelectItem>
+                </SelectContent>
+              </Select>
+
+              {/* Status Filter Dropdown */}
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-full sm:w-36 bg-muted/30 border-border">
+                  <SelectValue placeholder="All Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="approved">Approved</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                </SelectContent>
+              </Select>
+
+              {(roleFilter !== 'all' || statusFilter !== 'all' || searchQuery.trim()) && (
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => { setRoleFilter('all'); setStatusFilter('all'); setSearchQuery(''); }}
+                  className="h-9 px-2 text-xs text-muted-foreground hover:text-foreground gap-1"
+                  title="Reset all filters"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  Reset
+                </Button>
+              )}
 
               <Dialog open={isLinkingDialogOpen} onOpenChange={setIsLinkingDialogOpen}>
                 <DialogContent className="sm:max-w-[425px]">

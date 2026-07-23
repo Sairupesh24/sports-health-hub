@@ -68,6 +68,7 @@ interface AttendanceSummary {
   hasOutside: boolean;
   hasIpBlocked: boolean;
   hasEmergencyLeave: boolean;
+  hasAutoCheckout: boolean;
   rawLogs: any[];
 }
 
