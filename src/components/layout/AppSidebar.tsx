@@ -226,7 +226,7 @@ export default function AppSidebar({ role, isMobile, className, onNavigate }: Ap
     items = items.filter(item => item.href !== "/admin/analytics/managerial");
   }
 
-  if (role === "sports_scientist" || profile?.ams_role === "coach") {
+  if (profile?.ams_role === "coach") {
     if (!items.find(i => i.label === "AMS Dashboard")) {
       items = [
         ...items,

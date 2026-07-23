@@ -9,7 +9,7 @@ import { apiFetch } from "@/utils/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { CheckCircle, Users, UserX, Plus, Copy, ExternalLink, Search, Trash2, Clock, UserCheck, Shield, Filter, RotateCcw } from "lucide-react";
+import { CheckCircle, Users, UserX, Plus, Copy, ExternalLink, Search, Trash2, Clock, UserCheck, Shield, Filter, RotateCcw, Maximize2, Minimize2 } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { useNavigate } from "react-router-dom";
 
@@ -35,6 +35,7 @@ export default function UserApproval() {
   const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [isRolesExpanded, setIsRolesExpanded] = useState(false);
   const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
 
   const filteredUsers = users.filter((u) => {
@@ -89,6 +90,13 @@ export default function UserApproval() {
     acc[r] = (acc[r] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
+
+  const sortedRoles = Object.entries(roleBreakdown)
+    .filter(([_, count]) => count > 0)
+    .sort((a, b) => b[1] - a[1]);
+
+  const topRoles = sortedRoles.slice(0, 3);
+  const remainingRoles = sortedRoles.slice(3);
 
   const [addUserOpen, setAddUserOpen] = useState(false);
   const [newEmail, setNewEmail] = useState("");
@@ -350,7 +358,9 @@ export default function UserApproval() {
       return;
     }
     const currentUser = users.find(u => u.id === userId);
-    setPendingActionAmsRole(currentUser?.ams_role || "none");
+    let defaultAmsRole = currentUser?.ams_role || "none";
+    if (role === "athlete") defaultAmsRole = "athlete";
+    setPendingActionAmsRole(defaultAmsRole);
     setPendingAction({ type: "approve", userId, role: role || pendingAction?.role || "client" });
     setPendingActionUhid(currentUser?.uhid || "");
     setPendingActionProfession(currentUser?.profession || "none");
@@ -505,21 +515,33 @@ export default function UserApproval() {
             </CardContent>
           </Card>
 
-          <Card className="gradient-card border-border">
+          <Card className="gradient-card border-border transition-all duration-300">
             <CardContent className="p-4">
               <div className="flex items-center justify-between mb-1.5">
                 <div>
                   <p className="text-xs font-medium text-muted-foreground">Role Distribution</p>
                   <p className="text-[11px] text-muted-foreground">{staffCount} Staff · {clientCount} Clients/Athletes</p>
                 </div>
-                <div className="p-2 rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400">
-                  <Shield className="w-4 h-4" />
+                <div className="flex items-center gap-1">
+                  {sortedRoles.length > 3 && (
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      onClick={() => setIsRolesExpanded(!isRolesExpanded)}
+                      className="h-7 w-7 text-purple-600 dark:text-purple-400 hover:bg-purple-500/10 transition-transform" 
+                      title={isRolesExpanded ? "Collapse role counts" : "Expand all role counts"}
+                    >
+                      {isRolesExpanded ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
+                    </Button>
+                  )}
+                  <div className="p-2 rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400">
+                    <Shield className="w-4 h-4" />
+                  </div>
                 </div>
               </div>
 
-              <div className="flex flex-wrap gap-1.5 mt-2">
-                {Object.entries(roleBreakdown).map(([roleKey, count]) => {
-                  if (count <= 0) return null;
+              <div className="flex flex-wrap gap-1.5 mt-2 transition-all duration-300">
+                {(isRolesExpanded ? sortedRoles : topRoles).map(([roleKey, count]) => {
                   const label = getRoleLabel(roleKey);
                   const isSelected = roleFilter === roleKey;
                   return (
@@ -538,7 +560,30 @@ export default function UserApproval() {
                     </Badge>
                   );
                 })}
-                {Object.keys(roleBreakdown).length === 0 && (
+
+                {!isRolesExpanded && remainingRoles.length > 0 && (
+                  <Badge
+                    variant="outline"
+                    onClick={() => setIsRolesExpanded(true)}
+                    className="cursor-pointer text-[11px] px-2 py-0.5 bg-purple-500/15 text-purple-700 dark:text-purple-300 border-purple-300/50 hover:bg-purple-500/25 font-bold transition-all hover:scale-105"
+                    title="Click to view all role counts"
+                  >
+                    +{remainingRoles.length} more
+                  </Badge>
+                )}
+
+                {isRolesExpanded && remainingRoles.length > 0 && (
+                  <Badge
+                    variant="outline"
+                    onClick={() => setIsRolesExpanded(false)}
+                    className="cursor-pointer text-[11px] px-2 py-0.5 bg-muted text-muted-foreground border-border hover:bg-muted/80 font-bold transition-all hover:scale-105"
+                    title="Click to collapse"
+                  >
+                    Show less
+                  </Badge>
+                )}
+
+                {sortedRoles.length === 0 && (
                   <span className="text-xs text-muted-foreground">No roles assigned</span>
                 )}
               </div>
@@ -808,7 +853,17 @@ export default function UserApproval() {
                           {u.first_name || u.last_name ? `${u.first_name} ${u.last_name}`.trim() : "No name provided"}
                         </p>
                         {u.ams_role && (
-                          <Badge variant="outline" className="text-[10px] h-5 px-1.5 uppercase font-bold border-primary/50 text-primary">
+                          <Badge 
+                            variant="outline" 
+                            onClick={() => {
+                              setPendingActionAmsRole(u.ams_role || "none");
+                              setPendingAction({ type: "change_role", userId: u.id, role: u.current_role || "sports_scientist" });
+                              setPendingActionUhid(u.uhid || "");
+                              setPendingActionProfession(u.profession || "none");
+                            }}
+                            className="cursor-pointer text-[10px] h-5 px-1.5 uppercase font-bold border-primary/50 text-primary hover:bg-primary/10 transition-colors"
+                            title="Click to change or remove AMS Access"
+                          >
                             AMS {u.ams_role}
                           </Badge>
                         )}
