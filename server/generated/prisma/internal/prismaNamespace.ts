@@ -5714,6 +5714,7 @@ export const HrattendancelogsScalarFieldEnum = {
   distance_from_center: 'distance_from_center',
   is_within_geofence: 'is_within_geofence',
   metadata: 'metadata',
+  remark: 'remark',
   created_at: 'created_at'
 } as const
 
@@ -5879,7 +5880,8 @@ export const OrganizationsScalarFieldEnum = {
   enable_ip_locking: 'enable_ip_locking',
   allowed_ips: 'allowed_ips',
   allow_custom_duration: 'allow_custom_duration',
-  default_slot_duration: 'default_slot_duration'
+  default_slot_duration: 'default_slot_duration',
+  default_checkout_time: 'default_checkout_time'
 } as const
 
 export type OrganizationsScalarFieldEnum = (typeof OrganizationsScalarFieldEnum)[keyof typeof OrganizationsScalarFieldEnum]
@@ -5895,7 +5897,8 @@ export const PackagesScalarFieldEnum = {
   created_at: 'created_at',
   updated_at: 'updated_at',
   category: 'category',
-  tax_percentage: 'tax_percentage'
+  tax_percentage: 'tax_percentage',
+  tax_amount: 'tax_amount'
 } as const
 
 export type PackagesScalarFieldEnum = (typeof PackagesScalarFieldEnum)[keyof typeof PackagesScalarFieldEnum]

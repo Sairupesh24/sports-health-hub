@@ -29,11 +29,13 @@ export type AggregatePackages = {
 export type PackagesAvgAggregateOutputType = {
   price: runtime.Decimal | null
   tax_percentage: runtime.Decimal | null
+  tax_amount: runtime.Decimal | null
 }
 
 export type PackagesSumAggregateOutputType = {
   price: runtime.Decimal | null
   tax_percentage: runtime.Decimal | null
+  tax_amount: runtime.Decimal | null
 }
 
 export type PackagesMinAggregateOutputType = {
@@ -47,6 +49,7 @@ export type PackagesMinAggregateOutputType = {
   updated_at: Date | null
   category: string | null
   tax_percentage: runtime.Decimal | null
+  tax_amount: runtime.Decimal | null
 }
 
 export type PackagesMaxAggregateOutputType = {
@@ -60,6 +63,7 @@ export type PackagesMaxAggregateOutputType = {
   updated_at: Date | null
   category: string | null
   tax_percentage: runtime.Decimal | null
+  tax_amount: runtime.Decimal | null
 }
 
 export type PackagesCountAggregateOutputType = {
@@ -73,6 +77,7 @@ export type PackagesCountAggregateOutputType = {
   updated_at: number
   category: number
   tax_percentage: number
+  tax_amount: number
   _all: number
 }
 
@@ -80,11 +85,13 @@ export type PackagesCountAggregateOutputType = {
 export type PackagesAvgAggregateInputType = {
   price?: true
   tax_percentage?: true
+  tax_amount?: true
 }
 
 export type PackagesSumAggregateInputType = {
   price?: true
   tax_percentage?: true
+  tax_amount?: true
 }
 
 export type PackagesMinAggregateInputType = {
@@ -98,6 +105,7 @@ export type PackagesMinAggregateInputType = {
   updated_at?: true
   category?: true
   tax_percentage?: true
+  tax_amount?: true
 }
 
 export type PackagesMaxAggregateInputType = {
@@ -111,6 +119,7 @@ export type PackagesMaxAggregateInputType = {
   updated_at?: true
   category?: true
   tax_percentage?: true
+  tax_amount?: true
 }
 
 export type PackagesCountAggregateInputType = {
@@ -124,6 +133,7 @@ export type PackagesCountAggregateInputType = {
   updated_at?: true
   category?: true
   tax_percentage?: true
+  tax_amount?: true
   _all?: true
 }
 
@@ -224,6 +234,7 @@ export type PackagesGroupByOutputType = {
   updated_at: Date | null
   category: string | null
   tax_percentage: runtime.Decimal
+  tax_amount: runtime.Decimal | null
   _count: PackagesCountAggregateOutputType | null
   _avg: PackagesAvgAggregateOutputType | null
   _sum: PackagesSumAggregateOutputType | null
@@ -260,6 +271,7 @@ export type packagesWhereInput = {
   updated_at?: Prisma.DateTimeNullableFilter<"packages"> | Date | string | null
   category?: Prisma.StringNullableFilter<"packages"> | string | null
   tax_percentage?: Prisma.DecimalFilter<"packages"> | runtime.Decimal | runtime.DecimalJsLike | number | string
+  tax_amount?: Prisma.DecimalNullableFilter<"packages"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   cliententitlements?: Prisma.CliententitlementsListRelationFilter
   organizations?: Prisma.XOR<Prisma.OrganizationsScalarRelationFilter, Prisma.organizationsWhereInput>
   packageservices?: Prisma.PackageservicesListRelationFilter
@@ -277,6 +289,7 @@ export type packagesOrderByWithRelationInput = {
   updated_at?: Prisma.SortOrderInput | Prisma.SortOrder
   category?: Prisma.SortOrderInput | Prisma.SortOrder
   tax_percentage?: Prisma.SortOrder
+  tax_amount?: Prisma.SortOrderInput | Prisma.SortOrder
   cliententitlements?: Prisma.cliententitlementsOrderByRelationAggregateInput
   organizations?: Prisma.organizationsOrderByWithRelationInput
   packageservices?: Prisma.packageservicesOrderByRelationAggregateInput
@@ -298,6 +311,7 @@ export type packagesWhereUniqueInput = Prisma.AtLeast<{
   updated_at?: Prisma.DateTimeNullableFilter<"packages"> | Date | string | null
   category?: Prisma.StringNullableFilter<"packages"> | string | null
   tax_percentage?: Prisma.DecimalFilter<"packages"> | runtime.Decimal | runtime.DecimalJsLike | number | string
+  tax_amount?: Prisma.DecimalNullableFilter<"packages"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   cliententitlements?: Prisma.CliententitlementsListRelationFilter
   organizations?: Prisma.XOR<Prisma.OrganizationsScalarRelationFilter, Prisma.organizationsWhereInput>
   packageservices?: Prisma.PackageservicesListRelationFilter
@@ -315,6 +329,7 @@ export type packagesOrderByWithAggregationInput = {
   updated_at?: Prisma.SortOrderInput | Prisma.SortOrder
   category?: Prisma.SortOrderInput | Prisma.SortOrder
   tax_percentage?: Prisma.SortOrder
+  tax_amount?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.packagesCountOrderByAggregateInput
   _avg?: Prisma.packagesAvgOrderByAggregateInput
   _max?: Prisma.packagesMaxOrderByAggregateInput
@@ -336,6 +351,7 @@ export type packagesScalarWhereWithAggregatesInput = {
   updated_at?: Prisma.DateTimeNullableWithAggregatesFilter<"packages"> | Date | string | null
   category?: Prisma.StringNullableWithAggregatesFilter<"packages"> | string | null
   tax_percentage?: Prisma.DecimalWithAggregatesFilter<"packages"> | runtime.Decimal | runtime.DecimalJsLike | number | string
+  tax_amount?: Prisma.DecimalNullableWithAggregatesFilter<"packages"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
 }
 
 export type packagesCreateInput = {
@@ -348,6 +364,7 @@ export type packagesCreateInput = {
   updated_at?: Date | string | null
   category?: string | null
   tax_percentage?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  tax_amount?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   cliententitlements?: Prisma.cliententitlementsCreateNestedManyWithoutPackagesInput
   organizations: Prisma.organizationsCreateNestedOneWithoutPackagesInput
   packageservices?: Prisma.packageservicesCreateNestedManyWithoutPackagesInput
@@ -365,6 +382,7 @@ export type packagesUncheckedCreateInput = {
   updated_at?: Date | string | null
   category?: string | null
   tax_percentage?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  tax_amount?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   cliententitlements?: Prisma.cliententitlementsUncheckedCreateNestedManyWithoutPackagesInput
   packageservices?: Prisma.packageservicesUncheckedCreateNestedManyWithoutPackagesInput
   subscriptions?: Prisma.subscriptionsUncheckedCreateNestedManyWithoutPackagesInput
@@ -380,6 +398,7 @@ export type packagesUpdateInput = {
   updated_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   category?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   tax_percentage?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  tax_amount?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   cliententitlements?: Prisma.cliententitlementsUpdateManyWithoutPackagesNestedInput
   organizations?: Prisma.organizationsUpdateOneRequiredWithoutPackagesNestedInput
   packageservices?: Prisma.packageservicesUpdateManyWithoutPackagesNestedInput
@@ -397,6 +416,7 @@ export type packagesUncheckedUpdateInput = {
   updated_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   category?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   tax_percentage?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  tax_amount?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   cliententitlements?: Prisma.cliententitlementsUncheckedUpdateManyWithoutPackagesNestedInput
   packageservices?: Prisma.packageservicesUncheckedUpdateManyWithoutPackagesNestedInput
   subscriptions?: Prisma.subscriptionsUncheckedUpdateManyWithoutPackagesNestedInput
@@ -413,6 +433,7 @@ export type packagesCreateManyInput = {
   updated_at?: Date | string | null
   category?: string | null
   tax_percentage?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  tax_amount?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
 }
 
 export type packagesUpdateManyMutationInput = {
@@ -425,6 +446,7 @@ export type packagesUpdateManyMutationInput = {
   updated_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   category?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   tax_percentage?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  tax_amount?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
 }
 
 export type packagesUncheckedUpdateManyInput = {
@@ -438,6 +460,7 @@ export type packagesUncheckedUpdateManyInput = {
   updated_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   category?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   tax_percentage?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  tax_amount?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
 }
 
 export type PackagesNullableScalarRelationFilter = {
@@ -471,11 +494,13 @@ export type packagesCountOrderByAggregateInput = {
   updated_at?: Prisma.SortOrder
   category?: Prisma.SortOrder
   tax_percentage?: Prisma.SortOrder
+  tax_amount?: Prisma.SortOrder
 }
 
 export type packagesAvgOrderByAggregateInput = {
   price?: Prisma.SortOrder
   tax_percentage?: Prisma.SortOrder
+  tax_amount?: Prisma.SortOrder
 }
 
 export type packagesMaxOrderByAggregateInput = {
@@ -489,6 +514,7 @@ export type packagesMaxOrderByAggregateInput = {
   updated_at?: Prisma.SortOrder
   category?: Prisma.SortOrder
   tax_percentage?: Prisma.SortOrder
+  tax_amount?: Prisma.SortOrder
 }
 
 export type packagesMinOrderByAggregateInput = {
@@ -502,11 +528,13 @@ export type packagesMinOrderByAggregateInput = {
   updated_at?: Prisma.SortOrder
   category?: Prisma.SortOrder
   tax_percentage?: Prisma.SortOrder
+  tax_amount?: Prisma.SortOrder
 }
 
 export type packagesSumOrderByAggregateInput = {
   price?: Prisma.SortOrder
   tax_percentage?: Prisma.SortOrder
+  tax_amount?: Prisma.SortOrder
 }
 
 export type PackagesScalarRelationFilter = {
@@ -610,6 +638,7 @@ export type packagesCreateWithoutCliententitlementsInput = {
   updated_at?: Date | string | null
   category?: string | null
   tax_percentage?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  tax_amount?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   organizations: Prisma.organizationsCreateNestedOneWithoutPackagesInput
   packageservices?: Prisma.packageservicesCreateNestedManyWithoutPackagesInput
   subscriptions?: Prisma.subscriptionsCreateNestedManyWithoutPackagesInput
@@ -626,6 +655,7 @@ export type packagesUncheckedCreateWithoutCliententitlementsInput = {
   updated_at?: Date | string | null
   category?: string | null
   tax_percentage?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  tax_amount?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   packageservices?: Prisma.packageservicesUncheckedCreateNestedManyWithoutPackagesInput
   subscriptions?: Prisma.subscriptionsUncheckedCreateNestedManyWithoutPackagesInput
 }
@@ -656,6 +686,7 @@ export type packagesUpdateWithoutCliententitlementsInput = {
   updated_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   category?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   tax_percentage?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  tax_amount?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   organizations?: Prisma.organizationsUpdateOneRequiredWithoutPackagesNestedInput
   packageservices?: Prisma.packageservicesUpdateManyWithoutPackagesNestedInput
   subscriptions?: Prisma.subscriptionsUpdateManyWithoutPackagesNestedInput
@@ -672,6 +703,7 @@ export type packagesUncheckedUpdateWithoutCliententitlementsInput = {
   updated_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   category?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   tax_percentage?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  tax_amount?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   packageservices?: Prisma.packageservicesUncheckedUpdateManyWithoutPackagesNestedInput
   subscriptions?: Prisma.subscriptionsUncheckedUpdateManyWithoutPackagesNestedInput
 }
@@ -686,6 +718,7 @@ export type packagesCreateWithoutOrganizationsInput = {
   updated_at?: Date | string | null
   category?: string | null
   tax_percentage?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  tax_amount?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   cliententitlements?: Prisma.cliententitlementsCreateNestedManyWithoutPackagesInput
   packageservices?: Prisma.packageservicesCreateNestedManyWithoutPackagesInput
   subscriptions?: Prisma.subscriptionsCreateNestedManyWithoutPackagesInput
@@ -701,6 +734,7 @@ export type packagesUncheckedCreateWithoutOrganizationsInput = {
   updated_at?: Date | string | null
   category?: string | null
   tax_percentage?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  tax_amount?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   cliententitlements?: Prisma.cliententitlementsUncheckedCreateNestedManyWithoutPackagesInput
   packageservices?: Prisma.packageservicesUncheckedCreateNestedManyWithoutPackagesInput
   subscriptions?: Prisma.subscriptionsUncheckedCreateNestedManyWithoutPackagesInput
@@ -746,6 +780,7 @@ export type packagesScalarWhereInput = {
   updated_at?: Prisma.DateTimeNullableFilter<"packages"> | Date | string | null
   category?: Prisma.StringNullableFilter<"packages"> | string | null
   tax_percentage?: Prisma.DecimalFilter<"packages"> | runtime.Decimal | runtime.DecimalJsLike | number | string
+  tax_amount?: Prisma.DecimalNullableFilter<"packages"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
 }
 
 export type packagesCreateWithoutPackageservicesInput = {
@@ -758,6 +793,7 @@ export type packagesCreateWithoutPackageservicesInput = {
   updated_at?: Date | string | null
   category?: string | null
   tax_percentage?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  tax_amount?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   cliententitlements?: Prisma.cliententitlementsCreateNestedManyWithoutPackagesInput
   organizations: Prisma.organizationsCreateNestedOneWithoutPackagesInput
   subscriptions?: Prisma.subscriptionsCreateNestedManyWithoutPackagesInput
@@ -774,6 +810,7 @@ export type packagesUncheckedCreateWithoutPackageservicesInput = {
   updated_at?: Date | string | null
   category?: string | null
   tax_percentage?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  tax_amount?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   cliententitlements?: Prisma.cliententitlementsUncheckedCreateNestedManyWithoutPackagesInput
   subscriptions?: Prisma.subscriptionsUncheckedCreateNestedManyWithoutPackagesInput
 }
@@ -804,6 +841,7 @@ export type packagesUpdateWithoutPackageservicesInput = {
   updated_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   category?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   tax_percentage?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  tax_amount?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   cliententitlements?: Prisma.cliententitlementsUpdateManyWithoutPackagesNestedInput
   organizations?: Prisma.organizationsUpdateOneRequiredWithoutPackagesNestedInput
   subscriptions?: Prisma.subscriptionsUpdateManyWithoutPackagesNestedInput
@@ -820,6 +858,7 @@ export type packagesUncheckedUpdateWithoutPackageservicesInput = {
   updated_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   category?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   tax_percentage?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  tax_amount?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   cliententitlements?: Prisma.cliententitlementsUncheckedUpdateManyWithoutPackagesNestedInput
   subscriptions?: Prisma.subscriptionsUncheckedUpdateManyWithoutPackagesNestedInput
 }
@@ -834,6 +873,7 @@ export type packagesCreateWithoutSubscriptionsInput = {
   updated_at?: Date | string | null
   category?: string | null
   tax_percentage?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  tax_amount?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   cliententitlements?: Prisma.cliententitlementsCreateNestedManyWithoutPackagesInput
   organizations: Prisma.organizationsCreateNestedOneWithoutPackagesInput
   packageservices?: Prisma.packageservicesCreateNestedManyWithoutPackagesInput
@@ -850,6 +890,7 @@ export type packagesUncheckedCreateWithoutSubscriptionsInput = {
   updated_at?: Date | string | null
   category?: string | null
   tax_percentage?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  tax_amount?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   cliententitlements?: Prisma.cliententitlementsUncheckedCreateNestedManyWithoutPackagesInput
   packageservices?: Prisma.packageservicesUncheckedCreateNestedManyWithoutPackagesInput
 }
@@ -880,6 +921,7 @@ export type packagesUpdateWithoutSubscriptionsInput = {
   updated_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   category?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   tax_percentage?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  tax_amount?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   cliententitlements?: Prisma.cliententitlementsUpdateManyWithoutPackagesNestedInput
   organizations?: Prisma.organizationsUpdateOneRequiredWithoutPackagesNestedInput
   packageservices?: Prisma.packageservicesUpdateManyWithoutPackagesNestedInput
@@ -896,6 +938,7 @@ export type packagesUncheckedUpdateWithoutSubscriptionsInput = {
   updated_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   category?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   tax_percentage?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  tax_amount?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   cliententitlements?: Prisma.cliententitlementsUncheckedUpdateManyWithoutPackagesNestedInput
   packageservices?: Prisma.packageservicesUncheckedUpdateManyWithoutPackagesNestedInput
 }
@@ -910,6 +953,7 @@ export type packagesCreateManyOrganizationsInput = {
   updated_at?: Date | string | null
   category?: string | null
   tax_percentage?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  tax_amount?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
 }
 
 export type packagesUpdateWithoutOrganizationsInput = {
@@ -922,6 +966,7 @@ export type packagesUpdateWithoutOrganizationsInput = {
   updated_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   category?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   tax_percentage?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  tax_amount?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   cliententitlements?: Prisma.cliententitlementsUpdateManyWithoutPackagesNestedInput
   packageservices?: Prisma.packageservicesUpdateManyWithoutPackagesNestedInput
   subscriptions?: Prisma.subscriptionsUpdateManyWithoutPackagesNestedInput
@@ -937,6 +982,7 @@ export type packagesUncheckedUpdateWithoutOrganizationsInput = {
   updated_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   category?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   tax_percentage?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  tax_amount?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   cliententitlements?: Prisma.cliententitlementsUncheckedUpdateManyWithoutPackagesNestedInput
   packageservices?: Prisma.packageservicesUncheckedUpdateManyWithoutPackagesNestedInput
   subscriptions?: Prisma.subscriptionsUncheckedUpdateManyWithoutPackagesNestedInput
@@ -952,6 +998,7 @@ export type packagesUncheckedUpdateManyWithoutOrganizationsInput = {
   updated_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   category?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   tax_percentage?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  tax_amount?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
 }
 
 
@@ -1014,6 +1061,7 @@ export type packagesSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs
   updated_at?: boolean
   category?: boolean
   tax_percentage?: boolean
+  tax_amount?: boolean
   cliententitlements?: boolean | Prisma.packages$cliententitlementsArgs<ExtArgs>
   organizations?: boolean | Prisma.organizationsDefaultArgs<ExtArgs>
   packageservices?: boolean | Prisma.packages$packageservicesArgs<ExtArgs>
@@ -1032,6 +1080,7 @@ export type packagesSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Exte
   updated_at?: boolean
   category?: boolean
   tax_percentage?: boolean
+  tax_amount?: boolean
   organizations?: boolean | Prisma.organizationsDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["packages"]>
 
@@ -1046,6 +1095,7 @@ export type packagesSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Exte
   updated_at?: boolean
   category?: boolean
   tax_percentage?: boolean
+  tax_amount?: boolean
   organizations?: boolean | Prisma.organizationsDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["packages"]>
 
@@ -1060,9 +1110,10 @@ export type packagesSelectScalar = {
   updated_at?: boolean
   category?: boolean
   tax_percentage?: boolean
+  tax_amount?: boolean
 }
 
-export type packagesOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "organization_id" | "name" | "description" | "price" | "deleted_at" | "created_at" | "updated_at" | "category" | "tax_percentage", ExtArgs["result"]["packages"]>
+export type packagesOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "organization_id" | "name" | "description" | "price" | "deleted_at" | "created_at" | "updated_at" | "category" | "tax_percentage" | "tax_amount", ExtArgs["result"]["packages"]>
 export type packagesInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   cliententitlements?: boolean | Prisma.packages$cliententitlementsArgs<ExtArgs>
   organizations?: boolean | Prisma.organizationsDefaultArgs<ExtArgs>
@@ -1096,6 +1147,7 @@ export type $packagesPayload<ExtArgs extends runtime.Types.Extensions.InternalAr
     updated_at: Date | null
     category: string | null
     tax_percentage: runtime.Decimal
+    tax_amount: runtime.Decimal | null
   }, ExtArgs["result"]["packages"]>
   composites: {}
 }
@@ -1533,6 +1585,7 @@ export interface packagesFieldRefs {
   readonly updated_at: Prisma.FieldRef<"packages", 'DateTime'>
   readonly category: Prisma.FieldRef<"packages", 'String'>
   readonly tax_percentage: Prisma.FieldRef<"packages", 'Decimal'>
+  readonly tax_amount: Prisma.FieldRef<"packages", 'Decimal'>
 }
     
 

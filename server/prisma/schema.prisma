@@ -511,6 +511,7 @@ model hrattendancelogs {
   distance_from_center Decimal?      @db.Decimal
   is_within_geofence   Boolean?      @default(true)
   metadata             Json?
+  remark               String?
   created_at           DateTime?     @default(now()) @db.Timestamptz(6)
   organizations        organizations @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   profiles             profiles      @relation(fields: [profile_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
@@ -674,6 +675,7 @@ model organizations {
   allowed_ips                        String?
   allow_custom_duration              Boolean?                            @default(false)
   default_slot_duration              Int?                                @default(60)
+  default_checkout_time              DateTime?                           @db.Time(6)
   athlete_item_logs                  athlete_item_logs[]
   athlete_workout_completions        athlete_workout_completions[]
   availabilityexceptions             availabilityexceptions[]

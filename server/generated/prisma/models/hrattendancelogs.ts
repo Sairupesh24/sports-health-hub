@@ -47,6 +47,7 @@ export type HrattendancelogsMinAggregateOutputType = {
   longitude: runtime.Decimal | null
   distance_from_center: runtime.Decimal | null
   is_within_geofence: boolean | null
+  remark: string | null
   created_at: Date | null
 }
 
@@ -59,6 +60,7 @@ export type HrattendancelogsMaxAggregateOutputType = {
   longitude: runtime.Decimal | null
   distance_from_center: runtime.Decimal | null
   is_within_geofence: boolean | null
+  remark: string | null
   created_at: Date | null
 }
 
@@ -72,6 +74,7 @@ export type HrattendancelogsCountAggregateOutputType = {
   distance_from_center: number
   is_within_geofence: number
   metadata: number
+  remark: number
   created_at: number
   _all: number
 }
@@ -98,6 +101,7 @@ export type HrattendancelogsMinAggregateInputType = {
   longitude?: true
   distance_from_center?: true
   is_within_geofence?: true
+  remark?: true
   created_at?: true
 }
 
@@ -110,6 +114,7 @@ export type HrattendancelogsMaxAggregateInputType = {
   longitude?: true
   distance_from_center?: true
   is_within_geofence?: true
+  remark?: true
   created_at?: true
 }
 
@@ -123,6 +128,7 @@ export type HrattendancelogsCountAggregateInputType = {
   distance_from_center?: true
   is_within_geofence?: true
   metadata?: true
+  remark?: true
   created_at?: true
   _all?: true
 }
@@ -223,6 +229,7 @@ export type HrattendancelogsGroupByOutputType = {
   distance_from_center: runtime.Decimal | null
   is_within_geofence: boolean | null
   metadata: runtime.JsonValue | null
+  remark: string | null
   created_at: Date | null
   _count: HrattendancelogsCountAggregateOutputType | null
   _avg: HrattendancelogsAvgAggregateOutputType | null
@@ -259,6 +266,7 @@ export type hrattendancelogsWhereInput = {
   distance_from_center?: Prisma.DecimalNullableFilter<"hrattendancelogs"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   is_within_geofence?: Prisma.BoolNullableFilter<"hrattendancelogs"> | boolean | null
   metadata?: Prisma.JsonNullableFilter<"hrattendancelogs">
+  remark?: Prisma.StringNullableFilter<"hrattendancelogs"> | string | null
   created_at?: Prisma.DateTimeNullableFilter<"hrattendancelogs"> | Date | string | null
   organizations?: Prisma.XOR<Prisma.OrganizationsScalarRelationFilter, Prisma.organizationsWhereInput>
   profiles?: Prisma.XOR<Prisma.ProfilesScalarRelationFilter, Prisma.profilesWhereInput>
@@ -274,6 +282,7 @@ export type hrattendancelogsOrderByWithRelationInput = {
   distance_from_center?: Prisma.SortOrderInput | Prisma.SortOrder
   is_within_geofence?: Prisma.SortOrderInput | Prisma.SortOrder
   metadata?: Prisma.SortOrderInput | Prisma.SortOrder
+  remark?: Prisma.SortOrderInput | Prisma.SortOrder
   created_at?: Prisma.SortOrderInput | Prisma.SortOrder
   organizations?: Prisma.organizationsOrderByWithRelationInput
   profiles?: Prisma.profilesOrderByWithRelationInput
@@ -292,6 +301,7 @@ export type hrattendancelogsWhereUniqueInput = Prisma.AtLeast<{
   distance_from_center?: Prisma.DecimalNullableFilter<"hrattendancelogs"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   is_within_geofence?: Prisma.BoolNullableFilter<"hrattendancelogs"> | boolean | null
   metadata?: Prisma.JsonNullableFilter<"hrattendancelogs">
+  remark?: Prisma.StringNullableFilter<"hrattendancelogs"> | string | null
   created_at?: Prisma.DateTimeNullableFilter<"hrattendancelogs"> | Date | string | null
   organizations?: Prisma.XOR<Prisma.OrganizationsScalarRelationFilter, Prisma.organizationsWhereInput>
   profiles?: Prisma.XOR<Prisma.ProfilesScalarRelationFilter, Prisma.profilesWhereInput>
@@ -307,6 +317,7 @@ export type hrattendancelogsOrderByWithAggregationInput = {
   distance_from_center?: Prisma.SortOrderInput | Prisma.SortOrder
   is_within_geofence?: Prisma.SortOrderInput | Prisma.SortOrder
   metadata?: Prisma.SortOrderInput | Prisma.SortOrder
+  remark?: Prisma.SortOrderInput | Prisma.SortOrder
   created_at?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.hrattendancelogsCountOrderByAggregateInput
   _avg?: Prisma.hrattendancelogsAvgOrderByAggregateInput
@@ -328,6 +339,7 @@ export type hrattendancelogsScalarWhereWithAggregatesInput = {
   distance_from_center?: Prisma.DecimalNullableWithAggregatesFilter<"hrattendancelogs"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   is_within_geofence?: Prisma.BoolNullableWithAggregatesFilter<"hrattendancelogs"> | boolean | null
   metadata?: Prisma.JsonNullableWithAggregatesFilter<"hrattendancelogs">
+  remark?: Prisma.StringNullableWithAggregatesFilter<"hrattendancelogs"> | string | null
   created_at?: Prisma.DateTimeNullableWithAggregatesFilter<"hrattendancelogs"> | Date | string | null
 }
 
@@ -339,6 +351,7 @@ export type hrattendancelogsCreateInput = {
   distance_from_center?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   is_within_geofence?: boolean | null
   metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  remark?: string | null
   created_at?: Date | string | null
   organizations: Prisma.organizationsCreateNestedOneWithoutHrattendancelogsInput
   profiles: Prisma.profilesCreateNestedOneWithoutHrattendancelogsInput
@@ -354,6 +367,7 @@ export type hrattendancelogsUncheckedCreateInput = {
   distance_from_center?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   is_within_geofence?: boolean | null
   metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  remark?: string | null
   created_at?: Date | string | null
 }
 
@@ -365,6 +379,7 @@ export type hrattendancelogsUpdateInput = {
   distance_from_center?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   is_within_geofence?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  remark?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   created_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   organizations?: Prisma.organizationsUpdateOneRequiredWithoutHrattendancelogsNestedInput
   profiles?: Prisma.profilesUpdateOneRequiredWithoutHrattendancelogsNestedInput
@@ -380,6 +395,7 @@ export type hrattendancelogsUncheckedUpdateInput = {
   distance_from_center?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   is_within_geofence?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  remark?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   created_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
@@ -393,6 +409,7 @@ export type hrattendancelogsCreateManyInput = {
   distance_from_center?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   is_within_geofence?: boolean | null
   metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  remark?: string | null
   created_at?: Date | string | null
 }
 
@@ -404,6 +421,7 @@ export type hrattendancelogsUpdateManyMutationInput = {
   distance_from_center?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   is_within_geofence?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  remark?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   created_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
@@ -417,6 +435,7 @@ export type hrattendancelogsUncheckedUpdateManyInput = {
   distance_from_center?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   is_within_geofence?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  remark?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   created_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
@@ -430,6 +449,7 @@ export type hrattendancelogsCountOrderByAggregateInput = {
   distance_from_center?: Prisma.SortOrder
   is_within_geofence?: Prisma.SortOrder
   metadata?: Prisma.SortOrder
+  remark?: Prisma.SortOrder
   created_at?: Prisma.SortOrder
 }
 
@@ -448,6 +468,7 @@ export type hrattendancelogsMaxOrderByAggregateInput = {
   longitude?: Prisma.SortOrder
   distance_from_center?: Prisma.SortOrder
   is_within_geofence?: Prisma.SortOrder
+  remark?: Prisma.SortOrder
   created_at?: Prisma.SortOrder
 }
 
@@ -460,6 +481,7 @@ export type hrattendancelogsMinOrderByAggregateInput = {
   longitude?: Prisma.SortOrder
   distance_from_center?: Prisma.SortOrder
   is_within_geofence?: Prisma.SortOrder
+  remark?: Prisma.SortOrder
   created_at?: Prisma.SortOrder
 }
 
@@ -571,6 +593,7 @@ export type hrattendancelogsCreateWithoutOrganizationsInput = {
   distance_from_center?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   is_within_geofence?: boolean | null
   metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  remark?: string | null
   created_at?: Date | string | null
   profiles: Prisma.profilesCreateNestedOneWithoutHrattendancelogsInput
 }
@@ -584,6 +607,7 @@ export type hrattendancelogsUncheckedCreateWithoutOrganizationsInput = {
   distance_from_center?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   is_within_geofence?: boolean | null
   metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  remark?: string | null
   created_at?: Date | string | null
 }
 
@@ -626,6 +650,7 @@ export type hrattendancelogsScalarWhereInput = {
   distance_from_center?: Prisma.DecimalNullableFilter<"hrattendancelogs"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   is_within_geofence?: Prisma.BoolNullableFilter<"hrattendancelogs"> | boolean | null
   metadata?: Prisma.JsonNullableFilter<"hrattendancelogs">
+  remark?: Prisma.StringNullableFilter<"hrattendancelogs"> | string | null
   created_at?: Prisma.DateTimeNullableFilter<"hrattendancelogs"> | Date | string | null
 }
 
@@ -637,6 +662,7 @@ export type hrattendancelogsCreateWithoutProfilesInput = {
   distance_from_center?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   is_within_geofence?: boolean | null
   metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  remark?: string | null
   created_at?: Date | string | null
   organizations: Prisma.organizationsCreateNestedOneWithoutHrattendancelogsInput
 }
@@ -650,6 +676,7 @@ export type hrattendancelogsUncheckedCreateWithoutProfilesInput = {
   distance_from_center?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   is_within_geofence?: boolean | null
   metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  remark?: string | null
   created_at?: Date | string | null
 }
 
@@ -688,6 +715,7 @@ export type hrattendancelogsCreateManyOrganizationsInput = {
   distance_from_center?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   is_within_geofence?: boolean | null
   metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  remark?: string | null
   created_at?: Date | string | null
 }
 
@@ -699,6 +727,7 @@ export type hrattendancelogsUpdateWithoutOrganizationsInput = {
   distance_from_center?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   is_within_geofence?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  remark?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   created_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   profiles?: Prisma.profilesUpdateOneRequiredWithoutHrattendancelogsNestedInput
 }
@@ -712,6 +741,7 @@ export type hrattendancelogsUncheckedUpdateWithoutOrganizationsInput = {
   distance_from_center?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   is_within_geofence?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  remark?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   created_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
@@ -724,6 +754,7 @@ export type hrattendancelogsUncheckedUpdateManyWithoutOrganizationsInput = {
   distance_from_center?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   is_within_geofence?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  remark?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   created_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
@@ -736,6 +767,7 @@ export type hrattendancelogsCreateManyProfilesInput = {
   distance_from_center?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   is_within_geofence?: boolean | null
   metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  remark?: string | null
   created_at?: Date | string | null
 }
 
@@ -747,6 +779,7 @@ export type hrattendancelogsUpdateWithoutProfilesInput = {
   distance_from_center?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   is_within_geofence?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  remark?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   created_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   organizations?: Prisma.organizationsUpdateOneRequiredWithoutHrattendancelogsNestedInput
 }
@@ -760,6 +793,7 @@ export type hrattendancelogsUncheckedUpdateWithoutProfilesInput = {
   distance_from_center?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   is_within_geofence?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  remark?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   created_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
@@ -772,6 +806,7 @@ export type hrattendancelogsUncheckedUpdateManyWithoutProfilesInput = {
   distance_from_center?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   is_within_geofence?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  remark?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   created_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
@@ -787,6 +822,7 @@ export type hrattendancelogsSelect<ExtArgs extends runtime.Types.Extensions.Inte
   distance_from_center?: boolean
   is_within_geofence?: boolean
   metadata?: boolean
+  remark?: boolean
   created_at?: boolean
   organizations?: boolean | Prisma.organizationsDefaultArgs<ExtArgs>
   profiles?: boolean | Prisma.profilesDefaultArgs<ExtArgs>
@@ -802,6 +838,7 @@ export type hrattendancelogsSelectCreateManyAndReturn<ExtArgs extends runtime.Ty
   distance_from_center?: boolean
   is_within_geofence?: boolean
   metadata?: boolean
+  remark?: boolean
   created_at?: boolean
   organizations?: boolean | Prisma.organizationsDefaultArgs<ExtArgs>
   profiles?: boolean | Prisma.profilesDefaultArgs<ExtArgs>
@@ -817,6 +854,7 @@ export type hrattendancelogsSelectUpdateManyAndReturn<ExtArgs extends runtime.Ty
   distance_from_center?: boolean
   is_within_geofence?: boolean
   metadata?: boolean
+  remark?: boolean
   created_at?: boolean
   organizations?: boolean | Prisma.organizationsDefaultArgs<ExtArgs>
   profiles?: boolean | Prisma.profilesDefaultArgs<ExtArgs>
@@ -832,10 +870,11 @@ export type hrattendancelogsSelectScalar = {
   distance_from_center?: boolean
   is_within_geofence?: boolean
   metadata?: boolean
+  remark?: boolean
   created_at?: boolean
 }
 
-export type hrattendancelogsOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "organization_id" | "profile_id" | "type" | "latitude" | "longitude" | "distance_from_center" | "is_within_geofence" | "metadata" | "created_at", ExtArgs["result"]["hrattendancelogs"]>
+export type hrattendancelogsOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "organization_id" | "profile_id" | "type" | "latitude" | "longitude" | "distance_from_center" | "is_within_geofence" | "metadata" | "remark" | "created_at", ExtArgs["result"]["hrattendancelogs"]>
 export type hrattendancelogsInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   organizations?: boolean | Prisma.organizationsDefaultArgs<ExtArgs>
   profiles?: boolean | Prisma.profilesDefaultArgs<ExtArgs>
@@ -865,6 +904,7 @@ export type $hrattendancelogsPayload<ExtArgs extends runtime.Types.Extensions.In
     distance_from_center: runtime.Decimal | null
     is_within_geofence: boolean | null
     metadata: runtime.JsonValue | null
+    remark: string | null
     created_at: Date | null
   }, ExtArgs["result"]["hrattendancelogs"]>
   composites: {}
@@ -1300,6 +1340,7 @@ export interface hrattendancelogsFieldRefs {
   readonly distance_from_center: Prisma.FieldRef<"hrattendancelogs", 'Decimal'>
   readonly is_within_geofence: Prisma.FieldRef<"hrattendancelogs", 'Boolean'>
   readonly metadata: Prisma.FieldRef<"hrattendancelogs", 'Json'>
+  readonly remark: Prisma.FieldRef<"hrattendancelogs", 'String'>
   readonly created_at: Prisma.FieldRef<"hrattendancelogs", 'DateTime'>
 }
     

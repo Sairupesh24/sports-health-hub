@@ -153,6 +153,9 @@ router.get('/managerial-view', requireAuth, async (req, res) => {
         ? Math.round((totalHoursBooked / totalShiftHours) * 100 * 10) / 10 
         : 0;
 
+      const sStart = schedule ? (schedule.shiftStart || schedule.shift_start) : null;
+      const sEnd = schedule ? (schedule.shiftEnd || schedule.shift_end) : null;
+
       return {
         id: member.id,
         firstName: member.firstName,
@@ -162,8 +165,8 @@ router.get('/managerial-view', requireAuth, async (req, res) => {
         profession: member.profession || 'Staff',
         slotsBooked: memberSessions.length,
         totalHoursBooked: Math.round(totalHoursBooked * 10) / 10,
-        shiftStart: schedule ? (schedule.shiftStart instanceof Date ? schedule.shiftStart.toISOString().split('T')[1].substring(0, 5) : String(schedule.shiftStart).substring(0, 5)) : '08:00',
-        shiftEnd: schedule ? (schedule.shiftEnd instanceof Date ? schedule.shiftEnd.toISOString().split('T')[1].substring(0, 5) : String(schedule.shiftEnd).substring(0, 5)) : '17:00',
+        shiftStart: schedule ? (sStart instanceof Date ? sStart.toISOString().split('T')[1].substring(0, 5) : String(sStart || '08:00').substring(0, 5)) : '08:00',
+        shiftEnd: schedule ? (sEnd instanceof Date ? sEnd.toISOString().split('T')[1].substring(0, 5) : String(sEnd || '17:00').substring(0, 5)) : '17:00',
         shiftHoursPerDay: Math.round(shiftHoursPerDay * 10) / 10,
         totalShiftHours: Math.round(totalShiftHours * 10) / 10,
         utilizationRate

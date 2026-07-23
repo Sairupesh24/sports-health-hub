@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiFetch } from "@/utils/api";
@@ -77,6 +77,31 @@ export default function AdminCalendar() {
     const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
     const [isEmergencyModalOpen, setIsEmergencyModalOpen] = useState(false);
     const [waitlistInitialData, setWaitlistInitialData] = useState<any>(null);
+    
+    // Horizontal scrolling arrows state & ref for the calendar
+    const scrollContainerRef = useRef<HTMLDivElement>(null);
+    const [canScrollLeft, setCanScrollLeft] = useState(false);
+    const [canScrollRight, setCanScrollRight] = useState(false);
+
+    const checkScroll = () => {
+        const el = scrollContainerRef.current;
+        if (el) {
+            setCanScrollLeft(el.scrollLeft > 1);
+            setCanScrollRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 1);
+        }
+    };
+
+    const scrollCalendar = (direction: 'left' | 'right') => {
+        const el = scrollContainerRef.current;
+        if (el) {
+            const scrollAmount = 300;
+            el.scrollBy({
+                left: direction === 'left' ? -scrollAmount : scrollAmount,
+                behavior: 'smooth'
+            });
+        }
+    };
+
 
     // Master Schedule States
     const [currentDate, setCurrentDate] = useState(new Date());
@@ -85,6 +110,7 @@ export default function AdminCalendar() {
         id: string;
         name: string;
         profession?: string | null;
+        role?: string | null;
         avatar_url?: string | null;
         emergency_alerts?: any[];
     }
@@ -409,6 +435,22 @@ export default function AdminCalendar() {
         }
         return activeClinicians;
     }, [isMobile, activeClinicians, mobileSelectedClinicianId]);
+
+    useEffect(() => {
+        const el = scrollContainerRef.current;
+        if (el) {
+            checkScroll();
+            const timer = setTimeout(checkScroll, 150);
+            el.addEventListener('scroll', checkScroll);
+            window.addEventListener('resize', checkScroll);
+            return () => {
+                clearTimeout(timer);
+                el.removeEventListener('scroll', checkScroll);
+                window.removeEventListener('resize', checkScroll);
+            };
+        }
+    }, [activeCliniciansToRender, isLoading, viewMode]);
+
 
     const calendarHoursRange = useMemo(() => {
         let minHour = 8;
@@ -972,7 +1014,7 @@ export default function AdminCalendar() {
         const totalHeight = timeSlots.length * 60;
 
         return (
-            <div className="bg-card rounded-xl border border-border/50 overflow-hidden shadow-sm animate-in fade-in duration-500">
+            <div className="bg-card rounded-xl border border-border/50 overflow-hidden shadow-sm animate-in fade-in duration-500 relative">
                 {/* Day Header Block */}
                 <div className="p-4 border-b border-border/50 bg-muted/30 flex justify-between items-center">
                     <div>
@@ -983,6 +1025,27 @@ export default function AdminCalendar() {
                         {sessions.filter(s => isSameDay(parseISO(s.scheduled_start), currentDate)).length} Sessions Scheduled
                     </div>
                 </div>
+
+                {/* Floating scroll indicator buttons (aligned with Clinician Headers) */}
+                {canScrollLeft && (
+                    <button
+                        onClick={() => scrollCalendar('left')}
+                        className="absolute left-[84px] top-[112px] -translate-y-1/2 z-30 w-8 h-8 rounded-full bg-white/95 backdrop-blur-sm border border-slate-200 shadow-md flex items-center justify-center text-slate-600 hover:bg-slate-50 hover:text-slate-900 hover:scale-105 active:scale-95 transition-all cursor-pointer"
+                        title="Scroll Left"
+                    >
+                        <ChevronLeft className="w-4.5 h-4.5" />
+                    </button>
+                )}
+
+                {canScrollRight && (
+                    <button
+                        onClick={() => scrollCalendar('right')}
+                        className="absolute right-4 top-[112px] -translate-y-1/2 z-30 w-8 h-8 rounded-full bg-white/95 backdrop-blur-sm border border-slate-200 shadow-md flex items-center justify-center text-slate-600 hover:bg-slate-50 hover:text-slate-900 hover:scale-105 active:scale-95 transition-all cursor-pointer"
+                        title="Scroll Right"
+                    >
+                        <ChevronRight className="w-4.5 h-4.5" />
+                    </button>
+                )}
 
                 {/* Mobile Ribbon Selector */}
                 {isMobile && activeClinicians.length > 1 && (
@@ -1029,7 +1092,7 @@ export default function AdminCalendar() {
                 )}
 
                 {/* Resource Matrix Grid */}
-                <div className="w-full overflow-x-auto overflow-y-visible custom-scrollbar relative">
+                <div ref={scrollContainerRef} className="w-full overflow-x-auto overflow-y-visible custom-scrollbar relative">
                     <div 
                         className="grid divide-x divide-border"
                         style={{
@@ -1236,7 +1299,7 @@ export default function AdminCalendar() {
                                                                         ) : event.is_guest ? (
                                                                             <span>G: {event.guest_name}</span>
                                                                         ) : (
-                                                                            <span>{event.client?.first_name} {event.client?.last_name} ({event.client?.uhid || '-'})</span>
+                                                                            <span>{event.client?.first_name} {event.client?.last_name} ({(event.client as any)?.uhid || '-'})</span>
                                                                         )}
                                                                     </div>
                                                                     <span className="text-[8px] opacity-75 font-semibold shrink-0 leading-none">
@@ -1349,7 +1412,7 @@ export default function AdminCalendar() {
                             </div>
                         )}
                             <div className="flex flex-col lg:flex-row gap-6">
-                                <div className="flex-1 space-y-6">
+                                <div className="flex-1 space-y-6 min-w-0">
                                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-muted/20 p-4 rounded-xl border border-border/50">
                                         <div className="flex items-center gap-2.5">
                                             <Button 
