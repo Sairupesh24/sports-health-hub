@@ -39,6 +39,12 @@ import ManagerialAnalytics from "./pages/admin/ManagerialAnalytics";
 import ResourceScheduleManager from "./pages/admin/ResourceScheduleManager";
 import NotificationSettings from "./pages/admin/NotificationSettings";
 import ConsultantDashboard from "./pages/consultant/ConsultantDashboard";
+import NutritionistDashboard from "./pages/nutritionist/NutritionistDashboard";
+import NutritionistClients from "./pages/nutritionist/NutritionistClients";
+import NutritionistClientProfile from "./pages/nutritionist/NutritionistClientProfile";
+import NutritionistAssessmentsPage from "./pages/nutritionist/NutritionistAssessmentsPage";
+import NutritionistMealPlansPage from "./pages/nutritionist/NutritionistMealPlansPage";
+import NutritionistSchedule from "./pages/nutritionist/NutritionistSchedule";
 import EmployeeManagement from "./pages/hr/EmployeeManagement";
 import HrDashboard from "./pages/hr/HrDashboard";
 import UserApproval from "./pages/hr/UserApproval";
@@ -165,6 +171,13 @@ const App = () => (
               <Route path="/admin/reports" element={<ProtectedRoute requiredRole={["admin", "foe", "manager"]}><ReportsPage role="admin" /></ProtectedRoute>} />
               <Route path="/admin/appointments" element={<ProtectedRoute requiredRole={["admin", "foe"]}><AppointmentList role="admin" /></ProtectedRoute>} />
               <Route path="/consultant" element={<MobileGuard><ProtectedRoute requiredRole={["consultant", "sports_physician", "physiotherapist", "nutritionist", "massage_therapist"]}><ConsultantDashboard /></ProtectedRoute></MobileGuard>} />
+              {/* Nutritionist Console Routes */}
+              <Route path="/nutritionist" element={<MobileGuard><ProtectedRoute requiredRole={["nutritionist", "consultant", "sports_physician", "physiotherapist", "admin", "super_admin"]}><NutritionistDashboard /></ProtectedRoute></MobileGuard>} />
+              <Route path="/nutritionist/clients" element={<MobileGuard><ProtectedRoute requiredRole={["nutritionist", "consultant", "sports_physician", "physiotherapist", "admin", "super_admin"]}><NutritionistClients /></ProtectedRoute></MobileGuard>} />
+              <Route path="/nutritionist/clients/:id" element={<MobileGuard><ProtectedRoute requiredRole={["nutritionist", "consultant", "sports_physician", "physiotherapist", "admin", "super_admin"]}><NutritionistClientProfile /></ProtectedRoute></MobileGuard>} />
+              <Route path="/nutritionist/assessments" element={<MobileGuard><ProtectedRoute requiredRole={["nutritionist", "consultant", "sports_physician", "physiotherapist", "admin", "super_admin"]}><NutritionistAssessmentsPage /></ProtectedRoute></MobileGuard>} />
+              <Route path="/nutritionist/meal-plans" element={<MobileGuard><ProtectedRoute requiredRole={["nutritionist", "consultant", "sports_physician", "physiotherapist", "admin", "super_admin"]}><NutritionistMealPlansPage /></ProtectedRoute></MobileGuard>} />
+              <Route path="/nutritionist/schedule" element={<MobileGuard><ProtectedRoute requiredRole={["nutritionist", "consultant", "sports_physician", "physiotherapist", "admin", "super_admin"]}><NutritionistSchedule /></ProtectedRoute></MobileGuard>} />
               <Route path="/consultant/clients" element={<MobileGuard><ProtectedRoute requiredRole={["consultant", "sports_physician", "physiotherapist", "nutritionist", "massage_therapist"]}><MyClients /></ProtectedRoute></MobileGuard>} />
               <Route path="/consultant/clients/:id" element={<MobileGuard><ProtectedRoute requiredRole={["consultant", "sports_physician", "physiotherapist", "nutritionist", "massage_therapist"]}><ConsultantClientProfile /></ProtectedRoute></MobileGuard>} />
               <Route path="/consultant/availability" element={<MobileGuard><ProtectedRoute requiredRole={["consultant", "sports_physician", "physiotherapist", "nutritionist", "massage_therapist"]}><ConsultantAvailability /></ProtectedRoute></MobileGuard>} />

@@ -328,6 +328,7 @@ model Client {
   externalTrainingSummary                     ExternalTrainingSummary[]
   formResponses                               FormResponse[]
   groupAttendance                             GroupAttendance[]
+  nutritionAssessments                        NutritionAssessment[]
   injuries                                    Injury[]
   performanceAssessments                      PerformanceAssessment[]
   refunds                                     Refund[]
@@ -775,6 +776,7 @@ model Organization {
   injuryMasterData                 InjuryMasterData[]
   locations                        Location[]
   notifications                    Notification[]
+  nutritionAssessments             NutritionAssessment[]
   organizationNotificationSettings OrganizationNotificationSetting?
   packages                         Package[]
   performanceAssessments           PerformanceAssessment[]
@@ -897,6 +899,7 @@ model Profile {
   hrleavesHrleavesApprovedByToprofiles       HrLeave[]                  @relation("hrleaves_approved_byToprofiles")
   hrleavesHrleavesEmployeeIdToprofiles       HrLeave[]                  @relation("hrleaves_employee_idToprofiles")
   notifications                              Notification[]
+  nutritionAssessments                       NutritionAssessment[]
   performanceAssessments                     PerformanceAssessment[]
   users                                      User                       @relation(fields: [id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   organizations                              Organization?              @relation(fields: [organizationId], references: [id], onUpdate: NoAction)
@@ -1303,4 +1306,53 @@ model recurring_questionnaires {
   organizations    Organization  @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   questionnaires   Questionnaire @relation(fields: [questionnaire_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   profiles         Profile       @relation(fields: [specialist_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model NutritionAssessment {
+  id                        String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  clientId                  String        @map("client_id") @db.Uuid
+  organizationId            String        @map("organization_id") @db.Uuid
+  nutritionistId            String?       @map("nutritionist_id") @db.Uuid
+  name                      String?
+  age                       Int?
+  gender                    String?
+  profession                String?
+  clientType                String?       @default("athlete") @map("client_type")
+  sport                     String?
+  position                  String?
+  trainingAge               String?       @map("training_age")
+  competitionLevel          String?       @map("competition_level")
+  exercise                  Boolean?
+  exerciseDuration          String?       @map("exercise_duration")
+  trainingSessionsCount     String?       @map("training_sessions_count")
+  exerciseType              String?       @map("exercise_type")
+  heightCm                  Decimal?      @map("height_cm") @db.Decimal
+  weightKg                  Decimal?      @map("weight_kg") @db.Decimal
+  bodyFatPct                Decimal?      @map("body_fat_pct") @db.Decimal
+  muscleMassKg              Decimal?      @map("muscle_mass_kg") @db.Decimal
+  bmi                       Decimal?      @db.Decimal
+  complaints                String?
+  biochemicalInterpretations String?     @map("biochemical_interpretations")
+  medicalHistory            String?       @map("medical_history")
+  otherMedications          String?       @map("other_medications")
+  allergiesIntolerances     Json?         @default("[]") @map("allergies_intolerances")
+  dietaryPreference         String?       @default("Non-Vegetarian") @map("dietary_preference")
+  sleepDurationHours        Decimal?      @map("sleep_duration_hours") @db.Decimal
+  dailyFluidIntakeL         Decimal?      @map("daily_fluid_intake_l") @db.Decimal
+  timelineRecall            Json?         @default("{}") @map("timeline_recall")
+  session1                  Json?         @default("{}") @map("session_1")
+  session2                  Json?         @default("{}") @map("session_2")
+  supplements               Json?         @default("[]")
+  observations              String?
+  goal                      String?
+  advicePrescription        String?       @map("advice_prescription")
+  takenBy                   String?       @map("taken_by")
+  assessmentDate            DateTime?     @default(now()) @map("assessment_date") @db.Date
+  createdAt                 DateTime?     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt                 DateTime?     @default(now()) @map("updated_at") @db.Timestamptz(6)
+  clients                   Client        @relation(fields: [clientId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  organizations             Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  profiles                  Profile?      @relation(fields: [nutritionistId], references: [id], onUpdate: NoAction)
+
+  @@map("nutrition_assessments")
 }
