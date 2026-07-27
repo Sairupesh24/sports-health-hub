@@ -23,7 +23,7 @@ import {
   Flame,
   Apple,
 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -153,28 +153,56 @@ interface AppSidebarProps {
 }
 
 export default function AppSidebar({ role, isMobile, className, onNavigate }: AppSidebarProps) {
-  // Default to collapsed strip mode as requested
+  // Default to collapsed strip mode
   const [collapsed, setCollapsed] = useState(true);
   const [isHovered, setIsHovered] = useState(false);
 
   const location = useLocation();
   const navigate = useNavigate();
-  const { signOut, profile } = useAuth();
+  const { signOut, profile, roles, loading } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   // Effective expansion state: expanded when hovered, or when explicitly uncollapsed/mobile
   const isExpanded = isMobile || !collapsed || isHovered;
 
+  // Resolve role atomically based on authenticated context and profile
+  const resolvedRole = useMemo(() => {
+    if (roles?.includes("super_admin")) return "super_admin";
+    if (roles?.includes("admin")) return "admin";
+    if (
+      roles?.includes("nutritionist") ||
+      (profile?.profession || "").toLowerCase().includes("nutrition") ||
+      (profile?.role || "").toLowerCase().includes("nutrition") ||
+      (profile?.ams_role || "").toLowerCase().includes("nutrition")
+    ) {
+      return "nutritionist";
+    }
+    if (roles?.includes("sports_scientist")) return "sports_scientist";
+    if (roles?.includes("hr_manager")) return "hr_manager";
+    if (
+      roles?.includes("consultant") ||
+      roles?.includes("physiotherapist") ||
+      roles?.includes("sports_physician")
+    ) {
+      return "consultant";
+    }
+    if (roles?.includes("foe")) return "foe";
+    if (roles?.includes("manager")) return "manager";
+    if (roles?.includes("athlete")) return "athlete";
+    if (roles?.includes("client")) return "client";
+    return role || "";
+  }, [roles, profile, role]);
+
   // Fetch pending user approvals count (only for admin, hr_manager, foe)
   const { data: pendingApprovals = 0 } = useQuery({
     queryKey: ["pending-approvals-count", profile?.organization_id],
     queryFn: async () => {
-      if (!["admin", "hr_manager", "foe"].includes(role)) return 0;
+      if (!["admin", "hr_manager", "foe"].includes(resolvedRole)) return 0;
       const data = await apiFetch<any>('/hr/stats');
       return data?.data?.pendingApprovals || 0;
     },
-    enabled: !!profile?.organization_id && ["admin", "hr_manager", "foe"].includes(role),
+    enabled: !!profile?.organization_id && ["admin", "hr_manager", "foe"].includes(resolvedRole),
     refetchInterval: 30000
   });
 
@@ -204,11 +232,52 @@ export default function AppSidebar({ role, isMobile, className, onNavigate }: Ap
       eventSource.close();
     };
   }, [profile?.id, isMobile, queryClient]);
-  
-  let items = navMap[role] || adminNav;
+
+  // SKELETON LOADING GUARD LAYER:
+  // Render neutral loading skeleton while auth/roles/profile are resolving
+  // to completely prevent default or admin menu tabs from flashing.
+  if (loading || (!navMap[resolvedRole] && !navMap[role])) {
+    return (
+      <div className={cn("relative shrink-0", !isMobile && (collapsed ? "w-16" : "w-64"))}>
+        <aside
+          className={cn(
+            "flex flex-col bg-sidebar transition-all duration-300 ease-in-out z-40 h-screen border-r border-sidebar-border shadow-md",
+            isMobile ? "w-full h-full" : collapsed ? "w-16" : "w-64",
+            className
+          )}
+        >
+          {/* Logo Skeleton */}
+          <div className="flex items-center gap-3 px-4 py-5 border-b border-sidebar-border">
+            <div className="w-8 h-8 rounded-lg bg-sidebar-accent animate-pulse flex-shrink-0" />
+            {isExpanded && <div className="h-5 w-20 bg-sidebar-accent animate-pulse rounded" />}
+          </div>
+
+          {/* Nav Items Skeleton */}
+          <div className="flex-1 py-4 px-2 space-y-3 overflow-y-auto">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <div key={i} className="flex items-center gap-3 px-3 py-2.5 rounded-lg">
+                <div className="w-5 h-5 rounded bg-sidebar-accent animate-pulse flex-shrink-0" />
+                {isExpanded && <div className="h-4 w-28 bg-sidebar-accent animate-pulse rounded" />}
+              </div>
+            ))}
+          </div>
+
+          {/* Footer Skeleton */}
+          <div className="border-t border-sidebar-border p-2 space-y-2">
+            <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg">
+              <div className="w-5 h-5 rounded bg-sidebar-accent animate-pulse flex-shrink-0" />
+              {isExpanded && <div className="h-4 w-20 bg-sidebar-accent animate-pulse rounded" />}
+            </div>
+          </div>
+        </aside>
+      </div>
+    );
+  }
+
+  let items = navMap[resolvedRole] || navMap[role] || [];
 
   // Filter and inject calendar access depending on permissions
-  const hasCalendarAccess = role === "admin" || profile?.has_calendar_access === true;
+  const hasCalendarAccess = resolvedRole === "admin" || profile?.has_calendar_access === true;
   
   if (hasCalendarAccess) {
     if (!items.find(i => i.href === "/admin/calendar")) {
@@ -224,7 +293,7 @@ export default function AppSidebar({ role, isMobile, className, onNavigate }: Ap
   }
 
   // Filter and inject managerial analytics access depending on permissions
-  const hasAnalyticsAccess = ["admin", "manager", "hr_manager"].includes(role) || profile?.has_analytics_access === true;
+  const hasAnalyticsAccess = ["admin", "manager", "hr_manager"].includes(resolvedRole) || profile?.has_analytics_access === true;
   
   if (hasAnalyticsAccess) {
     if (!items.find(i => i.href === "/admin/analytics/managerial")) {
@@ -283,7 +352,7 @@ export default function AppSidebar({ role, isMobile, className, onNavigate }: Ap
           {items.map((item) => {
             const isActive =
               location.pathname === item.href ||
-              (item.href !== `/${role}` && location.pathname.startsWith(item.href));
+              (item.href !== `/${resolvedRole}` && location.pathname.startsWith(item.href));
             return (
               <Link
                 key={item.href}
