@@ -8,7 +8,7 @@ const router = express.Router();
 router.get('/', requireAuth, async (req, res) => {
     try {
         const orgId = req.user.organization_id;
-        const { start, end, therapist_id, scientist_id, specialist_id, client_id, status, is_unentitled } = req.query;
+        const { start, end, therapist_id, scientist_id, specialist_id, client_id, status, is_unentitled, category } = req.query;
         let query = `
             SELECT s.id, s.organization_id, s.client_id, s.scientist_id, s.entitlement_id, s.service_id, s.service_type, s.session_mode, s.scheduled_start, s.scheduled_end, s.actual_start, s.actual_end, s.status, s.cancellation_reason, s.is_unentitled, s.preference_type, s.is_flexible_routing, s.created_by, s.created_at, s.updated_at, s.group_name, s.session_location, s.session_notes, s.attachments, s.session_type_id,
                    COALESCE(s.therapist_id, s.scientist_id) as therapist_id,
