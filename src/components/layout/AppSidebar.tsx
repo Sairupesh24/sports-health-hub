@@ -92,8 +92,6 @@ const sportsScientistNav: NavItem[] = [
   { label: "Attendance", icon: CalendarClock, href: "/my-attendance" },
 ];
 
-
-
 const managerNav: NavItem[] = [
   { label: "Dashboard", icon: LayoutDashboard, href: "/admin" },
   { label: "Clients", icon: Users, href: "/admin/clients" },
@@ -155,12 +153,18 @@ interface AppSidebarProps {
 }
 
 export default function AppSidebar({ role, isMobile, className, onNavigate }: AppSidebarProps) {
-  const [collapsed, setCollapsed] = useState(false);
+  // Default to collapsed strip mode as requested
+  const [collapsed, setCollapsed] = useState(true);
+  const [isHovered, setIsHovered] = useState(false);
+
   const location = useLocation();
   const navigate = useNavigate();
   const { signOut, profile } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // Effective expansion state: expanded when hovered, or when explicitly uncollapsed/mobile
+  const isExpanded = isMobile || !collapsed || isHovered;
 
   // Fetch pending user approvals count (only for admin, hr_manager, foe)
   const { data: pendingApprovals = 0 } = useQuery({
@@ -176,7 +180,6 @@ export default function AppSidebar({ role, isMobile, className, onNavigate }: Ap
 
   // Subscribe to SSE to invalidate pending-approvals-count in real-time
   useEffect(() => {
-    // Only connect on desktop to avoid duplicate socket connections in mobile layout drawer
     if (!profile?.id || isMobile) return;
 
     const token = localStorage.getItem('ishpo_jwt');
@@ -185,9 +188,8 @@ export default function AppSidebar({ role, isMobile, className, onNavigate }: Ap
     const streamUrl = `/api/notifications/stream?token=${encodeURIComponent(token)}`;
     const eventSource = new EventSource(streamUrl);
 
-    eventSource.onmessage = (event) => {
+    eventSource.onmessage = () => {
       try {
-        console.log('[SSE Sidebar] New notification received to invalidate stats');
         queryClient.invalidateQueries({ queryKey: ["pending-approvals-count"] });
       } catch (err) {
         console.error('[SSE Sidebar] Failed to parse message:', err);
@@ -248,103 +250,114 @@ export default function AppSidebar({ role, isMobile, className, onNavigate }: Ap
   }
 
   return (
-    <aside
-      className={cn(
-        "flex flex-col bg-sidebar transition-all duration-300",
-        isMobile
-          ? "w-full h-full"
-          : cn("h-screen border-r border-sidebar-border", collapsed ? "w-16" : "w-64"),
-        className
-      )}
-    >
-      {/* Logo */}
-      <div className="flex items-center gap-3 px-4 py-5 border-b border-sidebar-border">
-        <div className="w-8 h-8 rounded-lg gradient-primary flex items-center justify-center flex-shrink-0">
-          <Activity className="w-4 h-4 text-primary-foreground" />
-        </div>
-        {(!collapsed || isMobile) && (
-          <span className="font-display font-bold text-sidebar-primary-foreground text-lg tracking-tight">
-            ISHPO
-          </span>
+    <div className={cn("relative shrink-0", !isMobile && (collapsed ? "w-16" : "w-64"))}>
+      <aside
+        onMouseEnter={() => !isMobile && setIsHovered(true)}
+        onMouseLeave={() => !isMobile && setIsHovered(false)}
+        className={cn(
+          "flex flex-col bg-sidebar transition-all duration-300 ease-in-out z-40",
+          isMobile
+            ? "w-full h-full"
+            : cn(
+                "h-screen border-r border-sidebar-border shadow-md",
+                isExpanded ? "w-64 shadow-2xl" : "w-16",
+                collapsed && isHovered && "absolute left-0 top-0 bg-sidebar/95 backdrop-blur-md"
+              ),
+          className
         )}
-      </div>
+      >
+        {/* Logo */}
+        <div className="flex items-center gap-3 px-4 py-5 border-b border-sidebar-border">
+          <div className="w-8 h-8 rounded-lg gradient-primary flex items-center justify-center flex-shrink-0">
+            <Activity className="w-4 h-4 text-primary-foreground" />
+          </div>
+          {isExpanded && (
+            <span className="font-display font-bold text-sidebar-primary-foreground text-lg tracking-tight">
+              ISHPO
+            </span>
+          )}
+        </div>
 
-      {/* Nav */}
-      <nav className="flex-1 py-4 px-2 space-y-1 overflow-y-auto">
-        {items.map((item) => {
-          const isActive =
-            location.pathname === item.href ||
-            (item.href !== `/${role}` && location.pathname.startsWith(item.href));
-          return (
-            <Link
-              key={item.href}
-              to={item.isUnderDevelopment ? "#" : item.href}
-              onClick={(e) => {
-                if (item.isUnderDevelopment) {
-                  e.preventDefault();
-                  toast({
-                    title: "Under Development",
-                    description: `${item.label} page is currently under development and will be available in later updates.`,
-                  });
-                } else if (onNavigate) {
-                  onNavigate();
-                }
-              }}
-              className={cn(
-                "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
-                isActive
-                  ? "bg-sidebar-accent text-sidebar-primary shadow-glow"
-                  : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-              )}
-            >
-              <div className="relative flex items-center justify-center">
-                <item.icon className="w-5 h-5 flex-shrink-0" />
-                {collapsed && !isMobile && item.label === "User Approvals" && pendingApprovals > 0 && (
-                  <span className="absolute -top-1.5 -right-1.5 w-2 h-2 bg-orange-500 rounded-full border border-sidebar animate-pulse" />
+        {/* Nav Items */}
+        <nav className="flex-1 py-4 px-2 space-y-1 overflow-y-auto">
+          {items.map((item) => {
+            const isActive =
+              location.pathname === item.href ||
+              (item.href !== `/${role}` && location.pathname.startsWith(item.href));
+            return (
+              <Link
+                key={item.href}
+                to={item.isUnderDevelopment ? "#" : item.href}
+                onClick={(e) => {
+                  if (item.isUnderDevelopment) {
+                    e.preventDefault();
+                    toast({
+                      title: "Under Development",
+                      description: `${item.label} page is currently under development and will be available in later updates.`,
+                    });
+                  } else if (onNavigate) {
+                    onNavigate();
+                  }
+                }}
+                className={cn(
+                  "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
+                  isActive
+                    ? "bg-sidebar-accent text-sidebar-primary shadow-glow"
+                    : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                 )}
-              </div>
-              {(!collapsed || isMobile) && (
-                <span className="flex-1 flex items-center justify-between">
-                  <span>{item.label}</span>
-                  {item.label === "User Approvals" && pendingApprovals > 0 && (
-                    <span className="ml-2 px-2 py-0.5 text-[10px] font-black rounded-full bg-orange-500 text-white animate-pulse">
-                      {pendingApprovals}
-                    </span>
+              >
+                <div className="relative flex items-center justify-center">
+                  <item.icon className="w-5 h-5 flex-shrink-0" />
+                  {!isExpanded && item.label === "User Approvals" && pendingApprovals > 0 && (
+                    <span className="absolute -top-1.5 -right-1.5 w-2 h-2 bg-orange-500 rounded-full border border-sidebar animate-pulse" />
                   )}
-                </span>
-              )}
-            </Link>
-          );
-        })}
-      </nav>
+                </div>
+                {isExpanded && (
+                  <span className="flex-1 flex items-center justify-between">
+                    <span>{item.label}</span>
+                    {item.label === "User Approvals" && pendingApprovals > 0 && (
+                      <span className="ml-2 px-2 py-0.5 text-[10px] font-black rounded-full bg-orange-500 text-white animate-pulse">
+                        {pendingApprovals}
+                      </span>
+                    )}
+                  </span>
+                )}
+              </Link>
+            );
+          })}
+        </nav>
 
-      {/* Footer */}
-      <div className="border-t border-sidebar-border p-2 space-y-1">
-        {!isMobile && (
-          <button
-            onClick={() => setCollapsed(!collapsed)}
+        {/* Footer Actions */}
+        <div className="border-t border-sidebar-border p-2 space-y-1">
+          {!isMobile && (
+            <button
+              onClick={() => {
+                setCollapsed(!collapsed);
+                setIsHovered(false);
+              }}
+              className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-sidebar-foreground hover:bg-sidebar-accent w-full transition-colors"
+            >
+              {collapsed ? <ChevronRight className="w-5 h-5 flex-shrink-0" /> : <ChevronLeft className="w-5 h-5 flex-shrink-0" />}
+              {isExpanded && <span>{collapsed ? "Expand / Pin" : "Collapse"}</span>}
+            </button>
+          )}
+          <Link
+            to="/profile"
+            onClick={onNavigate}
             className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-sidebar-foreground hover:bg-sidebar-accent w-full transition-colors"
           >
-            {collapsed ? <ChevronRight className="w-5 h-5" /> : <ChevronLeft className="w-5 h-5" />}
-            {!collapsed && <span>Collapse</span>}
+            <UserCheck className="w-5 h-5 flex-shrink-0" />
+            {isExpanded && <span>My Profile</span>}
+          </Link>
+          <button
+            onClick={async () => { await signOut(); }}
+            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-sidebar-foreground hover:bg-destructive/20 hover:text-destructive w-full transition-colors"
+          >
+            <LogOut className="w-5 h-5 flex-shrink-0" />
+            {isExpanded && <span>Sign Out</span>}
           </button>
-        )}
-        <Link
-          to="/profile"
-          onClick={onNavigate}
-          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-sidebar-foreground hover:bg-sidebar-accent w-full transition-colors"
-        >
-          <UserCheck className="w-5 h-5 flex-shrink-0" />
-          {(!collapsed || isMobile) && <span>My Profile</span>}
-        </Link>
-        <button
-          onClick={async () => { await signOut(); }}
-          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-sidebar-foreground hover:bg-destructive/20 hover:text-destructive w-full transition-colors"
-        >
-          <LogOut className="w-5 h-5 flex-shrink-0" />
-          {(!collapsed || isMobile) && <span>Sign Out</span>}
-        </button>
-      </div>
-    </aside>
+        </div>
+      </aside>
+    </div>
   );
 }
