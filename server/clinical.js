@@ -649,7 +649,7 @@ router.get('/nutrition/dashboard/stats', requireAuth, async (req, res) => {
             };
         });
 
-        // 2. Fetch today's scheduled consultations & appointments
+        // 2. Fetch today's scheduled consultations & appointments (NUTRITION APPOINTMENTS ONLY)
         const todayStart = new Date(); todayStart.setHours(0,0,0,0);
         const todayEnd = new Date(); todayEnd.setHours(23,59,59,999);
         const todaySessionsRes = await db.query(`
@@ -664,7 +664,20 @@ router.get('/nutrition/dashboard/stats', requireAuth, async (req, res) => {
                    ) as latest_assessment
             FROM Sessions s
             JOIN Clients c ON s.client_id = c.id
-            WHERE s.organization_id = $1 AND s.scheduled_start >= $2 AND s.scheduled_start <= $3
+            LEFT JOIN Profiles p ON s.therapist_id = p.id
+            WHERE s.organization_id = $1 
+              AND s.scheduled_start >= $2 
+              AND s.scheduled_start <= $3
+              AND (
+                p.profession ILIKE '%nutrition%' OR 
+                p.ams_role ILIKE '%nutrition%' OR 
+                s.service_type ILIKE '%nutrition%' OR 
+                s.service_type ILIKE '%diet%' OR 
+                s.service_type ILIKE '%fueling%' OR 
+                s.service_type ILIKE '%supplement%' OR 
+                s.service_type ILIKE '%macro%' OR 
+                s.service_type ILIKE '%weight%'
+              )
             ORDER BY s.scheduled_start ASC
         `, [orgId, todayStart.toISOString(), todayEnd.toISOString()]);
 
