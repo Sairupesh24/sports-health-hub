@@ -37,7 +37,7 @@ export default function ProtectedRoute({ children, requiredRole, checkCalendarAc
     const isAdmin = roles.includes("admin");
     const isGranted = profile?.has_calendar_access === true;
     if (!isAdmin && !isGranted) {
-      return <Navigate to={getDashboardPath(roles)} replace />;
+      return <Navigate to={getDashboardPath(roles, profile)} replace />;
     }
   }
 
@@ -59,7 +59,7 @@ export default function ProtectedRoute({ children, requiredRole, checkCalendarAc
     if (!hasRole) {
       // User is approved but accessing a route for a different role —
       // redirect to their own dashboard using the shared utility.
-      return <Navigate to={getDashboardPath(roles)} replace />;
+      return <Navigate to={getDashboardPath(roles, profile)} replace />;
     }
   }
 
