@@ -268,6 +268,53 @@ async function runMigrations() {
       )
     `);
 
+    // Nutrition Assessments Table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS nutrition_assessments (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        client_id UUID REFERENCES clients(id) ON DELETE CASCADE,
+        organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
+        nutritionist_id UUID REFERENCES users(id) ON DELETE SET NULL,
+        name TEXT,
+        age INT,
+        gender TEXT,
+        profession TEXT,
+        client_type TEXT DEFAULT 'athlete',
+        sport TEXT,
+        position TEXT,
+        training_age TEXT,
+        competition_level TEXT,
+        exercise BOOLEAN DEFAULT TRUE,
+        exercise_duration TEXT,
+        training_sessions_count INT,
+        exercise_type TEXT,
+        height_cm NUMERIC,
+        weight_kg NUMERIC,
+        body_fat_pct NUMERIC,
+        muscle_mass_kg NUMERIC,
+        bmi NUMERIC,
+        complaints TEXT,
+        biochemical_interpretations TEXT,
+        medical_history TEXT,
+        other_medications TEXT,
+        allergies_intolerances JSONB DEFAULT '[]'::jsonb,
+        dietary_preference TEXT DEFAULT 'Non-Vegetarian',
+        sleep_duration_hours NUMERIC,
+        daily_fluid_intake_l NUMERIC,
+        timeline_recall JSONB DEFAULT '{}'::jsonb,
+        session_1 JSONB DEFAULT '{}'::jsonb,
+        session_2 JSONB DEFAULT '{}'::jsonb,
+        supplements JSONB DEFAULT '[]'::jsonb,
+        observations TEXT,
+        goal TEXT,
+        advice_prescription TEXT,
+        taken_by TEXT,
+        assessment_date TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
     // Client Documents
     await pool.query(`
       CREATE TABLE IF NOT EXISTS clientdocuments (

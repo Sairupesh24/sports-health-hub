@@ -12,7 +12,7 @@ export function getDashboardPath(roles: string[]): string {
   if (roles.includes("consultant")) return "/consultant";
   if (roles.includes("sports_physician")) return "/consultant";
   if (roles.includes("physiotherapist")) return "/consultant";
-  if (roles.includes("nutritionist")) return "/consultant";
+  if (roles.includes("nutritionist")) return "/nutritionist";
   if (roles.includes("foe")) return "/admin/calendar";
   if (roles.includes("client")) return "/client";
   if (roles.includes("athlete")) return "/client";

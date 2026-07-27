@@ -20,6 +20,8 @@ import {
   CalendarClock,
   CheckSquare,
   TrendingUp,
+  Flame,
+  Apple,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
@@ -121,6 +123,15 @@ const athleteNav: NavItem[] = [
   { label: "Billing", icon: CreditCard, href: "/client/billing" },
 ];
 
+const nutritionistNav: NavItem[] = [
+  { label: "Dashboard", icon: LayoutDashboard, href: "/nutritionist" },
+  { label: "Nutrition Clients", icon: Users, href: "/nutritionist/clients" },
+  { label: "Assessments", icon: ClipboardList, href: "/nutritionist/assessments" },
+  { label: "Meal Plans", icon: Flame, href: "/nutritionist/meal-plans" },
+  { label: "Schedule", icon: Calendar, href: "/nutritionist/schedule" },
+  { label: "Attendance", icon: CalendarClock, href: "/my-attendance" },
+];
+
 const navMap: Record<string, NavItem[]> = {
   super_admin: superAdminNav,
   admin: adminNav,
@@ -133,7 +144,7 @@ const navMap: Record<string, NavItem[]> = {
   athlete: athleteNav,
   hr_manager: hrNav,
   sports_physician: consultantNav,
-  nutritionist: consultantNav,
+  nutritionist: nutritionistNav,
 };
 
 interface AppSidebarProps {
