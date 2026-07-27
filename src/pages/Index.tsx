@@ -23,7 +23,7 @@ const Index = () => {
       return;
     }
 
-    navigate(getDashboardPath(roles), { replace: true });
+    navigate(getDashboardPath(roles, profile), { replace: true });
   }, [user, profile, roles, loading, navigate]);
 
   return null;
