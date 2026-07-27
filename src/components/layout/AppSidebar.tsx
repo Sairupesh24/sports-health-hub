@@ -153,7 +153,6 @@ interface AppSidebarProps {
 }
 
 export default function AppSidebar({ role, isMobile, className, onNavigate }: AppSidebarProps) {
-  // Default to collapsed strip mode
   const [collapsed, setCollapsed] = useState(true);
   const [isHovered, setIsHovered] = useState(false);
 
@@ -163,7 +162,7 @@ export default function AppSidebar({ role, isMobile, className, onNavigate }: Ap
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Effective expansion state: expanded when hovered, or when explicitly uncollapsed/mobile
+  // Effective expansion state
   const isExpanded = isMobile || !collapsed || isHovered;
 
   // Resolve role atomically based on authenticated context and profile
@@ -233,90 +232,53 @@ export default function AppSidebar({ role, isMobile, className, onNavigate }: Ap
     };
   }, [profile?.id, isMobile, queryClient]);
 
-  // SKELETON LOADING GUARD LAYER:
-  // Render neutral loading skeleton while auth/roles/profile are resolving
-  // to completely prevent default or admin menu tabs from flashing.
-  if (loading || (!navMap[resolvedRole] && !navMap[role])) {
-    return (
-      <div className={cn("relative shrink-0", !isMobile && (collapsed ? "w-16" : "w-64"))}>
-        <aside
-          className={cn(
-            "flex flex-col bg-sidebar transition-all duration-300 ease-in-out z-40 h-screen border-r border-sidebar-border shadow-md",
-            isMobile ? "w-full h-full" : collapsed ? "w-16" : "w-64",
-            className
-          )}
-        >
-          {/* Logo Skeleton */}
-          <div className="flex items-center gap-3 px-4 py-5 border-b border-sidebar-border">
-            <div className="w-8 h-8 rounded-lg bg-sidebar-accent animate-pulse flex-shrink-0" />
-            {isExpanded && <div className="h-5 w-20 bg-sidebar-accent animate-pulse rounded" />}
-          </div>
+  const items = useMemo(() => {
+    let baseItems = navMap[resolvedRole] || navMap[role] || [];
 
-          {/* Nav Items Skeleton */}
-          <div className="flex-1 py-4 px-2 space-y-3 overflow-y-auto">
-            {[1, 2, 3, 4, 5, 6].map((i) => (
-              <div key={i} className="flex items-center gap-3 px-3 py-2.5 rounded-lg">
-                <div className="w-5 h-5 rounded bg-sidebar-accent animate-pulse flex-shrink-0" />
-                {isExpanded && <div className="h-4 w-28 bg-sidebar-accent animate-pulse rounded" />}
-              </div>
-            ))}
-          </div>
+    if (baseItems.length === 0) return [];
 
-          {/* Footer Skeleton */}
-          <div className="border-t border-sidebar-border p-2 space-y-2">
-            <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg">
-              <div className="w-5 h-5 rounded bg-sidebar-accent animate-pulse flex-shrink-0" />
-              {isExpanded && <div className="h-4 w-20 bg-sidebar-accent animate-pulse rounded" />}
-            </div>
-          </div>
-        </aside>
-      </div>
-    );
-  }
-
-  let items = navMap[resolvedRole] || navMap[role] || [];
-
-  // Filter and inject calendar access depending on permissions
-  const hasCalendarAccess = resolvedRole === "admin" || profile?.has_calendar_access === true;
-  
-  if (hasCalendarAccess) {
-    if (!items.find(i => i.href === "/admin/calendar")) {
-      const dashboardIdx = items.findIndex(i => i.label.includes("Dashboard") || i.label === "Overview");
-      const insertIdx = dashboardIdx !== -1 ? dashboardIdx + 1 : 1;
-      
-      const newItems = [...items];
-      newItems.splice(insertIdx, 0, { label: "Admin Calendar", icon: CalendarDays, href: "/admin/calendar" });
-      items = newItems;
+    // Filter and inject calendar access depending on permissions
+    const hasCalendarAccess = resolvedRole === "admin" || profile?.has_calendar_access === true;
+    if (hasCalendarAccess) {
+      if (!baseItems.find(i => i.href === "/admin/calendar")) {
+        const dashboardIdx = baseItems.findIndex(i => i.label.includes("Dashboard") || i.label === "Overview");
+        const insertIdx = dashboardIdx !== -1 ? dashboardIdx + 1 : 1;
+        const newItems = [...baseItems];
+        newItems.splice(insertIdx, 0, { label: "Admin Calendar", icon: CalendarDays, href: "/admin/calendar" });
+        baseItems = newItems;
+      }
+    } else {
+      baseItems = baseItems.filter(item => item.href !== "/admin/calendar");
     }
-  } else {
-    items = items.filter(item => item.href !== "/admin/calendar");
-  }
 
-  // Filter and inject managerial analytics access depending on permissions
-  const hasAnalyticsAccess = ["admin", "manager", "hr_manager"].includes(resolvedRole) || profile?.has_analytics_access === true;
-  
-  if (hasAnalyticsAccess) {
-    if (!items.find(i => i.href === "/admin/analytics/managerial")) {
-      const dashboardIdx = items.findIndex(i => i.label.includes("Dashboard") || i.label === "Overview");
-      const insertIdx = dashboardIdx !== -1 ? dashboardIdx + 1 : 1;
-      
-      const newItems = [...items];
-      newItems.splice(insertIdx, 0, { label: "Staff Efficiency", icon: TrendingUp, href: "/admin/analytics/managerial" });
-      items = newItems;
+    // Filter and inject managerial analytics access depending on permissions
+    const hasAnalyticsAccess = ["admin", "manager", "hr_manager"].includes(resolvedRole) || profile?.has_analytics_access === true;
+    if (hasAnalyticsAccess) {
+      if (!baseItems.find(i => i.href === "/admin/analytics/managerial")) {
+        const dashboardIdx = baseItems.findIndex(i => i.label.includes("Dashboard") || i.label === "Overview");
+        const insertIdx = dashboardIdx !== -1 ? dashboardIdx + 1 : 1;
+        const newItems = [...baseItems];
+        newItems.splice(insertIdx, 0, { label: "Staff Efficiency", icon: TrendingUp, href: "/admin/analytics/managerial" });
+        baseItems = newItems;
+      }
+    } else {
+      baseItems = baseItems.filter(item => item.href !== "/admin/analytics/managerial");
     }
-  } else {
-    items = items.filter(item => item.href !== "/admin/analytics/managerial");
-  }
 
-  if (profile?.ams_role === "coach") {
-    if (!items.find(i => i.label === "AMS Dashboard")) {
-      items = [
-        ...items,
-        { label: "AMS Dashboard", icon: LayoutDashboard, href: "/ams/coach-dashboard" },
-        { label: "Batch Testing", icon: Target, href: "/ams/batch-tests" }
-      ];
+    if (profile?.ams_role === "coach") {
+      if (!baseItems.find(i => i.label === "AMS Dashboard")) {
+        baseItems = [
+          ...baseItems,
+          { label: "AMS Dashboard", icon: LayoutDashboard, href: "/ams/coach-dashboard" },
+          { label: "Batch Testing", icon: Target, href: "/ams/batch-tests" }
+        ];
+      }
     }
-  }
+
+    return baseItems;
+  }, [resolvedRole, role, profile?.has_calendar_access, profile?.has_analytics_access, profile?.ams_role]);
+
+  const isLoadingState = loading || items.length === 0;
 
   return (
     <div className={cn("relative shrink-0", !isMobile && (collapsed ? "w-16" : "w-64"))}>
@@ -336,94 +298,139 @@ export default function AppSidebar({ role, isMobile, className, onNavigate }: Ap
         )}
       >
         {/* Logo */}
-        <div className="flex items-center gap-3 px-4 py-5 border-b border-sidebar-border">
+        <div className="flex items-center gap-3 px-4 py-5 border-b border-sidebar-border h-[65px] shrink-0">
           <div className="w-8 h-8 rounded-lg gradient-primary flex items-center justify-center flex-shrink-0">
             <Activity className="w-4 h-4 text-primary-foreground" />
           </div>
-          {isExpanded && (
-            <span className="font-display font-bold text-sidebar-primary-foreground text-lg tracking-tight">
-              ISHPO
-            </span>
-          )}
+          <span
+            className={cn(
+              "font-display font-bold text-sidebar-primary-foreground text-lg tracking-tight whitespace-nowrap transition-all duration-300 ease-in-out overflow-hidden",
+              isExpanded ? "opacity-100 max-w-[150px]" : "opacity-0 max-w-0 pointer-events-none"
+            )}
+          >
+            ISHPO
+          </span>
         </div>
 
-        {/* Nav Items */}
+        {/* Nav Items Container */}
         <nav className="flex-1 py-4 px-2 space-y-1 overflow-y-auto">
-          {items.map((item) => {
-            const isActive =
-              location.pathname === item.href ||
-              (item.href !== `/${resolvedRole}` && location.pathname.startsWith(item.href));
-            return (
-              <Link
-                key={item.href}
-                to={item.isUnderDevelopment ? "#" : item.href}
-                onClick={(e) => {
-                  if (item.isUnderDevelopment) {
-                    e.preventDefault();
-                    toast({
-                      title: "Under Development",
-                      description: `${item.label} page is currently under development and will be available in later updates.`,
-                    });
-                  } else if (onNavigate) {
-                    onNavigate();
-                  }
-                }}
-                className={cn(
-                  "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
-                  isActive
-                    ? "bg-sidebar-accent text-sidebar-primary shadow-glow"
-                    : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-                )}
-              >
-                <div className="relative flex items-center justify-center">
-                  <item.icon className="w-5 h-5 flex-shrink-0" />
-                  {!isExpanded && item.label === "User Approvals" && pendingApprovals > 0 && (
-                    <span className="absolute -top-1.5 -right-1.5 w-2 h-2 bg-orange-500 rounded-full border border-sidebar animate-pulse" />
+          {isLoadingState ? (
+            // Neutral Skeleton Placeholders (Zero text flash)
+            Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="flex items-center gap-3 px-3 py-2.5 rounded-lg h-10">
+                <div className="w-5 h-5 rounded bg-sidebar-accent/60 animate-pulse shrink-0" />
+                <div
+                  className={cn(
+                    "h-4 bg-sidebar-accent/60 animate-pulse rounded whitespace-nowrap transition-all duration-300 ease-in-out overflow-hidden",
+                    isExpanded ? "opacity-100 w-28" : "opacity-0 w-0 pointer-events-none"
                   )}
-                </div>
-                {isExpanded && (
-                  <span className="flex-1 flex items-center justify-between">
-                    <span>{item.label}</span>
+                />
+              </div>
+            ))
+          ) : (
+            items.map((item) => {
+              const isActive =
+                location.pathname === item.href ||
+                (item.href !== `/${resolvedRole}` && location.pathname.startsWith(item.href));
+              return (
+                <Link
+                  key={item.href}
+                  to={item.isUnderDevelopment ? "#" : item.href}
+                  onClick={(e) => {
+                    if (item.isUnderDevelopment) {
+                      e.preventDefault();
+                      toast({
+                        title: "Under Development",
+                        description: `${item.label} page is currently under development and will be available in later updates.`,
+                      });
+                    } else if (onNavigate) {
+                      onNavigate();
+                    }
+                  }}
+                  className={cn(
+                    "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 h-10",
+                    isActive
+                      ? "bg-sidebar-accent text-sidebar-primary shadow-glow"
+                      : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                  )}
+                >
+                  <div className="relative flex items-center justify-center shrink-0">
+                    <item.icon className="w-5 h-5 flex-shrink-0" />
+                    {!isExpanded && item.label === "User Approvals" && pendingApprovals > 0 && (
+                      <span className="absolute -top-1.5 -right-1.5 w-2 h-2 bg-orange-500 rounded-full border border-sidebar animate-pulse" />
+                    )}
+                  </div>
+
+                  <span
+                    className={cn(
+                      "whitespace-nowrap transition-all duration-300 ease-in-out flex-1 flex items-center justify-between overflow-hidden",
+                      isExpanded ? "opacity-100 max-w-[200px]" : "opacity-0 max-w-0 pointer-events-none"
+                    )}
+                  >
+                    <span className="truncate">{item.label}</span>
                     {item.label === "User Approvals" && pendingApprovals > 0 && (
-                      <span className="ml-2 px-2 py-0.5 text-[10px] font-black rounded-full bg-orange-500 text-white animate-pulse">
+                      <span className="ml-2 px-2 py-0.5 text-[10px] font-black rounded-full bg-orange-500 text-white animate-pulse shrink-0">
                         {pendingApprovals}
                       </span>
                     )}
                   </span>
-                )}
-              </Link>
-            );
-          })}
+                </Link>
+              );
+            })
+          )}
         </nav>
 
         {/* Footer Actions */}
-        <div className="border-t border-sidebar-border p-2 space-y-1">
+        <div className="border-t border-sidebar-border p-2 space-y-1 shrink-0">
           {!isMobile && (
             <button
               onClick={() => {
                 setCollapsed(!collapsed);
                 setIsHovered(false);
               }}
-              className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-sidebar-foreground hover:bg-sidebar-accent w-full transition-colors"
+              className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-sidebar-foreground hover:bg-sidebar-accent w-full transition-colors h-10"
             >
-              {collapsed ? <ChevronRight className="w-5 h-5 flex-shrink-0" /> : <ChevronLeft className="w-5 h-5 flex-shrink-0" />}
-              {isExpanded && <span>{collapsed ? "Expand / Pin" : "Collapse"}</span>}
+              {collapsed ? <ChevronRight className="w-5 h-5 shrink-0" /> : <ChevronLeft className="w-5 h-5 shrink-0" />}
+              <span
+                className={cn(
+                  "whitespace-nowrap transition-all duration-300 ease-in-out overflow-hidden text-left",
+                  isExpanded ? "opacity-100 max-w-[150px]" : "opacity-0 max-w-0 pointer-events-none"
+                )}
+              >
+                {collapsed ? "Expand / Pin" : "Collapse"}
+              </span>
             </button>
           )}
+
           <Link
             to="/profile"
             onClick={onNavigate}
-            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-sidebar-foreground hover:bg-sidebar-accent w-full transition-colors"
+            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-sidebar-foreground hover:bg-sidebar-accent w-full transition-colors h-10"
           >
-            <UserCheck className="w-5 h-5 flex-shrink-0" />
-            {isExpanded && <span>My Profile</span>}
+            <UserCheck className="w-5 h-5 shrink-0" />
+            <span
+              className={cn(
+                "whitespace-nowrap transition-all duration-300 ease-in-out overflow-hidden text-left",
+                isExpanded ? "opacity-100 max-w-[150px]" : "opacity-0 max-w-0 pointer-events-none"
+              )}
+            >
+              My Profile
+            </span>
           </Link>
+
           <button
             onClick={async () => { await signOut(); }}
-            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-sidebar-foreground hover:bg-destructive/20 hover:text-destructive w-full transition-colors"
+            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-sidebar-foreground hover:bg-destructive/20 hover:text-destructive w-full transition-colors h-10"
           >
-            <LogOut className="w-5 h-5 flex-shrink-0" />
-            {isExpanded && <span>Sign Out</span>}
+            <LogOut className="w-5 h-5 shrink-0" />
+            <span
+              className={cn(
+                "whitespace-nowrap transition-all duration-300 ease-in-out overflow-hidden text-left",
+                isExpanded ? "opacity-100 max-w-[150px]" : "opacity-0 max-w-0 pointer-events-none"
+              )}
+            >
+              Sign Out
+            </span>
           </button>
         </div>
       </aside>
