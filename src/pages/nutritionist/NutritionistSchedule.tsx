@@ -69,7 +69,7 @@ export default function NutritionistSchedule() {
     try {
       setLoading(true);
       const res = await apiFetch<any[]>(
-        `/api/appointments?start=${dateRange.start}&end=${dateRange.end}`
+        `/api/appointments?start=${dateRange.start}&end=${dateRange.end}&category=nutrition`
       );
       if (res && Array.isArray(res)) {
         setAppointments(res);

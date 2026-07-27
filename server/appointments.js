@@ -48,6 +48,19 @@ router.get('/', requireAuth, async (req, res) => {
             query += ` AND s.scheduled_start <= $${params.length + 1}`;
             params.push(end);
         }
+        // Filter by category (e.g. nutrition)
+        if (category === 'nutrition') {
+            query += ` AND (
+                p.profession ILIKE '%nutrition%' OR 
+                p.ams_role ILIKE '%nutrition%' OR 
+                s.service_type ILIKE '%nutrition%' OR 
+                s.service_type ILIKE '%diet%' OR 
+                s.service_type ILIKE '%fueling%' OR 
+                s.service_type ILIKE '%supplement%' OR 
+                s.service_type ILIKE '%macro%' OR 
+                s.service_type ILIKE '%weight%'
+            )`;
+        }
         // specialist_id: matches sessions where user is EITHER the therapist OR the scientist
         if (specialist_id) {
             query += ` AND (s.therapist_id = $${params.length + 1} OR s.scientist_id = $${params.length + 1})`;
