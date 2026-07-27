@@ -293,13 +293,14 @@ export default function AdminCalendar() {
         [allSessions]
     );
 
-    // Fetch entitlement balances for all those clients in parallel
-    const { data: clientEntitlementMap } = useQuery({
+    // Fetch entitlement balances for planned clients in parallel (capped to top 10)
+    const { data: clientEntitlementMap = {} } = useQuery({
         queryKey: ["planned-client-entitlements", plannedClientIds],
         queryFn: async () => {
             if (!plannedClientIds.length) return {};
+            const targetIds = plannedClientIds.slice(0, 10);
             const results = await Promise.all(
-                plannedClientIds.map(async (clientId) => {
+                targetIds.map(async (clientId) => {
                     try {
                         const data = await apiFetch<any>(`/billing/entitlements/balance/${clientId}`);
                         return { clientId, byServiceName: data.byServiceName || {} };
@@ -313,7 +314,7 @@ export default function AdminCalendar() {
             return map;
         },
         enabled: plannedClientIds.length > 0,
-        staleTime: 30000,
+        staleTime: 60000,
     });
 
     // Enrich sessions with pre-unentitled flag
