@@ -57,6 +57,17 @@ export default function ConsultantDashboard() {
   const [adHocModalOpen, setAdHocModalOpen] = useState(false);
   const [emergencyModalOpen, setEmergencyModalOpen] = useState(false);
 
+  useEffect(() => {
+    if (!profile) return;
+    const isNutritionist =
+      (profile.profession || "").toLowerCase().includes("nutrition") ||
+      (profile.ams_role || "").toLowerCase().includes("nutrition");
+
+    if (isNutritionist) {
+      navigate("/nutritionist", { replace: true });
+    }
+  }, [profile, navigate]);
+
   const fetchDashboardData = async () => {
     if (!profile?.id) return;
     try {
