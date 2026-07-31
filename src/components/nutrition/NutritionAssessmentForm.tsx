@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { apiFetch } from "@/utils/api";
+import { cn } from "@/lib/utils";
 import {
   User,
   Activity,
@@ -25,6 +26,7 @@ import {
   X,
   Clock,
   Sparkles,
+  Stethoscope,
 } from "lucide-react";
 import type {
   NutritionAssessment,
@@ -33,6 +35,7 @@ import type {
   SupplementItem,
   RecallTimeline,
   FuelingSession,
+  MedicalConditionItem,
 } from "@/types/nutrition";
 
 interface NutritionAssessmentFormProps {
@@ -93,6 +96,44 @@ export default function NutritionAssessmentForm({
   const [medicalHistory, setMedicalHistory] = useState<string>(initialData?.medical_history || "");
   const [otherMedications, setOtherMedications] = useState<string>(initialData?.other_medications || "");
 
+  // Comorbidities / Medical Conditions (Multiple items)
+  const parseInitialComorbidities = (): MedicalConditionItem[] => {
+    if (initialData?.comorbidities && Array.isArray(initialData.comorbidities) && initialData.comorbidities.length > 0) {
+      return initialData.comorbidities;
+    }
+    if (initialData?.medical_history) {
+      try {
+        const parsed = JSON.parse(initialData.medical_history);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      } catch {
+        return [{ id: "1", condition: initialData.medical_history, since: "", treatment: "" }];
+      }
+    }
+    return [];
+  };
+
+  const [comorbidities, setComorbidities] = useState<MedicalConditionItem[]>(parseInitialComorbidities);
+
+  const handleAddComorbidity = (conditionName: string = "") => {
+    const newItem: MedicalConditionItem = {
+      id: Date.now().toString() + Math.random().toString(36).substring(2, 6),
+      condition: conditionName,
+      since: "",
+      treatment: "",
+    };
+    setComorbidities((prev) => [...prev, newItem]);
+  };
+
+  const handleUpdateComorbidity = (id: string, field: keyof MedicalConditionItem, value: string) => {
+    setComorbidities((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, [field]: value } : item))
+    );
+  };
+
+  const handleRemoveComorbidity = (id: string) => {
+    setComorbidities((prev) => prev.filter((item) => item.id !== id));
+  };
+
   // Allergies & Intolerances
   const [allergyInput, setAllergyInput] = useState<string>("");
   const [allergies, setAllergies] = useState<string[]>(initialData?.allergies_intolerances || []);
@@ -140,14 +181,56 @@ export default function NutritionAssessmentForm({
     setRecallTimeline((prev) => ({ ...prev, [field]: val }));
   };
 
-  // --- Section D: Training Nutrition ---
-  const [session1, setSession1] = useState<FuelingSession>(
-    initialData?.session_1 || { pre_workout: "", during_workout: "", post_workout: "" }
-  );
+  // --- Section D: Training Nutrition (Dynamic Sessions) ---
+  const parseInitialFuelingSessions = (): FuelingSession[] => {
+    if (initialData?.fueling_sessions && Array.isArray(initialData.fueling_sessions) && initialData.fueling_sessions.length > 0) {
+      return initialData.fueling_sessions;
+    }
+    if ((initialData?.session_1 as any)?.all_sessions && Array.isArray((initialData.session_1 as any).all_sessions)) {
+      return (initialData.session_1 as any).all_sessions;
+    }
+    return [
+      {
+        id: "session-1",
+        name: "Session 1",
+        pre_workout: initialData?.session_1?.pre_workout || "",
+        during_workout: initialData?.session_1?.during_workout || "",
+        post_workout: initialData?.session_1?.post_workout || "",
+      },
+      {
+        id: "session-2",
+        name: "Session 2",
+        pre_workout: initialData?.session_2?.pre_workout || "",
+        during_workout: initialData?.session_2?.during_workout || "",
+        post_workout: initialData?.session_2?.post_workout || "",
+      },
+    ];
+  };
 
-  const [session2, setSession2] = useState<FuelingSession>(
-    initialData?.session_2 || { pre_workout: "", during_workout: "", post_workout: "" }
-  );
+  const [fuelingSessions, setFuelingSessions] = useState<FuelingSession[]>(parseInitialFuelingSessions);
+
+  const handleAddSession = () => {
+    const nextIndex = fuelingSessions.length + 1;
+    const newSession: FuelingSession = {
+      id: `session-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      name: `Session ${nextIndex}`,
+      pre_workout: "",
+      during_workout: "",
+      post_workout: "",
+    };
+    setFuelingSessions((prev) => [...prev, newSession]);
+  };
+
+  const handleUpdateSession = (id: string, field: keyof FuelingSession, value: string) => {
+    setFuelingSessions((prev) =>
+      prev.map((s) => (s.id === id ? { ...s, [field]: value } : s))
+    );
+  };
+
+  const handleRemoveSession = (id: string) => {
+    if (fuelingSessions.length <= 1) return;
+    setFuelingSessions((prev) => prev.filter((s) => s.id !== id));
+  };
 
   // --- Section E: Supplements ---
   const [supplements, setSupplements] = useState<SupplementItem[]>(initialData?.supplements || []);
@@ -181,6 +264,22 @@ export default function NutritionAssessmentForm({
     try {
       setSubmitting(true);
 
+      const formattedMedicalHistory = comorbidities
+        .filter((c) => c.condition.trim() !== "")
+        .map((c, i) => {
+          let line = `${i + 1}. ${c.condition.trim()}`;
+          const details = [];
+          if (c.since?.trim()) details.push(`Since/Duration: ${c.since.trim()}`);
+          if (c.treatment?.trim()) details.push(`Treatment: ${c.treatment.trim()}`);
+          if (details.length > 0) line += ` (${details.join(" | ")})`;
+          return line;
+        })
+        .join("\n");
+
+      const finalMedicalHistoryText = formattedMedicalHistory
+        ? (medicalHistory.trim() ? `${formattedMedicalHistory}\n\nNotes: ${medicalHistory.trim()}` : formattedMedicalHistory)
+        : medicalHistory;
+
       const payload: NutritionAssessment = {
         client_id: clientId || "client-demo-123",
         name,
@@ -206,7 +305,8 @@ export default function NutritionAssessmentForm({
         bmi: calculatedBmi,
         complaints,
         biochemical_interpretations: biochemicalInterpretations,
-        medical_history: medicalHistory,
+        medical_history: finalMedicalHistoryText,
+        comorbidities: comorbidities,
         other_medications: otherMedications,
         allergies_intolerances: allergies,
 
@@ -215,8 +315,17 @@ export default function NutritionAssessmentForm({
         daily_fluid_intake_l: dailyFluidIntakeL,
         timeline_recall: recallTimeline,
 
-        session_1: session1,
-        session_2: session2,
+        session_1: {
+          pre_workout: fuelingSessions[0]?.pre_workout || "",
+          during_workout: fuelingSessions[0]?.during_workout || "",
+          post_workout: fuelingSessions[0]?.post_workout || "",
+        },
+        session_2: {
+          pre_workout: fuelingSessions[1]?.pre_workout || "",
+          during_workout: fuelingSessions[1]?.during_workout || "",
+          post_workout: fuelingSessions[1]?.post_workout || "",
+        },
+        fueling_sessions: fuelingSessions,
 
         supplements,
 
@@ -477,13 +586,154 @@ export default function NutritionAssessmentForm({
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold">MEDICAL HISTORY (Current Condition, Since and Treatment)</Label>
-                  <Textarea value={medicalHistory} onChange={(e) => setMedicalHistory(e.target.value)} rows={3} placeholder="Current condition, duration, ongoing treatment..." />
-                </div>
-
-                <div className="space-y-1.5">
                   <Label className="text-xs font-semibold">ANY OTHER MEDICATIONS</Label>
                   <Textarea value={otherMedications} onChange={(e) => setOtherMedications(e.target.value)} rows={3} placeholder="Ongoing medications..." />
+                </div>
+              </div>
+
+              {/* Comorbidities & Medical Conditions Section */}
+              <div className="p-4 rounded-xl bg-sky-500/5 border border-sky-500/20 space-y-4">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
+                  <div>
+                    <Label className="text-xs font-bold text-sky-600 dark:text-sky-400 flex items-center gap-1.5 uppercase tracking-wide">
+                      <Stethoscope className="w-4 h-4 text-sky-500" /> MEDICAL CONDITIONS & COMORBIDITIES
+                    </Label>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">
+                      Add multiple medical conditions, diagnosed duration, and ongoing treatments/medications.
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleAddComorbidity()}
+                    className="gap-1.5 text-xs bg-background hover:bg-sky-50 dark:hover:bg-sky-950/50 text-sky-700 dark:text-sky-300 border-sky-200 dark:border-sky-800"
+                  >
+                    <Plus className="w-3.5 h-3.5" /> Add Medical Condition
+                  </Button>
+                </div>
+
+                {/* Quick Add Preset Chips */}
+                <div className="space-y-1.5">
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Quick Add Common Conditions:</span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {[
+                      "Hypertension",
+                      "Type 2 Diabetes",
+                      "Hypothyroidism",
+                      "Dyslipidemia",
+                      "PCOS / PCOD",
+                      "Hyperuricemia / Gout",
+                      "Fatty Liver (NAFLD)",
+                      "Asthma",
+                      "GERD / Acidity",
+                    ].map((preset) => {
+                      const alreadyAdded = comorbidities.some(
+                        (c) => c.condition.toLowerCase() === preset.toLowerCase()
+                      );
+                      return (
+                        <Badge
+                          key={preset}
+                          variant={alreadyAdded ? "secondary" : "outline"}
+                          className={cn(
+                            "cursor-pointer text-[11px] transition-all hover:scale-105 select-none",
+                            alreadyAdded
+                              ? "opacity-60 bg-slate-200 dark:bg-slate-800 cursor-not-allowed"
+                              : "hover:bg-sky-100 hover:text-sky-800 dark:hover:bg-sky-900 dark:hover:text-sky-200 border-sky-200 dark:border-sky-800"
+                          )}
+                          onClick={() => {
+                            if (!alreadyAdded) handleAddComorbidity(preset);
+                          }}
+                        >
+                          + {preset}
+                        </Badge>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* List of Comorbidities */}
+                {comorbidities.length === 0 ? (
+                  <div className="p-4 border border-dashed border-sky-300/40 rounded-lg text-center bg-background/50">
+                    <p className="text-xs text-muted-foreground italic">No medical conditions or comorbidities added yet.</p>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleAddComorbidity()}
+                      className="mt-1 text-xs text-sky-600 dark:text-sky-400 hover:underline"
+                    >
+                      Click here to add your first medical condition
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-2.5">
+                    {comorbidities.map((item, index) => (
+                      <div
+                        key={item.id}
+                        className="grid grid-cols-1 md:grid-cols-12 gap-2.5 p-3 rounded-lg border bg-background/90 items-center shadow-sm"
+                      >
+                        <div className="md:col-span-4 space-y-1">
+                          <Label className="text-[10px] font-semibold text-muted-foreground">
+                            Medical Condition {index + 1}
+                          </Label>
+                          <Input
+                            value={item.condition}
+                            onChange={(e) => handleUpdateComorbidity(item.id, "condition", e.target.value)}
+                            placeholder="e.g. Hypertension, Diabetes"
+                            className="text-xs h-8"
+                          />
+                        </div>
+                        <div className="md:col-span-3 space-y-1">
+                          <Label className="text-[10px] font-semibold text-muted-foreground">
+                            Since / Duration
+                          </Label>
+                          <Input
+                            value={item.since || ""}
+                            onChange={(e) => handleUpdateComorbidity(item.id, "since", e.target.value)}
+                            placeholder="e.g. 2 years, since 2021"
+                            className="text-xs h-8"
+                          />
+                        </div>
+                        <div className="md:col-span-4 space-y-1">
+                          <Label className="text-[10px] font-semibold text-muted-foreground">
+                            Treatment / Medication
+                          </Label>
+                          <Input
+                            value={item.treatment || ""}
+                            onChange={(e) => handleUpdateComorbidity(item.id, "treatment", e.target.value)}
+                            placeholder="e.g. Metformin 500mg, Diet control"
+                            className="text-xs h-8"
+                          />
+                        </div>
+                        <div className="md:col-span-1 flex justify-end pt-3 md:pt-0">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleRemoveComorbidity(item.id)}
+                            className="h-8 w-8 text-rose-500 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/50"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Optional Additional Medical History Notes */}
+                <div className="pt-1">
+                  <Label className="text-[11px] font-semibold text-muted-foreground">
+                    Additional Medical History / Clinical Notes (Optional)
+                  </Label>
+                  <Textarea
+                    value={medicalHistory}
+                    onChange={(e) => setMedicalHistory(e.target.value)}
+                    rows={2}
+                    placeholder="Surgical history, past hospitalizations, or extra clinical context..."
+                    className="text-xs mt-1"
+                  />
                 </div>
               </div>
 
@@ -638,50 +888,98 @@ export default function NutritionAssessmentForm({
         {/* ---------------- TRAINING NUTRITION ---------------- */}
         <TabsContent value="section-d" className="mt-4 space-y-6">
           <Card className="border-border">
-            <CardHeader>
-              <CardTitle className="text-base flex items-center gap-2">
-                <Zap className="w-4 h-4 text-amber-500" /> TRAINING NUTRITION
-              </CardTitle>
+            <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-border/50">
+              <div>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Zap className="w-4 h-4 text-amber-500" /> TRAINING NUTRITION (Fueling Strategy)
+                </CardTitle>
+                <CardDescription className="text-xs mt-0.5">
+                  Log pre, during, and post-workout nutrition for each training session of the day.
+                </CardDescription>
+              </div>
+              <Button
+                type="button"
+                size="sm"
+                onClick={handleAddSession}
+                className="gap-1.5 text-xs bg-amber-500 hover:bg-amber-600 text-white font-semibold shadow-sm shrink-0"
+              >
+                <Plus className="w-4 h-4" /> Add Session
+              </Button>
             </CardHeader>
 
-            <CardContent className="space-y-6">
-              {/* Session 1 */}
-              <div className="p-4 rounded-xl bg-card border border-border space-y-3">
-                <Badge className="bg-amber-500/10 text-amber-500 border-amber-500/20">Session 1</Badge>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-semibold">Pre</Label>
-                    <Textarea value={session1.pre_workout} onChange={(e) => setSession1({ ...session1, pre_workout: e.target.value })} rows={3} placeholder="Pre-workout notes..." />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-semibold">During</Label>
-                    <Textarea value={session1.during_workout} onChange={(e) => setSession1({ ...session1, during_workout: e.target.value })} rows={3} placeholder="During workout notes..." />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-semibold">Post</Label>
-                    <Textarea value={session1.post_workout} onChange={(e) => setSession1({ ...session1, post_workout: e.target.value })} rows={3} placeholder="Post-workout recovery notes..." />
-                  </div>
-                </div>
-              </div>
+            <CardContent className="space-y-6 pt-6">
+              {fuelingSessions.map((session, index) => {
+                const colorClasses = [
+                  "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
+                  "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20",
+                  "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
+                  "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20",
+                  "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20",
+                ];
+                const colorClass = colorClasses[index % colorClasses.length];
 
-              {/* Session 2 */}
-              <div className="p-4 rounded-xl bg-card border border-border space-y-3">
-                <Badge className="bg-blue-500/10 text-blue-500 border-blue-500/20">Session 2</Badge>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-semibold">Pre</Label>
-                    <Textarea value={session2.pre_workout} onChange={(e) => setSession2({ ...session2, pre_workout: e.target.value })} rows={3} placeholder="Pre-workout notes..." />
+                return (
+                  <div key={session.id || index} className="p-4 rounded-xl bg-card border border-border space-y-3 relative group">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Badge className={colorClass}>
+                          {session.name || `Session ${index + 1}`}
+                        </Badge>
+                      </div>
+                      {fuelingSessions.length > 1 && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleRemoveSession(session.id || "")}
+                          className="h-8 px-2 text-xs text-rose-500 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/50 gap-1"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" /> Remove
+                        </Button>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      <div className="space-y-1.5">
+                        <Label className="text-xs font-semibold">Pre</Label>
+                        <Textarea
+                          value={session.pre_workout}
+                          onChange={(e) => handleUpdateSession(session.id || "", "pre_workout", e.target.value)}
+                          rows={3}
+                          placeholder="Pre-workout notes..."
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs font-semibold">During</Label>
+                        <Textarea
+                          value={session.during_workout}
+                          onChange={(e) => handleUpdateSession(session.id || "", "during_workout", e.target.value)}
+                          rows={3}
+                          placeholder="During workout notes..."
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs font-semibold">Post</Label>
+                        <Textarea
+                          value={session.post_workout}
+                          onChange={(e) => handleUpdateSession(session.id || "", "post_workout", e.target.value)}
+                          rows={3}
+                          placeholder="Post-workout recovery notes..."
+                        />
+                      </div>
+                    </div>
                   </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-semibold">During</Label>
-                    <Textarea value={session2.during_workout} onChange={(e) => setSession2({ ...session2, during_workout: e.target.value })} rows={3} placeholder="During workout notes..." />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-semibold">Post</Label>
-                    <Textarea value={session2.post_workout} onChange={(e) => setSession2({ ...session2, post_workout: e.target.value })} rows={3} placeholder="Post-workout recovery notes..." />
-                  </div>
-                </div>
-              </div>
+                );
+              })}
+
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleAddSession}
+                className="w-full py-4 border-dashed border-2 gap-2 text-xs font-semibold text-amber-600 dark:text-amber-400 hover:bg-amber-500/5 hover:border-amber-500/50"
+              >
+                <Plus className="w-4 h-4" /> Add Another Training Session
+              </Button>
             </CardContent>
           </Card>
 
