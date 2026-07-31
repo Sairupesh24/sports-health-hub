@@ -364,7 +364,7 @@
 
 /* --- HIGH-FIDELITY NATIVE PRINT WORKFLOW --- */
 @media print {
-  /* 1. Hide ALL UI/Interactive components */
+  /* 1. Hide ALL UI/Interactive chrome — use display:none so they occupy zero space */
   aside, 
   nav, 
   header, 
@@ -374,43 +374,98 @@
   [role="complementary"],
   .no-print,
   .toast-container,
-  .lucide,
-  .badge,
   .gradient-card {
     display: none !important;
   }
 
-  /* 2. Isolate and Standardize the Report Area */
+  /* 2. Collapse ALL direct children of body so they don't produce a blank page */
+  body > * {
+    display: none !important;
+  }
+
+  /* 3. But show the Radix portal (direct child of body that holds the dialog) */
+  [data-radix-portal] {
+    display: block !important;
+    visibility: visible !important;
+    position: static !important;
+    width: 100% !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  /* 4. Hide the dark overlay backdrop — it takes up a full page otherwise */
+  [data-radix-portal] > [data-state] {
+    display: none !important;
+  }
+
+  /* Show only the dialog content, not the overlay */
+  [data-radix-portal] > [role="dialog"],
+  .print-dialog-content {
+    display: block !important;
+    visibility: visible !important;
+    position: static !important;
+    top: auto !important;
+    left: auto !important;
+    transform: none !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+    background: white !important;
+    color: black !important;
+  }
+
+  /* 5. Make the html/body flow naturally for multi-page */
   html, body {
     height: auto !important;
+    overflow: visible !important;
     background: white !important;
+    position: static !important;
+    margin: 0 !important;
+    padding: 0 !important;
   }
 
-  body > * {
-    visibility: hidden !important;
-  }
-
+  /* 6. Report capture areas — visible, static, multi-page flow */
   #report-capture-area, 
-  #report-capture-area * {
+  #report-capture-area *,
+  #nutrition-report-capture-area,
+  #nutrition-report-capture-area *,
+  #soreness-report-capture-area,
+  #soreness-report-capture-area *,
+  #print-invoice-box,
+  #print-invoice-box *,
+  .printable-content,
+  .printable-content * {
     visibility: visible !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
 
-  #report-capture-area {
-    position: absolute !important;
-    top: 0 !important;
-    left: 0 !important;
+  #report-capture-area,
+  #nutrition-report-capture-area,
+  .printable-content {
+    position: static !important;
+    display: block !important;
     width: 100% !important;
     max-width: 100% !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
     margin: 0 !important;
-    padding: 15mm !important; /* Perfect A4 padding */
+    padding: 6mm !important;
     border: none !important;
     box-shadow: none !important;
     background: white !important;
+    color: black !important;
+    page-break-inside: auto !important;
   }
 
-  /* 3. Typography & Fidelity Fixes */
+  /* 7. Typography & Fidelity Fixes */
   .clinical-form-container {
     font-size: 11pt !important;
     line-height: 1.6 !important;
@@ -504,12 +559,6 @@
 
 /* Print optimizations for half-page boxed A5 invoice layout */
 @media print {
-  body * {
-    visibility: hidden !important;
-  }
-  #print-invoice-box, #print-invoice-box * {
-    visibility: visible !important;
-  }
   #print-invoice-box {
     position: absolute !important;
     left: 0 !important;

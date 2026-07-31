@@ -39,6 +39,7 @@ export default function NutritionistBookAppointmentModal({
   const [loadingClients, setLoadingClients] = useState(false);
   const [clients, setClients] = useState<any[]>([]);
   const [clientSearch, setClientSearch] = useState("");
+  const [clientDropdownOpen, setClientDropdownOpen] = useState(false);
   const [selectedClientId, setSelectedClientId] = useState("");
 
   const [consultants, setConsultants] = useState<any[]>([]);
@@ -306,33 +307,83 @@ export default function NutritionistBookAppointmentModal({
 
         <div className="overflow-y-auto pr-1 flex-1 max-h-[calc(90vh-120px)] space-y-4">
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* 1. Client Selection */}
+            {/* 1. Client Selection — Typeahead */}
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold">Select Client</Label>
-              <div className="space-y-2">
-                <div className="relative">
-                  <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
-                  <Input
-                    placeholder="Search client by name, UHID, mobile..."
-                    value={clientSearch}
-                    onChange={(e) => setClientSearch(e.target.value)}
-                    className="pl-8 text-xs h-9"
-                  />
-                </div>
+              <div className="relative">
+                <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+                <Input
+                  placeholder="Type client name, UHID, or mobile..."
+                  value={clientSearch}
+                  onChange={(e) => {
+                    setClientSearch(e.target.value);
+                    // If user clears or changes text, deselect
+                    if (selectedClientId) {
+                      const selected = clients.find((c) => c.id === selectedClientId);
+                      const selectedName = selected
+                        ? `${selected.first_name || ""} ${selected.last_name || ""} (${selected.uhid || "No UHID"})`
+                        : "";
+                      if (e.target.value !== selectedName) {
+                        setSelectedClientId("");
+                      }
+                    }
+                  }}
+                  onFocus={() => setClientDropdownOpen(true)}
+                  className="pl-8 text-xs h-9"
+                  autoComplete="off"
+                />
 
-                <select
-                  value={selectedClientId}
-                  onChange={(e) => setSelectedClientId(e.target.value)}
-                  className="w-full h-9 px-3 text-xs rounded-md bg-card border border-border text-foreground font-medium focus:ring-1 focus:ring-primary truncate"
-                  required
-                >
-                  <option value="">-- Select Client ({filteredClients.length} available) --</option>
-                  {filteredClients.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.first_name} {c.last_name} ({c.uhid || "No UHID"})
-                    </option>
-                  ))}
-                </select>
+                {/* Suggestion list */}
+                {clientDropdownOpen && clientSearch.length > 0 && !selectedClientId && (
+                  <div className="absolute z-50 left-0 right-0 top-full mt-1 bg-card border border-border rounded-lg shadow-lg max-h-[180px] overflow-y-auto">
+                    {filteredClients.length === 0 ? (
+                      <div className="px-3 py-3 text-xs text-muted-foreground italic text-center">
+                        No clients found matching "{clientSearch}"
+                      </div>
+                    ) : (
+                      filteredClients.slice(0, 50).map((c) => (
+                        <button
+                          key={c.id}
+                          type="button"
+                          onClick={() => {
+                            setSelectedClientId(c.id);
+                            setClientSearch(`${c.first_name || ""} ${c.last_name || ""} (${c.uhid || "No UHID"})`);
+                            setClientDropdownOpen(false);
+                          }}
+                          className="w-full text-left px-3 py-2 text-xs hover:bg-muted/60 transition-colors flex items-center justify-between gap-2 border-b border-border/40 last:border-b-0"
+                        >
+                          <div className="flex flex-col min-w-0">
+                            <span className="font-semibold text-foreground truncate">
+                              {c.first_name} {c.last_name}
+                            </span>
+                            <span className="text-[10px] text-muted-foreground font-mono">
+                              {c.uhid || "No UHID"} {c.mobile_no ? `• ${c.mobile_no}` : ""}
+                            </span>
+                          </div>
+                          <User className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                        </button>
+                      ))
+                    )}
+                  </div>
+                )}
+
+                {/* Selected client indicator */}
+                {selectedClientId && (
+                  <div className="mt-1.5 flex items-center gap-1.5 text-[11px] text-emerald-500 font-medium">
+                    <Check className="w-3.5 h-3.5" /> Client selected
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedClientId("");
+                        setClientSearch("");
+                        setClientDropdownOpen(true);
+                      }}
+                      className="ml-1 text-muted-foreground hover:text-foreground underline"
+                    >
+                      Change
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
 

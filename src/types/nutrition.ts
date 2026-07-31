@@ -11,6 +11,8 @@ export interface SupplementItem {
 }
 
 export interface FuelingSession {
+  id?: string;
+  name?: string;
   pre_workout: string;
   during_workout: string;
   post_workout: string;
@@ -24,6 +26,13 @@ export interface RecallTimeline {
   evening_snack: string;
   dinner: string;
   bed_time: string;
+}
+
+export interface MedicalConditionItem {
+  id: string;
+  condition: string;
+  since?: string;
+  treatment?: string;
 }
 
 export interface NutritionAssessment {
@@ -60,6 +69,7 @@ export interface NutritionAssessment {
   complaints?: string;
   biochemical_interpretations?: string;
   medical_history?: string;
+  comorbidities?: MedicalConditionItem[];
   other_medications?: string;
   allergies_intolerances: string[];
 
@@ -72,6 +82,7 @@ export interface NutritionAssessment {
   // Section D: Training Nutrition (Fueling Strategy)
   session_1: FuelingSession;
   session_2: FuelingSession;
+  fueling_sessions?: FuelingSession[];
 
   // Section E: Supplement Stack
   supplements: SupplementItem[];
