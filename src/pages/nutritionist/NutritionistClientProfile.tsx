@@ -35,7 +35,7 @@ import {
 } from "lucide-react";
 import { apiFetch } from "@/utils/api";
 import NutritionAssessmentForm from "@/components/nutrition/NutritionAssessmentForm";
-import NutritionAssessmentViewer from "@/components/nutrition/NutritionAssessmentViewer";
+import NutritionAssessmentViewer, { formatDateDDMMYYYY } from "@/components/nutrition/NutritionAssessmentViewer";
 import MealPlanEditorModal from "@/components/nutrition/MealPlanEditorModal";
 import type { NutritionAssessment } from "@/types/nutrition";
 
@@ -271,8 +271,20 @@ export default function NutritionistClientProfile() {
                   <p className="text-muted-foreground">{latestAssessment.biochemical_interpretations || "None recorded."}</p>
                 </div>
                 <div className="p-3 rounded-lg bg-card border border-border space-y-1">
-                  <span className="font-bold text-foreground block text-[11px]">MEDICAL HISTORY:</span>
-                  <p className="text-muted-foreground">{latestAssessment.medical_history || "None recorded."}</p>
+                  <span className="font-bold text-foreground block text-[11px]">MEDICAL CONDITIONS & COMORBIDITIES:</span>
+                  {latestAssessment.comorbidities && latestAssessment.comorbidities.length > 0 ? (
+                    <div className="flex flex-col gap-1 pt-1">
+                      {latestAssessment.comorbidities.map((item, idx) => (
+                        <div key={idx} className="text-xs text-muted-foreground">
+                          <span className="font-semibold text-foreground">• {item.condition}</span>
+                          {item.since && <span> (Since: {item.since})</span>}
+                          {item.treatment && <span className="italic"> - Tx: {item.treatment}</span>}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-muted-foreground whitespace-pre-wrap">{latestAssessment.medical_history || "None recorded."}</p>
+                  )}
                 </div>
                 <div className="p-3 rounded-lg bg-card border border-border space-y-1">
                   <span className="font-bold text-foreground block text-[11px]">OTHER MEDICATIONS:</span>
@@ -467,7 +479,7 @@ export default function NutritionistClientProfile() {
                     ) : (
                       assessments.map((ass, idx) => (
                         <TableRow key={ass.id || idx} className="hover:bg-muted/30 transition-colors">
-                          <TableCell className="font-mono text-xs font-bold">{ass.assessment_date}</TableCell>
+                          <TableCell className="font-mono text-xs font-bold">{formatDateDDMMYYYY(ass.assessment_date)}</TableCell>
 
                           <TableCell>
                             <Badge variant="outline" className="capitalize text-[10px]">

@@ -10,7 +10,7 @@ import { ClipboardList, Search, Plus, Eye, Apple } from "lucide-react";
 import { apiFetch } from "@/utils/api";
 import type { NutritionAssessment } from "@/types/nutrition";
 import NutritionAssessmentForm from "@/components/nutrition/NutritionAssessmentForm";
-import NutritionAssessmentViewer from "@/components/nutrition/NutritionAssessmentViewer";
+import NutritionAssessmentViewer, { formatDateDDMMYYYY } from "@/components/nutrition/NutritionAssessmentViewer";
 
 export default function NutritionistAssessmentsPage() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -117,7 +117,7 @@ export default function NutritionistAssessmentsPage() {
                           <div className="text-[10px] text-muted-foreground font-mono">{ass.profession}</div>
                         </TableCell>
 
-                        <TableCell className="font-mono text-xs">{ass.assessment_date}</TableCell>
+                        <TableCell className="font-mono text-xs">{formatDateDDMMYYYY(ass.assessment_date)}</TableCell>
 
                         <TableCell>
                           <Badge variant="outline" className="capitalize text-[10px]">

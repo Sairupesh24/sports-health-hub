@@ -46,10 +46,10 @@ CREATE TABLE IF NOT EXISTS "nutrition_assessments" (
 );
 
 -- AddForeignKey
-ALTER TABLE "nutrition_assessments" ADD CONSTRAINT "nutrition_assessments_client_id_fkey" FOREIGN KEY ("client_id") REFERENCES "clients"("id") ON DELETE CASCADE ON UPDATE NOACTION;
+ALTER TABLE "nutrition_assessments" ADD CONSTRAINT "nutrition_assessments_client_id_fkey" FOREIGN KEY ("client_id") REFERENCES "clients"("id") ON DELETE CASCADE ON UPDATE NO ACTION;
 
 -- AddForeignKey
-ALTER TABLE "nutrition_assessments" ADD CONSTRAINT "nutrition_assessments_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "organizations"("id") ON DELETE CASCADE ON UPDATE NOACTION;
+ALTER TABLE "nutrition_assessments" ADD CONSTRAINT "nutrition_assessments_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "organizations"("id") ON DELETE CASCADE ON UPDATE NO ACTION;
 
 -- AddForeignKey
-ALTER TABLE "nutrition_assessments" ADD CONSTRAINT "nutrition_assessments_nutritionist_id_fkey" FOREIGN KEY ("nutritionist_id") REFERENCES "profiles"("id") ON DELETE SET NULL ON UPDATE NOACTION;
+ALTER TABLE "nutrition_assessments" ADD CONSTRAINT "nutrition_assessments_nutritionist_id_fkey" FOREIGN KEY ("nutritionist_id") REFERENCES "profiles"("id") ON DELETE SET NULL ON UPDATE NO ACTION;
