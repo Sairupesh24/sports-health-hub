@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, User, Phone, MapPin, Shield, Activity, CalendarDays, FileText, Download, Users, Banknote, Smartphone, Landmark, CreditCard, Plus, X } from "lucide-react";
 import { apiFetch } from "@/utils/api";
+import { formatStaffName } from "@/utils/serviceMapping";
 import { format, parse } from "date-fns";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
@@ -483,7 +484,7 @@ export default function ClientProfile() {
             'Date & Time': s.scheduled_start ? format(new Date(s.scheduled_start), "dd MMM yyyy, hh:mm a") : "-",
             'Type': s.service_type || "-",
             'Provider': s.therapist
-                ? (s.service_type === 'Physiotherapy' ? `Dr. ${s.therapist.first_name} ${s.therapist.last_name}` : `${s.therapist.first_name} ${s.therapist.last_name}`)
+                ? formatStaffName({ ...s.therapist, service_type: s.service_type }, { useFirstName: true })
                 : (s.therapist_id || "-"),
             'Status': s.status,
             'Pain Score': s.physio_session_details?.[0]?.pain_score ?? "-",
@@ -987,7 +988,7 @@ export default function ClientProfile() {
                                                             <td className="p-3 text-muted-foreground flex items-center gap-1.5 min-w-[150px]">
                                                                 <User className="w-3.5 h-3.5 text-muted-foreground/50" />
                                                                 {session.therapist
-                                                                    ? (session.service_type === 'Physiotherapy' ? `Dr. ${session.therapist.first_name} ${session.therapist.last_name}` : `${session.therapist.first_name} ${session.therapist.last_name}`)
+                                                                    ? formatStaffName({ ...session.therapist, service_type: session.service_type }, { useFirstName: true })
                                                                     : (session.therapist_id || "-")}
                                                             </td>
                                                             <td className="p-3">

@@ -1,15 +1,17 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { apiFetch } from "@/utils/api";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, AlertTriangle, CheckCircle, ClipboardList, RefreshCw, Clock } from "lucide-react";
+import { Loader2, AlertTriangle, CheckCircle, ClipboardList, RefreshCw, Clock, Check, UserCheck } from "lucide-react";
 import { format } from "date-fns";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
-import { filterServicesByRole, Service } from "@/utils/serviceMapping";
+import { filterServicesByRole, Service, formatStaffName } from "@/utils/serviceMapping";
+import { cn } from "@/lib/utils";
 
 interface Props {
     open: boolean;
@@ -23,6 +25,7 @@ export function AdminSessionStatusModal({ open, onOpenChange, session, onSuccess
     const [loading, setLoading] = useState(false);
     const [reconciling, setReconciling] = useState(false);
     const [status, setStatus] = useState<string>("Planned");
+    const [cancellationReason, setCancellationReason] = useState("");
     const [actualStart, setActualStart] = useState("");
     const [actualEnd, setActualEnd] = useState("");
     const [soapNote, setSoapNote] = useState<any>(null);
@@ -36,9 +39,116 @@ export function AdminSessionStatusModal({ open, onOpenChange, session, onSuccess
     const [attendees, setAttendees] = useState<any[]>([]);
     const [attendeesLoading, setAttendeesLoading] = useState(false);
 
+    // Reassignment states
+    const [staffList, setStaffList] = useState<any[]>([]);
+    const [loadingStaff, setLoadingStaff] = useState(false);
+    const [reassignConsultantId, setReassignConsultantId] = useState("");
+    const [reassignDate, setReassignDate] = useState("");
+    const [targetBookedSessions, setTargetBookedSessions] = useState<any[]>([]);
+    const [loadingTargetBookings, setLoadingTargetBookings] = useState(false);
+    const [reassignSelectedSlot, setReassignSelectedSlot] = useState<{ startTime: string; endTime: string; label: string } | null>(null);
+
+    useEffect(() => {
+        if (open && session) {
+            setReassignDate(format(new Date(session.scheduled_start), "yyyy-MM-dd"));
+            setReassignConsultantId("");
+            setReassignSelectedSlot(null);
+            fetchStaffList();
+        }
+    }, [open, session]);
+
+    const fetchStaffList = async () => {
+        try {
+            setLoadingStaff(true);
+            const data = await apiFetch<any[]>("/hr/employees?role_type=clinical").catch(() => []);
+            if (data && Array.isArray(data)) {
+                setStaffList(data);
+            }
+        } catch (err) {
+            console.warn("Failed to fetch staff list:", err);
+        } finally {
+            setLoadingStaff(false);
+        }
+    };
+
+    useEffect(() => {
+        if (open && reassignConsultantId && reassignDate) {
+            fetchTargetBookings(reassignConsultantId, reassignDate);
+        }
+    }, [open, reassignConsultantId, reassignDate]);
+
+    const fetchTargetBookings = async (consultantId: string, dateStr: string) => {
+        try {
+            setLoadingTargetBookings(true);
+            setReassignSelectedSlot(null);
+            const start = `${dateStr}T00:00:00.000Z`;
+            const end = `${dateStr}T23:59:59.999Z`;
+            const res = await apiFetch<any[]>(`/api/appointments?specialist_id=${consultantId}&start=${start}&end=${end}`).catch(() => []);
+            if (res && Array.isArray(res)) {
+                setTargetBookedSessions(res.filter(s => s.status !== "Cancelled"));
+            } else {
+                setTargetBookedSessions([]);
+            }
+        } catch (err) {
+            console.warn("Failed to fetch target bookings:", err);
+        } finally {
+            setLoadingTargetBookings(false);
+        }
+    };
+
+    // Calculate available time slots for target consultant on reassignDate
+    const reassignAvailableSlots = useMemo(() => {
+        if (!reassignConsultantId || !reassignDate) return [];
+
+        let startMinutes = 9 * 60;  // 09:00 AM
+        let endMinutes = 18 * 60;   // 06:00 PM
+        const slotDur = 60; // 60 mins
+
+        const slots: { startTime: string; endTime: string; label: string }[] = [];
+        let current = startMinutes;
+
+        while (current + slotDur <= endMinutes) {
+            const startH = Math.floor(current / 60);
+            const startM = current % 60;
+            const endTotal = current + slotDur;
+            const endH = Math.floor(endTotal / 60);
+            const endM = endTotal % 60;
+
+            const formatTwoDigits = (num: number) => (num < 10 ? `0${num}` : `${num}`);
+            const startFormatted = `${formatTwoDigits(startH)}:${formatTwoDigits(startM)}`;
+            const endFormatted = `${formatTwoDigits(endH)}:${formatTwoDigits(endM)}`;
+
+            const formatAmPm = (hh: number, mm: number) => {
+                const ampm = hh >= 12 ? "PM" : "AM";
+                const displayH = hh % 12 === 0 ? 12 : hh % 12;
+                return `${displayH}:${formatTwoDigits(mm)} ${ampm}`;
+            };
+
+            const label = `${formatAmPm(startH, startM)} - ${formatAmPm(endH, endM)}`;
+
+            const isBooked = targetBookedSessions.some((b) => {
+                if (!b.scheduled_start) return false;
+                const bStart = new Date(b.scheduled_start);
+                const bEnd = b.scheduled_end ? new Date(b.scheduled_end) : new Date(bStart.getTime() + slotDur * 60000);
+                const slotStartObj = new Date(`${reassignDate}T${startFormatted}:00`);
+                const slotEndObj = new Date(`${reassignDate}T${endFormatted}:00`);
+                return slotStartObj < bEnd && slotEndObj > bStart;
+            });
+
+            if (!isBooked) {
+                slots.push({ startTime: startFormatted, endTime: endFormatted, label });
+            }
+
+            current += slotDur;
+        }
+
+        return slots;
+    }, [reassignConsultantId, reassignDate, targetBookedSessions]);
+
     useEffect(() => {
         if (session) {
             setStatus(session.status || "Planned");
+            setCancellationReason(session.cancellation_reason || "");
             setServiceId(session.service_id || "");
             fetchServices();
             if (session.actual_start) {
@@ -126,7 +236,8 @@ export function AdminSessionStatusModal({ open, onOpenChange, session, onSuccess
     const isFutureSession = sessionDate ? sessionDate > now : false;
     const isLocked = (session?.status === "Completed" && session?.actual_end && (now.getTime() - new Date(session.actual_end).getTime()) > 24 * 60 * 60 * 1000) || 
                      session?.status === "Cancelled" || 
-                     session?.status === "Rescheduled";
+                     session?.status === "Rescheduled" ||
+                     session?.status === "Reassigned";
     const isUnentitled = session?.is_unentitled === true;
     const isElapsed = session && 
                       (session.status === 'Planned' || session.status === 'Checked In') && 
@@ -140,8 +251,12 @@ export function AdminSessionStatusModal({ open, onOpenChange, session, onSuccess
             toast({ title: "Not Allowed", description: `This session is scheduled for ${format(new Date(session.scheduled_start), "MMM d, yyyy h:mm a")}. You cannot mark a future session as Completed.`, variant: "destructive" });
             return;
         }
+        if (status === "Cancelled" && !cancellationReason.trim()) {
+            toast({ title: "Reason Required", description: "Please enter the reason for cancelling this session.", variant: "destructive" });
+            return;
+        }
         if (isLocked) {
-            toast({ title: "Session Locked", description: "This session cannot be edited more than 24 hours after completion.", variant: "destructive" });
+            toast({ title: "Session Locked", description: "This session cannot be edited more than 24 hours after completion or once cancelled/rescheduled/reassigned.", variant: "destructive" });
             return;
         }
 
@@ -167,12 +282,28 @@ export function AdminSessionStatusModal({ open, onOpenChange, session, onSuccess
                     method: 'POST',
                     data: { new_start: newStartTime.toISOString(), new_end: newEndTime.toISOString() }
                 });
+            } else if (status === "Reassigned") {
+                if (!reassignConsultantId || !reassignSelectedSlot || !reassignDate) {
+                    throw new Error("Please select a target staff member and choose an available time slot for reassignment.");
+                }
+                const newStartISO = new Date(`${reassignDate}T${reassignSelectedSlot.startTime}:00`).toISOString();
+                const newEndISO = new Date(`${reassignDate}T${reassignSelectedSlot.endTime}:00`).toISOString();
+
+                await apiFetch(`/appointments/${session.id}/reassign`, {
+                    method: 'POST',
+                    data: {
+                        target_consultant_id: reassignConsultantId,
+                        new_start: newStartISO,
+                        new_end: newEndISO
+                    }
+                });
             } else {
                 const selectedService = services.find(s => s.id === serviceId);
                 await apiFetch(`/appointments/${session.id}`, {
                     method: 'PATCH',
                     data: { 
                         status, 
+                        cancellation_reason: status === "Cancelled" ? cancellationReason.trim() : null,
                         service_id: serviceId || null,
                         service_type: selectedService?.name || session.service_type
                     }
@@ -249,9 +380,13 @@ export function AdminSessionStatusModal({ open, onOpenChange, session, onSuccess
                         <div className="flex items-start gap-2 rounded-md border border-red-300 bg-red-50 p-3 text-sm text-red-800">
                             <span className="text-base">🔒</span>
                             <span>
-                                {session?.status === "Cancelled" || session?.status === "Rescheduled" 
-                                    ? `This session is ${session.status.toLowerCase()} and cannot be edited.` 
-                                    : isUnentitled 
+                                {session?.status === "Reassigned"
+                                    ? "This session has been reassigned to another consultant and cannot be edited."
+                                    : session?.status === "Cancelled"
+                                    ? "This session has been cancelled and cannot be edited."
+                                    : session?.status === "Rescheduled"
+                                    ? "This session has been rescheduled and cannot be edited."
+                                    : isUnentitled
                                         ? "This session is locked and cannot be edited. However, reconciliation for payment is still permitted."
                                         : "This session is locked. It cannot be edited more than 24 hours after completion."}
                             </span>
@@ -301,7 +436,7 @@ export function AdminSessionStatusModal({ open, onOpenChange, session, onSuccess
                         ) : (
                             <p><strong>Client:</strong> {session.client?.first_name} {session.client?.last_name}</p>
                         )}
-                        <p><strong>Consultant:</strong> Dr. {session.therapist?.last_name}</p>
+                        <p><strong>Consultant:</strong> {formatStaffName(session.therapist || session.scientist || session.staff, { useFirstName: true })}</p>
                         <p className="flex items-center gap-1.5 flex-wrap">
                             <strong>Scheduled:</strong> {format(new Date(session.scheduled_start), "MMM d, yyyy h:mm a")}
                             {isElapsed && (
@@ -318,6 +453,11 @@ export function AdminSessionStatusModal({ open, onOpenChange, session, onSuccess
                         {session?.actual_end && (
                             <p className="text-emerald-700 text-xs font-bold">
                                 <strong>Recorded End:</strong> {format(new Date(session.actual_end), "h:mm a")}
+                            </p>
+                        )}
+                        {session?.cancellation_reason && (
+                            <p className="text-rose-700 dark:text-rose-300 text-xs font-semibold pt-1 border-t border-border/50">
+                                <strong>Cancellation Reason:</strong> {session.cancellation_reason}
                             </p>
                         )}
                         <div className="flex items-center gap-2">
@@ -457,10 +597,26 @@ export function AdminSessionStatusModal({ open, onOpenChange, session, onSuccess
                                         <SelectItem value="Checked In">Checked In</SelectItem>
                                         <SelectItem value="Completed" disabled={isFutureSession}>Completed</SelectItem>
                                         <SelectItem value="Rescheduled" disabled={session.status !== "Planned"}>Rescheduled</SelectItem>
+                                        <SelectItem value="Reassigned" disabled={!["Planned", "Checked In"].includes(session.status)}>Reassigned</SelectItem>
                                         <SelectItem value="Cancelled">Cancelled</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>
+
+                            {status === "Cancelled" && (
+                                <div className="grid gap-2 animate-in slide-in-from-top-2 p-3 bg-rose-50/70 dark:bg-rose-950/30 rounded-xl border border-rose-200 dark:border-rose-800">
+                                    <Label className="font-semibold text-rose-800 dark:text-rose-300 flex items-center justify-between text-xs">
+                                        <span>Reason for Cancellation *</span>
+                                        <span className="text-[10px] text-rose-600 font-bold uppercase tracking-wider">Required</span>
+                                    </Label>
+                                    <Textarea
+                                        placeholder="Please enter the reason why this session is being cancelled..."
+                                        value={cancellationReason}
+                                        onChange={(e) => setCancellationReason(e.target.value)}
+                                        className="min-h-[80px] text-xs bg-white dark:bg-slate-900 border-rose-300 dark:border-rose-700"
+                                    />
+                                </div>
+                            )}
 
                             {status === "Rescheduled" && (
                                 <div className="grid gap-3 animate-in slide-in-from-top-2 pt-3 border-t mt-2">
@@ -493,9 +649,96 @@ export function AdminSessionStatusModal({ open, onOpenChange, session, onSuccess
                                 </div>
                             )}
 
+                            {status === "Reassigned" && (
+                                <div className="grid gap-3 animate-in slide-in-from-top-2 pt-3 border-t mt-2 p-3 bg-purple-50/70 dark:bg-purple-950/30 rounded-xl border border-purple-200 dark:border-purple-800">
+                                    <Label className="text-purple-900 dark:text-purple-300 font-semibold flex items-center gap-2 text-xs">
+                                        <UserCheck className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                                        Reassign Appointment Details
+                                    </Label>
+                                    
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                        <div className="space-y-1">
+                                            <Label className="text-xs text-muted-foreground font-medium">Reassign To Staff Member *</Label>
+                                            <Select value={reassignConsultantId} onValueChange={setReassignConsultantId}>
+                                                <SelectTrigger className="h-9 text-xs bg-white dark:bg-slate-900">
+                                                    <SelectValue placeholder={loadingStaff ? "Loading staff..." : "Select consultant"} />
+                                                </SelectTrigger>
+                                                <SelectContent className="max-h-60">
+                                                    {staffList.map((s) => (
+                                                        <SelectItem key={s.id} value={s.id}>
+                                                            {formatStaffName(s, { showProfession: true, useFirstName: true })}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+
+                                        <div className="space-y-1">
+                                            <Label className="text-xs text-muted-foreground font-medium">Date *</Label>
+                                            <Input
+                                                type="date"
+                                                value={reassignDate}
+                                                onChange={(e) => setReassignDate(e.target.value)}
+                                                className="h-9 text-xs bg-white dark:bg-slate-900"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {reassignConsultantId && (
+                                        <div className="space-y-2 pt-1">
+                                            <div className="flex items-center justify-between text-xs">
+                                                <Label className="font-semibold text-purple-900 dark:text-purple-200 text-xs">
+                                                    Available Time Slots on {reassignDate ? format(new Date(`${reassignDate}T00:00:00`), "MMM d, yyyy") : ""}
+                                                </Label>
+                                                {loadingTargetBookings && <Loader2 className="w-3.5 h-3.5 animate-spin text-purple-600" />}
+                                            </div>
+
+                                            {reassignAvailableSlots.length > 0 ? (
+                                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-36 overflow-y-auto pr-1">
+                                                    {reassignAvailableSlots.map((slot) => {
+                                                        const isSelected = reassignSelectedSlot?.startTime === slot.startTime;
+                                                        return (
+                                                            <button
+                                                                key={slot.startTime}
+                                                                type="button"
+                                                                onClick={() => setReassignSelectedSlot(slot)}
+                                                                className={cn(
+                                                                    "px-2.5 py-1.5 rounded-lg text-xs font-semibold border transition-all text-left flex items-center justify-between",
+                                                                    isSelected
+                                                                        ? "bg-purple-600 text-white border-purple-600 shadow-sm ring-2 ring-purple-600/30"
+                                                                        : "bg-white dark:bg-slate-900 hover:bg-purple-100/50 border-purple-200 text-foreground"
+                                                                )}
+                                                            >
+                                                                <span>{slot.label}</span>
+                                                                {isSelected && <Check className="w-3.5 h-3.5 text-white shrink-0 ml-1" />}
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
+                                            ) : (
+                                                <div className="p-2.5 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 text-xs text-amber-800 dark:text-amber-300 rounded-lg">
+                                                    No open time slots available for this staff member on this date.
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    {reassignSelectedSlot && (
+                                        <div className="p-2.5 bg-purple-100 dark:bg-purple-900/40 border border-purple-300 dark:border-purple-700 rounded-lg text-xs text-purple-900 dark:text-purple-200 font-medium flex items-center justify-between">
+                                            <span>Selected New Slot: <strong className="font-mono">{reassignSelectedSlot.label}</strong></span>
+                                            <span className="text-[10px] bg-purple-600 text-white px-1.5 py-0.5 rounded font-bold uppercase">60 Mins</span>
+                                        </div>
+                                    )}
+
+                                    <p className="text-[10px] text-muted-foreground italic">
+                                        Note: Reassigning will mark the current appointment as 'Reassigned' and schedule a new 'Planned' session for the selected staff member.
+                                    </p>
+                                </div>
+                            )}
+
                             <Button onClick={handleSave} disabled={loading} className="w-full mt-2">
                                 {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                {status === "Rescheduled" ? "Reschedule Session" : "Save Status"}
+                                {status === "Rescheduled" ? "Reschedule Session" : status === "Reassigned" ? "Confirm Reassignment" : "Save Status"}
                             </Button>
                         </>
                     )}

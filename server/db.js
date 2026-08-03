@@ -559,6 +559,14 @@ async function runMigrations() {
         await pool.query(`ALTER TABLE Sessions ALTER COLUMN client_id DROP NOT NULL;`);
     } catch (e) {}
 
+    // Ensure sessions status CHECK constraint allows all statuses including 'Reassigned' and 'Waitlisted'
+    try {
+        await pool.query(`ALTER TABLE sessions DROP CONSTRAINT IF EXISTS sessions_status_check;`);
+        await pool.query(`ALTER TABLE sessions ADD CONSTRAINT sessions_status_check CHECK (status IN ('Planned', 'Completed', 'Missed', 'Rescheduled', 'Cancelled', 'Checked In', 'Waitlisted', 'Reassigned'));`);
+    } catch (e) {
+        console.warn('Could not update sessions_status_check constraint:', e.message);
+    }
+
     // Clinical - Injuries
     await pool.query(`
       CREATE TABLE IF NOT EXISTS Injuries (

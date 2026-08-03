@@ -25,12 +25,14 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, User, ClipboardList, AlertTriangle } from "lucide-react";
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, User, ClipboardList, AlertTriangle, Plus } from "lucide-react";
 import SOAPNoteModal from "@/components/consultant/SOAPNoteModal";
+import { ConsultantBookSlotModal } from "@/components/consultant/ConsultantBookSlotModal";
 import { PatientAlertSummaryIcon } from "@/components/consultant/PatientAlertSummaryIcon";
 import { Loader2, BadgeIndianRupee } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { VIPBadge, VIPName } from "@/components/ui/VIPBadge";
+import { toast } from "@/hooks/use-toast";
 
 type ViewMode = "day" | "week" | "month";
 
@@ -56,6 +58,7 @@ export default function ConsultantSchedule() {
 
     // Modal states
     const [soapModalOpen, setSoapModalOpen] = useState(false);
+    const [isBookModalOpen, setIsBookModalOpen] = useState(false);
     const [selectedSession, setSelectedSession] = useState<any>(null);
     const [selectedClientId, setSelectedClientId] = useState<string>("");
 
@@ -191,6 +194,27 @@ export default function ConsultantSchedule() {
     const handleToday = () => setCurrentDate(new Date());
 
     const handleEventClick = (event: SessionEvent) => {
+        const rawStatus = (event.status || "").toLowerCase().trim();
+        if (rawStatus === "cancelled" || rawStatus === "canceled") {
+            toast({
+                variant: "destructive",
+                title: "Session Cancelled",
+                description: "This session has been cancelled by Admin/FOE."
+            });
+            return;
+        }
+
+        const isCheckedIn = rawStatus === "checked in" || rawStatus === "checked-in" || rawStatus === "checkedin" || rawStatus === "in progress" || rawStatus === "completed";
+
+        if (!isCheckedIn && !isAdminOrFoe) {
+            toast({
+                variant: "destructive",
+                title: "Check-in Required",
+                description: "Client has not checked in yet. SOAP notes can only be opened and filled after the client is checked in by Admin/FOE."
+            });
+            return;
+        }
+
         setSelectedSession(event.rawSession);
         setSelectedClientId(event.client_id);
         setSoapModalOpen(true);
@@ -211,7 +235,9 @@ export default function ConsultantSchedule() {
     const getStatusColor = (status: string) => {
         switch (status) {
             case 'Planned': return 'bg-blue-100 text-blue-800 border-blue-200';
+            case 'Checked In': case 'Checked-in': return 'bg-purple-100 text-purple-800 border-purple-200';
             case 'Completed': return 'bg-gray-100 text-gray-800 border-gray-200';
+            case 'Cancelled': case 'cancelled': return 'bg-red-100 text-red-800 border-red-200 line-through opacity-70';
             case 'Missed': return 'bg-red-100 text-red-800 border-red-200';
             case 'Rescheduled': return 'bg-orange-100 text-orange-800 border-orange-200';
             default: return 'bg-primary/10 text-primary border-primary/20';
@@ -506,6 +532,10 @@ export default function ConsultantSchedule() {
                     </div>
 
                     <div className="flex items-center gap-2">
+                        <Button onClick={() => setIsBookModalOpen(true)} size="sm" className="gap-1.5 shadow-sm">
+                            <Plus className="w-4 h-4" />
+                            Book Slot
+                        </Button>
                         <Button variant="outline" size="sm" onClick={handleToday}>
                             Today
                         </Button>
@@ -596,6 +626,13 @@ export default function ConsultantSchedule() {
                 onOpenChange={setSoapModalOpen}
                 session={selectedSession}
                 clientId={selectedClientId}
+                onSuccess={refetch}
+            />
+
+            <ConsultantBookSlotModal
+                open={isBookModalOpen}
+                onOpenChange={setIsBookModalOpen}
+                defaultDate={currentDate}
                 onSuccess={refetch}
             />
         </DashboardLayout>

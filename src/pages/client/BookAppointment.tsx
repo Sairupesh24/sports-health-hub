@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { filterConsultantsByService, type Service } from "@/utils/serviceMapping";
+import { filterConsultantsByService, type Service, formatStaffName } from "@/utils/serviceMapping";
 
 type Consultant = {
     id: string;
@@ -298,7 +298,7 @@ export default function BookAppointment() {
                                                         <User className="w-8 h-8" />
                                                     </div>
                                                     <div className="text-center">
-                                                        <p className="font-black text-slate-900 leading-tight">Dr. {consultant.last_name}</p>
+                                                        <p className="font-black text-slate-900 leading-tight">{formatStaffName(consultant, { useFirstName: false })}</p>
                                                         <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest mt-1">{consultant.profession || "Consultant"}</p>
                                                     </div>
                                                 </div>
@@ -338,7 +338,7 @@ export default function BookAppointment() {
                                         </div>
                                         <CardTitle className="text-3xl font-black italic tracking-tighter">Availability</CardTitle>
                                     </div>
-                                    <CardDescription className="text-sm font-medium text-slate-400">Pick a slot from Dr. {selectedConsultantObj?.last_name}'s calendar.</CardDescription>
+                                    <CardDescription className="text-sm font-medium text-slate-400">Pick a slot from {formatStaffName(selectedConsultantObj, { useFirstName: false })}'s calendar.</CardDescription>
                                 </div>
                                 <Button variant="ghost" onClick={() => setStep(1)} className="font-black text-[10px] uppercase tracking-widest text-slate-400 hover:text-slate-900">
                                     <ArrowLeft className="w-4 h-4 mr-2" /> Back
@@ -421,7 +421,7 @@ export default function BookAppointment() {
                                         <div className="flex flex-col items-center justify-center p-12 bg-slate-50 rounded-[32px] border-2 border-dashed border-slate-200">
                                             <AlertCircle className="w-10 h-10 text-amber-500 mb-4" />
                                             <p className="text-slate-900 font-black italic mb-2">No Available Slots</p>
-                                            <p className="text-slate-400 font-medium italic text-sm text-center mb-6">Dr. {selectedConsultantObj?.last_name} is fully booked on this day.</p>
+                                            <p className="text-slate-400 font-medium italic text-sm text-center mb-6">{formatStaffName(selectedConsultantObj, { useFirstName: false })} is fully booked on this day.</p>
                                             <Button 
                                                 variant="outline" 
                                                 onClick={handleJoinWaitlist}
@@ -464,7 +464,7 @@ export default function BookAppointment() {
                             <div className="space-y-4">
                                 <h2 className="text-4xl font-black italic tracking-tighter">Confirmation!</h2>
                                 <p className="text-slate-500 font-medium">
-                                    Your <span className="text-primary font-black uppercase text-xs">{selectedServiceType}</span> with <span className="font-black text-slate-800 underline decoration-primary underline-offset-4">Dr. {selectedConsultantObj?.last_name}</span> has been confirmed.
+                                    Your <span className="text-primary font-black uppercase text-xs">{selectedServiceType}</span> with <span className="font-black text-slate-800 underline decoration-primary underline-offset-4">{formatStaffName(selectedConsultantObj, { useFirstName: false })}</span> has been confirmed.
                                 </p>
                             </div>
 
