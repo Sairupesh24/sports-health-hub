@@ -6,6 +6,7 @@ import ScheduleCard from "@/components/dashboard/ScheduleCard";
 import { Users, Calendar, CreditCard, TrendingUp, Activity, AlertTriangle, Loader2, Bell, Clock } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/utils/api";
+import { formatStaffName } from "@/utils/serviceMapping";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval, parseISO, formatDistanceToNow, format } from "date-fns";
 import { useAuth } from "@/contexts/AuthContext";
@@ -154,7 +155,7 @@ export default function AdminDashboard() {
       if (s.therapist_id && therapist) {
         if (!consultantCounts[s.therapist_id]) {
           consultantCounts[s.therapist_id] = {
-            name: `Dr. ${s.therapist_first_name} ${s.therapist_last_name}`,
+            name: formatStaffName(s.therapist || { first_name: s.therapist_first_name, last_name: s.therapist_last_name, service_type: s.service_type }, { useFirstName: true }),
             count: 0
           };
         }
@@ -248,8 +249,8 @@ export default function AdminDashboard() {
       completedSessions.forEach(session => {
         const client = session.client || { first_name: session.client_first_name, last_name: session.client_last_name };
         const clientName = client.first_name ? `${client.first_name || ''} ${client.last_name || ''}`.trim() : 'Client';
-        const therapist = session.therapist || { first_name: session.therapist_first_name, last_name: session.therapist_last_name };
-        const therapistName = therapist.first_name ? `Dr. ${therapist.first_name || ''} ${therapist.last_name || ''}`.trim() : 'Therapist';
+        const therapist = session.therapist || { first_name: session.therapist_first_name, last_name: session.therapist_last_name, service_type: session.service_type };
+        const therapistName = therapist.first_name || therapist.last_name ? formatStaffName(therapist, { useFirstName: true }) : 'Therapist';
         activityList.push({
           id: `session-${session.id}`,
           title: "Session completed",

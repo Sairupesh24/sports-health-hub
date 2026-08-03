@@ -198,3 +198,51 @@ export function resolveServiceId(
 
   return null;
 }
+
+/**
+ * Formats a staff member's display name.
+ * Adds "Dr." prefix ONLY if their profession or role is 'Physiotherapist' or 'Sports Physician'.
+ * For Sports Scientists, Nutritionists, S&C Coaches, etc., returns the name WITHOUT "Dr.".
+ */
+export function formatStaffName(
+  staff: any,
+  options?: { showProfession?: boolean; useFirstName?: boolean }
+): string {
+  if (!staff) return "Specialist";
+
+  const firstName = staff.first_name || staff.firstName || staff.therapist_first_name || "";
+  const lastName = staff.last_name || staff.lastName || staff.therapist_last_name || "";
+
+  let fullName = "";
+  if (options?.useFirstName) {
+    fullName = `${firstName} ${lastName}`.trim();
+  } else if (lastName) {
+    fullName = lastName.trim();
+  } else {
+    fullName = firstName.trim();
+  }
+
+  if (!fullName) return "Specialist";
+
+  // Clean any pre-existing "Dr." prefix from full name to prevent double "Dr."
+  const cleanedName = fullName.replace(/^dr\.\s*/i, "").replace(/^dr\s+/i, "").trim();
+
+  const profession = (staff.profession || staff.role || staff.service_type || "").toLowerCase().replace(/_/g, " ").trim();
+
+  const isDoctor =
+    profession.includes("physiotherapist") ||
+    profession.includes("physiotherapy") ||
+    profession.includes("sports physician") ||
+    profession.includes("physician") ||
+    profession.includes("medical doctor") ||
+    profession.includes("doctor");
+
+  const formattedName = isDoctor ? `Dr. ${cleanedName}` : cleanedName;
+
+  if (options?.showProfession && staff.profession) {
+    return `${formattedName} (${staff.profession})`;
+  }
+
+  return formattedName;
+}
+

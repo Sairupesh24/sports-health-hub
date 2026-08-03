@@ -668,7 +668,7 @@ export default function AdminCalendar() {
             let cardClasses = "";
             if (session.status === 'Completed') {
                 cardClasses = "bg-slate-100 text-slate-700 border-slate-200";
-            } else if (session.status === 'Cancelled' || session.status === 'Rescheduled') {
+            } else if (session.status === 'Cancelled' || session.status === 'Rescheduled' || session.status === 'Reassigned') {
                 cardClasses = "bg-slate-100 text-slate-700 border-slate-200 opacity-60";
             } else {
                 cardClasses = "border-indigo-500 bg-indigo-50 text-indigo-900 dark:bg-indigo-950/30 dark:text-indigo-300 dark:border-indigo-800";
@@ -681,7 +681,7 @@ export default function AdminCalendar() {
             return { cardClasses, indicatorElement };
         }
 
-        let state: 'completed' | 'in_progress' | 'overdue' | 'planned' | 'other' = 'planned';
+        let state: 'completed' | 'in_progress' | 'overdue' | 'planned' | 'terminal' | 'other' = 'planned';
 
         if (session.status === 'Completed') {
             state = 'completed';
@@ -694,7 +694,8 @@ export default function AdminCalendar() {
                 state = 'planned';
             }
         } else {
-            state = 'completed'; 
+            // Reassigned, Cancelled, Rescheduled, Missed — show as faded terminal state
+            state = 'terminal';
         }
 
         let cardClasses = "";
@@ -708,6 +709,10 @@ export default function AdminCalendar() {
                         <Check className="w-2.5 h-2.5 text-slate-500" /> Completed
                     </span>
                 );
+                break;
+            case 'terminal':
+                cardClasses = "bg-slate-100 text-slate-500 border-slate-200 opacity-70";
+                indicatorElement = null;
                 break;
             case 'in_progress':
                 cardClasses = "border-emerald-500 bg-emerald-50 text-emerald-800";
@@ -786,6 +791,7 @@ export default function AdminCalendar() {
         if (event.session_mode === 'Group') {
             if (event.status === 'Completed') return 'bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/20 dark:text-indigo-400 dark:border-indigo-800';
             if (event.status === 'Cancelled' || event.status === 'Rescheduled') return 'bg-indigo-50/50 text-indigo-700/60 border-indigo-200/50 opacity-60';
+            if (event.status === 'Reassigned') return 'bg-purple-50/50 text-purple-700/60 border-purple-200/50 opacity-60';
             return 'bg-indigo-100 text-indigo-900 border-indigo-300 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-700';
         }
         switch (event.status) {
@@ -795,6 +801,7 @@ export default function AdminCalendar() {
             case 'Rescheduled': return 'bg-orange-100 text-orange-800 border-orange-200';
             case 'Cancelled': return 'bg-gray-100 text-gray-800 border-gray-200';
             case 'Checked In': return 'bg-purple-100 text-purple-800 border-purple-200';
+            case 'Reassigned': return 'bg-purple-100 text-purple-600 border-purple-200 opacity-70';
             default: return 'bg-primary/10 text-primary border-primary/20';
         }
     };

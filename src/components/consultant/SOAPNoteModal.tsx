@@ -9,7 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Slider } from "@/components/ui/slider";
 import { toast } from "@/hooks/use-toast";
 import { apiFetch } from "@/utils/api";
-import { Copy, Save, AlertTriangle, RefreshCw, Loader2 } from "lucide-react";
+import { Copy, Save, AlertTriangle, RefreshCw, Loader2, Lock } from "lucide-react";
 import { format } from "date-fns";
 import { filterServicesByRole, Service } from "@/utils/serviceMapping";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -341,6 +341,16 @@ export default function SOAPNoteModal({ open, onOpenChange, session, clientId, o
                 <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 pt-6">
                     {/* Main Entry Area */}
                     <div className="lg:col-span-3 space-y-6">
+                        {/* Lock Policy Banner for Consultants */}
+                        {!isAdminOrFoe && (
+                            <div className="flex items-center gap-2.5 p-3 rounded-xl border border-slate-200 bg-slate-50 dark:bg-slate-800/50 dark:border-slate-700 text-xs text-slate-700 dark:text-slate-300">
+                                <Lock className="w-4 h-4 text-slate-500 shrink-0" />
+                                <div>
+                                    <span className="font-semibold">Slot Fixed:</span> Appointment timing and details cannot be edited or rescheduled directly. Please reach out to an Admin to reschedule or cancel this slot.
+                                </div>
+                            </div>
+                        )}
+
                         {/* Status Banners */}
                         {session.status === "Planned" && !balanceLoading && remainingSessions === 0 && isAdminOrFoe && (
                             <div className="flex items-start gap-3 rounded-xl border border-orange-200 bg-orange-50 p-4 text-sm text-orange-800 shadow-sm">

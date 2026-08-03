@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { apiFetch } from "@/utils/api";
+import { formatStaffName } from "@/utils/serviceMapping";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { 
@@ -189,7 +190,7 @@ export function WaitlistSidebar({ selectedDate, onBook }: Props) {
                                                 <div className="text-[10px] space-y-0.5">
                                                     <div className="flex items-center gap-1.5 text-muted-foreground">
                                                         <span className="w-1.5 h-1.5 rounded-full bg-primary/40" />
-                                                        <span className="font-semibold uppercase text-foreground/80">Dr. {item.therapist?.last_name || "Any Specialist"}</span>
+                                                        <span className="font-semibold uppercase text-foreground/80">{item.therapist ? formatStaffName(item.therapist, { useFirstName: false }) : "Any Specialist"}</span>
                                                     </div>
                                                     <div className="text-[9px] pl-3 italic opacity-60">{item.service?.name || "Standard Session"}</div>
                                                 </div>
