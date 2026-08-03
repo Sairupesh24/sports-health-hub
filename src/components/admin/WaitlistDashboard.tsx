@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { apiFetch } from "@/utils/api";
+import { formatStaffName } from "@/utils/serviceMapping";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { 
@@ -53,7 +54,7 @@ export function WaitlistDashboard() {
 
     const filteredWaitlist = waitlist.filter(item => {
         const clientName = `${item.client?.first_name} ${item.client?.last_name}`.toLowerCase();
-        const therapistName = item.therapist ? `Dr. ${item.therapist.first_name} ${item.therapist.last_name}`.toLowerCase() : "anyone";
+        const therapistName = item.therapist ? formatStaffName(item.therapist, { useFirstName: true }).toLowerCase() : "anyone";
         return clientName.includes(searchTerm.toLowerCase()) || therapistName.includes(searchTerm.toLowerCase());
     });
 
@@ -134,7 +135,7 @@ export function WaitlistDashboard() {
                                         </div>
                                     </TableCell>
                                     <TableCell>
-                                        {item.therapist ? `Dr. ${item.therapist.first_name} ${item.therapist.last_name}` : <span className="text-muted-foreground italic">Any Specialist</span>}
+                                        {item.therapist ? formatStaffName(item.therapist, { useFirstName: true }) : <span className="text-muted-foreground italic">Any Specialist</span>}
                                         <div className="text-xs text-muted-foreground">{item.service?.name || "Standard Session"}</div>
                                     </TableCell>
                                     <TableCell>

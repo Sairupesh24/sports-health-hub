@@ -16,11 +16,14 @@ import {
 import MobileConsultantLayout from "@/components/layout/MobileConsultantLayout";
 import { Calendar } from "@/components/ui/calendar";
 import { DayContent, DayContentProps } from "react-day-picker";
-import { Loader2, Calendar as CalendarIcon, User, AlertTriangle, Zap } from "lucide-react";
+import { Loader2, Calendar as CalendarIcon, User, AlertTriangle, Zap, Plus } from "lucide-react";
 import SOAPNoteModal from "@/components/consultant/SOAPNoteModal";
+import { ConsultantBookSlotModal } from "@/components/consultant/ConsultantBookSlotModal";
 import { PatientAlertSummaryIcon } from "@/components/consultant/PatientAlertSummaryIcon";
 import { VIPName } from "@/components/ui/VIPBadge";
+import { Button } from "@/components/ui/button";
 import { haptic } from "@/utils/haptic";
+import { toast } from "@/hooks/use-toast";
 
 interface SessionEvent {
     id: string;
@@ -45,6 +48,7 @@ export default function MobileConsultantSchedule() {
 
     // Modal states
     const [soapModalOpen, setSoapModalOpen] = useState(false);
+    const [isBookModalOpen, setIsBookModalOpen] = useState(false);
     const [selectedSession, setSelectedSession] = useState<any>(null);
     const [selectedClientId, setSelectedClientId] = useState<string>("");
 
@@ -130,6 +134,29 @@ export default function MobileConsultantSchedule() {
     );
 
     const handleEventClick = (event: SessionEvent) => {
+        const rawStatus = (event.status || "").toLowerCase().trim();
+        if (rawStatus === "cancelled" || rawStatus === "canceled") {
+            haptic.heavy();
+            toast({
+                variant: "destructive",
+                title: "Session Cancelled",
+                description: "This session has been cancelled by Admin/FOE."
+            });
+            return;
+        }
+
+        const isCheckedIn = rawStatus === "checked in" || rawStatus === "checked-in" || rawStatus === "checkedin" || rawStatus === "in progress" || rawStatus === "completed";
+
+        if (!isCheckedIn && !isAdminOrFoe) {
+            haptic.heavy();
+            toast({
+                variant: "destructive",
+                title: "Check-in Required",
+                description: "Client has not checked in yet. SOAP notes can only be opened and filled after the client is checked in by Admin/FOE."
+            });
+            return;
+        }
+
         haptic.selection();
         setSelectedSession(event.rawSession);
         setSelectedClientId(event.client_id);
@@ -142,7 +169,9 @@ export default function MobileConsultantSchedule() {
         
         switch (event.status) {
             case 'Planned': return 'bg-blue-100 text-blue-900 border-blue-300 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-700 shadow-blue-500/10';
+            case 'Checked In': case 'Checked-in': return 'bg-purple-100 text-purple-900 border-purple-300 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-700';
             case 'Completed': return 'bg-gray-100 text-gray-800 border-gray-300 dark:bg-gray-800/50 dark:text-gray-300 dark:border-gray-700';
+            case 'Cancelled': case 'cancelled': return 'bg-rose-100 text-rose-900 border-rose-300 dark:bg-rose-900/30 dark:text-rose-300 dark:border-rose-700 line-through opacity-70';
             case 'Missed': return 'bg-red-100 text-red-900 border-red-300 dark:bg-red-900/30 dark:text-red-300 dark:border-red-700';
             case 'Rescheduled': return 'bg-orange-100 text-orange-900 border-orange-300 dark:bg-orange-900/30 dark:text-orange-300 dark:border-orange-700';
             default: return 'bg-primary/10 text-primary border-primary/30';
@@ -299,7 +328,17 @@ export default function MobileConsultantSchedule() {
                             {format(selectedDate, "MMMM do, yyyy")}
                         </p>
                     </div>
-                    {isLoading && <Loader2 className="w-5 h-5 animate-spin text-primary" />}
+                    <div className="flex items-center gap-2">
+                        {isLoading && <Loader2 className="w-4 h-4 animate-spin text-primary" />}
+                        <Button
+                            size="sm"
+                            onClick={() => setIsBookModalOpen(true)}
+                            className="gap-1 text-xs font-bold rounded-full px-3 h-8 shadow-md"
+                        >
+                            <Plus className="w-3.5 h-3.5" />
+                            Book Slot
+                        </Button>
+                    </div>
                 </div>
 
                 {/* Timeline */}
@@ -310,6 +349,13 @@ export default function MobileConsultantSchedule() {
                     onOpenChange={setSoapModalOpen}
                     session={selectedSession}
                     clientId={selectedClientId}
+                    onSuccess={refetch}
+                />
+
+                <ConsultantBookSlotModal
+                    open={isBookModalOpen}
+                    onOpenChange={setIsBookModalOpen}
+                    defaultDate={selectedDate}
                     onSuccess={refetch}
                 />
             </div>

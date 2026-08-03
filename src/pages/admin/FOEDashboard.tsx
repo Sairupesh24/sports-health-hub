@@ -21,6 +21,7 @@ import {
 import { LogEnquiryModal } from "@/components/admin/LogEnquiryModal";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/utils/api";
+import { formatStaffName } from "@/utils/serviceMapping";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -279,7 +280,7 @@ export default function FOEDashboard() {
                           <div className="flex items-center gap-4">
                             <div className="text-right hidden sm:block">
                                 <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">Consultant</p>
-                                <p className="text-xs font-semibold">Dr. {session.therapist?.first_name} {session.therapist?.last_name}</p>
+                                <p className="text-xs font-semibold">{formatStaffName(session.therapist || session.scientist || session.staff, { useFirstName: true })}</p>
                             </div>
                             <Badge className={`uppercase text-[10px] font-black px-2 py-0.5 ${
                                 session.status === 'Completed' ? 'bg-emerald-100 text-emerald-700' :
@@ -462,7 +463,7 @@ export default function FOEDashboard() {
                                                 {c.first_name?.[0]}{c.last_name?.[0]}
                                             </div>
                                             <div>
-                                                <p className="text-xs font-black text-foreground">Dr. {c.first_name} {c.last_name}</p>
+                                                <p className="text-xs font-black text-foreground">{formatStaffName(c, { useFirstName: true })}</p>
                                                 {c.is_available && (
                                                     <p className="text-[9px] font-bold text-emerald-600/70 tracking-widest uppercase">
                                                         {c.schedule?.start_time?.substring(0, 5)} - {c.schedule?.end_time?.substring(0, 5)}

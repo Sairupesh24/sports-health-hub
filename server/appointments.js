@@ -281,8 +281,31 @@ router.post('/:id/complete', requireAuth, async (req, res) => {
     }
 });
 
+// Helper to check if user has admin privileges
+async function checkIsAdmin(userId, userRole) {
+    if (['admin', 'super_admin', 'clinic_admin', 'foe'].includes(userRole)) return true;
+    if (!userId) return false;
+    try {
+        const res = await db.query('SELECT role, ams_role FROM profiles WHERE id = $1', [userId]);
+        if (res.rows.length > 0) {
+            const p = res.rows[0];
+            const r = (p.role || '').toLowerCase();
+            const ams = (p.ams_role || '').toLowerCase();
+            return ['admin', 'super_admin', 'clinic_admin', 'foe'].includes(r) || ['admin', 'super_admin', 'clinic_admin', 'foe'].includes(ams);
+        }
+    } catch (e) {
+        console.error("Error in checkIsAdmin:", e);
+    }
+    return false;
+}
+
 // POST reschedule session
 router.post('/:id/reschedule', requireAuth, async (req, res) => {
+    const isAdmin = await checkIsAdmin(req.user.id, req.user.role);
+    if (!isAdmin) {
+        return res.status(403).json({ error: 'Only administrators can reschedule booked slots. Please contact your admin.' });
+    }
+
     const client = await db.connect();
     try {
         const { id } = req.params;
@@ -345,6 +368,74 @@ router.post('/:id/reschedule', requireAuth, async (req, res) => {
 
         await client.query('COMMIT');
         res.json({ new_session_id: newRes.rows[0].id });
+    } catch (error) {
+        await client.query('ROLLBACK');
+        res.status(500).json({ error: error.message });
+    } finally {
+        client.release();
+    }
+});
+
+// POST reassign session to another consultant/staff member
+router.post('/:id/reassign', requireAuth, async (req, res) => {
+    const isAdmin = await checkIsAdmin(req.user.id, req.user.role);
+    if (!isAdmin) {
+        return res.status(403).json({ error: 'Only administrators can reassign booked slots. Please contact your admin.' });
+    }
+
+    const client = await db.connect();
+    try {
+        const { id } = req.params;
+        const { target_consultant_id, new_start, new_end } = req.body;
+        const orgId = req.user.organization_id;
+
+        if (!target_consultant_id || !new_start || !new_end) {
+            return res.status(400).json({ error: 'Target consultant and new slot timing (new_start, new_end) are required.' });
+        }
+
+        await client.query('BEGIN');
+
+        // 1. Validate the original session can be reassigned
+        const checkRes = await client.query('SELECT * FROM sessions WHERE id = $1 AND organization_id = $2', [id, orgId]);
+        if (checkRes.rows.length === 0) throw new Error('Original session not found.');
+        const old = checkRes.rows[0];
+
+        const blockedStatuses = ['Completed', 'Cancelled', 'Reassigned', 'Rescheduled'];
+        if (blockedStatuses.includes(old.status)) {
+            await client.query('ROLLBACK');
+            return res.status(400).json({ error: `Cannot reassign a session that is already '${old.status}'. Only Planned or Checked-In sessions can be reassigned.` });
+        }
+
+        // 2. Mark old session as Reassigned
+        await client.query(`
+            UPDATE sessions SET status = 'Reassigned', updated_at = CURRENT_TIMESTAMP 
+            WHERE id = $1 AND organization_id = $2
+        `, [id, orgId]);
+
+        // 3. Determine if target consultant is therapist or sports scientist
+        const targetRes = await client.query('SELECT ams_role, profession FROM profiles WHERE id = $1', [target_consultant_id]);
+        const targetProf = targetRes.rows.length > 0 ? targetRes.rows[0] : null;
+        const profession = targetProf?.profession?.toLowerCase() || '';
+        const amsRole = targetProf?.ams_role?.toLowerCase() || '';
+
+        const isScientist = profession.includes('scientist') || amsRole.includes('scientist');
+        const newTherapistId = isScientist ? null : target_consultant_id;
+        const newScientistId = isScientist ? target_consultant_id : null;
+
+        // 4. Insert new session for the target consultant
+        const newRes = await client.query(`
+            INSERT INTO sessions (
+                organization_id, client_id, therapist_id, scientist_id, service_id, service_type, session_mode, session_notes,
+                scheduled_start, scheduled_end, status, entitlement_id, is_unentitled, created_by
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+            RETURNING id
+        `, [
+            orgId, old.client_id, newTherapistId, newScientistId, old.service_id, old.service_type, old.session_mode || 'In-Person', old.session_notes || null,
+            new_start, new_end, 'Planned', old.entitlement_id || null, old.is_unentitled || false, req.user.id
+        ]);
+
+        await client.query('COMMIT');
+        res.json({ success: true, new_session_id: newRes.rows[0].id, message: 'Appointment reassigned successfully.' });
     } catch (error) {
         await client.query('ROLLBACK');
         res.status(500).json({ error: error.message });
@@ -687,6 +778,14 @@ router.patch('/:id', requireAuth, async (req, res) => {
         const updates = req.body;
         const orgId = req.user.organization_id;
 
+        // Non-admins cannot cancel or reschedule booked slots
+        if (updates.status === 'Cancelled' || updates.status === 'Rescheduled') {
+            const isAdmin = await checkIsAdmin(req.user.id, req.user.role);
+            if (!isAdmin) {
+                return res.status(403).json({ error: 'Only administrators can cancel or reschedule booked slots. Please contact your admin.' });
+            }
+        }
+
         const allowedColumns = ['status', 'service_id', 'service_type', 'cancellation_reason', 'actual_start', 'actual_end', 'session_notes'];
         const keys = Object.keys(updates).filter(k => allowedColumns.includes(k));
         
@@ -886,6 +985,11 @@ router.post('/:id/complete', requireAuth, async (req, res) => {
 // POST reschedule session
 router.post('/:id/reschedule', requireAuth, async (req, res) => {
     try {
+        const isAdmin = await checkIsAdmin(req.user.id, req.user.role);
+        if (!isAdmin) {
+            return res.status(403).json({ error: 'Only administrators can reschedule booked slots. Please contact your admin.' });
+        }
+
         const { id } = req.params;
         const { new_start, new_end } = req.body;
         

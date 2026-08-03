@@ -9,7 +9,9 @@ import {
   Sparkles,
   AlertTriangle,
   FileText,
-  Zap
+  Zap,
+  Plus,
+  Calendar
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -19,6 +21,8 @@ import AttendanceMarker from "@/components/attendance/AttendanceMarker";
 import { format } from "date-fns";
 import AdHocSessionModal from "@/components/consultant/AdHocSessionModal";
 import SOAPNoteModal from "@/components/consultant/SOAPNoteModal";
+import { ConsultantBookSlotModal } from "@/components/consultant/ConsultantBookSlotModal";
+import { toast } from "@/hooks/use-toast";
 
 export default function MobileConsultantDashboard() {
   const { profile } = useAuth();
@@ -28,6 +32,7 @@ export default function MobileConsultantDashboard() {
   const [swipedSessionId, setSwipedSessionId] = useState<string | null>(null);
   const [adHocModalOpen, setAdHocModalOpen] = useState(false);
   const [soapModalOpen, setSoapModalOpen] = useState(false);
+  const [isBookModalOpen, setIsBookModalOpen] = useState(false);
   const [selectedSession, setSelectedSession] = useState<any>(null);
   const [selectedClientId, setSelectedClientId] = useState<string>("");
 
@@ -46,21 +51,39 @@ export default function MobileConsultantDashboard() {
     queryKey: ["mobile-consultant-dashboard", profile?.id],
     queryFn: async () => {
       const response = await apiFetch<any>("/clinical/dashboard/stats");
+      const isCheckedInStatus = (statusStr: string) => {
+        const s = (statusStr || "").toLowerCase().trim();
+        return s === "checked in" || s === "checked-in" || s === "checkedin" || s === "in progress" || s === "completed";
+      };
+
+      const isCancelledStatus = (statusStr: string) => {
+        const s = (statusStr || "").toLowerCase().trim();
+        return s === "cancelled" || s === "canceled";
+      };
+
       // Format sessions for our view
-      const formattedSessions = (response.todaySessions || []).map((session: any) => ({
-        ...session,
-        id: session.id,
-        time: format(new Date(session.scheduled_start), "HH:mm"),
-        clientName: `${session.first_name || ""} ${session.last_name || ""}`.trim(),
-        type: session.service_type,
-        status: session.status,
-        clientId: session.client_id,
-        isVIP: session.is_vip,
-        hasBillingWarning: Math.random() > 0.7, // Mocking outstanding balance warning
-        enquiryNotes: session.enquiry_notes || "Initial complaint: Lower back pain during squats.",
-        adminRemarks: session.admin_remarks || "Requested female therapist if possible.",
-        rawSession: session
-      }));
+      const formattedSessions = (response.todaySessions || []).map((session: any) => {
+        const checkedIn = isCheckedInStatus(session.status);
+        const isCancelled = isCancelledStatus(session.status);
+        const rawName = `${session.first_name || ""} ${session.last_name || ""}`.trim() || session.guest_name || "Client";
+
+        return {
+          ...session,
+          id: session.id,
+          time: format(new Date(session.scheduled_start), "HH:mm"),
+          clientName: rawName,
+          type: session.service_type,
+          status: session.status,
+          clientId: session.client_id,
+          isVIP: session.is_vip,
+          isCheckedIn: checkedIn,
+          isCancelled: isCancelled,
+          hasBillingWarning: Math.random() > 0.7, // Mocking outstanding balance warning
+          enquiryNotes: session.enquiry_notes || "Initial complaint: Lower back pain during squats.",
+          adminRemarks: session.admin_remarks || "Requested female therapist if possible.",
+          rawSession: session
+        };
+      });
 
       return {
         ...response,
@@ -96,6 +119,25 @@ export default function MobileConsultantDashboard() {
   };
 
   const handleSessionClick = (session: any) => {
+    if (session.isCancelled || session.status === "Cancelled" || session.status === "cancelled") {
+      haptic.heavy();
+      toast({
+        variant: "destructive",
+        title: "Session Cancelled",
+        description: "This session has been cancelled by Admin/FOE."
+      });
+      return;
+    }
+
+    if (!session.isCheckedIn) {
+      haptic.heavy();
+      toast({
+        variant: "destructive",
+        title: "Check-in Required",
+        description: "Client has not checked in yet. SOAP notes can only be opened and filled after the client is checked in by Admin/FOE."
+      });
+      return;
+    }
     haptic.light();
     setSelectedSession(session.rawSession);
     setSelectedClientId(session.clientId);
@@ -143,8 +185,24 @@ export default function MobileConsultantDashboard() {
           </div>
         </section>
 
-        {/* Ad-Hoc Session Quick-Start */}
-        <section>
+        {/* Quick Action Buttons */}
+        <section className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <button
+            onClick={() => { haptic.light(); setIsBookModalOpen(true); }}
+            className="w-full flex items-center justify-between gap-4 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-[2rem] px-5 py-4 shadow-xl shadow-emerald-500/20 active:scale-95 transition-all duration-200 group"
+          >
+            <div className="flex items-center gap-4">
+              <div className="w-11 h-11 rounded-2xl bg-white/20 flex items-center justify-center shrink-0 shadow-inner">
+                <Plus className="w-6 h-6" />
+              </div>
+              <div className="text-left">
+                <p className="font-black text-sm uppercase tracking-wider leading-none">Book Slot</p>
+                <p className="text-[10px] font-bold text-white/70 mt-1 uppercase tracking-widest">Schedule Client</p>
+              </div>
+            </div>
+            <ChevronRight className="w-5 h-5 opacity-70 group-active:translate-x-1 transition-transform" />
+          </button>
+
           <button
             onClick={() => { haptic.light(); setAdHocModalOpen(true); }}
             className="w-full flex items-center justify-between gap-4 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-[2rem] px-5 py-4 shadow-xl shadow-amber-500/30 active:scale-95 transition-all duration-200 group"
@@ -215,16 +273,31 @@ export default function MobileConsultantDashboard() {
 
                       <div className="flex-1 overflow-hidden pl-1">
                         <div className="flex items-center gap-2">
-                          <h4 className="font-black text-slate-900 dark:text-white truncate text-[16px]">
+                          <h4 className={cn(
+                            "font-black truncate text-[16px]",
+                            session.isCancelled ? "text-rose-600 line-through opacity-75" : session.isCheckedIn ? "text-slate-900 dark:text-white" : "text-slate-500 dark:text-slate-400 font-normal"
+                          )}>
                             {session.clientName}
                           </h4>
-                          {session.isVIP && (
+                          {session.isVIP && session.isCheckedIn && (
                             <Badge className="bg-amber-500 hover:bg-amber-600 text-[9px] uppercase font-black px-1.5 py-0 border-none h-4">VIP</Badge>
                           )}
                         </div>
-                        <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider truncate mt-0.5">
-                          {session.type}
-                        </p>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider truncate">
+                            {session.type}
+                          </p>
+                          <Badge variant="outline" className={cn(
+                            "text-[9px] font-bold uppercase tracking-wider px-1.5 py-0 h-4 border-none",
+                            session.isCancelled
+                              ? "bg-rose-500/10 text-rose-600 dark:text-rose-400 font-bold"
+                              : session.isCheckedIn 
+                              ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" 
+                              : "bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                          )}>
+                            {session.isCancelled ? "Cancelled" : session.isCheckedIn ? "Checked In" : "Awaiting Check-in"}
+                          </Badge>
+                        </div>
                       </div>
 
                       <div className="flex items-center gap-2 shrink-0">
@@ -244,6 +317,12 @@ export default function MobileConsultantDashboard() {
            </div>
         </section>
       </div>
+
+      <ConsultantBookSlotModal
+        open={isBookModalOpen}
+        onOpenChange={setIsBookModalOpen}
+        onSuccess={() => queryClient.invalidateQueries({ queryKey: ["mobile-consultant-dashboard"] })}
+      />
 
       <AdHocSessionModal
         open={adHocModalOpen}

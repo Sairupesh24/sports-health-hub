@@ -17,6 +17,18 @@ const statusStyles: Record<string, string> = {
   confirmed: "bg-success/10 text-success",
   pending: "bg-warning/10 text-warning",
   completed: "bg-muted text-muted-foreground",
+  cancelled: "bg-destructive/10 text-destructive font-medium",
+  reassigned: "bg-purple-500/10 text-purple-600 font-medium",
+  rescheduled: "bg-amber-500/10 text-amber-600 font-medium",
+};
+
+const statusLabels: Record<string, string> = {
+  confirmed: "Checked In",
+  pending: "Awaiting Check-in",
+  completed: "Completed",
+  cancelled: "Cancelled",
+  reassigned: "Reassigned",
+  rescheduled: "Rescheduled",
 };
 
 interface ScheduleCardProps {
@@ -49,8 +61,8 @@ export default function ScheduleCard({ items, title = "Today's Schedule", onItem
               </p>
               <p className="text-xs text-muted-foreground">{item.type}</p>
             </div>
-            <span className={cn("text-xs px-2 py-0.5 rounded-full font-medium", statusStyles[item.status])}>
-              {item.status}
+            <span className={cn("text-xs px-2.5 py-0.5 rounded-full font-medium whitespace-nowrap", statusStyles[item.status])}>
+              {statusLabels[item.status] || item.status}
             </span>
           </div>
         ))}
