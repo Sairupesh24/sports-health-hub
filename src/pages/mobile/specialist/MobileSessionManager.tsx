@@ -335,8 +335,9 @@ export default function MobileSessionManager() {
                   return (
                     <Card 
                      key={session.id}
+                     onClick={() => { haptic.light(); setSelectedSession(session); }}
                      className={cn(
-                       "bg-white dark:bg-slate-900 border border-border/50 shadow-sm rounded-[2rem] overflow-hidden transition-all active:scale-[0.99]",
+                       "bg-white dark:bg-slate-900 border border-border/50 shadow-sm rounded-[2rem] overflow-hidden transition-all cursor-pointer hover:border-primary/30 active:scale-[0.99]",
                        isInProgress && "border-emerald-500/30 shadow-lg shadow-emerald-500/5"
                      )}
                     >
@@ -392,38 +393,34 @@ export default function MobileSessionManager() {
                          )}
 
                          {/* Action Buttons */}
-                         <div className="flex gap-2 mt-4 pt-3 border-t border-slate-100 dark:border-slate-800/50">
-                            {isUpcoming && !isPastScheduledEnd && (
-                              <button 
-                                onClick={() => handleStartSession(session)}
-                                className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white h-10 rounded-xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-1.5 shadow-md shadow-emerald-500/10 active:scale-95 transition-all"
-                              >
-                                 <Play className="w-3.5 h-3.5 fill-current" /> Start Session
-                              </button>
-                            )}
-                            {isInProgress && !isPastScheduledEnd && (
-                              <button 
-                                onClick={() => handleEndSession(session)}
-                                className="flex-1 bg-rose-500 hover:bg-rose-600 text-white h-10 rounded-xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-1.5 shadow-md shadow-rose-500/10 active:scale-95 transition-all"
-                              >
-                                 <Square className="w-3.5 h-3.5 fill-current" /> End Session
-                              </button>
-                            )}
-                            {isUpcoming && isPastScheduledEnd && (
-                              <button 
-                                onClick={() => { haptic.light(); setSelectedSession(session); }}
-                                className="flex-1 bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800/40 h-10 rounded-xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-1.5 active:scale-95 transition-all"
-                              >
-                                 <Clock className="w-3.5 h-3.5" /> Note Actual Timings
-                              </button>
-                            )}
-                            <button 
-                              onClick={() => { haptic.light(); setSelectedSession(session); }}
-                              className="w-10 h-10 rounded-xl border border-border/50 flex items-center justify-center text-slate-400 active:scale-95 transition-all hover:bg-slate-50 dark:hover:bg-slate-800"
-                            >
-                               <ClipboardList className="w-4 h-4" />
-                            </button>
-                         </div>
+                         {(isUpcoming || isInProgress) && (
+                           <div className="flex gap-2 mt-4 pt-3 border-t border-slate-100 dark:border-slate-800/50">
+                              {isUpcoming && !isPastScheduledEnd && (
+                                <button 
+                                  onClick={(e) => { e.stopPropagation(); handleStartSession(session); }}
+                                  className="w-full bg-emerald-500 hover:bg-emerald-600 text-white h-10 rounded-xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-1.5 shadow-md shadow-emerald-500/10 active:scale-95 transition-all"
+                                >
+                                   <Play className="w-3.5 h-3.5 fill-current" /> Start Session
+                                </button>
+                              )}
+                              {isInProgress && !isPastScheduledEnd && (
+                                <button 
+                                  onClick={(e) => { e.stopPropagation(); handleEndSession(session); }}
+                                  className="w-full bg-rose-500 hover:bg-rose-600 text-white h-10 rounded-xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-1.5 shadow-md shadow-rose-500/10 active:scale-95 transition-all"
+                                >
+                                   <Square className="w-3.5 h-3.5 fill-current" /> End Session
+                                </button>
+                              )}
+                              {isUpcoming && isPastScheduledEnd && (
+                                <button 
+                                  onClick={(e) => { e.stopPropagation(); haptic.light(); setSelectedSession(session); }}
+                                  className="w-full bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800/40 h-10 rounded-xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-1.5 active:scale-95 transition-all"
+                                >
+                                   <Clock className="w-3.5 h-3.5" /> Note Actual Timings
+                                </button>
+                              )}
+                           </div>
+                         )}
                       </CardContent>
                     </Card>
                   );
