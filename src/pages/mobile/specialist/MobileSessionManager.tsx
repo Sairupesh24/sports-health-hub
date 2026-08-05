@@ -31,6 +31,7 @@ import {
   addDays, 
   subDays, 
   isSameDay,
+  isBefore,
   startOfWeek,
   endOfWeek,
   startOfMonth,
@@ -143,23 +144,47 @@ export default function MobileSessionManager() {
   });
 
   const handleStartSession = async (session: any) => {
+    if (!isSameDay(parseISO(session.scheduled_start), new Date())) {
+      toast({
+        title: "Action Not Allowed",
+        description: `Sessions can only be started on their scheduled day. This session is scheduled for ${format(parseISO(session.scheduled_start), "MMM d, yyyy")}.`,
+        variant: "destructive"
+      });
+      return;
+    }
+
     haptic.success();
     try {
-      await apiFetch(`/appointments/${session.id}`, {
+      const nowIso = new Date().toISOString();
+      const scientistId = session.scientist_id || user?.id;
+
+      await apiFetch(`/api/appointments/${session.id}`, {
         method: "PATCH",
-        body: { 
-          status: "In Progress",
-          actual_start: new Date().toISOString()
-        }
+        body: JSON.stringify({ 
+          session_id: session.id,
+          sports_scientist_id: scientistId,
+          actual_start: nowIso,
+          status: "IN_PROGRESS"
+        })
       });
       queryClient.invalidateQueries({ queryKey: ["mobile-sessions"] });
-      toast({ title: "Session Started" });
-    } catch (error) {
-      toast({ title: "Failed to start session", variant: "destructive" });
+      queryClient.invalidateQueries({ queryKey: ["mobile-scientist-dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["sports-scientist-dashboard-stats"] });
+      toast({ title: "Session Started", description: "Athlete moved to Active On Field queue." });
+    } catch (error: any) {
+      toast({ title: "Failed to start session", description: error.message || "Could not start session.", variant: "destructive" });
     }
   };
 
   const handleEndSession = (session: any) => {
+    if (!isSameDay(parseISO(session.scheduled_start), new Date())) {
+      toast({
+        title: "Action Not Allowed",
+        description: `Sessions can only be ended on their scheduled day. This session is scheduled for ${format(parseISO(session.scheduled_start), "MMM d, yyyy")}.`,
+        variant: "destructive"
+      });
+      return;
+    }
     haptic.warning();
     setSessionToEnd(session);
   };
@@ -294,6 +319,9 @@ export default function MobileSessionManager() {
                   const isMissed = session.status === "Missed";
                   const isCancelled = session.status === "Cancelled";
                   
+                  const scheduledEnd = session?.scheduled_end ? parseISO(session.scheduled_end) : (session?.scheduled_start ? parseISO(session.scheduled_start) : new Date());
+                  const isPastScheduledEnd = isBefore(scheduledEnd, new Date());
+                  
                   const displayStatus = isInProgress ? "In Progress" : isUpcoming ? "Scheduled" : session.status;
                   
                   const getStatusBadgeStyle = () => {
@@ -365,7 +393,7 @@ export default function MobileSessionManager() {
 
                          {/* Action Buttons */}
                          <div className="flex gap-2 mt-4 pt-3 border-t border-slate-100 dark:border-slate-800/50">
-                            {isUpcoming && (
+                            {isUpcoming && !isPastScheduledEnd && (
                               <button 
                                 onClick={() => handleStartSession(session)}
                                 className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white h-10 rounded-xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-1.5 shadow-md shadow-emerald-500/10 active:scale-95 transition-all"
@@ -373,12 +401,20 @@ export default function MobileSessionManager() {
                                  <Play className="w-3.5 h-3.5 fill-current" /> Start Session
                               </button>
                             )}
-                            {isInProgress && (
+                            {isInProgress && !isPastScheduledEnd && (
                               <button 
                                 onClick={() => handleEndSession(session)}
                                 className="flex-1 bg-rose-500 hover:bg-rose-600 text-white h-10 rounded-xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-1.5 shadow-md shadow-rose-500/10 active:scale-95 transition-all"
                               >
                                  <Square className="w-3.5 h-3.5 fill-current" /> End Session
+                              </button>
+                            )}
+                            {isUpcoming && isPastScheduledEnd && (
+                              <button 
+                                onClick={() => { haptic.light(); setSelectedSession(session); }}
+                                className="flex-1 bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800/40 h-10 rounded-xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-1.5 active:scale-95 transition-all"
+                              >
+                                 <Clock className="w-3.5 h-3.5" /> Note Actual Timings
                               </button>
                             )}
                             <button 
@@ -392,7 +428,7 @@ export default function MobileSessionManager() {
                     </Card>
                   );
                 })
-             )}
+              )}
           </div>
         )}
 
