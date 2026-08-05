@@ -273,25 +273,38 @@ export default function SportsScientistSchedule() {
                                             const startD = parseISO(event.scheduled_start);
                                             const endD = parseISO(event.scheduled_end);
 
+                                            const rawName = event.session_mode === 'Group'
+                                                ? event.group_name
+                                                : event.session_mode === 'Other'
+                                                    ? event.session_type?.name
+                                                    : `${event.client?.first_name || ''} ${event.client?.last_name || ''}`.trim();
+
+                                            const serviceName = event.session_type?.name || event.service_type;
+
                                             return (
                                                 <div
                                                     key={event.id}
                                                     onClick={() => setSelectedSession(event)}
                                                     className={cn(
-                                                        "group rounded-2xl p-3 border cursor-pointer transition-all hover:scale-[1.02] hover:shadow-md",
+                                                        "group rounded-xl p-2 border cursor-pointer transition-all hover:scale-[1.02] hover:shadow-md flex flex-col justify-between text-center",
                                                         getStatusColor(event)
                                                     )}
                                                 >
-                                                    <span className="text-[9px] font-black uppercase tracking-wider block opacity-75">
-                                                        {format(startD, "h:mm a")} - {format(endD, "h:mm a")}
-                                                    </span>
-                                                    <span className="text-xs font-black block mt-1 leading-tight text-slate-800 dark:text-slate-100 group-hover:text-primary transition-colors truncate">
-                                                        {event.session_mode === 'Group'
-                                                            ? event.group_name
-                                                            : event.session_mode === 'Other'
-                                                                ? event.session_type?.name
-                                                                : `${event.client?.first_name} ${event.client?.last_name || ''}`}
-                                                    </span>
+                                                    <div>
+                                                        <div className="text-[9px] font-semibold text-slate-600 dark:text-slate-300 tracking-tighter leading-none mb-1">
+                                                            {format(startD, "h:mm a")} - {format(endD, "h:mm a")}
+                                                        </div>
+                                                        <div className="text-[10px] font-bold leading-tight text-slate-900 dark:text-white group-hover:text-primary transition-colors break-words line-clamp-2">
+                                                            {event.session_mode === 'Group' && "👥 "}
+                                                            {event.session_mode === 'Other' && "🏢 "}
+                                                            {rawName}
+                                                        </div>
+                                                    </div>
+                                                    {serviceName && event.session_mode !== 'Other' && (
+                                                        <div className="text-[8.5px] font-medium text-slate-500 dark:text-slate-400 truncate mt-1 pt-1 border-t border-slate-200/50 dark:border-slate-800/50">
+                                                            {serviceName}
+                                                        </div>
+                                                    )}
                                                 </div>
                                             );
                                         })
