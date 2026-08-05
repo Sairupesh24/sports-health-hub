@@ -547,7 +547,9 @@ async function runMigrations() {
         ['session_location', 'TEXT'],
         ['session_notes', 'TEXT'],
         ['attachments', "JSONB DEFAULT '[]'::jsonb"],
-        ['session_type_id', 'UUID REFERENCES services(id) ON DELETE SET NULL']
+        ['session_type_id', 'UUID REFERENCES services(id) ON DELETE SET NULL'],
+        ['rescheduled_from_session_id', 'UUID REFERENCES Sessions(id) ON DELETE SET NULL'],
+        ['rescheduled_to_session_id', 'UUID REFERENCES Sessions(id) ON DELETE SET NULL']
     ];
     for (const [col, type] of sessionCols) {
         try {
@@ -559,13 +561,27 @@ async function runMigrations() {
         await pool.query(`ALTER TABLE Sessions ALTER COLUMN client_id DROP NOT NULL;`);
     } catch (e) {}
 
-    // Ensure sessions status CHECK constraint allows all statuses including 'Reassigned' and 'Waitlisted'
+    // Ensure sessions status CHECK constraint allows all statuses including 'IN_PROGRESS', 'In Progress', 'SCHEDULED', 'Reassigned' and 'Waitlisted'
     try {
         await pool.query(`ALTER TABLE sessions DROP CONSTRAINT IF EXISTS sessions_status_check;`);
-        await pool.query(`ALTER TABLE sessions ADD CONSTRAINT sessions_status_check CHECK (status IN ('Planned', 'Completed', 'Missed', 'Rescheduled', 'Cancelled', 'Checked In', 'Waitlisted', 'Reassigned'));`);
+        await pool.query(`ALTER TABLE sessions ADD CONSTRAINT sessions_status_check CHECK (status IN ('Planned', 'Completed', 'Missed', 'Rescheduled', 'Cancelled', 'Checked In', 'Waitlisted', 'Reassigned', 'IN_PROGRESS', 'In Progress', 'SCHEDULED'));`);
     } catch (e) {
         console.warn('Could not update sessions_status_check constraint:', e.message);
     }
+
+    // Audit logs table for tracking lineage and operational logs
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS audit_logs (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
+        entity_type TEXT NOT NULL,
+        entity_id UUID NOT NULL,
+        action TEXT NOT NULL,
+        performed_by UUID REFERENCES users(id) ON DELETE SET NULL,
+        details JSONB DEFAULT '{}'::jsonb,
+        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
 
     // Clinical - Injuries
     await pool.query(`

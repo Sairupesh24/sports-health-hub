@@ -236,6 +236,14 @@ router.post('/:id/complete', requireAuth, async (req, res) => {
 
         if (session.status === 'Completed') throw new Error('Session already completed');
 
+        // Verify session is not in the future or locked (older than 1 day)
+        const scheduledDay = Date.parse(new Date(session.scheduled_start).toISOString().split('T')[0]);
+        const todayDay = Date.parse(new Date().toISOString().split('T')[0]);
+        const diffDays = Math.round((todayDay - scheduledDay) / (1000 * 60 * 60 * 24));
+        if (diffDays < 0 || diffDays >= 2) {
+            throw new Error(`Sessions can only be completed on their scheduled day or within 24 hours.`);
+        }
+
         // 2. Try to find an entitlement if not already linked
         let entitlementId = session.entitlement_id;
         let isUnentitled = session.is_unentitled;
@@ -301,73 +309,109 @@ async function checkIsAdmin(userId, userRole) {
 
 // POST reschedule session
 router.post('/:id/reschedule', requireAuth, async (req, res) => {
-    const isAdmin = await checkIsAdmin(req.user.id, req.user.role);
-    if (!isAdmin) {
-        return res.status(403).json({ error: 'Only administrators can reschedule booked slots. Please contact your admin.' });
-    }
-
     const client = await db.connect();
     try {
         const { id } = req.params;
         const { new_start, new_end } = req.body;
         const orgId = req.user.organization_id;
 
+        if (!new_start || !new_end) {
+            return res.status(400).json({ error: 'Both new_start and new_end timestamps are required.' });
+        }
+
         await client.query('BEGIN');
 
-        // 1. Mark old session as Rescheduled
-        await client.query(`
-            UPDATE sessions SET status = 'Rescheduled', updated_at = CURRENT_TIMESTAMP 
-            WHERE id = $1 AND organization_id = $2
-        `, [id, orgId]);
-
-        // 2. Get old session data to clone
-        const oldRes = await client.query('SELECT * FROM sessions WHERE id = $1', [id]);
+        // 1. Get old session data
+        const oldRes = await client.query('SELECT * FROM sessions WHERE id = $1 AND organization_id = $2', [id, orgId]);
+        if (oldRes.rows.length === 0) {
+            await client.query('ROLLBACK');
+            return res.status(404).json({ error: 'Session not found' });
+        }
         const old = oldRes.rows[0];
 
-        // 2.5 Check capacity for the new slot
-        const providerRes = await client.query('SELECT ams_role, profession FROM profiles WHERE id = $1', [old.therapist_id]);
+        // Check permission: Admin, assigned specialist, or specialist role
+        const isAdmin = await checkIsAdmin(req.user.id, req.user.role);
+        const isAssigned = old.scientist_id === req.user.id || old.therapist_id === req.user.id;
+        const isSpecialistRole = ['sports_scientist', 'consultant'].includes((req.user.ams_role || req.user.role || '').toLowerCase());
+
+        if (!isAdmin && !isAssigned && !isSpecialistRole) {
+            await client.query('ROLLBACK');
+            return res.status(403).json({ error: 'Only authorized specialists or administrators can reschedule booked slots.' });
+        }
+
+        // 2. Check capacity for the target practitioner (Sports Scientists: max 3)
+        const providerId = old.scientist_id || old.therapist_id || req.user.id;
+        const providerRes = await client.query('SELECT ams_role, profession FROM profiles WHERE id = $1', [providerId]);
         const provider = providerRes.rows.length > 0 ? providerRes.rows[0] : null;
-        const profession = provider?.profession?.toLowerCase();
-        const amsRole = provider?.ams_role?.toLowerCase();
+        const profession = (provider?.profession || '').toLowerCase();
+        const amsRole = (provider?.ams_role || '').toLowerCase();
 
         let capacityLimit = 1;
-        if (profession === 'physiotherapist') {
+        if (profession.includes('physio')) {
             capacityLimit = 2;
-        } else if (profession === 'sports scientist' || amsRole === 'sports_scientist') {
+        } else if (profession.includes('scientist') || amsRole.includes('scientist')) {
             capacityLimit = 3;
         }
 
         const activeRes = await client.query(`
             SELECT id FROM sessions 
             WHERE (therapist_id = $1 OR scientist_id = $1)
-            AND status != 'Cancelled'
-            AND status != 'Waitlisted'
+            AND status NOT IN ('Cancelled', 'Waitlisted', 'Rescheduled')
             AND (
                 (scheduled_start <= $2 AND scheduled_end > $2) OR
                 (scheduled_start < $3 AND scheduled_end >= $3) OR
                 (scheduled_start >= $2 AND scheduled_end <= $3)
             )
-        `, [old.therapist_id, new_start, new_end]);
+        `, [providerId, new_start, new_end]);
 
         let newStatus = 'Planned';
         if (activeRes.rows.length >= capacityLimit) {
             newStatus = 'Waitlisted';
         }
 
-        // 3. Insert new session
+        // 3. Insert new session linked to old session
         const newRes = await client.query(`
             INSERT INTO sessions (
-                organization_id, client_id, therapist_id, service_id, service_type,
-                scheduled_start, scheduled_end, status, entitlement_id, is_unentitled, created_by
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+                organization_id, client_id, therapist_id, scientist_id, service_id, service_type, session_mode, session_notes,
+                scheduled_start, scheduled_end, status, entitlement_id, is_unentitled, created_by, rescheduled_from_session_id
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
             RETURNING id
         `, [
-            orgId, old.client_id, old.therapist_id, old.service_id, old.service_type,
-            new_start, new_end, newStatus, old.entitlement_id, old.is_unentitled, req.user.id
+            orgId, old.client_id, old.therapist_id, old.scientist_id, old.service_id, old.service_type, old.session_mode || 'Individual', old.session_notes,
+            new_start, new_end, newStatus, old.entitlement_id, old.is_unentitled, req.user.id, old.id
+        ]);
+        const newSessionId = newRes.rows[0].id;
+
+        // 4. Update old session status to Rescheduled with lineage reference
+        await client.query(`
+            UPDATE sessions SET status = 'Rescheduled', rescheduled_to_session_id = $1, updated_at = CURRENT_TIMESTAMP 
+            WHERE id = $2 AND organization_id = $3
+        `, [newSessionId, id, orgId]);
+
+        // 5. Write audit log entry for lineage tracking
+        await client.query(`
+            INSERT INTO audit_logs (organization_id, entity_type, entity_id, action, performed_by, details)
+            VALUES ($1, $2, $3, $4, $5, $6)
+        `, [
+            orgId,
+            'session',
+            old.id,
+            'RESCHEDULE',
+            req.user.id,
+            JSON.stringify({
+                old_start: old.scheduled_start,
+                old_end: old.scheduled_end,
+                new_start,
+                new_end,
+                new_session_id: newSessionId,
+                status: newStatus,
+                capacity_limit: capacityLimit,
+                active_count: activeRes.rows.length
+            })
         ]);
 
         await client.query('COMMIT');
-        res.json({ new_session_id: newRes.rows[0].id });
+        res.json({ new_session_id: newSessionId, status: newStatus });
     } catch (error) {
         await client.query('ROLLBACK');
         res.status(500).json({ error: error.message });
@@ -786,6 +830,19 @@ router.patch('/:id', requireAuth, async (req, res) => {
             }
         }
 
+        // Block starting a session if it is not scheduled for today
+        const isStarting = ['IN_PROGRESS', 'In Progress', 'Checked In'].includes(updates.status) || (updates.actual_start && !updates.actual_end);
+        if (isStarting) {
+            const checkRes = await db.query('SELECT scheduled_start FROM sessions WHERE id = $1 AND organization_id = $2', [id, orgId]);
+            if (checkRes.rows.length > 0) {
+                const scheduledDateStr = new Date(checkRes.rows[0].scheduled_start).toISOString().split('T')[0];
+                const todayDateStr = new Date().toISOString().split('T')[0];
+                if (scheduledDateStr !== todayDateStr) {
+                    return res.status(400).json({ error: `Sessions can only be started on their scheduled day. This session is scheduled for ${scheduledDateStr}.` });
+                }
+            }
+        }
+
         const allowedColumns = ['status', 'service_id', 'service_type', 'cancellation_reason', 'actual_start', 'actual_end', 'session_notes'];
         const keys = Object.keys(updates).filter(k => allowedColumns.includes(k));
         
@@ -960,46 +1017,7 @@ router.post('/session-types', requireAuth, async (req, res) => {
     }
 });
 
-// POST complete session
-router.post('/:id/complete', requireAuth, async (req, res) => {
-    try {
-        const { id } = req.params;
-        const { actual_start, actual_end } = req.body;
-        const userId = req.user.id;
-        
-        // Call complete_session RPC via direct query
-        const result = await db.query('SELECT complete_session($1, $2)', [id, userId]);
-        
-        if (actual_start && actual_end) {
-            await db.query(
-                'UPDATE sessions SET actual_start = $1, actual_end = $2 WHERE id = $3',
-                [actual_start, actual_end, id]
-            );
-        }
-        res.json({ success: true });
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-});
 
-// POST reschedule session
-router.post('/:id/reschedule', requireAuth, async (req, res) => {
-    try {
-        const isAdmin = await checkIsAdmin(req.user.id, req.user.role);
-        if (!isAdmin) {
-            return res.status(403).json({ error: 'Only administrators can reschedule booked slots. Please contact your admin.' });
-        }
-
-        const { id } = req.params;
-        const { new_start, new_end } = req.body;
-        
-        // Call reschedule_session RPC via direct query
-        const result = await db.query('SELECT reschedule_session($1, $2, $3)', [id, new_start, new_end]);
-        res.json({ new_session_id: result.rows[0].reschedule_session });
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-});
 
 // GET attendees for a group session
 router.get('/:id/attendees', requireAuth, async (req, res) => {

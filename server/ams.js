@@ -179,7 +179,7 @@ router.get('/mobile-dashboard/stats', requireAuth, async (req, res) => {
             AND clinical_interpretation IS NULL
         `, [userId]);
         
-        // 5. Active Sessions (Checked-In Athletes)
+        // 5. Active Sessions (Checked-In / In Progress Athletes)
         const activeSessionsRes = await db.query(`
             SELECT s.id, s.scheduled_start, s.status, s.session_mode, s.group_name,
                    json_build_object(
@@ -194,7 +194,7 @@ router.get('/mobile-dashboard/stats', requireAuth, async (req, res) => {
             FROM Sessions s
             JOIN Clients c ON s.client_id = c.id
             WHERE s.scientist_id = $1 
-            AND s.status = 'Checked In'
+            AND s.status IN ('Checked In', 'IN_PROGRESS', 'In Progress')
             ORDER BY s.scheduled_start ASC
             LIMIT 10
         `, [userId]);
@@ -266,6 +266,7 @@ router.get('/mobile-active', requireAuth, async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 });
+
 router.get('/dashboard/stats', requireAuth, async (req, res) => {
     try {
         const userId = req.user.id;
@@ -281,21 +282,42 @@ router.get('/dashboard/stats', requireAuth, async (req, res) => {
             SELECT s.*, c.first_name, c.last_name, st.name as session_type_name
             FROM Sessions s
             LEFT JOIN Clients c ON s.client_id = c.id
-            LEFT JOIN SessionTypes st ON s.service_id = st.id
+            LEFT JOIN Services st ON s.service_id = st.id
             WHERE s.scientist_id = $1 
             AND s.scheduled_start >= $2 
             AND s.scheduled_start <= $3
             ORDER BY s.scheduled_start ASC
         `, [userId, todayStart.toISOString(), todayEnd.toISOString()]);
         
-        // 2. Client count
+        // 2. Active Sessions on Field
+        const activeSessionsRes = await db.query(`
+            SELECT s.id, s.scheduled_start, s.actual_start, s.status, s.session_mode, s.group_name, s.service_type,
+                   json_build_object(
+                       'id', c.id, 
+                       'first_name', c.first_name, 
+                       'last_name', c.last_name, 
+                       'uhid', c.uhid, 
+                       'is_vip', c.is_vip, 
+                       'sport', c.sport, 
+                       'org_name', c.org_name
+                   ) as client,
+                   json_build_object('id', st.id, 'name', st.name) as session_type
+            FROM Sessions s
+            LEFT JOIN Clients c ON s.client_id = c.id
+            LEFT JOIN Services st ON s.service_id = st.id
+            WHERE (s.scientist_id = $1 OR s.therapist_id = $1)
+            AND s.status IN ('Checked In', 'IN_PROGRESS', 'In Progress')
+            ORDER BY s.scheduled_start ASC
+        `, [userId]);
+
+        // 3. Client count
         const clientsRes = await db.query(`
             SELECT COUNT(*) FROM Clients 
             WHERE organization_id = $1 
             AND (primary_scientist_id = $2 OR primary_scientist_id IS NULL)
         `, [orgId, userId]);
         
-        // 3. Template count
+        // 4. Template count
         const templatesRes = await db.query(`
             SELECT COUNT(*) FROM session_templates 
             WHERE scientist_id = $1
@@ -316,6 +338,7 @@ router.get('/dashboard/stats', requireAuth, async (req, res) => {
         
         res.json({
             todaySessions: mappedSessions,
+            activeSessions: activeSessionsRes.rows,
             clientCount: parseInt(clientsRes.rows[0].count),
             templateCount: parseInt(templatesRes.rows[0].count)
         });
