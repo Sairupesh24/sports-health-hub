@@ -414,7 +414,170 @@ router.post('/:id/reschedule', requireAuth, async (req, res) => {
         res.json({ new_session_id: newSessionId, status: newStatus });
     } catch (error) {
         await client.query('ROLLBACK');
-        res.status(500).json({ error: error.message });
+        console.error('Error rescheduling session:', error);
+        res.status(500).json({ error: error.message || 'Failed to reschedule session' });
+    } finally {
+        client.release();
+    }
+});
+
+// POST reschedule all future sessions (bulk series reschedule)
+router.post('/:id/reschedule-future', requireAuth, async (req, res) => {
+    const client = await db.connect();
+    try {
+        const { id } = req.params;
+        const { new_start, new_end } = req.body;
+        const orgId = req.user.organization_id;
+
+        if (!new_start || !new_end) {
+            return res.status(400).json({ error: 'Both new_start and new_end timestamps are required for series rescheduling.' });
+        }
+
+        await client.query('BEGIN');
+
+        // 1. Get base session data
+        const oldRes = await client.query('SELECT * FROM sessions WHERE id = $1 AND organization_id = $2', [id, orgId]);
+        if (oldRes.rows.length === 0) {
+            await client.query('ROLLBACK');
+            return res.status(404).json({ error: 'Base session not found' });
+        }
+        const old = oldRes.rows[0];
+
+        // Authorization check: Admin, assigned specialist, specialist role, or self-rescheduling client
+        const isAdmin = await checkIsAdmin(req.user.id, req.user.role);
+        const isAssigned = old.scientist_id === req.user.id || old.therapist_id === req.user.id;
+        const isSpecialistRole = ['sports_scientist', 'consultant', 'physiotherapist', 'nutritionist'].includes((req.user.ams_role || req.user.role || '').toLowerCase());
+        const isSelfClient = old.client_id && (old.client_id === req.user.id || req.user.client_id === old.client_id);
+
+        if (!isAdmin && !isAssigned && !isSpecialistRole && !isSelfClient) {
+            await client.query('ROLLBACK');
+            return res.status(403).json({ error: 'Not authorized to reschedule future series sessions for this appointment.' });
+        }
+
+        // 2. Fetch all future active/planned sessions for this client & entitlement/service starting on or after selected session
+        const futureSessionsRes = await client.query(`
+            SELECT * FROM sessions 
+            WHERE organization_id = $1 
+            AND client_id = $2
+            AND scheduled_start >= $3
+            AND status IN ('Planned', 'Scheduled', 'SCHEDULED')
+            ORDER BY scheduled_start ASC
+        `, [orgId, old.client_id, old.scheduled_start]);
+
+        const futureSessions = futureSessionsRes.rows;
+        if (futureSessions.length === 0) {
+            await client.query('ROLLBACK');
+            return res.status(400).json({ error: 'No upcoming future sessions found to reschedule.' });
+        }
+
+        // Calculate shift delta from the selected session's original start
+        const timeShiftMs = new Date(new_start).getTime() - new Date(old.scheduled_start).getTime();
+        const durationMs = new Date(new_end).getTime() - new Date(new_start).getTime();
+
+        // Check provider capacity limit
+        const providerId = old.scientist_id || old.therapist_id || req.user.id;
+        const providerRes = await client.query('SELECT ams_role, profession FROM profiles WHERE id = $1', [providerId]);
+        const provider = providerRes.rows.length > 0 ? providerRes.rows[0] : null;
+        const profession = (provider?.profession || '').toLowerCase();
+        const amsRole = (provider?.ams_role || '').toLowerCase();
+
+        let capacityLimit = 1;
+        if (profession.includes('physio')) {
+            capacityLimit = 2;
+        } else if (profession.includes('scientist') || amsRole.includes('scientist')) {
+            capacityLimit = 3;
+        }
+
+        let confirmedCount = 0;
+        let waitlistedCount = 0;
+        const results = [];
+
+        // 3. Process each future session in order
+        for (const fut of futureSessions) {
+            const futOldStartMs = new Date(fut.scheduled_start).getTime();
+            const futNewStart = new Date(futOldStartMs + timeShiftMs).toISOString();
+            const futNewEnd = new Date(new Date(futNewStart).getTime() + durationMs).toISOString();
+
+            // Capacity check for this target slot
+            const activeRes = await client.query(`
+                SELECT id FROM sessions 
+                WHERE (therapist_id = $1 OR scientist_id = $1)
+                AND id != $4
+                AND status NOT IN ('Cancelled', 'Waitlisted', 'Rescheduled')
+                AND (
+                    (scheduled_start <= $2 AND scheduled_end > $2) OR
+                    (scheduled_start < $3 AND scheduled_end >= $3) OR
+                    (scheduled_start >= $2 AND scheduled_end <= $3)
+                )
+            `, [providerId, futNewStart, futNewEnd, fut.id]);
+
+            let newStatus = 'Planned';
+            if (activeRes.rows.length >= capacityLimit) {
+                newStatus = 'Waitlisted';
+                waitlistedCount++;
+            } else {
+                confirmedCount++;
+            }
+
+            // Insert new rescheduled session
+            const newRes = await client.query(`
+                INSERT INTO sessions (
+                    organization_id, client_id, therapist_id, scientist_id, service_id, service_type, session_mode, session_notes,
+                    scheduled_start, scheduled_end, status, entitlement_id, is_unentitled, created_by, rescheduled_from_session_id
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+                RETURNING id
+            `, [
+                orgId, fut.client_id, fut.therapist_id, fut.scientist_id, fut.service_id, fut.service_type, fut.session_mode || 'Individual', fut.session_notes,
+                futNewStart, futNewEnd, newStatus, fut.entitlement_id, fut.is_unentitled, req.user.id, fut.id
+            ]);
+            const newSessionId = newRes.rows[0].id;
+
+            // Mark old session as Rescheduled
+            await client.query(`
+                UPDATE sessions SET status = 'Rescheduled', rescheduled_to_session_id = $1, updated_at = CURRENT_TIMESTAMP 
+                WHERE id = $2 AND organization_id = $3
+            `, [newSessionId, fut.id, orgId]);
+
+            results.push({
+                old_session_id: fut.id,
+                new_session_id: newSessionId,
+                new_start: futNewStart,
+                new_end: futNewEnd,
+                status: newStatus
+            });
+        }
+
+        // 4. Audit Log for Bulk Rescheduling
+        await client.query(`
+            INSERT INTO audit_logs (organization_id, entity_type, entity_id, action, performed_by, details)
+            VALUES ($1, $2, $3, $4, $5, $6)
+        `, [
+            orgId,
+            'client_series',
+            old.client_id,
+            'BULK_SERIES_RESCHEDULE',
+            req.user.id,
+            JSON.stringify({
+                base_session_id: id,
+                rescheduled_count: results.length,
+                confirmed_count: confirmedCount,
+                waitlisted_count: waitlistedCount,
+                results
+            })
+        ]);
+
+        await client.query('COMMIT');
+        res.json({
+            success: true,
+            rescheduled_count: results.length,
+            confirmed_count: confirmedCount,
+            waitlisted_count: waitlistedCount,
+            sessions: results
+        });
+    } catch (error) {
+        await client.query('ROLLBACK');
+        console.error('Error rescheduling future series sessions:', error);
+        res.status(500).json({ error: error.message || 'Failed to reschedule future series sessions' });
     } finally {
         client.release();
     }
