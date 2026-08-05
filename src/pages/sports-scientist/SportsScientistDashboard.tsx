@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { format, parseISO } from "date-fns";
+import { format, parseISO, isSameDay, isBefore } from "date-fns";
 import { 
     Users, 
     Calendar, 
@@ -26,18 +26,60 @@ import { cn } from "@/lib/utils";
 import AttendanceMarker from "@/components/attendance/AttendanceMarker";
 import EmergencyLeaveModal from "@/components/shared/EmergencyLeaveModal";
 import { AnnouncementsManager } from "@/components/shared/AnnouncementsManager";
-import { AlertCircle, Megaphone, X } from "lucide-react";
+import { AlertCircle, Megaphone, X, Loader2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 
 export default function SportsScientistDashboard() {
     const { user, profile } = useAuth();
+    const { toast } = useToast();
     const navigate = useNavigate();
     const [isBookModalOpen, setIsBookModalOpen] = useState(false);
     const [selectedSession, setSelectedSession] = useState<any>(null);
     const [isEmergencyModalOpen, setIsEmergencyModalOpen] = useState(false);
     const [isAnnouncementModalOpen, setIsAnnouncementModalOpen] = useState(false);
     const [activePopup, setActivePopup] = useState<any | null>(null);
+    const [endingSessionId, setEndingSessionId] = useState<string | null>(null);
     const queryClient = useQueryClient();
+
+    const handleEndSession = async (session: any, e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (!session?.id) return;
+
+        if (!isSameDay(parseISO(session.scheduled_start), new Date())) {
+            toast({
+                title: "Action Not Allowed",
+                description: `Sessions can only be ended on their scheduled day. This session is scheduled for ${format(parseISO(session.scheduled_start), "MMM d, yyyy")}.`,
+                variant: "destructive"
+            });
+            return;
+        }
+
+        setEndingSessionId(session.id);
+        try {
+            const nowIso = new Date().toISOString();
+            await apiFetch(`/api/appointments/${session.id}/complete`, {
+                method: "POST",
+                body: JSON.stringify({
+                    actual_start: session.actual_start || session.scheduled_start,
+                    actual_end: nowIso
+                })
+            });
+            toast({
+                title: "Session Ended",
+                description: "Session completed successfully & entitlement consumed."
+            });
+            await refetch();
+        } catch (err: any) {
+            toast({
+                title: "Failed to end session",
+                description: err.message || "Could not complete session.",
+                variant: "destructive"
+            });
+        } finally {
+            setEndingSessionId(null);
+        }
+    };
 
     // Fetch unread count for sports scientist (uses hr/notifications/unread-count)
     const { data: unreadCount = 0 } = useQuery({
@@ -181,17 +223,96 @@ export default function SportsScientistDashboard() {
                     </div>
 
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                        {/* Today's Agenda */}
-                        <div className="lg:col-span-2 space-y-4">
-                            <div className="flex items-center justify-between">
-                                <h2 className="text-xl font-display font-bold flex items-center gap-2">
-                                    <Calendar className="w-5 h-5 text-primary" />
-                                    Today's Agenda
-                                </h2>
-                                <Button variant="link" className="text-primary text-sm font-bold" onClick={() => navigate("/sports-scientist/schedule")}>
-                                    View Full Schedule <ArrowRight className="w-4 h-4 ml-1" />
-                                </Button>
+                        <div className="lg:col-span-2 space-y-8">
+                            {/* Active On Field Section */}
+                            <div className="space-y-4">
+                                <div className="flex items-center justify-between">
+                                    <h2 className="text-xl font-display font-bold flex items-center gap-2 text-slate-900">
+                                        <Activity className="w-5 h-5 text-emerald-500 animate-pulse" />
+                                        Active On Field
+                                    </h2>
+                                    <span className="text-xs font-black uppercase tracking-widest px-3 py-1 bg-emerald-50 text-emerald-700 rounded-full border border-emerald-200">
+                                        {dashboardData?.activeSessions?.length || 0} Checked-In / In Progress
+                                    </span>
+                                </div>
+
+                                {!dashboardData?.activeSessions || dashboardData.activeSessions.length === 0 ? (
+                                    <Card className="bg-emerald-50/20 border-dashed border-2 border-emerald-200 flex flex-col items-center justify-center py-8 text-muted-foreground rounded-[24px]">
+                                        <Clock className="w-8 h-8 opacity-30 text-emerald-600 mb-2" />
+                                        <p className="font-bold uppercase text-xs tracking-widest text-slate-500">No active sessions on field right now</p>
+                                    </Card>
+                                ) : (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        {dashboardData.activeSessions.map((session: any) => {
+                                            const scheduledEnd = session?.scheduled_end ? parseISO(session.scheduled_end) : (session?.scheduled_start ? parseISO(session.scheduled_start) : new Date());
+                                            const isPastEnd = isBefore(scheduledEnd, new Date());
+
+                                            return (
+                                                <div 
+                                                    key={session.id} 
+                                                    className="bg-white border-2 border-emerald-200 hover:border-emerald-400 transition-all p-5 rounded-[24px] flex items-center justify-between shadow-sm group cursor-pointer"
+                                                    onClick={() => setSelectedSession(session)}
+                                                >
+                                                    <div className="flex items-center gap-4">
+                                                        <div className="h-12 w-12 rounded-2xl bg-emerald-50 flex items-center justify-center border border-emerald-100 font-black text-emerald-700 text-lg">
+                                                            {session.client?.first_name?.[0] || 'A'}
+                                                        </div>
+                                                        <div>
+                                                            <h4 className="font-black text-slate-900 group-hover:text-primary transition-colors flex items-center gap-2">
+                                                                {session.session_mode === 'Group' ? `Group: ${session.group_name}` : `${session.client?.first_name} ${session.client?.last_name || ''}`}
+                                                                {session.client?.is_vip && <span className="text-[9px] bg-amber-500 text-white font-black px-1.5 py-0.5 rounded uppercase">VIP</span>}
+                                                            </h4>
+                                                            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                                                                {session.service_type || session.session_type?.name || "Sports Science"} • {session.client?.uhid || 'In Progress'}
+                                                            </p>
+                                                            <div className="flex items-center gap-2 mt-1">
+                                                                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                                                                <span className="text-[10px] font-black uppercase text-emerald-600 tracking-widest">IN PROGRESS</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    {!isPastEnd ? (
+                                                        <Button
+                                                            size="sm"
+                                                            className="bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs rounded-xl shadow-md gap-1.5 px-4 h-9"
+                                                            onClick={(e) => handleEndSession(session, e)}
+                                                            disabled={endingSessionId === session.id}
+                                                        >
+                                                            {endingSessionId === session.id ? (
+                                                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                                            ) : (
+                                                                <CheckCircle2 className="w-3.5 h-3.5" />
+                                                            )}
+                                                            End Session
+                                                        </Button>
+                                                    ) : (
+                                                        <Button
+                                                            size="sm"
+                                                            variant="outline"
+                                                            className="border-amber-300 text-amber-800 dark:text-amber-300 font-bold text-xs rounded-xl h-9"
+                                                            onClick={() => setSelectedSession(session)}
+                                                        >
+                                                            Note Actual Timings
+                                                        </Button>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                )}
                             </div>
+
+                            {/* Today's Agenda */}
+                            <div className="space-y-4">
+                                <div className="flex items-center justify-between">
+                                    <h2 className="text-xl font-display font-bold flex items-center gap-2">
+                                        <Calendar className="w-5 h-5 text-primary" />
+                                        Today's Agenda
+                                    </h2>
+                                    <Button variant="link" className="text-primary text-sm font-bold" onClick={() => navigate("/sports-scientist/schedule")}>
+                                        View Full Schedule <ArrowRight className="w-4 h-4 ml-1" />
+                                    </Button>
+                                </div>
 
                             {dashboardData?.todaySessions.length === 0 ? (
                                 <Card className="bg-muted/10 border-dashed border-2 flex flex-col items-center justify-center py-12 text-muted-foreground rounded-[32px]">
@@ -241,6 +362,7 @@ export default function SportsScientistDashboard() {
                                 </div>
                             )}
                         </div>
+                    </div>
 
                         {/* Performance Insights Sidebar (Weekly Target Removed) */}
                         <div className="space-y-6">

@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiFetch } from "@/utils/api";
+import { useToast } from "@/hooks/use-toast";
 import MobileSpecialistLayout from "@/components/layout/MobileSpecialistLayout";
 import { 
   Users, 
@@ -24,14 +25,56 @@ import MobileAthleteDrawer from "@/components/sports-scientist/MobileAthleteDraw
 import { haptic } from "@/utils/haptic";
 import { useNavigate } from "react-router-dom";
 import AttendanceMarker from "@/components/attendance/AttendanceMarker";
-import { format } from "date-fns";
+import { format, parseISO, isSameDay, isBefore } from "date-fns";
 
 export default function MobileSpecialistDashboard() {
   const { profile } = useAuth();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [selectedAthlete, setSelectedAthlete] = useState<any>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [greeting, setGreeting] = useState("Good Day");
+  const [endingSessionId, setEndingSessionId] = useState<string | null>(null);
+
+  const handleEndSession = async (session: any, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!session?.id) return;
+
+    if (!isSameDay(parseISO(session.scheduled_start), new Date())) {
+      toast({
+        title: "Action Not Allowed",
+        description: `Sessions can only be ended on their scheduled day. This session is scheduled for ${format(parseISO(session.scheduled_start), "MMM d, yyyy")}.`,
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setEndingSessionId(session.id);
+    try {
+      const nowIso = new Date().toISOString();
+      await apiFetch(`/api/appointments/${session.id}/complete`, {
+        method: "POST",
+        body: JSON.stringify({
+          actual_start: session.actual_start || session.scheduled_start,
+          actual_end: nowIso
+        })
+      });
+      toast({
+        title: "Session Ended",
+        description: "Session completed & entitlement updated."
+      });
+      queryClient.invalidateQueries({ queryKey: ["mobile-scientist-dashboard"] });
+    } catch (err: any) {
+      toast({
+        title: "Failed to end session",
+        description: err.message || "Could not complete session.",
+        variant: "destructive"
+      });
+    } finally {
+      setEndingSessionId(null);
+    }
+  };
 
   useEffect(() => {
     const hour = new Date().getHours();
@@ -221,9 +264,21 @@ export default function MobileSpecialistDashboard() {
                       <p className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest truncate">
                         {session.client?.sport || "General"} • {session.client?.uhid}
                       </p>
-                      <div className="mt-1.5 flex items-center gap-2">
-                         <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                         <span className="text-[9px] font-black uppercase text-emerald-500 tracking-widest">In Progress</span>
+                      <div className="mt-1.5 flex items-center justify-between gap-2">
+                         <div className="flex items-center gap-1.5">
+                            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                            <span className="text-[9px] font-black uppercase text-emerald-500 tracking-widest">In Progress</span>
+                         </div>
+                         {!isBefore(parseISO(session.scheduled_end || session.scheduled_start), new Date()) && (
+                           <Button
+                              size="sm"
+                              className="h-7 text-[9px] font-black uppercase rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white shrink-0 shadow-xs px-2.5"
+                              onClick={(e) => handleEndSession(session, e)}
+                              disabled={endingSessionId === session.id}
+                           >
+                              {endingSessionId === session.id ? "Ending..." : "End Session"}
+                           </Button>
+                         )}
                       </div>
                     </div>
                   </button>
