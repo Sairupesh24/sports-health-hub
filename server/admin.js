@@ -122,23 +122,86 @@ router.get('/notifications', requireAuth, async (req, res) => {
     }
 });
 
+// GET HR Notice Board Broadcast Notices ONLY
+router.get('/notices', requireAuth, async (req, res) => {
+    try {
+        const orgId = req.user.organization_id;
+        const userRole = req.user.role;
+
+        const result = await db.query(`
+            SELECT n.*
+            FROM notifications n
+            WHERE n.organization_id = $1
+              AND (n.category = 'notice_board' OR n.category = 'global_announcement' OR n.type = 'notice_board')
+              AND (
+                n.is_broadcast = true 
+                OR n.target_role IS NULL 
+                OR n.target_role = $2
+                OR (n.target_role = 'specialist' AND $2 IN ('sports_scientist', 'sports_physician', 'physiotherapist', 'nutritionist', 'massage_therapist', 'coach'))
+              )
+            ORDER BY n.created_at DESC
+            LIMIT 30
+        `, [orgId, userRole]);
+
+        res.json(result.rows);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+
 // POST Create Notification
 router.post('/notifications', requireAuth, async (req, res) => {
     try {
-        const { title, content, type, target_role, target_user_id, is_broadcast } = req.body;
+        const { title, content, type, category, priority, target_role, target_user_id, is_broadcast } = req.body;
         const orgId = req.user.organization_id;
         
         const result = await db.query(`
-            INSERT INTO notifications (organization_id, title, content, type, target_role, target_user_id, is_broadcast, created_by)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            INSERT INTO notifications (
+                organization_id, title, content, type, category, priority, target_role, target_user_id, is_broadcast, created_by
+            )
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
             RETURNING *
-        `, [orgId, title, content, type || 'info', target_role, target_user_id, is_broadcast || false, req.user.id]);
+        `, [
+            orgId,
+            title,
+            content,
+            type || 'announcement',
+            category || 'global_announcement',
+            priority || 'normal',
+            target_role || null,
+            target_user_id || null,
+            is_broadcast !== undefined ? is_broadcast : true,
+            req.user.id
+        ]);
         
         res.status(201).json(result.rows[0]);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
 });
+
+// DELETE Notification by ID (HR/Admin)
+router.delete('/notifications/:id', requireAuth, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const orgId = req.user.organization_id;
+
+        const result = await db.query(
+            'DELETE FROM notifications WHERE id = $1 AND organization_id = $2 RETURNING *',
+            [id, orgId]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Notification not found' });
+        }
+
+        res.json({ success: true, deleted: result.rows[0] });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
 
 // POST Mark Notifications as Read
 router.post('/notifications/read', requireAuth, async (req, res) => {

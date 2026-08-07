@@ -928,6 +928,32 @@ async function runMigrations() {
     }
 
 
+    // User App Activity Tracker (pings for active application usage)
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS user_app_activity (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        date DATE NOT NULL DEFAULT CURRENT_DATE,
+        active_seconds INT NOT NULL DEFAULT 0,
+        last_ping TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT unique_user_date UNIQUE(user_id, date)
+      );
+    `);
+
+    // Automated Activity Tracker Email Report Settings
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS activity_tracker_automation (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
+        is_enabled BOOLEAN DEFAULT false,
+        recipient_emails TEXT NOT NULL DEFAULT '',
+        scheduled_time TEXT NOT NULL DEFAULT '18:00',
+        last_sent_date DATE,
+        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
     // HR Leaves
     await pool.query(`
       CREATE TABLE IF NOT EXISTS hrleaves (
@@ -943,6 +969,23 @@ async function runMigrations() {
         created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
       )
     `);
+
+    // HR Leave Balances / Quotas per Employee
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS hr_leave_balances (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+        employee_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+        casual_leave INT DEFAULT 12,
+        sick_leave INT DEFAULT 4,
+        paid_leave INT DEFAULT 0,
+        emergency_leave INT DEFAULT 0,
+        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT unique_org_employee_leave_balance UNIQUE (organization_id, employee_id)
+      )
+    `);
+
 
     // HR Jobs (Positions)
     await pool.query(`

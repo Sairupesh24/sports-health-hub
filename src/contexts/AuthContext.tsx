@@ -84,6 +84,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     refreshAuth();
   }, [refreshAuth]);
 
+  useEffect(() => {
+    if (!user) return;
+
+    // Send active app usage ping every 30s when window/document is focused
+    const pingInterval = setInterval(() => {
+      if (document.hasFocus()) {
+        apiFetch('/auth/active-ping', { method: 'POST' }).catch(() => {});
+      }
+    }, 30000);
+
+    if (document.hasFocus()) {
+      apiFetch('/auth/active-ping', { method: 'POST' }).catch(() => {});
+    }
+
+    return () => clearInterval(pingInterval);
+  }, [user]);
+
   const signOut = async () => {
     localStorage.removeItem("ishpo_jwt");
     window.location.href = '/login';

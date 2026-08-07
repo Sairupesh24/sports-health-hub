@@ -145,7 +145,7 @@ export default function MobileSpecialistDashboard() {
 
               <div className="flex gap-3 pt-2">
                 <Button 
-                  onClick={() => { haptic.light(); navigate('/mobile/specialist/attendance'); }}
+                  onClick={() => { haptic.light(); navigate('/my-attendance'); }}
                   variant="outline"
                   className="flex-1 h-12 rounded-xl border-border/50 text-slate-600 dark:text-slate-300 font-black uppercase text-[10px] tracking-widest gap-2"
                 >

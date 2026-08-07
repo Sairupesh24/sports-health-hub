@@ -749,6 +749,7 @@ model Organization {
   defaultCheckoutTime              DateTime?                        @default(dbgenerated("'22:00:00'::time without time zone")) @map("default_checkout_time") @db.Time(6)
   athleteItemLogs                  AthleteItemLog[]
   athleteWorkoutCompletions        AthleteWorkoutCompletion[]
+  activityTrackerAutomations       ActivityTrackerAutomation[]
   availabilityexceptions           AvailabilityException[]
   billitems                        BillItem[]
   billpayments                     BillPayment[]
@@ -1229,6 +1230,7 @@ model User {
   reportTemplates                           ReportTemplate[]
   scientificResources                       ScientificResource[]
   sessions                                  Session[]
+  userAppActivities                         UserAppActivity[]
   wellnessLogs                              WellnessLog[]
 
   @@map("users")
@@ -1361,4 +1363,30 @@ model NutritionAssessment {
   profiles                  Profile?      @relation(fields: [nutritionistId], references: [id], onUpdate: NoAction)
 
   @@map("nutrition_assessments")
+}
+
+model UserAppActivity {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId        String    @map("user_id") @db.Uuid
+  date          DateTime  @default(now()) @db.Date
+  activeSeconds Int       @default(0) @map("active_seconds")
+  lastPing      DateTime? @default(now()) @map("last_ping") @db.Timestamptz(6)
+  users         User      @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([userId, date])
+  @@map("user_app_activity")
+}
+
+model ActivityTrackerAutomation {
+  id              String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId  String?       @map("organization_id") @db.Uuid
+  isEnabled       Boolean?      @default(false) @map("is_enabled")
+  recipientEmails String        @default("") @map("recipient_emails")
+  scheduledTime   String        @default("18:00") @map("scheduled_time")
+  lastSentDate    DateTime?     @map("last_sent_date") @db.Date
+  createdAt       DateTime?     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime?     @default(now()) @map("updated_at") @db.Timestamptz(6)
+  organizations   Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@map("activity_tracker_automation")
 }

@@ -1,9 +1,11 @@
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
+import { useState } from "react";
 
 import { useQuery } from "@tanstack/react-query";
 import { apiFetch } from "@/utils/api";
+import PostNoticeModal from "@/components/shared/PostNoticeModal";
 import { 
   Card, 
   CardContent, 
@@ -18,15 +20,20 @@ import {
   UserCheck,
   TrendingUp,
   Clock,
-  Briefcase
+  Briefcase,
+  Megaphone
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
+import AttendanceMarker from "@/components/attendance/AttendanceMarker";
+import { Button } from "@/components/ui/button";
+import { CalendarDays } from "lucide-react";
+
 export default function HrDashboard() {
   const { profile } = useAuth();
   const navigate = useNavigate();
-
+  const [postNoticeOpen, setPostNoticeOpen] = useState(false);
 
   const { data: stats } = useQuery({
     queryKey: ["hr-dashboard-stats", profile?.organization_id],
@@ -48,6 +55,29 @@ export default function HrDashboard() {
           <div className="flex items-center gap-2 px-4 py-2 bg-emerald-50 rounded-lg border border-emerald-100">
              <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
              <span className="text-xs font-bold text-emerald-700 uppercase tracking-widest">HR System Online</span>
+          </div>
+        </div>
+
+        {/* HR Personal Check-in / Duty Status Widget & Quick Shortcuts */}
+        <div className="space-y-3">
+          <AttendanceMarker />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <Button
+              variant="outline"
+              onClick={() => navigate('/my-attendance')}
+              className="w-full font-bold rounded-xl h-11 text-xs sm:text-sm border-slate-200 gap-2 shadow-sm bg-white hover:bg-slate-50"
+            >
+              <Clock className="w-4 h-4 text-primary" />
+              View My Attendance & Leave Log
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => navigate('/hr/day-planner')}
+              className="w-full font-bold rounded-xl h-11 text-xs sm:text-sm border-slate-200 gap-2 shadow-sm bg-white hover:bg-slate-50"
+            >
+              <CalendarDays className="w-4 h-4 text-primary" />
+              Open HR Day Planner & Schedule
+            </Button>
           </div>
         </div>
 
@@ -119,16 +149,19 @@ export default function HrDashboard() {
              <CardContent className="p-8 pt-0 relative z-10 space-y-6">
                 <div className="grid grid-cols-2 gap-4">
                    {[
-                     { label: 'Add Employee', icon: UserCheck, color: 'bg-emerald-500/20 text-emerald-400' },
+                     { label: 'Post Employee Notice', icon: Megaphone, color: 'bg-primary/20 text-teal-400', action: () => setPostNoticeOpen(true) },
                      { label: 'Attendance Logs', icon: Clock, color: 'bg-indigo-500/20 text-indigo-400', path: '/hr/attendance-logs' },
-                     { label: 'Issue Contract', icon: ClipboardList, color: 'bg-blue-500/20 text-blue-400' },
+                     { label: 'Leave Approvals & Quotas', icon: ClipboardList, color: 'bg-blue-500/20 text-blue-400', path: '/hr/leave-approvals' },
                      { label: 'Holiday Calendar', icon: Calendar, color: 'bg-orange-500/20 text-orange-400' },
                      { label: 'Org Chart', icon: TrendingUp, color: 'bg-purple-500/20 text-purple-400' },
                    ].map((tool, idx) => (
                      <div 
                        key={idx} 
                        className="p-4 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 transition-colors cursor-pointer group"
-                       onClick={() => (tool as any).path && navigate((tool as any).path)}
+                       onClick={() => {
+                         if ((tool as any).action) (tool as any).action();
+                         else if ((tool as any).path) navigate((tool as any).path);
+                       }}
                      >
                         <tool.icon className={cn("w-6 h-6 mb-3 transition-transform group-hover:scale-110", tool.color)} />
                         <span className="text-sm font-bold block">{tool.label}</span>
@@ -143,6 +176,11 @@ export default function HrDashboard() {
              </CardContent>
           </Card>
         </div>
+
+        <PostNoticeModal
+          open={postNoticeOpen}
+          onOpenChange={setPostNoticeOpen}
+        />
       </div>
     </DashboardLayout>
   );

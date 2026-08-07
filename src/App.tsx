@@ -4,7 +4,7 @@ import LeadsDashboard from "./pages/admin/LeadsDashboard";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import { useAuth } from "@/contexts/AuthContext";
@@ -45,8 +45,9 @@ import NutritionistClientProfile from "./pages/nutritionist/NutritionistClientPr
 import NutritionistAssessmentsPage from "./pages/nutritionist/NutritionistAssessmentsPage";
 import NutritionistMealPlansPage from "./pages/nutritionist/NutritionistMealPlansPage";
 import NutritionistSchedule from "./pages/nutritionist/NutritionistSchedule";
-import EmployeeManagement from "./pages/hr/EmployeeManagement";
 import HrDashboard from "./pages/hr/HrDashboard";
+import HrDayPlanner from "./pages/hr/HrDayPlanner";
+import ActivityTracker from "./pages/hr/ActivityTracker";
 import UserApproval from "./pages/hr/UserApproval";
 import DailyLogs from "./pages/hr/DailyLogs";
 import LeaveApprovals from "./pages/hr/LeaveApprovals";
@@ -156,9 +157,12 @@ const App = () => (
               
               {/* HRMS Console Routes */}
               <Route path="/hr" element={<ProtectedRoute requiredRole="hr_manager"><HrDashboard /></ProtectedRoute>} />
-              <Route path="/hr/employees" element={<ProtectedRoute requiredRole="hr_manager"><EmployeeManagement /></ProtectedRoute>} />
-              <Route path="/hr/contracts" element={<ProtectedRoute requiredRole="hr_manager"><EmployeeManagement /></ProtectedRoute>} />
-              <Route path="/hr/leaves" element={<ProtectedRoute requiredRole="hr_manager"><EmployeeManagement /></ProtectedRoute>} />
+              <Route path="/hr/activity-tracker" element={<ProtectedRoute requiredRole="hr_manager"><ActivityTracker /></ProtectedRoute>} />
+              <Route path="/hr/staff-efficiency" element={<Navigate to="/hr/activity-tracker" replace />} />
+              <Route path="/hr/day-planner" element={<ProtectedRoute requiredRole="hr_manager"><HrDayPlanner /></ProtectedRoute>} />
+              <Route path="/hr/employees" element={<Navigate to="/hr/leave-approvals" replace />} />
+              <Route path="/hr/contracts" element={<Navigate to="/hr/leave-approvals" replace />} />
+              <Route path="/hr/leaves" element={<Navigate to="/hr/leave-approvals" replace />} />
               <Route path="/hr/users" element={<ProtectedRoute requiredRole="hr_manager"><UserApproval /></ProtectedRoute>} />
               <Route path="/hr/attendance-logs" element={<ProtectedRoute requiredRole="hr_manager"><DailyLogs /></ProtectedRoute>} />
               <Route path="/hr/leave-approvals" element={<ProtectedRoute requiredRole="hr_manager"><LeaveApprovals /></ProtectedRoute>} />
@@ -226,7 +230,7 @@ const App = () => (
               <Route path="/mobile/specialist/clients" element={<MobileGuard><ProtectedRoute requiredRole={["sports_scientist", "admin"]}><MobileClients /></ProtectedRoute></MobileGuard>} />
               <Route path="/mobile/specialist/memberships" element={<MobileGuard><ProtectedRoute requiredRole={["sports_scientist", "admin"]}><MobileMemberships /></ProtectedRoute></MobileGuard>} />
               <Route path="/mobile/specialist/forms" element={<MobileGuard><ProtectedRoute requiredRole={["sports_scientist", "admin", "consultant", "sports_physician", "physiotherapist", "nutritionist", "massage_therapist", "coach", "foe"]}><MobileQuestionnaires /></ProtectedRoute></MobileGuard>} />
-              <Route path="/mobile/specialist/attendance" element={<MobileGuard><ProtectedRoute requiredRole={["sports_scientist", "admin"]}><MobileAttendance /></ProtectedRoute></MobileGuard>} />
+              <Route path="/mobile/specialist/attendance" element={<Navigate to="/my-attendance" replace />} />
 
               {/* Mobile-Specific Consultant Console Routes */}
               <Route path="/mobile/consultant" element={<MobileGuard><ProtectedRoute requiredRole={["consultant", "sports_physician", "physiotherapist", "nutritionist", "massage_therapist"]}><MobileConsultantDashboard /></ProtectedRoute></MobileGuard>} />
@@ -234,7 +238,7 @@ const App = () => (
               <Route path="/mobile/consultant/session/physio/:id" element={<MobileGuard><ProtectedRoute requiredRole={["consultant", "physiotherapist"]}><MobilePhysioView /></ProtectedRoute></MobileGuard>} />
               <Route path="/mobile/consultant/clients" element={<MobileGuard><ProtectedRoute requiredRole={["consultant", "sports_physician", "physiotherapist", "nutritionist", "massage_therapist"]}><MobileClients /></ProtectedRoute></MobileGuard>} />
               <Route path="/mobile/consultant/schedule" element={<MobileGuard><ProtectedRoute requiredRole={["consultant", "sports_physician", "physiotherapist", "nutritionist", "massage_therapist"]}><MobileConsultantSchedule /></ProtectedRoute></MobileGuard>} />
-              <Route path="/mobile/consultant/attendance" element={<MobileGuard><ProtectedRoute requiredRole={["consultant", "sports_physician", "physiotherapist", "nutritionist", "massage_therapist"]}><MobileAttendance /></ProtectedRoute></MobileGuard>} />
+              <Route path="/mobile/consultant/attendance" element={<Navigate to="/my-attendance" replace />} />
 
               <Route path="/super-admin" element={<ProtectedRoute requiredRole="super_admin"><SuperAdminDashboard /></ProtectedRoute>} />
               <Route path="/super-admin/organizations/new" element={<ProtectedRoute requiredRole="super_admin"><OnboardOrganization /></ProtectedRoute>} />

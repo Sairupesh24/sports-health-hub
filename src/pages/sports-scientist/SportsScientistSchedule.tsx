@@ -220,6 +220,42 @@ export default function SportsScientistSchedule() {
         );
     };
 
+    const calculateOccupiedMinutes = (events: any[]) => {
+        const activeEvents = events.filter(e => {
+            const status = (e.status || '').toLowerCase();
+            return status !== 'cancelled' && status !== 'rescheduled';
+        });
+
+        if (activeEvents.length === 0) return 0;
+
+        const intervals = activeEvents
+            .map(e => ({
+                start: parseISO(e.scheduled_start).getTime(),
+                end: parseISO(e.scheduled_end).getTime()
+            }))
+            .filter(i => !isNaN(i.start) && !isNaN(i.end) && i.end > i.start)
+            .sort((a, b) => a.start - b.start);
+
+        if (intervals.length === 0) return 0;
+
+        const merged: { start: number; end: number }[] = [];
+        for (const current of intervals) {
+            if (merged.length === 0) {
+                merged.push({ ...current });
+            } else {
+                const last = merged[merged.length - 1];
+                if (current.start < last.end) {
+                    last.end = Math.max(last.end, current.end);
+                } else {
+                    merged.push({ ...current });
+                }
+            }
+        }
+
+        const totalMs = merged.reduce((acc, curr) => acc + (curr.end - curr.start), 0);
+        return totalMs / (1000 * 60);
+    };
+
     const renderWeekView = () => {
         const start = startOfWeek(currentDate, { weekStartsOn: 1 });
         const weekDays = eachDayOfInterval({ start, end: addDays(start, 6) });
@@ -228,14 +264,9 @@ export default function SportsScientistSchedule() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-7 gap-4">
                 {weekDays.map(day => {
                     const dayEvents = (sessions as any[]).filter(s => isSameDay(parseISO(s.scheduled_start), day));
-                    let totalMinutes = 0;
-                    dayEvents.forEach(e => {
-                        const startD = parseISO(e.scheduled_start);
-                        const endD = parseISO(e.scheduled_end);
-                        totalMinutes += (endD.getTime() - startD.getTime()) / (1000 * 60);
-                    });
+                    const totalMinutes = calculateOccupiedMinutes(dayEvents);
                     const filledHours = Number((totalMinutes / 60).toFixed(1));
-                    const emptyHours = Math.max(0, 8 - filledHours);
+                    const emptyHours = Math.max(0, Number((8 - filledHours).toFixed(1)));
                     const isToday = isSameDay(day, new Date());
 
                     return (

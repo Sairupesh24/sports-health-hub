@@ -28,7 +28,7 @@ export default function ConsultantBottomNav() {
     {
       label: "Check-In",
       icon: MapPin,
-      path: "/mobile/consultant/attendance",
+      path: "/my-attendance",
     },
   ];
 

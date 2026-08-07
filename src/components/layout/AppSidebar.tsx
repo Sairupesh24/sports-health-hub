@@ -101,10 +101,11 @@ const managerNav: NavItem[] = [
 
 const hrNav: NavItem[] = [
   { label: "HR Dashboard", icon: LayoutDashboard, href: "/hr" },
-  { label: "Directory", icon: Users, href: "/hr/employees" },
-  { label: "Contracts", icon: ClipboardList, href: "/hr/contracts" },
+  { label: "Activity Tracker", icon: Activity, href: "/hr/activity-tracker" },
+  { label: "My Attendance", icon: Clock, href: "/my-attendance" },
+  { label: "Day Planner", icon: CalendarDays, href: "/hr/day-planner" },
   { label: "Leave Approvals", icon: CheckSquare, href: "/hr/leave-approvals" },
-  { label: "Attendance Log", icon: CalendarClock, href: "/hr/attendance-logs" },
+  { label: "Staff Attendance Log", icon: CalendarClock, href: "/hr/attendance-logs" },
   { label: "User Approvals", icon: UserCheck, href: "/hr/users" },
 ];
 
@@ -329,9 +330,10 @@ export default function AppSidebar({ role, isMobile, className, onNavigate }: Ap
             ))
           ) : (
             items.map((item) => {
-              const isActive =
-                location.pathname === item.href ||
-                (item.href !== `/${resolvedRole}` && location.pathname.startsWith(item.href));
+              const isDashboardRoot = ["/hr", "/admin", "/super-admin", "/nutritionist", "/consultant", "/ams/athlete-portal", "/sports-scientist"].includes(item.href);
+              const isActive = isDashboardRoot
+                ? location.pathname === item.href
+                : (location.pathname === item.href || location.pathname.startsWith(item.href + '/'));
               return (
                 <Link
                   key={item.href}

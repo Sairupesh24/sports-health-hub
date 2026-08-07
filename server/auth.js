@@ -2,7 +2,7 @@ import express from 'express';
 import nodemailer from 'nodemailer';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import { db, autoAllocateStaffServices } from './db.js';
 
 const router = express.Router();
@@ -396,6 +396,35 @@ router.patch('/me', async (req, res) => {
        return res.status(401).json({ error: 'Invalid token' });
     }
     res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+/**
+ * POST /api/auth/active-ping
+ * Records 30 seconds of active console usage when staff member is active on the app
+ */
+router.post('/active-ping', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) return res.status(401).json({ error: 'Unauthorized' });
+    const token = authHeader.split(' ')[1];
+    const jwtSecret = process.env.JWT_SECRET || 'fallback_secret_do_not_use_in_prod';
+    const decoded = jwt.verify(token, jwtSecret);
+    const userId = decoded.id;
+    const today = new Date().toISOString().split('T')[0];
+
+    await db.query(`
+      INSERT INTO user_app_activity (user_id, date, active_seconds, last_ping)
+      VALUES ($1, $2, 30, CURRENT_TIMESTAMP)
+      ON CONFLICT (user_id, date) 
+      DO UPDATE SET 
+        active_seconds = user_app_activity.active_seconds + 30,
+        last_ping = CURRENT_TIMESTAMP
+    `, [userId, today]);
+
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 });
 

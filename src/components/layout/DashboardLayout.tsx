@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Menu, Activity } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import ClientBottomNav from "../client/ClientBottomNav";
+import SpecialistBottomNav from "../sports-scientist/SpecialistBottomNav";
+import ConsultantBottomNav from "../consultant/ConsultantBottomNav";
 
 interface DashboardLayoutProps {
   role: string;
@@ -12,7 +14,7 @@ interface DashboardLayoutProps {
 }
 
 export default function DashboardLayout({ role, children }: DashboardLayoutProps) {
-  const { roles, profile, loading } = useAuth();
+  const { roles, profile } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Compute effective role based on authenticated context and profile profession
@@ -58,24 +60,22 @@ export default function DashboardLayout({ role, children }: DashboardLayoutProps
             </span>
           </div>
 
-          {/* Hide hamburger if role has a dedicated mobile console with bottom nav */}
-          {!(effectiveRole === "client" || effectiveRole === "athlete" || effectiveRole === "sports_scientist") && (
-            <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-              <SheetTrigger asChild>
-                <Button variant="ghost" size="icon">
-                  <Menu className="h-6 w-6" />
-                  <span className="sr-only">Toggle Menu</span>
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="left" className="p-0 w-72 border-r-0">
-                <AppSidebar
-                  role={effectiveRole}
-                  isMobile
-                  onNavigate={() => setMobileMenuOpen(false)}
-                />
-              </SheetContent>
-            </Sheet>
-          )}
+          {/* Hamburger Sheet menu */}
+          <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+            <SheetTrigger asChild>
+              <Button variant="ghost" size="icon">
+                <Menu className="h-6 w-6" />
+                <span className="sr-only">Toggle Menu</span>
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="left" className="p-0 w-72 border-r-0">
+              <AppSidebar
+                role={effectiveRole}
+                isMobile
+                onNavigate={() => setMobileMenuOpen(false)}
+              />
+            </SheetContent>
+          </Sheet>
         </div>
 
         {/* Content Area */}
@@ -84,8 +84,12 @@ export default function DashboardLayout({ role, children }: DashboardLayoutProps
         </div>
       </main>
 
-      {/* Mobile Bottom Navigation for Clients/Athletes */}
-      {(effectiveRole === "client" || effectiveRole === "athlete") && <ClientBottomNav />}
+      {/* Mobile Bottom Navigations */}
+      <div className="md:hidden">
+        {(effectiveRole === "client" || effectiveRole === "athlete") && <ClientBottomNav />}
+        {effectiveRole === "sports_scientist" && <SpecialistBottomNav />}
+        {(effectiveRole === "consultant" || effectiveRole === "nutritionist") && <ConsultantBottomNav />}
+      </div>
     </div>
   );
 }
