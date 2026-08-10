@@ -9,10 +9,11 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import PostNoticeModal from "@/components/shared/PostNoticeModal";
 import {
   CheckCircle2, XCircle, Clock, Calendar, Loader2,
-  User, ChevronDown, Filter, AlertTriangle, Edit3, Settings, ShieldAlert, Megaphone
+  User, ChevronDown, Filter, AlertTriangle, Edit3, Settings, ShieldAlert, Megaphone, Search
 } from "lucide-react";
 import { format, parseISO, differenceInCalendarDays } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -46,6 +47,10 @@ export default function LeaveApprovals() {
   const [emergencyInput, setEmergencyInput] = useState<number>(0);
   const [quotaModalOpen, setQuotaModalOpen] = useState(false);
 
+  // Search & Role Filter state
+  const [searchQuery, setSearchQuery] = useState("");
+  const [roleFilter, setRoleFilter] = useState("all");
+
   // Fetch leave requests with employee profile
   const { data: leaves, isLoading: leavesLoading } = useQuery({
     queryKey: ["hr-leave-requests", orgId, statusFilter],
@@ -70,6 +75,43 @@ export default function LeaveApprovals() {
       return response.data || [];
     },
     enabled: !!orgId && activeTab === "quotas",
+  });
+
+  // Filtered Leave Requests
+  const filteredLeaves = leaves?.filter((leave: any) => {
+    const empName = `${leave.employee?.first_name || ""} ${leave.employee?.last_name || ""}`.toLowerCase();
+    const profession = (leave.employee?.profession || "").toLowerCase();
+    const reason = (leave.reason || "").toLowerCase();
+
+    const matchesSearch = 
+      empName.includes(searchQuery.toLowerCase()) ||
+      profession.includes(searchQuery.toLowerCase()) ||
+      reason.includes(searchQuery.toLowerCase());
+
+    const matchesRole = 
+      roleFilter === "all" ||
+      profession.includes(roleFilter.toLowerCase());
+
+    return matchesSearch && matchesRole;
+  });
+
+  // Filtered Employee Leave Balances
+  const filteredEmployeeBalances = employeeBalances?.filter((emp: any) => {
+    const empName = `${emp.first_name || ""} ${emp.last_name || ""}`.toLowerCase();
+    const email = (emp.email || "").toLowerCase();
+    const profession = (emp.profession || emp.role || "").toLowerCase();
+
+    const matchesSearch = 
+      empName.includes(searchQuery.toLowerCase()) ||
+      email.includes(searchQuery.toLowerCase()) ||
+      profession.includes(searchQuery.toLowerCase());
+
+    const matchesRole = 
+      roleFilter === "all" ||
+      (emp.role || "").toLowerCase() === roleFilter.toLowerCase() ||
+      profession.includes(roleFilter.toLowerCase());
+
+    return matchesSearch && matchesRole;
   });
 
   // Approve / Reject mutation
@@ -202,17 +244,17 @@ export default function LeaveApprovals() {
               <div className="flex justify-center p-16">
                 <Loader2 className="w-7 h-7 animate-spin text-primary" />
               </div>
-            ) : leaves?.length === 0 ? (
+            ) : filteredLeaves?.length === 0 ? (
               <div className="text-center p-16 rounded-2xl border border-dashed bg-white">
                 <CheckCircle2 className="w-12 h-12 mx-auto text-emerald-200 mb-4" />
-                <p className="font-black text-slate-600 text-lg">All Clear</p>
+                <p className="font-black text-slate-600 text-lg">No Matching Requests</p>
                 <p className="text-muted-foreground text-sm mt-1">
-                  {statusFilter === "Requested" ? "No pending leave requests." : "No requests found."}
+                  {statusFilter === "Requested" ? "No pending leave requests found." : "No requests found matching your filter."}
                 </p>
               </div>
             ) : (
               <div className="space-y-3">
-                {leaves?.map((leave: any) => (
+                {filteredLeaves?.map((leave: any) => (
                   <div
                     key={leave.id}
                     className={cn(
@@ -304,8 +346,8 @@ export default function LeaveApprovals() {
           {/* TAB 2: EMPLOYEE LEAVE QUOTAS & LOP */}
           <TabsContent value="quotas" className="mt-4 space-y-4">
             <Card className="border border-slate-200 shadow-sm rounded-2xl bg-white overflow-hidden">
-              <CardHeader className="bg-slate-50 border-b p-5">
-                <div className="flex justify-between items-center">
+              <CardHeader className="bg-slate-50 border-b p-4 sm:p-5 space-y-3">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                   <div>
                     <CardTitle className="text-base font-black text-slate-900">Annual Employee Leave Allocations</CardTitle>
                     <p className="text-xs text-muted-foreground mt-0.5">
@@ -313,13 +355,48 @@ export default function LeaveApprovals() {
                     </p>
                   </div>
                 </div>
+
+                {/* Search Bar & Role Filter Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
+                  <div className="relative sm:col-span-2">
+                    <Search className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
+                    <Input
+                      placeholder="Search employee by name, email, or profession..."
+                      value={searchQuery}
+                      onChange={e => setSearchQuery(e.target.value)}
+                      className="pl-9 h-10 rounded-xl font-medium bg-white"
+                    />
+                  </div>
+
+                  <div className="sm:col-span-1">
+                    <Select value={roleFilter} onValueChange={setRoleFilter}>
+                      <SelectTrigger className="h-10 rounded-xl font-medium bg-white">
+                        <SelectValue placeholder="Filter by Role / Profession" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Roles & Professions</SelectItem>
+                        <SelectItem value="sports_scientist">Sports Scientist</SelectItem>
+                        <SelectItem value="sports_physician">Sports Physician</SelectItem>
+                        <SelectItem value="physiotherapist">Physiotherapist</SelectItem>
+                        <SelectItem value="nutritionist">Nutritionist</SelectItem>
+                        <SelectItem value="foe">Front Office (FOE)</SelectItem>
+                        <SelectItem value="admin">Administrator</SelectItem>
+                        <SelectItem value="hr_manager">HR Manager</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent className="p-0">
                 {balancesLoading ? (
                   <div className="flex justify-center p-12"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>
+                ) : filteredEmployeeBalances?.length === 0 ? (
+                  <div className="p-12 text-center text-slate-400 font-medium text-sm">
+                    No staff members match the selected search or role filter.
+                  </div>
                 ) : (
                   <div className="divide-y divide-slate-100">
-                    {employeeBalances?.map((emp: any) => (
+                    {filteredEmployeeBalances?.map((emp: any) => (
                       <div key={emp.employee_id} className="p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-slate-50/50 transition-colors">
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 rounded-2xl bg-slate-100 flex items-center justify-center font-black text-slate-700 text-sm">

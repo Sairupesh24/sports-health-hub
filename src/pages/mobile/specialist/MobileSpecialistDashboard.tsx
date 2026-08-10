@@ -111,9 +111,9 @@ export default function MobileSpecialistDashboard() {
   }
 
   const handleAthleteClick = (athlete: any) => {
+    if (!athlete?.id) return;
     haptic.light();
-    setSelectedAthlete(athlete);
-    setIsDrawerOpen(true);
+    navigate(`/mobile/specialist/clients/${athlete.id}?tab=upcoming`);
   };
 
   return (
@@ -234,7 +234,7 @@ export default function MobileSpecialistDashboard() {
               </Badge>
            </div>
 
-           <div className="flex gap-4 overflow-x-auto pb-4 -mx-4 px-4 no-scrollbar">
+           <div className="flex flex-col gap-3 w-full">
               {dashboardData?.activeSessions.length === 0 ? (
                 <div className="w-full py-8 bg-slate-100 dark:bg-slate-900/50 rounded-[2rem] border border-dashed border-slate-300 dark:border-slate-700 flex flex-col items-center justify-center text-muted-foreground opacity-70">
                    <Clock className="w-8 h-8 mb-2 opacity-50" />
@@ -247,40 +247,39 @@ export default function MobileSpecialistDashboard() {
                     type="button"
                     onClick={() => handleAthleteClick(session.client)}
                     className={cn(
-                      "min-w-[280px] bg-white dark:bg-slate-900 p-5 rounded-[2.5rem] border border-border/50 shadow-md flex items-center gap-4 transition-all active:scale-95 text-left",
+                      "w-full bg-white dark:bg-slate-900 p-5 rounded-[2rem] border border-border/50 shadow-sm flex items-center gap-4 transition-all active:scale-[0.98] text-left justify-between",
                       session.client?.is_vip && "vip-border"
                     )}
                   >
-                    <div className={cn(
-                      "w-12 h-12 rounded-2xl flex items-center justify-center font-black text-lg shadow-inner shrink-0",
-                      session.client?.is_vip ? "bg-amber-500 text-white" : "bg-slate-100 dark:bg-slate-800 text-slate-400"
-                    )}>
-                      {session.client?.first_name?.[0]}{session.client?.last_name?.[0]}
-                    </div>
-                    <div className="flex-1 overflow-hidden">
-                      <h4 className="font-black text-slate-900 dark:text-white truncate">
-                        {session.client?.first_name} {session.client?.last_name}
-                      </h4>
-                      <p className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest truncate">
-                        {session.client?.sport || "General"} • {session.client?.uhid}
-                      </p>
-                      <div className="mt-1.5 flex items-center justify-between gap-2">
-                         <div className="flex items-center gap-1.5">
-                            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                            <span className="text-[9px] font-black uppercase text-emerald-500 tracking-widest">In Progress</span>
-                         </div>
-                         {!isBefore(parseISO(session.scheduled_end || session.scheduled_start), new Date()) && (
-                           <Button
-                              size="sm"
-                              className="h-7 text-[9px] font-black uppercase rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white shrink-0 shadow-xs px-2.5"
-                              onClick={(e) => handleEndSession(session, e)}
-                              disabled={endingSessionId === session.id}
-                           >
-                              {endingSessionId === session.id ? "Ending..." : "End Session"}
-                           </Button>
-                         )}
+                    <div className="flex items-center gap-3 overflow-hidden flex-1">
+                      <div className={cn(
+                        "w-12 h-12 rounded-2xl flex items-center justify-center font-black text-lg shadow-inner shrink-0",
+                        session.client?.is_vip ? "bg-amber-500 text-white" : "bg-slate-100 dark:bg-slate-800 text-slate-400"
+                      )}>
+                        {session.client?.first_name?.[0]}{session.client?.last_name?.[0]}
+                      </div>
+                      <div className="flex-1 overflow-hidden">
+                        <h4 className="font-black text-slate-900 dark:text-white truncate text-base">
+                          {session.client?.first_name} {session.client?.last_name}
+                        </h4>
+                        <p className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest truncate">
+                          {session.client?.sport || "General"} • {session.client?.uhid}
+                        </p>
+                        <div className="mt-1 flex items-center gap-1.5">
+                          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                          <span className="text-[9px] font-black uppercase text-emerald-500 tracking-widest">In Progress</span>
+                        </div>
                       </div>
                     </div>
+                    
+                    <Button
+                      size="sm"
+                      className="h-8 text-[10px] font-black uppercase rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white shrink-0 shadow-xs px-3 ml-2"
+                      onClick={(e) => handleEndSession(session, e)}
+                      disabled={endingSessionId === session.id}
+                    >
+                      {endingSessionId === session.id ? "Ending..." : "End Session"}
+                    </Button>
                   </button>
                 ))
               )}
@@ -288,13 +287,6 @@ export default function MobileSpecialistDashboard() {
         </section>
 
       </div>
-
-      <MobileAthleteDrawer 
-        open={isDrawerOpen}
-        onOpenChange={setIsDrawerOpen}
-        athlete={selectedAthlete}
-      />
     </MobileSpecialistLayout>
   );
 }
-

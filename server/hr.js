@@ -529,6 +529,104 @@ router.get('/users', requireAuth, async (req, res) => {
     }
 });
 
+// GET user profile details & active application time analytics
+router.get('/users/:id/profile-activity', requireAuth, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const orgId = req.user.organization_id;
+
+        // 1. User & Profile Details
+        const userRes = await db.query(`
+            SELECT p.*, u.email, u.role as current_role, u.created_at as user_created_at
+            FROM profiles p
+            JOIN users u ON p.id = u.id
+            WHERE p.id = $1 AND (p.organization_id = $2 OR $3 = 'super_admin')
+        `, [id, orgId, req.user.role]);
+
+        if (userRes.rows.length === 0) {
+            return res.status(404).json({ error: 'User profile not found' });
+        }
+        const profileData = userRes.rows[0];
+
+        // 2. Today's Active Seconds
+        const todayRes = await db.query(`
+            SELECT COALESCE(active_seconds, 0) as today_seconds, last_ping
+            FROM user_app_activity
+            WHERE user_id = $1 AND date = CURRENT_DATE
+        `, [id]).catch(() => ({ rows: [] }));
+        const todaySeconds = parseInt(todayRes.rows[0]?.today_seconds || 0, 10);
+        const lastPing = todayRes.rows[0]?.last_ping || null;
+
+        // 3. Last 7 Days Active Seconds & Active Days
+        const last7dRes = await db.query(`
+            SELECT 
+                COALESCE(SUM(active_seconds), 0) as total_7d_seconds,
+                COUNT(DISTINCT date) FILTER (WHERE active_seconds > 0) as active_days_7d
+            FROM user_app_activity
+            WHERE user_id = $1 AND date >= CURRENT_DATE - INTERVAL '6 days' AND date <= CURRENT_DATE
+        `, [id]).catch(() => ({ rows: [{ total_7d_seconds: 0, active_days_7d: 0 }] }));
+        const total7dSeconds = parseInt(last7dRes.rows[0]?.total_7d_seconds || 0, 10);
+        const activeDays7d = parseInt(last7dRes.rows[0]?.active_days_7d || 0, 10);
+
+        // 4. Last 30 Days Active Seconds & Active Days
+        const last30dRes = await db.query(`
+            SELECT 
+                COALESCE(SUM(active_seconds), 0) as total_30d_seconds,
+                COUNT(DISTINCT date) FILTER (WHERE active_seconds > 0) as active_days_30d
+            FROM user_app_activity
+            WHERE user_id = $1 AND date >= CURRENT_DATE - INTERVAL '29 days' AND date <= CURRENT_DATE
+        `, [id]).catch(() => ({ rows: [{ total_30d_seconds: 0, active_days_30d: 0 }] }));
+        const total30dSeconds = parseInt(last30dRes.rows[0]?.total_30d_seconds || 0, 10);
+        const activeDays30d = parseInt(last30dRes.rows[0]?.active_days_30d || 0, 10);
+
+        // 5. Daily Activity Trend for Last 14 Days
+        const trendRes = await db.query(`
+            SELECT d.date::text as date_str, COALESCE(a.active_seconds, 0) as active_seconds
+            FROM generate_series(CURRENT_DATE - INTERVAL '13 days', CURRENT_DATE, '1 day'::interval) d(date)
+            LEFT JOIN user_app_activity a ON a.user_id = $1 AND a.date = d.date::date
+            ORDER BY d.date ASC
+        `, [id]).catch(() => ({ rows: [] }));
+
+        const dailyTrend = trendRes.rows.map(r => ({
+            date: r.date_str,
+            activeMinutes: Math.round(parseInt(r.active_seconds || 0, 10) / 60)
+        }));
+
+        // 6. Productivity Summary Counts
+        const sessionsRes = await db.query(`SELECT COUNT(*) as count FROM sessions WHERE practitioner_id = $1`, [id]).catch(() => ({ rows: [{ count: 0 }] }));
+        const assessmentsRes = await db.query(`SELECT COUNT(*) as count FROM performance_assessments WHERE created_by = $1`, [id]).catch(() => ({ rows: [{ count: 0 }] }));
+        const regRes = await db.query(`SELECT COUNT(*) as count FROM profiles WHERE created_by = $1`, [id]).catch(() => ({ rows: [{ count: 0 }] }));
+
+        const todayMinutes = Math.round(todaySeconds / 60);
+        const avg7dMinutes = Math.round((total7dSeconds / 7) / 60);
+        const avg30dMinutes = Math.round((total30dSeconds / 30) / 60);
+
+        res.json({
+            profile: profileData,
+            activeTime: {
+                todaySeconds,
+                todayMinutes,
+                lastPing,
+                total7dSeconds,
+                avg7dMinutes,
+                activeDays7d,
+                total30dSeconds,
+                avg30dMinutes,
+                activeDays30d,
+                dailyTrend
+            },
+            productivity: {
+                sessionsCount: parseInt(sessionsRes.rows[0]?.count || 0, 10),
+                assessmentsCount: parseInt(assessmentsRes.rows[0]?.count || 0, 10),
+                registrationsCount: parseInt(regRes.rows[0]?.count || 0, 10)
+            }
+        });
+    } catch (error) {
+        console.error('Error fetching user profile activity:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 // POST approve user
 router.post('/users/:id/approve', requireAuth, async (req, res) => {
     const client = await db.connect();

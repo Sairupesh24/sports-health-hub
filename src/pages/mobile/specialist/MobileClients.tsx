@@ -72,8 +72,9 @@ export default function MobileClients() {
     const activeClients = allClients?.filter(c => activeClientsData?.includes(c.id)) || [];
 
     const handleClientClick = (client: any) => {
-        setSelectedAthlete(client);
-        setDrawerOpen(true);
+        if (!client?.id) return;
+        const basePath = location.pathname.startsWith("/mobile/consultant") ? "/mobile/consultant/clients" : "/mobile/specialist/clients";
+        navigate(`${basePath}/${client.id}?tab=upcoming`);
     };
 
     const handleManageGroup = (group: any) => {
@@ -301,13 +302,6 @@ export default function MobileClients() {
                     </div>
                 </Tabs>
             </div>
-
-            {/* Athlete Profile Drawer */}
-            <MobileAthleteDrawer 
-                open={drawerOpen}
-                onOpenChange={setDrawerOpen}
-                athlete={selectedAthlete}
-            />
 
             {/* Group Management Dialog */}
             <Dialog open={groupManageOpen} onOpenChange={setGroupManageOpen}>

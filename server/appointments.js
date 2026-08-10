@@ -1207,4 +1207,140 @@ router.get('/:id/attendees', requireAuth, async (req, res) => {
     }
 });
 
+// GET upcoming sessions for a client
+router.get('/client/:clientId/upcoming', requireAuth, async (req, res) => {
+    try {
+        const { clientId } = req.params;
+        const orgId = req.user.organization_id;
+        const todayStart = new Date();
+        todayStart.setHours(0, 0, 0, 0);
+
+        const query = `
+            SELECT s.*, 
+                   st.name as session_type_name,
+                   p.first_name as scientist_first_name,
+                   p.last_name as scientist_last_name
+            FROM sessions s
+            LEFT JOIN sessiontypes st ON s.service_id = st.id OR s.session_type_id = st.id
+            LEFT JOIN profiles p ON s.scientist_id = p.id
+            WHERE s.organization_id = $1 
+            AND s.client_id = $2
+            AND s.scheduled_start >= $3
+            AND s.status NOT IN ('Cancelled')
+            ORDER BY s.scheduled_start ASC
+        `;
+        const result = await db.query(query, [orgId, clientId, todayStart.toISOString()]);
+        res.json(result.rows);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// POST cancel entire future plan for a client
+router.post('/client/:clientId/cancel-future-plan', requireAuth, async (req, res) => {
+    try {
+        const { clientId } = req.params;
+        const { reason } = req.body;
+        const orgId = req.user.organization_id;
+        const nowIso = new Date().toISOString();
+
+        const query = `
+            UPDATE sessions
+            SET status = 'Cancelled',
+                cancellation_reason = COALESCE($1, 'Entire upcoming plan cancelled'),
+                updated_at = CURRENT_TIMESTAMP
+            WHERE organization_id = $2
+            AND client_id = $3
+            AND scheduled_start >= $4
+            AND status IN ('Planned', 'Scheduled', 'SCHEDULED', 'Waitlisted')
+            RETURNING id
+        `;
+        const result = await db.query(query, [reason || null, orgId, clientId, nowIso]);
+        res.json({ success: true, cancelled_count: result.rows.length, ids: result.rows.map(r => r.id) });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// POST bulk cancel sessions by array of IDs
+router.post('/bulk-cancel', requireAuth, async (req, res) => {
+    try {
+        const { ids, reason } = req.body;
+        const orgId = req.user.organization_id;
+
+        if (!Array.isArray(ids) || ids.length === 0) {
+            return res.status(400).json({ error: 'Array of session IDs is required' });
+        }
+
+        const query = `
+            UPDATE sessions
+            SET status = 'Cancelled',
+                cancellation_reason = COALESCE($1, 'Bulk cancelled'),
+                updated_at = CURRENT_TIMESTAMP
+            WHERE organization_id = $2
+            AND id = ANY($3)
+            AND status NOT IN ('Completed')
+            RETURNING id
+        `;
+        const result = await db.query(query, [reason || null, orgId, ids]);
+        res.json({ success: true, cancelled_count: result.rows.length, ids: result.rows.map(r => r.id) });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// POST bulk edit sessions (status, reason, notes)
+router.post('/bulk-edit', requireAuth, async (req, res) => {
+    try {
+        const { ids, status, cancellation_reason, session_notes } = req.body;
+        const orgId = req.user.organization_id;
+
+        if (!Array.isArray(ids) || ids.length === 0) {
+            return res.status(400).json({ error: 'Array of session IDs is required' });
+        }
+
+        const allowedStatuses = ['Planned', 'Completed', 'Missed', 'Rescheduled', 'Cancelled', 'Checked In', 'Waitlisted'];
+        if (status && !allowedStatuses.includes(status)) {
+            return res.status(400).json({ error: 'Invalid status value' });
+        }
+
+        let updates = [];
+        let values = [orgId, ids];
+        let idx = 3;
+
+        if (status) {
+            updates.push(`status = $${idx}`);
+            values.push(status);
+            idx++;
+        }
+        if (cancellation_reason !== undefined) {
+            updates.push(`cancellation_reason = $${idx}`);
+            values.push(cancellation_reason);
+            idx++;
+        }
+        if (session_notes !== undefined) {
+            updates.push(`session_notes = $${idx}`);
+            values.push(session_notes);
+            idx++;
+        }
+
+        if (updates.length === 0) {
+            return res.status(400).json({ error: 'No fields provided to update' });
+        }
+
+        const query = `
+            UPDATE sessions
+            SET ${updates.join(', ')}, updated_at = CURRENT_TIMESTAMP
+            WHERE organization_id = $1
+            AND id = ANY($2)
+            AND status NOT IN ('Completed')
+            RETURNING id, status
+        `;
+        const result = await db.query(query, values);
+        res.json({ success: true, updated_count: result.rows.length, sessions: result.rows });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
 export default router;

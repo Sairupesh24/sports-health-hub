@@ -60,9 +60,9 @@ export default function MobileMemberships() {
   });
 
   const handleAthleteClick = (athlete: any) => {
+    if (!athlete?.id) return;
     haptic.light();
-    setSelectedAthlete(athlete);
-    setIsDrawerOpen(true);
+    navigate(`/mobile/specialist/clients/${athlete.id}?tab=upcoming`);
   };
 
   return (
@@ -199,12 +199,6 @@ export default function MobileMemberships() {
            )}
         </div>
       </div>
-
-      <MobileAthleteDrawer 
-        open={isDrawerOpen}
-        onOpenChange={setIsDrawerOpen}
-        athlete={selectedAthlete}
-      />
     </MobileSpecialistLayout>
   );
 }

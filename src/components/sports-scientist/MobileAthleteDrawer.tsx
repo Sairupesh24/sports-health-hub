@@ -13,8 +13,11 @@ import {
   CreditCard,
   ShieldAlert,
   ChevronRight,
-  Loader2
+  Loader2,
+  Calendar
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { apiFetch } from "@/utils/api";
@@ -26,6 +29,7 @@ interface MobileAthleteDrawerProps {
 }
 
 export default function MobileAthleteDrawer({ open, onOpenChange, athlete }: MobileAthleteDrawerProps) {
+  const navigate = useNavigate();
   // Fetch detailed context for the athlete
   const { data: contextData, isLoading } = useQuery({
     queryKey: ["athlete-context", athlete?.id],
@@ -243,6 +247,20 @@ export default function MobileAthleteDrawer({ open, onOpenChange, athlete }: Mob
                    </div>
                 )}
               </div>
+            </section>
+            {/* 5. Upcoming Events & Training Plan Quick Action */}
+            <section className="pt-2">
+              <Button
+                type="button"
+                className="w-full h-12 bg-primary hover:bg-primary/90 text-white font-black text-xs uppercase tracking-widest rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-primary/20"
+                onClick={() => {
+                  onOpenChange(false);
+                  navigate(`/sports-scientist/clients/${athlete.id}?tab=upcoming`);
+                }}
+              >
+                <Calendar className="w-4 h-4" />
+                Manage Upcoming Plan & Events
+              </Button>
             </section>
           </div>
         </div>

@@ -55,7 +55,7 @@ export default function MobileGuard({ children }: MobileGuardProps) {
           return;
         }
 
-        navigate(mobilePath, { replace: true });
+        navigate(mobilePath + location.search, { replace: true });
         return;
       }
 
@@ -63,7 +63,7 @@ export default function MobileGuard({ children }: MobileGuardProps) {
       if (isConsultant && isConsultantPath && !isMobileConsultantPath) {
         // Special mappings for specific views could go here, otherwise generic replace
         let mobilePath = location.pathname.replace('/consultant', '/mobile/consultant');
-        navigate(mobilePath, { replace: true });
+        navigate(mobilePath + location.search, { replace: true });
         return;
       }
     } else {

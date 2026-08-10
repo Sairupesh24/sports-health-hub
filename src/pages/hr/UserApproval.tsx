@@ -9,9 +9,10 @@ import { apiFetch } from "@/utils/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { CheckCircle, Users, UserX, Plus, Copy, ExternalLink, Search, Trash2, Clock, UserCheck, Shield, Filter, RotateCcw, Maximize2, Minimize2 } from "lucide-react";
+import { CheckCircle, Users, UserX, Plus, Copy, ExternalLink, Search, Trash2, Clock, UserCheck, Shield, Filter, RotateCcw, Maximize2, Minimize2, User } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { useNavigate } from "react-router-dom";
+import { UserProfileModal } from "@/components/hr/UserProfileModal";
 
 interface PendingUser {
   id: string;
@@ -33,6 +34,8 @@ export default function UserApproval() {
   const [selectedRoles, setSelectedRoles] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [profileModalUserId, setProfileModalUserId] = useState<string | null>(null);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [roleFilter, setRoleFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [isRolesExpanded, setIsRolesExpanded] = useState(false);
@@ -432,7 +435,7 @@ export default function UserApproval() {
 
       await apiFetch(`/hr/users/${linkingUser.id}/role`, {
         method: 'PATCH',
-        body: { 
+        data: { 
           uhid: matchedClient.uhid 
         }
       });
@@ -849,7 +852,11 @@ export default function UserApproval() {
                   <div key={u.id} className="flex flex-col md:flex-row items-start md:items-center justify-between p-4 rounded-lg bg-muted/30 border border-border gap-4">
                     <div className="w-full md:w-auto">
                       <div className="flex items-center gap-2">
-                        <p className="text-sm font-medium text-foreground">
+                        <p 
+                          className="text-sm font-bold text-foreground cursor-pointer hover:text-primary hover:underline flex items-center gap-1.5"
+                          onClick={() => navigate(location.pathname.startsWith('/hr') ? `/hr/users/${u.id}` : `/admin/users/${u.id}`)}
+                          title="Click to view full staff profile, active app time & sessions"
+                        >
                           {u.first_name || u.last_name ? `${u.first_name} ${u.last_name}`.trim() : "No name provided"}
                         </p>
                         {u.ams_role && (

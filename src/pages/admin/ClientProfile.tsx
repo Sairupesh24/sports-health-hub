@@ -35,6 +35,7 @@ import { ShieldCheck, History } from "lucide-react";
 import { EnquiryContextWindow } from "@/components/admin/EnquiryContextWindow";
 import { AssessmentReportsList } from "@/components/shared/assessment/AssessmentReportsList";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
+import { UpcomingPlanManager } from "@/components/sports-scientist/UpcomingPlanManager";
 
 
 
@@ -499,99 +500,139 @@ export default function ClientProfile() {
 
     return (
         <DashboardLayout role="admin">
-            <div className="max-w-5xl mx-auto space-y-6 pb-12">
-                {/* Header */}
-                <div className="flex items-center gap-4 border-b pb-6">
-                    <Button variant="ghost" size="icon" onClick={() => navigate("/admin/clients")}>
-                        <ArrowLeft className="w-5 h-5" />
+            <div className="max-w-6xl mx-auto space-y-6 pb-28 md:pb-12 px-2 sm:px-4">
+                
+                {/* Top Back Bar & Action Buttons */}
+                <div className="flex items-center justify-between gap-3">
+                    <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => navigate(-1)}
+                        className="h-9 px-3 rounded-xl border-border/60 text-slate-700 dark:text-slate-200 font-bold text-xs gap-1.5 shadow-xs"
+                    >
+                        <ArrowLeft className="w-4 h-4" /> Back
                     </Button>
-                    <div className="flex-1 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                        <div>
-                            <div className="flex items-center gap-3">
-                                <h1 className="text-3xl font-display font-bold text-foreground">
-                                    {fullName}
-                                </h1>
-                                <VIPBadge isVIP={client.is_vip} size="lg" />
+
+                    <div className="flex items-center gap-2">
+                        {isAdminOrFoe && (
+                            <Button
+                                onClick={() => setIsEditModalOpen(true)}
+                                variant="outline"
+                                size="sm"
+                                className="h-9 px-3 rounded-xl border-primary/20 text-primary hover:bg-primary/5 font-bold text-xs gap-1.5"
+                            >
+                                <User className="w-3.5 h-3.5" /> Edit Profile
+                            </Button>
+                        )}
+                        {isAdminOrFoe && (
+                            <Button
+                                onClick={() => navigate(`/admin/billing?clientId=${client.id}`)}
+                                variant="default"
+                                size="sm"
+                                className="h-9 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs gap-1.5 shadow-sm"
+                            >
+                                <Plus className="w-3.5 h-3.5" /> Generate Bill
+                            </Button>
+                        )}
+                    </div>
+                </div>
+
+                {/* Athlete Hero Card Banner */}
+                <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-950 p-6 md:p-8 rounded-[2.5rem] text-white shadow-xl relative overflow-hidden border border-slate-800">
+                    <div className="absolute top-0 right-0 p-8 opacity-5 pointer-events-none">
+                        <Activity className="w-64 h-64" />
+                    </div>
+
+                    <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+                        <div className="flex items-start sm:items-center gap-4">
+                            <div className={cn(
+                                "w-16 h-16 sm:w-20 sm:h-20 rounded-2xl sm:rounded-3xl flex items-center justify-center font-black text-xl sm:text-2xl border-2 border-white/20 shadow-2xl shrink-0",
+                                client.is_vip ? "bg-amber-500 text-white" : "bg-white/10 text-white backdrop-blur-md"
+                            )}>
+                                {client.first_name?.[0]}{client.last_name?.[0]}
                             </div>
-                            <p className="text-muted-foreground flex flex-wrap items-center gap-2 mt-1">
-                                <span className="bg-primary/10 text-primary px-2 py-0.5 rounded text-xs font-semibold">UHID: {uhid}</span>
-                                <span>•</span>
-                                <span>Registered on: {format(new Date(registered_on), "dd MMM yyyy")}</span>
-                                {client.is_vip && <span className="text-yellow-600 font-bold ml-2">★ PREMIUM TIER</span>}
-                                {referral_source && (
-                                    <>
-                                        <span>•</span>
-                                        <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-[10px] font-bold">
-                                            SOURCE: {referral_source}
-                                            {referral_source_detail && ` (${referral_source_detail})`}
-                                        </Badge>
-                                    </>
-                                )}
-                            </p>
+
+                            <div className="space-y-1.5">
+                                <div className="flex flex-wrap items-center gap-2">
+                                    <h1 className="text-2xl sm:text-3xl font-black italic tracking-tight text-white">
+                                        {fullName}
+                                    </h1>
+                                    <VIPBadge isVIP={client.is_vip} size="lg" />
+                                </div>
+
+                                <div className="flex flex-wrap items-center gap-2 text-xs font-bold text-slate-300">
+                                    <Badge variant="outline" className="bg-white/10 border-white/20 text-white text-[10px] font-black tracking-wider uppercase px-2.5 py-0.5">
+                                        UHID: {uhid}
+                                    </Badge>
+                                    <span>•</span>
+                                    <span className="text-slate-300">Registered: {format(new Date(registered_on), "dd MMM yyyy")}</span>
+                                    {client.sport && (
+                                        <>
+                                            <span>•</span>
+                                            <span className="text-emerald-400 font-bold uppercase tracking-wider text-[11px]">{client.sport}</span>
+                                        </>
+                                    )}
+                                </div>
+                            </div>
                         </div>
-                        
-                        <div className="flex items-center gap-3 flex-wrap">
-                            {isAdminOrFoe && (
-                                <Tooltip>
-                                    <TooltipTrigger asChild>
-                                        <Button
-                                            onClick={() => setIsEditModalOpen(true)}
-                                            variant="outline"
-                                            size="icon"
-                                            className="h-9 w-9 rounded-xl border-primary/20 text-primary hover:bg-primary/5 hover:text-primary shrink-0"
-                                        >
-                                            <User className="w-4 h-4" />
-                                        </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                        <p>Edit Profile</p>
-                                    </TooltipContent>
-                                </Tooltip>
-                            )}
-                            {isAdminOrFoe && (
-                                <Tooltip>
-                                    <TooltipTrigger asChild>
-                                        <Button
-                                            onClick={() => navigate(`/admin/billing?clientId=${client.id}`)}
-                                            variant="default"
-                                            size="icon"
-                                            className="h-9 w-9 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm shrink-0"
-                                        >
-                                            <Plus className="w-4 h-4" />
-                                        </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                        <p>Generate Bill</p>
-                                    </TooltipContent>
-                                </Tooltip>
-                            )}
-                            <div className="flex items-center gap-3 bg-muted/30 p-3 rounded-lg border">
-                               <Label htmlFor="ams-toggle" className="text-sm font-semibold cursor-pointer">
-                                   {amsRole === "athlete" ? "AMS Access: Active" : "AMS Access: Inactive"}
-                               </Label>
-                               <Switch 
-                                 id="ams-toggle" 
-                                 className="data-[state=checked]:bg-green-500"
-                                 checked={amsRole === "athlete"}
-                                 onCheckedChange={toggleAmsAccess}
-                                 disabled={isFOE}
-                               />
+
+                        {/* AMS Access Switch Card */}
+                        <div className="bg-white/10 backdrop-blur-md p-3.5 rounded-2xl border border-white/15 flex items-center justify-between gap-4 shrink-0 sm:self-start md:self-auto">
+                            <div className="space-y-0.5">
+                                <span className="text-[10px] font-black uppercase tracking-wider text-slate-300 block">AMS System Access</span>
+                                <span className="text-xs font-bold text-white">
+                                    {amsRole === "athlete" ? "Active Portal" : "Inactive"}
+                                </span>
                             </div>
+                            <Switch 
+                                id="ams-toggle" 
+                                className="data-[state=checked]:bg-emerald-500"
+                                checked={amsRole === "athlete"}
+                                onCheckedChange={toggleAmsAccess}
+                                disabled={isFOE}
+                            />
                         </div>
                     </div>
                 </div>
 
-                {/* Content */}
+                {/* Content Tabs - Responsive Horizontal Scrollable Container */}
                 <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-                    <TabsList className={`mb-6 grid w-full ${canAccessDocuments ? 'max-w-4xl grid-cols-6' : 'max-w-3xl grid-cols-5'}`}>
-                        <TabsTrigger value="profile">Profile Details</TabsTrigger>
-                        <TabsTrigger value="sessions">Session History</TabsTrigger>
-                        {isAdminOrFoe && <TabsTrigger value="entitlements">Entitlements</TabsTrigger>}
-                        {isAdminOrFoe && <TabsTrigger value="billing">Billing History</TabsTrigger>}
-                        {canAccessDocuments && <TabsTrigger value="documents">Documents</TabsTrigger>}
-                        <TabsTrigger value="assessment-reports">Assessment Reports</TabsTrigger>
-                    </TabsList>
+                    <div className="w-full overflow-x-auto no-scrollbar pb-2 mb-4 border-b border-border/40">
+                        <TabsList className="inline-flex h-10.5 items-center justify-start rounded-2xl bg-muted/60 p-1 text-muted-foreground min-w-max gap-0.5 sm:gap-1">
+                            <TabsTrigger value="upcoming" className="rounded-xl px-2.5 sm:px-3 py-1.5 text-[11px] sm:text-xs font-bold tracking-tight transition-all data-[state=active]:bg-primary data-[state=active]:text-white shadow-xs gap-1 whitespace-nowrap">
+                                <CalendarDays className="w-3.5 h-3.5" /> Upcoming Events & Plan
+                            </TabsTrigger>
+                            <TabsTrigger value="profile" className="rounded-xl px-2.5 sm:px-3 py-1.5 text-[11px] sm:text-xs font-bold tracking-tight transition-all data-[state=active]:bg-primary data-[state=active]:text-white shadow-xs gap-1 whitespace-nowrap">
+                                <User className="w-3.5 h-3.5" /> Profile Details
+                            </TabsTrigger>
+                            <TabsTrigger value="sessions" className="rounded-xl px-2.5 sm:px-3 py-1.5 text-[11px] sm:text-xs font-bold tracking-tight transition-all data-[state=active]:bg-primary data-[state=active]:text-white shadow-xs gap-1 whitespace-nowrap">
+                                <History className="w-3.5 h-3.5" /> Physio Sessions History
+                            </TabsTrigger>
+                            {isAdminOrFoe && (
+                                <TabsTrigger value="entitlements" className="rounded-xl px-2.5 sm:px-3 py-1.5 text-[11px] sm:text-xs font-bold tracking-tight transition-all data-[state=active]:bg-primary data-[state=active]:text-white shadow-xs gap-1 whitespace-nowrap">
+                                    <ShieldCheck className="w-3.5 h-3.5" /> Entitlements
+                                </TabsTrigger>
+                            )}
+                            {isAdminOrFoe && (
+                                <TabsTrigger value="billing" className="rounded-xl px-2.5 sm:px-3 py-1.5 text-[11px] sm:text-xs font-bold tracking-tight transition-all data-[state=active]:bg-primary data-[state=active]:text-white shadow-xs gap-1 whitespace-nowrap">
+                                    <Banknote className="w-3.5 h-3.5" /> Billing History
+                                </TabsTrigger>
+                            )}
+                            {canAccessDocuments && (
+                                <TabsTrigger value="documents" className="rounded-xl px-2.5 sm:px-3 py-1.5 text-[11px] sm:text-xs font-bold tracking-tight transition-all data-[state=active]:bg-primary data-[state=active]:text-white shadow-xs gap-1 whitespace-nowrap">
+                                    <FileText className="w-3.5 h-3.5" /> Documents
+                                </TabsTrigger>
+                            )}
+                            <TabsTrigger value="assessment-reports" className="rounded-xl px-2.5 sm:px-3 py-1.5 text-[11px] sm:text-xs font-bold tracking-tight transition-all data-[state=active]:bg-primary data-[state=active]:text-white shadow-xs gap-1 whitespace-nowrap">
+                                <Activity className="w-3.5 h-3.5" /> Assessment Reports
+                            </TabsTrigger>
+                        </TabsList>
+                    </div>
 
+                    {/* UPCOMING EVENTS & PLAN TAB */}
+                    <TabsContent value="upcoming" className="space-y-6">
+                        <UpcomingPlanManager clientId={id!} clientName={fullName} />
+                    </TabsContent>
 
                     {/* PROFILE TAB */}
                     <TabsContent value="profile" className="space-y-6">
@@ -799,7 +840,7 @@ export default function ClientProfile() {
                                     <div className="flex items-center justify-between">
                                         <CardTitle className="text-lg flex items-center gap-2">
                                             <CalendarDays className="w-5 h-5 text-primary" />
-                                            Session History
+                                            Physio Sessions History
                                         </CardTitle>
                                         <Button variant="outline" size="sm" className="h-9 gap-2 text-xs font-bold" onClick={handleExportExcel}>
                                             <Download className="w-4 h-4" /> Export to Excel
@@ -808,10 +849,10 @@ export default function ClientProfile() {
                                     <CardDescription>
                                         All past and upcoming appointments for this client.
                                     </CardDescription>
-                                    <div className="mt-4 flex flex-wrap gap-3 items-end">
-                                        <div className="flex flex-col gap-1">
-                                            <span className="text-[10px] text-muted-foreground uppercase font-bold">Start Date</span>
-                                            <div className="relative flex items-center h-9 w-[160px] bg-muted/50 rounded-md border border-input focus-within:ring-1 focus-within:ring-ring">
+                                    <div className="mt-4 grid grid-cols-2 sm:flex sm:flex-wrap gap-2.5 items-end">
+                                        <div className="flex flex-col gap-1 col-span-1">
+                                            <span className="text-[9px] text-muted-foreground uppercase font-black tracking-wider">Start Date</span>
+                                            <div className="relative flex items-center h-8.5 w-full sm:w-[145px] bg-muted/50 rounded-xl border border-input focus-within:ring-1 focus-within:ring-ring">
                                                 <Input 
                                                     type="text" 
                                                     placeholder="DD-MM-YYYY" 
@@ -828,14 +869,14 @@ export default function ClientProfile() {
                                                             }
                                                         }
                                                     }} 
-                                                    className="w-full h-full bg-transparent px-3 py-1 text-xs border-none focus-visible:ring-0 focus-visible:ring-offset-0 pr-8" 
+                                                    className="w-full h-full bg-transparent px-2.5 py-1 text-[11px] border-none focus-visible:ring-0 focus-visible:ring-offset-0 pr-7 font-mono" 
                                                 />
                                                 <div className="absolute right-1 flex items-center">
                                                     {startDateInput && (
                                                         <Button 
                                                             variant="ghost" 
                                                             size="icon" 
-                                                            className="h-7 w-7 hover:bg-transparent text-muted-foreground hover:text-foreground"
+                                                            className="h-6 w-6 hover:bg-transparent text-muted-foreground hover:text-foreground"
                                                             onClick={() => {
                                                                 setStartDate("");
                                                                 setStartDateInput("");
@@ -849,9 +890,9 @@ export default function ClientProfile() {
                                                             <Button 
                                                                 variant="ghost" 
                                                                 size="icon" 
-                                                                className="h-7 w-7 hover:bg-transparent text-muted-foreground hover:text-foreground"
+                                                                className="h-6 w-6 hover:bg-transparent text-muted-foreground hover:text-foreground"
                                                             >
-                                                                <CalendarDays className="h-4 w-4 text-primary opacity-70" />
+                                                                <CalendarDays className="h-3.5 w-3.5 text-primary opacity-70" />
                                                             </Button>
                                                         </PopoverTrigger>
                                                         <PopoverContent className="w-auto p-0" align="end">
@@ -874,9 +915,10 @@ export default function ClientProfile() {
                                                 </div>
                                             </div>
                                         </div>
-                                        <div className="flex flex-col gap-1">
-                                            <span className="text-[10px] text-muted-foreground uppercase font-bold">End Date</span>
-                                            <div className="relative flex items-center h-9 w-[160px] bg-muted/50 rounded-md border border-input focus-within:ring-1 focus-within:ring-ring">
+
+                                        <div className="flex flex-col gap-1 col-span-1">
+                                            <span className="text-[9px] text-muted-foreground uppercase font-black tracking-wider">End Date</span>
+                                            <div className="relative flex items-center h-8.5 w-full sm:w-[145px] bg-muted/50 rounded-xl border border-input focus-within:ring-1 focus-within:ring-ring">
                                                 <Input 
                                                     type="text" 
                                                     placeholder="DD-MM-YYYY" 
@@ -893,14 +935,14 @@ export default function ClientProfile() {
                                                             }
                                                         }
                                                     }} 
-                                                    className="w-full h-full bg-transparent px-3 py-1 text-xs border-none focus-visible:ring-0 focus-visible:ring-offset-0 pr-8" 
+                                                    className="w-full h-full bg-transparent px-2.5 py-1 text-[11px] border-none focus-visible:ring-0 focus-visible:ring-offset-0 pr-7 font-mono" 
                                                 />
                                                 <div className="absolute right-1 flex items-center">
                                                     {endDateInput && (
                                                         <Button 
                                                             variant="ghost" 
                                                             size="icon" 
-                                                            className="h-7 w-7 hover:bg-transparent text-muted-foreground hover:text-foreground"
+                                                            className="h-6 w-6 hover:bg-transparent text-muted-foreground hover:text-foreground"
                                                             onClick={() => {
                                                                 setEndDate("");
                                                                 setEndDateInput("");
@@ -914,9 +956,9 @@ export default function ClientProfile() {
                                                             <Button 
                                                                 variant="ghost" 
                                                                 size="icon" 
-                                                                className="h-7 w-7 hover:bg-transparent text-muted-foreground hover:text-foreground"
+                                                                className="h-6 w-6 hover:bg-transparent text-muted-foreground hover:text-foreground"
                                                             >
-                                                                <CalendarDays className="h-4 w-4 text-primary opacity-70" />
+                                                                <CalendarDays className="h-3.5 w-3.5 text-primary opacity-70" />
                                                             </Button>
                                                         </PopoverTrigger>
                                                         <PopoverContent className="w-auto p-0" align="end">
@@ -939,10 +981,11 @@ export default function ClientProfile() {
                                                 </div>
                                             </div>
                                         </div>
-                                        <div className="flex flex-col gap-1">
-                                            <span className="text-[10px] text-muted-foreground uppercase font-bold">Session Type</span>
+
+                                        <div className="flex flex-col gap-1 col-span-2 sm:col-span-1">
+                                            <span className="text-[9px] text-muted-foreground uppercase font-black tracking-wider">Session Type</span>
                                             <Select value={sessionTypeFilter} onValueChange={setSessionTypeFilter}>
-                                                <SelectTrigger className="h-9 w-[160px] text-xs bg-muted/50">
+                                                <SelectTrigger className="h-8.5 w-full sm:w-[150px] text-[11px] bg-muted/50 rounded-xl">
                                                     <SelectValue placeholder="All Types" />
                                                 </SelectTrigger>
                                                 <SelectContent>
@@ -958,69 +1001,142 @@ export default function ClientProfile() {
                                 </CardHeader>
                                 <CardContent>
                                     {sessionsLoading ? (
-                                        <p className="text-sm text-muted-foreground p-4">Loading sessions...</p>
+                                        <p className="text-xs text-muted-foreground p-4 text-center">Loading session history...</p>
                                     ) : !sessions || sessions.length === 0 ? (
-                                        <p className="text-sm text-muted-foreground p-4 text-center py-10">No sessions found for this client.</p>
+                                        <p className="text-xs text-muted-foreground p-4 text-center py-10">No sessions found matching filters.</p>
                                     ) : (
-                                        <div className="rounded-md border overflow-x-auto">
-                                            <table className="w-full text-sm">
-                                                <thead>
-                                                    <tr className="border-b bg-muted/50 text-left">
-                                                        <th className="p-3 font-medium text-muted-foreground">Date & Time</th>
-                                                        <th className="p-3 font-medium text-muted-foreground">Type</th>
-                                                        <th className="p-3 font-medium text-muted-foreground">Provider</th>
-                                                        <th className="p-3 font-medium text-muted-foreground">Status</th>
-                                                        <th className="p-3 font-medium text-muted-foreground">Notes/SOAP</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    {sessions.map((session: any) => (
-                                                        <tr key={session.id} className="border-b last:border-0 hover:bg-muted/20 transition-colors text-xs">
-                                                            <td className="p-3 font-medium text-foreground">
-                                                                {session.scheduled_start ? format(new Date(session.scheduled_start), "dd MMM, hh:mm a") : "-"}
-                                                            </td>
-                                                            <td className="p-3">
-                                                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${session.service_type === 'Physiotherapy' ? 'bg-blue-50 text-blue-700' : 'bg-emerald-50 text-emerald-700'
-                                                                    }`}>
-                                                                    {session.service_type || 'Performance'}
-                                                                </span>
-                                                            </td>
-                                                            <td className="p-3 text-muted-foreground flex items-center gap-1.5 min-w-[150px]">
-                                                                <User className="w-3.5 h-3.5 text-muted-foreground/50" />
-                                                                {session.therapist
-                                                                    ? formatStaffName({ ...session.therapist, service_type: session.service_type }, { useFirstName: true })
-                                                                    : (session.therapist_id || "-")}
-                                                            </td>
-                                                            <td className="p-3">
-                                                                <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold uppercase
-                                                                    ${session.status === 'Completed' ? 'bg-emerald-500/10 text-emerald-600' :
-                                                                        session.status === 'Planned' ? 'bg-blue-500/10 text-blue-600' :
-                                                                            session.status === 'Checked In' ? 'bg-purple-500/10 text-purple-600' :
-                                                                                'bg-gray-500/10 text-gray-500'}`}>
-                                                                    {session.status}
-                                                                </span>
-                                                                {session.is_unentitled && isAdminOrFoe && (
-                                                                    <Badge variant="destructive" className="ml-2 text-[8px] h-4 px-1 font-black animate-pulse">
-                                                                        UN-ENTITLED
+                                        <>
+                                            {/* Mobile Session Cards (Visible on Mobile Viewports) */}
+                                            <div className="block md:hidden space-y-2.5">
+                                                {sessions.map((session: any) => {
+                                                    const providerName = session.therapist
+                                                        ? formatStaffName({ ...session.therapist, service_type: session.service_type }, { useFirstName: true })
+                                                        : (session.therapist_id || "-");
+
+                                                    return (
+                                                        <div 
+                                                            key={session.id}
+                                                            className="p-3.5 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl shadow-2xs space-y-2.5"
+                                                        >
+                                                            {/* Top Row: Date/Time + Status Badge */}
+                                                            <div className="flex items-center justify-between gap-2 border-b border-border/40 pb-2">
+                                                                <div className="flex items-center gap-1.5 text-xs font-black text-slate-900 dark:text-white font-mono">
+                                                                    <CalendarDays className="w-3.5 h-3.5 text-primary shrink-0" />
+                                                                    <span>{session.scheduled_start ? format(new Date(session.scheduled_start), "dd MMM yyyy, hh:mm a") : "-"}</span>
+                                                                </div>
+                                                                <div className="flex items-center gap-1">
+                                                                    <Badge className={cn(
+                                                                        "text-[9px] font-black uppercase px-2 py-0.5 border-none",
+                                                                        session.status === 'Completed' ? 'bg-emerald-500 text-white' :
+                                                                        session.status === 'Planned' ? 'bg-blue-600 text-white' :
+                                                                        session.status === 'Checked In' ? 'bg-purple-600 text-white' :
+                                                                        'bg-slate-500 text-white'
+                                                                    )}>
+                                                                        {session.status}
                                                                     </Badge>
-                                                                )}
-                                                            </td>
+                                                                    {session.is_unentitled && isAdminOrFoe && (
+                                                                        <Badge variant="destructive" className="text-[8px] h-4 px-1 font-black animate-pulse">
+                                                                            UN-ENTITLED
+                                                                        </Badge>
+                                                                    )}
+                                                                </div>
+                                                            </div>
 
+                                                            {/* Service & Specialist Grid */}
+                                                            <div className="grid grid-cols-2 gap-2 text-[11px]">
+                                                                <div className="bg-slate-50 dark:bg-slate-800/60 p-2.5 rounded-xl border border-slate-200/60 dark:border-slate-700/60">
+                                                                    <span className="text-[9px] font-black uppercase text-slate-400 block mb-0.5">Session / Service</span>
+                                                                    <Badge variant="outline" className="text-[10px] font-bold px-1.5 py-0 bg-white dark:bg-slate-900 border-slate-200">
+                                                                        {session.service_type || 'Performance'}
+                                                                    </Badge>
+                                                                </div>
 
-                                                            <td className="p-3 text-muted-foreground">
-                                                                {session.physio_session_details && session.physio_session_details.length > 0 ? (
-                                                                    <span className="text-emerald-600 flex items-center gap-1 font-bold">
-                                                                        <FileText className="w-3 h-3" /> SOAP
-                                                                    </span>
-                                                                ) : session.session_mode === 'Group' ? (
-                                                                    <span className="italic text-[10px]">Group: {session.group_name}</span>
-                                                                ) : "-"}
-                                                            </td>
+                                                                <div className="bg-slate-50 dark:bg-slate-800/60 p-2.5 rounded-xl border border-slate-200/60 dark:border-slate-700/60">
+                                                                    <span className="text-[9px] font-black uppercase text-slate-400 block mb-0.5">Specialist Provider</span>
+                                                                    <div className="flex items-center gap-1 text-[11px] font-bold text-slate-800 dark:text-slate-200 truncate">
+                                                                        <User className="w-3 h-3 text-slate-400 shrink-0" />
+                                                                        <span className="truncate">{providerName}</span>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+
+                                                            {/* Notes / SOAP Footer */}
+                                                            {(session.physio_session_details && session.physio_session_details.length > 0) || session.session_mode === 'Group' ? (
+                                                                <div className="pt-1.5 border-t border-border/40 text-[10px] flex items-center justify-between">
+                                                                    {session.physio_session_details && session.physio_session_details.length > 0 ? (
+                                                                        <span className="text-emerald-600 font-bold flex items-center gap-1">
+                                                                            <FileText className="w-3 h-3" /> SOAP Note Available
+                                                                        </span>
+                                                                    ) : null}
+                                                                    {session.session_mode === 'Group' && (
+                                                                        <span className="italic text-slate-500">Group: {session.group_name}</span>
+                                                                    )}
+                                                                </div>
+                                                            ) : null}
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+
+                                            {/* Desktop Table View (Visible on Medium & Desktop Screens) */}
+                                            <div className="hidden md:block rounded-xl border overflow-x-auto">
+                                                <table className="w-full text-sm">
+                                                    <thead>
+                                                        <tr className="border-b bg-muted/50 text-left">
+                                                            <th className="p-3 font-medium text-muted-foreground">Date & Time</th>
+                                                            <th className="p-3 font-medium text-muted-foreground">Type</th>
+                                                            <th className="p-3 font-medium text-muted-foreground">Provider</th>
+                                                            <th className="p-3 font-medium text-muted-foreground">Status</th>
+                                                            <th className="p-3 font-medium text-muted-foreground">Notes/SOAP</th>
                                                         </tr>
-                                                    ))}
-                                                </tbody>
-                                            </table>
-                                        </div>
+                                                    </thead>
+                                                    <tbody>
+                                                        {sessions.map((session: any) => (
+                                                            <tr key={session.id} className="border-b last:border-0 hover:bg-muted/20 transition-colors text-xs">
+                                                                <td className="p-3 font-medium text-foreground">
+                                                                    {session.scheduled_start ? format(new Date(session.scheduled_start), "dd MMM, hh:mm a") : "-"}
+                                                                </td>
+                                                                <td className="p-3">
+                                                                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${session.service_type === 'Physiotherapy' ? 'bg-blue-50 text-blue-700' : 'bg-emerald-50 text-emerald-700'
+                                                                        }`}>
+                                                                        {session.service_type || 'Performance'}
+                                                                    </span>
+                                                                </td>
+                                                                <td className="p-3 text-muted-foreground flex items-center gap-1.5 min-w-[150px]">
+                                                                    <User className="w-3.5 h-3.5 text-muted-foreground/50" />
+                                                                    {session.therapist
+                                                                        ? formatStaffName({ ...session.therapist, service_type: session.service_type }, { useFirstName: true })
+                                                                        : (session.therapist_id || "-")}
+                                                                </td>
+                                                                <td className="p-3">
+                                                                    <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold uppercase
+                                                                        ${session.status === 'Completed' ? 'bg-emerald-500/10 text-emerald-600' :
+                                                                            session.status === 'Planned' ? 'bg-blue-500/10 text-blue-600' :
+                                                                                session.status === 'Checked In' ? 'bg-purple-500/10 text-purple-600' :
+                                                                                    'bg-gray-500/10 text-gray-500'}`}>
+                                                                        {session.status}
+                                                                    </span>
+                                                                    {session.is_unentitled && isAdminOrFoe && (
+                                                                        <Badge variant="destructive" className="ml-2 text-[8px] h-4 px-1 font-black animate-pulse">
+                                                                            UN-ENTITLED
+                                                                        </Badge>
+                                                                    )}
+                                                                </td>
+                                                                <td className="p-3 text-muted-foreground">
+                                                                    {session.physio_session_details && session.physio_session_details.length > 0 ? (
+                                                                        <span className="text-emerald-600 flex items-center gap-1 font-bold">
+                                                                            <FileText className="w-3 h-3" /> SOAP
+                                                                        </span>
+                                                                    ) : session.session_mode === 'Group' ? (
+                                                                        <span className="italic text-[10px]">Group: {session.group_name}</span>
+                                                                    ) : "-"}
+                                                                </td>
+                                                            </tr>
+                                                        ))}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </>
                                     )}
                                 </CardContent>
                             </Card>

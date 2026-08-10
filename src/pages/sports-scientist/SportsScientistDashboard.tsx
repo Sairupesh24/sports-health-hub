@@ -271,30 +271,19 @@ export default function SportsScientistDashboard() {
                                                             </div>
                                                         </div>
                                                     </div>
-                                                    {!isPastEnd ? (
-                                                        <Button
-                                                            size="sm"
-                                                            className="bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs rounded-xl shadow-md gap-1.5 px-4 h-9"
-                                                            onClick={(e) => handleEndSession(session, e)}
-                                                            disabled={endingSessionId === session.id}
-                                                        >
-                                                            {endingSessionId === session.id ? (
-                                                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                                            ) : (
-                                                                <CheckCircle2 className="w-3.5 h-3.5" />
-                                                            )}
-                                                            End Session
-                                                        </Button>
-                                                    ) : (
-                                                        <Button
-                                                            size="sm"
-                                                            variant="outline"
-                                                            className="border-amber-300 text-amber-800 dark:text-amber-300 font-bold text-xs rounded-xl h-9"
-                                                            onClick={() => setSelectedSession(session)}
-                                                        >
-                                                            Note Actual Timings
-                                                        </Button>
-                                                    )}
+                                                    <Button
+                                                        size="sm"
+                                                        className="bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs rounded-xl shadow-md gap-1.5 px-4 h-9 shrink-0"
+                                                        onClick={(e) => handleEndSession(session, e)}
+                                                        disabled={endingSessionId === session.id}
+                                                    >
+                                                        {endingSessionId === session.id ? (
+                                                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                                        ) : (
+                                                            <CheckCircle2 className="w-3.5 h-3.5" />
+                                                        )}
+                                                        End Session
+                                                    </Button>
                                                 </div>
                                             );
                                         })}

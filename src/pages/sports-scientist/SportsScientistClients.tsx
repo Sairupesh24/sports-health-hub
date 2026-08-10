@@ -178,9 +178,14 @@ export default function SportsScientistClients() {
                                                 key={c.id}
                                                 className="hover:bg-muted/20"
                                             >
-                                                <TableCell className="font-medium">
+                                                <TableCell 
+                                                    className="font-medium cursor-pointer group"
+                                                    onClick={() => navigate(`/sports-scientist/clients/${c.id}?tab=upcoming`)}
+                                                >
                                                     <div className="flex flex-col">
-                                                        <span>{[c.honorific, c.first_name, c.last_name].filter(Boolean).join(" ")}</span>
+                                                        <span className="font-bold text-slate-900 group-hover:text-primary transition-colors hover:underline">
+                                                            {[c.honorific, c.first_name, c.last_name].filter(Boolean).join(" ")}
+                                                        </span>
                                                         <span className="text-xs text-muted-foreground font-mono">{c.uhid}</span>
                                                     </div>
                                                 </TableCell>
@@ -197,6 +202,15 @@ export default function SportsScientistClients() {
                                                 <TableCell className="text-right">
                                                     <div className="flex justify-end gap-2">
                                                         <Button
+                                                            variant="outline"
+                                                            size="sm"
+                                                            onClick={() => navigate(`/sports-scientist/clients/${c.id}?tab=upcoming`)}
+                                                            className="h-8 text-xs font-bold gap-1 rounded-lg text-primary border-primary/30 hover:bg-primary/5"
+                                                            title="Upcoming Events & Training Plan"
+                                                        >
+                                                            <Calendar className="w-3.5 h-3.5" /> Upcoming Plan
+                                                        </Button>
+                                                        <Button
                                                             variant="ghost"
                                                             size="sm"
                                                             onClick={() => navigate(`/sports-scientist/analytics?client=${c.id}`)}
@@ -204,15 +218,6 @@ export default function SportsScientistClients() {
                                                             title="View Analytics"
                                                         >
                                                             <Activity className="w-4 h-4" />
-                                                        </Button>
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="sm"
-                                                            onClick={() => navigate(`/sports-scientist/schedule?client=${c.id}`)}
-                                                            className="h-8 w-8 p-0"
-                                                            title="Schedule Session"
-                                                        >
-                                                            <Calendar className="w-4 h-4" />
                                                         </Button>
                                                     </div>
                                                 </TableCell>
