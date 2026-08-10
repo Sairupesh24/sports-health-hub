@@ -1864,29 +1864,26 @@ export async function autoAllocateStaffServices(userId, profession, orgId, clien
 export async function logStaffServiceUpdate(orgId, staffId, adminUserId, actionType, details, clientExecutor = null) {
   const executor = clientExecutor || pool;
   try {
+    // Auto-allocate notifications are skipped — the "Account Approved" notification already
+    // informs the staff member. We only notify for explicit admin overrides.
+    if (actionType === 'auto-allocate') return;
+
     const staffRes = await executor.query(`SELECT first_name, last_name FROM profiles WHERE id = $1`, [staffId]);
     const staffName = staffRes.rows.length > 0 
       ? `${staffRes.rows[0].first_name} ${staffRes.rows[0].last_name}` 
       : 'Unknown Staff';
 
-    const title = 'Staff Service Mapping Updated';
-    let content = '';
-    if (actionType === 'auto-allocate') {
-      content = `Default services auto-allocated for ${staffName} upon role update.`;
-    } else {
-      content = `Services overridden for ${staffName} by administrator.`;
-    }
-
+    // Notify the affected staff member only (not a broadcast)
     await executor.query(`
       INSERT INTO notifications (
-        organization_id, title, content, type, is_broadcast, category, action_payload, created_by
+        organization_id, title, content, type, target_user_id, category, action_payload, created_by
       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
     `, [
       orgId,
-      title,
-      content,
+      'Your Services Have Been Updated',
+      `An administrator has updated your permitted services list.`,
       'info',
-      true,
+      staffId,
       'activity_ledger',
       JSON.stringify({ staff_id: staffId, action_type: actionType, details }),
       adminUserId || null

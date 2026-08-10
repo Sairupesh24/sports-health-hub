@@ -662,6 +662,22 @@ router.post('/users/:id/approve', requireAuth, async (req, res) => {
         }
 
         await client.query('COMMIT');
+
+        // Notify the approved user directly
+        const approvedUserName = `${profession ? profession.replace(/_/g, ' ') : (role || 'user')}`;
+        await db.query(`
+            INSERT INTO notifications (
+                organization_id, title, content, type, target_user_id, category
+            ) VALUES ($1, $2, $3, $4, $5, $6)
+        `, [
+            orgId,
+            'Account Approved',
+            `Your account has been approved. You have been assigned the role of ${role}${profession ? ` (${profession})` : ''}. You can now log in and access the system.`,
+            'green',
+            id,
+            'in_app'
+        ]);
+
         res.json({ success: true });
     } catch (error) {
         await client.query('ROLLBACK');
@@ -730,6 +746,28 @@ router.patch('/users/:id/role', requireAuth, async (req, res) => {
         }
 
         await client.query('COMMIT');
+
+        // Notify the affected user about their role/profession change
+        const changeDetails = [];
+        if (role) changeDetails.push(`Role: ${role}`);
+        if (profession !== undefined) changeDetails.push(`Profession: ${profession || 'N/A'}`);
+        if (ams_role !== undefined) changeDetails.push(`AMS Role: ${ams_role || 'N/A'}`);
+
+        if (changeDetails.length > 0) {
+            await db.query(`
+                INSERT INTO notifications (
+                    organization_id, title, content, type, target_user_id, category
+                ) VALUES ($1, $2, $3, $4, $5, $6)
+            `, [
+                orgId,
+                'Your Role Has Been Updated',
+                `An administrator has updated your profile. Changes: ${changeDetails.join(', ')}.`,
+                'blue',
+                id,
+                'in_app'
+            ]);
+        }
+
         res.json({ success: true });
     } catch (error) {
         await client.query('ROLLBACK');
@@ -871,6 +909,24 @@ router.post('/leaves', requireAuth, async (req, res) => {
             RETURNING *
         `, [orgId, userId, leave_type, start_date, end_date, reason]);
 
+        // Notify hr_manager about the new leave request
+        const staffRes = await db.query('SELECT first_name, last_name FROM profiles WHERE id = $1', [userId]);
+        const staffName = staffRes.rows.length > 0 ? `${staffRes.rows[0].first_name} ${staffRes.rows[0].last_name}` : 'A staff member';
+        const leaveFrom = new Date(start_date).toLocaleDateString('en-IN', { dateStyle: 'medium' });
+        const leaveTo = new Date(end_date).toLocaleDateString('en-IN', { dateStyle: 'medium' });
+
+        await db.query(`
+            INSERT INTO notifications (organization_id, title, content, type, target_role, category)
+            VALUES ($1, $2, $3, $4, $5, $6)
+        `, [
+            orgId,
+            'Leave Request Submitted',
+            `${staffName} has submitted a ${leave_type} leave request from ${leaveFrom} to ${leaveTo}.`,
+            'amber',
+            'hr_manager',
+            'in_app'
+        ]);
+
         res.status(201).json({ data: result.rows[0] });
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -894,7 +950,28 @@ router.patch('/leaves/:id', requireAuth, async (req, res) => {
             RETURNING *
         `, [status, userId, id, orgId]);
 
-        res.json({ data: result.rows[0] });
+        const leave = result.rows[0];
+
+        // Notify the employee about their leave status outcome
+        const normalizedStatus = (status || '').toLowerCase();
+        if (leave && leave.employee_id && (normalizedStatus === 'approved' || normalizedStatus === 'rejected')) {
+            const statusLabel = normalizedStatus.charAt(0).toUpperCase() + normalizedStatus.slice(1);
+            const leaveFrom = new Date(leave.start_date).toLocaleDateString('en-IN', { dateStyle: 'medium' });
+            const leaveTo = new Date(leave.end_date).toLocaleDateString('en-IN', { dateStyle: 'medium' });
+            await db.query(`
+                INSERT INTO notifications (organization_id, title, content, type, target_user_id, category)
+                VALUES ($1, $2, $3, $4, $5, $6)
+            `, [
+                orgId,
+                `Leave Request ${statusLabel}`,
+                `Your ${leave.leave_type} leave request from ${leaveFrom} to ${leaveTo} has been ${normalizedStatus}.`,
+                normalizedStatus === 'approved' ? 'green' : 'red',
+                leave.employee_id,
+                'in_app'
+            ]);
+        }
+
+        res.json({ data: leave });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }

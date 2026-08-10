@@ -50,6 +50,38 @@ function getWorkingDaysCount(startDate, endDate) {
   return count > 0 ? count : 1; // Return at least 1 day to prevent division by zero
 }
 
+function calculateMergedBookedHours(sessions) {
+  if (!sessions || sessions.length === 0) return 0;
+
+  const intervals = sessions
+    .map(s => {
+      const start = new Date(s.scheduledStart || s.scheduled_start).getTime();
+      const end = new Date(s.scheduledEnd || s.scheduled_end).getTime();
+      if (isNaN(start) || isNaN(end) || start >= end) return null;
+      return { start, end };
+    })
+    .filter(Boolean);
+
+  if (intervals.length === 0) return 0;
+
+  intervals.sort((a, b) => a.start - b.start);
+
+  const merged = [intervals[0]];
+  for (let i = 1; i < intervals.length; i++) {
+    const last = merged[merged.length - 1];
+    const current = intervals[i];
+
+    if (current.start <= last.end) {
+      last.end = Math.max(last.end, current.end);
+    } else {
+      merged.push(current);
+    }
+  }
+
+  const totalMs = merged.reduce((acc, inv) => acc + (inv.end - inv.start), 0);
+  return totalMs / (1000 * 60 * 60);
+}
+
 // GET /api/analytics/managerial-view
 router.get('/managerial-view', requireAuth, async (req, res) => {
   try {
@@ -135,13 +167,8 @@ router.get('/managerial-view', requireAuth, async (req, res) => {
         s => s.therapistId === member.id || s.scientistId === member.id
       );
 
-      // Booked Hours sum
-      const totalHoursBooked = memberSessions.reduce((acc, s) => {
-        const start = new Date(s.scheduledStart);
-        const end = new Date(s.scheduledEnd);
-        const diffHours = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
-        return acc + (isNaN(diffHours) ? 0 : diffHours);
-      }, 0);
+      // Booked Hours sum (using merged interval algorithm to handle overlapping sessions)
+      const totalHoursBooked = calculateMergedBookedHours(memberSessions);
 
       // Shift details & base working hours
       const schedule = member.staffSchedules;

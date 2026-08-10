@@ -74,18 +74,39 @@ router.post('/signup', async (req, res) => {
     }
 
     if (shouldNotify) {
+      const approvalTitle = 'Approval Required';
+      const approvalContent = `Approval Required: ${firstName} ${lastName} has signed up as ${role || 'client'}.`;
+      const approvalPayload = JSON.stringify({ userId, role: role || 'client' });
+
+      // Notify admins (and foe roles via legacy admin filter)
       await db.query(`
         INSERT INTO notifications (
           organization_id, title, content, type, target_role, category, action_payload, action_status
         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
       `, [
-        orgId, 
-        'Approval Required', 
-        `Approval Required: ${firstName} ${lastName} has signed up as ${role || 'client'}.`, 
-        'orange', 
-        'admin', 
-        'direct_action', 
-        JSON.stringify({ userId, role: role || 'client' }), 
+        orgId,
+        approvalTitle,
+        approvalContent,
+        'orange',
+        'admin',
+        'direct_action',
+        approvalPayload,
+        'pending'
+      ]);
+
+      // Also notify hr_managers — they also have access to the User Approvals page
+      await db.query(`
+        INSERT INTO notifications (
+          organization_id, title, content, type, target_role, category, action_payload, action_status
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      `, [
+        orgId,
+        approvalTitle,
+        approvalContent,
+        'orange',
+        'hr_manager',
+        'direct_action',
+        approvalPayload,
         'pending'
       ]);
     }

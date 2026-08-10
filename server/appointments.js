@@ -411,6 +411,24 @@ router.post('/:id/reschedule', requireAuth, async (req, res) => {
         ]);
 
         await client.query('COMMIT');
+
+        // Notify client and specialist about the reschedule
+        const specialistId = old.therapist_id || old.scientist_id;
+        const newSessionDate = new Date(new_start).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
+
+        if (old.client_id) {
+            await db.query(`
+                INSERT INTO notifications (organization_id, title, content, type, target_user_id, category)
+                VALUES ($1, $2, $3, $4, $5, $6)
+            `, [orgId, 'Session Rescheduled', `Your session has been rescheduled to ${newSessionDate}.`, 'blue', old.client_id, 'in_app']);
+        }
+        if (specialistId) {
+            await db.query(`
+                INSERT INTO notifications (organization_id, title, content, type, target_user_id, category)
+                VALUES ($1, $2, $3, $4, $5, $6)
+            `, [orgId, 'Session Rescheduled', `A session has been rescheduled to ${newSessionDate}.`, 'blue', specialistId, 'in_app']);
+        }
+
         res.json({ new_session_id: newSessionId, status: newStatus });
     } catch (error) {
         await client.query('ROLLBACK');
@@ -642,6 +660,23 @@ router.post('/:id/reassign', requireAuth, async (req, res) => {
         ]);
 
         await client.query('COMMIT');
+
+        // Notify the new specialist about the incoming session
+        const reassignedDate = new Date(new_start).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
+        await db.query(`
+            INSERT INTO notifications (organization_id, title, content, type, target_user_id, category)
+            VALUES ($1, $2, $3, $4, $5, $6)
+        `, [orgId, 'Session Assigned to You', `A session has been reassigned to you on ${reassignedDate}.`, 'blue', target_consultant_id, 'in_app']);
+
+        // Notify the old specialist that their session was reassigned
+        const oldSpecialistId = old.therapist_id || old.scientist_id;
+        if (oldSpecialistId && oldSpecialistId !== target_consultant_id) {
+            await db.query(`
+                INSERT INTO notifications (organization_id, title, content, type, target_user_id, category)
+                VALUES ($1, $2, $3, $4, $5, $6)
+            `, [orgId, 'Session Reassigned', `A session you were assigned on ${reassignedDate} has been reassigned to another specialist.`, 'amber', oldSpecialistId, 'in_app']);
+        }
+
         res.json({ success: true, new_session_id: newRes.rows[0].id, message: 'Appointment reassigned successfully.' });
     } catch (error) {
         await client.query('ROLLBACK');
@@ -1020,7 +1055,31 @@ router.patch('/:id', requireAuth, async (req, res) => {
             RETURNING *
         `, [...values, id, orgId]);
 
-        res.json(result.rows[0]);
+        const session = result.rows[0];
+
+        // Notify client and specialist when a session is cancelled
+        if (updates.status === 'Cancelled' && session) {
+            const specialistId = session.therapist_id || session.scientist_id;
+            const cancelReason = updates.cancellation_reason ? ` Reason: ${updates.cancellation_reason}.` : '';
+            const sessionDate = session.scheduled_start
+                ? new Date(session.scheduled_start).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })
+                : 'your scheduled time';
+
+            if (session.client_id) {
+                await db.query(`
+                    INSERT INTO notifications (organization_id, title, content, type, target_user_id, category)
+                    VALUES ($1, $2, $3, $4, $5, $6)
+                `, [orgId, 'Session Cancelled', `Your session on ${sessionDate} has been cancelled.${cancelReason}`, 'red', session.client_id, 'in_app']);
+            }
+            if (specialistId) {
+                await db.query(`
+                    INSERT INTO notifications (organization_id, title, content, type, target_user_id, category)
+                    VALUES ($1, $2, $3, $4, $5, $6)
+                `, [orgId, 'Session Cancelled', `A session scheduled for ${sessionDate} has been cancelled.${cancelReason}`, 'red', specialistId, 'in_app']);
+            }
+        }
+
+        res.json(session);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }

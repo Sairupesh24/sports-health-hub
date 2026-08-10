@@ -1732,6 +1732,27 @@ router.post('/quick-assign', requireAuth, async (req, res) => {
         }
         
         await client.query('COMMIT');
+
+        // Notify each assigned athlete about the new workout
+        const specNameRes = await db.query('SELECT first_name, last_name FROM profiles WHERE id = $1', [req.user.id]);
+        const specName = specNameRes.rows.length > 0
+            ? `${specNameRes.rows[0].first_name} ${specNameRes.rows[0].last_name}`
+            : 'A specialist';
+
+        // Resolve full list of target athletes (individual + batch members)
+        const targetAthletes = athleteIds ? [...athleteIds] : [];
+        if (batchId) {
+            const batchMembersRes = await db.query('SELECT athlete_id FROM batch_members WHERE batch_id = $1', [batchId]);
+            batchMembersRes.rows.forEach(r => targetAthletes.push(r.athlete_id));
+        }
+
+        for (const aId of targetAthletes) {
+            await db.query(`
+                INSERT INTO notifications (organization_id, title, content, type, target_user_id, category)
+                VALUES ($1, $2, $3, $4, $5, $6)
+            `, [orgId, 'New Workout Assigned', `${specName} has assigned a new workout to you: "${title}".`, 'info', aId, 'in_app']);
+        }
+
         res.status(201).json({ success: true });
     } catch (error) {
         await client.query('ROLLBACK');
@@ -1782,14 +1803,27 @@ router.get('/resources', requireAuth, async (req, res) => {
 // POST Create scientific resource
 router.post('/resources', requireAuth, async (req, res) => {
     try {
-        const { title, category, type, description, url, thumbnail_url, tags, is_public } = req.body;
+        const { title, category, type, description, url, thumbnail_url, tags, is_public, athlete_id } = req.body;
         const orgId = req.user.organization_id;
         const result = await db.query(`
             INSERT INTO scientific_resources (
-                organization_id, title, category, type, description, url, thumbnail_url, tags, is_public, created_by
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+                organization_id, athlete_id, title, category, type, description, url, thumbnail_url, tags, is_public, created_by
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
             RETURNING *
-        `, [orgId, title, category, type, description || null, url, thumbnail_url || null, tags || [], is_public || false, req.user.id]);
+        `, [orgId, athlete_id || null, title, category, type, description || null, url, thumbnail_url || null, tags || [], is_public || false, req.user.id]);
+
+        // Notify the athlete if this resource is shared specifically with them
+        if (athlete_id) {
+            const specRes = await db.query('SELECT first_name, last_name FROM profiles WHERE id = $1', [req.user.id]);
+            const specName = specRes.rows.length > 0
+                ? `${specRes.rows[0].first_name} ${specRes.rows[0].last_name}`
+                : 'A specialist';
+            await db.query(`
+                INSERT INTO notifications (organization_id, title, content, type, target_user_id, category)
+                VALUES ($1, $2, $3, $4, $5, $6)
+            `, [orgId, 'New Resource Shared With You', `${specName} has shared a resource with you: "${title}".`, 'info', athlete_id, 'in_app']);
+        }
+
         res.status(201).json(result.rows[0]);
     } catch (error) {
         res.status(500).json({ error: error.message });
