@@ -53,13 +53,19 @@ export function UpcomingPlanManager({ clientId, clientName }: Props) {
     const [bulkStatus, setBulkStatus] = useState<string>("Cancelled");
     const [bulkReason, setBulkReason] = useState<string>("");
 
-    const { data: upcomingSessions = [], isLoading, refetch } = useQuery({
+    const { data: rawUpcomingSessions = [], isLoading, refetch } = useQuery({
         queryKey: ["client-upcoming-sessions", clientId],
         queryFn: async () => {
             if (!clientId) return [];
             return await apiFetch<any[]>(`/api/appointments/client/${clientId}/upcoming`);
         },
         enabled: !!clientId,
+    });
+
+    // Filter out cancelled, missed, rescheduled, and deleted sessions so deleted plans disappear completely from view
+    const upcomingSessions = rawUpcomingSessions.filter((s: any) => {
+        const st = (s.status || "").toLowerCase();
+        return !['cancelled', 'missed', 'rescheduled', 'deleted'].includes(st);
     });
 
     const editableSessions = upcomingSessions.filter((s: any) => s.status?.toLowerCase() !== "completed");
@@ -86,22 +92,21 @@ export function UpcomingPlanManager({ clientId, clientName }: Props) {
         setIsStatusModalOpen(true);
     };
 
-    const handleSingleCancel = async (sessionId: string) => {
-        if (!window.confirm("Are you sure you want to cancel this single session?")) return;
+    const handleSingleDelete = async (sessionId: string) => {
+        if (!window.confirm("Are you sure you want to delete this session record? Full audit logs of this deletion will be preserved for internal use.")) return;
         setActionLoading(true);
         try {
             await apiFetch(`/api/appointments/${sessionId}`, {
-                method: "PATCH",
+                method: "DELETE",
                 body: JSON.stringify({
-                    status: "Cancelled",
-                    cancellation_reason: "Cancelled by Sports Scientist from Client Profile"
+                    reason: "Single session record deleted by user"
                 })
             });
-            toast({ title: "Session Cancelled", description: "Single session cancelled successfully." });
+            toast({ title: "Session Record Deleted ✓", description: "Session record deleted and logged in audit trails." });
             queryClient.invalidateQueries({ queryKey: ["client-upcoming-sessions", clientId] });
             queryClient.invalidateQueries({ queryKey: ["client-sessions", clientId] });
         } catch (error: any) {
-            toast({ title: "Error", description: error.message || "Failed to cancel session", variant: "destructive" });
+            toast({ title: "Error", description: error.message || "Failed to delete session", variant: "destructive" });
         } finally {
             setActionLoading(false);
         }
@@ -125,6 +130,32 @@ export function UpcomingPlanManager({ clientId, clientName }: Props) {
             queryClient.invalidateQueries({ queryKey: ["client-sessions", clientId] });
         } catch (error: any) {
             toast({ title: "Error", description: error.message || "Failed to delete plan", variant: "destructive" });
+        } finally {
+            setActionLoading(false);
+        }
+    };
+
+    const handleBulkDelete = async () => {
+        if (selectedIds.length === 0) return;
+        if (!window.confirm(`Are you sure you want to delete ${selectedIds.length} selected session record(s)? Internal audit logs of this deletion will be preserved.`)) return;
+        setActionLoading(true);
+        try {
+            await apiFetch(`/api/appointments/bulk-delete`, {
+                method: "POST",
+                body: JSON.stringify({
+                    ids: selectedIds,
+                    reason: `Bulk deleted ${selectedIds.length} selected sessions by user`
+                })
+            });
+            toast({
+                title: "Selected Sessions Deleted ✓",
+                description: `Successfully deleted ${selectedIds.length} session records and updated audit log.`
+            });
+            setSelectedIds([]);
+            queryClient.invalidateQueries({ queryKey: ["client-upcoming-sessions", clientId] });
+            queryClient.invalidateQueries({ queryKey: ["client-sessions", clientId] });
+        } catch (error: any) {
+            toast({ title: "Error", description: error.message || "Failed to delete selected sessions", variant: "destructive" });
         } finally {
             setActionLoading(false);
         }
@@ -185,27 +216,22 @@ export function UpcomingPlanManager({ clientId, clientName }: Props) {
                                 Refresh
                             </Button>
 
-                            {selectedIds.length > 0 && (
-                                <Button
-                                    variant="secondary"
-                                    size="sm"
-                                    onClick={() => setIsBulkEditDialogOpen(true)}
-                                    className="h-9 gap-1.5 rounded-xl bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 font-semibold"
-                                >
-                                    <CheckSquare className="w-4 h-4" />
-                                    Edit Selected ({selectedIds.length})
-                                </Button>
-                            )}
-
                             {upcomingSessions.length > 0 && (
                                 <Button
                                     variant="destructive"
                                     size="sm"
-                                    onClick={() => setIsDeletePlanDialogOpen(true)}
+                                    disabled={actionLoading}
+                                    onClick={() => {
+                                        if (selectedIds.length > 0) {
+                                            handleBulkDelete();
+                                        } else {
+                                            setIsDeletePlanDialogOpen(true);
+                                        }
+                                    }}
                                     className="h-9 gap-1.5 rounded-xl font-bold shadow-xs"
                                 >
                                     <Trash2 className="w-4 h-4" />
-                                    Delete Entire Plan
+                                    {selectedIds.length > 0 ? `Delete Selected (${selectedIds.length})` : "Delete Entire Plan"}
                                 </Button>
                             )}
                         </div>
@@ -342,10 +368,10 @@ export function UpcomingPlanManager({ clientId, clientName }: Props) {
                                                         <Button
                                                             variant="outline"
                                                             size="sm"
-                                                            onClick={() => handleSingleCancel(session.id)}
+                                                            onClick={() => handleSingleDelete(session.id)}
                                                             className="h-9 px-3.5 text-xs font-bold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 border-rose-200 dark:border-rose-900/50 flex-1 justify-center gap-1.5"
                                                         >
-                                                            <XCircle className="w-3.5 h-3.5" /> Cancel / Delete
+                                                            <Trash2 className="w-3.5 h-3.5" /> Delete
                                                         </Button>
                                                     </>
                                                 )}
@@ -443,10 +469,10 @@ export function UpcomingPlanManager({ clientId, clientName }: Props) {
                                                                 <Button
                                                                     variant="ghost"
                                                                     size="sm"
-                                                                    onClick={() => handleSingleCancel(session.id)}
+                                                                    onClick={() => handleSingleDelete(session.id)}
                                                                     className="h-8 px-2.5 text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-lg"
                                                                 >
-                                                                    <XCircle className="w-3.5 h-3.5 mr-1" /> Cancel
+                                                                    <Trash2 className="w-3.5 h-3.5 mr-1" /> Delete
                                                                 </Button>
                                                             </div>
                                                         )}

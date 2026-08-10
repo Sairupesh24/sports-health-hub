@@ -72,7 +72,7 @@ export default function NutritionistSchedule() {
         `/api/appointments?start=${dateRange.start}&end=${dateRange.end}&category=nutrition`
       );
       if (res && Array.isArray(res)) {
-        setAppointments(res);
+        setAppointments(res.filter(s => !['cancelled', 'missed', 'rescheduled', 'deleted'].includes((s.status || '').toLowerCase())));
       }
     } catch (err) {
       console.warn("Failed to load appointments:", err);

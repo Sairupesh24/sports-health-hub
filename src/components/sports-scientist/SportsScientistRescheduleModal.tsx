@@ -167,10 +167,10 @@ export function SportsScientistRescheduleModal({ open, onOpenChange, session, on
                   }`}
                 >
                   <div className="font-extrabold text-xs text-slate-900 dark:text-white flex items-center gap-1.5 mb-1">
-                    🔄 All Future Sessions
+                    🔄 All Future {session?.scheduled_start ? format(parseISO(session.scheduled_start), "EEEE") : ""} Sessions
                   </div>
                   <div className="text-[10px] text-muted-foreground font-medium leading-tight">
-                    Shift all upcoming planned sessions in this series.
+                    Update all upcoming planned sessions falling on this day of the week.
                   </div>
                 </button>
               </div>

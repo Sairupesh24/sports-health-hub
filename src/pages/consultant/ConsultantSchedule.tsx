@@ -92,7 +92,9 @@ export default function ConsultantSchedule() {
             const end = dateRange.end;
             const data = await apiFetch(`/api/appointments?specialist_id=${profile.id}&start=${start}&end=${end}`);
 
-            return (data as any[]).map(session => {
+            return (data as any[])
+                .filter(session => !['cancelled', 'missed', 'rescheduled', 'deleted'].includes((session.status || '').toLowerCase()))
+                .map(session => {
                 // Determine end time from DB or fallback to 60 mins after start
                 let endDateStr = session.scheduled_end;
                 if (!endDateStr) {

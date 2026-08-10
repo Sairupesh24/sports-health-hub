@@ -561,10 +561,10 @@ async function runMigrations() {
         await pool.query(`ALTER TABLE Sessions ALTER COLUMN client_id DROP NOT NULL;`);
     } catch (e) {}
 
-    // Ensure sessions status CHECK constraint allows all statuses including 'IN_PROGRESS', 'In Progress', 'SCHEDULED', 'Reassigned' and 'Waitlisted'
+    // Ensure sessions status CHECK constraint allows all statuses including 'IN_PROGRESS', 'In Progress', 'SCHEDULED', 'Reassigned', 'Waitlisted', and 'Deleted'
     try {
         await pool.query(`ALTER TABLE sessions DROP CONSTRAINT IF EXISTS sessions_status_check;`);
-        await pool.query(`ALTER TABLE sessions ADD CONSTRAINT sessions_status_check CHECK (status IN ('Planned', 'Completed', 'Missed', 'Rescheduled', 'Cancelled', 'Checked In', 'Waitlisted', 'Reassigned', 'IN_PROGRESS', 'In Progress', 'SCHEDULED'));`);
+        await pool.query(`ALTER TABLE sessions ADD CONSTRAINT sessions_status_check CHECK (status IN ('Planned', 'Completed', 'Missed', 'Rescheduled', 'Cancelled', 'Checked In', 'Waitlisted', 'Reassigned', 'IN_PROGRESS', 'In Progress', 'SCHEDULED', 'Deleted', 'DELETED'));`);
     } catch (e) {
         console.warn('Could not update sessions_status_check constraint:', e.message);
     }

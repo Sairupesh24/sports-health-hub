@@ -84,7 +84,7 @@ export default function SportsScientistSchedule() {
         };
     }, [currentDate, viewMode]);
 
-    const { data: sessions = [], isLoading, refetch } = useQuery({
+    const { data: rawSessions = [], isLoading, refetch } = useQuery({
         queryKey: ["sports-scientist-sessions", user?.id, dateRange.start, dateRange.end],
         queryFn: async () => {
             if (!user) return [];
@@ -92,6 +92,13 @@ export default function SportsScientistSchedule() {
         },
         enabled: !!user && activeTab === "calendar"
     });
+
+    const sessions = useMemo(() => {
+        return (rawSessions as any[]).filter((s: any) => {
+            const st = (s.status || "").toLowerCase();
+            return !['cancelled', 'missed', 'rescheduled', 'deleted'].includes(st);
+        });
+    }, [rawSessions]);
 
     // Keep selected session in sync if data refetches
     useEffect(() => {

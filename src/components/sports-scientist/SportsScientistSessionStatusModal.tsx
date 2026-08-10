@@ -6,10 +6,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { apiFetch } from "@/utils/api";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Lock, AlertTriangle, Clock, CheckCircle2, XCircle, Info } from "lucide-react";
-import { format, startOfDay, differenceInCalendarDays, parseISO, isFuture, isBefore } from "date-fns";
+import { Loader2, Lock, AlertTriangle, Clock, CheckCircle2, XCircle, Info, Calendar } from "lucide-react";
+import { format, startOfDay, differenceInCalendarDays, parseISO, isFuture, isBefore, addMinutes } from "date-fns";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/contexts/AuthContext";
+import { Badge } from "@/components/ui/badge";
 import { SportsScientistRescheduleModal } from "@/components/sports-scientist/SportsScientistRescheduleModal";
 
 interface Props {
@@ -21,36 +22,39 @@ interface Props {
 
 /**
  * Editing rules:
- *  - Future sessions  → can only be set to Planned / Cancelled  (not Completed/Missed)
- *  - Today            → full edit (any status)
- *  - Yesterday        → full edit (any status)
- *  - 2+ days ago      → LOCKED — read-only, cannot save
+ *  - Future sessions from next day onwards (daysAgo <= -1) → Full timing change allowed (date, start time, duration, scope)
+ *  - Today (daysAgo === 0) → Quick start/end, status, notes. Timing changes disabled for today.
+ *  - Yesterday (daysAgo === 1) → Full status/notes edit
+ *  - 2+ days ago → LOCKED (read-only)
  */
 function getSessionEditability(session: any): {
     isLocked: boolean;
     isFuture: boolean;
+    isNextDayOrLater: boolean;
     isToday: boolean;
     isYesterday: boolean;
     daysAgo: number;
     lockReason?: string;
 } {
-    if (!session) return { isLocked: false, isFuture: false, isToday: false, isYesterday: false, daysAgo: 0 };
+    if (!session) return { isLocked: false, isFuture: false, isNextDayOrLater: false, isToday: false, isYesterday: false, daysAgo: 0 };
 
     const scheduledDay = startOfDay(parseISO(session.scheduled_start));
     const today = startOfDay(new Date());
-    const daysAgo = differenceInCalendarDays(today, scheduledDay); // positive = past, negative = future
+    const daysAgo = differenceInCalendarDays(today, scheduledDay); // positive = past, 0 = today, negative = future (starting from tomorrow: daysAgo <= -1)
 
     const isFutureSession = daysAgo < 0;
-    const isToday = daysAgo === 0;
-    const isYesterday = daysAgo === 1;
+    const isTodaySession = daysAgo === 0;
+    const isYesterdaySession = daysAgo === 1;
+    const isNextDayOrLater = daysAgo <= -1; // Tomorrow onwards!
     const isStatusLocked = session.status === "Cancelled" || session.status === "Rescheduled" || session.status === "Completed";
     const isLocked = daysAgo >= 2 || isStatusLocked;
 
     return {
         isLocked,
         isFuture: isFutureSession,
-        isToday,
-        isYesterday,
+        isNextDayOrLater,
+        isToday: isTodaySession,
+        isYesterday: isYesterdaySession,
         daysAgo,
         lockReason: isStatusLocked 
             ? `This session is ${session.status.toLowerCase()} and cannot be edited.`
@@ -70,8 +74,13 @@ export function SportsScientistSessionStatusModal({ open, onOpenChange, session,
     const [actualEnd, setActualEnd] = useState("");
     const [sessionNotes, setSessionNotes] = useState("");
     const [cancellationReason, setCancellationReason] = useState("");
+    
+    // Reschedule / Timing states
     const [rescheduledDate, setRescheduledDate] = useState("");
     const [rescheduledTime, setRescheduledTime] = useState("");
+    const [durationMins, setDurationMins] = useState<number>(60);
+    const [rescheduleScope, setRescheduleScope] = useState<"THIS_SESSION" | "ALL_FUTURE">("THIS_SESSION");
+
     const [attendees, setAttendees] = useState<any[]>([]);
     const [attendeesLoading, setAttendeesLoading] = useState(false);
     const [isRescheduleModalOpen, setIsRescheduleModalOpen] = useState(false);
@@ -97,7 +106,7 @@ export function SportsScientistSessionStatusModal({ open, onOpenChange, session,
     const autoMarkMissed = useCallback(async () => {
         if (!session?.id) return;
         if (session.status !== "Planned") return;
-        if (!editInfo.isLocked) return; // Only lock-trigger: 2+ days old
+        if (!editInfo.isLocked) return;
 
         setAutoMissing(true);
         try {
@@ -105,7 +114,7 @@ export function SportsScientistSessionStatusModal({ open, onOpenChange, session,
                 method: 'PATCH',
                 body: JSON.stringify({ status: "Missed" })
             });
-            onSuccess(); // refresh caller
+            onSuccess();
         } catch (e) {
             console.error("Auto-miss failed", e);
         } finally {
@@ -115,7 +124,6 @@ export function SportsScientistSessionStatusModal({ open, onOpenChange, session,
 
     useEffect(() => {
         if (session) {
-            // Derive effective status (may have been auto-missed)
             const effectiveStatus = editInfo.isLocked && session.status === "Planned"
                 ? "Missed"
                 : session.status || "Planned";
@@ -138,9 +146,17 @@ export function SportsScientistSessionStatusModal({ open, onOpenChange, session,
                 autoMarkMissed();
             }
 
-            // Initialize rescheduling defaults
-            setRescheduledDate(format(parseISO(session.scheduled_start), "yyyy-MM-dd"));
-            setRescheduledTime(format(parseISO(session.scheduled_start), "HH:mm"));
+            // Initialize timing change defaults
+            if (session.scheduled_start) {
+                const startD = parseISO(session.scheduled_start);
+                const endD = session.scheduled_end ? parseISO(session.scheduled_end) : addMinutes(startD, 60);
+                const calculatedDuration = Math.max(15, Math.round((endD.getTime() - startD.getTime()) / 60000));
+
+                setRescheduledDate(format(startD, "yyyy-MM-dd"));
+                setRescheduledTime(format(startD, "HH:mm"));
+                setDurationMins(calculatedDuration || 60);
+                setRescheduleScope("THIS_SESSION");
+            }
         }
     }, [session]);
 
@@ -173,7 +189,7 @@ export function SportsScientistSessionStatusModal({ open, onOpenChange, session,
                 });
                 
                 setStatus("IN_PROGRESS");
-                toast({ title: "Session Started", description: "Session transitioned to IN_PROGRESS. Athlete moved to Active On Field queue." });
+                toast({ title: "Session Started", description: "Session transitioned to IN_PROGRESS." });
                 await onSuccess();
             } else if (action === "End") {
                 const nowTime = format(new Date(), "HH:mm");
@@ -237,7 +253,7 @@ export function SportsScientistSessionStatusModal({ open, onOpenChange, session,
                 });
             }
 
-            toast({ title: "Session Completed", description: "Actual timings recorded and entitlement balance updated." });
+            toast({ title: "Session Completed", description: "Actual timings recorded and balance updated." });
             await onSuccess();
             onOpenChange(false);
         } catch (error: any) {
@@ -256,8 +272,8 @@ export function SportsScientistSessionStatusModal({ open, onOpenChange, session,
             return;
         }
 
-        // Strict today guard: cannot start or complete non-today sessions
-        if (!editInfo.isToday && (status === "Completed" || status === "IN_PROGRESS" || status === "In Progress" || status === "Checked In")) {
+        // Strict today guard
+        if (!editInfo.isToday && !editInfo.isNextDayOrLater && (status === "Completed" || status === "IN_PROGRESS" || status === "In Progress" || status === "Checked In")) {
             toast({
                 title: "Not Allowed",
                 description: `This session is scheduled for ${format(parseISO(session.scheduled_start), "MMM d, yyyy h:mm a")}. Start and stop can only happen if the session is scheduled for today.`,
@@ -265,6 +281,7 @@ export function SportsScientistSessionStatusModal({ open, onOpenChange, session,
             });
             return;
         }
+
         if (editInfo.isFuture && status === "Missed") {
             toast({ title: "Not Allowed", description: "You cannot mark a future session as Missed.", variant: "destructive" });
             return;
@@ -277,6 +294,42 @@ export function SportsScientistSessionStatusModal({ open, onOpenChange, session,
 
         setLoading(true);
         try {
+            let timingsUpdated = false;
+
+            // Handle timing updates for future sessions scheduled from tomorrow onwards
+            if (editInfo.isNextDayOrLater && rescheduledDate && rescheduledTime) {
+                const originalStartStr = format(parseISO(session.scheduled_start), "yyyy-MM-dd HH:mm");
+                const newStartStr = `${rescheduledDate} ${rescheduledTime}`;
+
+                const originalStart = parseISO(session.scheduled_start);
+                const originalEnd = session.scheduled_end ? parseISO(session.scheduled_end) : addMinutes(originalStart, 60);
+                const originalDuration = Math.round((originalEnd.getTime() - originalStart.getTime()) / 60000);
+
+                if (originalStartStr !== newStartStr || durationMins !== originalDuration || rescheduleScope === "ALL_FUTURE") {
+                    const newStart = new Date(`${rescheduledDate}T${rescheduledTime}:00`);
+                    const newEnd = addMinutes(newStart, durationMins);
+
+                    if (rescheduleScope === "ALL_FUTURE") {
+                        await apiFetch(`/api/appointments/${session.id}/reschedule-future`, {
+                            method: 'POST',
+                            body: JSON.stringify({
+                                new_start: newStart.toISOString(),
+                                new_end: newEnd.toISOString()
+                            })
+                        });
+                    } else {
+                        await apiFetch(`/api/appointments/${session.id}/reschedule`, {
+                            method: 'POST',
+                            body: JSON.stringify({
+                                new_start: newStart.toISOString(),
+                                new_end: newEnd.toISOString()
+                            })
+                        });
+                    }
+                    timingsUpdated = true;
+                }
+            }
+
             const updateData: any = {
                 status,
                 session_notes: sessionNotes,
@@ -293,27 +346,6 @@ export function SportsScientistSessionStatusModal({ open, onOpenChange, session,
                     method: 'POST',
                     body: JSON.stringify({ actual_start, actual_end })
                 });
-            } else if (status === "Rescheduled") {
-                if (session.status !== "Planned") {
-                    throw new Error("Only Planned sessions can be rescheduled.");
-                }
-                if (!rescheduledDate || !rescheduledTime) {
-                    throw new Error("Please select both a date and time for rescheduling.");
-                }
-
-                const newStartTime = new Date(`${rescheduledDate}T${rescheduledTime}:00`);
-                const durationMs = new Date(session.scheduled_end || session.scheduled_start).getTime() - new Date(session.scheduled_start).getTime();
-                const newEndTime = new Date(newStartTime.getTime() + (durationMs || 3600000)); // Default 1h if duration missing
-
-                await apiFetch(`/api/appointments/${session.id}/reschedule`, {
-                    method: 'POST',
-                    body: JSON.stringify({
-                        new_start: newStartTime.toISOString(),
-                        new_end: newEndTime.toISOString()
-                    })
-                });
-
-                toast({ title: "Rescheduled", description: "The session has been moved to the new date and time." });
             } else {
                 await apiFetch(`/api/appointments/${session.id}`, {
                     method: 'PATCH',
@@ -321,19 +353,14 @@ export function SportsScientistSessionStatusModal({ open, onOpenChange, session,
                 });
             }
 
-            // Also update session_notes separately if changed
-            if (sessionNotes !== session.session_notes && status !== "Completed" && status !== "Rescheduled") {
-                await apiFetch(`/api/appointments/${session.id}`, {
-                    method: 'PATCH',
-                    body: JSON.stringify({ session_notes: sessionNotes })
-                });
-            }
-
-            toast({ title: "Saved", description: "Session notes updated." });
+            toast({
+                title: timingsUpdated ? "Session Timings & Details Saved ✓" : "Session Saved ✓",
+                description: timingsUpdated ? "Session schedule timing updated successfully." : "Session details updated successfully."
+            });
             await onSuccess();
             onOpenChange(false);
         } catch (error: any) {
-            toast({ title: "Error", description: error.message, variant: "destructive" });
+            toast({ title: "Error", description: error.message || "Failed to save session", variant: "destructive" });
         } finally {
             setLoading(false);
         }
@@ -343,67 +370,133 @@ export function SportsScientistSessionStatusModal({ open, onOpenChange, session,
 
     const scheduledDate = parseISO(session.scheduled_start);
 
-    // Status badge styling
     const getStatusStyle = (s: string) => {
         switch (s) {
             case "Completed": return "bg-emerald-100 text-emerald-800 border-emerald-300";
             case "Planned": return session?.actual_start ? "bg-emerald-100 text-emerald-800 border-emerald-300" : "bg-blue-100 text-blue-800 border-blue-300";
-            case "Missed": return "bg-rose-100 text-rose-800 border-rose-300";
+            case "IN_PROGRESS":
+            case "In Progress":
             case "Checked In": return "bg-emerald-100 text-emerald-800 border-emerald-300";
-            case "In Progress": return "bg-emerald-100 text-emerald-800 border-emerald-300";
-            case "Cancelled": return "bg-slate-100 text-slate-600 border-slate-300";
-            case "Rescheduled": return "bg-amber-100 text-amber-800 border-amber-300";
-            default: return "bg-muted text-muted-foreground border-border";
+            case "Cancelled": return "bg-rose-100 text-rose-800 border-rose-300";
+            case "Missed": return "bg-amber-100 text-amber-800 border-amber-300";
+            default: return "bg-slate-100 text-slate-800 border-slate-300";
         }
     };
 
-    const availableStatuses = editInfo.isFuture
-        ? ["Planned", "Cancelled"]
-        : ["Planned", "Checked In", "Completed", "Rescheduled", "Cancelled"];
-
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="w-[95vw] sm:max-w-[480px] max-h-[90dvh] overflow-y-auto">
-                <DialogHeader>
-                    <DialogTitle className="flex items-center gap-2">
-                        {editInfo.isLocked ? <Lock className="w-4 h-4 text-muted-foreground" /> : <Clock className="w-4 h-4 text-primary" />}
-                        Update Session Status
+            <DialogContent className="w-[95vw] max-w-[540px] max-h-[90vh] flex flex-col rounded-[2rem] p-0 overflow-hidden border border-border/80 shadow-2xl">
+                <DialogHeader className="p-6 pb-3 shrink-0 border-b border-border/40 bg-card">
+                    <DialogTitle className="text-xl font-black tracking-tight">
+                        {editInfo.isNextDayOrLater ? "Edit Session Timings & Details" : "Update Session Status"}
                     </DialogTitle>
-                    <DialogDescription className="sr-only">
-                        Form to update the current training session's status, notes, or rescheduling details.
+                    <DialogDescription className="text-xs text-muted-foreground font-medium">
+                        {editInfo.isNextDayOrLater 
+                            ? "Slots scheduled from tomorrow onwards allow full timing and schedule changes." 
+                            : "Manage status, notes, and attendance for this session."}
                     </DialogDescription>
                 </DialogHeader>
 
-                <div className="grid gap-4 py-2">
-                    {/* Status badges row */}
-                    <div className="flex items-center gap-2 flex-wrap">
+                <div className="flex-1 overflow-y-auto p-6 space-y-4">
+                    {/* Header Notices */}
+                    <div className="space-y-2">
                         {editInfo.isLocked && (
-                            <div className="flex items-start gap-2 w-full rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
+                            <div className="flex items-start gap-2 w-full rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-700">
                                 <Lock className="w-4 h-4 mt-0.5 shrink-0" />
                                 <span>{editInfo.lockReason}</span>
                             </div>
                         )}
-                        {editInfo.isFuture && (
-                            <div className="flex items-start gap-2 w-full rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
-                                <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
-                                <span>Future session — scheduled for <strong>{format(scheduledDate, "MMM d, yyyy h:mm a")}</strong>. You may only change this to Planned or Cancelled.</span>
+                        {editInfo.isNextDayOrLater && (
+                            <div className="flex items-start gap-2 w-full rounded-xl border border-emerald-200 bg-emerald-50/70 p-3.5 text-xs text-emerald-800 font-medium">
+                                <Clock className="w-4 h-4 mt-0.5 shrink-0 text-emerald-600" />
+                                <span>
+                                    Future session — scheduled for <strong>{format(scheduledDate, "EEE, MMM d, yyyy 'at' h:mm a")}</strong>. You can change session timings, duration, or date for slots scheduled from tomorrow onwards.
+                                </span>
                             </div>
                         )}
-                        {(editInfo.isToday || editInfo.isYesterday) && !editInfo.isLocked && (
-                            <div className="flex items-start gap-2 w-full rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800">
-                                <Info className="w-4 h-4 mt-0.5 shrink-0" />
-                                <span>{editInfo.isToday ? "Today's session" : "Yesterday's session"} — fully editable until midnight tonight.</span>
+                        {editInfo.isToday && (
+                            <div className="flex items-start gap-2 w-full rounded-xl border border-blue-200 bg-blue-50/70 p-3.5 text-xs text-blue-800 font-medium">
+                                <Info className="w-4 h-4 mt-0.5 shrink-0 text-blue-600" />
+                                <span>Today's session — timings are locked for today's slots. You can start/end session or record actual timings.</span>
                             </div>
                         )}
                         {session.session_mode === "Individual" && session.client?.outstanding_balance > 0 && (
-                            <div className="flex items-start gap-2 w-full rounded-lg border border-rose-200 bg-rose-50 dark:bg-rose-950/20 p-3 text-sm text-rose-800 dark:text-rose-300">
+                            <div className="flex items-start gap-2 w-full rounded-xl border border-rose-200 bg-rose-50 dark:bg-rose-950/20 p-3 text-xs text-rose-800 dark:text-rose-300">
                                 <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0 text-rose-600 dark:text-rose-400" />
                                 <span>
-                                    <strong>Payment Overdue:</strong> This athlete has pending dues. Please advise them to clear dues.
+                                    <strong>Payment Overdue:</strong> This athlete has pending dues.
                                 </span>
                             </div>
                         )}
                     </div>
+
+                    {/* Change Timings & Date Section (Enabled for slots scheduled from tomorrow onwards) */}
+                    {editInfo.isNextDayOrLater && !editInfo.isLocked && (
+                        <div className="grid gap-3 bg-slate-50 dark:bg-slate-900/60 p-4 rounded-2xl border border-slate-200 dark:border-slate-800">
+                            <div className="flex items-center justify-between">
+                                <Label className="font-bold text-slate-900 dark:text-slate-100 text-xs uppercase tracking-wider flex items-center gap-1.5">
+                                    <Clock className="w-4 h-4 text-primary" />
+                                    Change Session Timings & Date
+                                </Label>
+                                <Badge className="bg-emerald-500/10 text-emerald-600 border-none text-[9px] font-black uppercase">
+                                    Editable (Tomorrow Onwards)
+                                </Badge>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-3 pt-1">
+                                <div>
+                                    <Label className="text-xs font-bold text-slate-700 dark:text-slate-300 mb-1 block">New Date</Label>
+                                    <Input
+                                        type="date"
+                                        value={rescheduledDate}
+                                        onChange={(e) => setRescheduledDate(e.target.value)}
+                                        className="bg-white dark:bg-slate-900 text-xs font-bold h-10 border-slate-200 dark:border-slate-800"
+                                    />
+                                </div>
+                                <div>
+                                    <Label className="text-xs font-bold text-slate-700 dark:text-slate-300 mb-1 block">New Start Time</Label>
+                                    <Input
+                                        type="time"
+                                        value={rescheduledTime}
+                                        onChange={(e) => setRescheduledTime(e.target.value)}
+                                        className="bg-white dark:bg-slate-900 text-xs font-bold h-10 border-slate-200 dark:border-slate-800"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <Label className="text-xs font-bold text-slate-700 dark:text-slate-300 mb-1 block">Duration (Minutes)</Label>
+                                    <Input
+                                        type="number"
+                                        min={15}
+                                        max={240}
+                                        step={15}
+                                        value={durationMins}
+                                        onChange={(e) => setDurationMins(parseInt(e.target.value) || 60)}
+                                        className="bg-white dark:bg-slate-900 text-xs font-bold h-10 border-slate-200 dark:border-slate-800"
+                                    />
+                                </div>
+
+                                <div>
+                                    <Label className="text-xs font-bold text-slate-700 dark:text-slate-300 mb-1 block">Apply Changes To</Label>
+                                    <Select value={rescheduleScope} onValueChange={(v: any) => setRescheduleScope(v)}>
+                                        <SelectTrigger className="bg-white dark:bg-slate-900 text-xs font-bold h-10 border-slate-200 dark:border-slate-800">
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="THIS_SESSION">Single Session Only</SelectItem>
+                                            <SelectItem value="ALL_FUTURE">
+                                                {session?.scheduled_start 
+                                                    ? `All Future ${format(parseISO(session.scheduled_start), "EEEE")} Sessions` 
+                                                    : "All Future Sessions"}
+                                            </SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
                     {/* Session summary card */}
                     <div className="bg-muted/40 p-4 rounded-xl text-sm space-y-2 border border-border/50">
@@ -433,169 +526,41 @@ export function SportsScientistSessionStatusModal({ open, onOpenChange, session,
                                 {(status === "Checked In" || status === "In Progress" || (status === "Planned" && session?.actual_start)) ? "IN PROGRESS" : status}
                             </span>
                         </div>
-                        {session?.actual_start && (
-                            <div className="flex justify-between items-center text-[11px]">
-                                <span className="text-muted-foreground font-medium uppercase tracking-wider">Recorded Start</span>
-                                <span className="font-bold text-emerald-600">{format(parseISO(session.actual_start), "h:mm a")}</span>
-                            </div>
-                        )}
-                        {session?.actual_end && (
-                            <div className="flex justify-between items-center text-[11px]">
-                                <span className="text-muted-foreground font-medium uppercase tracking-wider">Recorded End</span>
-                                <span className="font-bold text-emerald-600">{format(parseISO(session.actual_end), "h:mm a")}</span>
-                            </div>
-                        )}
                     </div>
 
-                    {/* Group Session Attendees */}
-                    {session.session_mode === 'Group' && (
-                        <div className="space-y-2 pt-1">
-                            <Label className="font-semibold text-foreground flex items-center gap-2">
-                                👥 Attendees ({attendees.length})
-                            </Label>
-                            {attendeesLoading ? (
-                                <div className="flex items-center gap-2 text-xs text-muted-foreground py-1">
-                                    <Loader2 className="w-3 h-3 animate-spin" /> Loading attendees...
-                                </div>
-                            ) : attendees.length > 0 ? (
-                                <div className="bg-muted/30 border border-border/50 rounded-lg p-3 max-h-[150px] overflow-y-auto space-y-1.5 custom-scrollbar text-xs">
-                                    {attendees.map((attendee) => (
-                                        <div key={attendee.id} className="flex justify-between items-center py-0.5">
-                                            <div className="flex items-center gap-2">
-                                                <span className="font-medium text-slate-800 dark:text-slate-200">{attendee.first_name} {attendee.last_name}</span>
-                                                {attendee.outstanding_balance > 0 && (
-                                                    <span className="text-[7px] bg-rose-500 text-white px-2 py-0.5 rounded font-black uppercase tracking-widest leading-none">
-                                                        DUE PENDING
-                                                    </span>
-                                                )}
-                                            </div>
-                                            {attendee.uhid && (
-                                                <span className="font-mono text-[10px] text-muted-foreground bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
-                                                    {attendee.uhid}
-                                                </span>
-                                            )}
-                                        </div>
-                                    ))}
-                                </div>
-                            ) : (
-                                <div className="text-xs text-muted-foreground bg-slate-50 border border-slate-200 rounded-md px-3 py-2 italic">
-                                    No attendees registered for this group session.
-                                </div>
-                            )}
-                        </div>
-                    )}
-
-                    {/* Quick Actions / Free Time Entry (Today or Yesterday planned sessions) */}
-                    {!editInfo.isLocked && (editInfo.isToday || editInfo.isYesterday) && (status === "Planned" || status === "Checked In" || status === "In Progress" || (status === "Planned" && session?.actual_start)) && (
-                        <div className="grid gap-3 pt-2">
+                    {/* Quick Actions for Today */}
+                    {!editInfo.isLocked && editInfo.isToday && (status === "Planned" || status === "Checked In" || status === "In Progress" || (status === "Planned" && session?.actual_start)) && (
+                        <div className="grid gap-3 pt-1">
                             {(status === "Planned" && !session?.actual_start) && (
-                                isPastScheduledEnd ? (
-                                    /* Retroactive Free Time Entry Card when scheduled end time has passed */
-                                    <div className="grid gap-3 bg-amber-50/70 dark:bg-amber-950/30 p-4 rounded-2xl border border-amber-200 dark:border-amber-900/50 shadow-xs">
-                                        <div className="flex items-center justify-between">
-                                            <Label className="font-bold text-amber-900 dark:text-amber-300 text-xs uppercase tracking-wider flex items-center gap-1.5">
-                                                <Clock className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-                                                Scheduled End Time Passed — Free Time Entry
-                                            </Label>
-                                            <span className="text-[9px] font-black uppercase text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/60 px-2 py-0.5 rounded-md">
-                                                Actual Timings
-                                            </span>
-                                        </div>
-                                        <p className="text-xs text-amber-800/90 dark:text-amber-300/80 leading-relaxed">
-                                            The scheduled slot time has passed. Please specify actual session start and end times to record completion:
-                                        </p>
-
-                                        <div className="grid grid-cols-2 gap-3 pt-1">
-                                            <div>
-                                                <Label className="text-xs font-bold text-slate-700 dark:text-slate-300 mb-1 block">Actual Start Time</Label>
-                                                <Input
-                                                    type="time"
-                                                    value={actualStart}
-                                                    onChange={(e) => setActualStart(e.target.value)}
-                                                    className="bg-white dark:bg-slate-900 text-sm font-mono font-bold h-10 border-slate-200 dark:border-slate-800"
-                                                />
-                                            </div>
-                                            <div>
-                                                <Label className="text-xs font-bold text-slate-700 dark:text-slate-300 mb-1 block">Actual End Time</Label>
-                                                <Input
-                                                    type="time"
-                                                    value={actualEnd}
-                                                    onChange={(e) => setActualEnd(e.target.value)}
-                                                    className="bg-white dark:bg-slate-900 text-sm font-mono font-bold h-10 border-slate-200 dark:border-slate-800"
-                                                />
-                                            </div>
-                                        </div>
-
-                                        <div className="flex flex-col gap-2 pt-2">
-                                            <Button 
-                                                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold h-11 shadow-sm gap-2" 
-                                                onClick={handleCompleteWithFreeTime}
-                                                disabled={loading}
-                                            >
-                                                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
-                                                Record & Complete Session
-                                            </Button>
-                                            <div className="flex gap-2">
-                                                <Button 
-                                                    variant="outline" 
-                                                    className="flex-1 border-rose-200 text-rose-700 hover:bg-rose-50 font-bold text-xs"
-                                                    onClick={() => handleQuickAction("Missed")}
-                                                    disabled={loading}
-                                                >
-                                                    Mark as Missed
-                                                </Button>
-                                                <Button
-                                                    variant="outline"
-                                                    className="flex-1 border-amber-300 text-amber-800 dark:text-amber-300 hover:bg-amber-50 font-bold text-xs"
-                                                    onClick={() => setIsRescheduleModalOpen(true)}
-                                                    disabled={loading}
-                                                >
-                                                    Reschedule Slot
-                                                </Button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                ) : (
-                                    /* Live Session Window: Start Session buttons */
-                                    <div className="flex flex-col gap-2 w-full">
-                                        <Label className="font-semibold text-muted-foreground">Quick Actions</Label>
-                                        <div className="flex gap-2">
-                                            <Button 
-                                                className="flex-1 bg-emerald-600 hover:bg-emerald-700 font-bold" 
-                                                onClick={() => handleQuickAction("Start")}
-                                                disabled={loading}
-                                            >
-                                                Start Session
-                                            </Button>
-                                            <Button 
-                                                variant="outline" 
-                                                className="flex-1 border-rose-200 text-rose-700 hover:bg-rose-50 font-bold"
-                                                onClick={() => handleQuickAction("Missed")}
-                                                disabled={loading}
-                                            >
-                                                Mark as Missed
-                                            </Button>
-                                        </div>
-                                        <Button
-                                            variant="outline"
-                                            className="w-full border-amber-300 text-amber-800 dark:text-amber-300 hover:bg-amber-50 font-bold"
-                                            onClick={() => setIsRescheduleModalOpen(true)}
+                                <div className="flex flex-col gap-2 w-full">
+                                    <Label className="font-semibold text-muted-foreground text-xs uppercase tracking-wider">Today's Quick Actions</Label>
+                                    <div className="flex gap-2">
+                                        <Button 
+                                            className="flex-1 bg-emerald-600 hover:bg-emerald-700 font-bold h-10" 
+                                            onClick={() => handleQuickAction("Start")}
                                             disabled={loading}
                                         >
-                                            <Clock className="w-4 h-4 mr-2 text-amber-600" />
-                                            Reschedule Slot
+                                            Start Session
+                                        </Button>
+                                        <Button 
+                                            variant="outline" 
+                                            className="flex-1 border-rose-200 text-rose-700 hover:bg-rose-50 font-bold h-10"
+                                            onClick={() => handleQuickAction("Missed")}
+                                            disabled={loading}
+                                        >
+                                            Mark as Missed
                                         </Button>
                                     </div>
-                                )
+                                </div>
                             )}
                             {(status === "Checked In" || status === "In Progress" || (status === "Planned" && session?.actual_start)) && (
                                 <div className="flex flex-col gap-2 w-full">
-                                    <div className="flex items-center justify-center gap-2 text-emerald-700 bg-emerald-50 py-2 rounded-lg font-bold border border-emerald-200">
+                                    <div className="flex items-center justify-center gap-2 text-emerald-700 bg-emerald-50 py-2 rounded-lg font-bold border border-emerald-200 text-xs">
                                         <Loader2 className="w-4 h-4 animate-spin" />
                                         Session In Progress
                                     </div>
                                     <Button 
-                                        className="w-full bg-blue-600 hover:bg-blue-700 font-bold" 
+                                        className="w-full bg-blue-600 hover:bg-blue-700 font-bold h-10" 
                                         onClick={() => handleQuickAction("End")}
                                         disabled={loading}
                                     >
@@ -606,38 +571,10 @@ export function SportsScientistSessionStatusModal({ open, onOpenChange, session,
                         </div>
                     )}
 
-                    {/* Reschedule option for future / non-today planned sessions */}
-                    {!editInfo.isLocked && !editInfo.isToday && status === "Planned" && (
-                        <div className="pt-2">
-                            <Button
-                                variant="outline"
-                                className="w-full border-amber-300 text-amber-800 dark:text-amber-300 hover:bg-amber-50 font-bold h-11"
-                                onClick={() => setIsRescheduleModalOpen(true)}
-                                disabled={loading}
-                            >
-                                <Clock className="w-4 h-4 mr-2 text-amber-600" />
-                                Reschedule Future Slot
-                            </Button>
-                        </div>
-                    )}
-
-                    {/* Reschedule Button for future or planned sessions */}
-                    {status === "Planned" && (
-                        <SportsScientistRescheduleModal
-                            open={isRescheduleModalOpen}
-                            onOpenChange={setIsRescheduleModalOpen}
-                            session={session}
-                            onSuccess={async () => {
-                                await onSuccess();
-                                onOpenChange(false);
-                            }}
-                        />
-                    )}
-
                     {/* Cancellation/Missed Reason */}
                     {(status === "Missed" || status === "Cancelled") && (
-                        <div className="grid gap-2 animate-in slide-in-from-top-2 p-4 bg-rose-50/50 rounded-xl border border-rose-200">
-                            <Label className="font-semibold text-rose-800">Reason for {status}</Label>
+                        <div className="grid gap-2 p-4 bg-rose-50/50 rounded-xl border border-rose-200">
+                            <Label className="font-semibold text-rose-800 text-xs">Reason for {status}</Label>
                             <Textarea
                                 id="cancellationReason"
                                 placeholder={`Please provide a reason why this session was ${status.toLowerCase()}...`}
@@ -651,7 +588,7 @@ export function SportsScientistSessionStatusModal({ open, onOpenChange, session,
 
                     {/* Session notes */}
                     <div className="grid gap-2">
-                        <Label className="font-semibold">Session Notes / Observations</Label>
+                        <Label className="font-semibold text-xs uppercase tracking-wider text-slate-700">Session Notes / Observations</Label>
                         <Textarea
                             placeholder="Add post-session notes, observations, performance data..."
                             value={sessionNotes}
@@ -664,10 +601,10 @@ export function SportsScientistSessionStatusModal({ open, onOpenChange, session,
                     <Button
                         onClick={handleSave}
                         disabled={loading || editInfo.isLocked || autoMissing}
-                        className="w-full h-11 font-bold"
+                        className="w-full h-11 font-bold rounded-xl shadow-md bg-primary hover:bg-primary/90 text-white"
                     >
                         {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        {editInfo.isLocked ? "Session Locked" : "Save Notes"}
+                        {editInfo.isLocked ? "Session Locked" : "Save Changes"}
                     </Button>
                 </div>
             </DialogContent>

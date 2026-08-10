@@ -39,6 +39,7 @@ type CartItem = {
     name: string;
     price: number;
     tax_amount: number;
+    quantity: number;
     items?: { service_type: string; default_sessions: number; }[];
 };
 
@@ -319,7 +320,7 @@ export default function BillingPage() {
         if (!newPkgName.trim() || !newPkgPrice) return;
         const newPkg = { id: Date.now().toString(), name: newPkgName, price: Number(newPkgPrice), category: "Custom", tax_amount: 0 };
         setPackages([...packages, newPkg]);
-        setCart([...cart, { id: Date.now().toString(), package_id: newPkg.id, name: newPkg.name, price: newPkg.price, tax_amount: 0 }]);
+        setCart([...cart, { id: Date.now().toString(), package_id: newPkg.id, name: newPkg.name, price: newPkg.price, tax_amount: 0, quantity: 1 }]);
         setNewPkgName("");
         setNewPkgPrice("");
         setIsPkgModalOpen(false);
@@ -420,6 +421,7 @@ export default function BillingPage() {
                 name: pkg.name,
                 price: Number(pkg.price),
                 tax_amount: Number(pkg.tax_amount || 0),
+                quantity: 1,
                 items: pkg.service_package_items
             }]);
         }
@@ -429,8 +431,13 @@ export default function BillingPage() {
         setCart(cart.filter(item => item.id !== cartItemId));
     };
 
-    const subtotal = cart.reduce((sum, item) => sum + Number(item.price), 0);
-    const overallTaxAmount = cart.reduce((sum, item) => sum + Number(item.tax_amount || 0), 0);
+    const updateCartQuantity = (cartItemId: string, quantity: number) => {
+        if (quantity < 1) return;
+        setCart(cart.map(item => item.id === cartItemId ? { ...item, quantity } : item));
+    };
+
+    const subtotal = cart.reduce((sum, item) => sum + Number(item.price) * (item.quantity || 1), 0);
+    const overallTaxAmount = cart.reduce((sum, item) => sum + Number(item.tax_amount || 0) * (item.quantity || 1), 0);
 
     const calculatedDiscountAmount = () => {
         const dVal = Number(discountValue) || 0;
@@ -476,17 +483,21 @@ export default function BillingPage() {
             }
 
             const billItems = cart.map(item => {
-                const itemRatio = item.price / subtotal;
+                const qty = item.quantity || 1;
+                const linePrice = item.price * qty;
+                const lineTax = item.tax_amount * qty;
+                const itemRatio = linePrice / subtotal;
                 const itemDiscount = discountType === "percentage" 
-                    ? (item.price * (Number(discountValue) || 0) / 100) 
+                    ? (linePrice * (Number(discountValue) || 0) / 100) 
                     : ((Number(discountValue) || 0) * itemRatio);
-                const itemTotal = Math.max(0, item.price - itemDiscount + item.tax_amount);
+                const itemTotal = Math.max(0, linePrice - itemDiscount + lineTax);
 
                 return {
                     package_id: item.package_id,
-                    amount: item.price,
+                    quantity: qty,
+                    amount: linePrice,
                     discount: itemDiscount,
-                    tax_amount: item.tax_amount,
+                    tax_amount: lineTax,
                     total: itemTotal
                 };
             });
@@ -1088,7 +1099,17 @@ export default function BillingPage() {
                                                                         <span className="text-[10px] text-muted-foreground uppercase font-medium">Base Price</span>
                                                                         <span className="text-xs font-semibold">Rs. {item.price}</span>
                                                                     </div>
-                                                                    <div className="flex flex-col w-[120px]">
+                                                                    <div className="flex flex-col w-[72px]">
+                                                                        <span className="text-[10px] text-muted-foreground uppercase font-medium mb-1">Quantity</span>
+                                                                        <Input
+                                                                            type="number"
+                                                                            min={1}
+                                                                            value={item.quantity || 1}
+                                                                            onChange={e => updateCartQuantity(item.id, parseInt(e.target.value) || 1)}
+                                                                            className="h-7 text-xs w-full"
+                                                                        />
+                                                                    </div>
+                                                                    <div className="flex flex-col w-[100px]">
                                                                         <span className="text-[10px] text-muted-foreground uppercase font-medium mb-1">Set Tax Amount</span>
                                                                         <Input 
                                                                             type="number" 
@@ -1100,7 +1121,7 @@ export default function BillingPage() {
                                                                     </div>
                                                                     <div className="flex flex-col items-end">
                                                                         <span className="text-[10px] text-muted-foreground uppercase font-medium">Total</span>
-                                                                        <span className="text-xs font-bold text-primary">Rs. {item.price + item.tax_amount}</span>
+                                                                        <span className="text-xs font-bold text-primary">Rs. {(item.price * (item.quantity || 1)) + (item.tax_amount * (item.quantity || 1))}</span>
                                                                     </div>
                                                                 </div>
                                                             </div>

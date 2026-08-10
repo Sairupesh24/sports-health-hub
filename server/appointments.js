@@ -81,6 +81,8 @@ router.get('/', requireAuth, async (req, res) => {
         if (status) {
             query += ` AND s.status = $${params.length + 1}`;
             params.push(status);
+        } else {
+            query += ` AND LOWER(s.status) NOT IN ('cancelled', 'missed', 'rescheduled', 'deleted')`;
         }
         if (is_unentitled === 'true') {
             query += ` AND s.is_unentitled = true`;
@@ -291,15 +293,14 @@ router.post('/:id/complete', requireAuth, async (req, res) => {
 
 // Helper to check if user has admin privileges
 async function checkIsAdmin(userId, userRole) {
-    if (['admin', 'super_admin', 'clinic_admin', 'foe'].includes(userRole)) return true;
+    if (['admin', 'super_admin', 'clinic_admin', 'foe'].includes((userRole || '').toLowerCase())) return true;
     if (!userId) return false;
     try {
-        const res = await db.query('SELECT role, ams_role FROM profiles WHERE id = $1', [userId]);
+        const res = await db.query('SELECT ams_role, profession FROM profiles WHERE id = $1', [userId]);
         if (res.rows.length > 0) {
             const p = res.rows[0];
-            const r = (p.role || '').toLowerCase();
-            const ams = (p.ams_role || '').toLowerCase();
-            return ['admin', 'super_admin', 'clinic_admin', 'foe'].includes(r) || ['admin', 'super_admin', 'clinic_admin', 'foe'].includes(ams);
+            const ams = (p.ams_role || p.profession || '').toLowerCase();
+            return ['admin', 'super_admin', 'clinic_admin', 'foe'].includes(ams);
         }
     } catch (e) {
         console.error("Error in checkIsAdmin:", e);
@@ -368,34 +369,24 @@ router.post('/:id/reschedule', requireAuth, async (req, res) => {
         if (activeRes.rows.length >= capacityLimit) {
             newStatus = 'Waitlisted';
         }
-
-        // 3. Insert new session linked to old session
-        const newRes = await client.query(`
-            INSERT INTO sessions (
-                organization_id, client_id, therapist_id, scientist_id, service_id, service_type, session_mode, session_notes,
-                scheduled_start, scheduled_end, status, entitlement_id, is_unentitled, created_by, rescheduled_from_session_id
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
-            RETURNING id
-        `, [
-            orgId, old.client_id, old.therapist_id, old.scientist_id, old.service_id, old.service_type, old.session_mode || 'Individual', old.session_notes,
-            new_start, new_end, newStatus, old.entitlement_id, old.is_unentitled, req.user.id, old.id
-        ]);
-        const newSessionId = newRes.rows[0].id;
-
-        // 4. Update old session status to Rescheduled with lineage reference
+        // 3. Update session in place on the SAME record
         await client.query(`
-            UPDATE sessions SET status = 'Rescheduled', rescheduled_to_session_id = $1, updated_at = CURRENT_TIMESTAMP 
-            WHERE id = $2 AND organization_id = $3
-        `, [newSessionId, id, orgId]);
+            UPDATE sessions 
+            SET scheduled_start = $1, 
+                scheduled_end = $2, 
+                status = $3, 
+                updated_at = CURRENT_TIMESTAMP 
+            WHERE id = $4 AND organization_id = $5
+        `, [new_start, new_end, newStatus, id, orgId]);
 
-        // 5. Write audit log entry for lineage tracking
+        // 4. Write audit log entry for lineage tracking
         await client.query(`
             INSERT INTO audit_logs (organization_id, entity_type, entity_id, action, performed_by, details)
             VALUES ($1, $2, $3, $4, $5, $6)
         `, [
             orgId,
             'session',
-            old.id,
+            id,
             'RESCHEDULE',
             req.user.id,
             JSON.stringify({
@@ -403,7 +394,6 @@ router.post('/:id/reschedule', requireAuth, async (req, res) => {
                 old_end: old.scheduled_end,
                 new_start,
                 new_end,
-                new_session_id: newSessionId,
                 status: newStatus,
                 capacity_limit: capacityLimit,
                 active_count: activeRes.rows.length
@@ -420,19 +410,18 @@ router.post('/:id/reschedule', requireAuth, async (req, res) => {
             await db.query(`
                 INSERT INTO notifications (organization_id, title, content, type, target_user_id, category)
                 VALUES ($1, $2, $3, $4, $5, $6)
-            `, [orgId, 'Session Rescheduled', `Your session has been rescheduled to ${newSessionDate}.`, 'blue', old.client_id, 'in_app']);
+            `, [orgId, 'Session Rescheduled', `Your session timing has been updated to ${newSessionDate}.`, 'blue', old.client_id, 'in_app']);
         }
         if (specialistId) {
             await db.query(`
                 INSERT INTO notifications (organization_id, title, content, type, target_user_id, category)
                 VALUES ($1, $2, $3, $4, $5, $6)
-            `, [orgId, 'Session Rescheduled', `A session has been rescheduled to ${newSessionDate}.`, 'blue', specialistId, 'in_app']);
+            `, [orgId, 'Session Rescheduled', `Session timing updated to ${newSessionDate}.`, 'blue', specialistId, 'in_app']);
         }
 
-        res.json({ new_session_id: newSessionId, status: newStatus });
+        res.json({ session_id: id, status: newStatus, new_start, new_end });
     } catch (error) {
         await client.query('ROLLBACK');
-        console.error('Error rescheduling session:', error);
         res.status(500).json({ error: error.message || 'Failed to reschedule session' });
     } finally {
         client.release();
@@ -472,25 +461,35 @@ router.post('/:id/reschedule-future', requireAuth, async (req, res) => {
             return res.status(403).json({ error: 'Not authorized to reschedule future series sessions for this appointment.' });
         }
 
-        // 2. Fetch all future active/planned sessions for this client & entitlement/service starting on or after selected session
+        // 2. Fetch all future active/planned sessions for this client starting on or after selected session
+        const baseStart = new Date(old.scheduled_start);
+        const targetDayOfWeek = baseStart.getDay(); // 0 = Sun, 1 = Mon, 2 = Tue, etc.
+
         const futureSessionsRes = await client.query(`
             SELECT * FROM sessions 
             WHERE organization_id = $1 
             AND client_id = $2
             AND scheduled_start >= $3
-            AND status IN ('Planned', 'Scheduled', 'SCHEDULED')
+            AND LOWER(status) NOT IN ('completed', 'cancelled', 'deleted')
             ORDER BY scheduled_start ASC
         `, [orgId, old.client_id, old.scheduled_start]);
 
-        const futureSessions = futureSessionsRes.rows;
+        // Filter to ONLY include sessions that fall on the SAME day of the week (e.g. all Mondays or all Tuesdays)
+        const futureSessions = futureSessionsRes.rows.filter(s => {
+            const d = new Date(s.scheduled_start);
+            return d.getDay() === targetDayOfWeek;
+        });
+
         if (futureSessions.length === 0) {
             await client.query('ROLLBACK');
-            return res.status(400).json({ error: 'No upcoming future sessions found to reschedule.' });
+            return res.status(400).json({ error: 'No upcoming future sessions found on this day of the week to reschedule.' });
         }
 
-        // Calculate shift delta from the selected session's original start
-        const timeShiftMs = new Date(new_start).getTime() - new Date(old.scheduled_start).getTime();
-        const durationMs = new Date(new_end).getTime() - new Date(new_start).getTime();
+        const newStartObj = new Date(new_start);
+        const newEndObj = new Date(new_end);
+        const durationMs = newEndObj.getTime() - newStartObj.getTime();
+        const newHours = newStartObj.getHours();
+        const newMinutes = newStartObj.getMinutes();
 
         // Check provider capacity limit
         const providerId = old.scientist_id || old.therapist_id || req.user.id;
@@ -510,18 +509,24 @@ router.post('/:id/reschedule-future', requireAuth, async (req, res) => {
         let waitlistedCount = 0;
         const results = [];
 
-        // 3. Process each future session in order
+        // 3. Process each future session on the same day of the week
         for (const fut of futureSessions) {
-            const futOldStartMs = new Date(fut.scheduled_start).getTime();
-            const futNewStart = new Date(futOldStartMs + timeShiftMs).toISOString();
-            const futNewEnd = new Date(new Date(futNewStart).getTime() + durationMs).toISOString();
+            let futNewStartObj;
+            if (fut.id === old.id) {
+                futNewStartObj = new Date(new_start);
+            } else {
+                futNewStartObj = new Date(fut.scheduled_start);
+                futNewStartObj.setHours(newHours, newMinutes, 0, 0);
+            }
+            const futNewStart = futNewStartObj.toISOString();
+            const futNewEnd = new Date(futNewStartObj.getTime() + durationMs).toISOString();
 
             // Capacity check for this target slot
             const activeRes = await client.query(`
                 SELECT id FROM sessions 
                 WHERE (therapist_id = $1 OR scientist_id = $1)
                 AND id != $4
-                AND status NOT IN ('Cancelled', 'Waitlisted', 'Rescheduled')
+                AND LOWER(status) NOT IN ('cancelled', 'waitlisted', 'rescheduled', 'deleted')
                 AND (
                     (scheduled_start <= $2 AND scheduled_end > $2) OR
                     (scheduled_start < $3 AND scheduled_end >= $3) OR
@@ -537,28 +542,18 @@ router.post('/:id/reschedule-future', requireAuth, async (req, res) => {
                 confirmedCount++;
             }
 
-            // Insert new rescheduled session
-            const newRes = await client.query(`
-                INSERT INTO sessions (
-                    organization_id, client_id, therapist_id, scientist_id, service_id, service_type, session_mode, session_notes,
-                    scheduled_start, scheduled_end, status, entitlement_id, is_unentitled, created_by, rescheduled_from_session_id
-                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
-                RETURNING id
-            `, [
-                orgId, fut.client_id, fut.therapist_id, fut.scientist_id, fut.service_id, fut.service_type, fut.session_mode || 'Individual', fut.session_notes,
-                futNewStart, futNewEnd, newStatus, fut.entitlement_id, fut.is_unentitled, req.user.id, fut.id
-            ]);
-            const newSessionId = newRes.rows[0].id;
-
-            // Mark old session as Rescheduled
+            // Update session in place on the SAME record (no duplicate rows created)
             await client.query(`
-                UPDATE sessions SET status = 'Rescheduled', rescheduled_to_session_id = $1, updated_at = CURRENT_TIMESTAMP 
-                WHERE id = $2 AND organization_id = $3
-            `, [newSessionId, fut.id, orgId]);
+                UPDATE sessions 
+                SET scheduled_start = $1, 
+                    scheduled_end = $2, 
+                    status = $3, 
+                    updated_at = CURRENT_TIMESTAMP 
+                WHERE id = $4 AND organization_id = $5
+            `, [futNewStart, futNewEnd, newStatus, fut.id, orgId]);
 
             results.push({
-                old_session_id: fut.id,
-                new_session_id: newSessionId,
+                session_id: fut.id,
                 new_start: futNewStart,
                 new_end: futNewEnd,
                 status: newStatus
@@ -1285,7 +1280,7 @@ router.get('/client/:clientId/upcoming', requireAuth, async (req, res) => {
             WHERE s.organization_id = $1 
             AND s.client_id = $2
             AND s.scheduled_start >= $3
-            AND s.status NOT IN ('Cancelled')
+            AND LOWER(s.status) NOT IN ('cancelled', 'missed', 'rescheduled', 'deleted')
             ORDER BY s.scheduled_start ASC
         `;
         const result = await db.query(query, [orgId, clientId, todayStart.toISOString()]);
@@ -1303,19 +1298,164 @@ router.post('/client/:clientId/cancel-future-plan', requireAuth, async (req, res
         const orgId = req.user.organization_id;
         const nowIso = new Date().toISOString();
 
+        // Fetch affected session records to preserve details in audit logs
+        const sessRes = await db.query(`
+            SELECT * FROM sessions 
+            WHERE organization_id = $1 
+            AND client_id = $2 
+            AND scheduled_start >= $3 
+            AND LOWER(status) NOT IN ('completed', 'cancelled', 'deleted')
+        `, [orgId, clientId, nowIso]);
+        const targetSessions = sessRes.rows;
+
         const query = `
             UPDATE sessions
-            SET status = 'Cancelled',
-                cancellation_reason = COALESCE($1, 'Entire upcoming plan cancelled'),
+            SET status = 'Deleted',
+                cancellation_reason = COALESCE($1, 'Entire upcoming plan deleted by user'),
                 updated_at = CURRENT_TIMESTAMP
             WHERE organization_id = $2
             AND client_id = $3
             AND scheduled_start >= $4
-            AND status IN ('Planned', 'Scheduled', 'SCHEDULED', 'Waitlisted')
+            AND LOWER(status) NOT IN ('completed', 'cancelled', 'deleted')
             RETURNING id
         `;
         const result = await db.query(query, [reason || null, orgId, clientId, nowIso]);
+
+        // Record audit logs for each deleted session in the plan
+        const userName = [req.user.first_name, req.user.last_name].filter(Boolean).join(" ") || req.user.email || "Specialist";
+        for (const s of targetSessions) {
+            await db.query(`
+                INSERT INTO audit_logs (organization_id, entity_type, entity_id, action, performed_by, details)
+                VALUES ($1, $2, $3, $4, $5, $6)
+            `, [
+                orgId,
+                'session',
+                s.id,
+                'DELETE_PLAN_SESSION',
+                req.user.id,
+                JSON.stringify({
+                    session_id: s.id,
+                    client_id: clientId,
+                    scheduled_start: s.scheduled_start,
+                    scheduled_end: s.scheduled_end,
+                    service_type: s.service_type,
+                    deleted_at: new Date().toISOString(),
+                    deleted_by_user_id: req.user.id,
+                    deleted_by_user_name: userName,
+                    reason: reason || "Entire upcoming plan deleted by user"
+                })
+            ]);
+        }
+
         res.json({ success: true, cancelled_count: result.rows.length, ids: result.rows.map(r => r.id) });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// DELETE single session record with internal audit logging
+router.delete('/:id', requireAuth, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { reason } = req.body || {};
+        const orgId = req.user.organization_id;
+        const userId = req.user.id;
+        const userName = [req.user.first_name, req.user.last_name].filter(Boolean).join(" ") || req.user.email || "Specialist";
+
+        // Fetch session info before deletion
+        const sessionRes = await db.query('SELECT * FROM sessions WHERE id = $1 AND organization_id = $2', [id, orgId]);
+        if (sessionRes.rows.length === 0) {
+            return res.status(404).json({ error: 'Session record not found' });
+        }
+        const sess = sessionRes.rows[0];
+
+        // Update status to Deleted
+        await db.query(`
+            UPDATE sessions 
+            SET status = 'Deleted', 
+                cancellation_reason = COALESCE($1, 'Deleted by user'),
+                updated_at = CURRENT_TIMESTAMP 
+            WHERE id = $2 AND organization_id = $3
+        `, [reason || null, id, orgId]);
+
+        // Record audit log entry preserving full deletion history for internal use
+        await db.query(`
+            INSERT INTO audit_logs (organization_id, entity_type, entity_id, action, performed_by, details)
+            VALUES ($1, $2, $3, $4, $5, $6)
+        `, [
+            orgId,
+            'session',
+            id,
+            'DELETE_SESSION',
+            userId,
+            JSON.stringify({
+                session_id: id,
+                client_id: sess.client_id,
+                scheduled_start: sess.scheduled_start,
+                scheduled_end: sess.scheduled_end,
+                service_type: sess.service_type,
+                session_mode: sess.session_mode,
+                deleted_at: new Date().toISOString(),
+                deleted_by_user_id: userId,
+                deleted_by_user_name: userName,
+                reason: reason || "Single session record deleted by user"
+            })
+        ]);
+
+        res.json({ success: true, message: 'Session record deleted successfully and logged in audit trails.' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// POST bulk delete sessions by array of IDs with audit logging
+router.post('/bulk-delete', requireAuth, async (req, res) => {
+    try {
+        const { ids, reason } = req.body;
+        const orgId = req.user.organization_id;
+        const userId = req.user.id;
+        const userName = [req.user.first_name, req.user.last_name].filter(Boolean).join(" ") || req.user.email || "Specialist";
+
+        if (!Array.isArray(ids) || ids.length === 0) {
+            return res.status(400).json({ error: 'Array of session IDs is required' });
+        }
+
+        const sessRes = await db.query(`SELECT * FROM sessions WHERE organization_id = $1 AND id = ANY($2)`, [orgId, ids]);
+        const fetchedSessions = sessRes.rows;
+
+        await db.query(`
+            UPDATE sessions 
+            SET status = 'Deleted', 
+                cancellation_reason = COALESCE($1, 'Bulk deleted by user'),
+                updated_at = CURRENT_TIMESTAMP 
+            WHERE organization_id = $2 AND id = ANY($3)
+        `, [reason || null, orgId, ids]);
+
+        for (const sess of fetchedSessions) {
+            await db.query(`
+                INSERT INTO audit_logs (organization_id, entity_type, entity_id, action, performed_by, details)
+                VALUES ($1, $2, $3, $4, $5, $6)
+            `, [
+                orgId,
+                'session',
+                sess.id,
+                'DELETE_SESSION',
+                userId,
+                JSON.stringify({
+                    session_id: sess.id,
+                    client_id: sess.client_id,
+                    scheduled_start: sess.scheduled_start,
+                    scheduled_end: sess.scheduled_end,
+                    service_type: sess.service_type,
+                    deleted_at: new Date().toISOString(),
+                    deleted_by_user_id: userId,
+                    deleted_by_user_name: userName,
+                    reason: reason || "Bulk session deletion"
+                })
+            ]);
+        }
+
+        res.json({ success: true, deleted_count: fetchedSessions.length, ids });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
