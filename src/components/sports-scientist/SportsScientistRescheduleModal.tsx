@@ -77,8 +77,8 @@ export function SportsScientistRescheduleModal({ open, onOpenChange, session, on
 
         toast({
           title: "All Future Sessions Rescheduled",
-          description: `Successfully shifted ${res?.rescheduled_count || 'all'} future sessions (${res?.confirmed_count || 0} confirmed, ${res?.waitlisted_count || 0} waitlisted).`,
-          variant: res?.waitlisted_count > 0 ? "destructive" : "default"
+          description: `Successfully shifted ${res?.rescheduled_count || 'all'} future sessions (${res?.confirmed_count || 0} confirmed).`,
+          variant: "default"
         });
       } else {
         const res = await apiFetch<any>(`/api/appointments/${session.id}/reschedule`, {
@@ -89,13 +89,19 @@ export function SportsScientistRescheduleModal({ open, onOpenChange, session, on
           })
         });
 
-        const isWaitlisted = res?.status === "Waitlisted";
+        const isSlotFull = res?.status === "Waitlisted";
+        if (isSlotFull) {
+          toast({
+            title: "Slot Full",
+            description: "This time slot is at full capacity (3/3 clients). Please choose a different time.",
+            variant: "destructive"
+          });
+          return;
+        }
         toast({
-          title: isWaitlisted ? "Placed on Waitlist" : "Session Rescheduled",
-          description: isWaitlisted
-            ? "Capacity threshold reached (3/3 max). The appointment was placed on waitlist."
-            : `Session moved to ${format(newStart, "MMM d, yyyy 'at' h:mm a")}.`,
-          variant: isWaitlisted ? "destructive" : "default"
+          title: "Session Rescheduled",
+          description: `Session moved to ${format(newStart, "MMM d, yyyy 'at' h:mm a")}.`,
+          variant: "default"
         });
       }
 
@@ -240,7 +246,7 @@ export function SportsScientistRescheduleModal({ open, onOpenChange, session, on
                   </Badge>
                 </div>
                 <p className="text-[11px] text-muted-foreground leading-snug">
-                  Sports Science sessions enforce a capacity limit of <strong>3 clients per slot</strong>. If capacity is reached, the appointment will be automatically queued on the Waitlist.
+                  Sports Science sessions have no client capacity limit per slot. Slots at full capacity cannot be booked — please choose a different time.
                 </p>
               </div>
             )}

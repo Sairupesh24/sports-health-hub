@@ -641,15 +641,20 @@ export default function AdminCalendar() {
             const clinicianObj = consultants.find((c: any) => c.id === clinicianId);
             const prof = clinicianObj?.profession?.toLowerCase();
             const r = clinicianObj?.role?.toLowerCase();
-            let limit = 1;
-            if (prof === 'physiotherapist') {
-                limit = 2;
-            } else if (prof === 'sports scientist' || r === 'sports_scientist') {
-                limit = 3;
-            }
+            const isSportsScientist = prof === 'sports scientist' || r === 'sports_scientist';
 
-            if (overlappingSessionsCount < limit) {
+            // Sports scientists have no capacity limit — always available for additional bookings.
+            if (isSportsScientist) {
                 availableCount++;
+            } else {
+                let limit = 1;
+                if (prof === 'physiotherapist') {
+                    limit = 2;
+                }
+
+                if (overlappingSessionsCount < limit) {
+                    availableCount++;
+                }
             }
         });
 

@@ -459,25 +459,36 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess, initialDa
                 const consultant = filteredConsultants.find(c => c.id === consultantId) || consultants.find(c => c.id === consultantId);
                 const prof = consultant?.profession?.toLowerCase();
                 const r = consultant?.role?.toLowerCase();
-                let limit = 1;
-                if (prof === 'physiotherapist') {
-                    limit = 2;
-                } else if (prof === 'sports scientist' || r === 'sports_scientist') {
-                    limit = 3;
-                }
+                const isSportsScientist = prof === 'sports scientist' || r === 'sports_scientist';
 
-                let status: 'available' | 'flex' | 'waitlist' = 'available';
-                if (activeBookingsCount >= limit) {
-                    status = 'waitlist';
-                }
+                // Sports scientists have no capacity limit — they can handle any number of clients per slot.
+                if (isSportsScientist) {
+                    slots.push({
+                        start: format(currentStart, "HH:mm"),
+                        end: format(currentEnd, "HH:mm"),
+                        label: `${format(currentStart, "HH:mm")} (${slotDuration}m)`,
+                        status: 'available',
+                        duration: slotDuration
+                    });
+                } else {
+                    let limit = 1;
+                    if (prof === 'physiotherapist') {
+                        limit = 2;
+                    }
 
-                slots.push({
-                    start: format(currentStart, "HH:mm"),
-                    end: format(currentEnd, "HH:mm"),
-                    label: `${format(currentStart, "HH:mm")} (${slotDuration}m)`,
-                    status,
-                    duration: slotDuration
-                });
+                    let status: 'available' | 'flex' | 'waitlist' = 'available';
+                    if (activeBookingsCount >= limit) {
+                        status = 'waitlist';
+                    }
+
+                    slots.push({
+                        start: format(currentStart, "HH:mm"),
+                        end: format(currentEnd, "HH:mm"),
+                        label: `${format(currentStart, "HH:mm")} (${slotDuration}m)`,
+                        status,
+                        duration: slotDuration
+                    });
+                }
             }
 
             currentStart = new Date(currentStart.getTime() + (slotDuration * 60000));
@@ -570,11 +581,18 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess, initialDa
             const consultant = filteredConsultants.find(c => c.id === consultantId) || consultants.find(c => c.id === consultantId);
             const prof = consultant?.profession?.toLowerCase();
             const r = consultant?.role?.toLowerCase();
+            const isSportsScientist = prof === 'sports scientist' || r === 'sports_scientist';
+
+            // Sports scientists have no capacity limit — always available regardless of booking count.
+            if (isSportsScientist) {
+                setIsAvailable(true);
+                setIsConflict(false);
+                return;
+            }
+
             let limit = 1;
             if (prof === 'physiotherapist') {
                 limit = 2;
-            } else if (prof === 'sports scientist' || r === 'sports_scientist') {
-                limit = 3;
             }
 
             if (activeBookingsCount >= limit) {
@@ -1083,10 +1101,18 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess, initialDa
                                                                 <div className="w-2 h-2 rounded-full bg-blue-500 mt-1" />
                                                                 <p className="text-[10px] leading-tight text-muted-foreground"><span className="font-bold text-blue-700">(FLEX):</span> Selected specialist is busy, but another qualified professional is available.</p>
                                                             </div>
-                                                            <div className="flex items-start gap-2">
-                                                                <div className="w-2 h-2 rounded-full bg-orange-500 mt-1" />
-                                                                <p className="text-[10px] leading-tight text-muted-foreground"><span className="font-bold text-orange-700">(WAIT):</span> All qualified specialists are busy. This session will join the waitlist.</p>
-                                                            </div>
+                                                            {(() => {
+                                                                 const selectedConsultant = filteredConsultants.find(c => c.id === consultantId) || consultants.find(c => c.id === consultantId);
+                                                                 const selectedProf = selectedConsultant?.profession?.toLowerCase();
+                                                                 const selectedRole = selectedConsultant?.role?.toLowerCase();
+                                                                 const isScientist = selectedProf === 'sports scientist' || selectedRole === 'sports_scientist';
+                                                                 return !isScientist ? (
+                                                                     <div className="flex items-start gap-2">
+                                                                         <div className="w-2 h-2 rounded-full bg-orange-500 mt-1" />
+                                                                         <p className="text-[10px] leading-tight text-muted-foreground"><span className="font-bold text-orange-700">(WAIT):</span> All qualified specialists are busy. This session will join the waitlist.</p>
+                                                                     </div>
+                                                                 ) : null;
+                                                             })()}
                                                         </div>
                                                     </div>
                                                 ) : (
@@ -1178,7 +1204,18 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess, initialDa
                     <div className="p-6 flex gap-4">
                         <Button variant="ghost" onClick={() => onOpenChange(false)} className="flex-1 h-12 uppercase text-xs font-bold">Cancel</Button>
                         <Button 
-                            onClick={handleSave} 
+                            onClick={() => {
+                                const selectedConsultant = filteredConsultants.find(c => c.id === consultantId) || consultants.find(c => c.id === consultantId);
+                                const selectedProf = selectedConsultant?.profession?.toLowerCase();
+                                const selectedRole = selectedConsultant?.role?.toLowerCase();
+                                const isScientist = selectedProf === 'sports scientist' || selectedRole === 'sports_scientist';
+                                // Sports scientists do not use waitlist — if slot is full, do nothing (button is disabled)
+                                if (!isScientist && isAvailable === false) {
+                                    handleJoinWaitlist();
+                                } else {
+                                    handleSave();
+                                }
+                            }} 
                             disabled={
                                 loading || 
                                 checkingAvailability || 
@@ -1186,11 +1223,36 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess, initialDa
                                 (isGuest && (!guestName || !guestContact)) ||
                                 !consultantId || 
                                 isAvailable === null ||
-                                (outstandingBalance > 0 && !isAcknowledged)
+                                (outstandingBalance > 0 && !isAcknowledged) ||
+                                (() => {
+                                    const selectedConsultant = filteredConsultants.find(c => c.id === consultantId) || consultants.find(c => c.id === consultantId);
+                                    const selectedProf = selectedConsultant?.profession?.toLowerCase();
+                                    const selectedRole = selectedConsultant?.role?.toLowerCase();
+                                    const isScientist = selectedProf === 'sports scientist' || selectedRole === 'sports_scientist';
+                                    return isScientist && isAvailable === false;
+                                })()
                             } 
-                            className={cn("flex-1 h-12 uppercase text-xs font-bold", isAvailable === false ? "bg-orange-600 hover:bg-orange-700" : "bg-primary")}
+                            className={cn("flex-1 h-12 uppercase text-xs font-bold", (() => {
+                                const selectedConsultant = filteredConsultants.find(c => c.id === consultantId) || consultants.find(c => c.id === consultantId);
+                                const selectedProf = selectedConsultant?.profession?.toLowerCase();
+                                const selectedRole = selectedConsultant?.role?.toLowerCase();
+                                const isScientist = selectedProf === 'sports scientist' || selectedRole === 'sports_scientist';
+                                if (isAvailable === false) {
+                                    return isScientist ? "bg-slate-400 cursor-not-allowed" : "bg-orange-600 hover:bg-orange-700";
+                                }
+                                return "bg-primary";
+                            })())}
                         >
-                            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : isAvailable === false ? "Join Waitlist" : "Confirm Booking"}
+                            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : (() => {
+                                const selectedConsultant = filteredConsultants.find(c => c.id === consultantId) || consultants.find(c => c.id === consultantId);
+                                const selectedProf = selectedConsultant?.profession?.toLowerCase();
+                                const selectedRole = selectedConsultant?.role?.toLowerCase();
+                                const isScientist = selectedProf === 'sports scientist' || selectedRole === 'sports_scientist';
+                                if (isAvailable === false) {
+                                    return isScientist ? "Slot Full" : "Join Waitlist";
+                                }
+                                return "Confirm Booking";
+                            })()}
                         </Button>
                     </div>
                 </div>

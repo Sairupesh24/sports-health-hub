@@ -422,13 +422,16 @@ export default function BookAppointment() {
                                             <AlertCircle className="w-10 h-10 text-amber-500 mb-4" />
                                             <p className="text-slate-900 font-black italic mb-2">No Available Slots</p>
                                             <p className="text-slate-400 font-medium italic text-sm text-center mb-6">{formatStaffName(selectedConsultantObj, { useFirstName: false })} is fully booked on this day.</p>
-                                            <Button 
-                                                variant="outline" 
-                                                onClick={handleJoinWaitlist}
-                                                className="rounded-2xl border-2 border-primary text-primary font-black uppercase text-[10px] tracking-widest px-8 hover:bg-primary hover:text-white transition-all"
-                                            >
-                                                Join the Active Waitlist
-                                            </Button>
+                                            {/* Sports scientists have no capacity limit and do not use a waitlist */}
+                                            {selectedConsultantObj?.profession?.toLowerCase() !== 'sports scientist' && selectedConsultantObj?.ams_role !== 'sports_scientist' && (
+                                                <Button 
+                                                    variant="outline" 
+                                                    onClick={handleJoinWaitlist}
+                                                    className="rounded-2xl border-2 border-primary text-primary font-black uppercase text-[10px] tracking-widest px-8 hover:bg-primary hover:text-white transition-all"
+                                                >
+                                                    Join the Active Waitlist
+                                                </Button>
+                                            )}
                                         </div>
                                     )}
                                 </div>

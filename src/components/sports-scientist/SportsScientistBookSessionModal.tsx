@@ -173,12 +173,17 @@ export function SportsScientistBookSessionModal({ open, onOpenChange, onSuccess 
                 }
 
                 if (sessionMode === "Individual") {
-                    sessionData.client_id = selectedClientIds[0];
+                    // Create one session record per selected client
+                    for (const clientId of selectedClientIds) {
+                        const perClientData: any = { ...sessionData, client_id: clientId };
+                        sessionsToInsert.push(perClientData);
+                    }
                 } else if (sessionMode === "Group") {
                     sessionData.group_name = groupName;
+                    sessionsToInsert.push(sessionData);
+                } else {
+                    sessionsToInsert.push(sessionData);
                 }
-                
-                sessionsToInsert.push(sessionData);
             } else {
                 // Multi-slot recurring logic
                 const limitDate = new Date(`${recurringEndDate}T23:59:59`);
@@ -215,12 +220,16 @@ export function SportsScientistBookSessionModal({ open, onOpenChange, onSuccess 
                         };
 
                         if (sessionMode === "Individual") {
-                            sessionData.client_id = selectedClientIds[0];
+                            // Create one session record per selected client for recurring too
+                            for (const clientId of selectedClientIds) {
+                                sessionsToInsert.push({ ...sessionData, client_id: clientId });
+                            }
                         } else if (sessionMode === "Group") {
                             sessionData.group_name = groupName;
+                            sessionsToInsert.push(sessionData);
+                        } else {
+                            sessionsToInsert.push(sessionData);
                         }
-
-                        sessionsToInsert.push(sessionData);
                         currentDate = addDays(currentDate, 7);
                     }
                 }
@@ -237,7 +246,13 @@ export function SportsScientistBookSessionModal({ open, onOpenChange, onSuccess 
                 })
             });
 
-            toast({ title: "Success", description: "Session booked successfully." });
+            const sessionCount = sessionsToInsert.length;
+            toast({ 
+                title: "Sessions Created", 
+                description: sessionCount === 1 
+                    ? "Session booked successfully."
+                    : `${sessionCount} sessions booked successfully.`
+            });
             onSuccess?.();
             onOpenChange(false);
             resetForm();
@@ -267,13 +282,9 @@ export function SportsScientistBookSessionModal({ open, onOpenChange, onSuccess 
     };
 
     const toggleClient = (id: string) => {
-        if (sessionMode === "Individual") {
-            setSelectedClientIds([id]);
-        } else {
-            setSelectedClientIds(prev => 
-                prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
-            );
-        }
+        setSelectedClientIds(prev =>
+            prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+        );
     };
 
     const matchedGroup = recentGroups.find(g => g.name === groupName);
@@ -308,7 +319,7 @@ export function SportsScientistBookSessionModal({ open, onOpenChange, onSuccess 
                         {/* Mode Selection - Premium Segmented Control */}
                         <div className="p-1.5 bg-slate-200/50 dark:bg-slate-900/50 rounded-2xl flex items-center gap-1">
                             <button 
-                                onClick={() => { setSessionMode("Individual"); setSelectedClientIds(selectedClientIds.slice(0, 1)); }}
+                                onClick={() => { setSessionMode("Individual"); }}
                                 className={cn(
                                     "flex-1 flex items-center justify-center gap-2 h-10 rounded-xl transition-all font-black uppercase tracking-widest text-[10px]",
                                     sessionMode === "Individual" ? "bg-white dark:bg-slate-800 text-primary shadow-sm" : "text-slate-500"
@@ -440,7 +451,7 @@ export function SportsScientistBookSessionModal({ open, onOpenChange, onSuccess 
                         {sessionMode !== "Other" && (
                             <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
                                 <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">
-                                   {sessionMode === "Individual" ? "Athlete Profile" : "Participating Athletes"}
+                                   {sessionMode === "Individual" ? "Athletes" : "Participating Athletes"}
                                 </Label>
                                 <Popover>
                                     <PopoverTrigger asChild>
@@ -458,9 +469,7 @@ export function SportsScientistBookSessionModal({ open, onOpenChange, onSuccess 
                                                         return (
                                                             <Badge key={id} variant="secondary" className="bg-primary/10 text-primary border-none py-1 px-2 font-black italic tracking-tighter">
                                                                 {c ? `${c.first_name} ${c.last_name}` : id}
-                                                                {sessionMode === "Group" && (
-                                                                    <X className="w-3 h-3 ml-1.5 cursor-pointer opacity-50 hover:opacity-100" onClick={(e) => { e.stopPropagation(); toggleClient(id); }} />
-                                                                )}
+                                                                <X className="w-3 h-3 ml-1.5 cursor-pointer opacity-50 hover:opacity-100" onClick={(e) => { e.stopPropagation(); toggleClient(id); }} />
                                                             </Badge>
                                                         );
                                                     })
@@ -480,7 +489,7 @@ export function SportsScientistBookSessionModal({ open, onOpenChange, onSuccess 
                                             <CommandList>
                                                 <CommandEmpty>No athlete found.</CommandEmpty>
                                                 <CommandGroup>
-                                                    {sessionMode === "Group" && displayedClients.length > 0 && (
+                                                    {(sessionMode === "Group" || sessionMode === "Individual") && displayedClients.length > 0 && (
                                                         <div className="p-2 border-b">
                                                             <Button 
                                                                 variant="secondary" 
@@ -539,6 +548,14 @@ export function SportsScientistBookSessionModal({ open, onOpenChange, onSuccess 
                                             <span className="font-black uppercase tracking-wider text-[10px] block mb-0.5 text-rose-700 dark:text-rose-400">Payment Overdue Notice</span>
                                             One or more selected athletes have pending payments. Please advise them to clear dues.
                                         </div>
+                                    </div>
+                                )}
+                                {sessionMode === "Individual" && selectedClientIds.length > 1 && (
+                                    <div className="mt-2.5 p-3 bg-primary/5 border border-primary/10 rounded-2xl flex items-center gap-2.5 text-xs text-primary animate-in fade-in slide-in-from-top-1">
+                                        <Users className="w-3.5 h-3.5 shrink-0" />
+                                        <p className="font-black text-[10px] uppercase tracking-wide">
+                                            {selectedClientIds.length} athletes selected — a separate session card will be created for each on the calendar.
+                                        </p>
                                     </div>
                                 )}
                             </div>
@@ -787,7 +804,11 @@ export function SportsScientistBookSessionModal({ open, onOpenChange, onSuccess 
                                 <Loader2 className="w-5 h-5 animate-spin" />
                             ) : (
                                 <div className="flex items-center gap-2">
-                                   <Plus className="w-4 h-4" /> Create Session
+                                   <Plus className="w-4 h-4" />
+                                   {sessionMode === "Individual" && selectedClientIds.length > 1
+                                       ? `Create ${selectedClientIds.length} Sessions`
+                                       : "Create Session"
+                                   }
                                 </div>
                             )}
                         </Button>

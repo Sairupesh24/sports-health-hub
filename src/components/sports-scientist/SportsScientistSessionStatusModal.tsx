@@ -133,13 +133,13 @@ export function SportsScientistSessionStatusModal({ open, onOpenChange, session,
 
             if (session.actual_start) {
                 setActualStart(format(parseISO(session.actual_start), "HH:mm"));
-            } else if (session.scheduled_start) {
-                setActualStart(format(parseISO(session.scheduled_start), "HH:mm"));
+            } else {
+                setActualStart("");
             }
             if (session.actual_end) {
                 setActualEnd(format(parseISO(session.actual_end), "HH:mm"));
-            } else if (session.scheduled_end) {
-                setActualEnd(format(parseISO(session.scheduled_end), "HH:mm"));
+            } else {
+                setActualEnd("");
             }
 
             if (editInfo.isLocked && session.status === "Planned") {
@@ -385,44 +385,44 @@ export function SportsScientistSessionStatusModal({ open, onOpenChange, session,
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="w-[95vw] max-w-[540px] max-h-[90vh] flex flex-col rounded-[2rem] p-0 overflow-hidden border border-border/80 shadow-2xl">
-                <DialogHeader className="p-6 pb-3 shrink-0 border-b border-border/40 bg-card">
-                    <DialogTitle className="text-xl font-black tracking-tight">
+            <DialogContent className="w-[94vw] max-w-[520px] max-h-[88vh] flex flex-col rounded-3xl sm:rounded-[2rem] p-0 overflow-hidden border border-border/80 shadow-2xl pointer-events-auto">
+                <DialogHeader className="p-4 sm:p-5 pb-3 shrink-0 border-b border-border/40 bg-card">
+                    <DialogTitle className="text-base sm:text-lg font-black tracking-tight">
                         {editInfo.isNextDayOrLater ? "Edit Session Timings & Details" : "Update Session Status"}
                     </DialogTitle>
-                    <DialogDescription className="text-xs text-muted-foreground font-medium">
+                    <DialogDescription className="text-[11px] sm:text-xs text-muted-foreground font-medium">
                         {editInfo.isNextDayOrLater 
                             ? "Slots scheduled from tomorrow onwards allow full timing and schedule changes." 
                             : "Manage status, notes, and attendance for this session."}
                     </DialogDescription>
                 </DialogHeader>
 
-                <div className="flex-1 overflow-y-auto p-6 space-y-4">
+                <div className="flex-1 overflow-y-auto p-3.5 sm:p-5 space-y-3 sm:space-y-4 custom-scrollbar">
                     {/* Header Notices */}
                     <div className="space-y-2">
                         {editInfo.isLocked && (
-                            <div className="flex items-start gap-2 w-full rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-700">
-                                <Lock className="w-4 h-4 mt-0.5 shrink-0" />
+                            <div className="flex items-start gap-2 w-full rounded-xl border border-slate-200 bg-slate-50 p-2.5 sm:p-3 text-[11px] sm:text-xs text-slate-700">
+                                <Lock className="w-3.5 h-3.5 sm:w-4 sm:h-4 mt-0.5 shrink-0" />
                                 <span>{editInfo.lockReason}</span>
                             </div>
                         )}
                         {editInfo.isNextDayOrLater && (
-                            <div className="flex items-start gap-2 w-full rounded-xl border border-emerald-200 bg-emerald-50/70 p-3.5 text-xs text-emerald-800 font-medium">
-                                <Clock className="w-4 h-4 mt-0.5 shrink-0 text-emerald-600" />
+                            <div className="flex items-start gap-2 w-full rounded-xl border border-emerald-200 bg-emerald-50/70 p-2.5 sm:p-3.5 text-[11px] sm:text-xs text-emerald-800 font-medium">
+                                <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 mt-0.5 shrink-0 text-emerald-600" />
                                 <span>
                                     Future session — scheduled for <strong>{format(scheduledDate, "EEE, MMM d, yyyy 'at' h:mm a")}</strong>. You can change session timings, duration, or date for slots scheduled from tomorrow onwards.
                                 </span>
                             </div>
                         )}
                         {editInfo.isToday && (
-                            <div className="flex items-start gap-2 w-full rounded-xl border border-blue-200 bg-blue-50/70 p-3.5 text-xs text-blue-800 font-medium">
-                                <Info className="w-4 h-4 mt-0.5 shrink-0 text-blue-600" />
+                            <div className="flex items-start gap-2 w-full rounded-xl border border-blue-200 bg-blue-50/70 p-2.5 sm:p-3.5 text-[11px] sm:text-xs text-blue-800 font-medium">
+                                <Info className="w-3.5 h-3.5 sm:w-4 sm:h-4 mt-0.5 shrink-0 text-blue-600" />
                                 <span>Today's session — timings are locked for today's slots. You can start/end session or record actual timings.</span>
                             </div>
                         )}
                         {session.session_mode === "Individual" && session.client?.outstanding_balance > 0 && (
-                            <div className="flex items-start gap-2 w-full rounded-xl border border-rose-200 bg-rose-50 dark:bg-rose-950/20 p-3 text-xs text-rose-800 dark:text-rose-300">
-                                <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0 text-rose-600 dark:text-rose-400" />
+                            <div className="flex items-start gap-2 w-full rounded-xl border border-rose-200 bg-rose-50 dark:bg-rose-950/20 p-2.5 sm:p-3 text-[11px] sm:text-xs text-rose-800 dark:text-rose-300">
+                                <AlertTriangle className="w-3.5 h-3.5 sm:w-4 sm:h-4 mt-0.5 shrink-0 text-rose-600 dark:text-rose-400" />
                                 <span>
                                     <strong>Payment Overdue:</strong> This athlete has pending dues.
                                 </span>
@@ -432,41 +432,41 @@ export function SportsScientistSessionStatusModal({ open, onOpenChange, session,
 
                     {/* Change Timings & Date Section (Enabled for slots scheduled from tomorrow onwards) */}
                     {editInfo.isNextDayOrLater && !editInfo.isLocked && (
-                        <div className="grid gap-3 bg-slate-50 dark:bg-slate-900/60 p-4 rounded-2xl border border-slate-200 dark:border-slate-800">
+                        <div className="grid gap-2.5 sm:gap-3 bg-slate-50 dark:bg-slate-900/60 p-3 sm:p-4 rounded-2xl border border-slate-200 dark:border-slate-800">
                             <div className="flex items-center justify-between">
-                                <Label className="font-bold text-slate-900 dark:text-slate-100 text-xs uppercase tracking-wider flex items-center gap-1.5">
-                                    <Clock className="w-4 h-4 text-primary" />
+                                <Label className="font-bold text-slate-900 dark:text-slate-100 text-[11px] sm:text-xs uppercase tracking-wider flex items-center gap-1.5">
+                                    <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary" />
                                     Change Session Timings & Date
                                 </Label>
-                                <Badge className="bg-emerald-500/10 text-emerald-600 border-none text-[9px] font-black uppercase">
+                                <Badge className="bg-emerald-500/10 text-emerald-600 border-none text-[8.5px] sm:text-[9px] font-black uppercase">
                                     Editable (Tomorrow Onwards)
                                 </Badge>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-3 pt-1">
+                            <div className="grid grid-cols-2 gap-2 sm:gap-3 pt-1">
                                 <div>
-                                    <Label className="text-xs font-bold text-slate-700 dark:text-slate-300 mb-1 block">New Date</Label>
+                                    <Label className="text-[11px] sm:text-xs font-bold text-slate-700 dark:text-slate-300 mb-1 block">New Date</Label>
                                     <Input
                                         type="date"
                                         value={rescheduledDate}
                                         onChange={(e) => setRescheduledDate(e.target.value)}
-                                        className="bg-white dark:bg-slate-900 text-xs font-bold h-10 border-slate-200 dark:border-slate-800"
+                                        className="bg-white dark:bg-slate-900 text-xs font-bold h-9 sm:h-10 border-slate-200 dark:border-slate-800"
                                     />
                                 </div>
                                 <div>
-                                    <Label className="text-xs font-bold text-slate-700 dark:text-slate-300 mb-1 block">New Start Time</Label>
+                                    <Label className="text-[11px] sm:text-xs font-bold text-slate-700 dark:text-slate-300 mb-1 block">New Start Time</Label>
                                     <Input
                                         type="time"
                                         value={rescheduledTime}
                                         onChange={(e) => setRescheduledTime(e.target.value)}
-                                        className="bg-white dark:bg-slate-900 text-xs font-bold h-10 border-slate-200 dark:border-slate-800"
+                                        className="bg-white dark:bg-slate-900 text-xs font-bold h-9 sm:h-10 border-slate-200 dark:border-slate-800"
                                     />
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-3">
+                            <div className="grid grid-cols-2 gap-2 sm:gap-3">
                                 <div>
-                                    <Label className="text-xs font-bold text-slate-700 dark:text-slate-300 mb-1 block">Duration (Minutes)</Label>
+                                    <Label className="text-[11px] sm:text-xs font-bold text-slate-700 dark:text-slate-300 mb-1 block">Duration (Mins)</Label>
                                     <Input
                                         type="number"
                                         min={15}
@@ -474,23 +474,19 @@ export function SportsScientistSessionStatusModal({ open, onOpenChange, session,
                                         step={15}
                                         value={durationMins}
                                         onChange={(e) => setDurationMins(parseInt(e.target.value) || 60)}
-                                        className="bg-white dark:bg-slate-900 text-xs font-bold h-10 border-slate-200 dark:border-slate-800"
+                                        className="bg-white dark:bg-slate-900 text-xs font-bold h-9 sm:h-10 border-slate-200 dark:border-slate-800"
                                     />
                                 </div>
 
                                 <div>
-                                    <Label className="text-xs font-bold text-slate-700 dark:text-slate-300 mb-1 block">Apply Changes To</Label>
+                                    <Label className="text-[11px] sm:text-xs font-bold text-slate-700 dark:text-slate-300 mb-1 block">Apply Changes To</Label>
                                     <Select value={rescheduleScope} onValueChange={(v: any) => setRescheduleScope(v)}>
-                                        <SelectTrigger className="bg-white dark:bg-slate-900 text-xs font-bold h-10 border-slate-200 dark:border-slate-800">
+                                        <SelectTrigger className="bg-white dark:bg-slate-900 text-xs font-bold h-9 sm:h-10 border-slate-200 dark:border-slate-800">
                                             <SelectValue />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            <SelectItem value="THIS_SESSION">Single Session Only</SelectItem>
-                                            <SelectItem value="ALL_FUTURE">
-                                                {session?.scheduled_start 
-                                                    ? `All Future ${format(parseISO(session.scheduled_start), "EEEE")} Sessions` 
-                                                    : "All Future Sessions"}
-                                            </SelectItem>
+                                            <SelectItem value="THIS_SESSION">Single Session</SelectItem>
+                                            <SelectItem value="ALL_FUTURE">All Future</SelectItem>
                                         </SelectContent>
                                     </Select>
                                 </div>
@@ -499,14 +495,14 @@ export function SportsScientistSessionStatusModal({ open, onOpenChange, session,
                     )}
 
                     {/* Session summary card */}
-                    <div className="bg-muted/40 p-4 rounded-xl text-sm space-y-2 border border-border/50">
-                        <div className="flex justify-between items-center">
+                    <div className="bg-muted/40 p-3 sm:p-4 rounded-xl text-xs space-y-1.5 sm:space-y-2 border border-border/50">
+                        <div className="flex justify-between items-center text-[11px] sm:text-xs">
                             <span className="text-muted-foreground font-medium">Type</span>
-                            <span className="font-semibold">{session.session_type?.name || session.service_type || "Sports Science"}</span>
+                            <span className="font-semibold text-right truncate ml-2">{session.session_type?.name || session.service_type || "Sports Science"}</span>
                         </div>
-                        <div className="flex justify-between items-center">
+                        <div className="flex justify-between items-center text-[11px] sm:text-xs">
                             <span className="text-muted-foreground font-medium">Athlete</span>
-                            <span className="font-semibold">
+                            <span className="font-semibold text-right truncate ml-2">
                                 {session.session_mode === "Group"
                                     ? `👥 Group: ${session.group_name}`
                                     : session.session_mode === "Other"
@@ -516,35 +512,67 @@ export function SportsScientistSessionStatusModal({ open, onOpenChange, session,
                                     : "N/A"}
                             </span>
                         </div>
-                        <div className="flex justify-between items-center">
+                        <div className="flex justify-between items-center text-[11px] sm:text-xs">
                             <span className="text-muted-foreground font-medium">Scheduled</span>
-                            <span className="font-semibold">{format(scheduledDate, "MMM d, h:mm a")} – {format(parseISO(session.scheduled_end || session.scheduled_start), "h:mm a")}</span>
+                            <span className="font-semibold text-right truncate ml-2">{format(scheduledDate, "MMM d, h:mm a")} – {format(parseISO(session.scheduled_end || session.scheduled_start), "h:mm a")}</span>
                         </div>
-                        <div className="flex justify-between items-center">
+                        <div className="flex justify-between items-center text-[11px] sm:text-xs">
                             <span className="text-muted-foreground font-medium">Current Status</span>
-                            <span className={`px-2 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wide border ${getStatusStyle(status)}`}>
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold uppercase tracking-wide border ${getStatusStyle(status)}`}>
                                 {(status === "Checked In" || status === "In Progress" || (status === "Planned" && session?.actual_start)) ? "IN PROGRESS" : status}
                             </span>
                         </div>
                     </div>
 
-                    {/* Quick Actions for Today */}
-                    {!editInfo.isLocked && editInfo.isToday && (status === "Planned" || status === "Checked In" || status === "In Progress" || (status === "Planned" && session?.actual_start)) && (
-                        <div className="grid gap-3 pt-1">
-                            {(status === "Planned" && !session?.actual_start) && (
-                                <div className="flex flex-col gap-2 w-full">
-                                    <Label className="font-semibold text-muted-foreground text-xs uppercase tracking-wider">Today's Quick Actions</Label>
-                                    <div className="flex gap-2">
-                                        <Button 
-                                            className="flex-1 bg-emerald-600 hover:bg-emerald-700 font-bold h-10" 
-                                            onClick={() => handleQuickAction("Start")}
+                    {/* Quick Actions / Actual Timings Section */}
+                    {!editInfo.isLocked && (status === "Planned" || status === "Checked In" || status === "In Progress" || (status === "Planned" && session?.actual_start)) && (
+                        <div className="grid gap-2.5 sm:gap-3 pt-1">
+                            {isPastScheduledEnd ? (
+                                /* When scheduled end time has crossed, show empty time fields for exact time entry instead of start/stop buttons */
+                                <div className="p-3.5 sm:p-4 bg-slate-50 dark:bg-slate-900/60 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2.5 sm:space-y-3">
+                                    <div className="flex flex-wrap items-center justify-between gap-1.5">
+                                        <Label className="font-bold text-slate-900 dark:text-slate-100 text-[11px] sm:text-xs uppercase tracking-wider flex items-center gap-1.5">
+                                            <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-600 shrink-0" />
+                                            Record Actual Timings
+                                        </Label>
+                                        <Badge className="bg-amber-500/10 text-amber-700 dark:text-amber-400 border-none text-[8.5px] sm:text-[9px] font-black uppercase px-2 py-0.5">
+                                            Scheduled End Passed
+                                        </Badge>
+                                    </div>
+                                    <p className="text-[10.5px] sm:text-[11px] text-muted-foreground leading-tight">
+                                        The scheduled end time has passed. Specify exact actual start and end times:
+                                    </p>
+                                    <div className="grid grid-cols-2 gap-2 sm:gap-3">
+                                        <div>
+                                            <Label className="text-[11px] sm:text-xs font-bold text-slate-700 dark:text-slate-300 mb-1 block">Actual Start *</Label>
+                                            <Input
+                                                type="time"
+                                                value={actualStart}
+                                                onChange={(e) => setActualStart(e.target.value)}
+                                                className="bg-white dark:bg-slate-900 text-xs font-bold h-9 sm:h-10 border-slate-200 dark:border-slate-800"
+                                            />
+                                        </div>
+                                        <div>
+                                            <Label className="text-[11px] sm:text-xs font-bold text-slate-700 dark:text-slate-300 mb-1 block">Actual End *</Label>
+                                            <Input
+                                                type="time"
+                                                value={actualEnd}
+                                                onChange={(e) => setActualEnd(e.target.value)}
+                                                className="bg-white dark:bg-slate-900 text-xs font-bold h-9 sm:h-10 border-slate-200 dark:border-slate-800"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="flex flex-col sm:flex-row gap-2 pt-1">
+                                        <Button
+                                            className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold h-9 sm:h-10 text-xs rounded-xl"
+                                            onClick={handleCompleteWithFreeTime}
                                             disabled={loading}
                                         >
-                                            Start Session
+                                            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Complete Session"}
                                         </Button>
-                                        <Button 
-                                            variant="outline" 
-                                            className="flex-1 border-rose-200 text-rose-700 hover:bg-rose-50 font-bold h-10"
+                                        <Button
+                                            variant="outline"
+                                            className="border-rose-200 text-rose-700 hover:bg-rose-50 font-bold h-9 sm:h-10 text-xs rounded-xl"
                                             onClick={() => handleQuickAction("Missed")}
                                             disabled={loading}
                                         >
@@ -552,56 +580,82 @@ export function SportsScientistSessionStatusModal({ open, onOpenChange, session,
                                         </Button>
                                     </div>
                                 </div>
-                            )}
-                            {(status === "Checked In" || status === "In Progress" || (status === "Planned" && session?.actual_start)) && (
-                                <div className="flex flex-col gap-2 w-full">
-                                    <div className="flex items-center justify-center gap-2 text-emerald-700 bg-emerald-50 py-2 rounded-lg font-bold border border-emerald-200 text-xs">
-                                        <Loader2 className="w-4 h-4 animate-spin" />
-                                        Session In Progress
-                                    </div>
-                                    <Button 
-                                        className="w-full bg-blue-600 hover:bg-blue-700 font-bold h-10" 
-                                        onClick={() => handleQuickAction("End")}
-                                        disabled={loading}
-                                    >
-                                        End Session
-                                    </Button>
-                                </div>
+                            ) : editInfo.isToday && (
+                                /* Scheduled end time has NOT crossed yet — show standard Start/End buttons */
+                                <>
+                                    {(status === "Planned" && !session?.actual_start) && (
+                                        <div className="flex flex-col gap-2 w-full">
+                                            <Label className="font-semibold text-muted-foreground text-[11px] sm:text-xs uppercase tracking-wider">Today's Quick Actions</Label>
+                                            <div className="flex gap-2">
+                                                <Button 
+                                                    className="flex-1 bg-emerald-600 hover:bg-emerald-700 font-bold h-9 sm:h-10 text-xs" 
+                                                    onClick={() => handleQuickAction("Start")}
+                                                    disabled={loading}
+                                                >
+                                                    Start Session
+                                                </Button>
+                                                <Button 
+                                                    variant="outline" 
+                                                    className="flex-1 border-rose-200 text-rose-700 hover:bg-rose-50 font-bold h-9 sm:h-10 text-xs"
+                                                    onClick={() => handleQuickAction("Missed")}
+                                                    disabled={loading}
+                                                >
+                                                    Mark as Missed
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    )}
+                                    {(status === "Checked In" || status === "In Progress" || (status === "Planned" && session?.actual_start)) && (
+                                        <div className="flex flex-col gap-2 w-full">
+                                            <div className="flex items-center justify-center gap-2 text-emerald-700 bg-emerald-50 py-1.5 sm:py-2 rounded-lg font-bold border border-emerald-200 text-xs">
+                                                <Loader2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-spin" />
+                                                Session In Progress
+                                            </div>
+                                            <Button 
+                                                className="w-full bg-blue-600 hover:bg-blue-700 font-bold h-9 sm:h-10 text-xs" 
+                                                onClick={() => handleQuickAction("End")}
+                                                disabled={loading}
+                                            >
+                                                End Session
+                                            </Button>
+                                        </div>
+                                    )}
+                                </>
                             )}
                         </div>
                     )}
 
                     {/* Cancellation/Missed Reason */}
                     {(status === "Missed" || status === "Cancelled") && (
-                        <div className="grid gap-2 p-4 bg-rose-50/50 rounded-xl border border-rose-200">
-                            <Label className="font-semibold text-rose-800 text-xs">Reason for {status}</Label>
+                        <div className="grid gap-2 p-3 sm:p-4 bg-rose-50/50 rounded-xl border border-rose-200">
+                            <Label className="font-semibold text-rose-800 text-[11px] sm:text-xs">Reason for {status}</Label>
                             <Textarea
                                 id="cancellationReason"
                                 placeholder={`Please provide a reason why this session was ${status.toLowerCase()}...`}
                                 value={cancellationReason}
                                 onChange={e => setCancellationReason(e.target.value)}
                                 disabled={editInfo.isLocked}
-                                className="resize-none min-h-[80px] text-sm bg-white"
+                                className="resize-none min-h-[70px] sm:min-h-[80px] text-xs sm:text-sm bg-white"
                             />
                         </div>
                     )}
 
                     {/* Session notes */}
-                    <div className="grid gap-2">
-                        <Label className="font-semibold text-xs uppercase tracking-wider text-slate-700">Session Notes / Observations</Label>
+                    <div className="grid gap-1.5 sm:gap-2">
+                        <Label className="font-semibold text-[11px] sm:text-xs uppercase tracking-wider text-slate-700">Session Notes / Observations</Label>
                         <Textarea
                             placeholder="Add post-session notes, observations, performance data..."
                             value={sessionNotes}
                             onChange={e => setSessionNotes(e.target.value)}
                             disabled={editInfo.isLocked}
-                            className="resize-none min-h-[80px] text-sm"
+                            className="resize-none min-h-[70px] sm:min-h-[80px] text-xs sm:text-sm"
                         />
                     </div>
 
                     <Button
                         onClick={handleSave}
                         disabled={loading || editInfo.isLocked || autoMissing}
-                        className="w-full h-11 font-bold rounded-xl shadow-md bg-primary hover:bg-primary/90 text-white"
+                        className="w-full h-10 sm:h-11 font-bold text-xs sm:text-sm rounded-xl shadow-md bg-primary hover:bg-primary/90 text-white"
                     >
                         {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                         {editInfo.isLocked ? "Session Locked" : "Save Changes"}

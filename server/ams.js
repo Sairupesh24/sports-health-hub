@@ -429,27 +429,29 @@ router.post('/sessions/bulk', requireAuth, async (req, res) => {
                 const profession = provider?.profession?.toLowerCase();
                 const amsRole = provider?.ams_role?.toLowerCase();
 
-                let capacityLimit = 1;
-                if (profession === 'physiotherapist') {
-                    capacityLimit = 2;
-                } else if (profession === 'sports scientist' || amsRole === 'sports_scientist') {
-                    capacityLimit = 3;
-                }
+                // Sports scientists have no capacity limit — they can take any number of clients per slot.
+                const isSportsScientist = profession === 'sports scientist' || amsRole === 'sports_scientist';
+                if (!isSportsScientist) {
+                    let capacityLimit = 1;
+                    if (profession === 'physiotherapist') {
+                        capacityLimit = 2;
+                    }
 
-                const activeRes = await client.query(`
-                    SELECT id FROM sessions 
-                    WHERE (therapist_id = $1 OR scientist_id = $1)
-                    AND status != 'Cancelled'
-                    AND status != 'Waitlisted'
-                    AND (
-                        (scheduled_start <= $2 AND scheduled_end > $2) OR
-                        (scheduled_start < $3 AND scheduled_end >= $3) OR
-                        (scheduled_start >= $2 AND scheduled_end <= $3)
-                    )
-                `, [provider_id, session.scheduled_start, session.scheduled_end]);
+                    const activeRes = await client.query(`
+                        SELECT id FROM sessions 
+                        WHERE (therapist_id = $1 OR scientist_id = $1)
+                        AND status != 'Cancelled'
+                        AND status != 'Waitlisted'
+                        AND (
+                            (scheduled_start <= $2 AND scheduled_end > $2) OR
+                            (scheduled_start < $3 AND scheduled_end >= $3) OR
+                            (scheduled_start >= $2 AND scheduled_end <= $3)
+                        )
+                    `, [provider_id, session.scheduled_start, session.scheduled_end]);
 
-                if (activeRes.rows.length >= capacityLimit) {
-                    session.status = 'Waitlisted';
+                    if (activeRes.rows.length >= capacityLimit) {
+                        session.status = 'Waitlisted';
+                    }
                 }
             }
 

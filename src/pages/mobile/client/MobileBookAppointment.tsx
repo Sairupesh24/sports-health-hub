@@ -324,13 +324,16 @@ export default function MobileBookAppointment() {
                             <div className="flex flex-col items-center justify-center p-8 bg-white/5 rounded-3xl border border-dashed border-white/10 text-center">
                                 <AlertCircle className="w-8 h-8 text-amber-500 mb-3" />
                                 <p className="text-white font-black italic text-sm mb-4">No Slots Available</p>
-                                <Button 
-                                    variant="outline" 
-                                    onClick={handleJoinWaitlist}
-                                    className="rounded-2xl border-primary text-primary font-black uppercase text-[10px] tracking-widest px-6"
-                                >
-                                    Join Waitlist
-                                </Button>
+                                {/* Sports scientists have no capacity limit and do not use a waitlist */}
+                                {selectedConsultantObj?.profession?.toLowerCase() !== 'sports scientist' && selectedConsultantObj?.ams_role !== 'sports_scientist' && (
+                                    <Button 
+                                        variant="outline" 
+                                        onClick={handleJoinWaitlist}
+                                        className="rounded-2xl border-primary text-primary font-black uppercase text-[10px] tracking-widest px-6"
+                                    >
+                                        Join Waitlist
+                                    </Button>
+                                )}
                             </div>
                         )}
 

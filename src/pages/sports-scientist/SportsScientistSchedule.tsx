@@ -34,7 +34,8 @@ import {
     Edit,
     Clock,
     Users,
-    User
+    User,
+    ChevronDown
 } from "lucide-react";
 import { SportsScientistBookSessionModal } from "@/components/sports-scientist/SportsScientistBookSessionModal";
 import { SportsScientistSessionStatusModal } from "@/components/sports-scientist/SportsScientistSessionStatusModal";
@@ -54,6 +55,9 @@ export default function SportsScientistSchedule() {
     const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
     const [selectedSession, setSelectedSession] = useState<any>(null);
     const [activeTab, setActiveTab] = useState(location.pathname.includes("/sessions") ? "log" : "calendar");
+    // Tracks which week-view day columns are NOT yet scrolled to their bottom
+    const [weekColOverflows, setWeekColOverflows] = useState<Record<string, boolean>>({});
+    const [weekColAtBottom, setWeekColAtBottom] = useState<Record<string, boolean>>({});
 
     useEffect(() => {
         if (location.pathname.includes("/sessions")) {
@@ -300,52 +304,84 @@ export default function SportsScientistSchedule() {
                                     </span>
                                 </div>
 
-                                {/* Events List */}
-                                <div className="space-y-2.5 mt-4 overflow-y-auto max-h-[380px] no-scrollbar">
-                                    {dayEvents.length === 0 ? (
-                                        <div className="text-center py-16 text-slate-300 dark:text-slate-700 text-[10px] uppercase font-black tracking-wider italic">
-                                            Empty
-                                        </div>
-                                    ) : (
-                                        dayEvents.map(event => {
-                                            const startD = parseISO(event.scheduled_start);
-                                            const endD = parseISO(event.scheduled_end);
+                                {/* Events List with scroll-more indicator */}
+                                <div className="relative mt-4">
+                                    <div
+                                        className="space-y-2.5 overflow-y-auto max-h-[380px] no-scrollbar"
+                                        ref={(el) => {
+                                            if (el) {
+                                                // On mount, detect if overflow exists
+                                                const dayKey = day.toString();
+                                                const hasOverflow = el.scrollHeight > el.clientHeight;
+                                                if (hasOverflow !== weekColOverflows[dayKey]) {
+                                                    setWeekColOverflows(prev => ({ ...prev, [dayKey]: hasOverflow }));
+                                                }
+                                            }
+                                        }}
+                                        onScroll={(e) => {
+                                            const el = e.currentTarget;
+                                            const dayKey = day.toString();
+                                            const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 8;
+                                            setWeekColAtBottom(prev => ({ ...prev, [dayKey]: atBottom }));
+                                        }}
+                                    >
+                                        {dayEvents.length === 0 ? (
+                                            <div className="text-center py-16 text-slate-300 dark:text-slate-700 text-[10px] uppercase font-black tracking-wider italic">
+                                                Empty
+                                            </div>
+                                        ) : (
+                                            dayEvents.map(event => {
+                                                const startD = parseISO(event.scheduled_start);
+                                                const endD = parseISO(event.scheduled_end);
 
-                                            const rawName = event.session_mode === 'Group'
-                                                ? event.group_name
-                                                : event.session_mode === 'Other'
-                                                    ? event.session_type?.name
-                                                    : `${event.client?.first_name || ''} ${event.client?.last_name || ''}`.trim();
+                                                const rawName = event.session_mode === 'Group'
+                                                    ? event.group_name
+                                                    : event.session_mode === 'Other'
+                                                        ? event.session_type?.name
+                                                        : `${event.client?.first_name || ''} ${event.client?.last_name || ''}`.trim();
 
-                                            const serviceName = event.session_type?.name || event.service_type;
+                                                const serviceName = event.session_type?.name || event.service_type;
 
-                                            return (
-                                                <div
-                                                    key={event.id}
-                                                    onClick={() => setSelectedSession(event)}
-                                                    className={cn(
-                                                        "group rounded-xl p-2 border cursor-pointer transition-all hover:scale-[1.02] hover:shadow-md flex flex-col justify-between text-center",
-                                                        getStatusColor(event)
-                                                    )}
-                                                >
-                                                    <div>
-                                                        <div className="text-[9px] font-semibold text-slate-600 dark:text-slate-300 tracking-tighter leading-none mb-1">
-                                                            {format(startD, "h:mm a")} - {format(endD, "h:mm a")}
+                                                return (
+                                                    <div
+                                                        key={event.id}
+                                                        onClick={() => setSelectedSession(event)}
+                                                        className={cn(
+                                                            "group rounded-xl p-2 border cursor-pointer transition-all hover:scale-[1.02] hover:shadow-md flex flex-col justify-between text-center",
+                                                            getStatusColor(event)
+                                                        )}
+                                                    >
+                                                        <div>
+                                                            <div className="text-[9px] font-semibold text-slate-600 dark:text-slate-300 tracking-tighter leading-none mb-1">
+                                                                {format(startD, "h:mm a")} - {format(endD, "h:mm a")}
+                                                            </div>
+                                                            <div className="text-[10px] font-bold leading-tight text-slate-900 dark:text-white group-hover:text-primary transition-colors break-words line-clamp-2">
+                                                                {event.session_mode === 'Group' && "👥 "}
+                                                                {event.session_mode === 'Other' && "🏢 "}
+                                                                {rawName}
+                                                            </div>
                                                         </div>
-                                                        <div className="text-[10px] font-bold leading-tight text-slate-900 dark:text-white group-hover:text-primary transition-colors break-words line-clamp-2">
-                                                            {event.session_mode === 'Group' && "👥 "}
-                                                            {event.session_mode === 'Other' && "🏢 "}
-                                                            {rawName}
-                                                        </div>
+                                                        {serviceName && event.session_mode !== 'Other' && (
+                                                            <div className="text-[8.5px] font-medium text-slate-500 dark:text-slate-400 truncate mt-1 pt-1 border-t border-slate-200/50 dark:border-slate-800/50">
+                                                                {serviceName}
+                                                            </div>
+                                                        )}
                                                     </div>
-                                                    {serviceName && event.session_mode !== 'Other' && (
-                                                        <div className="text-[8.5px] font-medium text-slate-500 dark:text-slate-400 truncate mt-1 pt-1 border-t border-slate-200/50 dark:border-slate-800/50">
-                                                            {serviceName}
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            );
-                                        })
+                                                );
+                                            })
+                                        )}
+                                    </div>
+
+                                    {/* Scroll-more indicator: shows when overflow exists and not yet at bottom */}
+                                    {weekColOverflows[day.toString()] && !weekColAtBottom[day.toString()] && (
+                                        <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-14 flex flex-col items-center justify-end pb-1" style={{ background: isToday ? 'linear-gradient(to top, rgba(var(--primary-rgb, 99,102,241),0.12) 0%, transparent 100%)' : 'linear-gradient(to top, rgba(100,116,139,0.18) 0%, transparent 100%)' }}>
+                                            <ChevronDown
+                                                className={cn(
+                                                    "w-5 h-5 animate-bounce drop-shadow-md",
+                                                    isToday ? "text-primary" : "text-slate-700 dark:text-white"
+                                                )}
+                                            />
+                                        </div>
                                     )}
                                 </div>
                             </div>
@@ -367,117 +403,121 @@ export default function SportsScientistSchedule() {
         const dayEvents = (sessions as any[]).filter(s => isSameDay(startOfDay(parseISO(s.scheduled_start)), startOfDay(currentDate)));
 
         return (
-            <div className="flex border border-border/50 rounded-3xl overflow-hidden bg-card shadow-sm h-[700px]">
-                <div className="w-24 shrink-0 border-r border-border/50 bg-muted/5 sticky left-0 z-20 overflow-y-auto no-scrollbar">
-                    {hours.map(hour => (
-                        <div key={hour} className="h-24 border-b border-border/50/50 text-[11px] text-muted-foreground text-center pt-3 font-bold uppercase tracking-widest">
-                            {hour > 12 ? `${hour - 12} PM` : hour === 12 ? '12 PM' : `${hour} AM`}
-                        </div>
-                    ))}
-                </div>
-
-                <div className="flex-1 relative overflow-y-auto no-scrollbar bg-white/50 dark:bg-slate-950/20">
-                    <div className="absolute inset-0">
+            <div className="border border-border/50 rounded-3xl overflow-hidden bg-card shadow-sm h-[700px] overflow-y-auto no-scrollbar">
+                <div className="flex min-h-full">
+                    {/* Time labels — sticky to left, scrolls with the outer container */}
+                    <div className="w-24 shrink-0 border-r border-border/50 bg-muted/5 sticky left-0 z-20">
                         {hours.map(hour => (
-                            <div key={`grid-${hour}`} className="h-24 border-b border-border/50/50"></div>
+                            <div key={hour} className="h-24 border-b border-border/50/50 text-[11px] text-muted-foreground text-center pt-3 font-bold uppercase tracking-widest">
+                                {hour > 12 ? `${hour - 12} PM` : hour === 12 ? '12 PM' : `${hour} AM`}
+                            </div>
                         ))}
                     </div>
 
-                    <div className="absolute inset-0 relative px-4">
-                        {dayEvents.length === 0 ? (
-                            <div className="h-full flex flex-col items-center justify-center text-muted-foreground opacity-50 space-y-2">
-                                <CalendarIcon className="w-8 h-8" />
-                                <p className="font-medium">No sessions scheduled for today</p>
-                            </div>
-                        ) : (
-                            dayEvents.map(event => {
-                                const startD = parseISO(event.scheduled_start);
-                                const endD = parseISO(event.scheduled_end);
-                                const startHour = startD.getHours() + (startD.getMinutes() / 60);
-                                const durationHours = (endD.getTime() - startD.getTime()) / (1000 * 60 * 60);
+                    {/* Events panel — no independent scroll, flows with the outer container */}
+                    <div className="flex-1 relative bg-white/50 dark:bg-slate-950/20">
+                        <div className="absolute inset-0">
+                            {hours.map(hour => (
+                                <div key={`grid-${hour}`} className="h-24 border-b border-border/50/50"></div>
+                            ))}
+                        </div>
 
-                                const topPos = Math.max(0, (startHour - 7) * 100);
-                                const height = Math.max(60, durationHours * 100);
+                        <div className="absolute inset-0 relative px-4">
+                            {dayEvents.length === 0 ? (
+                                <div className="h-full flex flex-col items-center justify-center text-muted-foreground opacity-50 space-y-2">
+                                    <CalendarIcon className="w-8 h-8" />
+                                    <p className="font-medium">No sessions scheduled for today</p>
+                                </div>
+                            ) : (
+                                dayEvents.map(event => {
+                                    const startD = parseISO(event.scheduled_start);
+                                    const endD = parseISO(event.scheduled_end);
+                                    const startHour = startD.getHours() + (startD.getMinutes() / 60);
+                                    const durationHours = (endD.getTime() - startD.getTime()) / (1000 * 60 * 60);
 
-                                if (startHour > 21 || endD.getHours() < 7) return null;
+                                    const topPos = Math.max(0, (startHour - 7) * 100);
+                                    const height = Math.max(60, durationHours * 100);
 
-                                // Overlap / stack calculations
-                                const eventStart = startD.getTime();
-                                const eventEnd = endD.getTime();
-                                const overlapping = dayEvents.filter((s: any) => {
-                                    const sStart = parseISO(s.scheduled_start).getTime();
-                                    const sEnd = parseISO(s.scheduled_end).getTime();
-                                    return eventStart < sEnd && eventEnd > sStart;
-                                });
+                                    if (startHour > 21 || endD.getHours() < 7) return null;
 
-                                const stackCount = overlapping.length;
-                                const stackIndex = overlapping.findIndex((s: any) => s.id === event.id);
+                                    // Overlap / stack calculations
+                                    const eventStart = startD.getTime();
+                                    const eventEnd = endD.getTime();
+                                    const overlapping = dayEvents.filter((s: any) => {
+                                        const sStart = parseISO(s.scheduled_start).getTime();
+                                        const sEnd = parseISO(s.scheduled_end).getTime();
+                                        return eventStart < sEnd && eventEnd > sStart;
+                                    });
 
-                                const cardHeight = height / (stackCount || 1);
-                                const cardTop = topPos + (stackIndex !== -1 ? stackIndex * cardHeight : 0);
-                                const isStacked = stackCount > 1;
+                                    const stackCount = overlapping.length;
+                                    const stackIndex = overlapping.findIndex((s: any) => s.id === event.id);
 
-                                return (
-                                    <div
-                                        key={event.id}
-                                        onClick={() => setSelectedSession(event)}
-                                        className={cn(
-                                            "absolute left-4 right-4 rounded-2xl border-2 p-3 overflow-hidden shadow-md hover:shadow-xl cursor-pointer transition-all hover:scale-[1.01] hover:z-30 group flex flex-col justify-center",
-                                            getStatusColor(event)
-                                        )}
-                                        style={{ top: `${cardTop + 4}px`, height: `${cardHeight - 8}px` }}
-                                    >
-                                        {isStacked ? (
-                                            <div className="flex flex-col justify-center h-full min-w-0">
-                                                <div className="flex items-center justify-between gap-1 w-full text-[10px]">
-                                                    <div className="font-bold truncate flex-1 leading-none">
-                                                        {event.session_mode === 'Group' ? (
-                                                            <span>👥 {event.group_name || 'Group'}</span>
-                                                        ) : event.session_mode === 'Other' ? (
-                                                            <span>🏢 {event.session_type?.name}</span>
-                                                        ) : (
-                                                            <span>{event.client?.first_name} {event.client?.last_name || ''} ({event.client?.uhid || '-'})</span>
-                                                        )}
-                                                    </div>
-                                                    <span className="opacity-75 font-semibold shrink-0 leading-none">
-                                                        {event.session_type?.name || "Session"}
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        ) : (
-                                            <div className="flex justify-between items-start">
-                                                <div className="space-y-1">
-                                                    <div className="flex items-center gap-2">
-                                                        <span className="text-xs font-bold px-2 py-0.5 bg-white/50 dark:bg-slate-800/80 rounded-full border border-current shadow-sm">
-                                                            {format(startD, "HH:mm")} - {format(endD, "HH:mm")}
-                                                        </span>
-                                                        {event.session_mode === 'Group' && (
-                                                            <span className="text-[10px] font-black uppercase tracking-widest bg-primary/10 px-2 py-0.5 rounded-full">Group</span>
-                                                        )}
-                                                    </div>
-                                                    <h3 className="text-lg font-display font-bold leading-tight mt-1 group-hover:text-primary transition-colors">
-                                                        {event.session_mode === 'Group' ? `👥 ${event.group_name}` : event.session_mode === 'Other' ? `🏢 ${event.session_type?.name}` : `${event.client?.first_name} ${event.client?.last_name}`}
-                                                    </h3>
-                                                    <div className="flex items-center gap-4 text-xs font-medium opacity-70">
-                                                        <span className="flex items-center gap-1.5 capitalize">
-                                                            <div className="w-1.5 h-1.5 rounded-full bg-current" />
+                                    const cardHeight = height / (stackCount || 1);
+                                    const cardTop = topPos + (stackIndex !== -1 ? stackIndex * cardHeight : 0);
+                                    const isStacked = stackCount > 1;
+
+                                    return (
+                                        <div
+                                            key={event.id}
+                                            onClick={() => setSelectedSession(event)}
+                                            className={cn(
+                                                "absolute left-4 right-4 rounded-2xl border-2 p-3 overflow-hidden shadow-md hover:shadow-xl cursor-pointer transition-all hover:scale-[1.01] hover:z-30 group flex flex-col justify-center",
+                                                getStatusColor(event)
+                                            )}
+                                            style={{ top: `${cardTop + 4}px`, height: `${cardHeight - 8}px` }}
+                                        >
+                                            {isStacked ? (
+                                                <div className="flex flex-col justify-center h-full min-w-0">
+                                                    <div className="flex items-center justify-between gap-1 w-full text-[10px]">
+                                                        <div className="font-bold truncate flex-1 leading-none">
+                                                            {event.session_mode === 'Group' ? (
+                                                                <span>👥 {event.group_name || 'Group'}</span>
+                                                            ) : event.session_mode === 'Other' ? (
+                                                                <span>🏢 {event.session_type?.name}</span>
+                                                            ) : (
+                                                                <span>{event.client?.first_name} {event.client?.last_name || ''} ({event.client?.uhid || '-'})</span>
+                                                            )}
+                                                        </div>
+                                                        <span className="opacity-75 font-semibold shrink-0 leading-none">
                                                             {event.session_type?.name || "Session"}
                                                         </span>
-                                                        <span className="flex items-center gap-1.5">
-                                                            <div className="w-1.5 h-1.5 rounded-full bg-current" />
-                                                            {(event.status === "Checked In" || (event.status === "Planned" && event.actual_start)) ? "In Progress" : event.status}
-                                                        </span>
                                                     </div>
                                                 </div>
-                                                <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-                                                    <Button size="sm" variant="outline" className="h-8 rounded-lg bg-background/50 border-current/20 hover:bg-background">View Details</Button>
+                                            ) : (
+                                                <div className="flex justify-between items-start">
+                                                    <div className="space-y-1">
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="text-xs font-bold px-2 py-0.5 bg-white/50 dark:bg-slate-800/80 rounded-full border border-current shadow-sm">
+                                                                {format(startD, "HH:mm")} - {format(endD, "HH:mm")}
+                                                            </span>
+                                                            {event.session_mode === 'Group' && (
+                                                                <span className="text-[10px] font-black uppercase tracking-widest bg-primary/10 px-2 py-0.5 rounded-full">Group</span>
+                                                            )}
+                                                        </div>
+                                                        <h3 className="text-lg font-display font-bold leading-tight mt-1 group-hover:text-primary transition-colors">
+                                                            {event.session_mode === 'Group' ? `👥 ${event.group_name}` : event.session_mode === 'Other' ? `🏢 ${event.session_type?.name}` : `${event.client?.first_name} ${event.client?.last_name}`}
+                                                        </h3>
+                                                        <div className="flex items-center gap-4 text-xs font-medium opacity-70">
+                                                            <span className="flex items-center gap-1.5 capitalize">
+                                                                <div className="w-1.5 h-1.5 rounded-full bg-current" />
+                                                                {event.session_type?.name || "Session"}
+                                                            </span>
+                                                            <span className="flex items-center gap-1.5">
+                                                                <div className="w-1.5 h-1.5 rounded-full bg-current" />
+                                                                {(event.status === "Checked In" || (event.status === "Planned" && event.actual_start)) ? "In Progress" : event.status}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                    <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                                                        <Button size="sm" variant="outline" className="h-8 rounded-lg bg-background/50 border-current/20 hover:bg-background">View Details</Button>
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        )}
-                                    </div>
-                                )
-                            })
-                        )}
+                                            )}
+                                        </div>
+                                    )
+                                })
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>
