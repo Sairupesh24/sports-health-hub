@@ -399,6 +399,10 @@ router.get('/employees/directory', requireAuth, async (req, res) => {
 router.get('/attendance/today', requireAuth, async (req, res) => {
     try {
         const userId = req.user.id;
+        const orgId = req.user.organization_id;
+        if (orgId) {
+            await runAutoCheckout(orgId);
+        }
         const today = new Date().toISOString().split('T')[0];
         
         const result = await db.query(`
@@ -419,6 +423,9 @@ router.get('/attendance/today', requireAuth, async (req, res) => {
 router.get('/attendance/all', requireAuth, async (req, res) => {
     try {
         const orgId = req.user.organization_id;
+        if (orgId) {
+            await runAutoCheckout(orgId);
+        }
         const result = await db.query(`
             SELECT a.*, 
                    json_build_object(
@@ -1424,117 +1431,114 @@ router.post('/staff-schedules', requireAuth, async (req, res) => {
  * Track which (org_id, date) pairs have already been auto-checked-out today
  * so we never double-process the same day for the same org.
  */
-const autoCheckoutProcessed = new Set();
-
 /**
  * Core auto-checkout function.
- * @param {string|null} targetOrgId - If provided, only process that org. Otherwise all orgs.
+ * Enforces auto clock-out after the org's default shift end time.
+ * If a user clocks in and forgets to clock out, the system automatically
+ * creates a check_out log at the default shift end time (default_checkout_time).
+ *
+ * @param {string|null} targetOrgId - Optional org ID to target.
  * @returns {Promise<{ processed: number }>}
  */
 async function runAutoCheckout(targetOrgId = null) {
-    const todayDate = new Date().toISOString().split('T')[0]; // "YYYY-MM-DD"
-    const nowTime   = new Date().toTimeString().substring(0, 8); // "HH:MM:SS"
-
     try {
-        // 1. Fetch all orgs (or a specific one) with their default_checkout_time
         let orgsResult;
         if (targetOrgId) {
             orgsResult = await db.query(
-                `SELECT id, default_checkout_time FROM organizations WHERE id = $1 AND status = 'active'`,
+                `SELECT id, default_checkout_time, default_shift_end_time FROM organizations WHERE id = $1 AND status = 'active'`,
                 [targetOrgId]
             );
         } else {
             orgsResult = await db.query(
-                `SELECT id, default_checkout_time FROM organizations WHERE status = 'active'`
+                `SELECT id, default_checkout_time, default_shift_end_time FROM organizations WHERE status = 'active'`
             );
         }
 
         let totalProcessed = 0;
+        const now = new Date();
 
         for (const org of orgsResult.rows) {
             const orgId = org.id;
-            const defaultCheckoutTime = org.default_checkout_time || '22:00:00';
+            const timeVal = org.default_shift_end_time || org.default_checkout_time;
+            let defaultCheckoutTimeStr = '18:00';
+            if (timeVal) {
+                if (typeof timeVal === 'string') {
+                    defaultCheckoutTimeStr = timeVal.substring(0, 5);
+                } else if (timeVal instanceof Date) {
+                    defaultCheckoutTimeStr = timeVal.toTimeString().substring(0, 5);
+                }
+            }
 
-            // Only run if current time has passed the org's default checkout time
-            if (nowTime < defaultCheckoutTime) continue;
-
-            // Only process each (org, date) once per day
-            const cacheKey = `${orgId}_${todayDate}`;
-            if (autoCheckoutProcessed.has(cacheKey)) continue;
-
-            // 2. Find all users checked in today with NO check_out after their last check_in
+            // Find all check_in logs for this org that have NO corresponding check_out log after them
             const stuckResult = await db.query(`
-                SELECT DISTINCT ON (a.profile_id)
-                    a.profile_id,
-                    a.latitude,
-                    a.longitude,
-                    a.distance_from_center,
-                    a.created_at AS checkin_time
+                SELECT a.id AS checkin_id,
+                       a.profile_id,
+                       a.latitude,
+                       a.longitude,
+                       a.distance_from_center,
+                       a.created_at AS checkin_time
                 FROM hrattendancelogs a
                 WHERE a.organization_id = $1
                   AND a.type = 'check_in'
-                  AND DATE(a.created_at) = $2::date
                   AND NOT EXISTS (
                       SELECT 1 FROM hrattendancelogs b
                       WHERE b.profile_id = a.profile_id
                         AND b.organization_id = a.organization_id
-                        AND b.type = 'check_out'
-                        AND DATE(b.created_at) = $2::date
+                        AND (b.type = 'check_out' OR b.type = 'emergency_leave')
                         AND b.created_at > a.created_at
                   )
-                ORDER BY a.profile_id, a.created_at DESC
-            `, [orgId, todayDate]);
-
-            if (stuckResult.rows.length === 0) {
-                // Mark as processed even if nobody needed checkout (prevents re-checking)
-                autoCheckoutProcessed.add(cacheKey);
-                continue;
-            }
-
-            // 3. Insert auto check_out for each stuck user
-            const autoCheckoutTime = `${todayDate}T${defaultCheckoutTime}`;
-            const remark = `Auto clock-out applied. Staff did not manually check out. Default checkout time (${defaultCheckoutTime.substring(0, 5)}) was used.`;
+                ORDER BY a.created_at ASC
+            `, [orgId]);
 
             for (const row of stuckResult.rows) {
-                const autoMetadata = {
-                    auto_checkout:        true,
-                    remark,
-                    default_checkout_time: defaultCheckoutTime.substring(0, 5),
-                    original_checkin_time: row.checkin_time,
-                };
+                const checkinDate = new Date(row.checkin_time);
+                // Extract local date YYYY-MM-DD in Asia/Kolkata timezone
+                const localDateStr = checkinDate.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
 
-                await db.query(`
-                    INSERT INTO hrattendancelogs (
-                        organization_id,
-                        profile_id,
-                        type,
-                        latitude,
-                        longitude,
-                        distance_from_center,
-                        is_within_geofence,
-                        metadata,
+                // Construct ISO timestamp for shift end in IST (+05:30)
+                const autoCheckoutIso = new Date(`${localDateStr}T${defaultCheckoutTimeStr}:00+05:30`).toISOString();
+                const autoCheckoutDate = new Date(autoCheckoutIso);
+
+                // If current time has passed the default shift end time for this check-in:
+                if (now >= autoCheckoutDate) {
+                    const remark = `Auto clock-out applied. Staff did not manually check out. Default shift end time (${defaultCheckoutTimeStr}) was enforced.`;
+                    const autoMetadata = {
+                        auto_checkout: true,
                         remark,
-                        created_at
-                    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::timestamptz)
-                `, [
-                    orgId,
-                    row.profile_id,
-                    'check_out',
-                    row.latitude,
-                    row.longitude,
-                    row.distance_from_center,
-                    true,
-                    JSON.stringify(autoMetadata),
-                    remark,
-                    autoCheckoutTime
-                ]);
+                        default_checkout_time: defaultCheckoutTimeStr,
+                        original_checkin_time: row.checkin_time,
+                    };
 
-                totalProcessed++;
-                console.log(`[AUTO-CHECKOUT] Org ${orgId} | User ${row.profile_id} auto-checked-out at ${defaultCheckoutTime}`);
+                    await db.query(`
+                        INSERT INTO hrattendancelogs (
+                            organization_id,
+                            profile_id,
+                            type,
+                            latitude,
+                            longitude,
+                            distance_from_center,
+                            is_within_geofence,
+                            metadata,
+                            remark,
+                            created_at
+                        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::timestamptz)
+                    `, [
+                        orgId,
+                        row.profile_id,
+                        'check_out',
+                        row.latitude,
+                        row.longitude,
+                        row.distance_from_center,
+                        true,
+                        JSON.stringify(autoMetadata),
+                        remark,
+                        autoCheckoutIso
+                    ]);
+
+                    totalProcessed++;
+                    console.log(`[AUTO-CHECKOUT] Org ${orgId} | User ${row.profile_id} auto-checked-out for date ${localDateStr} at ${defaultCheckoutTimeStr}`);
+                }
             }
-
-            // Mark this (org, date) pair as done for the day
-            autoCheckoutProcessed.add(cacheKey);
         }
 
         return { processed: totalProcessed };
@@ -1556,16 +1560,7 @@ router.post('/attendance/auto-checkout', requireAuth, async (req, res) => {
 });
 
 // ── Scheduler — runs every 60 seconds ─────────────────────────────────────────
-// Resets the processed-set at midnight so orgs are re-evaluated each day.
 setInterval(async () => {
-    const nowHHMM = new Date().toTimeString().substring(0, 5); // "HH:MM"
-
-    // Clear the processed cache at midnight (00:00 – 00:01 window)
-    if (nowHHMM >= '00:00' && nowHHMM <= '00:01') {
-        autoCheckoutProcessed.clear();
-        console.log('[AUTO-CHECKOUT] Midnight reset: cleared processed cache.');
-    }
-
     await runAutoCheckout();
 }, 60_000);
 

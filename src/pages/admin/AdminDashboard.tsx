@@ -203,7 +203,7 @@ export default function AdminDashboard() {
 
     const stats = [
         { title: "Active Clients", value: metrics?.uniqueClients || 0, change: "in selected period", changeType: "neutral" as const, icon: Users },
-        { title: "Today's Sessions", value: metrics?.totalSessions || 0, change: "in selected period", changeType: "neutral" as const, icon: Calendar },
+        { title: "Sessions", value: metrics?.totalSessions || 0, change: "in selected period", changeType: "neutral" as const, icon: Calendar },
         { title: "Revenue", value: `₹${(metrics?.totalRevenue || 0).toLocaleString()}`, change: "in selected period", changeType: "positive" as const, icon: CreditCard },
         { title: "Patients Waiting", value: waitingTodayCount, change: notifiedWaitlist.length > 0 ? `${notifiedWaitlist.length} Notified (Action)` : "No queue", changeType: (notifiedWaitlist.length > 0 ? "positive" : "neutral") as "positive" | "neutral", icon: Bell, className: notifiedWaitlist.length > 0 ? "animate-bounce" : "" },
     ];

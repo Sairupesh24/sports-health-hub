@@ -11,7 +11,6 @@ import { format, startOfDay, differenceInCalendarDays, parseISO, isFuture, isBef
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/contexts/AuthContext";
 import { Badge } from "@/components/ui/badge";
-import { SportsScientistRescheduleModal } from "@/components/sports-scientist/SportsScientistRescheduleModal";
 
 interface Props {
     open: boolean;
@@ -80,10 +79,10 @@ export function SportsScientistSessionStatusModal({ open, onOpenChange, session,
     const [rescheduledTime, setRescheduledTime] = useState("");
     const [durationMins, setDurationMins] = useState<number>(60);
     const [rescheduleScope, setRescheduleScope] = useState<"THIS_SESSION" | "ALL_FUTURE">("THIS_SESSION");
+    const [showRescheduleControls, setShowRescheduleControls] = useState(false);
 
     const [attendees, setAttendees] = useState<any[]>([]);
     const [attendeesLoading, setAttendeesLoading] = useState(false);
-    const [isRescheduleModalOpen, setIsRescheduleModalOpen] = useState(false);
 
     const editInfo = getSessionEditability(session);
     const scheduledEnd = session?.scheduled_end ? parseISO(session.scheduled_end) : (session?.scheduled_start ? parseISO(session.scheduled_start) : new Date());
@@ -388,12 +387,10 @@ export function SportsScientistSessionStatusModal({ open, onOpenChange, session,
             <DialogContent className="w-[94vw] max-w-[520px] max-h-[88vh] flex flex-col rounded-3xl sm:rounded-[2rem] p-0 overflow-hidden border border-border/80 shadow-2xl pointer-events-auto">
                 <DialogHeader className="p-4 sm:p-5 pb-3 shrink-0 border-b border-border/40 bg-card">
                     <DialogTitle className="text-base sm:text-lg font-black tracking-tight">
-                        {editInfo.isNextDayOrLater ? "Edit Session Timings & Details" : "Update Session Status"}
+                        Update Session Status
                     </DialogTitle>
                     <DialogDescription className="text-[11px] sm:text-xs text-muted-foreground font-medium">
-                        {editInfo.isNextDayOrLater 
-                            ? "Slots scheduled from tomorrow onwards allow full timing and schedule changes." 
-                            : "Manage status, notes, and attendance for this session."}
+                        Manage status, notes, and attendance for this session.
                     </DialogDescription>
                 </DialogHeader>
 
@@ -410,7 +407,7 @@ export function SportsScientistSessionStatusModal({ open, onOpenChange, session,
                             <div className="flex items-start gap-2 w-full rounded-xl border border-emerald-200 bg-emerald-50/70 p-2.5 sm:p-3.5 text-[11px] sm:text-xs text-emerald-800 font-medium">
                                 <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 mt-0.5 shrink-0 text-emerald-600" />
                                 <span>
-                                    Future session — scheduled for <strong>{format(scheduledDate, "EEE, MMM d, yyyy 'at' h:mm a")}</strong>. You can change session timings, duration, or date for slots scheduled from tomorrow onwards.
+                                    Future session — scheduled for <strong>{format(scheduledDate, "EEE, MMM d, yyyy 'at' h:mm a")}</strong>. Click <strong>Reschedule Session</strong> below to change date or time.
                                 </span>
                             </div>
                         )}
@@ -430,17 +427,59 @@ export function SportsScientistSessionStatusModal({ open, onOpenChange, session,
                         )}
                     </div>
 
-                    {/* Change Timings & Date Section (Enabled for slots scheduled from tomorrow onwards) */}
+                    {/* Session summary / Slot details card */}
+                    <div className="bg-muted/40 p-3 sm:p-4 rounded-xl text-xs space-y-1.5 sm:space-y-2 border border-border/50">
+                        <div className="flex justify-between items-center text-[11px] sm:text-xs">
+                            <span className="text-muted-foreground font-medium">Type</span>
+                            <span className="font-semibold text-right truncate ml-2">{session.session_type?.name || session.service_type || "Sports Science"}</span>
+                        </div>
+                        <div className="flex justify-between items-center text-[11px] sm:text-xs">
+                            <span className="text-muted-foreground font-medium">Athlete</span>
+                            <span className="font-semibold text-right truncate ml-2">
+                                {session.session_mode === "Group"
+                                    ? `👥 Group: ${session.group_name}`
+                                    : session.session_mode === "Other"
+                                    ? `🏢 Internal: ${session.session_type?.name}`
+                                    : session.client?.first_name
+                                    ? `${session.client.first_name} ${session.client.last_name}`
+                                    : "N/A"}
+                            </span>
+                        </div>
+                        <div className="flex justify-between items-center text-[11px] sm:text-xs">
+                            <span className="text-muted-foreground font-medium">Scheduled</span>
+                            <span className="font-semibold text-right truncate ml-2">{format(scheduledDate, "MMM d, h:mm a")} – {format(parseISO(session.scheduled_end || session.scheduled_start), "h:mm a")}</span>
+                        </div>
+                        <div className="flex justify-between items-center text-[11px] sm:text-xs">
+                            <span className="text-muted-foreground font-medium">Current Status</span>
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold uppercase tracking-wide border ${getStatusStyle(status)}`}>
+                                {(status === "Checked In" || status === "In Progress" || (status === "Planned" && session?.actual_start)) ? "IN PROGRESS" : status}
+                            </span>
+                        </div>
+                    </div>
+
+                    {/* Reschedule Button placed directly under Slot Details Card (Only for future sessions) */}
                     {editInfo.isNextDayOrLater && !editInfo.isLocked && (
-                        <div className="grid gap-2.5 sm:gap-3 bg-slate-50 dark:bg-slate-900/60 p-3 sm:p-4 rounded-2xl border border-slate-200 dark:border-slate-800">
-                            <div className="flex items-center justify-between">
+                        <div className="pt-0.5">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                className="w-full h-10 border-emerald-300 dark:border-emerald-700 bg-emerald-50/70 hover:bg-emerald-100/90 text-emerald-800 dark:text-emerald-300 font-bold text-xs gap-2 rounded-xl shadow-sm transition-all"
+                                onClick={() => setShowRescheduleControls(prev => !prev)}
+                            >
+                                <Calendar className="w-4 h-4 text-emerald-600 shrink-0" />
+                                {showRescheduleControls ? "Hide Reschedule Form" : "Reschedule Session"}
+                            </Button>
+                        </div>
+                    )}
+
+                    {/* Change Timings & Date Section (Hidden unless user explicitly clicks Reschedule Session button) */}
+                    {editInfo.isNextDayOrLater && !editInfo.isLocked && showRescheduleControls && (
+                        <div className="grid gap-2.5 sm:gap-3 bg-slate-50 dark:bg-slate-900/60 p-3 sm:p-4 rounded-2xl border border-slate-200 dark:border-slate-800 animate-in slide-in-from-top-2">
+                            <div className="flex items-center justify-between gap-2">
                                 <Label className="font-bold text-slate-900 dark:text-slate-100 text-[11px] sm:text-xs uppercase tracking-wider flex items-center gap-1.5">
-                                    <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary" />
-                                    Change Session Timings & Date
+                                    <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary" />
+                                    Reschedule Session & Timings
                                 </Label>
-                                <Badge className="bg-emerald-500/10 text-emerald-600 border-none text-[8.5px] sm:text-[9px] font-black uppercase">
-                                    Editable (Tomorrow Onwards)
-                                </Badge>
                             </div>
 
                             <div className="grid grid-cols-2 gap-2 sm:gap-3 pt-1">
@@ -493,36 +532,6 @@ export function SportsScientistSessionStatusModal({ open, onOpenChange, session,
                             </div>
                         </div>
                     )}
-
-                    {/* Session summary card */}
-                    <div className="bg-muted/40 p-3 sm:p-4 rounded-xl text-xs space-y-1.5 sm:space-y-2 border border-border/50">
-                        <div className="flex justify-between items-center text-[11px] sm:text-xs">
-                            <span className="text-muted-foreground font-medium">Type</span>
-                            <span className="font-semibold text-right truncate ml-2">{session.session_type?.name || session.service_type || "Sports Science"}</span>
-                        </div>
-                        <div className="flex justify-between items-center text-[11px] sm:text-xs">
-                            <span className="text-muted-foreground font-medium">Athlete</span>
-                            <span className="font-semibold text-right truncate ml-2">
-                                {session.session_mode === "Group"
-                                    ? `👥 Group: ${session.group_name}`
-                                    : session.session_mode === "Other"
-                                    ? `🏢 Internal: ${session.session_type?.name}`
-                                    : session.client?.first_name
-                                    ? `${session.client.first_name} ${session.client.last_name}`
-                                    : "N/A"}
-                            </span>
-                        </div>
-                        <div className="flex justify-between items-center text-[11px] sm:text-xs">
-                            <span className="text-muted-foreground font-medium">Scheduled</span>
-                            <span className="font-semibold text-right truncate ml-2">{format(scheduledDate, "MMM d, h:mm a")} – {format(parseISO(session.scheduled_end || session.scheduled_start), "h:mm a")}</span>
-                        </div>
-                        <div className="flex justify-between items-center text-[11px] sm:text-xs">
-                            <span className="text-muted-foreground font-medium">Current Status</span>
-                            <span className={`px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold uppercase tracking-wide border ${getStatusStyle(status)}`}>
-                                {(status === "Checked In" || status === "In Progress" || (status === "Planned" && session?.actual_start)) ? "IN PROGRESS" : status}
-                            </span>
-                        </div>
-                    </div>
 
                     {/* Quick Actions / Actual Timings Section */}
                     {!editInfo.isLocked && (status === "Planned" || status === "Checked In" || status === "In Progress" || (status === "Planned" && session?.actual_start)) && (

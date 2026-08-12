@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { format, parseISO, isSameDay, isBefore } from "date-fns";
+import { format, parseISO, isSameDay, isBefore, isAfter } from "date-fns";
 import { 
     Users, 
     Calendar, 
@@ -46,10 +46,11 @@ export default function SportsScientistDashboard() {
         e.stopPropagation();
         if (!session?.id) return;
 
-        if (!isSameDay(parseISO(session.scheduled_start), new Date())) {
+        const scheduledStart = parseISO(session.scheduled_start);
+        if (isAfter(scheduledStart, new Date())) {
             toast({
                 title: "Action Not Allowed",
-                description: `Sessions can only be ended on their scheduled day. This session is scheduled for ${format(parseISO(session.scheduled_start), "MMM d, yyyy")}.`,
+                description: `Future sessions cannot be completed before their scheduled time.`,
                 variant: "destructive"
             });
             return;

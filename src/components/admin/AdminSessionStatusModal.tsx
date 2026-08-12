@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { apiFetch } from "@/utils/api";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, AlertTriangle, CheckCircle, ClipboardList, RefreshCw, Clock, Check, UserCheck } from "lucide-react";
-import { format } from "date-fns";
+import { format, startOfDay, differenceInCalendarDays, addDays } from "date-fns";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
@@ -233,7 +233,15 @@ export function AdminSessionStatusModal({ open, onOpenChange, session, onSuccess
     // Derived guards
     const sessionDate = session ? new Date(session.scheduled_start) : null;
     const now = new Date();
-    const isFutureSession = sessionDate ? sessionDate > now : false;
+    const todayStart = startOfDay(now);
+    const sessionDay = sessionDate ? startOfDay(sessionDate) : todayStart;
+    const daysFromToday = differenceInCalendarDays(sessionDay, todayStart);
+
+    // Future session: scheduled for TOMORROW OR LATER (daysFromToday > 0)
+    const isFutureSession = daysFromToday > 0;
+    const isTodaySession = daysFromToday === 0;
+    const isPastSession = daysFromToday < 0;
+
     const isLocked = (session?.status === "Completed" && session?.actual_end && (now.getTime() - new Date(session.actual_end).getTime()) > 24 * 60 * 60 * 1000) || 
                      session?.status === "Cancelled" || 
                      session?.status === "Rescheduled" ||
@@ -596,11 +604,18 @@ export function AdminSessionStatusModal({ open, onOpenChange, session, onSuccess
                                         <SelectItem value="Planned">Planned</SelectItem>
                                         <SelectItem value="Checked In">Checked In</SelectItem>
                                         <SelectItem value="Completed" disabled={isFutureSession}>Completed</SelectItem>
-                                        <SelectItem value="Rescheduled" disabled={session.status !== "Planned"}>Rescheduled</SelectItem>
+                                        <SelectItem value="Rescheduled" disabled={!isFutureSession || session.status !== "Planned"}>
+                                            {isFutureSession ? "Rescheduled" : "Rescheduled (Future Sessions Only)"}
+                                        </SelectItem>
                                         <SelectItem value="Reassigned" disabled={!["Planned", "Checked In"].includes(session.status)}>Reassigned</SelectItem>
                                         <SelectItem value="Cancelled">Cancelled</SelectItem>
                                     </SelectContent>
                                 </Select>
+                                {isTodaySession && (
+                                    <p className="text-[11px] text-amber-700 dark:text-amber-400 font-medium bg-amber-50 dark:bg-amber-950/30 p-2.5 rounded-xl border border-amber-200 dark:border-amber-800 mt-1">
+                                        ⚠️ Rescheduling is only available for future sessions (tomorrow onwards). Today's sessions cannot be rescheduled.
+                                    </p>
+                                )}
                             </div>
 
                             {status === "Cancelled" && (

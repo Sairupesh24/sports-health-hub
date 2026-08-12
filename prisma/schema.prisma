@@ -328,8 +328,8 @@ model Client {
   externalTrainingSummary                     ExternalTrainingSummary[]
   formResponses                               FormResponse[]
   groupAttendance                             GroupAttendance[]
-  nutritionAssessments                        NutritionAssessment[]
   injuries                                    Injury[]
+  nutritionAssessments                        NutritionAssessment[]
   performanceAssessments                      PerformanceAssessment[]
   refunds                                     Refund[]
   scientificResources                         ScientificResource[]
@@ -746,10 +746,12 @@ model Organization {
   allowedIps                       String?                          @map("allowed_ips")
   allowCustomDuration              Boolean?                         @default(false) @map("allow_custom_duration")
   defaultSlotDuration              Int?                             @default(60) @map("default_slot_duration")
-  defaultCheckoutTime              DateTime?                        @default(dbgenerated("'22:00:00'::time without time zone")) @map("default_checkout_time") @db.Time(6)
+  defaultCheckoutTime              DateTime?                        @default(dbgenerated("'18:00:00'::time without time zone")) @map("default_checkout_time") @db.Time(6)
+  default_shift_end_time           DateTime?                        @default(dbgenerated("'18:00:00'::time without time zone")) @db.Time(6)
+  activityTrackerAutomations       ActivityTrackerAutomation[]
   athleteItemLogs                  AthleteItemLog[]
   athleteWorkoutCompletions        AthleteWorkoutCompletion[]
-  activityTrackerAutomations       ActivityTrackerAutomation[]
+  audit_logs                       audit_logs[]
   availabilityexceptions           AvailabilityException[]
   billitems                        BillItem[]
   billpayments                     BillPayment[]
@@ -771,6 +773,7 @@ model Organization {
   formResponses                    FormResponse[]
   hrEmployees                      HrEmployee[]
   hrJobs                           HrJob[]
+  hr_leave_balances                hr_leave_balances[]
   hrattendancelogs                 HrAttendanceLog[]
   hrleaves                         HrLeave[]
   injuries                         Injury[]
@@ -896,11 +899,11 @@ model Profile {
   emergencyAlerts                            EmergencyAlert[]
   formResponses                              FormResponse[]
   hrEmployees                                HrEmployee?
+  hr_leave_balances                          hr_leave_balances[]
   hrattendancelogs                           HrAttendanceLog[]
   hrleavesHrleavesApprovedByToprofiles       HrLeave[]                  @relation("hrleaves_approved_byToprofiles")
   hrleavesHrleavesEmployeeIdToprofiles       HrLeave[]                  @relation("hrleaves_employee_idToprofiles")
   notifications                              Notification[]
-  nutritionAssessments                       NutritionAssessment[]
   performanceAssessments                     PerformanceAssessment[]
   users                                      User                       @relation(fields: [id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   organizations                              Organization?              @relation(fields: [organizationId], references: [id], onUpdate: NoAction)
@@ -1102,10 +1105,6 @@ model Session {
   enquiry_id                              String?              @db.Uuid
   rescheduledFromSessionId                String?              @map("rescheduled_from_session_id") @db.Uuid
   rescheduledToSessionId                  String?              @map("rescheduled_to_session_id") @db.Uuid
-  rescheduledFromSession                  Session?             @relation("SessionRescheduledFrom", fields: [rescheduledFromSessionId], references: [id], onDelete: SetNull, onUpdate: NoAction)
-  rescheduledToSessions                   Session[]            @relation("SessionRescheduledFrom")
-  rescheduledToSession                    Session?             @relation("SessionRescheduledTo", fields: [rescheduledToSessionId], references: [id], onDelete: SetNull, onUpdate: NoAction)
-  rescheduledFromSessions                 Session[]            @relation("SessionRescheduledTo")
   groupAttendance                         GroupAttendance[]
   physiosessiondetails                    PhysioSessionDetail?
   clients                                 Client?              @relation(fields: [clientId], references: [id], onDelete: Cascade, onUpdate: NoAction)
@@ -1113,6 +1112,10 @@ model Session {
   enquiries                               Enquiry?             @relation(fields: [enquiry_id], references: [id], onUpdate: NoAction)
   cliententitlements                      ClientEntitlement?   @relation(fields: [entitlementId], references: [id], onUpdate: NoAction)
   organizations                           Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  rescheduledFromSession                  Session?             @relation("SessionRescheduledFrom", fields: [rescheduledFromSessionId], references: [id], onUpdate: NoAction)
+  rescheduledToSessions                   Session[]            @relation("SessionRescheduledFrom")
+  rescheduledToSession                    Session?             @relation("SessionRescheduledTo", fields: [rescheduledToSessionId], references: [id], onUpdate: NoAction)
+  rescheduledFromSessions                 Session[]            @relation("SessionRescheduledTo")
   profilesSessionsScientistIdToprofiles   Profile?             @relation("sessions_scientist_idToprofiles", fields: [scientistId], references: [id], onUpdate: NoAction)
   servicesSessionsServiceIdToservices     Service?             @relation("sessions_service_idToservices", fields: [serviceId], references: [id], onUpdate: NoAction)
   servicesSessionsSessionTypeIdToservices Service?             @relation("sessions_session_type_idToservices", fields: [sessionTypeId], references: [id], onUpdate: NoAction)
@@ -1210,6 +1213,7 @@ model User {
   createdAt                                 DateTime?                  @default(now()) @map("created_at") @db.Timestamptz(6)
   athleteItemLogs                           AthleteItemLog[]
   athleteWorkoutCompletions                 AthleteWorkoutCompletion[]
+  audit_logs                                audit_logs[]
   authsessions                              AuthSession[]
   bills                                     Bill[]
   clientAssessmentReports                   ClientAssessmentReport[]
@@ -1224,6 +1228,7 @@ model User {
   maxPrRecords                              MaxPrRecord[]
   notificationReads                         NotificationRead[]
   notifications                             Notification[]
+  nutritionAssessments                      NutritionAssessment[]
   profiles                                  Profile?
   programAssignments                        ProgramAssignment[]
   questionnaires                            Questionnaire[]
@@ -1317,50 +1322,50 @@ model recurring_questionnaires {
 }
 
 model NutritionAssessment {
-  id                        String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  clientId                  String        @map("client_id") @db.Uuid
-  organizationId            String        @map("organization_id") @db.Uuid
-  nutritionistId            String?       @map("nutritionist_id") @db.Uuid
-  name                      String?
-  age                       Int?
-  gender                    String?
-  profession                String?
-  clientType                String?       @default("athlete") @map("client_type")
-  sport                     String?
-  position                  String?
-  trainingAge               String?       @map("training_age")
-  competitionLevel          String?       @map("competition_level")
-  exercise                  Boolean?
-  exerciseDuration          String?       @map("exercise_duration")
-  trainingSessionsCount     String?       @map("training_sessions_count")
-  exerciseType              String?       @map("exercise_type")
-  heightCm                  Decimal?      @map("height_cm") @db.Decimal
-  weightKg                  Decimal?      @map("weight_kg") @db.Decimal
-  bodyFatPct                Decimal?      @map("body_fat_pct") @db.Decimal
-  muscleMassKg              Decimal?      @map("muscle_mass_kg") @db.Decimal
-  bmi                       Decimal?      @db.Decimal
-  complaints                String?
-  biochemicalInterpretations String?     @map("biochemical_interpretations")
-  medicalHistory            String?       @map("medical_history")
-  otherMedications          String?       @map("other_medications")
-  allergiesIntolerances     Json?         @default("[]") @map("allergies_intolerances")
-  dietaryPreference         String?       @default("Non-Vegetarian") @map("dietary_preference")
-  sleepDurationHours        Decimal?      @map("sleep_duration_hours") @db.Decimal
-  dailyFluidIntakeL         Decimal?      @map("daily_fluid_intake_l") @db.Decimal
-  timelineRecall            Json?         @default("{}") @map("timeline_recall")
-  session1                  Json?         @default("{}") @map("session_1")
-  session2                  Json?         @default("{}") @map("session_2")
-  supplements               Json?         @default("[]")
-  observations              String?
-  goal                      String?
-  advicePrescription        String?       @map("advice_prescription")
-  takenBy                   String?       @map("taken_by")
-  assessmentDate            DateTime?     @default(now()) @map("assessment_date") @db.Date
-  createdAt                 DateTime?     @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt                 DateTime?     @default(now()) @map("updated_at") @db.Timestamptz(6)
-  clients                   Client        @relation(fields: [clientId], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  organizations             Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  profiles                  Profile?      @relation(fields: [nutritionistId], references: [id], onUpdate: NoAction)
+  id                         String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  clientId                   String?       @map("client_id") @db.Uuid
+  organizationId             String?       @map("organization_id") @db.Uuid
+  nutritionistId             String?       @map("nutritionist_id") @db.Uuid
+  name                       String?
+  age                        Int?
+  gender                     String?
+  profession                 String?
+  clientType                 String?       @default("athlete") @map("client_type")
+  sport                      String?
+  position                   String?
+  trainingAge                String?       @map("training_age")
+  competitionLevel           String?       @map("competition_level")
+  exercise                   Boolean?      @default(true)
+  exerciseDuration           String?       @map("exercise_duration")
+  trainingSessionsCount      Int?          @map("training_sessions_count")
+  exerciseType               String?       @map("exercise_type")
+  heightCm                   Decimal?      @map("height_cm") @db.Decimal
+  weightKg                   Decimal?      @map("weight_kg") @db.Decimal
+  bodyFatPct                 Decimal?      @map("body_fat_pct") @db.Decimal
+  muscleMassKg               Decimal?      @map("muscle_mass_kg") @db.Decimal
+  bmi                        Decimal?      @db.Decimal
+  complaints                 String?
+  biochemicalInterpretations String?       @map("biochemical_interpretations")
+  medicalHistory             String?       @map("medical_history")
+  otherMedications           String?       @map("other_medications")
+  allergiesIntolerances      Json?         @default("[]") @map("allergies_intolerances")
+  dietaryPreference          String?       @default("Non-Vegetarian") @map("dietary_preference")
+  sleepDurationHours         Decimal?      @map("sleep_duration_hours") @db.Decimal
+  dailyFluidIntakeL          Decimal?      @map("daily_fluid_intake_l") @db.Decimal
+  timelineRecall             Json?         @default("{}") @map("timeline_recall")
+  session1                   Json?         @default("{}") @map("session_1")
+  session2                   Json?         @default("{}") @map("session_2")
+  supplements                Json?         @default("[]")
+  observations               String?
+  goal                       String?
+  advicePrescription         String?       @map("advice_prescription")
+  takenBy                    String?       @map("taken_by")
+  assessmentDate             DateTime?     @default(now()) @map("assessment_date") @db.Timestamptz(6)
+  createdAt                  DateTime?     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt                  DateTime?     @default(now()) @map("updated_at") @db.Timestamptz(6)
+  clients                    Client?       @relation(fields: [clientId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  profiles                   User?         @relation(fields: [nutritionistId], references: [id], onUpdate: NoAction)
+  organizations              Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@map("nutrition_assessments")
 }
@@ -1368,12 +1373,12 @@ model NutritionAssessment {
 model UserAppActivity {
   id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   userId        String    @map("user_id") @db.Uuid
-  date          DateTime  @default(now()) @db.Date
+  date          DateTime  @default(dbgenerated("CURRENT_DATE")) @db.Date
   activeSeconds Int       @default(0) @map("active_seconds")
   lastPing      DateTime? @default(now()) @map("last_ping") @db.Timestamptz(6)
   users         User      @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
-  @@unique([userId, date])
+  @@unique([userId, date], map: "unique_user_date")
   @@map("user_app_activity")
 }
 
@@ -1389,4 +1394,33 @@ model ActivityTrackerAutomation {
   organizations   Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@map("activity_tracker_automation")
+}
+
+model audit_logs {
+  id              String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id String?       @db.Uuid
+  entity_type     String
+  entity_id       String        @db.Uuid
+  action          String
+  performed_by    String?       @db.Uuid
+  details         Json?         @default("{}")
+  created_at      DateTime?     @default(now()) @db.Timestamptz(6)
+  organizations   Organization? @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users           User?         @relation(fields: [performed_by], references: [id], onUpdate: NoAction)
+}
+
+model hr_leave_balances {
+  id              String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id String       @db.Uuid
+  employee_id     String       @db.Uuid
+  casual_leave    Int?         @default(12)
+  sick_leave      Int?         @default(4)
+  paid_leave      Int?         @default(0)
+  emergency_leave Int?         @default(0)
+  created_at      DateTime?    @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime?    @default(now()) @db.Timestamptz(6)
+  profiles        Profile      @relation(fields: [employee_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  organizations   Organization @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([organization_id, employee_id], map: "unique_org_employee_leave_balance")
 }

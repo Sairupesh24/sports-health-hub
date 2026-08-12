@@ -8,6 +8,9 @@ const router = express.Router();
 router.get('/', requireAuth, async (req, res) => {
     try {
         const orgId = req.user.organization_id;
+        if (orgId) {
+            await autoCompleteStartedSessions(orgId);
+        }
         const { start, end, therapist_id, scientist_id, specialist_id, client_id, status, is_unentitled, category } = req.query;
         let query = `
             SELECT s.id, s.organization_id, s.client_id, s.scientist_id, s.entitlement_id, s.service_id, s.service_type, s.session_mode, s.scheduled_start, s.scheduled_end, s.actual_start, s.actual_end, s.status, s.cancellation_reason, s.is_unentitled, s.preference_type, s.is_flexible_routing, s.created_by, s.created_at, s.updated_at, s.group_name, s.session_location, s.session_notes, s.attachments, s.session_type_id,
@@ -238,12 +241,10 @@ router.post('/:id/complete', requireAuth, async (req, res) => {
 
         if (session.status === 'Completed') throw new Error('Session already completed');
 
-        // Verify session is not in the future or locked (older than 1 day)
-        const scheduledDay = Date.parse(new Date(session.scheduled_start).toISOString().split('T')[0]);
-        const todayDay = Date.parse(new Date().toISOString().split('T')[0]);
-        const diffDays = Math.round((todayDay - scheduledDay) / (1000 * 60 * 60 * 24));
-        if (diffDays < 0 || diffDays >= 2) {
-            throw new Error(`Sessions can only be completed on their scheduled day or within 24 hours.`);
+        // Verify session is not in the future
+        const scheduledStart = new Date(session.scheduled_start);
+        if (scheduledStart > new Date()) {
+            throw new Error(`Future sessions cannot be completed.`);
         }
 
         // 2. Try to find an entitlement if not already linked
@@ -1541,5 +1542,84 @@ router.post('/bulk-edit', requireAuth, async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 });
+
+/**
+ * Auto-completes any started sessions that were never stopped
+ * once 60 minutes have elapsed since actual_start (or scheduled_start).
+ */
+export async function autoCompleteStartedSessions(targetOrgId = null) {
+    try {
+        const queryText = `
+            SELECT s.id, s.organization_id, s.client_id, s.service_type, s.scheduled_start, s.scheduled_end, s.actual_start, s.entitlement_id, s.is_unentitled
+            FROM sessions s
+            WHERE s.status IN ('Checked In', 'IN_PROGRESS', 'In Progress', 'Planned')
+              AND (s.actual_start IS NOT NULL OR s.status IN ('Checked In', 'IN_PROGRESS', 'In Progress'))
+              AND NOW() >= (COALESCE(s.actual_start, s.scheduled_start) + INTERVAL '60 minutes')
+              ${targetOrgId ? 'AND s.organization_id = $1' : ''}
+        `;
+        const params = targetOrgId ? [targetOrgId] : [];
+        const unendedSessions = await db.query(queryText, params);
+
+        let completedCount = 0;
+
+        for (const session of unendedSessions.rows) {
+            const startTimestamp = session.actual_start || session.scheduled_start;
+            const startDate = new Date(startTimestamp);
+            const autoEndDate = new Date(startDate.getTime() + 60 * 60 * 1000);
+            const actualEndIso = autoEndDate.toISOString();
+            const actualStartIso = startDate.toISOString();
+
+            let entitlementId = session.entitlement_id;
+            let isUnentitled = session.is_unentitled;
+
+            if (!entitlementId && !isUnentitled && session.client_id && session.service_type && session.organization_id) {
+                const entRes = await db.query(`
+                    SELECT id FROM cliententitlements 
+                    WHERE client_id = $1 AND organization_id = $2 
+                    AND service_type = $3 AND status = 'active' AND (granted_sessions - sessions_used) > 0
+                    LIMIT 1
+                `, [session.client_id, session.organization_id, session.service_type]);
+
+                if (entRes.rows.length > 0) {
+                    entitlementId = entRes.rows[0].id;
+                } else {
+                    isUnentitled = true;
+                }
+            }
+
+            await db.query(`
+                UPDATE sessions 
+                SET status = 'Completed',
+                    actual_start = $1,
+                    actual_end = $2,
+                    entitlement_id = $3,
+                    is_unentitled = $4,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE id = $5
+            `, [actualStartIso, actualEndIso, entitlementId, isUnentitled, session.id]);
+
+            if (entitlementId) {
+                await db.query(`
+                    UPDATE cliententitlements 
+                    SET sessions_used = sessions_used + 1,
+                        updated_at = CURRENT_TIMESTAMP
+                    WHERE id = $1
+                `, [entitlementId]);
+            }
+
+            completedCount++;
+            console.log(`[AUTO-COMPLETE-SESSION] Session ${session.id} (Org: ${session.organization_id}) auto-completed after 60 mins elapsed.`);
+        }
+
+        return { completed: completedCount };
+    } catch (err) {
+        console.error('[AUTO-COMPLETE-SESSION] Error:', err.message);
+        return { completed: 0, error: err.message };
+    }
+}
+
+setInterval(async () => {
+    await autoCompleteStartedSessions();
+}, 60_000);
 
 export default router;

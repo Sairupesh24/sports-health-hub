@@ -154,7 +154,7 @@ export default function DailyLogs() {
             if (log.type === 'missed_check_out') {
               hasMissedCO = true;
               // Fallback to shift end time
-              const shiftEnd = orgSettings?.default_shift_end_time || "18:00:00";
+              const shiftEnd = log.metadata?.default_checkout_time || orgSettings?.default_shift_end_time || orgSettings?.default_checkout_time || "18:00:00";
               const [h, m, s] = shiftEnd.split(':').map(Number);
               const fallbackEnd = new Date(start);
               fallbackEnd.setHours(h, m, s || 0);
@@ -172,16 +172,18 @@ export default function DailyLogs() {
       if (currentCheckIn) {
         const start = parseISO(currentCheckIn.created_at);
         const isToday = isSameDay(date, new Date());
-        
-        // Only apply fallback for past days. For today, keep it open.
-        if (!isToday) {
-          const shiftEnd = orgSettings?.default_shift_end_time || "18:00:00";
-          const [h, m, s] = shiftEnd.split(':').map(Number);
-          const fallbackEnd = new Date(start);
-          fallbackEnd.setHours(h, m, s || 0);
-          
+        const shiftEnd = currentCheckIn.metadata?.default_checkout_time || orgSettings?.default_shift_end_time || orgSettings?.default_checkout_time || "18:00:00";
+        const [h, m, s] = shiftEnd.split(':').map(Number);
+        const fallbackEnd = new Date(start);
+        fallbackEnd.setHours(h, m, s || 0);
+
+        const now = new Date();
+
+        // If it's a past day, OR for today if current time has passed default shift end time:
+        if (!isToday || now >= fallbackEnd) {
           totalMinutes += Math.max(0, differenceInMinutes(fallbackEnd, start));
           sessions.push({ in: start, out: fallbackEnd, type: 'auto_closed' });
+          hasAutoCheckout = true;
         } else {
           sessions.push({ in: start, out: undefined, type: 'running' });
         }

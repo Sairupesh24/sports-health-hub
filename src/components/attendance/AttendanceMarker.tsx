@@ -139,7 +139,7 @@ export default function AttendanceMarker() {
           // Detect if the latest check_out was an auto-checkout
           const lastCheckout = data.find((l: any) => l.type === 'check_out');
           if (lastCheckout?.metadata?.auto_checkout === true) {
-            const checkoutTime = lastCheckout.metadata.default_checkout_time || '22:00';
+            const checkoutTime = lastCheckout.metadata.default_checkout_time || '18:00';
             const remark = lastCheckout.metadata.remark ||
               `Auto clock-out applied at ${checkoutTime}. Manual check-out was not recorded.`;
             setAutoCheckoutInfo({ time: checkoutTime, remark });

@@ -133,7 +133,7 @@ app.get('/api/organizations/:id', requireAuth, async (req, res) => {
 app.get('/api/organizations/:id/settings', requireAuth, async (req, res) => {
   const { id } = req.params;
   try {
-    const orgRes = await db.query('SELECT allow_custom_duration, default_slot_duration FROM organizations WHERE id = $1', [id]);
+    const orgRes = await db.query('SELECT allow_custom_duration, default_slot_duration, default_checkout_time, default_shift_end_time FROM organizations WHERE id = $1', [id]);
     if (orgRes.rows.length === 0) {
       return res.status(404).json({ error: 'Organization not found' });
     }
@@ -148,16 +148,18 @@ app.get('/api/organizations/:id/settings', requireAuth, async (req, res) => {
 
 app.patch('/api/organizations/:id/settings', requireAuth, async (req, res) => {
   const { id } = req.params;
-  const { allow_custom_duration, default_slot_duration, default_checkout_time } = req.body;
+  const { allow_custom_duration, default_slot_duration, default_checkout_time, default_shift_end_time } = req.body;
+  const shiftTime = default_shift_end_time || default_checkout_time || null;
   try {
     const result = await db.query(
       `UPDATE organizations
        SET allow_custom_duration = $1,
            default_slot_duration = $2,
-           default_checkout_time = COALESCE($3::time, default_checkout_time)
+           default_checkout_time = COALESCE($3::time, default_checkout_time),
+           default_shift_end_time = COALESCE($3::time, default_shift_end_time)
        WHERE id = $4
-       RETURNING allow_custom_duration, default_slot_duration, default_checkout_time`,
-      [allow_custom_duration, default_slot_duration, default_checkout_time || null, id]
+       RETURNING allow_custom_duration, default_slot_duration, default_checkout_time, default_shift_end_time`,
+      [allow_custom_duration, default_slot_duration, shiftTime, id]
     );
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Organization not found' });

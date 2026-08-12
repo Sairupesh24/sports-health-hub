@@ -1,6 +1,7 @@
 import express from 'express';
 import { db } from './db.js';
 import { requireAuth } from './middleware.js';
+import { autoCompleteStartedSessions } from './appointments.js';
 import path from 'path';
 import fs from 'fs/promises';
 import { fileURLToPath } from 'url';
@@ -271,6 +272,9 @@ router.get('/dashboard/stats', requireAuth, async (req, res) => {
     try {
         const userId = req.user.id;
         const orgId = req.user.organization_id;
+        if (orgId) {
+            await autoCompleteStartedSessions(orgId);
+        }
         
         const todayStart = new Date();
         todayStart.setHours(0, 0, 0, 0);

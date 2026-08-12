@@ -19,7 +19,9 @@ import {
     subWeeks,
     subDays,
     parseISO,
-    startOfDay
+    startOfDay,
+    endOfDay,
+    isToday
 } from "date-fns";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -35,12 +37,14 @@ import {
     Clock,
     Users,
     User,
-    ChevronDown
+    ChevronDown,
+    CalendarX
 } from "lucide-react";
 import { SportsScientistBookSessionModal } from "@/components/sports-scientist/SportsScientistBookSessionModal";
 import { SportsScientistSessionStatusModal } from "@/components/sports-scientist/SportsScientistSessionStatusModal";
 import { SportsScientistSessionLog } from "@/components/sports-scientist/SportsScientistSessionLog";
 import { SportsScientistAssignWorkModal } from "@/components/sports-scientist/SportsScientistAssignWorkModal";
+import { SportsScientistCancelDayModal } from "@/components/sports-scientist/SportsScientistCancelDayModal";
 import { useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
@@ -53,6 +57,7 @@ export default function SportsScientistSchedule() {
     const [viewMode, setViewMode] = useState<ViewMode>("week");
     const [isBookModalOpen, setIsBookModalOpen] = useState(false);
     const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
+    const [isCancelDayModalOpen, setIsCancelDayModalOpen] = useState(false);
     const [selectedSession, setSelectedSession] = useState<any>(null);
     const [activeTab, setActiveTab] = useState(location.pathname.includes("/sessions") ? "log" : "calendar");
     // Tracks which week-view day columns are NOT yet scrolled to their bottom
@@ -72,8 +77,8 @@ export default function SportsScientistSchedule() {
     const dateRange = useMemo(() => {
         let start, end;
         if (viewMode === "day") {
-            start = currentDate;
-            end = currentDate;
+            start = startOfDay(currentDate);
+            end = endOfDay(currentDate);
         } else if (viewMode === "week") {
             start = startOfWeek(currentDate, { weekStartsOn: 1 });
             end = endOfWeek(currentDate, { weekStartsOn: 1 });
@@ -422,7 +427,7 @@ export default function SportsScientistSchedule() {
                             ))}
                         </div>
 
-                        <div className="absolute inset-0 relative px-4">
+                        <div className="absolute inset-0 px-4">
                             {dayEvents.length === 0 ? (
                                 <div className="h-full flex flex-col items-center justify-center text-muted-foreground opacity-50 space-y-2">
                                     <CalendarIcon className="w-8 h-8" />
@@ -435,8 +440,8 @@ export default function SportsScientistSchedule() {
                                     const startHour = startD.getHours() + (startD.getMinutes() / 60);
                                     const durationHours = (endD.getTime() - startD.getTime()) / (1000 * 60 * 60);
 
-                                    const topPos = Math.max(0, (startHour - 7) * 100);
-                                    const height = Math.max(60, durationHours * 100);
+                                    const topPos = Math.max(0, (startHour - 7) * 96);
+                                    const height = Math.max(60, durationHours * 96);
 
                                     if (startHour > 21 || endD.getHours() < 7) return null;
 
@@ -571,6 +576,14 @@ export default function SportsScientistSchedule() {
                             </Button>
                         )}
 
+                        <Button 
+                            onClick={() => setIsCancelDayModalOpen(true)} 
+                            variant="outline" 
+                            className="rounded-full h-10 px-4 gap-2 font-bold text-xs border-rose-200/80 hover:border-rose-300 bg-rose-50/50 hover:bg-rose-100/60 text-rose-700 dark:border-rose-900/40 dark:bg-rose-950/30 dark:text-rose-400 transition-all shadow-xs"
+                        >
+                            <CalendarX className="w-4 h-4 text-rose-600 dark:text-rose-400" /> Cancel Sessions
+                        </Button>
+
                         {/* Add Slot button */}
                         <Button onClick={() => setIsBookModalOpen(true)} className="bg-primary hover:bg-primary/90 text-white rounded-full h-10 px-5 gap-2 font-bold text-xs shadow-md">
                             <Plus className="w-4 h-4" /> Add Slot
@@ -629,7 +642,24 @@ export default function SportsScientistSchedule() {
                             <div className="lg:col-span-1 space-y-6">
                                 {/* JUMP TO DATE Calendar */}
                                 <Card className="rounded-[2.2rem] border-slate-200/40 dark:border-slate-800/40 bg-slate-100/30 dark:bg-slate-900/20 shadow-xs p-5 border">
-                                    <span className="text-[10px] font-black tracking-widest uppercase text-slate-400 mb-4 block">Jump to Date</span>
+                                    <div className="flex justify-between items-center mb-4">
+                                        <span className="text-[10px] font-black tracking-widest uppercase text-slate-400">Jump to Date</span>
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => setCurrentDate(new Date())}
+                                            className={cn(
+                                                "h-6 px-2.5 rounded-full text-[10px] font-black uppercase tracking-wider transition-all flex items-center gap-1",
+                                                isSameDay(currentDate, new Date())
+                                                    ? "bg-primary/10 text-primary cursor-default"
+                                                    : "bg-primary text-primary-foreground hover:bg-primary/90 shadow-xs cursor-pointer"
+                                            )}
+                                            title="Jump back to present day"
+                                        >
+                                            <CalendarIcon className="w-3 h-3" />
+                                            Today
+                                        </Button>
+                                    </div>
                                     
                                     {/* Month Selector */}
                                     <div className="flex justify-between items-center mb-4">
@@ -652,25 +682,45 @@ export default function SportsScientistSchedule() {
                                         {miniCalendarDays.map((day) => {
                                             const isActive = isSameDay(day, currentDate);
                                             const isCurrentMonth = isSameMonth(day, currentDate);
+                                            const isTodayDate = isToday(day);
                                             
                                             return (
                                                 <button
                                                     key={day.toString()}
                                                     onClick={() => setCurrentDate(day)}
+                                                    title={isTodayDate ? "Today" : format(day, 'PPPP')}
                                                     className={cn(
-                                                        "h-7 w-7 rounded-full flex items-center justify-center font-black transition-all mx-auto",
+                                                        "h-7 w-7 rounded-full flex items-center justify-center font-black transition-all mx-auto relative",
                                                         isActive 
                                                             ? "bg-primary text-primary-foreground shadow-md" 
-                                                            : isCurrentMonth
-                                                                ? "text-slate-700 dark:text-slate-300 hover:bg-slate-200/50 dark:hover:bg-slate-800/50"
-                                                                : "text-slate-300 dark:text-slate-700"
+                                                            : isTodayDate
+                                                                ? "border-2 border-primary text-primary bg-primary/10 hover:bg-primary/20 shadow-xs"
+                                                                : isCurrentMonth
+                                                                    ? "text-slate-700 dark:text-slate-300 hover:bg-slate-200/50 dark:hover:bg-slate-800/50"
+                                                                    : "text-slate-300 dark:text-slate-700"
                                                     )}
                                                 >
                                                     {format(day, 'd')}
+                                                    {isTodayDate && (
+                                                        <span className={cn(
+                                                            "absolute -bottom-0.5 w-1 h-1 rounded-full",
+                                                            isActive ? "bg-primary-foreground" : "bg-primary"
+                                                        )} />
+                                                    )}
                                                 </button>
                                             );
                                         })}
                                     </div>
+
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => setIsCancelDayModalOpen(true)}
+                                        className="w-full mt-3 rounded-xl border border-rose-200 dark:border-rose-900/40 bg-rose-50/50 dark:bg-rose-950/20 text-rose-600 dark:text-rose-400 hover:bg-rose-100/60 text-[10px] font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 py-2 transition-all"
+                                    >
+                                        <CalendarX className="w-3.5 h-3.5" />
+                                        Cancel Sessions
+                                    </Button>
                                 </Card>
 
                                 {/* UPCOMING EVENTS List */}
@@ -755,6 +805,16 @@ export default function SportsScientistSchedule() {
                     open={!!selectedSession}
                     onOpenChange={(open) => !open && setSelectedSession(null)}
                     session={selectedSession}
+                    onSuccess={async () => {
+                        await queryClient.invalidateQueries({ queryKey: ["sports-scientist-sessions"] });
+                    }}
+                />
+
+                <SportsScientistCancelDayModal
+                    open={isCancelDayModalOpen}
+                    onOpenChange={setIsCancelDayModalOpen}
+                    currentDate={currentDate}
+                    sessions={sessions}
                     onSuccess={async () => {
                         await queryClient.invalidateQueries({ queryKey: ["sports-scientist-sessions"] });
                     }}

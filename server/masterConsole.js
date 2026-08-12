@@ -137,11 +137,19 @@ router.patch('/organizations/:id', requireSuperAdmin, async (req, res) => {
     const { id } = req.params;
     const updates = req.body;
     
+    // Sync default_shift_end_time and default_checkout_time
+    if (updates.default_shift_end_time && !updates.default_checkout_time) {
+        updates.default_checkout_time = updates.default_shift_end_time;
+    } else if (updates.default_checkout_time && !updates.default_shift_end_time) {
+        updates.default_shift_end_time = updates.default_checkout_time;
+    }
+
     // Whitelist allowed columns for update
     const allowedColumns = [
         'name', 'official_name', 'official_address', 'contact_email', 'contact_phone',
         'clinic_latitude', 'clinic_longitude', 'geofence_radius', 'enable_geofencing',
-        'enable_ip_locking', 'allowed_ips', 'uhid_prefix', 'logo_url'
+        'enable_ip_locking', 'allowed_ips', 'uhid_prefix', 'logo_url',
+        'default_shift_end_time', 'default_checkout_time'
     ];
     
     const keys = Object.keys(updates).filter(k => allowedColumns.includes(k));

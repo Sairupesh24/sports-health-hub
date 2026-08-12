@@ -82,6 +82,9 @@ type Organization = {
     enable_geofencing?: boolean;
     enable_ip_locking?: boolean;
     allowed_ips?: string;
+    default_shift_end_time?: string;
+    default_checkout_time?: string;
+    enquiry_form_config?: any;
     slug?: string;
 };
 
@@ -172,6 +175,8 @@ export default function OrganizationDetails() {
                 official_address: updatedOrg.official_address ?? org.official_address,
                 contact_email: updatedOrg.contact_email ?? org.contact_email,
                 contact_phone: updatedOrg.contact_phone ?? org.contact_phone,
+                default_shift_end_time: updatedOrg.default_shift_end_time ?? org.default_shift_end_time ?? '18:00',
+                default_checkout_time: updatedOrg.default_shift_end_time ?? updatedOrg.default_checkout_time ?? org.default_checkout_time ?? '18:00',
             };
 
             await apiFetch(`/master-console/organizations/${id}`, {
@@ -878,8 +883,8 @@ export default function OrganizationDetails() {
                                                 <Input 
                                                     id="shift_end" 
                                                     type="time" 
-                                                    value={org.default_shift_end_time || '18:00'}
-                                                    onChange={(e) => setOrg({ ...org, default_shift_end_time: e.target.value })}
+                                                    value={org.default_shift_end_time || org.default_checkout_time || '18:00'}
+                                                    onChange={(e) => setOrg({ ...org, default_shift_end_time: e.target.value, default_checkout_time: e.target.value })}
                                                     className="w-40"
                                                 />
                                             </div>

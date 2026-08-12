@@ -79,8 +79,34 @@ async function runMigrations() {
     } catch (e) {}
     try {
       // Default auto clock-out time — staff who forget to check out are auto-checked-out at this time
-      await pool.query(`ALTER TABLE organizations ADD COLUMN IF NOT EXISTS default_checkout_time TIME DEFAULT '22:00:00';`);
-    } catch (e) {}
+      await pool.query(`ALTER TABLE organizations ADD COLUMN IF NOT EXISTS default_checkout_time TIME DEFAULT '18:00:00';`);
+      await pool.query(`ALTER TABLE organizations ADD COLUMN IF NOT EXISTS default_shift_end_time TIME DEFAULT '18:00:00';`);
+      await pool.query(`ALTER TABLE organizations ALTER COLUMN default_checkout_time SET DEFAULT '18:00:00';`);
+      await pool.query(`ALTER TABLE organizations ALTER COLUMN default_shift_end_time SET DEFAULT '18:00:00';`);
+      await pool.query(`UPDATE organizations SET default_checkout_time = '18:00:00' WHERE default_checkout_time = '22:00:00' OR default_checkout_time IS NULL;`);
+      await pool.query(`UPDATE organizations SET default_shift_end_time = '18:00:00' WHERE default_shift_end_time = '22:00:00' OR default_shift_end_time IS NULL;`);
+
+      // Update historical auto clock-out logs created at 22:00:00 to 18:00:00
+      await pool.query(`
+        UPDATE hrattendancelogs
+        SET created_at = (date_trunc('day', created_at AT TIME ZONE 'Asia/Kolkata') + TIME '18:00:00') AT TIME ZONE 'Asia/Kolkata',
+            metadata = jsonb_set(
+              jsonb_set(
+                metadata,
+                '{default_checkout_time}',
+                '"18:00"'
+              ),
+              '{remark}',
+              '"Auto clock-out applied. Staff did not manually check out. Default shift end time (18:00) was enforced."'
+            ),
+            remark = 'Auto clock-out applied. Staff did not manually check out. Default shift end time (18:00) was enforced.'
+        WHERE (type = 'check_out' OR type = 'missed_check_out')
+          AND metadata->>'auto_checkout' = 'true'
+          AND (created_at::time = '22:00:00' OR metadata->>'default_checkout_time' = '22:00');
+      `);
+    } catch (e) {
+      console.error('[MIGRATION ERROR]', e.message);
+    }
 
 
     // Create users table

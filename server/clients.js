@@ -822,6 +822,34 @@ router.post('/groups/:id/members', requireAuth, async (req, res) => {
     }
 });
 
+// PATCH Update Group Name
+router.patch('/groups/:id', requireAuth, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { name } = req.body;
+        const orgId = req.user.organization_id;
+
+        if (!name || !name.trim()) {
+            return res.status(400).json({ error: 'Group name is required' });
+        }
+
+        const result = await db.query(`
+            UPDATE client_groups
+            SET name = $1, updated_at = CURRENT_TIMESTAMP
+            WHERE id = $2 AND organization_id = $3
+            RETURNING *
+        `, [name.trim(), id, orgId]);
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Group not found' });
+        }
+
+        res.json(result.rows[0]);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
 // DELETE Client Group
 router.delete('/groups/:id', requireAuth, async (req, res) => {
     try {
