@@ -94,7 +94,7 @@ export default function MobileConsultantSchedule() {
             if (!plannedClientIds.length) return {};
             const results = await Promise.all(
                 plannedClientIds.map(async (clientId: string) => {
-                    const data = await apiFetch(`/api/billing/entitlements/balance/${clientId}`);
+                    const data = await apiFetch<any>(`/api/billing/entitlements/balance/${clientId}`);
                     const byServiceId: Record<string, number> = {};
                     const byServiceName: Record<string, number> = {};
                     (data?.balances ?? []).forEach((b: any) => {
@@ -330,14 +330,6 @@ export default function MobileConsultantSchedule() {
                     </div>
                     <div className="flex items-center gap-2">
                         {isLoading && <Loader2 className="w-4 h-4 animate-spin text-primary" />}
-                        <Button
-                            size="sm"
-                            onClick={() => setIsBookModalOpen(true)}
-                            className="gap-1 text-xs font-bold rounded-full px-3 h-8 shadow-md"
-                        >
-                            <Plus className="w-3.5 h-3.5" />
-                            Book Slot
-                        </Button>
                     </div>
                 </div>
 

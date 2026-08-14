@@ -186,37 +186,21 @@ export default function MobileConsultantDashboard() {
         </section>
 
         {/* Quick Action Buttons */}
-        <section className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <button
-            onClick={() => { haptic.light(); setIsBookModalOpen(true); }}
-            className="w-full flex items-center justify-between gap-4 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-[2rem] px-5 py-4 shadow-xl shadow-emerald-500/20 active:scale-95 transition-all duration-200 group"
-          >
-            <div className="flex items-center gap-4">
-              <div className="w-11 h-11 rounded-2xl bg-white/20 flex items-center justify-center shrink-0 shadow-inner">
-                <Plus className="w-6 h-6" />
-              </div>
-              <div className="text-left">
-                <p className="font-black text-sm uppercase tracking-wider leading-none">Book Slot</p>
-                <p className="text-[10px] font-bold text-white/70 mt-1 uppercase tracking-widest">Schedule Client</p>
-              </div>
-            </div>
-            <ChevronRight className="w-5 h-5 opacity-70 group-active:translate-x-1 transition-transform" />
-          </button>
-
+        <section>
           <button
             onClick={() => { haptic.light(); setAdHocModalOpen(true); }}
-            className="w-full flex items-center justify-between gap-4 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-[2rem] px-5 py-4 shadow-xl shadow-amber-500/30 active:scale-95 transition-all duration-200 group"
+            className="w-full flex items-center justify-between gap-3 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-white rounded-2xl px-4.5 py-3.5 shadow-lg shadow-amber-500/20 active:scale-98 transition-all duration-200 group border border-amber-400/30"
           >
-            <div className="flex items-center gap-4">
-              <div className="w-11 h-11 rounded-2xl bg-white/20 flex items-center justify-center shrink-0 shadow-inner">
-                <Zap className="w-5 h-5" />
+            <div className="flex items-center gap-3.5 min-w-0">
+              <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center shrink-0 shadow-inner">
+                <Zap className="w-4 h-4 text-white" />
               </div>
-              <div className="text-left">
-                <p className="font-black text-sm uppercase tracking-wider leading-none">Start Ad-Hoc Session</p>
-                <p className="text-[10px] font-bold text-white/70 mt-1 uppercase tracking-widest">Walk-in / Unscheduled</p>
+              <div className="text-left min-w-0">
+                <p className="font-bold text-xs text-white leading-tight truncate">Start Ad-Hoc Session</p>
+                <p className="text-[10px] font-medium text-white/90 leading-snug truncate mt-0.5">Walk-In / Unscheduled Session</p>
               </div>
             </div>
-            <ChevronRight className="w-5 h-5 opacity-70 group-active:translate-x-1 transition-transform" />
+            <ChevronRight className="w-4 h-4 text-white/80 shrink-0 group-active:translate-x-0.5 transition-transform" />
           </button>
         </section>
 

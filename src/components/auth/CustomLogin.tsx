@@ -29,23 +29,8 @@ export default function CustomLogin() {
         localStorage.setItem('ishpo_jwt', response.token);
         await refreshAuth();
         
-        const role = response.user?.role;
-        switch (role) {
-          case 'super_admin': navigate('/super-admin'); break;
-          case 'admin':
-          case 'foe': navigate('/admin'); break;
-          case 'hr_manager': navigate('/hr'); break;
-          case 'sports_scientist': navigate('/sports-scientist'); break;
-          case 'coach': navigate('/ams/coach-dashboard'); break;
-          case 'client':
-          case 'athlete': navigate('/client'); break;
-          case 'consultant':
-          case 'sports_physician':
-          case 'physiotherapist':
-          case 'nutritionist':
-          case 'massage_therapist': navigate('/consultant'); break;
-          default: navigate('/');
-        }
+        // Redirect every user to the App Gallery after login
+        navigate('/app-gallery');
       } else if (response.step === 'otp') {
         setStep(2);
       }
@@ -71,39 +56,8 @@ export default function CustomLogin() {
       // Refresh AuthContext state
       await refreshAuth();
       
-      // Redirect to a protected page based on role
-      const role = response.user?.role;
-      switch (role) {
-        case 'super_admin':
-          navigate('/super-admin');
-          break;
-        case 'admin':
-        case 'foe':
-          navigate('/admin');
-          break;
-        case 'hr_manager':
-          navigate('/hr');
-          break;
-        case 'sports_scientist':
-          navigate('/sports-scientist');
-          break;
-        case 'coach':
-          navigate('/ams/coach-dashboard');
-          break;
-        case 'client':
-        case 'athlete':
-          navigate('/client');
-          break;
-        case 'consultant':
-        case 'sports_physician':
-        case 'physiotherapist':
-        case 'nutritionist':
-        case 'massage_therapist':
-          navigate('/consultant');
-          break;
-        default:
-          navigate('/');
-      }
+      // Redirect every user to the App Gallery after OTP verification
+      navigate('/app-gallery');
     } catch (err: any) {
       setError(err.message || 'Invalid or expired OTP');
     } finally {

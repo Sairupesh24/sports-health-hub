@@ -16,11 +16,6 @@ export default function SpecialistBottomNav() {
       path: "/mobile/specialist/sessions",
     },
     {
-      label: "Forms",
-      icon: ClipboardList,
-      path: "/mobile/specialist/forms",
-    },
-    {
       label: "Memberships",
       icon: Users,
       path: "/mobile/specialist/memberships",

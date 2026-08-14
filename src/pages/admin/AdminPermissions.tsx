@@ -230,10 +230,10 @@ export default function AdminPermissions() {
                     <div>
                         <h1 className="text-2xl font-display font-bold text-foreground flex items-center gap-2">
                             <ShieldCheck className="w-6 h-6 text-primary" />
-                            Calendar Access Control
+                            Roles & Module Access Control
                         </h1>
                         <p className="text-muted-foreground mt-1 text-sm">
-                            Manage access permissions and control which staff members can view and access the Admin Calendar.
+                            Manage access permissions and control which staff members can access specific consoles, calendars, analytics, and administrative features.
                         </p>
                     </div>
                 </div>

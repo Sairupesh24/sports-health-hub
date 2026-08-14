@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { format, parse } from "date-fns";
+import { format, parse, startOfDay, endOfDay } from "date-fns";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -37,8 +37,9 @@ import { addDays, isSameDay, startOfDay as startOfDateDay, parseISO } from "date
 interface Props {
     open: boolean;
     onOpenChange: (open: boolean) => void;
-    onSuccess: () => void;
+    onSuccess: (sessionDate?: string) => void;
     initialData?: {
+        waitlistId?: string;
         clientId?: string;
         consultantId?: string;
         serviceId?: string;
@@ -74,7 +75,18 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess, initialDa
     const [isDurationManuallySet, setIsDurationManuallySet] = useState(false);
     const [isConflict, setIsConflict] = useState(false);
 
+    const safeParseDate = (dateStr: string) => {
+        if (!dateStr) return new Date();
+        const cleanStr = String(dateStr).split('T')[0];
+        const parsed = parse(cleanStr, "yyyy-MM-dd", new Date());
+        if (!isNaN(parsed.getTime())) return parsed;
+        const fallback = new Date(dateStr);
+        return isNaN(fallback.getTime()) ? new Date() : fallback;
+    };
+
     // Guest Mode State
+    const [waitlistId, setWaitlistId] = useState("");
+    const [openPatientPopover, setOpenPatientPopover] = useState(false);
     const [isGuest, setIsGuest] = useState(false);
     const [guestName, setGuestName] = useState("");
     const [guestContact, setGuestContact] = useState("");
@@ -91,6 +103,7 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess, initialDa
     const [isAvailable, setIsAvailable] = useState<boolean | null>(null);
     const [checkingAvailability, setCheckingAvailability] = useState(false);
     const [availableTherapists, setAvailableTherapists] = useState<any[]>([]);
+    const [currentSlotBookedCount, setCurrentSlotBookedCount] = useState<number>(0);
     
     const [orgSettings, setOrgSettings] = useState<any>(null);
     const [allConsultantAvailability, setAllConsultantAvailability] = useState<any[]>([]);
@@ -144,10 +157,17 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess, initialDa
             fetchServiceMappings();
 
             if (initialData) {
+                if (initialData.waitlistId) setWaitlistId(initialData.waitlistId);
                 if (initialData.clientId) setClientId(initialData.clientId);
                 if (initialData.consultantId) setConsultantId(initialData.consultantId);
                 if (initialData.serviceId) setServiceId(initialData.serviceId);
-                if (initialData.sessionDate) setSessionDate(initialData.sessionDate);
+                if (initialData.sessionDate) {
+                    const d = new Date(initialData.sessionDate);
+                    const cleanDate = (!isNaN(d.getTime()) && String(initialData.sessionDate).includes('T'))
+                        ? format(d, "yyyy-MM-dd")
+                        : initialData.sessionDate;
+                    setSessionDate(cleanDate);
+                }
                 if (initialData.startTime) setStartTime(initialData.startTime);
                 if (initialData.preferenceType) setPreferenceType(initialData.preferenceType);
                 if (initialData.isGuest !== undefined) setIsGuest(initialData.isGuest);
@@ -294,32 +314,30 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess, initialDa
         if (!sessionDate || !profile?.organization_id) return;
         
         try {
-            // Fetch availability for ALL qualified consultants for this service
+            const dateObj = parse(sessionDate, "yyyy-MM-dd", new Date());
+            const startOfDayStr = startOfDay(dateObj).toISOString();
+            const endOfDayStr = endOfDay(dateObj).toISOString();
+
             const qualifiedConsultantIds = filteredConsultants.map(c => c.id);
-            if (qualifiedConsultantIds.length === 0 && consultantId) {
+            if (consultantId && !qualifiedConsultantIds.includes(consultantId)) {
                 qualifiedConsultantIds.push(consultantId);
             }
 
             if (qualifiedConsultantIds.length > 0) {
-                // Fetch availability (mocking for now or using a combined route)
                 const avail = await apiFetch<any[]>('/appointments/availability/bulk', {
                     params: { consultant_ids: qualifiedConsultantIds.join(','), date: sessionDate }
                 });
                 setAllConsultantAvailability(avail || []);
-
-                const startOfDayStr = `${sessionDate}T00:00:00Z`;
-                const endOfDayStr = `${sessionDate}T23:59:59Z`;
-
-                const booked = await apiFetch<any[]>('/appointments', {
-                    params: {
-                        start: startOfDayStr,
-                        end: endOfDayStr,
-                        therapist_ids: qualifiedConsultantIds.join(',')
-                    }
-                });
-                
-                setAllBookedSessions(booked || []);
             }
+
+            const booked = await apiFetch<any[]>('/appointments', {
+                params: {
+                    start: startOfDayStr,
+                    end: endOfDayStr
+                }
+            });
+            
+            setAllBookedSessions(booked || []);
         } catch (error) {
             console.error("Error fetching consultant data:", error);
         }
@@ -328,6 +346,45 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess, initialDa
     useEffect(() => {
         fetchConsultantData();
     }, [consultantId, sessionDate, filteredConsultants]);
+
+    const getBookedCountForSlot = (
+        cId: string,
+        slotStartMs: number,
+        slotEndMs: number,
+        bookedSessions: any[]
+    ) => {
+        if (!cId || !slotStartMs || !slotEndMs || !bookedSessions || bookedSessions.length === 0) return 0;
+        
+        const targetId = String(cId).toLowerCase();
+
+        return bookedSessions.filter(s => {
+            const sTherapistId = String(
+                s.therapist_id || 
+                s.scientist_id || 
+                s.rawSession?.therapist_id || 
+                s.rawSession?.scientist_id || 
+                ''
+            ).toLowerCase();
+
+            if (sTherapistId !== targetId) return false;
+
+            const sStatus = String(s.status || '').toLowerCase();
+            const isInactiveStatus = 
+                sStatus === 'cancelled' || 
+                sStatus === 'waitlisted' || 
+                sStatus === 'waiting' || 
+                sStatus === 'deleted' || 
+                sStatus === 'missed' || 
+                sStatus === 'rescheduled';
+
+            if (isInactiveStatus) return false;
+
+            const sStart = new Date(s.scheduled_start).getTime();
+            const sEnd = new Date(s.scheduled_end).getTime();
+
+            return (slotStartMs < sEnd) && (slotEndMs > sStart);
+        }).length;
+    };
 
     useEffect(() => {
         if (!consultantId || !sessionDate || allConsultantAvailability.length === 0) return;
@@ -393,110 +450,123 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess, initialDa
 
 
     const availableSlots = useMemo(() => {
-        if (!consultantId || !sessionDate || allConsultantAvailability.length === 0) return [];
+        if (!consultantId || !sessionDate) return [];
 
         const dateObj = parse(sessionDate, "yyyy-MM-dd", new Date());
-        const dayOfWeek = dateObj.getDay(); 
-        
-        // Use primary consultant's availability rules for slicing
-        const primaryAvail = allConsultantAvailability.find(a => a.consultant_id === consultantId && a.day_of_week === dayOfWeek);
-        if (!primaryAvail) return [];
+        const dayOfWeek = dateObj.getDay();
 
-        const slotDuration = primaryAvail.slot_duration_interval || orgSettings?.default_slot_duration || 60;
-        const shiftStart = parse(primaryAvail.start_time, "HH:mm:ss", dateObj);
-        const shiftEnd = parse(primaryAvail.end_time, "HH:mm:ss", dateObj);
+        // ────────────────────────────────────────────────────────────────────────
+        // 1. Shift window — prefer consultantSchedule (Resource Schedule Manager)
+        //    then fall back to consultantavailability, then org defaults
+        // ────────────────────────────────────────────────────────────────────────
+        const schedStartRaw = consultantSchedule?.shift_start
+            || allConsultantAvailability.find(a => a.consultant_id === consultantId && a.day_of_week === dayOfWeek)?.start_time
+            || orgSettings?.working_hours_start
+            || "08:00:00";
+        const schedEndRaw = consultantSchedule?.shift_end
+            || allConsultantAvailability.find(a => a.consultant_id === consultantId && a.day_of_week === dayOfWeek)?.end_time
+            || orgSettings?.working_hours_end
+            || "17:00:00";
+        const slotDuration: number = 
+            allConsultantAvailability.find(a => a.consultant_id === consultantId && a.day_of_week === dayOfWeek)?.slot_duration_interval
+            || orgSettings?.default_slot_duration 
+            || 60;
 
-        // Parse break timings for checking overlaps
-        const timeToMinutes = (timeStr: string) => {
+        const pad = (s: string) => s.length === 5 ? `${s}:00` : s;
+        const shiftStart = parse(pad(schedStartRaw), "HH:mm:ss", dateObj);
+        const shiftEnd   = parse(pad(schedEndRaw),   "HH:mm:ss", dateObj);
+
+        // ────────────────────────────────────────────────────────────────────────
+        // 2. Breaks — from consultantSchedule (Resource Schedule Manager)
+        // ────────────────────────────────────────────────────────────────────────
+        const timeToMinutes = (timeStr: string): number => {
             if (!timeStr) return 0;
-            const parts = timeStr.split(':');
-            const h = parseInt(parts[0], 10) || 0;
-            const m = parseInt(parts[1], 10) || 0;
+            const [h = 0, m = 0] = timeStr.split(':').map(Number);
             return h * 60 + m;
         };
 
-        let activeBreaks: any[] = [];
-        if (consultantSchedule && consultantSchedule.breaks) {
-            const breaksData = consultantSchedule.breaks;
-            if (breaksData.all) {
-                activeBreaks = breaksData.all;
-            } else if (breaksData[dayOfWeek.toString()]) {
-                activeBreaks = breaksData[dayOfWeek.toString()];
-            } else if (Array.isArray(breaksData)) {
-                activeBreaks = breaksData;
+        let activeBreaks: { start_time: string; end_time: string }[] = [];
+        if (consultantSchedule?.breaks) {
+            const bd = consultantSchedule.breaks;
+            if (Array.isArray(bd)) {
+                activeBreaks = bd;
+            } else if (bd.all && Array.isArray(bd.all) && bd.all.length > 0) {
+                activeBreaks = bd.all;
+            } else if (bd[dayOfWeek.toString()] && Array.isArray(bd[dayOfWeek.toString()])) {
+                activeBreaks = bd[dayOfWeek.toString()];
             }
         }
 
+        // ────────────────────────────────────────────────────────────────────────
+        // 3. Consultant capacity
+        // ────────────────────────────────────────────────────────────────────────
+        const consultant = filteredConsultants.find(c => c.id === consultantId) || consultants.find(c => c.id === consultantId);
+        const prof = consultant?.profession?.toLowerCase() || '';
+        const role = consultant?.role?.toLowerCase() || '';
+        const isSportsScientist = prof === 'sports scientist' || role === 'sports_scientist';
+        const isPhysioOrPhysician = prof === 'physiotherapist' || prof === 'physiotherapy' 
+            || prof === 'sports physician' || prof === 'physician' || prof === 'sports_physician';
+        const capacityLimit = isPhysioOrPhysician ? 2 : (isSportsScientist ? Infinity : 1);
+
+        // ────────────────────────────────────────────────────────────────────────
+        // 4. Generate slots
+        // ────────────────────────────────────────────────────────────────────────
         const slots: { start: string, end: string, label: string, status: 'available' | 'flex' | 'waitlist', duration: number }[] = [];
-        let currentStart = shiftStart;
+        let currentStart = new Date(shiftStart);
 
-        while (currentStart.getTime() + (slotDuration * 60000) <= shiftEnd.getTime()) {
-            const currentEnd = new Date(currentStart.getTime() + (slotDuration * 60000));
-            const startT = currentStart.getTime();
-            const endT = currentEnd.getTime();
-
+        while (currentStart.getTime() < shiftEnd.getTime()) {
             const startMin = currentStart.getHours() * 60 + currentStart.getMinutes();
-            const endMin = startMin + slotDuration;
+            const shiftEndMin = shiftEnd.getHours() * 60 + shiftEnd.getMinutes();
 
-            // Check if slot falls in a break block
-            const isBreakOverlap = activeBreaks.some((br: any) => {
-                const brStartMin = timeToMinutes(br.start_time);
-                const brEndMin = timeToMinutes(br.end_time);
-                return startMin < brEndMin && endMin > brStartMin;
-            });
-
-            if (!isBreakOverlap) {
-                // Calculate capacity limit for the selected consultant
-                const activeBookingsCount = allBookedSessions.filter(s => 
-                    (s.therapist_id === consultantId || s.scientist_id === consultantId) && 
-                    s.status !== 'Cancelled' &&
-                    s.status !== 'Waitlisted' &&
-                    ( (startT >= new Date(s.scheduled_start).getTime() && startT < new Date(s.scheduled_end).getTime()) || 
-                      (endT > new Date(s.scheduled_start).getTime() && endT <= new Date(s.scheduled_end).getTime()) ||
-                      (startT <= new Date(s.scheduled_start).getTime() && endT >= new Date(s.scheduled_end).getTime()) )
-                ).length;
-
-                const consultant = filteredConsultants.find(c => c.id === consultantId) || consultants.find(c => c.id === consultantId);
-                const prof = consultant?.profession?.toLowerCase();
-                const r = consultant?.role?.toLowerCase();
-                const isSportsScientist = prof === 'sports scientist' || r === 'sports_scientist';
-
-                // Sports scientists have no capacity limit — they can handle any number of clients per slot.
-                if (isSportsScientist) {
-                    slots.push({
-                        start: format(currentStart, "HH:mm"),
-                        end: format(currentEnd, "HH:mm"),
-                        label: `${format(currentStart, "HH:mm")} (${slotDuration}m)`,
-                        status: 'available',
-                        duration: slotDuration
-                    });
-                } else {
-                    let limit = 1;
-                    if (prof === 'physiotherapist') {
-                        limit = 2;
-                    }
-
-                    let status: 'available' | 'flex' | 'waitlist' = 'available';
-                    if (activeBookingsCount >= limit) {
-                        status = 'waitlist';
-                    }
-
-                    slots.push({
-                        start: format(currentStart, "HH:mm"),
-                        end: format(currentEnd, "HH:mm"),
-                        label: `${format(currentStart, "HH:mm")} (${slotDuration}m)`,
-                        status,
-                        duration: slotDuration
-                    });
-                }
+            // Skip if inside a break
+            const insideBreak = activeBreaks.find(br =>
+                startMin >= timeToMinutes(br.start_time) && startMin < timeToMinutes(br.end_time)
+            );
+            if (insideBreak) {
+                const brEndMin = timeToMinutes(insideBreak.end_time);
+                currentStart = new Date(currentStart);
+                currentStart.setHours(Math.floor(brEndMin / 60), brEndMin % 60, 0, 0);
+                continue;
             }
 
-            currentStart = new Date(currentStart.getTime() + (slotDuration * 60000));
+            // Truncate slot at next break start
+            const nextBreak = activeBreaks
+                .map(br => ({ startMin: timeToMinutes(br.start_time), endMin: timeToMinutes(br.end_time) }))
+                .filter(br => br.startMin > startMin)
+                .sort((a, b) => a.startMin - b.startMin)[0];
+
+            let targetEndMin = startMin + slotDuration;
+            if (nextBreak && nextBreak.startMin < targetEndMin) targetEndMin = nextBreak.startMin;
+            if (targetEndMin > shiftEndMin) targetEndMin = shiftEndMin;
+
+            const actualDuration = targetEndMin - startMin;
+
+            if (actualDuration >= 15) {
+                const currentEnd = new Date(currentStart.getTime() + actualDuration * 60000);
+                const startT = currentStart.getTime();
+                const endT   = currentEnd.getTime();
+
+                // Count active (non-cancelled, non-waitlisted) bookings that overlap this slot for this consultant
+                const bookedCount = getBookedCountForSlot(consultantId, startT, endT, allBookedSessions);
+
+                // Slot label: just time + duration (clean, no capacity numbers)
+                let label = `${format(currentStart, "h:mm a")} (${actualDuration}m)`;
+                // For full slots, append FULL indicator in label
+                if (bookedCount >= capacityLimit && capacityLimit !== Infinity) {
+                    label = `${format(currentStart, "h:mm a")} (FULL)`;
+                }
+
+                const status: 'available' | 'flex' | 'waitlist' = bookedCount >= capacityLimit ? 'waitlist' : 'available';
+
+                slots.push({ start: format(currentStart, "HH:mm"), end: format(currentEnd, "HH:mm"), label, status, duration: actualDuration });
+            }
+
+            currentStart = new Date(currentStart.getTime() + actualDuration * 60000);
             if (slots.length >= 50) break;
         }
 
         return slots;
-    }, [consultantId, sessionDate, allConsultantAvailability, allBookedSessions, orgSettings, filteredConsultants, consultantSchedule]);
+    }, [consultantId, sessionDate, allConsultantAvailability, allBookedSessions, orgSettings, filteredConsultants, consultants, consultantSchedule]);
 
     const checkSlotAvailability = async (time: string, endT: string) => {
         if (!time || !endT || !consultantId) return;
@@ -514,19 +584,18 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess, initialDa
             const dayOfWeek = dateObj.getDay(); 
             const dayAvail = allConsultantAvailability.find(a => a.consultant_id === consultantId && a.day_of_week === dayOfWeek);
             
-            if (!dayAvail) {
-                setIsAvailable(false);
-                setIsConflict(true);
-                return;
-            }
+            // Use shift times from dayAvail if available, otherwise use org/fallback defaults
+            if (dayAvail) {
+                const cleanSt = dayAvail.start_time.length === 5 ? `${dayAvail.start_time}:00` : dayAvail.start_time;
+                const cleanEt = dayAvail.end_time.length === 5 ? `${dayAvail.end_time}:00` : dayAvail.end_time;
+                const shiftStart = parse(cleanSt, "HH:mm:ss", dateObj).getTime();
+                const shiftEnd = parse(cleanEt, "HH:mm:ss", dateObj).getTime();
 
-            const shiftStart = parse(dayAvail.start_time, "HH:mm:ss", dateObj).getTime();
-            const shiftEnd = parse(dayAvail.end_time, "HH:mm:ss", dateObj).getTime();
-
-            if (startTimestamp < shiftStart || endTimestamp > shiftEnd) {
-                setIsAvailable(false);
-                setIsConflict(true);
-                return;
+                if (startTimestamp < shiftStart || endTimestamp > shiftEnd) {
+                    setIsAvailable(false);
+                    setIsConflict(true);
+                    return;
+                }
             }
 
             // Check break overlap
@@ -567,16 +636,9 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess, initialDa
                 return;
             }
 
-            const activeBookingsCount = allBookedSessions.filter(s => {
-                const sStart = new Date(s.scheduled_start).getTime();
-                const sEnd = new Date(s.scheduled_end).getTime();
-                return (s.therapist_id === consultantId || s.scientist_id === consultantId) && 
-                       s.status !== 'Cancelled' &&
-                       s.status !== 'Waitlisted' &&
-                       ( (startTimestamp >= sStart && startTimestamp < sEnd) || 
-                         (endTimestamp > sStart && endTimestamp <= sEnd) ||
-                         (startTimestamp <= sStart && endTimestamp >= sEnd) );
-            }).length;
+            const activeBookingsCount = getBookedCountForSlot(consultantId, startTimestamp, endTimestamp, allBookedSessions);
+
+            setCurrentSlotBookedCount(activeBookingsCount);
 
             const consultant = filteredConsultants.find(c => c.id === consultantId) || consultants.find(c => c.id === consultantId);
             const prof = consultant?.profession?.toLowerCase();
@@ -590,8 +652,10 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess, initialDa
                 return;
             }
 
+            const isPhysioOrPhysician = prof === 'physiotherapist' || prof === 'physiotherapy' || prof === 'sports physician' || prof === 'physician' || prof === 'sports_physician';
+
             let limit = 1;
-            if (prof === 'physiotherapist') {
+            if (isPhysioOrPhysician) {
                 limit = 2;
             }
 
@@ -676,6 +740,7 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess, initialDa
                 await apiFetch('/appointments', {
                     method: 'POST',
                     data: {
+                        waitlist_id: waitlistId || null,
                         client_id: isGuest ? null : clientId,
                         is_guest: isGuest,
                         guest_name: isGuest ? guestName : null,
@@ -700,7 +765,7 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess, initialDa
                     ? `Series of appointments booked.` 
                     : "Appointment booked successfully." 
             });
-            onSuccess();
+            onSuccess(sessionDate);
             onOpenChange(false);
             resetForm();
         } catch (error: any) {
@@ -787,7 +852,7 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess, initialDa
 
                                     {!isGuest ? (
                                         <div className="space-y-4">
-                                            <Popover>
+                                            <Popover open={openPatientPopover} onOpenChange={setOpenPatientPopover}>
                                                 <PopoverTrigger asChild>
                                                     <Button variant="outline" className={cn("w-full justify-between h-12", !clientId && "text-muted-foreground")}>
                                                         {clientId ? (() => {
@@ -797,14 +862,26 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess, initialDa
                                                         <ChevronsUpDown className="ml-2 h-4 w-4 opacity-50" />
                                                     </Button>
                                                 </PopoverTrigger>
-                                                <PopoverContent className="w-[300px] p-0" align="start">
-                                                    <Command>
+                                                <PopoverContent 
+                                                    className="w-[320px] p-0 z-[100] max-h-[300px] overflow-hidden pointer-events-auto" 
+                                                    align="start"
+                                                    onWheel={(e) => e.stopPropagation()}
+                                                    onTouchMove={(e) => e.stopPropagation()}
+                                                >
+                                                    <Command className="max-h-[300px]">
                                                         <CommandInput placeholder="Type name..." />
-                                                        <CommandList>
+                                                        <CommandList 
+                                                            className="max-h-[230px] overflow-y-auto custom-scrollbar pointer-events-auto"
+                                                            onWheel={(e) => e.stopPropagation()}
+                                                            onTouchMove={(e) => e.stopPropagation()}
+                                                        >
                                                             <CommandEmpty>No patient found.</CommandEmpty>
                                                             <CommandGroup>
                                                                 {clients.map((c) => (
-                                                                    <CommandItem key={c.id} value={`${c.first_name} ${c.last_name}`} onSelect={() => setClientId(c.id)}>
+                                                                    <CommandItem key={c.id} value={`${c.first_name} ${c.last_name}`} onSelect={() => {
+                                                                        setClientId(c.id);
+                                                                        setOpenPatientPopover(false);
+                                                                    }}>
                                                                         <Check className={cn("mr-2 h-4 w-4", clientId === c.id ? "opacity-100" : "opacity-0")} />
                                                                         <VIPName name={`${c.first_name} ${c.last_name}`} isVIP={c.is_vip} />
                                                                     </CommandItem>
@@ -1029,13 +1106,13 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess, initialDa
                                             <PopoverTrigger asChild>
                                                 <Button variant="outline" className={cn("w-full justify-start text-left font-normal h-11", !sessionDate && "text-muted-foreground")}>
                                                     <CalendarIcon className="mr-2 h-4 w-4 text-primary" />
-                                                    {sessionDate ? format(parse(sessionDate, "yyyy-MM-dd", new Date()), "PPP") : <span>Pick a date</span>}
+                                                    {sessionDate ? format(safeParseDate(sessionDate), "PPP") : <span>Pick a date</span>}
                                                 </Button>
                                             </PopoverTrigger>
                                             <PopoverContent className="w-auto p-0" align="start">
                                                 <Calendar
                                                     mode="single"
-                                                    selected={parse(sessionDate, "yyyy-MM-dd", new Date())}
+                                                    selected={safeParseDate(sessionDate)}
                                                     onSelect={(date) => date && setSessionDate(format(date, "yyyy-MM-dd"))}
                                                     initialFocus
                                                 />
@@ -1051,29 +1128,29 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess, initialDa
                                                     {isConflict && <Badge variant="destructive" className="animate-pulse flex items-center gap-1"><AlertCircle className="w-3 h-3" /> CONFLICT</Badge>}
                                                 </Label>
 
-                                                {/* Session Duration Selector Removed */}
-
                                                 {availableSlots.length > 0 ? (
                                                     <div className="space-y-3">
                                                         <Label className="text-[10px] font-bold uppercase text-primary mb-2 block tracking-widest">Available Slots (Quick-Pick)</Label>
                                                         <div className="flex flex-wrap gap-2 max-h-[200px] overflow-y-auto pr-1 custom-scrollbar">
                                                             {availableSlots
-                                                                .sort((a, b) => {
-                                                                    const order = { available: 0, flex: 1, waitlist: 2 };
-                                                                    return order[a.status] - order[b.status];
-                                                                })
+                                                                .slice()
+                                                                .sort((a, b) => a.start.localeCompare(b.start))
                                                                 .map((slot, i) => (
                                                                     <Button 
                                                                         key={i} 
                                                                         variant={startTime === slot.start ? "default" : "outline"} 
-                                                                        size="sm" 
+                                                                        size="sm"
                                                                         className={cn(
                                                                             "text-[10px] h-9 px-3 font-bold transition-all",
-                                                                            startTime === slot.start 
-                                                                                ? "ring-2 ring-primary ring-offset-1" 
-                                                                                : slot.status === 'available' ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20 hover:bg-emerald-500/20" :
-                                                                                  slot.status === 'flex' ? "bg-blue-500/10 text-blue-600 border-blue-500/20 hover:bg-blue-500/20" :
-                                                                                  "bg-orange-500/10 text-orange-600 border-orange-500/20 hover:bg-orange-500/20"
+                                                                            slot.status === 'waitlist'
+                                                                                ? startTime === slot.start
+                                                                                    ? "ring-2 ring-orange-500 ring-offset-1 bg-orange-600 text-white border-orange-600"
+                                                                                    : "bg-orange-500/10 text-orange-600 border-orange-400/40 hover:bg-orange-500/20 hover:border-orange-500/40"
+                                                                                : startTime === slot.start 
+                                                                                    ? "ring-2 ring-primary ring-offset-1" 
+                                                                                    : slot.status === 'available' 
+                                                                                        ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20 hover:bg-emerald-500/20" 
+                                                                                        : "bg-blue-500/10 text-blue-600 border-blue-500/20 hover:bg-blue-500/20"
                                                                         )}
                                                                         onClick={() => {
                                                                             setStartTime(slot.start);
@@ -1082,14 +1159,12 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess, initialDa
                                                                             }
                                                                         }}
                                                                     >
-                                                                        {slot.status === 'flex' && "(FLEX) "}
-                                                                        {slot.status === 'waitlist' && "(WAIT) "}
                                                                         {slot.label}
                                                                     </Button>
                                                                 ))}
                                                         </div>
                                                         <p className="text-[9px] text-muted-foreground italic mt-1">
-                                                            * Select a slot to confirm your time.
+                                                            * Select a slot to confirm your time. Orange slots are full — selecting one joins the waitlist.
                                                         </p>
                                                         
                                                         <div className="mt-4 p-3 bg-muted/30 rounded-lg border border-border/50 space-y-2">
@@ -1109,7 +1184,7 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess, initialDa
                                                                  return !isScientist ? (
                                                                      <div className="flex items-start gap-2">
                                                                          <div className="w-2 h-2 rounded-full bg-orange-500 mt-1" />
-                                                                         <p className="text-[10px] leading-tight text-muted-foreground"><span className="font-bold text-orange-700">(WAIT):</span> All qualified specialists are busy. This session will join the waitlist.</p>
+                                                                         <p className="text-[10px] leading-tight text-muted-foreground"><span className="font-bold text-orange-700">(FULL):</span> Slot is at capacity. Selecting it will join the Active Waitlist.</p>
                                                                      </div>
                                                                  ) : null;
                                                              })()}
@@ -1129,16 +1204,71 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess, initialDa
                                                 </div>
                                             </div>
                                             
-                                            <div className={cn("border rounded-xl p-4 flex items-center justify-between", isAvailable === true ? "bg-emerald-500/5 border-emerald-500/20" : isAvailable === false ? "bg-orange-500/5 border-orange-500/20" : "bg-muted/10 border-border/50")}>
-                                                <div className="flex items-center gap-3">
-                                                    {checkingAvailability ? <Loader2 className="w-5 h-5 animate-spin" /> : isAvailable === true ? <CheckCircle2 className="w-5 h-5 text-emerald-500" /> : isAvailable === false ? <AlertCircle className="w-5 h-5 text-orange-500" /> : <Clock className="w-5 h-5 text-muted-foreground" />}
-                                                    <div className="flex flex-col">
-                                                        <span className="text-xs font-bold uppercase">{checkingAvailability ? "Checking..." : isAvailable === true ? "Available" : isAvailable === false ? "Booked/Off" : "Awaiting Info"}</span>
-                                                        <span className="text-[10px] text-muted-foreground">Real-time cross-check</span>
+                                            {(() => {
+                                                const selectedConsultant = filteredConsultants.find(c => c.id === consultantId) || consultants.find(c => c.id === consultantId);
+                                                const selectedProf = selectedConsultant?.profession?.toLowerCase();
+                                                const isPhysioOrPhysician = selectedProf === 'physiotherapist' || selectedProf === 'physiotherapy' || selectedProf === 'sports physician' || selectedProf === 'physician' || selectedProf === 'sports_physician';
+
+                                                return (
+                                                    <div className={cn("border rounded-xl p-4 flex items-center justify-between transition-all", 
+                                                        isAvailable === true ? (isPhysioOrPhysician && currentSlotBookedCount === 1 ? "bg-amber-500/5 border-amber-500/20" : "bg-emerald-500/5 border-emerald-500/20") : 
+                                                        isAvailable === false ? "bg-orange-500/5 border-orange-500/20" : "bg-muted/10 border-border/50"
+                                                    )}>
+                                                        <div className="flex items-center gap-3">
+                                                            {checkingAvailability ? (
+                                                                <Loader2 className="w-5 h-5 animate-spin text-primary" />
+                                                            ) : isAvailable === true ? (
+                                                                isPhysioOrPhysician && currentSlotBookedCount === 1 ? (
+                                                                    <AlertCircle className="w-5 h-5 text-amber-500" />
+                                                                ) : (
+                                                                    <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+                                                                )
+                                                            ) : isAvailable === false ? (
+                                                                <AlertCircle className="w-5 h-5 text-orange-500" />
+                                                            ) : (
+                                                                <Clock className="w-5 h-5 text-muted-foreground" />
+                                                            )}
+                                                            <div className="flex flex-col">
+                                                                <span className="text-xs font-bold uppercase">
+                                                                    {checkingAvailability 
+                                                                        ? "Checking Availability..." 
+                                                                        : isAvailable === true 
+                                                                            ? (isPhysioOrPhysician 
+                                                                                ? (currentSlotBookedCount === 1 ? "1/2 Booked (1 Slot Available)" : "Available Slot (0/2 Booked)") 
+                                                                                : "Available Slot") 
+                                                                            : (isPhysioOrPhysician 
+                                                                                ? "Slot Fully Occupied (2/2 Booked) → Routing to Waitlist" 
+                                                                                : "Slot Full / Off Shift")}
+                                                                </span>
+                                                                <span className="text-[10px] text-muted-foreground">
+                                                                    {isAvailable === false 
+                                                                        ? (isPhysioOrPhysician 
+                                                                            ? "2/2 clients are already booked in this slot. The 3rd client will join the Active Waitlist." 
+                                                                            : "Selected specialist is unavailable at this time.") 
+                                                                        : isPhysioOrPhysician 
+                                                                            ? (currentSlotBookedCount === 1 
+                                                                                ? "1 client is already scheduled. 1 slot remaining for your specialist." 
+                                                                                : "Physiotherapy & Sports Physician slots accommodate up to 2 concurrent clients.") 
+                                                                            : "Real-time cross-check complete."}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                        {isAvailable !== null && !checkingAvailability && (
+                                                            <Badge 
+                                                                variant={isAvailable ? (isPhysioOrPhysician && currentSlotBookedCount === 1 ? "outline" : "secondary") : "destructive"} 
+                                                                className={cn(
+                                                                    "text-[9px] font-bold uppercase", 
+                                                                    isPhysioOrPhysician && currentSlotBookedCount === 1 && "border-amber-500 text-amber-700 bg-amber-50"
+                                                                )}
+                                                            >
+                                                                {isAvailable 
+                                                                    ? (isPhysioOrPhysician ? `${currentSlotBookedCount}/2 BOOKED` : "READY") 
+                                                                    : (isPhysioOrPhysician ? "2/2 FULL (WAITLIST)" : "BUSY")}
+                                                            </Badge>
+                                                        )}
                                                     </div>
-                                                </div>
-                                                {isAvailable !== null && !checkingAvailability && <Badge variant={isAvailable ? "secondary" : "outline"} className="text-[9px]">{isAvailable ? "READY" : "BUSY"}</Badge>}
-                                            </div>
+                                                );
+                                            })()}
                                         </div>
                                     ) : (
                                         <div className="space-y-6 animate-in fade-in slide-in-from-left-2 duration-300">

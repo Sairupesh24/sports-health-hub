@@ -15,7 +15,8 @@ import {
   History,
   ClipboardList,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  CalendarX
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -42,6 +43,7 @@ import {
 } from "date-fns";
 import { SportsScientistBookSessionModal } from "@/components/sports-scientist/SportsScientistBookSessionModal";
 import { SportsScientistSessionStatusModal } from "@/components/sports-scientist/SportsScientistSessionStatusModal";
+import { SportsScientistCancelDayModal } from "@/components/sports-scientist/SportsScientistCancelDayModal";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -58,6 +60,7 @@ export default function MobileSessionManager() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isBookModalOpen, setIsBookModalOpen] = useState(false);
+  const [isCancelDayModalOpen, setIsCancelDayModalOpen] = useState(false);
   const [selectedSession, setSelectedSession] = useState<any>(null);
   const [sessionToEnd, setSessionToEnd] = useState<any>(null);
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -213,19 +216,30 @@ export default function MobileSessionManager() {
       <div className="space-y-8 pb-20">
         
         {/* Header Actions */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
            <div>
               <h3 className="text-[11px] font-black uppercase tracking-widest text-slate-500">Scheduled for</h3>
               <h4 className="text-lg font-black text-slate-900 dark:text-white italic tracking-tight mt-0.5">
                  {format(selectedDate, "MMMM yyyy")}
               </h4>
            </div>
-           <Button 
-            onClick={() => { haptic.light(); setIsBookModalOpen(true); }}
-            className="rounded-full bg-primary text-white h-10 px-6 font-black italic shadow-lg shadow-primary/20 active:scale-95 transition-all"
-           >
-              <Plus className="w-4 h-4 mr-2" /> Plan Session
-           </Button>
+           <div className="grid grid-cols-2 gap-2 w-full sm:w-auto">
+              <Button 
+                variant="outline"
+                onClick={() => { haptic.light(); setIsCancelDayModalOpen(true); }}
+                className="w-full sm:w-auto rounded-full border-rose-200/80 hover:border-rose-300 text-rose-700 dark:border-rose-900/40 dark:text-rose-400 bg-rose-50/50 hover:bg-rose-100/60 dark:bg-rose-950/20 font-bold text-xs h-9 sm:h-10 px-2 sm:px-4 transition-all flex items-center justify-center gap-1 sm:gap-1.5 shadow-xs min-w-0"
+              >
+                <CalendarX className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-rose-600 dark:text-rose-400 shrink-0" />
+                <span className="truncate">Cancel Sessions</span>
+              </Button>
+              <Button 
+                onClick={() => { haptic.light(); setIsBookModalOpen(true); }}
+                className="w-full sm:w-auto rounded-full bg-primary text-white h-9 sm:h-10 px-2 sm:px-5 font-black italic shadow-lg shadow-primary/20 active:scale-95 transition-all flex items-center justify-center gap-1 sm:gap-1.5 min-w-0"
+              >
+                <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+                <span className="truncate">Plan Session</span>
+              </Button>
+           </div>
         </div>
 
         {/* View Switcher */}
@@ -800,6 +814,15 @@ export default function MobileSessionManager() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      <SportsScientistCancelDayModal
+        open={isCancelDayModalOpen}
+        onOpenChange={setIsCancelDayModalOpen}
+        currentDate={selectedDate}
+        sessions={sessions || []}
+        onSuccess={async () => {
+          await queryClient.invalidateQueries({ queryKey: ["mobile-sessions"] });
+        }}
+      />
     </MobileSpecialistLayout>
   );
 }

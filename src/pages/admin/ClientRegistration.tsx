@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -185,10 +185,36 @@ export default function ClientRegistration() {
     }
   };
 
+  // Fetch dynamic clinic field configuration
+  const { data: fieldConfigData } = useQuery({
+    queryKey: ["client_field_config"],
+    queryFn: async () => {
+      try {
+        const data = await apiFetch<any[]>('/clients/field-config');
+        return data || [];
+      } catch (err) {
+        console.error("Failed to load field config:", err);
+        return [];
+      }
+    },
+    staleTime: 0,
+  });
+
+  const fieldConfig = useMemo(() => {
+    const map: Record<string, boolean> = {};
+    if (fieldConfigData && Array.isArray(fieldConfigData)) {
+      fieldConfigData.forEach((row: any) => {
+        map[row.field_name] = row.is_mandatory === true || row.is_mandatory === 'true' || row.is_mandatory === 1;
+      });
+    }
+    return map;
+  }, [fieldConfigData]);
+
   const {
     register,
     handleSubmit,
     setValue,
+    setError,
     watch,
     formState: { errors },
   } = useForm<ClientFormData>({
@@ -199,6 +225,19 @@ export default function ClientRegistration() {
       is_vip: false,
     },
   });
+
+  // Auto-expand insurance accordion if any insurance field is set as mandatory
+  useEffect(() => {
+    if (
+      fieldConfig.insurance_provider ||
+      fieldConfig.insurance_policy_no ||
+      fieldConfig.insurance_validity ||
+      fieldConfig.insurance_coverage_amount
+    ) {
+      setShowInsurance(true);
+      setValue("has_insurance", true);
+    }
+  }, [fieldConfig, setValue]);
 
   const dob = watch("dob");
 
@@ -223,7 +262,59 @@ export default function ClientRegistration() {
     setDocuments((prev) => prev.filter((_, i) => i !== index));
   };
 
+  const DYNAMIC_FIELD_LABELS: Record<string, string> = {
+    honorific: "Honorific",
+    middle_name: "Middle Name",
+    gender: "Gender",
+    aadhaar_no: "Aadhaar No",
+    blood_group: "Blood Group",
+    dob: "Date of Birth",
+    email: "Email",
+    alternate_mobile_no: "Alternate Mobile",
+    occupation: "Status / Occupation",
+    org_name: "Organization Name",
+    address: "Street Address",
+    locality: "Locality",
+    pincode: "Pincode",
+    city: "City",
+    district: "District",
+    state: "State",
+    country: "Country",
+    insurance_provider: "Insurance Provider",
+    insurance_policy_no: "Insurance Policy No",
+    insurance_validity: "Insurance Validity",
+    insurance_coverage_amount: "Insurance Coverage Amount",
+  };
+
   const onSubmit = async (data: ClientFormData) => {
+    // Dynamic validation based on Field Configuration
+    let hasMandatoryError = false;
+    const missing: string[] = [];
+
+    Object.keys(fieldConfig).forEach((fieldName) => {
+      if (fieldConfig[fieldName]) {
+        const val = (data as any)[fieldName];
+        if (val === undefined || val === null || String(val).trim() === "") {
+          hasMandatoryError = true;
+          const label = DYNAMIC_FIELD_LABELS[fieldName] || fieldName;
+          missing.push(label);
+          setError(fieldName as any, {
+            type: "manual",
+            message: `${label} is required per Clinic Field Configuration.`,
+          });
+        }
+      }
+    });
+
+    if (hasMandatoryError) {
+      toast({
+        title: "Mandatory Fields Required",
+        description: `Please fill out required fields: ${missing.join(", ")}`,
+        variant: "destructive",
+      });
+      return;
+    }
+
     setSubmitting(true);
     try {
       const orgId = profile?.organization_id;
@@ -305,13 +396,17 @@ export default function ClientRegistration() {
               {/* Row 1: Honorific, First, Middle, Last */}
               <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
                 <div className="space-y-1.5">
-                  <Label>Honorific</Label>
+                  <Label>
+                    Honorific
+                    {fieldConfig.honorific && <span className="text-destructive ml-1">*</span>}
+                  </Label>
                   <Select onValueChange={(v) => setValue("honorific", v)}>
                     <SelectTrigger className={inputClass}><SelectValue placeholder="Select" /></SelectTrigger>
                     <SelectContent>
                       {HONORIFICS.map((h) => <SelectItem key={h} value={h}>{h}</SelectItem>)}
                     </SelectContent>
                   </Select>
+                  {errors.honorific && <p className="text-xs text-destructive">{errors.honorific.message}</p>}
                 </div>
                 <div className="space-y-1.5">
                   <Label>First Name <span className="text-destructive">*</span></Label>
@@ -319,8 +414,12 @@ export default function ClientRegistration() {
                   {errors.first_name && <p className="text-xs text-destructive">{errors.first_name.message}</p>}
                 </div>
                 <div className="space-y-1.5">
-                  <Label>Middle Name</Label>
+                  <Label>
+                    Middle Name
+                    {fieldConfig.middle_name && <span className="text-destructive ml-1">*</span>}
+                  </Label>
                   <Input className={inputClass} {...register("middle_name")} placeholder="Middle name" />
+                  {errors.middle_name && <p className="text-xs text-destructive">{errors.middle_name.message}</p>}
                 </div>
                 <div className="space-y-1.5">
                   <Label>Last Name <span className="text-destructive">*</span></Label>
@@ -332,13 +431,17 @@ export default function ClientRegistration() {
               {/* Row 2: Gender, DOB, Age, Mobile */}
               <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
                 <div className="space-y-1.5">
-                  <Label>Gender</Label>
+                  <Label>
+                    Gender
+                    {fieldConfig.gender && <span className="text-destructive ml-1">*</span>}
+                  </Label>
                   <Select onValueChange={(v) => setValue("gender", v)}>
                     <SelectTrigger className={inputClass}><SelectValue placeholder="Select" /></SelectTrigger>
                     <SelectContent>
                       {GENDERS.map((g) => <SelectItem key={g} value={g}>{g}</SelectItem>)}
                     </SelectContent>
                   </Select>
+                  {errors.gender && <p className="text-xs text-destructive">{errors.gender.message}</p>}
                 </div>
                 <div className="space-y-1.5 flex flex-col justify-end">
                   <Label>Date of Birth <span className="text-destructive">*</span></Label>
@@ -364,25 +467,44 @@ export default function ClientRegistration() {
                 </div>
               </div>
 
-              {/* Row 3: Email, Aadhaar, Blood Group */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {/* Row 3: Email, Alternate Mobile, Aadhaar, Blood Group */}
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
                 <div className="space-y-1.5">
-                  <Label>Email</Label>
+                  <Label>
+                    Email
+                    {fieldConfig.email && <span className="text-destructive ml-1">*</span>}
+                  </Label>
                   <Input type="email" className={inputClass} {...register("email")} placeholder="email@example.com" />
                   {errors.email && <p className="text-xs text-destructive">{errors.email.message}</p>}
                 </div>
                 <div className="space-y-1.5">
-                  <Label>Aadhaar No</Label>
-                  <Input className={inputClass} {...register("aadhaar_no")} placeholder="1234 5678 9012" maxLength={14} />
+                  <Label>
+                    Alternate Mobile
+                    {fieldConfig.alternate_mobile_no && <span className="text-destructive ml-1">*</span>}
+                  </Label>
+                  <Input className={inputClass} {...register("alternate_mobile_no")} placeholder="+91 9876543210" />
+                  {errors.alternate_mobile_no && <p className="text-xs text-destructive">{errors.alternate_mobile_no.message}</p>}
                 </div>
                 <div className="space-y-1.5">
-                  <Label>Blood Group</Label>
+                  <Label>
+                    Aadhaar No
+                    {fieldConfig.aadhaar_no && <span className="text-destructive ml-1">*</span>}
+                  </Label>
+                  <Input className={inputClass} {...register("aadhaar_no")} placeholder="1234 5678 9012" maxLength={14} />
+                  {errors.aadhaar_no && <p className="text-xs text-destructive">{errors.aadhaar_no.message}</p>}
+                </div>
+                <div className="space-y-1.5">
+                  <Label>
+                    Blood Group
+                    {fieldConfig.blood_group && <span className="text-destructive ml-1">*</span>}
+                  </Label>
                   <Select onValueChange={(v) => setValue("blood_group", v)}>
                     <SelectTrigger className={inputClass}><SelectValue placeholder="Select" /></SelectTrigger>
                     <SelectContent>
                       {BLOOD_GROUPS.map((bg) => <SelectItem key={bg} value={bg}>{bg}</SelectItem>)}
                     </SelectContent>
                   </Select>
+                  {errors.blood_group && <p className="text-xs text-destructive">{errors.blood_group.message}</p>}
                 </div>
               </div>
 
@@ -390,7 +512,10 @@ export default function ClientRegistration() {
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between">
-                    <Label>Status</Label>
+                    <Label>
+                      Status
+                      {fieldConfig.occupation && <span className="text-destructive ml-1">*</span>}
+                    </Label>
                     {watch("occupation") === "General Population" && (
                       <div className="flex items-center gap-1.5 animate-in fade-in zoom-in duration-200">
                         <Checkbox 
@@ -409,6 +534,7 @@ export default function ClientRegistration() {
                       <SelectItem value="General Population">General Population</SelectItem>
                     </SelectContent>
                   </Select>
+                  {errors.occupation && <p className="text-xs text-destructive">{errors.occupation.message}</p>}
                 </div>
                 <div className="space-y-1.5">
                   <Label>
@@ -497,7 +623,7 @@ export default function ClientRegistration() {
                 <div className="space-y-1.5 flex flex-col">
                   <Label>
                     Organization Name
-                    {watch("occupation") === "Athlete" && <span className="text-destructive ml-1">*</span>}
+                    {(watch("occupation") === "Athlete" || fieldConfig.org_name) && <span className="text-destructive ml-1">*</span>}
                   </Label>
                   <Popover open={openOrg} onOpenChange={setOpenOrg}>
                     <PopoverTrigger asChild>
@@ -593,40 +719,68 @@ export default function ClientRegistration() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-1.5">
-                <Label>Street Address</Label>
+                <Label>
+                  Street Address
+                  {fieldConfig.address && <span className="text-destructive ml-1">*</span>}
+                </Label>
                 <Textarea className={inputClass} {...register("address")} placeholder="Full address" rows={2} />
+                {errors.address && <p className="text-xs text-destructive">{errors.address.message}</p>}
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="space-y-1.5">
-                  <Label>Locality</Label>
+                  <Label>
+                    Locality
+                    {fieldConfig.locality && <span className="text-destructive ml-1">*</span>}
+                  </Label>
                   <Input className={inputClass} {...register("locality")} placeholder="Area / Locality" />
+                  {errors.locality && <p className="text-xs text-destructive">{errors.locality.message}</p>}
                 </div>
                 <div className="space-y-1.5">
-                  <Label>Pincode</Label>
+                  <Label>
+                    Pincode
+                    {fieldConfig.pincode && <span className="text-destructive ml-1">*</span>}
+                  </Label>
                   <Input className={inputClass} {...register("pincode")} placeholder="560001" maxLength={6} />
+                  {errors.pincode && <p className="text-xs text-destructive">{errors.pincode.message}</p>}
                 </div>
                 <div className="space-y-1.5">
-                  <Label>City</Label>
+                  <Label>
+                    City
+                    {fieldConfig.city && <span className="text-destructive ml-1">*</span>}
+                  </Label>
                   <Input className={inputClass} {...register("city")} placeholder="City" />
+                  {errors.city && <p className="text-xs text-destructive">{errors.city.message}</p>}
                 </div>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="space-y-1.5">
-                  <Label>District</Label>
+                  <Label>
+                    District
+                    {fieldConfig.district && <span className="text-destructive ml-1">*</span>}
+                  </Label>
                   <Input className={inputClass} {...register("district")} placeholder="District" />
+                  {errors.district && <p className="text-xs text-destructive">{errors.district.message}</p>}
                 </div>
                 <div className="space-y-1.5">
-                  <Label>State</Label>
+                  <Label>
+                    State
+                    {fieldConfig.state && <span className="text-destructive ml-1">*</span>}
+                  </Label>
                   <Select onValueChange={(v) => setValue("state", v)}>
                     <SelectTrigger className={inputClass}><SelectValue placeholder="Select state" /></SelectTrigger>
                     <SelectContent>
                       {INDIAN_STATES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
                     </SelectContent>
                   </Select>
+                  {errors.state && <p className="text-xs text-destructive">{errors.state.message}</p>}
                 </div>
                 <div className="space-y-1.5">
-                  <Label>Country</Label>
+                  <Label>
+                    Country
+                    {fieldConfig.country && <span className="text-destructive ml-1">*</span>}
+                  </Label>
                   <Input className={inputClass} {...register("country")} defaultValue="India" />
+                  {errors.country && <p className="text-xs text-destructive">{errors.country.message}</p>}
                 </div>
               </div>
             </CardContent>
@@ -656,22 +810,38 @@ export default function ClientRegistration() {
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
-                    <Label>Insurance Provider</Label>
+                    <Label>
+                      Insurance Provider
+                      {fieldConfig.insurance_provider && <span className="text-destructive ml-1">*</span>}
+                    </Label>
                     <Input className={inputClass} {...register("insurance_provider")} placeholder="Provider name" />
+                    {errors.insurance_provider && <p className="text-xs text-destructive">{errors.insurance_provider.message}</p>}
                   </div>
                   <div className="space-y-1.5">
-                    <Label>Policy Number</Label>
+                    <Label>
+                      Policy Number
+                      {fieldConfig.insurance_policy_no && <span className="text-destructive ml-1">*</span>}
+                    </Label>
                     <Input className={inputClass} {...register("insurance_policy_no")} placeholder="Policy #" />
+                    {errors.insurance_policy_no && <p className="text-xs text-destructive">{errors.insurance_policy_no.message}</p>}
                   </div>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
-                    <Label>Validity Date</Label>
+                    <Label>
+                      Validity Date
+                      {fieldConfig.insurance_validity && <span className="text-destructive ml-1">*</span>}
+                    </Label>
                     <Input type="date" className={inputClass} {...register("insurance_validity")} />
+                    {errors.insurance_validity && <p className="text-xs text-destructive">{errors.insurance_validity.message}</p>}
                   </div>
                   <div className="space-y-1.5">
-                    <Label>Coverage Amount (₹)</Label>
+                    <Label>
+                      Coverage Amount (₹)
+                      {fieldConfig.insurance_coverage_amount && <span className="text-destructive ml-1">*</span>}
+                    </Label>
                     <Input type="number" className={inputClass} {...register("insurance_coverage_amount")} placeholder="500000" />
+                    {errors.insurance_coverage_amount && <p className="text-xs text-destructive">{errors.insurance_coverage_amount.message}</p>}
                   </div>
                 </div>
               </CardContent>

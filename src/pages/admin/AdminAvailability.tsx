@@ -42,35 +42,6 @@ export default function AdminAvailability({ hideLayout = false }: { hideLayout?:
     const [allowCustom, setAllowCustom] = useState(false);
     const [defaultDuration, setDefaultDuration] = useState("60");
 
-    // Consultant override state
-    const [selectedConsultant, setSelectedConsultant] = useState<string>("");
-    const [schedules, setSchedules] = useState<ScheduleRow[]>(DAYS_OF_WEEK.map(d => ({
-        day_of_week: d.id, start_time: "09:00", end_time: "17:00", is_active: false, buffer_time: 0
-    })));
-    const [consultantLoading, setConsultantLoading] = useState(false);
-    const [consultantSaving, setConsultantSaving] = useState(false);
-
-    const { data: consultants } = useQuery({
-        queryKey: ['org-consultants', profile?.organization_id],
-        queryFn: async () => {
-            try {
-                const specialists = await apiFetch<any[]>('/hr/employees', {
-                    params: { role_type: 'clinical' }
-                });
-                return specialists.map(p => ({
-                    id: p.id,
-                    first_name: p.first_name,
-                    last_name: p.last_name,
-                    profession: p.profession
-                }));
-            } catch (error) {
-                console.error("Fetch Consultants Error:", error);
-                return [];
-            }
-        },
-        enabled: !!profile?.organization_id
-    });
-
     useEffect(() => {
         async function loadSettings() {
             if (!profile?.organization_id) return;
@@ -88,43 +59,6 @@ export default function AdminAvailability({ hideLayout = false }: { hideLayout?:
         }
         loadSettings();
     }, [profile]);
-
-    useEffect(() => {
-        async function loadConsultantSchedule() {
-            if (!selectedConsultant) {
-                setSchedules(DAYS_OF_WEEK.map(d => ({ day_of_week: d.id, start_time: "09:00", end_time: "17:00", is_active: false, buffer_time: 0 })));
-                return;
-            }
-            setConsultantLoading(true);
-            try {
-                const availData = await apiFetch<any[]>('/appointments/availability/bulk', {
-                    params: { consultant_ids: selectedConsultant }
-                });
-
-                if (availData && availData.length > 0) {
-                    const loadedSchedules: ScheduleRow[] = DAYS_OF_WEEK.map(day => {
-                        const existing = availData.find(a => a.day_of_week === day.id);
-                        if (existing) {
-                            return {
-                                id: existing.id, day_of_week: day.id,
-                                start_time: existing.start_time.substring(0, 5), end_time: existing.end_time.substring(0, 5),
-                                is_active: true, slot_duration_interval: existing.slot_duration_interval, buffer_time: existing.buffer_time
-                            };
-                        }
-                        return { day_of_week: day.id, start_time: "09:00", end_time: "17:00", is_active: false, buffer_time: 0 };
-                    });
-                    setSchedules(loadedSchedules);
-                } else {
-                    setSchedules(DAYS_OF_WEEK.map(d => ({ day_of_week: d.id, start_time: "09:00", end_time: "17:00", is_active: false, buffer_time: 0 })));
-                }
-            } catch (err: any) {
-                toast({ title: "Failed to load consultant schedule", description: err.message, variant: "destructive" });
-            } finally {
-                setConsultantLoading(false);
-            }
-        }
-        loadConsultantSchedule();
-    }, [selectedConsultant]);
 
     const handleSaveGlobal = async () => {
         if (!profile?.organization_id) return;
@@ -151,52 +85,11 @@ export default function AdminAvailability({ hideLayout = false }: { hideLayout?:
         }
     };
 
-    const handleToggleDay = (dayId: number, active: boolean) => {
-        setSchedules(prev => prev.map(s => s.day_of_week === dayId ? { ...s, is_active: active } : s));
-    };
-
-    const handleTimeChange = (dayId: number, field: 'start_time' | 'end_time', value: string) => {
-        setSchedules(prev => prev.map(s => s.day_of_week === dayId ? { ...s, [field]: value } : s));
-    };
-
-    const handleDurationChange = (dayId: number, value: string) => {
-        const valObj = value === "default" ? null : parseInt(value, 10);
-        setSchedules(prev => prev.map(s => s.day_of_week === dayId ? { ...s, slot_duration_interval: valObj } : s));
-    };
-
-    const handleSaveConsultant = async () => {
-        if (!profile?.organization_id || !selectedConsultant) return;
-        setConsultantSaving(true);
-        try {
-            const inserts = schedules.filter(s => s.is_active).map(s => ({
-                day_of_week: s.day_of_week,
-                start_time: `${s.start_time}:00`,
-                end_time: `${s.end_time}:00`,
-                slot_duration_interval: allowCustom ? s.slot_duration_interval : null,
-                buffer_time: s.buffer_time
-            }));
-
-            await apiFetch('/appointments/availability/bulk-update', {
-                method: 'POST',
-                data: {
-                    consultant_id: selectedConsultant,
-                    schedules: inserts
-                }
-            });
-
-            toast({ title: "Schedule Saved", description: "Consultant availability has been updated." });
-        } catch (err: any) {
-            toast({ title: "Failed to Save", description: err.message, variant: "destructive" });
-        } finally {
-            setConsultantSaving(false);
-        }
-    };
-
     const content = (
         <div className={`space-y-6 max-w-5xl mx-auto ${hideLayout ? 'pb-2' : 'pb-10'}`}>
             <div>
-                <h1 className="text-2xl font-display font-bold text-foreground">Organization Availability</h1>
-                <p className="text-muted-foreground text-sm mt-1">Manage global duration settings and oversee specialist schedules</p>
+                <h1 className="text-2xl font-display font-bold text-foreground">Organization Availability & Settings</h1>
+                <p className="text-muted-foreground text-sm mt-1">Manage global duration settings and session categories</p>
             </div>
 
             <Card className="gradient-card border-border">
@@ -244,115 +137,6 @@ export default function AdminAvailability({ hideLayout = false }: { hideLayout?:
                         {saving ? "Saving..." : "Save Configuration"}
                     </Button>
                 </CardFooter>
-            </Card>
-
-            <Card className="gradient-card border-border">
-                <CardHeader>
-                    <CardTitle className="text-lg flex items-center gap-2">
-                        <CalendarIcon className="w-5 h-5 text-primary" />
-                        Specialist Schedules Override
-                    </CardTitle>
-                    <CardDescription>Select a specialist below to explicitly manage their working hours.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4 pt-4">
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 p-4 border border-border rounded-lg bg-muted/20">
-                        <User className="w-8 h-8 text-primary/50" />
-                        <div className="w-full max-w-sm">
-                            <Label className="mb-2 block">Select Specialist</Label>
-                            <Select value={selectedConsultant} onValueChange={setSelectedConsultant}>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Choose a specialist..." />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {consultants?.map(c => (
-                                        <SelectItem key={c.id} value={c.id}>
-                                            <div className="flex flex-col">
-                                                <span className="font-bold">{c.first_name} {c.last_name}</span>
-                                                <span className="text-[10px] text-muted-foreground uppercase">{c.profession || "Staff"}</span>
-                                            </div>
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                    </div>
-
-                    {selectedConsultant && (
-                        <div className="mt-8 space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
-                            {consultantLoading ? (
-                                <p className="text-sm text-muted-foreground">Loading specialist schedule...</p>
-                            ) : (
-                                <div className="space-y-4">
-                                    <h4 className="font-semibold text-lg text-foreground mb-4">Weekly Time Blocks</h4>
-                                    {schedules.map((schedule) => {
-                                        const dayName = DAYS_OF_WEEK.find(d => d.id === schedule.day_of_week)?.label;
-                                        return (
-                                            <div key={schedule.day_of_week} className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 border border-border rounded-lg bg-background group hover:border-primary/50 transition-colors">
-                                                <div className="flex items-center gap-4 min-w-[150px]">
-                                                    <Switch
-                                                        checked={schedule.is_active}
-                                                        onCheckedChange={(v) => handleToggleDay(schedule.day_of_week, v)}
-                                                    />
-                                                    <Label className={`text-base font-medium ${!schedule.is_active && 'text-muted-foreground'}`}>{dayName}</Label>
-                                                </div>
-
-                                                {schedule.is_active ? (
-                                                    <div className="flex flex-wrap items-center gap-4 flex-1 animate-in fade-in zoom-in duration-200">
-                                                        <div className="flex items-center gap-2">
-                                                            <Input
-                                                                type="time"
-                                                                value={schedule.start_time}
-                                                                onChange={e => handleTimeChange(schedule.day_of_week, 'start_time', e.target.value)}
-                                                                className="w-[120px]"
-                                                            />
-                                                            <span className="text-muted-foreground">to</span>
-                                                            <Input
-                                                                type="time"
-                                                                value={schedule.end_time}
-                                                                onChange={e => handleTimeChange(schedule.day_of_week, 'end_time', e.target.value)}
-                                                                className="w-[120px]"
-                                                            />
-                                                        </div>
-
-                                                        {allowCustom && (
-                                                            <div className="flex items-center gap-2">
-                                                                <span className="text-xs text-muted-foreground">Duration:</span>
-                                                                <Select
-                                                                    value={schedule.slot_duration_interval ? schedule.slot_duration_interval.toString() : "default"}
-                                                                    onValueChange={(v) => handleDurationChange(schedule.day_of_week, v)}
-                                                                >
-                                                                    <SelectTrigger className="w-[130px] h-9">
-                                                                        <SelectValue placeholder="Org Default" />
-                                                                    </SelectTrigger>
-                                                                    <SelectContent>
-                                                                        <SelectItem value="default">Org Default</SelectItem>
-                                                                        <SelectItem value="15">15 mins</SelectItem>
-                                                                        <SelectItem value="30">30 mins</SelectItem>
-                                                                        <SelectItem value="45">45 mins</SelectItem>
-                                                                        <SelectItem value="60">60 mins</SelectItem>
-                                                                        <SelectItem value="90">90 mins</SelectItem>
-                                                                    </SelectContent>
-                                                                </Select>
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                ) : (
-                                                    <p className="text-sm text-muted-foreground flex-1 italic">Unavailable</p>
-                                                )}
-                                            </div>
-                                        );
-                                    })}
-                                    <div className="flex justify-end pt-4">
-                                        <Button onClick={handleSaveConsultant} disabled={consultantLoading || consultantSaving} className="gap-2">
-                                            <Save className="w-4 h-4" />
-                                            {consultantSaving ? "Saving..." : "Save Specialist Override"}
-                                        </Button>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    )}
-                </CardContent>
             </Card>
 
             <SessionTypeManager organizationId={profile?.organization_id} />

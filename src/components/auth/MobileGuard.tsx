@@ -12,13 +12,15 @@ interface MobileGuardProps {
  * based on the current viewport size and user role.
  */
 export default function MobileGuard({ children }: MobileGuardProps) {
-  const isMobile = useIsMobile();
+  const isMobileHook = useIsMobile();
   const location = useLocation();
   const navigate = useNavigate();
   const { roles } = useAuth();
 
   useEffect(() => {
-    if (isMobile === undefined) return; // Wait for mobile detection
+    // Check viewport width as fallback if hook is initializing
+    const isMobileViewport = typeof window !== 'undefined' ? window.innerWidth < 768 : false;
+    const effectiveIsMobile = isMobileHook !== undefined ? isMobileHook : isMobileViewport;
 
     // Check if user has explicitly bypassed mobile view in this session
     const mobilePreference = sessionStorage.getItem("mobile-preference");
@@ -31,43 +33,47 @@ export default function MobileGuard({ children }: MobileGuardProps) {
     const isConsultantPath = location.pathname.startsWith('/consultant');
     const isMobileConsultantPath = location.pathname.startsWith('/mobile/consultant');
 
-    const isSpecialist = roles?.some(r => ["sports_scientist", "admin", "coach", "sports_physician", "physiotherapist", "nutritionist"].includes(r));
-    const isConsultant = roles?.some(r => ["consultant", "sports_physician", "physiotherapist", "nutritionist", "massage_therapist"].includes(r));
-    const isClient = roles?.includes("client") || roles?.includes("athlete");
-
-    if (isMobile) {
-      // Handle Client Redirection
-      if (isClient && isClientPath && !isMobileClientPath) {
-        const mobilePath = location.pathname.replace('/client', '/mobile/client');
-        navigate(mobilePath, { replace: true });
+    if (effectiveIsMobile) {
+      // Profile Redirection to Mobile Profile Page
+      if (location.pathname === '/profile') {
+        navigate('/mobile/profile' + location.search, { replace: true });
         return;
       }
 
-      // Handle Specialist Redirection
-      if (isSpecialist && isSpecialistPath && !isMobileSpecialistPath) {
+      // Handle Consultant / Clinical Redirection on Mobile
+      if (isConsultantPath && !isMobileConsultantPath) {
+        const mobilePath = location.pathname.replace('/consultant', '/mobile/consultant');
+        navigate(mobilePath + location.search, { replace: true });
+        return;
+      }
+
+      // Handle Specialist / AMS Redirection on Mobile
+      if (isSpecialistPath && !isMobileSpecialistPath) {
         let mobilePath = location.pathname.replace('/sports-scientist', '/mobile/specialist');
         
-        // Special case for AMS shared routes
         if (location.pathname === '/ams/questionnaires') {
           mobilePath = '/mobile/specialist/forms';
-        } else if (location.pathname.startsWith('/ams')) {
-          // Default fallback for other AMS routes if needed, or skip
-          return;
+        } else if (location.pathname.startsWith('/ams') && !location.pathname.startsWith('/ams/questionnaires')) {
+          mobilePath = '/mobile/specialist';
         }
 
         navigate(mobilePath + location.search, { replace: true });
         return;
       }
 
-      // Handle Consultant Redirection
-      if (isConsultant && isConsultantPath && !isMobileConsultantPath) {
-        // Special mappings for specific views could go here, otherwise generic replace
-        let mobilePath = location.pathname.replace('/consultant', '/mobile/consultant');
+      // Handle Client Redirection on Mobile
+      if (isClientPath && !isMobileClientPath) {
+        const mobilePath = location.pathname.replace('/client', '/mobile/client');
         navigate(mobilePath + location.search, { replace: true });
         return;
       }
     } else {
       // Redirect back to desktop if on a desktop device
+      if (location.pathname === '/mobile/profile') {
+        navigate('/profile' + location.search, { replace: true });
+        return;
+      }
+
       if (isMobileClientPath) {
         const desktopPath = location.pathname.replace('/mobile/client', '/client');
         navigate(desktopPath, { replace: true });
@@ -81,7 +87,7 @@ export default function MobileGuard({ children }: MobileGuardProps) {
         navigate(desktopPath, { replace: true });
       }
     }
-  }, [isMobile, location.pathname, navigate, roles]);
+  }, [isMobileHook, location.pathname, location.search, navigate, roles]);
 
   return <>{children}</>;
 }

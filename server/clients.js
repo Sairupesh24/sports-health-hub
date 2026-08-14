@@ -66,6 +66,61 @@ router.post('/referral-sources', requireAuth, async (req, res) => {
     }
 });
 
+// GET client field config
+router.get('/field-config', requireAuth, async (req, res) => {
+    try {
+        const orgId = req.user.organization_id;
+        await db.query(`
+            CREATE TABLE IF NOT EXISTS client_field_config (
+                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+                field_name TEXT NOT NULL,
+                is_mandatory BOOLEAN NOT NULL DEFAULT false,
+                updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(organization_id, field_name)
+            )
+        `);
+        const result = await db.query(`
+            SELECT * FROM client_field_config WHERE organization_id = $1
+        `, [orgId]);
+        res.json(result.rows);
+    } catch (error) {
+        console.error("GET field-config error:", error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// POST/PUT client field config (upsert)
+router.post('/field-config', requireAuth, async (req, res) => {
+    try {
+        const orgId = req.user.organization_id;
+        const { configs } = req.body; // Array of {field_name, is_mandatory}
+        await db.query(`
+            CREATE TABLE IF NOT EXISTS client_field_config (
+                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+                field_name TEXT NOT NULL,
+                is_mandatory BOOLEAN NOT NULL DEFAULT false,
+                updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(organization_id, field_name)
+            )
+        `);
+        for (const config of configs) {
+            await db.query(`
+                INSERT INTO client_field_config (organization_id, field_name, is_mandatory, updated_at)
+                VALUES ($1, $2, $3, NOW())
+                ON CONFLICT (organization_id, field_name)
+                DO UPDATE SET is_mandatory = EXCLUDED.is_mandatory, updated_at = NOW()
+            `, [orgId, config.field_name, config.is_mandatory]);
+        }
+        
+        res.json({ success: true });
+    } catch (error) {
+        console.error("POST field-config error:", error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 // GET Client List with search and date range
 router.get('/', requireAuth, async (req, res) => {
     try {
@@ -692,40 +747,6 @@ router.post('/bulk', requireAuth, async (req, res) => {
         res.status(500).json({ error: error.message });
     } finally {
         client.release();
-    }
-});
-
-// GET client field config
-router.get('/field-config', requireAuth, async (req, res) => {
-    try {
-        const orgId = req.user.organization_id;
-        const result = await db.query(`
-            SELECT * FROM client_field_config WHERE organization_id = $1
-        `, [orgId]);
-        res.json(result.rows);
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-});
-
-// POST/PUT client field config (upsert)
-router.post('/field-config', requireAuth, async (req, res) => {
-    try {
-        const orgId = req.user.organization_id;
-        const { configs } = req.body; // Array of {field_name, is_mandatory}
-        
-        for (const config of configs) {
-            await db.query(`
-                INSERT INTO client_field_config (organization_id, field_name, is_mandatory, updated_at)
-                VALUES ($1, $2, $3, NOW())
-                ON CONFLICT (organization_id, field_name)
-                DO UPDATE SET is_mandatory = EXCLUDED.is_mandatory, updated_at = NOW()
-            `, [orgId, config.field_name, config.is_mandatory]);
-        }
-        
-        res.json({ success: true });
-    } catch (error) {
-        res.status(500).json({ error: error.message });
     }
 });
 

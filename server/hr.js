@@ -547,62 +547,80 @@ router.get('/users/:id/profile-activity', requireAuth, async (req, res) => {
             SELECT p.*, u.email, u.role as current_role, u.created_at as user_created_at
             FROM profiles p
             JOIN users u ON p.id = u.id
-            WHERE p.id = $1 AND (p.organization_id = $2 OR $3 = 'super_admin')
-        `, [id, orgId, req.user.role]);
+            WHERE p.id = $1 AND (p.id = $4 OR p.organization_id = $2 OR $2 IS NULL OR $3 = 'super_admin')
+        `, [id, orgId, req.user.role, req.user.id]).catch(() => ({ rows: [] }));
 
-        if (userRes.rows.length === 0) {
+        if (!userRes.rows || userRes.rows.length === 0) {
             return res.status(404).json({ error: 'User profile not found' });
         }
         const profileData = userRes.rows[0];
 
         // 2. Today's Active Seconds
-        const todayRes = await db.query(`
-            SELECT COALESCE(active_seconds, 0) as today_seconds, last_ping
-            FROM user_app_activity
-            WHERE user_id = $1 AND date = CURRENT_DATE
-        `, [id]).catch(() => ({ rows: [] }));
-        const todaySeconds = parseInt(todayRes.rows[0]?.today_seconds || 0, 10);
-        const lastPing = todayRes.rows[0]?.last_ping || null;
+        let todaySeconds = 0;
+        let lastPing = null;
+        try {
+            const todayRes = await db.query(`
+                SELECT COALESCE(active_seconds, 0) as today_seconds, last_ping
+                FROM user_app_activity
+                WHERE user_id = $1 AND date = CURRENT_DATE
+            `, [id]);
+            todaySeconds = parseInt(todayRes.rows[0]?.today_seconds || 0, 10);
+            lastPing = todayRes.rows[0]?.last_ping || null;
+        } catch (e) {}
 
         // 3. Last 7 Days Active Seconds & Active Days
-        const last7dRes = await db.query(`
-            SELECT 
-                COALESCE(SUM(active_seconds), 0) as total_7d_seconds,
-                COUNT(DISTINCT date) FILTER (WHERE active_seconds > 0) as active_days_7d
-            FROM user_app_activity
-            WHERE user_id = $1 AND date >= CURRENT_DATE - INTERVAL '6 days' AND date <= CURRENT_DATE
-        `, [id]).catch(() => ({ rows: [{ total_7d_seconds: 0, active_days_7d: 0 }] }));
-        const total7dSeconds = parseInt(last7dRes.rows[0]?.total_7d_seconds || 0, 10);
-        const activeDays7d = parseInt(last7dRes.rows[0]?.active_days_7d || 0, 10);
+        let total7dSeconds = 0;
+        let activeDays7d = 0;
+        try {
+            const last7dRes = await db.query(`
+                SELECT 
+                    COALESCE(SUM(active_seconds), 0) as total_7d_seconds,
+                    COUNT(DISTINCT date) FILTER (WHERE active_seconds > 0) as active_days_7d
+                FROM user_app_activity
+                WHERE user_id = $1 AND date >= CURRENT_DATE - INTERVAL '6 days' AND date <= CURRENT_DATE
+            `, [id]);
+            total7dSeconds = parseInt(last7dRes.rows[0]?.total_7d_seconds || 0, 10);
+            activeDays7d = parseInt(last7dRes.rows[0]?.active_days_7d || 0, 10);
+        } catch (e) {}
 
         // 4. Last 30 Days Active Seconds & Active Days
-        const last30dRes = await db.query(`
-            SELECT 
-                COALESCE(SUM(active_seconds), 0) as total_30d_seconds,
-                COUNT(DISTINCT date) FILTER (WHERE active_seconds > 0) as active_days_30d
-            FROM user_app_activity
-            WHERE user_id = $1 AND date >= CURRENT_DATE - INTERVAL '29 days' AND date <= CURRENT_DATE
-        `, [id]).catch(() => ({ rows: [{ total_30d_seconds: 0, active_days_30d: 0 }] }));
-        const total30dSeconds = parseInt(last30dRes.rows[0]?.total_30d_seconds || 0, 10);
-        const activeDays30d = parseInt(last30dRes.rows[0]?.active_days_30d || 0, 10);
+        let total30dSeconds = 0;
+        let activeDays30d = 0;
+        try {
+            const last30dRes = await db.query(`
+                SELECT 
+                    COALESCE(SUM(active_seconds), 0) as total_30d_seconds,
+                    COUNT(DISTINCT date) FILTER (WHERE active_seconds > 0) as active_days_30d
+                FROM user_app_activity
+                WHERE user_id = $1 AND date >= CURRENT_DATE - INTERVAL '29 days' AND date <= CURRENT_DATE
+            `, [id]);
+            total30dSeconds = parseInt(last30dRes.rows[0]?.total_30d_seconds || 0, 10);
+            activeDays30d = parseInt(last30dRes.rows[0]?.active_days_30d || 0, 10);
+        } catch (e) {}
 
         // 5. Daily Activity Trend for Last 14 Days
-        const trendRes = await db.query(`
-            SELECT d.date::text as date_str, COALESCE(a.active_seconds, 0) as active_seconds
-            FROM generate_series(CURRENT_DATE - INTERVAL '13 days', CURRENT_DATE, '1 day'::interval) d(date)
-            LEFT JOIN user_app_activity a ON a.user_id = $1 AND a.date = d.date::date
-            ORDER BY d.date ASC
-        `, [id]).catch(() => ({ rows: [] }));
-
-        const dailyTrend = trendRes.rows.map(r => ({
-            date: r.date_str,
-            activeMinutes: Math.round(parseInt(r.active_seconds || 0, 10) / 60)
-        }));
+        let dailyTrend = [];
+        try {
+            const trendRes = await db.query(`
+                SELECT d.date::text as date_str, COALESCE(a.active_seconds, 0) as active_seconds
+                FROM generate_series(CURRENT_DATE - INTERVAL '13 days', CURRENT_DATE, '1 day'::interval) d(date)
+                LEFT JOIN user_app_activity a ON a.user_id = $1 AND a.date = d.date::date
+                ORDER BY d.date ASC
+            `, [id]);
+            dailyTrend = trendRes.rows.map(r => ({
+                date: r.date_str,
+                activeMinutes: Math.round(parseInt(r.active_seconds || 0, 10) / 60)
+            }));
+        } catch (e) {}
 
         // 6. Productivity Summary Counts
-        const sessionsRes = await db.query(`SELECT COUNT(*) as count FROM sessions WHERE practitioner_id = $1`, [id]).catch(() => ({ rows: [{ count: 0 }] }));
-        const assessmentsRes = await db.query(`SELECT COUNT(*) as count FROM performance_assessments WHERE created_by = $1`, [id]).catch(() => ({ rows: [{ count: 0 }] }));
-        const regRes = await db.query(`SELECT COUNT(*) as count FROM profiles WHERE created_by = $1`, [id]).catch(() => ({ rows: [{ count: 0 }] }));
+        let sessionsCount = 0;
+        let assessmentsCount = 0;
+        let registrationsCount = 0;
+        try {
+            const sessionsRes = await db.query(`SELECT COUNT(*) as count FROM sessions WHERE practitioner_id = $1`, [id]).catch(() => ({ rows: [{ count: 0 }] }));
+            sessionsCount = parseInt(sessionsRes.rows[0]?.count || 0, 10);
+        } catch (e) {}
 
         const todayMinutes = Math.round(todaySeconds / 60);
         const avg7dMinutes = Math.round((total7dSeconds / 7) / 60);
@@ -623,9 +641,9 @@ router.get('/users/:id/profile-activity', requireAuth, async (req, res) => {
                 dailyTrend
             },
             productivity: {
-                sessionsCount: parseInt(sessionsRes.rows[0]?.count || 0, 10),
-                assessmentsCount: parseInt(assessmentsRes.rows[0]?.count || 0, 10),
-                registrationsCount: parseInt(regRes.rows[0]?.count || 0, 10)
+                sessionsCount,
+                assessmentsCount,
+                registrationsCount
             }
         });
     } catch (error) {
@@ -699,11 +717,11 @@ router.patch('/users/:id/role', requireAuth, async (req, res) => {
     const client = await db.connect();
     try {
         const { id } = req.params;
-        const { role, profession, ams_role, uhid, has_calendar_access, has_analytics_access, has_assign_work_access } = req.body;
+        const { role, profession, ams_role, uhid, has_calendar_access, has_analytics_access, has_assign_work_access, allowed_consoles } = req.body;
         const orgId = req.user.organization_id;
 
         // Security check for calendar access, analytics access, or assign work access change
-        if ((has_calendar_access !== undefined || has_analytics_access !== undefined || has_assign_work_access !== undefined) && req.user.role !== 'admin') {
+        if ((has_calendar_access !== undefined || has_analytics_access !== undefined || has_assign_work_access !== undefined || allowed_consoles !== undefined) && req.user.role !== 'admin') {
             return res.status(403).json({ error: 'Forbidden: Only administrators can modify access permissions' });
         }
 
@@ -738,6 +756,10 @@ router.patch('/users/:id/role', requireAuth, async (req, res) => {
         if (has_assign_work_access !== undefined) {
             updates.push(`has_assign_work_access = $${params.length + 1}`);
             params.push(has_assign_work_access);
+        }
+        if (allowed_consoles !== undefined) {
+            updates.push(`allowed_consoles = $${params.length + 1}`);
+            params.push(typeof allowed_consoles === 'object' ? JSON.stringify(allowed_consoles) : allowed_consoles);
         }
 
         if (updates.length > 0) {

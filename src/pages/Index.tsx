@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { getDashboardPath, isUserApproved } from "@/utils/navigation";
+import { isUserApproved } from "@/utils/navigation";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -15,7 +15,6 @@ const Index = () => {
       return;
     }
 
-    // User is authenticated — send to dashboard or pending-approval
     if (!profile) return; // profile still loading
 
     if (!isUserApproved(profile, roles)) {
@@ -23,7 +22,8 @@ const Index = () => {
       return;
     }
 
-    navigate(getDashboardPath(roles, profile), { replace: true });
+    // Redirect to App Gallery as the unified ISHPO landing page
+    navigate("/app-gallery", { replace: true });
   }, [user, profile, roles, loading, navigate]);
 
   return null;

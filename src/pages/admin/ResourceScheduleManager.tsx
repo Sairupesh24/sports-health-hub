@@ -254,9 +254,29 @@ export default function ResourceScheduleManager() {
                 }
             });
 
+            // Also sync shift windows to bulk availability table for all days of the week
+            const bulkSchedules = [0, 1, 2, 3, 4, 5, 6].map(dayId => ({
+                day_of_week: dayId,
+                start_time: shiftStart.length === 5 ? `${shiftStart}:00` : shiftStart,
+                end_time: shiftEnd.length === 5 ? `${shiftEnd}:00` : shiftEnd,
+                is_active: true
+            }));
+
+            try {
+                await apiFetch('/appointments/availability/bulk-update', {
+                    method: 'POST',
+                    data: {
+                        consultant_id: selectedClinicianId,
+                        schedules: bulkSchedules
+                    }
+                });
+            } catch (bulkErr) {
+                console.warn("Sync to bulk availability warning:", bulkErr);
+            }
+
             toast({
                 title: "Schedule Saved",
-                description: "Clinician schedule settings updated successfully."
+                description: "Shift and break windows updated and saved successfully."
             });
         } catch (err: any) {
             toast({

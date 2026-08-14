@@ -105,7 +105,80 @@ async function runMigrations() {
           AND (created_at::time = '22:00:00' OR metadata->>'default_checkout_time' = '22:00');
       `);
     } catch (e) {
-      console.error('[MIGRATION ERROR]', e.message);
+      console.error('[AUTO CHECKOUT MIGRATION ERROR]', e.message);
+    }
+
+    // Create Planner tables
+    try {
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS planner_projects (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          organization_id UUID,
+          name TEXT NOT NULL,
+          code TEXT NOT NULL,
+          description TEXT,
+          department TEXT DEFAULT 'General',
+          priority TEXT DEFAULT 'medium',
+          health TEXT DEFAULT 'on_track',
+          status TEXT DEFAULT 'active',
+          progress INTEGER DEFAULT 0,
+          start_date DATE,
+          target_date DATE,
+          budget NUMERIC(15,2) DEFAULT 0.00,
+          currency TEXT DEFAULT 'INR',
+          owner_id UUID,
+          manager_id UUID,
+          portfolio_id UUID,
+          created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+          deleted_at TIMESTAMPTZ
+        );
+
+        CREATE TABLE IF NOT EXISTS planner_workstreams (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          project_id UUID REFERENCES planner_projects(id) ON DELETE CASCADE,
+          name TEXT NOT NULL,
+          color TEXT DEFAULT 'hsl(251 74% 60%)',
+          sort_order INTEGER DEFAULT 0,
+          created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+        );
+
+        CREATE TABLE IF NOT EXISTS planner_work_items (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          project_id UUID REFERENCES planner_projects(id) ON DELETE CASCADE,
+          workstream_id UUID REFERENCES planner_workstreams(id) ON DELETE SET NULL,
+          parent_id UUID REFERENCES planner_work_items(id) ON DELETE CASCADE,
+          title TEXT NOT NULL,
+          description TEXT,
+          status TEXT DEFAULT 'planned',
+          priority TEXT DEFAULT 'medium',
+          assignee_id UUID,
+          creator_id UUID,
+          sprint_id UUID,
+          start_date DATE,
+          due_date DATE,
+          estimated_hours NUMERIC(8,2) DEFAULT 0.00,
+          actual_hours NUMERIC(8,2) DEFAULT 0.00,
+          is_milestone BOOLEAN DEFAULT FALSE,
+          is_critical BOOLEAN DEFAULT FALSE,
+          sort_order INTEGER DEFAULT 0,
+          created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+          deleted_at TIMESTAMPTZ
+        );
+
+        CREATE TABLE IF NOT EXISTS planner_dependencies (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          predecessor_id UUID REFERENCES planner_work_items(id) ON DELETE CASCADE,
+          successor_id UUID REFERENCES planner_work_items(id) ON DELETE CASCADE,
+          type TEXT DEFAULT 'FS',
+          lag_days INTEGER DEFAULT 0,
+          created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+          UNIQUE(predecessor_id, successor_id)
+        );
+      `);
+    } catch (err) {
+      console.error('[PLANNER MIGRATION ERROR]', err.message);
     }
 
 
@@ -160,6 +233,9 @@ async function runMigrations() {
     } catch (e) {}
     try {
       await pool.query(`ALTER TABLE profiles ADD COLUMN has_assign_work_access BOOLEAN DEFAULT FALSE;`);
+    } catch (e) {}
+    try {
+      await pool.query(`ALTER TABLE profiles ADD COLUMN allowed_consoles TEXT;`);
     } catch (e) {}
 
 
@@ -291,6 +367,18 @@ async function runMigrations() {
         remarks TEXT NOT NULL,
         updated_by UUID REFERENCES users(id),
         updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // Client Form Field Config
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS client_field_config (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+        field_name TEXT NOT NULL,
+        is_mandatory BOOLEAN NOT NULL DEFAULT false,
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(organization_id, field_name)
       )
     `);
 

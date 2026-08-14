@@ -35,6 +35,7 @@ import ServiceMapping from "./pages/admin/ServiceMapping";
 import AdminSettings from "./pages/admin/AdminSettings";
 import AdminInjuries from "./pages/admin/AdminInjuries";
 import AdminPermissions from "./pages/admin/AdminPermissions";
+import ConsoleAccess from "./pages/admin/ConsoleAccess";
 import ManagerialAnalytics from "./pages/admin/ManagerialAnalytics";
 import ResourceScheduleManager from "./pages/admin/ResourceScheduleManager";
 import NotificationSettings from "./pages/admin/NotificationSettings";
@@ -72,7 +73,21 @@ import SuperAdminDashboard from "./pages/super-admin/Dashboard";
 import OrganizationDetails from "./pages/super-admin/OrganizationDetails";
 import OnboardOrganization from "./pages/super-admin/OnboardOrganization";
 import MyProfile from "./pages/shared/MyProfile";
+import MobileProfilePage from "./pages/mobile/MobileProfilePage";
 import ReportsPage from "./pages/shared/ReportsPage";
+import AppGallery from "./pages/AppGallery";
+
+// OrbitFlow Planner
+import PlannerHome from "./pages/planner/PlannerHome";
+import MyWork from "./pages/planner/MyWork";
+import ProjectsIndex from "./pages/planner/ProjectsIndex";
+import ProjectShell from "./pages/planner/ProjectShell";
+import PortfoliosIndex from "./pages/planner/PortfoliosIndex";
+import RoadmapsIndex from "./pages/planner/RoadmapsIndex";
+import PlannerCalendar from "./pages/planner/PlannerCalendar";
+import ResourcesIndex from "./pages/planner/ResourcesIndex";
+import PlannerReports from "./pages/planner/PlannerReports";
+import PlannerSettings from "./pages/planner/PlannerSettings";
 
 // Sports Scientist Console
 import SportsScientistDashboard from "./pages/sports-scientist/SportsScientistDashboard";
@@ -146,12 +161,14 @@ const App = () => (
               <Route path="/admin/clients" element={<ProtectedRoute requiredRole={["admin", "foe"]}><ClientList /></ProtectedRoute>} />
               <Route path="/admin/clients/register" element={<ProtectedRoute requiredRole={["admin", "foe"]}><ClientRegistration /></ProtectedRoute>} />
               <Route path="/admin/clients/:id" element={<ProtectedRoute requiredRole={["admin", "foe"]}><ClientProfile /></ProtectedRoute>} />
-              <Route path="/admin/settings" element={<ProtectedRoute requiredRole="admin"><AdminSettings /></ProtectedRoute>} />
+              <Route path="/admin/settings" element={<ProtectedRoute requiredRole="admin"><ConsoleAccess /></ProtectedRoute>} />
+              <Route path="/admin/settings/console-access" element={<ProtectedRoute requiredRole="admin"><ConsoleAccess /></ProtectedRoute>} />
               <Route path="/admin/settings/fields" element={<ProtectedRoute requiredRole="admin"><FieldConfig /></ProtectedRoute>} />
               <Route path="/admin/settings/services" element={<ProtectedRoute requiredRole="admin"><ServiceMapping /></ProtectedRoute>} />
               <Route path="/admin/settings/resource-schedule" element={<ProtectedRoute requiredRole="admin"><ResourceScheduleManager /></ProtectedRoute>} />
               <Route path="/admin/settings/injuries" element={<ProtectedRoute requiredRole="admin"><AdminInjuries /></ProtectedRoute>} />
-              <Route path="/admin/settings/permissions" element={<ProtectedRoute requiredRole="admin"><AdminPermissions /></ProtectedRoute>} />
+              <Route path="/admin/settings/permissions" element={<ProtectedRoute requiredRole="admin"><ConsoleAccess /></ProtectedRoute>} />
+              <Route path="/admin/permissions" element={<ProtectedRoute requiredRole="admin"><ConsoleAccess /></ProtectedRoute>} />
               <Route path="/admin/analytics/managerial" element={<ProtectedRoute><ManagerialAnalytics /></ProtectedRoute>} />
               <Route path="/admin/settings/notifications" element={<ProtectedRoute requiredRole="admin"><NotificationSettings /></ProtectedRoute>} />
               <Route path="/admin/billing" element={<ProtectedRoute requiredRole={["admin", "foe"]}><BillingPage /></ProtectedRoute>} />
@@ -159,17 +176,17 @@ const App = () => (
               <Route path="/admin/users/:id" element={<ProtectedRoute requiredRole={["admin", "foe"]}><StaffProfile /></ProtectedRoute>} />
               
               {/* HRMS Console Routes */}
-              <Route path="/hr" element={<ProtectedRoute requiredRole="hr_manager"><HrDashboard /></ProtectedRoute>} />
-              <Route path="/hr/activity-tracker" element={<ProtectedRoute requiredRole="hr_manager"><ActivityTracker /></ProtectedRoute>} />
+              <Route path="/hr" element={<ProtectedRoute requiredRole={["admin", "hr_manager", "super_admin"]}><HrDashboard /></ProtectedRoute>} />
+              <Route path="/hr/activity-tracker" element={<ProtectedRoute requiredRole={["admin", "hr_manager", "super_admin"]}><ActivityTracker /></ProtectedRoute>} />
               <Route path="/hr/staff-efficiency" element={<Navigate to="/hr/activity-tracker" replace />} />
-              <Route path="/hr/day-planner" element={<ProtectedRoute requiredRole="hr_manager"><HrDayPlanner /></ProtectedRoute>} />
+              <Route path="/hr/day-planner" element={<ProtectedRoute requiredRole={["admin", "hr_manager", "super_admin"]}><HrDayPlanner /></ProtectedRoute>} />
               <Route path="/hr/employees" element={<Navigate to="/hr/leave-approvals" replace />} />
               <Route path="/hr/contracts" element={<Navigate to="/hr/leave-approvals" replace />} />
               <Route path="/hr/leaves" element={<Navigate to="/hr/leave-approvals" replace />} />
-              <Route path="/hr/users" element={<ProtectedRoute requiredRole="hr_manager"><UserApproval /></ProtectedRoute>} />
-              <Route path="/hr/users/:id" element={<ProtectedRoute requiredRole="hr_manager"><StaffProfile /></ProtectedRoute>} />
-              <Route path="/hr/attendance-logs" element={<ProtectedRoute requiredRole="hr_manager"><DailyLogs /></ProtectedRoute>} />
-              <Route path="/hr/leave-approvals" element={<ProtectedRoute requiredRole="hr_manager"><LeaveApprovals /></ProtectedRoute>} />
+              <Route path="/hr/users" element={<ProtectedRoute requiredRole={["admin", "hr_manager", "super_admin"]}><UserApproval /></ProtectedRoute>} />
+              <Route path="/hr/users/:id" element={<ProtectedRoute requiredRole={["admin", "hr_manager", "super_admin"]}><StaffProfile /></ProtectedRoute>} />
+              <Route path="/hr/attendance-logs" element={<ProtectedRoute requiredRole={["admin", "hr_manager", "super_admin"]}><DailyLogs /></ProtectedRoute>} />
+              <Route path="/hr/leave-approvals" element={<ProtectedRoute requiredRole={["admin", "hr_manager", "super_admin"]}><LeaveApprovals /></ProtectedRoute>} />
 
               {/* Shared User Profile & Active Time Route */}
               <Route path="/profile" element={<ProtectedRoute><UserProfile /></ProtectedRoute>} />
@@ -181,7 +198,7 @@ const App = () => (
               <Route path="/admin/availability" element={<ProtectedRoute requiredRole="admin"><AdminAvailability /></ProtectedRoute>} />
               <Route path="/admin/reports" element={<ProtectedRoute requiredRole={["admin", "foe", "manager"]}><ReportsPage role="admin" /></ProtectedRoute>} />
               <Route path="/admin/appointments" element={<ProtectedRoute requiredRole={["admin", "foe"]}><AppointmentList role="admin" /></ProtectedRoute>} />
-              <Route path="/consultant" element={<MobileGuard><ProtectedRoute requiredRole={["consultant", "sports_physician", "physiotherapist", "nutritionist", "massage_therapist"]}><ConsultantDashboard /></ProtectedRoute></MobileGuard>} />
+              <Route path="/consultant" element={<MobileGuard><ProtectedRoute requiredRole={["consultant", "sports_physician", "physiotherapist", "nutritionist", "massage_therapist", "admin", "super_admin"]}><ConsultantDashboard /></ProtectedRoute></MobileGuard>} />
               {/* Nutritionist Console Routes */}
               <Route path="/nutritionist" element={<MobileGuard><ProtectedRoute requiredRole={["nutritionist", "consultant", "sports_physician", "physiotherapist", "admin", "super_admin"]}><NutritionistDashboard /></ProtectedRoute></MobileGuard>} />
               <Route path="/nutritionist/clients" element={<MobileGuard><ProtectedRoute requiredRole={["nutritionist", "consultant", "sports_physician", "physiotherapist", "admin", "super_admin"]}><NutritionistClients /></ProtectedRoute></MobileGuard>} />
@@ -189,12 +206,12 @@ const App = () => (
               <Route path="/nutritionist/assessments" element={<MobileGuard><ProtectedRoute requiredRole={["nutritionist", "consultant", "sports_physician", "physiotherapist", "admin", "super_admin"]}><NutritionistAssessmentsPage /></ProtectedRoute></MobileGuard>} />
               <Route path="/nutritionist/meal-plans" element={<MobileGuard><ProtectedRoute requiredRole={["nutritionist", "consultant", "sports_physician", "physiotherapist", "admin", "super_admin"]}><NutritionistMealPlansPage /></ProtectedRoute></MobileGuard>} />
               <Route path="/nutritionist/schedule" element={<MobileGuard><ProtectedRoute requiredRole={["nutritionist", "consultant", "sports_physician", "physiotherapist", "admin", "super_admin"]}><NutritionistSchedule /></ProtectedRoute></MobileGuard>} />
-              <Route path="/consultant/clients" element={<MobileGuard><ProtectedRoute requiredRole={["consultant", "sports_physician", "physiotherapist", "nutritionist", "massage_therapist"]}><MyClients /></ProtectedRoute></MobileGuard>} />
-              <Route path="/consultant/clients/:id" element={<MobileGuard><ProtectedRoute requiredRole={["consultant", "sports_physician", "physiotherapist", "nutritionist", "massage_therapist"]}><ConsultantClientProfile /></ProtectedRoute></MobileGuard>} />
-              <Route path="/consultant/availability" element={<MobileGuard><ProtectedRoute requiredRole={["consultant", "sports_physician", "physiotherapist", "nutritionist", "massage_therapist"]}><ConsultantAvailability /></ProtectedRoute></MobileGuard>} />
-              <Route path="/consultant/reports" element={<MobileGuard><ProtectedRoute requiredRole={["consultant", "sports_physician", "physiotherapist", "nutritionist", "massage_therapist"]}><ReportsPage role="consultant" /></ProtectedRoute></MobileGuard>} />
-              <Route path="/consultant/schedule" element={<MobileGuard><ProtectedRoute requiredRole={["consultant", "sports_physician", "physiotherapist", "nutritionist", "massage_therapist"]}><ConsultantSchedule /></ProtectedRoute></MobileGuard>} />
-              <Route path="/consultant/injuries" element={<MobileGuard><ProtectedRoute requiredRole={["consultant", "sports_physician", "physiotherapist", "nutritionist", "massage_therapist"]}><InjuryRepoPage /></ProtectedRoute></MobileGuard>} />
+              <Route path="/consultant/clients" element={<MobileGuard><ProtectedRoute requiredRole={["consultant", "sports_physician", "physiotherapist", "nutritionist", "massage_therapist", "admin", "super_admin"]}><MyClients /></ProtectedRoute></MobileGuard>} />
+              <Route path="/consultant/clients/:id" element={<MobileGuard><ProtectedRoute requiredRole={["consultant", "sports_physician", "physiotherapist", "nutritionist", "massage_therapist", "admin", "super_admin"]}><ConsultantClientProfile /></ProtectedRoute></MobileGuard>} />
+              <Route path="/consultant/availability" element={<MobileGuard><ProtectedRoute requiredRole={["consultant", "sports_physician", "physiotherapist", "nutritionist", "massage_therapist", "admin", "super_admin"]}><ConsultantAvailability /></ProtectedRoute></MobileGuard>} />
+              <Route path="/consultant/reports" element={<MobileGuard><ProtectedRoute requiredRole={["consultant", "sports_physician", "physiotherapist", "nutritionist", "massage_therapist", "admin", "super_admin"]}><ReportsPage role="consultant" /></ProtectedRoute></MobileGuard>} />
+              <Route path="/consultant/schedule" element={<MobileGuard><ProtectedRoute requiredRole={["consultant", "sports_physician", "physiotherapist", "nutritionist", "massage_therapist", "admin", "super_admin"]}><ConsultantSchedule /></ProtectedRoute></MobileGuard>} />
+              <Route path="/consultant/injuries" element={<MobileGuard><ProtectedRoute requiredRole={["consultant", "sports_physician", "physiotherapist", "nutritionist", "massage_therapist", "admin", "super_admin"]}><InjuryRepoPage /></ProtectedRoute></MobileGuard>} />
               
               <Route path="/sports-scientist" element={<MobileGuard><ProtectedRoute requiredRole={["sports_scientist", "admin"]}><SportsScientistDashboard /></ProtectedRoute></MobileGuard>} />
               <Route path="/sports-scientist/schedule" element={<MobileGuard><ProtectedRoute requiredRole={["sports_scientist", "admin"]}><SportsScientistSchedule /></ProtectedRoute></MobileGuard>} />
@@ -253,6 +270,24 @@ const App = () => (
               <Route path="/super-admin" element={<ProtectedRoute requiredRole="super_admin"><SuperAdminDashboard /></ProtectedRoute>} />
               <Route path="/super-admin/organizations/new" element={<ProtectedRoute requiredRole="super_admin"><OnboardOrganization /></ProtectedRoute>} />
               <Route path="/super-admin/organizations/:id" element={<ProtectedRoute requiredRole="super_admin"><OrganizationDetails /></ProtectedRoute>} />
+
+              {/* Mobile Profile Page */}
+              <Route path="/mobile/profile" element={<MobileGuard><ProtectedRoute><MobileProfilePage /></ProtectedRoute></MobileGuard>} />
+
+              {/* App Gallery */}
+              <Route path="/app-gallery" element={<ProtectedRoute><AppGallery /></ProtectedRoute>} />
+
+              {/* OrbitFlow Planner */}
+              <Route path="/planner" element={<ProtectedRoute><PlannerHome /></ProtectedRoute>} />
+              <Route path="/planner/my-work" element={<ProtectedRoute><MyWork /></ProtectedRoute>} />
+              <Route path="/planner/projects" element={<ProtectedRoute><ProjectsIndex /></ProtectedRoute>} />
+              <Route path="/planner/projects/:id" element={<ProtectedRoute><ProjectShell /></ProtectedRoute>} />
+              <Route path="/planner/portfolios" element={<ProtectedRoute><PortfoliosIndex /></ProtectedRoute>} />
+              <Route path="/planner/roadmaps" element={<ProtectedRoute><RoadmapsIndex /></ProtectedRoute>} />
+              <Route path="/planner/calendar" element={<ProtectedRoute><PlannerCalendar /></ProtectedRoute>} />
+              <Route path="/planner/resources" element={<ProtectedRoute><ResourcesIndex /></ProtectedRoute>} />
+              <Route path="/planner/reports" element={<ProtectedRoute><PlannerReports /></ProtectedRoute>} />
+              <Route path="/planner/settings" element={<ProtectedRoute><PlannerSettings /></ProtectedRoute>} />
 
               {/* Universal Authenticated Routes */}
               <Route path="/profile" element={<ProtectedRoute><MyProfile /></ProtectedRoute>} />

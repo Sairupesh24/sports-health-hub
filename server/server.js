@@ -13,6 +13,7 @@ import clinicalRoutes from './clinical.js';
 import amsRoutes from './ams.js';
 import adminRoutes from './admin.js';
 import analyticsRoutes from './analytics.js';
+import plannerRoutes from './planner.js';
 import { requireAuth } from './middleware.js';
 import { db } from './db.js';
 
@@ -68,6 +69,7 @@ app.use('/api/ams', amsRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/v1/analytics', analyticsRoutes);
+app.use('/api/planner', plannerRoutes);
 
 // --- Public Routes ---
 app.get('/api/public/orgs/:slug', async (req, res) => {

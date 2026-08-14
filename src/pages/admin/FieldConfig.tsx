@@ -7,6 +7,7 @@ import { apiFetch } from "@/utils/api";
 import { toast } from "@/hooks/use-toast";
 import { Settings, ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 
 const CONFIGURABLE_FIELDS = [
   { name: "honorific", label: "Honorific" },
@@ -34,15 +35,16 @@ const CONFIGURABLE_FIELDS = [
 
 export default function FieldConfig() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [config, setConfig] = useState<Record<string, boolean>>({});
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     const fetchConfig = async () => {
-      const data = await apiFetch(`/api/clients/field-config`);
-      if (data) {
+      const data = await apiFetch<any[]>(`/clients/field-config`);
+      if (data && Array.isArray(data)) {
         const map: Record<string, boolean> = {};
-        data.forEach((row: any) => (map[row.field_name] = row.is_mandatory));
+        data.forEach((row: any) => (map[row.field_name] = row.is_mandatory === true || row.is_mandatory === 'true' || row.is_mandatory === 1));
         setConfig(map);
       }
     };
@@ -58,13 +60,14 @@ export default function FieldConfig() {
     try {
       const configs = CONFIGURABLE_FIELDS.map((f) => ({
         field_name: f.name,
-        is_mandatory: config[f.name] || false,
+        is_mandatory: !!config[f.name],
       }));
 
-      await apiFetch(`/api/clients/field-config`, {
+      await apiFetch(`/clients/field-config`, {
         method: 'POST',
-        body: { configs }
+        data: { configs }
       });
+      queryClient.invalidateQueries({ queryKey: ["client_field_config"] });
       toast({ title: "Saved", description: "Field configuration updated" });
     } catch (err: any) {
       toast({ title: "Error", description: err.message, variant: "destructive" });

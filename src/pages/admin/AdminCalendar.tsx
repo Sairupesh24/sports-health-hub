@@ -20,19 +20,21 @@ import {
     addWeeks,
     subWeeks,
     subDays,
-    parseISO
+    parseISO,
+    parse
 } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Filter, Layers, Clock, Plus, Download, Bell, AlertCircle, Check, Coffee } from "lucide-react";
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Filter, Layers, Clock, Plus, Download, Bell, AlertCircle, Check, Coffee, ExternalLink } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Loader2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { APP_MODULES, isModuleGrantedForUser } from "@/config/appModules";
 
 import AppointmentList from "../shared/AppointmentList";
 import { AdminBookSessionModal } from "@/components/admin/AdminBookSessionModal";
@@ -69,7 +71,7 @@ interface SessionEvent {
 }
 
 export default function AdminCalendar() {
-    const { profile } = useAuth();
+    const { profile, roles } = useAuth();
     const queryClient = useQueryClient();
     const [activeTab, setActiveTab] = useState("master");
     const [isBookModalOpen, setIsBookModalOpen] = useState(false);
@@ -77,6 +79,26 @@ export default function AdminCalendar() {
     const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
     const [isEmergencyModalOpen, setIsEmergencyModalOpen] = useState(false);
     const [waitlistInitialData, setWaitlistInitialData] = useState<any>(null);
+
+    const handleOpenResourceScheduleManager = () => {
+        const settingsModule = APP_MODULES.find((m) => m.id === "settings");
+        const userRoles = [...(roles || []), profile?.role].filter(Boolean) as string[];
+        
+        const hasSettingsAccess = settingsModule
+            ? isModuleGrantedForUser(userRoles, profile?.profession, profile?.allowed_consoles, settingsModule)
+            : false;
+
+        if (!hasSettingsAccess) {
+            toast({
+                variant: "destructive",
+                title: "Access Denied",
+                description: "You do not have access to Settings & Permissions / Resource Schedule Manager. Please contact an Administrator to request permission."
+            });
+            return;
+        }
+
+        window.open("/admin/settings/resource-schedule", "_blank");
+    };
     
     // Horizontal scrolling arrows state & ref for the calendar
     const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -122,12 +144,20 @@ export default function AdminCalendar() {
 
 
     const handleWaitlistBook = (item: any) => {
+        let cleanDate = "";
+        if (item.preferred_date) {
+            const d = new Date(item.preferred_date);
+            if (!isNaN(d.getTime())) {
+                cleanDate = format(d, "yyyy-MM-dd");
+            }
+        }
         setWaitlistInitialData({
+            waitlistId: item.id,
             clientId: item.client_id,
             consultantId: item.therapist_id,
             serviceId: item.service_id,
-            sessionDate: item.preferred_date,
-            startTime: item.preferred_time_slot,
+            sessionDate: cleanDate || format(currentDate, "yyyy-MM-dd"),
+            startTime: item.preferred_time_slot ? item.preferred_time_slot.substring(0, 5) : "",
             preferenceType: item.preference_type
         });
         setIsBookModalOpen(true);
@@ -271,6 +301,7 @@ export default function AdminCalendar() {
 
             return data.map(session => ({ 
                 ...session, 
+                therapist_id: session.therapist_id || session.scientist_id,
                 client: { 
                     first_name: session.client?.first_name || session.client_first_name, 
                     last_name: session.client?.last_name || session.client_last_name, 
@@ -642,13 +673,14 @@ export default function AdminCalendar() {
             const prof = clinicianObj?.profession?.toLowerCase();
             const r = clinicianObj?.role?.toLowerCase();
             const isSportsScientist = prof === 'sports scientist' || r === 'sports_scientist';
+            const isPhysioOrPhysician = prof === 'physiotherapist' || prof === 'physiotherapy' || prof === 'sports physician' || prof === 'physician' || prof === 'sports_physician';
 
             // Sports scientists have no capacity limit — always available for additional bookings.
             if (isSportsScientist) {
                 availableCount++;
             } else {
                 let limit = 1;
-                if (prof === 'physiotherapist') {
+                if (isPhysioOrPhysician) {
                     limit = 2;
                 }
 
@@ -1195,6 +1227,54 @@ export default function AdminCalendar() {
                                 };
                             };
 
+                            // Clinician Shift Schedule calculation
+                            const schedule = staffSchedules.find((s: any) => s.consultant_id === clinician.id);
+                            let shiftStartStr = "08:00";
+                            let shiftEndStr = "17:00";
+                            let isWorkingToday = true;
+
+                            if (schedule) {
+                                if (schedule.shift_start) {
+                                    shiftStartStr = String(schedule.shift_start).substring(0, 5);
+                                }
+                                if (schedule.shift_end) {
+                                    shiftEndStr = String(schedule.shift_end).substring(0, 5);
+                                }
+                                if (schedule.working_days) {
+                                    let daysArr: string[] = [];
+                                    if (Array.isArray(schedule.working_days)) {
+                                        daysArr = schedule.working_days;
+                                    } else if (typeof schedule.working_days === 'string') {
+                                        try {
+                                            daysArr = JSON.parse(schedule.working_days);
+                                        } catch {
+                                            daysArr = schedule.working_days.split(',').map((d: string) => d.trim());
+                                        }
+                                    }
+                                    if (daysArr.length > 0) {
+                                        const currentDayName = format(currentDate, "EEEE").toLowerCase();
+                                        const normalizedDays = daysArr.map((d: string) => String(d).toLowerCase().trim());
+                                        isWorkingToday = normalizedDays.includes(currentDayName);
+                                    }
+                                }
+                            }
+
+                            const formatTime12 = (t24: string) => {
+                                if (!t24) return "";
+                                const parts = t24.split(':');
+                                const h = parseInt(parts[0], 10) || 0;
+                                const m = parseInt(parts[1], 10) || 0;
+                                const ampm = h >= 12 ? 'PM' : 'AM';
+                                const displayHour = h % 12 === 0 ? 12 : h % 12;
+                                return `${displayHour}:${String(m).padStart(2, '0')} ${ampm}`;
+                            };
+
+                            const earlyOffShiftTop = 0;
+                            const earlyOffShiftHeight = Math.max(0, timeToY(shiftStartStr) - earlyOffShiftTop);
+
+                            const lateOffShiftTop = timeToY(shiftEndStr);
+                            const lateOffShiftHeight = Math.max(0, totalHeight - lateOffShiftTop);
+
                             return (
                                 <div key={clinician.id} className="flex flex-col relative">
                                     {/* Clinician Column Header */}
@@ -1245,14 +1325,54 @@ export default function AdminCalendar() {
                                     {/* Column Grid & Overlays Container */}
                                     <div className="relative w-full" style={{ height: `${totalHeight}px` }}>
                                         {/* Background Cells */}
-                                        {timeSlots.map((slot, i) => (
+                                        {timeSlots.map((slot, i) => {
+                                            const isInsideShift = !isUnassigned && isWorkingToday && slot.start >= shiftStartStr && slot.start < shiftEndStr;
+                                            return (
+                                                <div 
+                                                    key={slot.start} 
+                                                    onClick={() => handleCellClick(clinician.id, slot.start)}
+                                                    className={cn(
+                                                        "absolute left-0 right-0 border-b border-border/10 cursor-pointer transition-colors",
+                                                        isUnassigned || isInsideShift
+                                                            ? "hover:bg-muted/30 bg-white dark:bg-slate-950"
+                                                            : "hover:bg-slate-200/50 bg-slate-100/70 dark:bg-slate-900/60"
+                                                    )}
+                                                    style={{ top: `${i * 60}px`, height: '60px' }}
+                                                />
+                                            );
+                                        })}
+
+                                        {/* Off Day Mask */}
+                                        {!isCurrentlyOnLeave && !isWorkingToday && !isUnassigned && (
                                             <div 
-                                                key={slot.start} 
-                                                onClick={() => handleCellClick(clinician.id, slot.start)}
-                                                className="absolute left-0 right-0 border-b border-border/10 hover:bg-muted/30 cursor-pointer transition-colors"
-                                                style={{ top: `${i * 60}px`, height: '60px' }}
-                                            />
-                                        ))}
+                                                className="absolute inset-0 z-15 pointer-events-none flex flex-col items-center justify-center bg-slate-100/90 dark:bg-slate-900/80 text-slate-400 dark:text-slate-500 font-bold text-xs tracking-wider text-center p-3 select-none bg-[repeating-linear-gradient(45deg,#f8fafc,#f8fafc_10px,#f1f5f9_10px,#f1f5f9_20px)] dark:bg-[repeating-linear-gradient(45deg,#0f172a,#0f172a_10px,#1e293b_10px,#1e293b_20px)] border-x border-slate-200/60"
+                                            >
+                                                <Clock className="w-5 h-5 text-slate-400 mb-1" />
+                                                <span>Off Day - Not Scheduled</span>
+                                            </div>
+                                        )}
+
+                                        {/* Early Off-Shift Mask (Before Shift Start e.g. 4am to 11am) */}
+                                        {!isCurrentlyOnLeave && isWorkingToday && !isUnassigned && earlyOffShiftHeight > 2 && (
+                                            <div
+                                                className="absolute inset-x-0 z-10 pointer-events-none flex flex-col items-center justify-center bg-slate-100/85 dark:bg-slate-900/80 border-b border-slate-200 text-slate-400 dark:text-slate-500 text-[10px] font-black uppercase tracking-wider text-center px-2 select-none bg-[repeating-linear-gradient(45deg,#f8fafc,#f8fafc_10px,#f1f5f9_10px,#f1f5f9_20px)] dark:bg-[repeating-linear-gradient(45deg,#0f172a,#0f172a_10px,#1e293b_10px,#1e293b_20px)] shadow-inner"
+                                                style={{ top: `${earlyOffShiftTop}px`, height: `${earlyOffShiftHeight}px` }}
+                                            >
+                                                <span className="opacity-75">Off Shift</span>
+                                                <span className="text-[8px] font-normal opacity-60">Shift Starts {formatTime12(shiftStartStr)}</span>
+                                            </div>
+                                        )}
+
+                                        {/* Late Off-Shift Mask (After Shift End e.g. 7pm to 11pm) */}
+                                        {!isCurrentlyOnLeave && isWorkingToday && !isUnassigned && lateOffShiftHeight > 2 && (
+                                            <div
+                                                className="absolute inset-x-0 z-10 pointer-events-none flex flex-col items-center justify-center bg-slate-100/85 dark:bg-slate-900/80 border-t border-slate-200 text-slate-400 dark:text-slate-500 text-[10px] font-black uppercase tracking-wider text-center px-2 select-none bg-[repeating-linear-gradient(45deg,#f8fafc,#f8fafc_10px,#f1f5f9_10px,#f1f5f9_20px)] dark:bg-[repeating-linear-gradient(45deg,#0f172a,#0f172a_10px,#1e293b_10px,#1e293b_20px)] shadow-inner"
+                                                style={{ top: `${lateOffShiftTop}px`, height: `${lateOffShiftHeight}px` }}
+                                            >
+                                                <span className="opacity-75">Off Shift</span>
+                                                <span className="text-[8px] font-normal opacity-60">Shift Ended {formatTime12(shiftEndStr)}</span>
+                                            </div>
+                                        )}
 
                                         {/* Leaves Overlay */}
                                         {isCurrentlyOnLeave && (
@@ -1380,12 +1500,24 @@ export default function AdminCalendar() {
     return (
         <DashboardLayout role="admin">
             <div className="max-w-7xl mx-auto space-y-6 pb-10 fade-in animate-in">
-                <div>
-                    <h1 className="text-2xl font-display font-bold text-foreground flex items-center gap-2">
-                        <CalendarIcon className="w-6 h-6 text-primary" />
-                        Clinic Calendar & Scheduling
-                    </h1>
-                    <p className="text-muted-foreground mt-1">Manage all clinic schedules and appointments</p>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                        <h1 className="text-2xl font-display font-bold text-foreground flex items-center gap-2">
+                            <CalendarIcon className="w-6 h-6 text-primary" />
+                            Clinic Calendar & Scheduling
+                        </h1>
+                        <p className="text-muted-foreground mt-1">Manage all clinic schedules and appointments</p>
+                    </div>
+
+                    <Button
+                        onClick={handleOpenResourceScheduleManager}
+                        variant="outline"
+                        className="gap-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 hover:bg-teal-50 hover:text-teal-900 hover:border-teal-400 dark:hover:bg-slate-800 dark:hover:text-teal-300 shadow-sm font-bold text-xs rounded-xl px-4 py-2.5 shrink-0 transition-all duration-200 group"
+                    >
+                        <Clock className="w-4 h-4 text-teal-600 dark:text-teal-400 group-hover:scale-110 transition-transform" />
+                        <span className="group-hover:text-teal-900 dark:group-hover:text-teal-300">Resource Schedule Manager</span>
+                        <ExternalLink className="w-3.5 h-3.5 text-slate-400 group-hover:text-teal-600 ml-0.5 transition-colors" />
+                    </Button>
                 </div>
 
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -1654,7 +1786,19 @@ export default function AdminCalendar() {
                     setIsBookModalOpen(open);
                     if (!open) setWaitlistInitialData(null);
                 }} 
-                onSuccess={() => {
+                onSuccess={(bookedDate?: string) => {
+                    if (bookedDate) {
+                        try {
+                            const clean = String(bookedDate).split('T')[0];
+                            const dateObj = parse(clean, "yyyy-MM-dd", new Date());
+                            if (!isNaN(dateObj.getTime())) {
+                                setCurrentDate(dateObj);
+                            }
+                        } catch (e) {
+                            console.error("Error updating currentDate on booking success:", e);
+                        }
+                    }
+                    refetch();
                     queryClient.invalidateQueries({ queryKey: ["admin-master-sessions"] });
                     queryClient.invalidateQueries({ queryKey: ["waitlist-summary"] });
                     queryClient.invalidateQueries({ queryKey: ["planned-client-entitlements"] });

@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { User, Mail, Phone, Upload, Loader2, Save } from "lucide-react";
+import { User, Mail, Phone, Upload, Loader2, Save, LogOut } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import MobileConsultantLayout from "@/components/layout/MobileConsultantLayout";
 import MobileSpecialistLayout from "@/components/layout/MobileSpecialistLayout";
@@ -184,13 +184,12 @@ export default function MyProfile() {
     let layoutProps: any = { role: roles[0] || "client" };
 
     if (isMobile) {
-        if (roles.includes("consultant") || roles.includes("sports_physician") || roles.includes("physiotherapist")) {
-            LayoutToUse = MobileConsultantLayout;
-            layoutProps = { title: "My Profile" };
-        } else if (roles.includes("sports_scientist")) {
+        if (roles.includes("sports_scientist")) {
             LayoutToUse = MobileSpecialistLayout;
-            layoutProps = { title: "My Profile" };
+        } else {
+            LayoutToUse = MobileConsultantLayout;
         }
+        layoutProps = { title: "My Profile" };
     }
 
     return (
@@ -385,7 +384,11 @@ export default function MyProfile() {
                                     )}
                                 </div>
 
-                                <div className="pt-4 flex justify-end">
+                                <div className="pt-4 flex items-center justify-between gap-3 border-t border-slate-100 dark:border-slate-800">
+                                    <Button variant="outline" onClick={signOut} className="gap-2 text-rose-600 border-rose-200 hover:bg-rose-50 hover:text-rose-700">
+                                        <LogOut className="w-4 h-4" />
+                                        Sign Out / Logout
+                                    </Button>
                                     <Button onClick={handleSave} disabled={loading} className="gap-2">
                                         {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                                         Save Changes

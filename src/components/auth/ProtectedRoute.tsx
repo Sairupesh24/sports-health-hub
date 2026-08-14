@@ -42,24 +42,53 @@ export default function ProtectedRoute({ children, requiredRole, checkCalendarAc
   }
 
   if (requiredRole) {
-    const rolesArray = Array.isArray(requiredRole) ? requiredRole : [requiredRole];
-    let hasRole = rolesArray.some((role) => roles.includes(role));
+    const isAdmin = roles.includes("admin") || roles.includes("super_admin") || profile?.role === "admin";
+    
+    if (!isAdmin) {
+      const rolesArray = Array.isArray(requiredRole) ? requiredRole : [requiredRole];
+      let hasRole = rolesArray.some((role) => roles.includes(role));
 
-    // Specialized consultant roles are interchangeable with generic consultant access
-    const consultantRoles = ["consultant", "sports_physician", "physiotherapist", "nutritionist"];
-    if (!hasRole && roles.some(role => consultantRoles.includes(role)) && rolesArray.includes("consultant")) {
-      hasRole = true;
-    }
+      // Specialized consultant roles are interchangeable with generic consultant access
+      const consultantRoles = ["consultant", "sports_physician", "physiotherapist", "nutritionist"];
+      if (!hasRole && roles.some(role => consultantRoles.includes(role)) && rolesArray.includes("consultant")) {
+        hasRole = true;
+      }
 
-    // Athlete and Client are interchangeable for access to client-facing routes
-    if (!hasRole && roles.includes("athlete") && rolesArray.includes("client")) {
-      hasRole = true;
-    }
+      // Athlete and Client are interchangeable for access to client-facing routes
+      if (!hasRole && roles.includes("athlete") && rolesArray.includes("client")) {
+        hasRole = true;
+      }
 
-    if (!hasRole) {
-      // User is approved but accessing a route for a different role —
-      // redirect to their own dashboard using the shared utility.
-      return <Navigate to={getDashboardPath(roles, profile)} replace />;
+      // Multi-console permissions check from profile.allowed_consoles
+      let allowedConsolesList: string[] = [];
+      if (profile?.allowed_consoles) {
+        try {
+          allowedConsolesList = typeof profile.allowed_consoles === 'string'
+            ? JSON.parse(profile.allowed_consoles)
+            : profile.allowed_consoles;
+        } catch {
+          allowedConsolesList = (profile.allowed_consoles as string).split(',').map(s => s.trim());
+        }
+      }
+
+      if (!hasRole && allowedConsolesList.length > 0) {
+        hasRole = rolesArray.some(role => {
+          if (allowedConsolesList.includes(role)) return true;
+          if (role === "client" && (allowedConsolesList.includes("client") || allowedConsolesList.includes("athlete"))) return true;
+          if (role === "consultant" && (allowedConsolesList.includes("consultant") || allowedConsolesList.includes("clinical"))) return true;
+          if (role === "sports_scientist" && (allowedConsolesList.includes("sports_scientist") || allowedConsolesList.includes("ams"))) return true;
+          if (role === "hr_manager" && (allowedConsolesList.includes("hr_manager") || allowedConsolesList.includes("hr"))) return true;
+          if (role === "nutritionist" && allowedConsolesList.includes("nutritionist")) return true;
+          if (role === "foe" && allowedConsolesList.includes("foe")) return true;
+          return false;
+        });
+      }
+
+      if (!hasRole) {
+        // User is approved but accessing a route for a different role —
+        // redirect to their own dashboard using the shared utility.
+        return <Navigate to={getDashboardPath(roles, profile)} replace />;
+      }
     }
   }
 

@@ -200,9 +200,22 @@ export function WaitlistSidebar({ selectedDate, onBook }: Props) {
                                                         size="sm" 
                                                         variant="outline" 
                                                         className="h-7 flex-1 text-[10px] font-bold uppercase tracking-tight hover:bg-primary/5 hover:text-primary transition-colors"
-                                                        onClick={() => handleNotify(item.id)}
+                                                        asChild={Boolean(item.client?.mobile_no)}
+                                                        onClick={() => {
+                                                            if (!item.client?.mobile_no) {
+                                                                toast({ title: "No Phone Number", description: "No mobile number recorded for this client.", variant: "destructive" });
+                                                            }
+                                                        }}
                                                     >
-                                                        <Bell className="w-3 h-3 mr-1.5" /> Notify
+                                                        {item.client?.mobile_no ? (
+                                                            <a href={`tel:${item.client.mobile_no}`} className="flex items-center justify-center w-full">
+                                                                <Phone className="w-3 h-3 mr-1.5" /> Call
+                                                            </a>
+                                                        ) : (
+                                                            <span className="flex items-center justify-center w-full">
+                                                                <Phone className="w-3 h-3 mr-1.5" /> Call
+                                                            </span>
+                                                        )}
                                                     </Button>
                                                     <Button 
                                                         size="sm" 
@@ -213,13 +226,6 @@ export function WaitlistSidebar({ selectedDate, onBook }: Props) {
                                                         <UserPlus className="w-3 h-3 mr-1.5" /> Book
                                                     </Button>
                                                 </div>
-
-                                                <a 
-                                                    href={`tel:${item.client?.mobile_no}`} 
-                                                    className="absolute -right-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-primary text-white shadow-lg flex items-center justify-center opacity-0 group-hover:opacity-100 group-hover:right-2 transition-all p-0"
-                                                >
-                                                    <Phone className="w-3 h-3 fill-white" />
-                                                </a>
                                             </div>
                                         </div>
                                     ))

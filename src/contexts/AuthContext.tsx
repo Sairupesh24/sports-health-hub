@@ -11,6 +11,7 @@ interface Profile {
   organization_id: string | null;
   organization_name?: string | null;
   organization_logo?: string | null;
+  organization?: { id?: string; name: string } | null;
   is_approved: boolean;
   uhid: string | null;
   role?: string | null;
@@ -19,6 +20,7 @@ interface Profile {
   has_calendar_access?: boolean;
   has_analytics_access?: boolean;
   has_assign_work_access?: boolean;
+  allowed_consoles?: string[] | string | null;
 }
 
 interface AuthContextType {

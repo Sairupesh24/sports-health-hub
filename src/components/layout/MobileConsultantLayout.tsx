@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import ConsultantBottomNav from "../consultant/ConsultantBottomNav";
-import { Activity, Bell, X } from "lucide-react";
+import { Activity, Bell, X, LogOut, LayoutGrid, User } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -8,6 +8,14 @@ import { apiFetch } from "@/utils/api";
 import { cn } from "@/lib/utils";
 import { haptic } from "@/utils/haptic";
 import { AnnouncementsManager } from "../shared/AnnouncementsManager";
+import { useNavigate } from "react-router-dom";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface MobileConsultantLayoutProps {
   children: React.ReactNode;
@@ -15,7 +23,8 @@ interface MobileConsultantLayoutProps {
 }
 
 export default function MobileConsultantLayout({ children, title = "ISHPO" }: MobileConsultantLayoutProps) {
-  const { profile } = useAuth();
+  const { profile, signOut } = useAuth();
+  const navigate = useNavigate();
   const [showAnnouncements, setShowAnnouncements] = useState(false);
   const queryClient = useQueryClient();
   const [activePopup, setActivePopup] = React.useState<any | null>(null);
@@ -79,23 +88,25 @@ export default function MobileConsultantLayout({ children, title = "ISHPO" }: Mo
     <div className="h-screen flex flex-col bg-slate-50/50 dark:bg-[#020617] antialiased selection:bg-primary/30 overflow-hidden">
       {/* Header - Fixed Height with Glassmorphism */}
       <header className="flex-shrink-0 z-40 bg-white/70 dark:bg-black/70 backdrop-blur-2xl border-b border-slate-200/50 dark:border-white/5 safe-area-top">
-        <div className="h-16 px-6 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="w-10 h-10 rounded-2xl bg-slate-900 dark:bg-white flex items-center justify-center shadow-lg shadow-slate-900/10 dark:shadow-white/5 min-w-[44px] min-h-[44px]">
+        <div className="h-16 px-5 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-slate-900 dark:bg-white flex items-center justify-center shadow-lg shadow-slate-900/10 dark:shadow-white/5 min-w-[40px] min-h-[40px]">
               <Activity className="w-5 h-5 text-white dark:text-slate-900" />
             </div>
-            <div className="flex flex-col">
-              {profile?.organization && (
-                <p className="text-[8px] font-black uppercase tracking-[0.2em] text-primary/80 leading-none mb-0.5">
-                  {profile.organization.name}
+            <div className="flex flex-col min-w-0">
+              {(profile?.organization?.name || profile?.organization_name) && (
+                <p className="text-[8px] font-black uppercase tracking-[0.2em] text-primary/80 leading-none mb-0.5 truncate max-w-[120px]">
+                  {profile?.organization?.name || profile?.organization_name}
                 </p>
               )}
-              <h1 className="text-lg font-black tracking-tight text-slate-900 dark:text-white leading-tight italic">
+              <h1 className="text-base font-black tracking-tight text-slate-900 dark:text-white leading-tight italic truncate">
                 {title || "ISHPO"}
               </h1>
             </div>
           </div>
-          <div className="flex items-center gap-3">
+
+          <div className="flex items-center gap-2">
+            {/* Notification Bell */}
             <div className="relative">
               <button 
                 type="button"
@@ -103,7 +114,7 @@ export default function MobileConsultantLayout({ children, title = "ISHPO" }: Mo
                   haptic.light();
                   setShowAnnouncements(true);
                 }}
-                className="relative p-2 rounded-xl bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-300 transition-transform active:scale-90 min-w-[44px] min-h-[44px] flex items-center justify-center"
+                className="relative p-2 rounded-xl bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-300 transition-transform active:scale-90 min-w-[40px] min-h-[40px] flex items-center justify-center"
               >
                 <Bell className={cn("w-5 h-5", unreadCount > 0 ? "text-primary" : "")} />
                 {unreadCount > 0 && (
@@ -125,14 +136,45 @@ export default function MobileConsultantLayout({ children, title = "ISHPO" }: Mo
                 </div>
               )}
             </div>
-            <button onClick={() => { haptic.light(); window.location.href = '/profile'; }} className="focus:outline-none transition-transform active:scale-95 min-w-[44px] min-h-[44px] flex items-center justify-center">
-              <Avatar className="h-9 w-9 border-2 border-white dark:border-slate-800 shadow-md">
-                <AvatarImage src={profile?.avatar_url} />
-                <AvatarFallback className="bg-primary text-white font-black text-[10px]">
-                  {profile?.first_name?.[0]}{profile?.last_name?.[0]}
-                </AvatarFallback>
-              </Avatar>
-            </button>
+
+            {/* Avatar Profile Dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button 
+                  onClick={() => haptic.light()} 
+                  className="focus:outline-none transition-transform active:scale-95 min-w-[40px] min-h-[40px] flex items-center justify-center"
+                >
+                  <Avatar className="h-9 w-9 border-2 border-white dark:border-slate-800 shadow-md">
+                    <AvatarImage src={profile?.avatar_url} />
+                    <AvatarFallback className="bg-primary text-white font-black text-[10px]">
+                      {profile?.first_name?.[0]}{profile?.last_name?.[0]}
+                    </AvatarFallback>
+                  </Avatar>
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-52 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl rounded-2xl p-1.5 z-50">
+                <div className="px-3 py-2 border-b border-slate-100 dark:border-slate-800">
+                  <p className="text-xs font-bold text-slate-900 dark:text-white truncate">
+                    {profile?.first_name} {profile?.last_name}
+                  </p>
+                  <p className="text-[10px] text-slate-400 truncate">{profile?.email}</p>
+                </div>
+                <DropdownMenuItem onClick={() => navigate("/app-gallery")} className="rounded-xl cursor-pointer text-xs font-semibold py-2 my-0.5">
+                  <LayoutGrid className="w-4 h-4 mr-2 text-teal-600" />
+                  App Gallery
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate("/mobile/profile")} className="rounded-xl cursor-pointer text-xs font-semibold py-2 my-0.5">
+                  <User className="w-4 h-4 mr-2 text-primary" />
+                  My Profile
+                </DropdownMenuItem>
+                <DropdownMenuSeparator className="bg-slate-100 dark:bg-slate-800" />
+                <DropdownMenuItem onClick={signOut} className="rounded-xl cursor-pointer text-rose-600 dark:text-rose-400 hover:bg-rose-50 text-xs font-semibold py-2 my-0.5">
+                  <LogOut className="w-4 h-4 mr-2 text-rose-600 dark:text-rose-400" />
+                  Sign Out / Logout
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
           </div>
         </div>
       </header>

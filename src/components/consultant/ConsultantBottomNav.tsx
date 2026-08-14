@@ -21,11 +21,6 @@ export default function ConsultantBottomNav() {
       path: "/mobile/consultant/schedule",
     },
     {
-      label: "Forms",
-      icon: ClipboardList,
-      path: "/mobile/specialist/forms",
-    },
-    {
       label: "Check-In",
       icon: MapPin,
       path: "/my-attendance",

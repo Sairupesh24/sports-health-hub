@@ -11,7 +11,7 @@ router.get('/', requireAuth, async (req, res) => {
         if (orgId) {
             await autoCompleteStartedSessions(orgId);
         }
-        const { start, end, therapist_id, scientist_id, specialist_id, client_id, status, is_unentitled, category } = req.query;
+        const { start, end, therapist_id, therapist_ids, scientist_id, specialist_id, client_id, status, is_unentitled, category } = req.query;
         let query = `
             SELECT s.id, s.organization_id, s.client_id, s.scientist_id, s.entitlement_id, s.service_id, s.service_type, s.session_mode, s.scheduled_start, s.scheduled_end, s.actual_start, s.actual_end, s.status, s.cancellation_reason, s.is_unentitled, s.preference_type, s.is_flexible_routing, s.created_by, s.created_at, s.updated_at, s.group_name, s.session_location, s.session_notes, s.attachments, s.session_type_id,
                    COALESCE(s.therapist_id, s.scientist_id) as therapist_id,
@@ -69,7 +69,13 @@ router.get('/', requireAuth, async (req, res) => {
             query += ` AND (s.therapist_id = $${params.length + 1} OR s.scientist_id = $${params.length + 1})`;
             params.push(specialist_id);
         }
-        if (therapist_id) {
+        if (therapist_ids) {
+            const idsList = therapist_ids.split(',').filter(Boolean);
+            if (idsList.length > 0) {
+                query += ` AND (s.therapist_id = ANY($${params.length + 1}::uuid[]) OR s.scientist_id = ANY($${params.length + 1}::uuid[]))`;
+                params.push(idsList);
+            }
+        } else if (therapist_id) {
             query += ` AND COALESCE(s.therapist_id, s.scientist_id) = $${params.length + 1}`;
             params.push(therapist_id);
         }
@@ -107,7 +113,7 @@ router.post('/', requireAuth, async (req, res) => {
         const orgId = req.user.organization_id;
         const {
             client_id, therapist_id, service_id, service_type, scheduled_start, scheduled_end,
-            entitlement_id, session_mode, is_unentitled, preference_type, is_flexible_routing
+            entitlement_id, session_mode, is_unentitled, preference_type, is_flexible_routing, waitlist_id
         } = req.body;
 
         await client.query('BEGIN');
@@ -119,7 +125,7 @@ router.post('/', requireAuth, async (req, res) => {
         const amsRole = provider?.ams_role?.toLowerCase();
 
         let capacityLimit = 1;
-        if (profession === 'physiotherapist') {
+        if (profession === 'physiotherapist' || profession === 'physiotherapy' || profession === 'sports physician' || profession === 'physician' || profession === 'sports_physician') {
             capacityLimit = 2;
         } else if (profession === 'sports scientist' || amsRole === 'sports_scientist') {
             capacityLimit = 3;
@@ -206,12 +212,38 @@ router.post('/', requireAuth, async (req, res) => {
         const sessionRes = await client.query(insertQuery, values);
         const session = sessionRes.rows[0];
 
-        // 3. Update Entitlement if linked
+        // 3. Update Entitlement if linked or sync to waitlist table if capacity reached
         if (entitlement_id && !is_unentitled && appointmentStatus !== 'Waitlisted') {
             await client.query(
                 'UPDATE cliententitlements SET sessions_used = sessions_used + 1 WHERE id = $1',
                 [entitlement_id]
             );
+        } else if (appointmentStatus === 'Waitlisted' && client_id) {
+            const timeSlotStr = new Date(scheduled_start).toTimeString().substring(0, 5);
+            await client.query(`
+                INSERT INTO waitlist (
+                    organization_id, client_id, therapist_id, service_id, 
+                    preferred_date, preferred_time_slot, preference_type, status
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            `, [
+                orgId, client_id, therapist_id, service_id || null,
+                scheduled_start, timeSlotStr, preference_type || 'Flexible', 'Waiting'
+            ]);
+        }
+
+        // 4. If session is confirmed (Planned), update matching waitlist entry to 'Booked' so client is moved from waitlist to calendar
+        if (appointmentStatus === 'Planned' && client_id) {
+            if (waitlist_id) {
+                await client.query(
+                    `UPDATE waitlist SET status = 'Booked', updated_at = CURRENT_TIMESTAMP WHERE id = $1 AND organization_id = $2`,
+                    [waitlist_id, orgId]
+                );
+            } else {
+                await client.query(
+                    `UPDATE waitlist SET status = 'Booked', updated_at = CURRENT_TIMESTAMP WHERE client_id = $1 AND organization_id = $2 AND status IN ('Waiting', 'Notified')`,
+                    [client_id, orgId]
+                );
+            }
         }
 
         await client.query('COMMIT');
@@ -929,23 +961,23 @@ router.get('/waitlist', requireAuth, async (req, res) => {
 
         const result = await db.query(query, params);
         
-        // Map to the nested format the frontend expects (or adjust frontend)
+        // Map to the nested format the frontend expects
         const mapped = result.rows.map(row => ({
             ...row,
-            client: {
+            client: (row.client && row.client.id) ? row.client : {
                 id: row.client_id,
-                first_name: row.client_first_name,
-                last_name: row.client_last_name,
-                is_vip: row.client_is_vip,
-                uhid: row.client_uhid,
-                mobile_no: row.client_mobile_no
+                first_name: row.client_first_name || '',
+                last_name: row.client_last_name || '',
+                is_vip: row.client_is_vip || false,
+                uhid: row.client_uhid || '',
+                mobile_no: row.client_mobile_no || ''
             },
-            therapist: {
-                first_name: row.therapist_first_name,
-                last_name: row.therapist_last_name
+            therapist: (row.therapist && row.therapist.first_name) ? row.therapist : {
+                first_name: row.therapist_first_name || '',
+                last_name: row.therapist_last_name || ''
             },
             service: {
-                name: row.service_name
+                name: row.service_name || 'Standard Session'
             }
         }));
 

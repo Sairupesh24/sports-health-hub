@@ -574,3 +574,155 @@
   }
 }
 
+/* ============================================================
+   ISHPO PLANNER — Design Tokens & CSS Variables
+   ============================================================ */
+
+@layer base {
+  :root {
+    /* ---- Work Item Status Colors ---- */
+    --status-planned: 220 15% 55%;
+    --status-planned-bg: 220 15% 96%;
+    --status-ready: 210 72% 50%;
+    --status-ready-bg: 210 72% 95%;
+    --status-in-progress: 251 74% 60%;
+    --status-in-progress-bg: 251 74% 95%;
+    --status-review: 38 92% 50%;
+    --status-review-bg: 38 92% 95%;
+    --status-blocked: 0 72% 51%;
+    --status-blocked-bg: 0 72% 96%;
+    --status-completed: 152 60% 42%;
+    --status-completed-bg: 152 60% 95%;
+
+    /* ---- Project Health Colors ---- */
+    --health-on-track: 152 60% 42%;
+    --health-at-risk: 38 92% 50%;
+    --health-delayed: 25 95% 55%;
+    --health-blocked: 0 72% 51%;
+    --health-completed: 210 72% 50%;
+    --health-not-started: 220 15% 55%;
+
+    /* ---- Priority Colors ---- */
+    --priority-critical: 0 72% 51%;
+    --priority-high: 25 95% 55%;
+    --priority-medium: 38 92% 50%;
+    --priority-low: 152 60% 42%;
+
+    /* ---- Planner Sidebar ---- */
+    --planner-sidebar-bg: 230 30% 8%;
+    --planner-sidebar-fg: 220 10% 75%;
+    --planner-sidebar-accent: 251 74% 60%;
+    --planner-sidebar-accent-fg: 0 0% 100%;
+    --planner-sidebar-hover: 230 25% 14%;
+    --planner-sidebar-border: 230 20% 14%;
+
+    /* ---- Gantt Chart ---- */
+    --gantt-bar-default: 251 74% 60%;
+    --gantt-bar-critical: 0 72% 51%;
+    --gantt-bar-milestone: 25 95% 55%;
+    --gantt-bar-baseline: 220 15% 70%;
+    --gantt-today-line: 174 72% 40%;
+    --gantt-weekend: 220 15% 97%;
+    --gantt-grid-line: 220 15% 92%;
+    --gantt-row-hover: 251 74% 98%;
+
+    /* ---- Planner accent (indigo) ---- */
+    --planner-primary: 251 74% 60%;
+    --planner-primary-dark: 251 74% 50%;
+    --planner-primary-light: 251 74% 92%;
+  }
+
+  .dark {
+    --status-planned-bg: 220 15% 16%;
+    --status-ready-bg: 210 72% 14%;
+    --status-in-progress-bg: 251 74% 14%;
+    --status-review-bg: 38 92% 14%;
+    --status-blocked-bg: 0 72% 14%;
+    --status-completed-bg: 152 60% 14%;
+
+    --planner-sidebar-bg: 230 30% 6%;
+    --planner-sidebar-hover: 230 25% 12%;
+    --planner-sidebar-border: 230 20% 12%;
+
+    --gantt-weekend: 220 25% 9%;
+    --gantt-grid-line: 220 20% 14%;
+    --gantt-row-hover: 251 74% 10%;
+
+    --planner-primary-light: 251 74% 16%;
+  }
+}
+
+/* ============================================================
+   PLANNER UTILITY CLASSES
+   ============================================================ */
+
+@layer utilities {
+  .status-planned   { color: hsl(var(--status-planned));   background: hsl(var(--status-planned-bg)); }
+  .status-ready     { color: hsl(var(--status-ready));     background: hsl(var(--status-ready-bg)); }
+  .status-in-progress { color: hsl(var(--status-in-progress)); background: hsl(var(--status-in-progress-bg)); }
+  .status-review    { color: hsl(var(--status-review));    background: hsl(var(--status-review-bg)); }
+  .status-blocked   { color: hsl(var(--status-blocked));   background: hsl(var(--status-blocked-bg)); }
+  .status-completed { color: hsl(var(--status-completed)); background: hsl(var(--status-completed-bg)); }
+
+  .health-on-track  { color: hsl(var(--health-on-track)); }
+  .health-at-risk   { color: hsl(var(--health-at-risk)); }
+  .health-delayed   { color: hsl(var(--health-delayed)); }
+  .health-blocked   { color: hsl(var(--health-blocked)); }
+  .health-completed { color: hsl(var(--health-completed)); }
+  .health-not-started { color: hsl(var(--health-not-started)); }
+
+  .priority-critical { color: hsl(var(--priority-critical)); }
+  .priority-high     { color: hsl(var(--priority-high)); }
+  .priority-medium   { color: hsl(var(--priority-medium)); }
+  .priority-low      { color: hsl(var(--priority-low)); }
+
+  .planner-card {
+    @apply bg-card border border-border/50 rounded-xl shadow-sm transition-all duration-200;
+  }
+  .planner-card:hover {
+    @apply shadow-md border-border;
+    transform: translateY(-1px);
+  }
+
+  .gantt-bar {
+    background: hsl(var(--gantt-bar-default));
+    border-radius: 4px;
+    transition: filter 0.15s ease;
+    cursor: grab;
+  }
+  .gantt-bar:hover { filter: brightness(1.1); }
+  .gantt-bar.critical { background: hsl(var(--gantt-bar-critical)); }
+
+  .kanban-card {
+    @apply bg-card border border-border/60 rounded-lg p-3 shadow-sm cursor-pointer transition-all duration-150;
+  }
+  .kanban-card:hover {
+    @apply shadow-md border-border;
+    transform: translateY(-2px);
+  }
+
+  .resource-cell-ok   { background: hsl(152 60% 92%); color: hsl(152 60% 30%); }
+  .resource-cell-warn { background: hsl(38 92% 92%);  color: hsl(38 92% 30%); }
+  .resource-cell-over { background: hsl(0 72% 94%);   color: hsl(0 72% 40%); }
+  .dark .resource-cell-ok   { background: hsl(152 60% 10%); color: hsl(152 60% 60%); }
+  .dark .resource-cell-warn { background: hsl(38 92% 12%);  color: hsl(38 92% 60%); }
+  .dark .resource-cell-over { background: hsl(0 72% 12%);   color: hsl(0 72% 65%); }
+
+  .planner-skeleton { @apply bg-muted rounded animate-pulse; }
+
+  .slide-in-right { animation: slideInRight 0.22s cubic-bezier(0.16,1,0.3,1); }
+  @keyframes slideInRight {
+    from { transform: translateX(100%); opacity: 0; }
+    to   { transform: translateX(0);   opacity: 1; }
+  }
+
+  .app-gallery-card {
+    @apply bg-card border border-border/50 rounded-2xl p-6 cursor-pointer transition-all duration-200;
+  }
+  .app-gallery-card:hover {
+    @apply shadow-lg border-primary/30;
+    transform: translateY(-3px);
+  }
+}
+
+

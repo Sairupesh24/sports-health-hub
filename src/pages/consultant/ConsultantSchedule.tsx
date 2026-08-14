@@ -534,10 +534,6 @@ export default function ConsultantSchedule() {
                     </div>
 
                     <div className="flex items-center gap-2">
-                        <Button onClick={() => setIsBookModalOpen(true)} size="sm" className="gap-1.5 shadow-sm">
-                            <Plus className="w-4 h-4" />
-                            Book Slot
-                        </Button>
                         <Button variant="outline" size="sm" onClick={handleToday}>
                             Today
                         </Button>

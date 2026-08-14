@@ -1,6 +1,7 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
+  LayoutGrid,
   UserCheck,
   Users,
   Calendar,
@@ -22,6 +23,9 @@ import {
   TrendingUp,
   Flame,
   Apple,
+  Layers,
+  Bell,
+  ShieldCheck,
 } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 import { cn } from "@/lib/utils";
@@ -40,25 +44,19 @@ interface NavItem {
 const adminNav: NavItem[] = [
   { label: "Dashboard", icon: LayoutDashboard, href: "/admin" },
   { label: "Clients", icon: Users, href: "/admin/clients" },
-  { label: "Leads", icon: MessageSquare, href: "/admin/leads" },
-  { label: "Calendar", icon: CalendarDays, href: "/admin/calendar" },
-  { label: "Reports", icon: ClipboardList, href: "/admin/reports" },
   { label: "Billing", icon: CreditCard, href: "/admin/billing" },
-  { label: "Questionnaires", icon: ClipboardList, href: "/ams/questionnaires" },
+  { label: "Calendar", icon: CalendarDays, href: "/admin/calendar" },
+  { label: "Leads", icon: MessageSquare, href: "/admin/leads" },
   { label: "User Approvals", icon: UserCheck, href: "/admin/users" },
-  { label: "Attendance", icon: CalendarClock, href: "/my-attendance" },
-  { label: "Settings", icon: Settings, href: "/admin/settings" },
 ];
 
 const consultantNav: NavItem[] = [
   { label: "Dashboard", icon: LayoutDashboard, href: "/consultant" },
   { label: "Clients", icon: Users, href: "/consultant/clients" },
   { label: "Schedule", icon: Calendar, href: "/consultant/schedule" },
-  { label: "Availability", icon: Clock, href: "/consultant/availability" },
   { label: "Reports", icon: ClipboardList, href: "/consultant/reports" },
   { label: "Injury Repo", icon: Activity, href: "/consultant/injuries" },
-  { label: "Questionnaires", icon: ClipboardList, href: "/ams/questionnaires" },
-  { label: "Attendance", icon: CalendarClock, href: "/my-attendance" },
+  { label: "My Attendance", icon: Clock, href: "/my-attendance" },
 ];
 
 const clientNav: NavItem[] = [
@@ -72,13 +70,11 @@ const clientNav: NavItem[] = [
 const foeNav: NavItem[] = [
   { label: "Dashboard", icon: LayoutDashboard, href: "/admin" },
   { label: "Clients", icon: Users, href: "/admin/clients" },
-  { label: "Leads", icon: MessageSquare, href: "/admin/leads" },
   { label: "Calendar", icon: CalendarDays, href: "/admin/calendar" },
-  { label: "Reports", icon: ClipboardList, href: "/admin/reports" },
   { label: "Billing", icon: CreditCard, href: "/admin/billing" },
-  { label: "Questionnaires", icon: ClipboardList, href: "/ams/questionnaires" },
+  { label: "Leads", icon: MessageSquare, href: "/admin/leads" },
   { label: "User Approvals", icon: UserCheck, href: "/admin/users" },
-  { label: "Attendance", icon: CalendarClock, href: "/my-attendance" },
+  { label: "Attendance", icon: Clock, href: "/my-attendance" },
 ];
 
 const sportsScientistNav: NavItem[] = [
@@ -86,10 +82,8 @@ const sportsScientistNav: NavItem[] = [
   { label: "Schedule", icon: Calendar, href: "/sports-scientist/schedule" },
   { label: "Clients", icon: Users, href: "/sports-scientist/clients" },
   { label: "Reports", icon: ClipboardList, href: "/sports-scientist/reports" },
-  { label: "Analytics", icon: Activity, href: "/sports-scientist/analytics" },
-  { label: "Questionnaires", icon: ClipboardList, href: "/ams/questionnaires" },
   { label: "Manage Memberships", icon: CreditCard, href: "/sports-scientist/billing" },
-  { label: "Attendance", icon: CalendarClock, href: "/my-attendance" },
+  { label: "My Attendance", icon: Clock, href: "/my-attendance" },
 ];
 
 const managerNav: NavItem[] = [
@@ -107,6 +101,16 @@ const hrNav: NavItem[] = [
   { label: "Leave Approvals", icon: CheckSquare, href: "/hr/leave-approvals" },
   { label: "Staff Attendance Log", icon: CalendarClock, href: "/hr/attendance-logs" },
   { label: "User Approvals", icon: UserCheck, href: "/hr/users" },
+  { label: "Settings & Permissions", icon: ShieldCheck, href: "/admin/settings/console-access" },
+];
+
+const settingsNav: NavItem[] = [
+  { label: "Console Access Control", icon: ShieldCheck, href: "/admin/settings/console-access" },
+  { label: "Service Mapping", icon: Layers, href: "/admin/settings/services" },
+  { label: "Resource Schedules", icon: Clock, href: "/admin/settings/resource-schedule" },
+  { label: "Injury Master Data", icon: Activity, href: "/admin/settings/injuries" },
+  { label: "Custom Fields", icon: CheckSquare, href: "/admin/settings/fields" },
+  { label: "Notifications", icon: Bell, href: "/admin/settings/notifications" },
 ];
 
 const superAdminNav: NavItem[] = [
@@ -234,12 +238,35 @@ export default function AppSidebar({ role, isMobile, className, onNavigate }: Ap
   }, [profile?.id, isMobile, queryClient]);
 
   const items = useMemo(() => {
-    let baseItems = navMap[resolvedRole] || navMap[role] || [];
+    let activeConsoleItems: NavItem[] | null = null;
+    const path = location.pathname;
+
+    if (path.startsWith('/admin/settings') || path.startsWith('/admin/permissions')) {
+      activeConsoleItems = settingsNav;
+    } else if (path.startsWith('/hr')) {
+      activeConsoleItems = hrNav;
+    } else if (path.startsWith('/sports-scientist')) {
+      activeConsoleItems = sportsScientistNav;
+    } else if (path.startsWith('/consultant')) {
+      activeConsoleItems = consultantNav;
+    } else if (path.startsWith('/nutritionist')) {
+      activeConsoleItems = nutritionistNav;
+    } else if (path.startsWith('/ams/questionnaires') || path.startsWith('/ams/batch-tests')) {
+      activeConsoleItems = [
+        { label: "Forms & Assessments", icon: ClipboardList, href: "/ams/questionnaires" },
+        { label: "Batch Testing", icon: Target, href: "/ams/batch-tests" },
+      ];
+    } else if (path.startsWith('/admin')) {
+      activeConsoleItems = adminNav;
+    }
+
+    let baseItems = activeConsoleItems || navMap[resolvedRole] || navMap[role] || [];
 
     if (baseItems.length === 0) return [];
 
-    // Filter and inject calendar access depending on permissions
-    const hasCalendarAccess = resolvedRole === "admin" || profile?.has_calendar_access === true;
+    // Filter and inject calendar access depending on permissions (only on admin console routes)
+    const isAdminConsoleRoute = path.startsWith('/admin') && !path.startsWith('/admin/settings') && !path.startsWith('/admin/permissions');
+    const hasCalendarAccess = isAdminConsoleRoute && (resolvedRole === "admin" || profile?.has_calendar_access === true);
     if (hasCalendarAccess) {
       if (!baseItems.find(i => i.href === "/admin/calendar")) {
         const dashboardIdx = baseItems.findIndex(i => i.label.includes("Dashboard") || i.label === "Overview");
@@ -252,8 +279,8 @@ export default function AppSidebar({ role, isMobile, className, onNavigate }: Ap
       baseItems = baseItems.filter(item => item.href !== "/admin/calendar");
     }
 
-    // Filter and inject managerial analytics access depending on permissions
-    const hasAnalyticsAccess = ["admin", "manager", "hr_manager"].includes(resolvedRole) || profile?.has_analytics_access === true;
+    // Filter and inject managerial analytics access depending on permissions (only on admin console routes)
+    const hasAnalyticsAccess = isAdminConsoleRoute && (["admin", "manager", "hr_manager"].includes(resolvedRole) || profile?.has_analytics_access === true);
     if (hasAnalyticsAccess) {
       if (!baseItems.find(i => i.href === "/admin/analytics/managerial")) {
         const dashboardIdx = baseItems.findIndex(i => i.label.includes("Dashboard") || i.label === "Overview");
@@ -277,7 +304,7 @@ export default function AppSidebar({ role, isMobile, className, onNavigate }: Ap
     }
 
     return baseItems;
-  }, [resolvedRole, role, profile?.has_calendar_access, profile?.has_analytics_access, profile?.ams_role]);
+  }, [resolvedRole, role, profile?.has_calendar_access, profile?.has_analytics_access, profile?.ams_role, location.pathname]);
 
   const isLoadingState = loading || items.length === 0;
 
@@ -315,6 +342,30 @@ export default function AppSidebar({ role, isMobile, className, onNavigate }: Ap
 
         {/* Nav Items Container */}
         <nav className="flex-1 py-4 px-2 space-y-1 overflow-y-auto">
+          {/* App Gallery return link */}
+          <Link
+            to="/app-gallery"
+            onClick={onNavigate}
+            className={cn(
+              "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 h-10 mb-2 border-b border-sidebar-border/50 pb-3",
+              location.pathname === "/app-gallery"
+                ? "bg-sidebar-accent text-sidebar-primary shadow-glow"
+                : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+            )}
+          >
+            <div className="relative flex items-center justify-center shrink-0">
+              <LayoutGrid className="w-5 h-5 text-primary" />
+            </div>
+            <span
+              className={cn(
+                "whitespace-nowrap transition-all duration-300 ease-in-out flex-1 truncate",
+                isExpanded ? "opacity-100 max-w-[200px]" : "opacity-0 max-w-0 pointer-events-none"
+              )}
+            >
+              App Gallery
+            </span>
+          </Link>
+
           {isLoadingState ? (
             // Neutral Skeleton Placeholders (Zero text flash)
             Array.from({ length: 6 }).map((_, i) => (
