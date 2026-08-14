@@ -3,6 +3,7 @@ import { apiFetch } from '../../utils/api';
 import { useNavigate, Link } from 'react-router-dom';
 import { Activity, ArrowRight, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { getDashboardPath } from '../../utils/navigation';
 
 export default function CustomLogin() {
   const [email, setEmail] = useState('');
@@ -29,8 +30,9 @@ export default function CustomLogin() {
         localStorage.setItem('ishpo_jwt', response.token);
         await refreshAuth();
         
-        // Redirect every user to the App Gallery after login
-        navigate('/app-gallery');
+        // Redirect user based on their role
+        const userRoles = response.user?.roles || (response.user?.role ? [response.user.role] : []);
+        navigate(getDashboardPath(userRoles, response.user));
       } else if (response.step === 'otp') {
         setStep(2);
       }
@@ -56,8 +58,9 @@ export default function CustomLogin() {
       // Refresh AuthContext state
       await refreshAuth();
       
-      // Redirect every user to the App Gallery after OTP verification
-      navigate('/app-gallery');
+      // Redirect user based on their role
+      const userRoles = response.user?.roles || (response.user?.role ? [response.user.role] : []);
+      navigate(getDashboardPath(userRoles, response.user));
     } catch (err: any) {
       setError(err.message || 'Invalid or expired OTP');
     } finally {

@@ -149,7 +149,7 @@ router.patch('/organizations/:id', requireSuperAdmin, async (req, res) => {
         'name', 'official_name', 'official_address', 'contact_email', 'contact_phone',
         'clinic_latitude', 'clinic_longitude', 'geofence_radius', 'enable_geofencing',
         'enable_ip_locking', 'allowed_ips', 'uhid_prefix', 'logo_url',
-        'default_shift_end_time', 'default_checkout_time'
+        'default_shift_end_time', 'default_checkout_time', 'enabled_modules'
     ];
     
     const keys = Object.keys(updates).filter(k => allowedColumns.includes(k));

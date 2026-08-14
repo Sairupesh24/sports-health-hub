@@ -72,6 +72,9 @@ async function runMigrations() {
     
     // Additional safe migrations for other types
     try {
+      await pool.query(`ALTER TABLE organizations ADD COLUMN enabled_modules TEXT;`);
+    } catch (e) {}
+    try {
       await pool.query(`ALTER TABLE organizations ADD COLUMN allow_custom_duration BOOLEAN DEFAULT FALSE;`);
     } catch (e) {}
     try {

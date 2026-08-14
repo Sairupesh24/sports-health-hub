@@ -26,6 +26,7 @@ import {
   Layers,
   Bell,
   ShieldCheck,
+  Building2,
 } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 import { cn } from "@/lib/utils";
@@ -114,8 +115,8 @@ const settingsNav: NavItem[] = [
 ];
 
 const superAdminNav: NavItem[] = [
-  { label: "Overview", icon: LayoutDashboard, href: "/super-admin" },
-  { label: "Settings", icon: Settings, href: "/super-admin/settings" },
+  { label: "Master Console", icon: LayoutDashboard, href: "/super-admin" },
+  { label: "Onboard Organization", icon: Building2, href: "/super-admin/organizations/new" },
 ];
 
 const athleteNav: NavItem[] = [

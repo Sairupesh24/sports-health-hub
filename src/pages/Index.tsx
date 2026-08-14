@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { isUserApproved } from "@/utils/navigation";
+import { getDashboardPath, isUserApproved } from "@/utils/navigation";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -22,8 +22,9 @@ const Index = () => {
       return;
     }
 
-    // Redirect to App Gallery as the unified ISHPO landing page
-    navigate("/app-gallery", { replace: true });
+    // Redirect user to their respective dashboard path
+    const dest = getDashboardPath(roles, profile);
+    navigate(dest, { replace: true });
   }, [user, profile, roles, loading, navigate]);
 
   return null;

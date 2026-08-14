@@ -31,6 +31,17 @@ export interface AppModuleDefinition {
 
 export const APP_MODULES: AppModuleDefinition[] = [
   {
+    id: "super_admin",
+    name: "Super Admin Console",
+    description: "Platform master console: tenant organization onboarding, identity engine & security permissions control.",
+    icon: Building2,
+    href: "/super-admin",
+    color: "text-purple-700 bg-purple-100 border-purple-300",
+    gradient: "from-purple-600/20 via-indigo-600/10 to-purple-700/10",
+    badgeStyle: "bg-purple-100 text-purple-900 border-purple-300 font-bold",
+    defaultRoles: ["super_admin"],
+  },
+  {
     id: "admin",
     name: "Admin Console",
     description: "Clients, billing & payments, calendar scheduling, waitlist, roster, and leads.",
@@ -167,7 +178,8 @@ export const isModuleGrantedForUser = (
   userRole: string | string[] | undefined | null,
   profession: string | undefined | null,
   allowedConsoles: string[] | string | undefined | null,
-  moduleObj: AppModuleDefinition
+  moduleObj: AppModuleDefinition,
+  orgEnabledModules?: string[] | string | undefined | null
 ): boolean => {
   let userRolesArray: string[] = [];
   if (Array.isArray(userRole)) {
@@ -178,7 +190,31 @@ export const isModuleGrantedForUser = (
 
   const prof = (profession || "").toLowerCase().trim();
 
-  // Admins always have universal access to all modules
+  // Super Admin module is strictly reserved for super_admin users
+  if (moduleObj.id === "super_admin") {
+    return userRolesArray.includes("super_admin");
+  }
+
+  // Check if organization has disabled/revoked access to this module
+  if (orgEnabledModules !== undefined && orgEnabledModules !== null) {
+    let parsedOrgModules: string[] | null = null;
+    if (Array.isArray(orgEnabledModules)) {
+      parsedOrgModules = orgEnabledModules;
+    } else if (typeof orgEnabledModules === "string" && orgEnabledModules.trim()) {
+      try {
+        parsedOrgModules = JSON.parse(orgEnabledModules);
+      } catch {
+        parsedOrgModules = orgEnabledModules.split(",").map((s) => s.trim());
+      }
+    }
+    if (Array.isArray(parsedOrgModules) && parsedOrgModules.length > 0) {
+      if (!parsedOrgModules.includes(moduleObj.id)) {
+        return false;
+      }
+    }
+  }
+
+  // Admins always have universal access to all organization-enabled modules
   const isAdmin = userRolesArray.some((r) => r === "admin" || r === "super_admin");
   if (isAdmin) return true;
 

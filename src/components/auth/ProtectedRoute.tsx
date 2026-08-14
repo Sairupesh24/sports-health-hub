@@ -42,10 +42,56 @@ export default function ProtectedRoute({ children, requiredRole, checkCalendarAc
   }
 
   if (requiredRole) {
+    const rolesArray = Array.isArray(requiredRole) ? requiredRole : [requiredRole];
+
+    // Strict requirement check for super_admin routes
+    if (rolesArray.includes("super_admin")) {
+      const isSuperAdmin = roles.includes("super_admin") || profile?.role === "super_admin";
+      if (!isSuperAdmin) {
+        return <Navigate to={getDashboardPath(roles, profile)} replace />;
+      }
+    }
+
+    // Organization module permission check: block access if module is disabled for the organization
+    const isSuperAdminUser = roles.includes("super_admin") || profile?.role === "super_admin";
+    if (!isSuperAdminUser && profile?.organization_enabled_modules) {
+      let parsedOrgModules: string[] | null = null;
+      if (Array.isArray(profile.organization_enabled_modules)) {
+        parsedOrgModules = profile.organization_enabled_modules;
+      } else if (typeof profile.organization_enabled_modules === "string" && profile.organization_enabled_modules.trim()) {
+        try {
+          parsedOrgModules = JSON.parse(profile.organization_enabled_modules);
+        } catch {
+          parsedOrgModules = (profile.organization_enabled_modules as string).split(',').map(s => s.trim());
+        }
+      }
+
+      if (Array.isArray(parsedOrgModules) && parsedOrgModules.length > 0) {
+        const routeModuleMap: Record<string, string> = {
+          hr_manager: "hr",
+          nutritionist: "nutritionist",
+          consultant: "clinical",
+          sports_physician: "clinical",
+          physiotherapist: "clinical",
+          sports_scientist: "ams",
+          foe: "foe",
+          client: "client",
+          athlete: "client",
+        };
+        const requiresDisabledOrgModule = rolesArray.some(role => {
+          const modId = routeModuleMap[role];
+          return modId && !parsedOrgModules!.includes(modId);
+        });
+
+        if (requiresDisabledOrgModule) {
+          return <Navigate to={getDashboardPath(roles, profile)} replace />;
+        }
+      }
+    }
+
     const isAdmin = roles.includes("admin") || roles.includes("super_admin") || profile?.role === "admin";
     
     if (!isAdmin) {
-      const rolesArray = Array.isArray(requiredRole) ? requiredRole : [requiredRole];
       let hasRole = rolesArray.some((role) => roles.includes(role));
 
       // Specialized consultant roles are interchangeable with generic consultant access

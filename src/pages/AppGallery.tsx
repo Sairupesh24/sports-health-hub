@@ -39,6 +39,12 @@ import { APP_MODULES, AppModuleDefinition, isModuleGrantedForUser } from "@/conf
 
 // Helper map for custom hover glow/highlight styles per module ID
 const MODULE_HOVER_GLOWS: Record<string, { hoverBorder: string; hoverRing: string; hoverShadow: string; textHover: string }> = {
+  super_admin: {
+    hoverBorder: "hover:border-purple-500",
+    hoverRing: "hover:ring-4 hover:ring-purple-500/10",
+    hoverShadow: "hover:shadow-xl hover:shadow-purple-500/10",
+    textHover: "group-hover:text-purple-700",
+  },
   admin: {
     hoverBorder: "hover:border-purple-400",
     hoverRing: "hover:ring-4 hover:ring-purple-500/10",
@@ -116,7 +122,13 @@ export default function AppGallery() {
   const availableModules = useMemo(() => {
     const userRoles = [...(roles || []), profile?.role].filter(Boolean) as string[];
     return APP_MODULES.filter((mod) =>
-      isModuleGrantedForUser(userRoles, profile?.profession, profile?.allowed_consoles, mod)
+      isModuleGrantedForUser(
+        userRoles,
+        profile?.profession,
+        profile?.allowed_consoles,
+        mod,
+        profile?.organization_enabled_modules
+      )
     );
   }, [profile, roles]);
 
@@ -132,7 +144,7 @@ export default function AppGallery() {
         return ["clinical", "questionnaires", "nutritionist"].includes(mod.id);
       }
       if (activeCategory === "management") {
-        return ["admin", "settings", "hr", "foe", "manager", "analytics"].includes(mod.id);
+        return ["super_admin", "admin", "settings", "hr", "foe", "manager", "analytics"].includes(mod.id);
       }
       if (activeCategory === "portal") {
         return ["client", "ams", "planner"].includes(mod.id);

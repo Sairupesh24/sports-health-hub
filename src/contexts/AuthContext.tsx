@@ -21,6 +21,7 @@ interface Profile {
   has_analytics_access?: boolean;
   has_assign_work_access?: boolean;
   allowed_consoles?: string[] | string | null;
+  organization_enabled_modules?: string[] | string | null;
 }
 
 interface AuthContextType {

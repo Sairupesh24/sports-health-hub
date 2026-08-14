@@ -8,7 +8,10 @@ export function getDashboardPath(
   roles: string[],
   profile?: { profession?: string | null; role?: string | null; ams_role?: string | null } | null
 ): string {
-  // Every user lands on the unified App Gallery after login
+  if (roles?.includes("super_admin") || profile?.role === "super_admin") {
+    return "/super-admin";
+  }
+  // All other users land on the unified App Gallery after login
   return "/app-gallery";
 }
 

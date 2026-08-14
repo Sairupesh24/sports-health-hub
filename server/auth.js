@@ -304,7 +304,7 @@ router.get('/me', async (req, res) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret_do_not_use_in_prod');
 
     const profileRes = await db.query(`
-      SELECT p.*, o.name as organization_name, o.logo_url as organization_logo 
+      SELECT p.*, o.name as organization_name, o.logo_url as organization_logo, o.enabled_modules as organization_enabled_modules 
       FROM profiles p 
       LEFT JOIN organizations o ON p.organization_id = o.id 
       WHERE p.id = $1

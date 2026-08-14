@@ -25,14 +25,37 @@ import {
     Mail,
     AlertCircle,
     Check,
-    MessageSquare,
     Plus,
     Trash2,
-    Loader2
+    Loader2,
+    Building2,
+    LayoutDashboard,
+    Stethoscope,
+    Dumbbell,
+    Apple,
+    CalendarDays,
+    ClipboardCheck,
+    Orbit,
+    BarChart3,
+    MessageSquare
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+
+const ALL_TENANT_MODULES = [
+  { id: "admin", name: "Admin Console", description: "Clients, billing & payments, calendar scheduling, waitlist, roster, and leads.", icon: LayoutDashboard },
+  { id: "settings", name: "Settings & Permissions", description: "System settings, organization details, role access control, field configuration, and service mappings.", icon: ShieldCheck },
+  { id: "clinical", name: "Clinical Management", description: "Physio Console: dashboard, client medical profiles, treatment schedule, clinical reports, and injury repo.", icon: Stethoscope },
+  { id: "ams", name: "Athlete Management", description: "Sports Scientist Console: dashboard, schedule, athlete directory, reports, and membership management.", icon: Dumbbell },
+  { id: "nutritionist", name: "Nutritionist Console", description: "Dietary assessments, meal planning, macro tracking, and client nutrition profiles.", icon: Apple },
+  { id: "hr", name: "HR & Workforce (HRMS)", description: "HR Module: dashboard, activity tracking, staff attendance logs, day planner, leave approvals, and user onboarding.", icon: Building2 },
+  { id: "foe", name: "Front Office Console", description: "Master calendar schedule, client registration, appointment check-ins, and front desk operations.", icon: CalendarDays },
+  { id: "questionnaires", name: "Forms & Assessments", description: "Questionnaire library, clinical evaluation templates, and data collection tools.", icon: ClipboardCheck },
+  { id: "planner", name: "OrbitFlow Planner", description: "Project management, work tracking, sprints, Gantt schedules, capacity planning, and roadmaps.", icon: Orbit },
+  { id: "analytics", name: "Analytics & Reports", description: "Executive analytics, staff efficiency, and managerial insights across operations.", icon: BarChart3 },
+  { id: "client", name: "Client & Athlete Portal", description: "Self-service appointment booking, workout logs, personal reports, and health portal.", icon: Users },
+];
 import { toast } from "@/hooks/use-toast";
 import { apiFetch } from "@/utils/api";
 import OrganizationPackages from "./OrganizationPackages";
@@ -85,6 +108,7 @@ type Organization = {
     default_shift_end_time?: string;
     default_checkout_time?: string;
     enquiry_form_config?: any;
+    enabled_modules?: string[] | string | null;
     slug?: string;
 };
 
@@ -95,6 +119,9 @@ export default function OrganizationDetails() {
     const [loading, setLoading] = useState(true);
     const [updating, setUpdating] = useState(false);
     
+    // Module permissions state
+    const [enabledModules, setEnabledModules] = useState<string[]>(ALL_TENANT_MODULES.map(m => m.id));
+
     // New States for Identity Engine
     const [prefix, setPrefix] = useState("");
     const [isPrefixAvailable, setIsPrefixAvailable] = useState<boolean | null>(null);
@@ -122,6 +149,17 @@ export default function OrganizationDetails() {
                 } else {
                     setIsPrefixAvailable(null);
                 }
+
+                if (data.enabled_modules) {
+                    try {
+                        const parsed = typeof data.enabled_modules === 'string' ? JSON.parse(data.enabled_modules) : data.enabled_modules;
+                        setEnabledModules(Array.isArray(parsed) ? parsed : ALL_TENANT_MODULES.map(m => m.id));
+                    } catch {
+                        setEnabledModules(ALL_TENANT_MODULES.map(m => m.id));
+                    }
+                } else {
+                    setEnabledModules(ALL_TENANT_MODULES.map(m => m.id));
+                }
             } else {
                 toast({ title: "Not Found", description: "Organization not found.", variant: "destructive" });
                 navigate("/super-admin");
@@ -130,6 +168,52 @@ export default function OrganizationDetails() {
             toast({ title: "Error", description: err.message, variant: "destructive" });
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleToggleModulePermission = async (moduleId: string, enabled: boolean) => {
+        if (!id || !org || updating) return;
+        const updated = enabled
+            ? Array.from(new Set([...enabledModules, moduleId]))
+            : enabledModules.filter(m => m !== moduleId);
+
+        setEnabledModules(updated);
+        try {
+            setUpdating(true);
+            await apiFetch(`/master-console/organizations/${id}`, {
+                method: 'PATCH',
+                data: { enabled_modules: JSON.stringify(updated) }
+            });
+            setOrg(prev => prev ? { ...prev, enabled_modules: JSON.stringify(updated) } : null);
+            toast({
+                title: "Permissions Updated",
+                description: `Module "${moduleId.toUpperCase()}" access ${enabled ? 'enabled' : 'disabled'} for ${org.name}.`
+            });
+        } catch (err: any) {
+            toast({ title: "Failed to update module permissions", description: err.message, variant: "destructive" });
+        } finally {
+            setUpdating(false);
+        }
+    };
+
+    const handleBatchSaveModules = async (modulesToSave: string[]) => {
+        if (!id || !org || updating) return;
+        setEnabledModules(modulesToSave);
+        try {
+            setUpdating(true);
+            await apiFetch(`/master-console/organizations/${id}`, {
+                method: 'PATCH',
+                data: { enabled_modules: JSON.stringify(modulesToSave) }
+            });
+            setOrg(prev => prev ? { ...prev, enabled_modules: JSON.stringify(modulesToSave) } : null);
+            toast({
+                title: "Module Access Updated",
+                description: `Updated module permissions for ${org.name}.`
+            });
+        } catch (err: any) {
+            toast({ title: "Failed to save permissions", description: err.message, variant: "destructive" });
+        } finally {
+            setUpdating(false);
         }
     };
 
@@ -354,6 +438,9 @@ export default function OrganizationDetails() {
                         <TabsTrigger value="overview" className="flex gap-2 items-center px-5 py-2.5 rounded-lg data-[state=active]:shadow-sm">
                             <Activity className="w-4 h-4" /> Overview
                         </TabsTrigger>
+                        <TabsTrigger value="modules" className="flex gap-2 items-center px-5 py-2.5 rounded-lg data-[state=active]:shadow-sm">
+                            <Building2 className="w-4 h-4 text-purple-600" /> Module Access
+                        </TabsTrigger>
                         <TabsTrigger value="branding" className="flex gap-2 items-center px-5 py-2.5 rounded-lg data-[state=active]:shadow-sm">
                             <Palette className="w-4 h-4" /> Branding
                         </TabsTrigger>
@@ -374,6 +461,88 @@ export default function OrganizationDetails() {
                         </TabsTrigger>
                     </TabsList>
 
+
+                    <TabsContent value="modules">
+                        <div className="space-y-6">
+                            <div className="rounded-xl border border-border bg-card p-6">
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-4 mb-6">
+                                    <div>
+                                        <h3 className="font-display font-bold text-xl flex items-center gap-2 text-foreground">
+                                            <Building2 className="w-6 h-6 text-purple-600" />
+                                            Organization Module Access & Permissions
+                                        </h3>
+                                        <p className="text-sm text-muted-foreground mt-1">
+                                            Control which application modules and consoles are accessible to members of <strong>{org?.name}</strong>. Disabling a module revokes access across App Gallery and all system routes for this tenant.
+                                        </p>
+                                    </div>
+                                    <div className="flex items-center gap-2 shrink-0">
+                                        <Button 
+                                            variant="outline" 
+                                            size="sm"
+                                            onClick={() => {
+                                                const allIds = ALL_TENANT_MODULES.map(m => m.id);
+                                                handleBatchSaveModules(allIds);
+                                            }}
+                                            disabled={updating}
+                                        >
+                                            Enable All Modules
+                                        </Button>
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {ALL_TENANT_MODULES.map((mod) => {
+                                        const isEnabled = enabledModules.includes(mod.id);
+                                        const IconComp = mod.icon;
+                                        return (
+                                            <div 
+                                                key={mod.id}
+                                                className={cn(
+                                                    "p-4 rounded-xl border transition-all duration-200 flex items-start justify-between gap-4",
+                                                    isEnabled 
+                                                        ? "bg-card border-purple-200/80 dark:border-purple-900/40 shadow-sm" 
+                                                        : "bg-muted/30 border-dashed border-border opacity-70"
+                                                )}
+                                            >
+                                                <div className="flex items-start gap-3">
+                                                    <div className={cn(
+                                                        "w-10 h-10 rounded-xl flex items-center justify-center shrink-0 mt-0.5",
+                                                        isEnabled ? "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300" : "bg-muted text-muted-foreground"
+                                                    )}>
+                                                        <IconComp className="w-5 h-5" />
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <div className="flex items-center gap-2">
+                                                            <h4 className="font-semibold text-sm text-foreground">{mod.name}</h4>
+                                                            <Badge 
+                                                                variant={isEnabled ? "default" : "outline"} 
+                                                                className={cn(
+                                                                    "text-[10px] uppercase font-bold px-2 py-0.2",
+                                                                    isEnabled 
+                                                                        ? "bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-900/50 dark:text-purple-200" 
+                                                                        : "bg-slate-100 text-slate-500 border-slate-200"
+                                                                )}
+                                                            >
+                                                                {isEnabled ? "Access Granted" : "Revoked"}
+                                                            </Badge>
+                                                        </div>
+                                                        <p className="text-xs text-muted-foreground leading-relaxed">{mod.description}</p>
+                                                    </div>
+                                                </div>
+                                                <div className="pt-1">
+                                                    <Switch
+                                                        checked={isEnabled}
+                                                        onCheckedChange={(checked) => handleToggleModulePermission(mod.id, checked)}
+                                                        disabled={updating}
+                                                    />
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        </div>
+                    </TabsContent>
 
                     <TabsContent value="overview">
                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

@@ -760,6 +760,7 @@ model Organization {
   defaultSlotDuration              Int?                             @default(60) @map("default_slot_duration")
   defaultCheckoutTime              DateTime?                        @default(dbgenerated("'18:00:00'::time without time zone")) @map("default_checkout_time") @db.Time(6)
   default_shift_end_time           DateTime?                        @default(dbgenerated("'18:00:00'::time without time zone")) @db.Time(6)
+  enabledModules                   String?                          @map("enabled_modules")
   activityTrackerAutomations       ActivityTrackerAutomation[]
   athleteItemLogs                  AthleteItemLog[]
   athleteWorkoutCompletions        AthleteWorkoutCompletion[]
