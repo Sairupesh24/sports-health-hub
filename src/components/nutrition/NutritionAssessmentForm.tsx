@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -8,6 +8,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { apiFetch } from "@/utils/api";
@@ -27,6 +29,9 @@ import {
   Clock,
   Sparkles,
   Stethoscope,
+  Search,
+  Check,
+  ChevronsUpDown,
 } from "lucide-react";
 import type {
   NutritionAssessment,
@@ -66,6 +71,13 @@ export default function NutritionAssessmentForm({
   const [activeTab, setActiveTab] = useState<string>("section-a");
   const [submitting, setSubmitting] = useState<boolean>(false);
 
+  // --- Client Selection Dropdown State ---
+  const [clients, setClients] = useState<any[]>([]);
+  const [loadingClients, setLoadingClients] = useState<boolean>(false);
+  const [selectedClientId, setSelectedClientId] = useState<string>(clientId || initialData?.client_id || "");
+  const [selectedClientUhid, setSelectedClientUhid] = useState<string>(clientUhid || "");
+  const [clientComboboxOpen, setClientComboboxOpen] = useState<boolean>(false);
+
   // --- Section A: Personal Details ---
   const [name, setName] = useState<string>(clientName || initialData?.name || "");
   const [age, setAge] = useState<number | string>(initialData?.age || "");
@@ -84,6 +96,86 @@ export default function NutritionAssessmentForm({
   const [exerciseDuration, setExerciseDuration] = useState<string>(initialData?.exercise_duration || "");
   const [trainingSessionsCount, setTrainingSessionsCount] = useState<number | string>(initialData?.training_sessions_count || "");
   const [exerciseType, setExerciseType] = useState<string>(initialData?.exercise_type || "");
+
+  // Fetch list of registered clients for dropdown
+  useEffect(() => {
+    const fetchRegisteredClients = async () => {
+      try {
+        setLoadingClients(true);
+        const res = await apiFetch<any[]>("/clients");
+        if (res && Array.isArray(res)) {
+          setClients(res);
+
+          // If clientId was passed as prop or initialData, auto-match the client
+          const targetId = clientId || initialData?.client_id;
+          if (targetId) {
+            const matched = res.find((c) => c.id === targetId);
+            if (matched) {
+              handleSelectClient(matched);
+            }
+          }
+        }
+      } catch (err) {
+        console.warn("Failed to load registered clients:", err);
+      } finally {
+        setLoadingClients(false);
+      }
+    };
+    fetchRegisteredClients();
+  }, [clientId, initialData?.client_id]);
+
+  const handleSelectClient = (c: any) => {
+    const fullName = `${c.first_name || ""} ${c.last_name || ""}`.trim() || "Unnamed Client";
+    setName(fullName);
+    setSelectedClientId(c.id);
+    setSelectedClientUhid(c.uhid || "");
+
+    // Auto-fill Age if available
+    if (c.age) {
+      setAge(c.age);
+    } else if (c.dob) {
+      const birthYear = new Date(c.dob).getFullYear();
+      const currentYear = new Date().getFullYear();
+      if (!isNaN(birthYear) && currentYear > birthYear) {
+        setAge(currentYear - birthYear);
+      }
+    }
+
+    // Auto-fill Gender if available
+    if (c.gender) {
+      const g = c.gender.toString().toLowerCase();
+      if (g.startsWith("m")) setGender("Male");
+      else if (g.startsWith("f")) setGender("Female");
+      else setGender("Other");
+    }
+
+    // Auto-fill Profession/Occupation
+    if (c.occupation || c.profession) {
+      setProfession(c.occupation || c.profession);
+    }
+
+    // Auto-fill Sport & Population Category
+    if (c.sport) {
+      setSport(c.sport);
+    }
+    if (c.athlete_type || c.sport) {
+      setClientType("athlete");
+      if (c.athlete_type) setCompetitionLevel(c.athlete_type);
+    }
+
+    // Auto-fill Dietary Preference
+    if (c.dietary_preference) {
+      setDietaryPreference(c.dietary_preference);
+    }
+
+    // Auto-fill Allergies
+    if (c.allergies_intolerances || c.allergies) {
+      const list = c.allergies_intolerances || c.allergies;
+      if (Array.isArray(list)) {
+        setAllergies(list);
+      }
+    }
+  };
 
   // --- Section B: Anthropometric Details ---
   const [heightCm, setHeightCm] = useState<number | string>(initialData?.height_cm || "");
@@ -261,6 +353,15 @@ export default function NutritionAssessmentForm({
   const [assessmentDate, setAssessmentDate] = useState<string>(initialData?.assessment_date || todayDate);
 
   const handleSubmitAssessment = async () => {
+    if (!selectedClientId && !clientId) {
+      toast({
+        title: "Registered Client Required",
+        description: "Please select a registered client from the dropdown list.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       setSubmitting(true);
 
@@ -281,7 +382,7 @@ export default function NutritionAssessmentForm({
         : medicalHistory;
 
       const payload: NutritionAssessment = {
-        client_id: clientId || "client-demo-123",
+        client_id: selectedClientId || clientId,
         name,
         age,
         gender,
@@ -427,9 +528,90 @@ export default function NutritionAssessmentForm({
 
             <CardContent className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                {/* Searchable Client Dropdown */}
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold">Name</Label>
-                  <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Full Name" />
+                  <Label className="text-xs font-semibold flex items-center justify-between">
+                    <span>Select Client <span className="text-destructive">*</span></span>
+                    {selectedClientUhid && (
+                      <Badge variant="outline" className="text-[10px] font-mono py-0 px-1.5 bg-emerald-500/10 text-emerald-600 border-emerald-500/20">
+                        UHID: {selectedClientUhid}
+                      </Badge>
+                    )}
+                  </Label>
+                  <Popover open={clientComboboxOpen} onOpenChange={setClientComboboxOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={clientComboboxOpen}
+                        className={cn(
+                          "w-full justify-between h-10 px-3 bg-background font-normal text-left border-border",
+                          !name && "border-amber-500/40 bg-amber-500/5"
+                        )}
+                      >
+                        <span className="truncate text-xs">
+                          {name ? (
+                            <span className="font-semibold text-foreground flex items-center gap-2">
+                              <User className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                              {name}
+                            </span>
+                          ) : (
+                            <span className="flex items-center gap-2 text-muted-foreground">
+                              <Search className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                              Select registered client...
+                            </span>
+                          )}
+                        </span>
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[320px] sm:w-[400px] p-0 shadow-xl rounded-xl border border-border" align="start">
+                      <Command>
+                        <CommandInput placeholder="Search client by name, UHID, or mobile..." />
+                        <CommandList className="max-h-[260px] overflow-y-auto p-1">
+                          <CommandEmpty className="p-3 text-xs text-muted-foreground text-center font-medium">
+                            {loadingClients ? "Loading clients..." : "No registered clients found."}
+                          </CommandEmpty>
+                          <CommandGroup>
+                            {clients.map((c) => {
+                              const fullName = `${c.first_name || ""} ${c.last_name || ""}`.trim() || "Unnamed Client";
+                              const isSelected = selectedClientId === c.id;
+                              return (
+                                <CommandItem
+                                  key={c.id}
+                                  value={`${fullName} ${c.uhid || ""} ${c.mobile_no || ""} ${c.sport || ""}`}
+                                  onSelect={() => {
+                                    handleSelectClient(c);
+                                    setClientComboboxOpen(false);
+                                  }}
+                                  className="px-3 py-2.5 cursor-pointer text-xs rounded-lg hover:bg-muted/80 flex items-center justify-between gap-2"
+                                >
+                                  <div className="flex items-center gap-2.5 min-w-0">
+                                    <Check className={cn("w-4 h-4 shrink-0 text-emerald-500", isSelected ? "opacity-100" : "opacity-0")} />
+                                    <div className="flex flex-col min-w-0">
+                                      <span className="font-semibold text-foreground truncate">
+                                        {fullName}
+                                      </span>
+                                      <span className="text-[10px] text-muted-foreground font-mono flex items-center gap-1.5 flex-wrap">
+                                        {c.uhid && <span>UHID: {c.uhid}</span>}
+                                        {c.mobile_no && <span>• {c.mobile_no}</span>}
+                                        {c.sport && <span className="text-emerald-600 font-sans font-medium">• {c.sport}</span>}
+                                      </span>
+                                    </div>
+                                  </div>
+                                  {c.athlete_type && (
+                                    <Badge variant="secondary" className="text-[9px] px-1.5 py-0 shrink-0 capitalize">
+                                      {c.athlete_type}
+                                    </Badge>
+                                  )}
+                                </CommandItem>
+                              );
+                            })}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
                 </div>
                 <div className="space-y-1.5">
                   <Label className="text-xs font-semibold">Age</Label>

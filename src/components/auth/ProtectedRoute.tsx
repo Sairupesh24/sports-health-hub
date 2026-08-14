@@ -44,8 +44,8 @@ export default function ProtectedRoute({ children, requiredRole, checkCalendarAc
   if (requiredRole) {
     const rolesArray = Array.isArray(requiredRole) ? requiredRole : [requiredRole];
 
-    // Strict requirement check for super_admin routes
-    if (rolesArray.includes("super_admin")) {
+    // Strict requirement check ONLY for dedicated super_admin routes (e.g. requiredRole="super_admin")
+    if (requiredRole === "super_admin" || (rolesArray.length === 1 && rolesArray[0] === "super_admin")) {
       const isSuperAdmin = roles.includes("super_admin") || profile?.role === "super_admin";
       if (!isSuperAdmin) {
         return <Navigate to={getDashboardPath(roles, profile)} replace />;
@@ -78,13 +78,15 @@ export default function ProtectedRoute({ children, requiredRole, checkCalendarAc
           client: "client",
           athlete: "client",
         };
-        const requiresDisabledOrgModule = rolesArray.some(role => {
-          const modId = routeModuleMap[role];
-          return modId && !parsedOrgModules!.includes(modId);
-        });
+        const mappedOrgModules = rolesArray
+          .map(role => routeModuleMap[role])
+          .filter(Boolean);
 
-        if (requiresDisabledOrgModule) {
-          return <Navigate to={getDashboardPath(roles, profile)} replace />;
+        if (mappedOrgModules.length > 0) {
+          const hasAnyEnabledModule = mappedOrgModules.some(modId => parsedOrgModules!.includes(modId));
+          if (!hasAnyEnabledModule) {
+            return <Navigate to={getDashboardPath(roles, profile)} replace />;
+          }
         }
       }
     }
@@ -93,6 +95,17 @@ export default function ProtectedRoute({ children, requiredRole, checkCalendarAc
     
     if (!isAdmin) {
       let hasRole = rolesArray.some((role) => roles.includes(role));
+
+      // Nutritionist role or profession evaluation
+      const isNutritionistUser =
+        roles.includes("nutritionist") ||
+        (profile?.profession || "").toLowerCase().includes("nutrition") ||
+        (profile?.role || "").toLowerCase().includes("nutrition") ||
+        (profile?.ams_role || "").toLowerCase().includes("nutrition");
+
+      if (!hasRole && isNutritionistUser && rolesArray.includes("nutritionist")) {
+        hasRole = true;
+      }
 
       // Specialized consultant roles are interchangeable with generic consultant access
       const consultantRoles = ["consultant", "sports_physician", "physiotherapist", "nutritionist"];
