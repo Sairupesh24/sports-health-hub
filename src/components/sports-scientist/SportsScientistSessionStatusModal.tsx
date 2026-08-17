@@ -145,6 +145,8 @@ export function SportsScientistSessionStatusModal({ open, onOpenChange, session,
                 autoMarkMissed();
             }
 
+            setShowRescheduleControls(false);
+
             // Initialize timing change defaults
             if (session.scheduled_start) {
                 const startD = parseISO(session.scheduled_start);
@@ -295,8 +297,8 @@ export function SportsScientistSessionStatusModal({ open, onOpenChange, session,
         try {
             let timingsUpdated = false;
 
-            // Handle timing updates for future sessions scheduled from tomorrow onwards
-            if (editInfo.isNextDayOrLater && rescheduledDate && rescheduledTime) {
+            // Handle timing updates / rescheduling for any unlocked session
+            if (!editInfo.isLocked && rescheduledDate && rescheduledTime) {
                 const originalStartStr = format(parseISO(session.scheduled_start), "yyyy-MM-dd HH:mm");
                 const newStartStr = `${rescheduledDate} ${rescheduledTime}`;
 
@@ -414,7 +416,7 @@ export function SportsScientistSessionStatusModal({ open, onOpenChange, session,
                         {editInfo.isToday && (
                             <div className="flex items-start gap-2 w-full rounded-xl border border-blue-200 bg-blue-50/70 p-2.5 sm:p-3.5 text-[11px] sm:text-xs text-blue-800 font-medium">
                                 <Info className="w-3.5 h-3.5 sm:w-4 sm:h-4 mt-0.5 shrink-0 text-blue-600" />
-                                <span>Today's session — timings are locked for today's slots. You can start/end session or record actual timings.</span>
+                                <span>Today's session — scheduled for today. Click <strong>Reschedule Session</strong> below to change date or time, or record actual timings.</span>
                             </div>
                         )}
                         {session.session_mode === "Individual" && session.client?.outstanding_balance > 0 && (
@@ -457,27 +459,29 @@ export function SportsScientistSessionStatusModal({ open, onOpenChange, session,
                         </div>
                     </div>
 
-                    {/* Reschedule Button placed directly under Slot Details Card (Only for future sessions) */}
-                    {editInfo.isNextDayOrLater && !editInfo.isLocked && (
+                    {/* Reschedule Button placed directly under Slot Details Card */}
+                    {!editInfo.isLocked && (
                         <div className="pt-0.5">
                             <Button
                                 type="button"
-                                variant="outline"
-                                className="w-full h-10 border-emerald-300 dark:border-emerald-700 bg-emerald-50/70 hover:bg-emerald-100/90 text-emerald-800 dark:text-emerald-300 font-bold text-xs gap-2 rounded-xl shadow-sm transition-all"
+                                variant={showRescheduleControls ? "default" : "outline"}
+                                className={`w-full h-10 border-emerald-300 dark:border-emerald-700 text-emerald-800 dark:text-emerald-300 font-bold text-xs gap-2 rounded-xl shadow-sm transition-all ${
+                                    showRescheduleControls ? "bg-emerald-700 text-white hover:bg-emerald-800" : "bg-emerald-50/70 hover:bg-emerald-100/90"
+                                }`}
                                 onClick={() => setShowRescheduleControls(prev => !prev)}
                             >
-                                <Calendar className="w-4 h-4 text-emerald-600 shrink-0" />
+                                <Calendar className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
                                 {showRescheduleControls ? "Hide Reschedule Form" : "Reschedule Session"}
                             </Button>
                         </div>
                     )}
 
-                    {/* Change Timings & Date Section (Hidden unless user explicitly clicks Reschedule Session button) */}
-                    {editInfo.isNextDayOrLater && !editInfo.isLocked && showRescheduleControls && (
-                        <div className="grid gap-2.5 sm:gap-3 bg-slate-50 dark:bg-slate-900/60 p-3 sm:p-4 rounded-2xl border border-slate-200 dark:border-slate-800 animate-in slide-in-from-top-2">
+                    {/* Change Timings & Date Section */}
+                    {!editInfo.isLocked && showRescheduleControls && (
+                        <div className="grid gap-2.5 sm:gap-3 bg-emerald-50/40 dark:bg-slate-900/60 p-3.5 sm:p-4 rounded-2xl border border-emerald-200 dark:border-slate-800 animate-in slide-in-from-top-2">
                             <div className="flex items-center justify-between gap-2">
                                 <Label className="font-bold text-slate-900 dark:text-slate-100 text-[11px] sm:text-xs uppercase tracking-wider flex items-center gap-1.5">
-                                    <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary" />
+                                    <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-600" />
                                     Reschedule Session & Timings
                                 </Label>
                             </div>
@@ -530,6 +534,16 @@ export function SportsScientistSessionStatusModal({ open, onOpenChange, session,
                                     </Select>
                                 </div>
                             </div>
+
+                            <Button
+                                type="button"
+                                onClick={handleSave}
+                                disabled={loading}
+                                className="w-full h-9 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-sm mt-1"
+                            >
+                                {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1" /> : <Calendar className="w-3.5 h-3.5 mr-1" />}
+                                Confirm & Save Reschedule
+                            </Button>
                         </div>
                     )}
 
@@ -590,7 +604,7 @@ export function SportsScientistSessionStatusModal({ open, onOpenChange, session,
                                     </div>
                                 </div>
                             ) : editInfo.isToday && (
-                                /* Scheduled end time has NOT crossed yet — show standard Start/End buttons */
+                                /* Scheduled end time has NOT crossed yet — show standard Start/Reschedule/Missed buttons */
                                 <>
                                     {(status === "Planned" && !session?.actual_start) && (
                                         <div className="flex flex-col gap-2 w-full">

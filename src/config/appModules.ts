@@ -137,10 +137,8 @@ export const APP_MODULES: AppModuleDefinition[] = [
     href: "/planner",
     color: "text-fuchsia-600 bg-fuchsia-100 border-fuchsia-200",
     gradient: "from-fuchsia-500/20 via-purple-500/10 to-violet-600/10",
-    badgeStyle: "bg-amber-100 text-amber-800 border-amber-200 font-bold",
+    badgeStyle: "bg-fuchsia-100 text-fuchsia-800 border-fuchsia-200",
     defaultRoles: ["admin", "super_admin", "sports_physician", "physiotherapist", "consultant", "sports_scientist", "nutritionist", "foe"],
-    badge: "Coming Soon",
-    comingSoon: true,
   },
   {
     id: "analytics",

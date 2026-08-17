@@ -604,18 +604,13 @@ export function AdminSessionStatusModal({ open, onOpenChange, session, onSuccess
                                         <SelectItem value="Planned">Planned</SelectItem>
                                         <SelectItem value="Checked In">Checked In</SelectItem>
                                         <SelectItem value="Completed" disabled={isFutureSession}>Completed</SelectItem>
-                                        <SelectItem value="Rescheduled" disabled={!isFutureSession || session.status !== "Planned"}>
-                                            {isFutureSession ? "Rescheduled" : "Rescheduled (Future Sessions Only)"}
+                                        <SelectItem value="Rescheduled" disabled={session.status === "Cancelled" || session.status === "Completed" || session.status === "Rescheduled"}>
+                                            Rescheduled
                                         </SelectItem>
                                         <SelectItem value="Reassigned" disabled={!["Planned", "Checked In"].includes(session.status)}>Reassigned</SelectItem>
                                         <SelectItem value="Cancelled">Cancelled</SelectItem>
                                     </SelectContent>
                                 </Select>
-                                {isTodaySession && (
-                                    <p className="text-[11px] text-amber-700 dark:text-amber-400 font-medium bg-amber-50 dark:bg-amber-950/30 p-2.5 rounded-xl border border-amber-200 dark:border-amber-800 mt-1">
-                                        ⚠️ Rescheduling is only available for future sessions (tomorrow onwards). Today's sessions cannot be rescheduled.
-                                    </p>
-                                )}
                             </div>
 
                             {status === "Cancelled" && (

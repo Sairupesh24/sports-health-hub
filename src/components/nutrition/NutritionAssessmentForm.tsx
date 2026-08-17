@@ -565,10 +565,20 @@ export default function NutritionAssessmentForm({
                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-[320px] sm:w-[400px] p-0 shadow-xl rounded-xl border border-border" align="start">
-                      <Command>
+                    <PopoverContent
+                      disablePortal={true}
+                      className="w-[calc(90vw-2rem)] sm:w-[400px] p-0 shadow-2xl rounded-xl border border-border z-[9999] overflow-hidden"
+                      align="start"
+                      onWheel={(e) => e.stopPropagation()}
+                      onTouchMove={(e) => e.stopPropagation()}
+                    >
+                      <Command className="w-full">
                         <CommandInput placeholder="Search client by name, UHID, or mobile..." />
-                        <CommandList className="max-h-[260px] overflow-y-auto p-1">
+                        <CommandList
+                          className="max-h-[250px] overflow-y-auto overscroll-contain p-1 touch-pan-y"
+                          onWheel={(e) => e.stopPropagation()}
+                          onTouchMove={(e) => e.stopPropagation()}
+                        >
                           <CommandEmpty className="p-3 text-xs text-muted-foreground text-center font-medium">
                             {loadingClients ? "Loading clients..." : "No registered clients found."}
                           </CommandEmpty>
