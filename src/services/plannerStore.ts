@@ -10,91 +10,80 @@ export function getTodayString(): string {
   return `${year}-${month}-${day}`;
 }
 
-// EXACT Real Organization Employees & Staff Members
-export const REAL_EMPLOYEES: TeamMember[] = [
-  {
-    id: "527f7a61-225d-4717-8b25-4741d195803c",
-    name: "Abhishek Vadlakonda",
-    role: "Admin & Operations Lead",
-    department: "Administration",
-    email: "abhi79111@gmail.com",
-  },
-  {
-    id: "801cf183-1181-4b3f-bbe4-c3d7d8362fe1",
-    name: "Dr. Sai Pavan K",
-    role: "Sports Physician",
-    department: "Clinical Medicine",
-    email: "pavank@gmail.com",
-  },
-  {
-    id: "3e7531f3-2087-4b31-8f05-2c55d40843d1",
-    name: "Sai Rupesh Kavuturi",
-    role: "Sports Scientist",
-    department: "Sports Science",
-    email: "saikavuturi24@gmail.com",
-  },
-  {
-    id: "091b3bef-889d-439c-9460-c47b4298201b",
-    name: "Ganesh B",
-    role: "Nutritionist",
-    department: "Clinical Nutrition",
-    email: "ganeshb@gmail.com",
-  },
-  {
-    id: "99f47c46-630a-4139-8e14-117a2d09ee5a",
-    name: "Raja Prasad M",
-    role: "Sports Scientist",
-    department: "Biomechanics & Performance",
-    email: "rajam@gmail.com",
-  },
-];
+// Format friendly display role from role and profession
+export function formatStaffRole(role: string, profession?: string | null): string {
+  if (profession && profession.trim()) return profession.trim();
+  if (role === "admin") return "Admin & Operations Lead";
+  if (role === "sports_scientist") return "Sports Scientist";
+  if (role === "nutritionist") return "Nutritionist";
+  if (role === "sports_physician") return "Sports Physician";
+  if (role === "physiotherapist") return "Physiotherapist";
+  if (role === "consultant") return "Consultant / Specialist";
+  if (role === "hr_manager") return "HR Manager";
+  if (role === "manager") return "Operations Manager";
+  if (role === "foe") return "Front Office Executive";
+  return role || "Staff Member";
+}
 
-// EXACT Formed Functional Teams
-export const REAL_TEAMS: TaskTeam[] = [
+// Format department from role and profession
+export function formatStaffDepartment(role: string, profession?: string | null): string {
+  const p = (profession || "").toLowerCase();
+  const r = (role || "").toLowerCase();
+
+  if (p.includes("physician") || p.includes("physio") || p.includes("clinical") || r === "sports_physician" || r === "physiotherapist" || r === "consultant") {
+    return "Clinical Medicine & Rehab";
+  }
+  if (p.includes("science") || p.includes("biomechanic") || r === "sports_scientist") {
+    return "Sports Science & Biomechanics";
+  }
+  if (p.includes("nutrition") || p.includes("diet") || r === "nutritionist") {
+    return "Clinical Nutrition";
+  }
+  if (r === "hr_manager") {
+    return "Human Resources";
+  }
+  return "Administration & Operations";
+}
+
+// Default empty tasks array - Orbit Planner starts completely empty
+export const REAL_INITIAL_TASKS: DailyTask[] = [];
+
+// Base initial team templates that will be populated with real staff members
+export const DEFAULT_TEAMS: TaskTeam[] = [
   {
     id: "team_clinical",
     name: "Clinical Medicine & Rehab Team",
     code: "CMT",
-    department: "Clinical Medicine",
-    description: "Responsible for medical screenings, physician consultation procedures, joint assessments, and clinical sign-offs.",
+    department: "Clinical Medicine & Rehab",
+    description: "Medical screenings, physician consultations, musculoskeletal assessments, and clinical return-to-sport protocols.",
     color: "hsl(251 74% 60%)",
-    lead_id: "801cf183-1181-4b3f-bbe4-c3d7d8362fe1",
-    lead_name: "Dr. Sai Pavan K",
-    member_ids: [
-      "801cf183-1181-4b3f-bbe4-c3d7d8362fe1",
-      "091b3bef-889d-439c-9460-c47b4298201b",
-      "3e7531f3-2087-4b31-8f05-2c55d40843d1"
-    ],
+    lead_id: "",
+    lead_name: "Clinical Lead",
+    member_ids: [],
     created_at: getTodayString(),
   },
   {
     id: "team_science",
     name: "Sports Science & Biomechanics Team",
     code: "SST",
-    department: "Sports Science",
-    description: "Athlete VO2 max testing, force-plate biomechanics evaluations, GPS load monitoring, and conditioning plans.",
+    department: "Sports Science & Biomechanics",
+    description: "Athlete testing protocols, VO2 max evaluations, force-plate biomechanics, and performance load monitoring.",
     color: "hsl(152 60% 42%)",
-    lead_id: "3e7531f3-2087-4b31-8f05-2c55d40843d1",
-    lead_name: "Sai Rupesh Kavuturi",
-    member_ids: [
-      "3e7531f3-2087-4b31-8f05-2c55d40843d1",
-      "99f47c46-630a-4139-8e14-117a2d09ee5a"
-    ],
+    lead_id: "",
+    lead_name: "Sports Science Lead",
+    member_ids: [],
     created_at: getTodayString(),
   },
   {
     id: "team_ops",
     name: "Facility Operations & Admin Team",
     code: "OAT",
-    department: "Administration",
-    description: "Facility readiness, equipment safety audits, staff shift coordination, and clinical operations management.",
+    department: "Administration & Operations",
+    description: "Facility operations, equipment inspections, safety compliance audits, and daily appointment coordination.",
     color: "hsl(210 72% 50%)",
-    lead_id: "527f7a61-225d-4717-8b25-4741d195803c",
-    lead_name: "Abhishek Vadlakonda",
-    member_ids: [
-      "527f7a61-225d-4717-8b25-4741d195803c",
-      "99f47c46-630a-4139-8e14-117a2d09ee5a"
-    ],
+    lead_id: "",
+    lead_name: "Operations Lead",
+    member_ids: [],
     created_at: getTodayString(),
   },
   {
@@ -102,198 +91,16 @@ export const REAL_TEAMS: TaskTeam[] = [
     name: "Nutrition & Dietary Science Team",
     code: "NPT",
     department: "Clinical Nutrition",
-    description: "Metabolic rate assessments, daily meal plan protocols, hydration monitoring, and body composition audits.",
+    description: "Dietary assessments, personalized meal plans, body composition analysis, and hydration protocols.",
     color: "hsl(32 95% 44%)",
-    lead_id: "091b3bef-889d-439c-9460-c47b4298201b",
-    lead_name: "Ganesh B",
-    member_ids: [
-      "091b3bef-889d-439c-9460-c47b4298201b",
-      "801cf183-1181-4b3f-bbe4-c3d7d8362fe1"
-    ],
+    lead_id: "",
+    lead_name: "Nutrition Lead",
+    member_ids: [],
     created_at: getTodayString(),
   },
 ];
 
-// Seeded Daily Tasks assigned to REAL EMPLOYEES & REAL TEAMS
-const today = getTodayString();
-
-export const REAL_INITIAL_TASKS: DailyTask[] = [
-  {
-    id: "dt_real_1",
-    title: "Morning Operations Briefing & Equipment Safety Check",
-    description: "Review daily appointment rosters, inspect force plates, and check medical equipment calibration.",
-    date: today,
-    start_time: "08:30",
-    end_time: "09:15",
-    category: "staff_briefing",
-    priority: "high",
-    status: "completed",
-    task_type: "group",
-    assigner_id: "527f7a61-225d-4717-8b25-4741d195803c",
-    assigner_name: "Abhishek Vadlakonda",
-    team_id: "team_ops",
-    team_name: "Facility Operations & Admin Team",
-    creator_id: "527f7a61-225d-4717-8b25-4741d195803c",
-    creator_name: "Abhishek Vadlakonda",
-    requires_approval: false,
-    created_at: today,
-  },
-  {
-    id: "dt_real_2",
-    title: "Clinical Musculoskeletal Screening & Medical Evaluation",
-    description: "Perform comprehensive joint mobility assessment and physician sign-off for national athletes.",
-    date: today,
-    start_time: "09:30",
-    end_time: "10:30",
-    category: "clinical_care",
-    priority: "critical",
-    status: "in_progress",
-    task_type: "individual",
-    assigner_id: "527f7a61-225d-4717-8b25-4741d195803c",
-    assigner_name: "Abhishek Vadlakonda",
-    assignee_id: "801cf183-1181-4b3f-bbe4-c3d7d8362fe1",
-    assignee_name: "Dr. Sai Pavan K",
-    team_id: "team_clinical",
-    team_name: "Clinical Medicine & Rehab Team",
-    creator_id: "527f7a61-225d-4717-8b25-4741d195803c",
-    creator_name: "Abhishek Vadlakonda",
-    requires_approval: true,
-    approver_id: "801cf183-1181-4b3f-bbe4-c3d7d8362fe1",
-    approver_name: "Dr. Sai Pavan K",
-    approval_status: "pending",
-    created_at: today,
-  },
-  {
-    id: "dt_real_3",
-    title: "VO2 Max & Athletic Biomechanics Testing Protocol",
-    description: "Conduct high-performance treadmill protocol and 3D kinematics motion capture analysis.",
-    date: today,
-    start_time: "11:00",
-    end_time: "12:00",
-    category: "rehab_evaluation",
-    priority: "high",
-    status: "scheduled",
-    task_type: "individual",
-    assigner_id: "801cf183-1181-4b3f-bbe4-c3d7d8362fe1",
-    assigner_name: "Dr. Sai Pavan K",
-    assignee_id: "3e7531f3-2087-4b31-8f05-2c55d40843d1",
-    assignee_name: "Sai Rupesh Kavuturi",
-    team_id: "team_science",
-    team_name: "Sports Science & Biomechanics Team",
-    creator_id: "801cf183-1181-4b3f-bbe4-c3d7d8362fe1",
-    creator_name: "Dr. Sai Pavan K",
-    requires_approval: true,
-    approver_id: "801cf183-1181-4b3f-bbe4-c3d7d8362fe1",
-    approver_name: "Dr. Sai Pavan K",
-    approval_status: "pending",
-    created_at: today,
-  },
-  {
-    id: "dt_real_4",
-    title: "Metabolic Rate & Customized Dietary Plan Review",
-    description: "Analyze dietary logs, calculate macronutrient targets, and prepare hydration plans.",
-    date: today,
-    start_time: "13:30",
-    end_time: "14:30",
-    category: "clinical_care",
-    priority: "medium",
-    status: "under_review",
-    task_type: "individual",
-    assigner_id: "801cf183-1181-4b3f-bbe4-c3d7d8362fe1",
-    assigner_name: "Dr. Sai Pavan K",
-    assignee_id: "091b3bef-889d-439c-9460-c47b4298201b",
-    assignee_name: "Ganesh B",
-    team_id: "team_nutrition",
-    team_name: "Nutrition & Dietary Science Team",
-    creator_id: "801cf183-1181-4b3f-bbe4-c3d7d8362fe1",
-    creator_name: "Dr. Sai Pavan K",
-    requires_approval: true,
-    approver_id: "801cf183-1181-4b3f-bbe4-c3d7d8362fe1",
-    approver_name: "Dr. Sai Pavan K",
-    approval_status: "pending",
-    created_at: today,
-  },
-  {
-    id: "dt_real_5",
-    title: "Force-Plate Jump & Asymmetry Analysis",
-    description: "Measure rate of force development (RFD) and leg asymmetry index post-rehabilitation.",
-    date: today,
-    start_time: "15:00",
-    end_time: "16:00",
-    category: "rehab_evaluation",
-    priority: "medium",
-    status: "scheduled",
-    task_type: "group",
-    assigner_id: "3e7531f3-2087-4b31-8f05-2c55d40843d1",
-    assigner_name: "Sai Rupesh Kavuturi",
-    team_id: "team_science",
-    team_name: "Sports Science & Biomechanics Team",
-    creator_id: "3e7531f3-2087-4b31-8f05-2c55d40843d1",
-    creator_name: "Sai Rupesh Kavuturi",
-    requires_approval: true,
-    approver_id: "3e7531f3-2087-4b31-8f05-2c55d40843d1",
-    approver_name: "Sai Rupesh Kavuturi",
-    approval_status: "pending",
-    created_at: today,
-  },
-  {
-    id: "dt_real_6",
-    title: "Return-to-Sport Medical Clearance Sign-Off",
-    description: "Final evaluation and clearance approval for athlete return-to-competition status.",
-    date: today,
-    start_time: "16:30",
-    end_time: "17:30",
-    category: "rehab_evaluation",
-    priority: "critical",
-    status: "approved",
-    task_type: "individual",
-    assigner_id: "527f7a61-225d-4717-8b25-4741d195803c",
-    assigner_name: "Abhishek Vadlakonda",
-    assignee_id: "801cf183-1181-4b3f-bbe4-c3d7d8362fe1",
-    assignee_name: "Dr. Sai Pavan K",
-    team_id: "team_clinical",
-    team_name: "Clinical Medicine & Rehab Team",
-    creator_id: "801cf183-1181-4b3f-bbe4-c3d7d8362fe1",
-    creator_name: "Dr. Sai Pavan K",
-    requires_approval: true,
-    approver_id: "801cf183-1181-4b3f-bbe4-c3d7d8362fe1",
-    approver_name: "Dr. Sai Pavan K",
-    approval_status: "approved",
-    approval_note: "Cleared after passing 95% strength symmetry and functional hop test protocols.",
-    reviewed_at: today,
-    created_at: today,
-  },
-  {
-    id: "dt_real_7",
-    title: "Quarterly High-Performance Facility Audit & Compliance Report",
-    description: "Inspect athlete testing labs, force plate calibration records, and submit compliance certification.",
-    date: today,
-    has_time_slot: false,
-    deadline: (() => {
-      const d = new Date();
-      d.setDate(d.getDate() + 3);
-      const year = d.getFullYear();
-      const month = String(d.getMonth() + 1).padStart(2, "0");
-      const day = String(d.getDate()).padStart(2, "0");
-      return `${year}-${month}-${day}`;
-    })(),
-    deadline_time: "18:00",
-    category: "equipment_check",
-    priority: "high",
-    status: "scheduled",
-    task_type: "group",
-    assigner_id: "527f7a61-225d-4717-8b25-4741d195803c",
-    assigner_name: "Abhishek Vadlakonda",
-    team_id: "team_ops",
-    team_name: "Facility Operations & Admin Team",
-    creator_id: "527f7a61-225d-4717-8b25-4741d195803c",
-    creator_name: "Abhishek Vadlakonda",
-    requires_approval: false,
-    created_at: today,
-  },
-];
-
-// Persistent Local Store Engine with API Syncing
+// Persistent Local Store Engine with Real-Time User Approvals API Syncing
 class PlannerStore {
   private tasks: DailyTask[] = [];
   private teams: TaskTeam[] = [];
@@ -307,58 +114,114 @@ class PlannerStore {
 
   private loadStore() {
     try {
-      const savedTasks = localStorage.getItem("orbit_planner_tasks_v2");
-      const savedTeams = localStorage.getItem("orbit_planner_teams_v2");
-      const savedMembers = localStorage.getItem("orbit_planner_members_v2");
+      // Check if v3 clean migration has been performed; if not, flush old dummy data
+      const isCleanV3 = localStorage.getItem("orbit_planner_v3_clean");
+      if (!isCleanV3) {
+        localStorage.removeItem("orbit_planner_tasks_v2");
+        localStorage.removeItem("orbit_planner_tasks_v1");
+        localStorage.setItem("orbit_planner_tasks_v3", JSON.stringify([]));
+        localStorage.setItem("orbit_planner_v3_clean", "true");
+        this.tasks = [];
+      } else {
+        const savedTasks = localStorage.getItem("orbit_planner_tasks_v3");
+        this.tasks = savedTasks ? JSON.parse(savedTasks) : [];
+      }
 
-      this.tasks = savedTasks ? JSON.parse(savedTasks) : REAL_INITIAL_TASKS;
-      this.teams = savedTeams ? JSON.parse(savedTeams) : REAL_TEAMS;
-      this.members = savedMembers ? JSON.parse(savedMembers) : REAL_EMPLOYEES;
+      const savedTeams = localStorage.getItem("orbit_planner_teams_v3");
+      const savedMembers = localStorage.getItem("orbit_planner_members_v3");
+
+      this.teams = savedTeams ? JSON.parse(savedTeams) : DEFAULT_TEAMS;
+      this.members = savedMembers ? JSON.parse(savedMembers) : [];
     } catch {
-      this.tasks = REAL_INITIAL_TASKS;
-      this.teams = REAL_TEAMS;
-      this.members = REAL_EMPLOYEES;
+      this.tasks = [];
+      this.teams = DEFAULT_TEAMS;
+      this.members = [];
     }
   }
 
-  // Asynchronously sync real employees from API if running backend
-  private async fetchRealEmployeesFromAPI() {
+  // Asynchronously sync real approved staff members from User Approvals API (/hr/users)
+  public async fetchRealEmployeesFromAPI() {
     try {
-      const apiStaff = await apiFetch<any[]>("/hr/employees?role_type=clinical");
-      if (Array.isArray(apiStaff) && apiStaff.length > 0) {
-        const fetchedMembers: TeamMember[] = apiStaff.map((p) => ({
-          id: p.id,
-          name: `${p.first_name || ""} ${p.last_name || ""}`.trim() || p.email,
-          role: p.profession || p.role || "Specialist",
-          department: p.profession ? `${p.profession} Dept` : "Clinical",
-          email: p.email,
-        }));
+      const response = await apiFetch<{ data: any[] }>("/hr/users");
+      const allUsers = response.data || [];
 
-        // Merge with existing members
-        const existingIds = new Set(this.members.map((m) => m.id));
-        let updated = false;
+      if (Array.isArray(allUsers) && allUsers.length > 0) {
+        // Filter out super_admin and deleted/ghost users
+        const validUsers = allUsers.filter(
+          (u) => u.current_role !== "super_admin" && !u.email?.startsWith("deleted_") && u.is_approved !== false
+        );
 
-        fetchedMembers.forEach((m) => {
-          if (!existingIds.has(m.id)) {
-            this.members.push(m);
-            updated = true;
-          }
+        const fetchedMembers: TeamMember[] = validUsers.map((u) => {
+          const fullName = `${u.first_name || ""} ${u.last_name || ""}`.trim() || u.email || "Staff Member";
+          const roleTitle = formatStaffRole(u.current_role, u.profession);
+          const dept = formatStaffDepartment(u.current_role, u.profession);
+
+          return {
+            id: u.id,
+            name: fullName,
+            role: roleTitle,
+            department: dept,
+            email: u.email,
+            avatar: u.avatar_url,
+          };
         });
 
-        if (updated) {
-          this.saveStore();
-        }
+        this.members = fetchedMembers;
+
+        // Populate and update functional teams with actual staff members
+        this.updateTeamsWithMembers(fetchedMembers);
+        this.saveStore();
       }
     } catch (e) {
-      // Backend offline or fallback to seeded REAL_EMPLOYEES
+      console.warn("Could not fetch user approval staff:", e);
     }
+  }
+
+  // Distribute members into functional teams based on department
+  private updateTeamsWithMembers(members: TeamMember[]) {
+    if (members.length === 0) return;
+
+    const teamClinical = this.teams.find((t) => t.id === "team_clinical") || DEFAULT_TEAMS[0];
+    const teamScience = this.teams.find((t) => t.id === "team_science") || DEFAULT_TEAMS[1];
+    const teamOps = this.teams.find((t) => t.id === "team_ops") || DEFAULT_TEAMS[2];
+    const teamNutrition = this.teams.find((t) => t.id === "team_nutrition") || DEFAULT_TEAMS[3];
+
+    const clinicalMembers = members.filter((m) => m.department === "Clinical Medicine & Rehab");
+    const scienceMembers = members.filter((m) => m.department === "Sports Science & Biomechanics");
+    const nutritionMembers = members.filter((m) => m.department === "Clinical Nutrition");
+    const opsMembers = members.filter(
+      (m) => m.department === "Administration & Operations" || m.department === "Human Resources"
+    );
+
+    if (clinicalMembers.length > 0) {
+      teamClinical.member_ids = clinicalMembers.map((m) => m.id);
+      teamClinical.lead_id = clinicalMembers[0].id;
+      teamClinical.lead_name = clinicalMembers[0].name;
+    }
+    if (scienceMembers.length > 0) {
+      teamScience.member_ids = scienceMembers.map((m) => m.id);
+      teamScience.lead_id = scienceMembers[0].id;
+      teamScience.lead_name = scienceMembers[0].name;
+    }
+    if (nutritionMembers.length > 0) {
+      teamNutrition.member_ids = nutritionMembers.map((m) => m.id);
+      teamNutrition.lead_id = nutritionMembers[0].id;
+      teamNutrition.lead_name = nutritionMembers[0].name;
+    }
+    if (opsMembers.length > 0) {
+      teamOps.member_ids = opsMembers.map((m) => m.id);
+      teamOps.lead_id = opsMembers[0].id;
+      teamOps.lead_name = opsMembers[0].name;
+    }
+
+    this.teams = [teamClinical, teamScience, teamOps, teamNutrition];
   }
 
   private saveStore() {
     try {
-      localStorage.setItem("orbit_planner_tasks_v2", JSON.stringify(this.tasks));
-      localStorage.setItem("orbit_planner_teams_v2", JSON.stringify(this.teams));
-      localStorage.setItem("orbit_planner_members_v2", JSON.stringify(this.members));
+      localStorage.setItem("orbit_planner_tasks_v3", JSON.stringify(this.tasks));
+      localStorage.setItem("orbit_planner_teams_v3", JSON.stringify(this.teams));
+      localStorage.setItem("orbit_planner_members_v3", JSON.stringify(this.members));
     } catch (e) {
       console.warn("LocalStorage save error:", e);
     }

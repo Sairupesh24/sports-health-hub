@@ -711,12 +711,22 @@ export default function MobilePlannerDashboard() {
           </div>
 
           {filteredTasks.length === 0 ? (
-            <div className="p-8 bg-white rounded-3xl border border-purple-100 text-center space-y-3 shadow-xs my-3">
-              <CalendarClock className="w-10 h-10 text-purple-300 mx-auto" />
-              <h4 className="font-bold text-slate-800 text-sm">No tasks found</h4>
-              <p className="text-xs text-slate-500">
-                Tap the floating bar below to schedule a new task.
-              </p>
+            <div className="p-8 bg-white rounded-3xl border border-purple-100 text-center space-y-4 shadow-xs my-3">
+              <div className="w-14 h-14 rounded-2xl bg-purple-50 flex items-center justify-center mx-auto border border-purple-200/60 shadow-2xs">
+                <CalendarClock className="w-7 h-7 text-purple-600" />
+              </div>
+              <div className="space-y-1">
+                <h4 className="font-extrabold text-slate-800 text-base">No tasks for this day</h4>
+                <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                  Your planner is clean and ready. Create and assign tasks directly to your team members.
+                </p>
+              </div>
+              <Button
+                onClick={() => setNewTaskOpen(true)}
+                className="h-10 px-5 rounded-2xl bg-gradient-to-r from-fuchsia-600 to-purple-600 hover:from-fuchsia-700 hover:to-purple-700 text-white font-extrabold text-xs shadow-md shadow-purple-500/20"
+              >
+                <Plus className="w-4 h-4 mr-1.5" /> Create Task
+              </Button>
             </div>
           ) : (
             <div className="space-y-3">
