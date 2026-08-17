@@ -1,232 +1,296 @@
-import PlannerLayout from "@/components/planner/PlannerLayout";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Input } from "@/components/ui/input";
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import {
+  Settings,
+  ChevronLeft,
+  CalendarClock,
+  ShieldCheck,
+  Users,
+  Bell,
+  CheckCircle2,
+  Save,
+  Clock,
+  Sparkles,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
-import {
-  Settings, Users, Sliders, Calendar, Bell, ClipboardList, UserPlus
-} from "lucide-react";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { toast } from "@/hooks/use-toast";
 
 export default function PlannerSettings() {
+  const navigate = useNavigate();
+  const [startTime, setStartTime] = useState("08:00");
+  const [endTime, setEndTime] = useState("18:00");
+  const [duration, setDuration] = useState("60");
+  const [firstDay, setFirstDay] = useState("1");
+  
+  const [requireHighPriorityApproval, setRequireHighPriorityApproval] = useState(true);
+  const [notifyApprover, setNotifyApprover] = useState(true);
+  const [requireSignoffNote, setRequireSignoffNote] = useState(false);
+  const [allowCrossDept, setAllowCrossDept] = useState(true);
+  const [enableReminders, setEnableReminders] = useState(true);
+  const [reminderLeadTime, setReminderLeadTime] = useState("15");
+
+  const handleSave = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    toast({
+      title: "Settings Saved",
+      description: "Daily Task Scheduler configuration has been updated successfully.",
+    });
+  };
+
   return (
-    <PlannerLayout>
-      <div className="p-6 max-w-screen-lg mx-auto space-y-5">
-        <div>
-          <h1 className="font-display text-2xl font-bold text-foreground tracking-tight flex items-center gap-2">
-            <Settings className="w-6 h-6" /> Settings
-          </h1>
-          <p className="text-muted-foreground text-sm mt-0.5">Manage workspace and planner preferences.</p>
+    <div className="h-screen flex flex-col bg-[#f3f4fd] text-slate-900 font-sans antialiased overflow-hidden w-full relative">
+      
+      {/* Light Clean Top Header - Mobile One UI Style */}
+      <header className="flex-shrink-0 z-40 bg-[#f3f4fd]/95 backdrop-blur-md px-3.5 sm:px-6 py-3.5 border-b border-purple-100/60 shadow-2xs">
+        <div className="max-w-2xl mx-auto w-full flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-9 w-9 text-slate-700 hover:bg-white hover:text-slate-900 rounded-full shrink-0"
+              onClick={() => navigate("/planner")}
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </Button>
+
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-xl sm:text-2xl font-black tracking-tight text-[#1e295b]">
+                  Planner Settings
+                </h1>
+                <Badge className="bg-purple-100 text-purple-800 border-purple-200 font-extrabold text-[10px] px-2">
+                  Preferences
+                </Badge>
+              </div>
+              <p className="text-[11px] font-medium text-slate-500 hidden sm:block">
+                Configure work hours, approval workflow rules & notifications
+              </p>
+            </div>
+          </div>
+
+          <Button
+            size="sm"
+            className="bg-fuchsia-600 hover:bg-fuchsia-700 text-white font-bold text-xs rounded-xl h-9 px-3 gap-1.5 shadow-xs"
+            onClick={() => handleSave()}
+          >
+            <Save className="w-4 h-4" />
+            <span>Save</span>
+          </Button>
         </div>
+      </header>
 
-        <Tabs defaultValue="workspace">
-          <TabsList className="h-9">
-            <TabsTrigger value="workspace" className="text-xs gap-1.5"><Users className="w-3 h-3" /> Workspace</TabsTrigger>
-            <TabsTrigger value="custom-fields" className="text-xs gap-1.5"><Sliders className="w-3 h-3" /> Custom Fields</TabsTrigger>
-            <TabsTrigger value="calendars" className="text-xs gap-1.5"><Calendar className="w-3 h-3" /> Calendars</TabsTrigger>
-            <TabsTrigger value="notifications" className="text-xs gap-1.5"><Bell className="w-3 h-3" /> Notifications</TabsTrigger>
-            <TabsTrigger value="audit" className="text-xs gap-1.5"><ClipboardList className="w-3 h-3" /> Audit Log</TabsTrigger>
-          </TabsList>
+      {/* Main Content Area - Scrollable */}
+      <main className="flex-1 overflow-y-auto overflow-x-hidden px-3.5 sm:px-6 pt-3 space-y-4 max-w-2xl mx-auto w-full pb-36 sm:pb-40">
+        
+        <form onSubmit={handleSave} className="space-y-4">
+          
+          {/* Card 1: Working Hours & Schedule Preferences */}
+          <div className="bg-white rounded-3xl border border-purple-100/90 shadow-xs p-4 sm:p-5 space-y-4">
+            <div className="flex items-center gap-2.5 pb-2 border-b border-purple-100/70">
+              <div className="w-8 h-8 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center">
+                <CalendarClock className="w-4 h-4" />
+              </div>
+              <div>
+                <h3 className="font-extrabold text-sm text-slate-900">Work Hours & Time Slots</h3>
+                <p className="text-[11px] text-slate-500">Default operational shifts and slot increments</p>
+              </div>
+            </div>
 
-          {/* Workspace */}
-          <TabsContent value="workspace" className="mt-4 space-y-5">
-            <div className="planner-card p-5 space-y-4">
-              <h3 className="font-display font-semibold text-foreground">Workspace Details</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold">Workspace Name</Label>
-                  <Input defaultValue="Sports Performance Clinic" className="h-9" />
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold text-slate-700">Start of Day</Label>
+                <Input
+                  type="time"
+                  value={startTime}
+                  onChange={(e) => setStartTime(e.target.value)}
+                  className="h-10 text-xs rounded-xl border-purple-100 bg-slate-50/70"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold text-slate-700">End of Day</Label>
+                <Input
+                  type="time"
+                  value={endTime}
+                  onChange={(e) => setEndTime(e.target.value)}
+                  className="h-10 text-xs rounded-xl border-purple-100 bg-slate-50/70"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold text-slate-700">Default Slot Duration</Label>
+                <Select value={duration} onValueChange={setDuration}>
+                  <SelectTrigger className="h-10 text-xs rounded-xl border-purple-100 bg-slate-50/70">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="30">30 minutes</SelectItem>
+                    <SelectItem value="45">45 minutes</SelectItem>
+                    <SelectItem value="60">60 minutes (1 Hour)</SelectItem>
+                    <SelectItem value="90">90 minutes</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold text-slate-700">First Day of Week</Label>
+                <Select value={firstDay} onValueChange={setFirstDay}>
+                  <SelectTrigger className="h-10 text-xs rounded-xl border-purple-100 bg-slate-50/70">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">Monday</SelectItem>
+                    <SelectItem value="0">Sunday</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+
+          {/* Card 2: Approvals & Governance Workflow */}
+          <div className="bg-white rounded-3xl border border-purple-100/90 shadow-xs p-4 sm:p-5 space-y-3.5">
+            <div className="flex items-center gap-2.5 pb-2 border-b border-purple-100/70">
+              <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
+                <ShieldCheck className="w-4 h-4" />
+              </div>
+              <div>
+                <h3 className="font-extrabold text-sm text-slate-900">Approvals & Governance</h3>
+                <p className="text-[11px] text-slate-500">Sign-off rules and manager verification triggers</p>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <div className="flex items-center justify-between p-3 rounded-2xl bg-slate-50 border border-slate-100">
+                <div className="pr-3">
+                  <p className="text-xs font-bold text-slate-900">Mandatory Manager Approval for High Priority</p>
+                  <p className="text-[11px] text-slate-500">Auto-toggle approval requirement for critical & high priority tasks.</p>
                 </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold">Default Currency</Label>
-                  <Select defaultValue="INR">
-                    <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
+                <Switch
+                  checked={requireHighPriorityApproval}
+                  onCheckedChange={setRequireHighPriorityApproval}
+                />
+              </div>
+
+              <div className="flex items-center justify-between p-3 rounded-2xl bg-slate-50 border border-slate-100">
+                <div className="pr-3">
+                  <p className="text-xs font-bold text-slate-900">Notify Approver on Task Submission</p>
+                  <p className="text-[11px] text-slate-500">Send high-priority alerts to the designated approver.</p>
+                </div>
+                <Switch
+                  checked={notifyApprover}
+                  onCheckedChange={setNotifyApprover}
+                />
+              </div>
+
+              <div className="flex items-center justify-between p-3 rounded-2xl bg-slate-50 border border-slate-100">
+                <div className="pr-3">
+                  <p className="text-xs font-bold text-slate-900">Require Sign-Off Note on Approval</p>
+                  <p className="text-[11px] text-slate-500">Approver must provide clinical or operational remarks before verifying.</p>
+                </div>
+                <Switch
+                  checked={requireSignoffNote}
+                  onCheckedChange={setRequireSignoffNote}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Card 3: Team Roster & Task Assignment Rules */}
+          <div className="bg-white rounded-3xl border border-purple-100/90 shadow-xs p-4 sm:p-5 space-y-3.5">
+            <div className="flex items-center gap-2.5 pb-2 border-b border-purple-100/70">
+              <div className="w-8 h-8 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center">
+                <Users className="w-4 h-4" />
+              </div>
+              <div>
+                <h3 className="font-extrabold text-sm text-slate-900">Team Delegation & Rostering</h3>
+                <p className="text-[11px] text-slate-500">Functional squads, group tasks and cross-discipline sharing</p>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <div className="flex items-center justify-between p-3 rounded-2xl bg-slate-50 border border-slate-100">
+                <div className="pr-3">
+                  <p className="text-xs font-bold text-slate-900">Allow Cross-Department Delegation</p>
+                  <p className="text-[11px] text-slate-500">Allow staff from Clinical, Science, and Rehab to assign tasks across teams.</p>
+                </div>
+                <Switch
+                  checked={allowCrossDept}
+                  onCheckedChange={setAllowCrossDept}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Card 4: Reminders & Notifications */}
+          <div className="bg-white rounded-3xl border border-purple-100/90 shadow-xs p-4 sm:p-5 space-y-3.5">
+            <div className="flex items-center gap-2.5 pb-2 border-b border-purple-100/70">
+              <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                <Bell className="w-4 h-4" />
+              </div>
+              <div>
+                <h3 className="font-extrabold text-sm text-slate-900">Task Reminders & Alerts</h3>
+                <p className="text-[11px] text-slate-500">Timing and alerts for upcoming scheduled procedures</p>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <div className="flex items-center justify-between p-3 rounded-2xl bg-slate-50 border border-slate-100">
+                <div className="pr-3">
+                  <p className="text-xs font-bold text-slate-900">Push Reminders Before Task Start</p>
+                  <p className="text-[11px] text-slate-500">Notify assigned staff before procedure begins.</p>
+                </div>
+                <Switch
+                  checked={enableReminders}
+                  onCheckedChange={setEnableReminders}
+                />
+              </div>
+
+              {enableReminders && (
+                <div className="space-y-1.5 pt-1">
+                  <Label className="text-xs font-bold text-slate-700">Reminder Lead Time</Label>
+                  <Select value={reminderLeadTime} onValueChange={setReminderLeadTime}>
+                    <SelectTrigger className="h-10 text-xs rounded-xl border-purple-100 bg-slate-50/70">
+                      <SelectValue />
+                    </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="INR">INR ₹</SelectItem>
-                      <SelectItem value="USD">USD $</SelectItem>
+                      <SelectItem value="5">5 minutes before</SelectItem>
+                      <SelectItem value="15">15 minutes before</SelectItem>
+                      <SelectItem value="30">30 minutes before</SelectItem>
+                      <SelectItem value="60">1 hour before</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold">Week Start</Label>
-                  <Select defaultValue="monday">
-                    <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="monday">Monday</SelectItem>
-                      <SelectItem value="sunday">Sunday</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <Button size="sm" style={{ background: "hsl(var(--planner-primary))" }}>Save Changes</Button>
+              )}
             </div>
+          </div>
 
-            <div className="planner-card p-5 space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="font-display font-semibold text-foreground">Members</h3>
-                <Button size="sm" variant="outline" className="gap-1.5">
-                  <UserPlus className="w-3.5 h-3.5" /> Invite
-                </Button>
-              </div>
-              {[
-                { name: "Sarah Kim", role: "Owner", initials: "SK" },
-                { name: "James Park", role: "Admin", initials: "JP" },
-                { name: "Ana Diaz", role: "Contributor", initials: "AD" },
-                { name: "Tom Roberts", role: "Contributor", initials: "TR" },
-                { name: "Priya Mehta", role: "Viewer", initials: "PM" },
-              ].map((m) => (
-                <div key={m.name} className="flex items-center justify-between gap-3 py-2 border-b border-border/20 last:border-0">
-                  <div className="flex items-center gap-2.5">
-                    <Avatar className="w-7 h-7">
-                      <AvatarFallback className="text-xs font-bold text-white" style={{ background: "hsl(var(--planner-primary))" }}>{m.initials}</AvatarFallback>
-                    </Avatar>
-                    <span className="text-sm font-medium text-foreground">{m.name}</span>
-                  </div>
-                  <Select defaultValue={m.role.toLowerCase()}>
-                    <SelectTrigger className="h-7 text-xs w-32"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="owner">Owner</SelectItem>
-                      <SelectItem value="admin">Admin</SelectItem>
-                      <SelectItem value="manager">Manager</SelectItem>
-                      <SelectItem value="contributor">Contributor</SelectItem>
-                      <SelectItem value="viewer">Viewer</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              ))}
-            </div>
-          </TabsContent>
+          <div className="pt-2">
+            <Button
+              type="submit"
+              className="w-full bg-fuchsia-600 hover:bg-fuchsia-700 text-white font-bold text-sm h-11 rounded-2xl shadow-sm gap-2"
+            >
+              <CheckCircle2 className="w-4 h-4" />
+              Save Planner Configuration
+            </Button>
+          </div>
+        </form>
 
-          {/* Custom Fields */}
-          <TabsContent value="custom-fields" className="mt-4">
-            <div className="planner-card p-5 space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="font-display font-semibold text-foreground">Custom Fields</h3>
-                <Button size="sm" style={{ background: "hsl(var(--planner-primary))" }}>+ Add Field</Button>
-              </div>
-              <p className="text-sm text-muted-foreground">Define custom fields for work items and projects.</p>
-              <div className="space-y-2">
-                {[
-                  { name: "Story Points", type: "number", scope: "Work Item" },
-                  { name: "Risk Level", type: "dropdown", scope: "Work Item" },
-                  { name: "Client Facing", type: "boolean", scope: "Project" },
-                  { name: "QA Checklist URL", type: "text", scope: "Work Item" },
-                ].map((f) => (
-                  <div key={f.name} className="flex items-center justify-between px-3 py-2.5 rounded-lg border border-border/40 bg-muted/10">
-                    <div>
-                      <span className="text-sm font-medium text-foreground">{f.name}</span>
-                      <span className="ml-2 text-xs text-muted-foreground">{f.scope}</span>
-                    </div>
-                    <span className="text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded capitalize">{f.type}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </TabsContent>
+        {/* Bottom Clearance Spacer */}
+        <div className="h-16 w-full" />
+      </main>
 
-          {/* Calendars */}
-          <TabsContent value="calendars" className="mt-4">
-            <div className="planner-card p-5 space-y-4">
-              <h3 className="font-display font-semibold text-foreground">Working Calendar</h3>
-              <div className="space-y-3">
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold">Working Days</Label>
-                  <div className="flex gap-2">
-                    {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((d, i) => (
-                      <button
-                        key={d}
-                        className={`w-10 h-10 rounded-lg text-xs font-semibold transition-colors ${i < 5 ? "text-white" : "bg-muted text-muted-foreground"}`}
-                        style={i < 5 ? { background: "hsl(var(--planner-primary))" } : {}}
-                      >
-                        {d}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-semibold">Work Start</Label>
-                    <Input type="time" defaultValue="09:00" className="h-9" />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-semibold">Work End</Label>
-                    <Input type="time" defaultValue="18:00" className="h-9" />
-                  </div>
-                </div>
-              </div>
-              <Button size="sm" style={{ background: "hsl(var(--planner-primary))" }}>Save Calendar</Button>
-            </div>
-          </TabsContent>
-
-          {/* Notifications */}
-          <TabsContent value="notifications" className="mt-4">
-            <div className="planner-card p-5 space-y-4">
-              <h3 className="font-display font-semibold text-foreground">Notification Preferences</h3>
-              {[
-                { label: "Work item assigned to me", defaultOn: true },
-                { label: "@Mention in comments", defaultOn: true },
-                { label: "Due date approaching (48h)", defaultOn: true },
-                { label: "Status changes on my items", defaultOn: true },
-                { label: "Sprint starts", defaultOn: false },
-                { label: "Sprint completes", defaultOn: true },
-                { label: "Milestone reached", defaultOn: true },
-                { label: "New project members added", defaultOn: false },
-              ].map((n) => (
-                <div key={n.label} className="flex items-center justify-between py-2 border-b border-border/20 last:border-0">
-                  <span className="text-sm text-foreground">{n.label}</span>
-                  <Switch defaultChecked={n.defaultOn} />
-                </div>
-              ))}
-            </div>
-          </TabsContent>
-
-          {/* Audit Log */}
-          <TabsContent value="audit" className="mt-4">
-            <div className="planner-card overflow-hidden">
-              <div className="px-5 py-3 border-b border-border/40 flex items-center justify-between">
-                <h3 className="font-display font-semibold text-foreground">Audit Log</h3>
-                <Button variant="outline" size="sm">Export CSV</Button>
-              </div>
-              <table className="w-full text-sm">
-                <thead className="bg-muted/20">
-                  <tr className="border-b border-border/40">
-                    <th className="text-left px-5 py-2.5 text-xs font-semibold text-muted-foreground">User</th>
-                    <th className="text-left px-5 py-2.5 text-xs font-semibold text-muted-foreground">Action</th>
-                    <th className="text-left px-5 py-2.5 text-xs font-semibold text-muted-foreground">Entity</th>
-                    <th className="text-left px-5 py-2.5 text-xs font-semibold text-muted-foreground">Time</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {[
-                    { user: "Sarah Kim",  action: "create", entity: "Work Item: Design System Tokens", time: "Aug 12, 14:30" },
-                    { user: "James Park", action: "update", entity: "Project: Website Replatform — status → at_risk", time: "Aug 12, 13:15" },
-                    { user: "Ana Diaz",   action: "delete", entity: "Work Item: Old wireframes", time: "Aug 12, 11:00" },
-                    { user: "Tom Roberts",action: "create", entity: "Sprint 4", time: "Aug 8, 09:00" },
-                    { user: "Sarah Kim",  action: "update", entity: "Milestone: Alpha Release — date → Aug 15", time: "Aug 5, 10:30" },
-                  ].map((a, i) => (
-                    <tr key={i} className="border-b border-border/20 hover:bg-muted/10">
-                      <td className="px-5 py-2.5 text-xs font-medium text-foreground">{a.user}</td>
-                      <td className="px-5 py-2.5 text-xs capitalize">
-                        <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${
-                          a.action === "create" ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400"
-                          : a.action === "delete" ? "bg-red-50 text-red-600 dark:bg-red-950 dark:text-red-400"
-                          : "bg-blue-50 text-blue-600 dark:bg-blue-950 dark:text-blue-400"
-                        }`}>{a.action}</span>
-                      </td>
-                      <td className="px-5 py-2.5 text-xs text-muted-foreground">{a.entity}</td>
-                      <td className="px-5 py-2.5 text-xs text-muted-foreground whitespace-nowrap">{a.time}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </TabsContent>
-        </Tabs>
-      </div>
-    </PlannerLayout>
+    </div>
   );
 }

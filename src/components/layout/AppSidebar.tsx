@@ -69,12 +69,11 @@ const clientNav: NavItem[] = [
 ];
 
 const foeNav: NavItem[] = [
-  { label: "Dashboard", icon: LayoutDashboard, href: "/admin" },
+  { label: "Dashboard", icon: LayoutDashboard, href: "/admin/foe" },
   { label: "Clients", icon: Users, href: "/admin/clients" },
   { label: "Calendar", icon: CalendarDays, href: "/admin/calendar" },
   { label: "Billing", icon: CreditCard, href: "/admin/billing" },
   { label: "Leads", icon: MessageSquare, href: "/admin/leads" },
-  { label: "User Approvals", icon: UserCheck, href: "/admin/users" },
   { label: "Attendance", icon: Clock, href: "/my-attendance" },
 ];
 
@@ -171,8 +170,11 @@ export default function AppSidebar({ role, isMobile, className, onNavigate }: Ap
   // Effective expansion state
   const isExpanded = isMobile || !collapsed || isHovered;
 
-  // Resolve role atomically based on authenticated context and profile
+  // Resolve role atomically based on explicit prop, authenticated context, and profile
   const resolvedRole = useMemo(() => {
+    if (role && role.trim()) {
+      return role;
+    }
     if (roles?.includes("super_admin")) return "super_admin";
     if (roles?.includes("admin")) return "admin";
     if (
@@ -196,18 +198,18 @@ export default function AppSidebar({ role, isMobile, className, onNavigate }: Ap
     if (roles?.includes("manager")) return "manager";
     if (roles?.includes("athlete")) return "athlete";
     if (roles?.includes("client")) return "client";
-    return role || "";
+    return "";
   }, [roles, profile, role]);
 
-  // Fetch pending user approvals count (only for admin, hr_manager, foe)
+  // Fetch pending user approvals count (only for admin, hr_manager)
   const { data: pendingApprovals = 0 } = useQuery({
     queryKey: ["pending-approvals-count", profile?.organization_id],
     queryFn: async () => {
-      if (!["admin", "hr_manager", "foe"].includes(resolvedRole)) return 0;
+      if (!["admin", "hr_manager"].includes(resolvedRole)) return 0;
       const data = await apiFetch<any>('/hr/stats');
       return data?.data?.pendingApprovals || 0;
     },
-    enabled: !!profile?.organization_id && ["admin", "hr_manager", "foe"].includes(resolvedRole),
+    enabled: !!profile?.organization_id && ["admin", "hr_manager"].includes(resolvedRole),
     refetchInterval: 30000
   });
 
@@ -242,7 +244,13 @@ export default function AppSidebar({ role, isMobile, className, onNavigate }: Ap
     let activeConsoleItems: NavItem[] | null = null;
     const path = location.pathname;
 
-    if (path.startsWith('/admin/settings') || path.startsWith('/admin/permissions')) {
+    const storedConsole = sessionStorage.getItem("active_console");
+    const isPureFoeUser = Boolean(roles?.includes("foe") && !roles?.includes("admin") && !roles?.includes("super_admin"));
+    const isFoeActive = (path === "/admin/foe" || path.startsWith("/admin/foe")) || (isPureFoeUser && path.startsWith("/admin")) || (storedConsole === "foe" && path.startsWith("/admin") && !path.startsWith("/admin/users") && !path.startsWith("/admin/settings") && !path.startsWith("/admin/permissions"));
+
+    if (isFoeActive && (path.startsWith('/admin') || path.startsWith('/my-attendance'))) {
+      activeConsoleItems = foeNav;
+    } else if (path.startsWith('/admin/settings') || path.startsWith('/admin/permissions')) {
       activeConsoleItems = settingsNav;
     } else if (path.startsWith('/hr')) {
       activeConsoleItems = hrNav;
@@ -265,23 +273,37 @@ export default function AppSidebar({ role, isMobile, className, onNavigate }: Ap
 
     if (baseItems.length === 0) return [];
 
-    // Filter and inject calendar access depending on permissions (only on admin console routes)
-    const isAdminConsoleRoute = path.startsWith('/admin') && !path.startsWith('/admin/settings') && !path.startsWith('/admin/permissions');
-    const hasCalendarAccess = isAdminConsoleRoute && (resolvedRole === "admin" || profile?.has_calendar_access === true);
-    if (hasCalendarAccess) {
+    // Filter and inject calendar access depending on permissions (Sports Scientist, Consultant, HR, Admin, etc.)
+    const hasAdminCalendarPermission = (
+      resolvedRole === "admin" ||
+      roles?.includes("admin") ||
+      roles?.includes("super_admin") ||
+      profile?.has_calendar_access === true
+    );
+
+    if (hasAdminCalendarPermission && !isFoeActive) {
       if (!baseItems.find(i => i.href === "/admin/calendar")) {
-        const dashboardIdx = baseItems.findIndex(i => i.label.includes("Dashboard") || i.label === "Overview");
+        const dashboardIdx = baseItems.findIndex(i => i.label.includes("Dashboard") || i.label === "Overview" || i.label === "Schedule");
         const insertIdx = dashboardIdx !== -1 ? dashboardIdx + 1 : 1;
         const newItems = [...baseItems];
-        newItems.splice(insertIdx, 0, { label: "Admin Calendar", icon: CalendarDays, href: "/admin/calendar" });
+        newItems.splice(insertIdx, 0, { 
+          label: (resolvedRole === "admin" || path.startsWith("/admin")) ? "Calendar" : "Admin Calendar", 
+          icon: CalendarDays, 
+          href: "/admin/calendar" 
+        });
         baseItems = newItems;
       }
-    } else {
+    } else if (!isFoeActive) {
       baseItems = baseItems.filter(item => item.href !== "/admin/calendar");
     }
 
-    // Filter and inject managerial analytics access depending on permissions (only on admin console routes)
-    const hasAnalyticsAccess = isAdminConsoleRoute && (["admin", "manager", "hr_manager"].includes(resolvedRole) || profile?.has_analytics_access === true);
+    // Filter and inject managerial analytics access depending on permissions
+    const hasAnalyticsAccess = !isFoeActive && (
+      ["admin", "manager", "hr_manager"].includes(resolvedRole) ||
+      roles?.includes("admin") ||
+      roles?.includes("super_admin") ||
+      profile?.has_analytics_access === true
+    );
     if (hasAnalyticsAccess) {
       if (!baseItems.find(i => i.href === "/admin/analytics/managerial")) {
         const dashboardIdx = baseItems.findIndex(i => i.label.includes("Dashboard") || i.label === "Overview");
@@ -305,7 +327,7 @@ export default function AppSidebar({ role, isMobile, className, onNavigate }: Ap
     }
 
     return baseItems;
-  }, [resolvedRole, role, profile?.has_calendar_access, profile?.has_analytics_access, profile?.ams_role, location.pathname]);
+  }, [resolvedRole, role, roles, profile?.has_calendar_access, profile?.has_analytics_access, profile?.ams_role, location.pathname]);
 
   const isLoadingState = loading || items.length === 0;
 

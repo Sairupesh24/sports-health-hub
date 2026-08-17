@@ -241,27 +241,31 @@ router.delete("/work-items/:id", async (req, res) => {
   }
 });
 
-// ============================================================
-// MY WORK
-// ============================================================
-
-// GET /api/planner/my-work — Assigned work items for logged in user
-router.get("/my-work", async (req, res) => {
+// GET /api/planner/daily-tasks — List daily scheduled tasks
+router.get("/daily-tasks", async (req, res) => {
   try {
-    const userId = req.user.id;
-    const result = await db.query(
-      `SELECT w.*, p.name as project_name, p.code as project_code
-       FROM planner_work_items w
-       JOIN planner_projects p ON w.project_id = p.id
-       WHERE w.assignee_id = $1 AND w.deleted_at IS NULL
-       ORDER BY w.due_date ASC NULLS LAST`,
-      [userId]
-    );
-
-    res.json({ work_items: result.rows });
+    const { date } = req.query;
+    res.json({ tasks: [] });
   } catch (err) {
-    console.error("Error fetching my work:", err);
-    res.status(500).json({ error: "Failed to fetch my work" });
+    res.status(500).json({ error: "Failed to fetch daily tasks" });
+  }
+});
+
+// GET /api/planner/teams — List formed teams
+router.get("/teams", async (req, res) => {
+  try {
+    res.json({ teams: [] });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch teams" });
+  }
+});
+
+// GET /api/planner/approvals — List pending approvals
+router.get("/approvals", async (req, res) => {
+  try {
+    res.json({ approvals: [] });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch approvals" });
   }
 });
 

@@ -127,8 +127,8 @@ router.post('/', requireAuth, async (req, res) => {
         let capacityLimit = 1;
         if (profession === 'physiotherapist' || profession === 'physiotherapy' || profession === 'sports physician' || profession === 'physician' || profession === 'sports_physician') {
             capacityLimit = 2;
-        } else if (profession === 'sports scientist' || amsRole === 'sports_scientist') {
-            capacityLimit = 3;
+        } else if (profession === 'sports scientist' || amsRole === 'sports_scientist' || (profession && profession.includes('scientist')) || (amsRole && amsRole.includes('scientist'))) {
+            capacityLimit = Infinity;
         }
 
         const activeRes = await client.query(`
@@ -144,7 +144,7 @@ router.post('/', requireAuth, async (req, res) => {
         `, [therapist_id, scheduled_start, scheduled_end]);
 
         let appointmentStatus = 'Planned';
-        if (activeRes.rows.length >= capacityLimit) {
+        if (capacityLimit !== Infinity && activeRes.rows.length >= capacityLimit) {
             appointmentStatus = 'Waitlisted';
         }
 
@@ -384,7 +384,7 @@ router.post('/:id/reschedule', requireAuth, async (req, res) => {
         if (profession.includes('physio')) {
             capacityLimit = 2;
         } else if (profession.includes('scientist') || amsRole.includes('scientist')) {
-            capacityLimit = 3;
+            capacityLimit = Infinity;
         }
 
         const activeRes = await client.query(`
@@ -399,7 +399,7 @@ router.post('/:id/reschedule', requireAuth, async (req, res) => {
         `, [providerId, new_start, new_end]);
 
         let newStatus = 'Planned';
-        if (activeRes.rows.length >= capacityLimit) {
+        if (capacityLimit !== Infinity && activeRes.rows.length >= capacityLimit) {
             newStatus = 'Waitlisted';
         }
         // 3. Update session in place on the SAME record
@@ -535,7 +535,7 @@ router.post('/:id/reschedule-future', requireAuth, async (req, res) => {
         if (profession.includes('physio')) {
             capacityLimit = 2;
         } else if (profession.includes('scientist') || amsRole.includes('scientist')) {
-            capacityLimit = 3;
+            capacityLimit = Infinity;
         }
 
         let confirmedCount = 0;
@@ -568,7 +568,7 @@ router.post('/:id/reschedule-future', requireAuth, async (req, res) => {
             `, [providerId, futNewStart, futNewEnd, fut.id]);
 
             let newStatus = 'Planned';
-            if (activeRes.rows.length >= capacityLimit) {
+            if (capacityLimit !== Infinity && activeRes.rows.length >= capacityLimit) {
                 newStatus = 'Waitlisted';
                 waitlistedCount++;
             } else {

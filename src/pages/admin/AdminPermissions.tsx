@@ -20,6 +20,7 @@ import { useNavigate } from "react-router-dom";
 import { apiFetch } from "@/utils/api";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface StaffUser {
     id: string;
@@ -36,6 +37,7 @@ interface StaffUser {
 
 export default function AdminPermissions() {
     const navigate = useNavigate();
+    const { profile: currentAuthProfile, refreshAuth } = useAuth();
     const [users, setUsers] = useState<StaffUser[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState("");
@@ -101,6 +103,10 @@ export default function AdminPermissions() {
                 prev.map(u => u.id === userId ? { ...u, has_calendar_access: targetVal } : u)
             );
 
+            if (userId === currentAuthProfile?.id) {
+                await refreshAuth();
+            }
+
             toast({
                 title: "Permission Updated",
                 description: `Admin Calendar access has been successfully ${targetVal ? 'granted' : 'revoked'}.`,
@@ -132,6 +138,10 @@ export default function AdminPermissions() {
             setUsers(prev => 
                 prev.map(u => u.id === userId ? { ...u, has_analytics_access: targetVal } : u)
             );
+
+            if (userId === currentAuthProfile?.id) {
+                await refreshAuth();
+            }
 
             toast({
                 title: "Permission Updated",

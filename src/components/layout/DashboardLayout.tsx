@@ -17,29 +17,31 @@ export default function DashboardLayout({ role, children }: DashboardLayoutProps
   const { roles, profile } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  // Compute effective role based on authenticated context and profile profession
+  // Compute effective role based on explicit prop or authenticated context
   let effectiveRole = role;
-  if (roles?.includes("super_admin")) effectiveRole = "super_admin";
-  else if (roles?.includes("admin")) effectiveRole = "admin";
-  else if (
-    roles?.includes("nutritionist") ||
-    (profile?.profession || "").toLowerCase().includes("nutrition") ||
-    (profile?.role || "").toLowerCase().includes("nutrition") ||
-    (profile?.ams_role || "").toLowerCase().includes("nutrition")
-  ) {
-    effectiveRole = "nutritionist";
-  } else if (roles?.includes("sports_scientist")) effectiveRole = "sports_scientist";
-  else if (roles?.includes("hr_manager")) effectiveRole = "hr_manager";
-  else if (
-    roles?.includes("consultant") ||
-    roles?.includes("physiotherapist") ||
-    roles?.includes("sports_physician")
-  ) {
-    effectiveRole = "consultant";
-  } else if (roles?.includes("foe")) effectiveRole = "foe";
-  else if (roles?.includes("manager")) effectiveRole = "manager";
-  else if (roles?.includes("client")) effectiveRole = "client";
-  else if (roles?.includes("athlete")) effectiveRole = "athlete";
+  if (!effectiveRole) {
+    if (roles?.includes("super_admin")) effectiveRole = "super_admin";
+    else if (roles?.includes("admin")) effectiveRole = "admin";
+    else if (
+      roles?.includes("nutritionist") ||
+      (profile?.profession || "").toLowerCase().includes("nutrition") ||
+      (profile?.role || "").toLowerCase().includes("nutrition") ||
+      (profile?.ams_role || "").toLowerCase().includes("nutrition")
+    ) {
+      effectiveRole = "nutritionist";
+    } else if (roles?.includes("sports_scientist")) effectiveRole = "sports_scientist";
+    else if (roles?.includes("hr_manager")) effectiveRole = "hr_manager";
+    else if (
+      roles?.includes("consultant") ||
+      roles?.includes("physiotherapist") ||
+      roles?.includes("sports_physician")
+    ) {
+      effectiveRole = "consultant";
+    } else if (roles?.includes("foe")) effectiveRole = "foe";
+    else if (roles?.includes("manager")) effectiveRole = "manager";
+    else if (roles?.includes("client")) effectiveRole = "client";
+    else if (roles?.includes("athlete")) effectiveRole = "athlete";
+  }
 
   return (
     <div className="flex h-screen overflow-hidden bg-background w-full">

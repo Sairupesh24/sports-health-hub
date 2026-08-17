@@ -34,9 +34,9 @@ export default function ProtectedRoute({ children, requiredRole, checkCalendarAc
   }
 
   if (checkCalendarAccess) {
-    const isAdmin = roles.includes("admin");
+    const isAdminOrFoe = roles.includes("admin") || roles.includes("super_admin") || roles.includes("foe");
     const isGranted = profile?.has_calendar_access === true;
-    if (!isAdmin && !isGranted) {
+    if (!isAdminOrFoe && !isGranted) {
       return <Navigate to={getDashboardPath(roles, profile)} replace />;
     }
   }
@@ -138,7 +138,7 @@ export default function ProtectedRoute({ children, requiredRole, checkCalendarAc
           if (role === "sports_scientist" && (allowedConsolesList.includes("sports_scientist") || allowedConsolesList.includes("ams"))) return true;
           if (role === "hr_manager" && (allowedConsolesList.includes("hr_manager") || allowedConsolesList.includes("hr"))) return true;
           if (role === "nutritionist" && allowedConsolesList.includes("nutritionist")) return true;
-          if (role === "foe" && allowedConsolesList.includes("foe")) return true;
+          if (role === "foe" && (allowedConsolesList.includes("foe") || allowedConsolesList.includes("admin"))) return true;
           return false;
         });
       }

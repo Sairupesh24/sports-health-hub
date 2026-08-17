@@ -78,15 +78,7 @@ import ReportsPage from "./pages/shared/ReportsPage";
 import AppGallery from "./pages/AppGallery";
 
 // OrbitFlow Planner
-import PlannerHome from "./pages/planner/PlannerHome";
-import MyWork from "./pages/planner/MyWork";
-import ProjectsIndex from "./pages/planner/ProjectsIndex";
-import ProjectShell from "./pages/planner/ProjectShell";
-import PortfoliosIndex from "./pages/planner/PortfoliosIndex";
-import RoadmapsIndex from "./pages/planner/RoadmapsIndex";
-import PlannerCalendar from "./pages/planner/PlannerCalendar";
-import ResourcesIndex from "./pages/planner/ResourcesIndex";
-import PlannerReports from "./pages/planner/PlannerReports";
+import TeamsPage from "./pages/planner/TeamsPage";
 import PlannerSettings from "./pages/planner/PlannerSettings";
 
 // Sports Scientist Console
@@ -125,6 +117,9 @@ import MobilePhysicianView from "./pages/mobile/consultant/MobilePhysicianView";
 import MobilePhysioView from "./pages/mobile/consultant/MobilePhysioView";
 import MobileConsultantSchedule from "./pages/mobile/consultant/MobileConsultantSchedule";
 
+// Mobile Planner Page
+import MobilePlannerDashboard from "./pages/mobile/planner/MobilePlannerDashboard";
+
 const queryClient = new QueryClient();
 
 const AdminDashboardRedirect = () => {
@@ -156,7 +151,8 @@ const App = () => (
               <Route path="/ams/coach-dashboard" element={<ProtectedRoute><CoachDashboard /></ProtectedRoute>} />
               <Route path="/pending-approval" element={<PendingApprovalPage />} />
               <Route path="/setup" element={<SetupPage />} />
-              <Route path="/admin" element={<ProtectedRoute requiredRole={["admin", "foe"]}><AdminDashboardRedirect /></ProtectedRoute>} />
+              <Route path="/admin" element={<ProtectedRoute requiredRole={["admin", "foe", "super_admin"]}><AdminDashboardRedirect /></ProtectedRoute>} />
+              <Route path="/admin/foe" element={<ProtectedRoute requiredRole={["admin", "foe", "super_admin"]}><FOEDashboard /></ProtectedRoute>} />
               <Route path="/admin/leads" element={<ProtectedRoute requiredRole={["admin", "foe"]}><LeadsDashboard /></ProtectedRoute>} />
               <Route path="/admin/clients" element={<ProtectedRoute requiredRole={["admin", "foe"]}><ClientList /></ProtectedRoute>} />
               <Route path="/admin/clients/register" element={<ProtectedRoute requiredRole={["admin", "foe"]}><ClientRegistration /></ProtectedRoute>} />
@@ -277,17 +273,15 @@ const App = () => (
               {/* App Gallery */}
               <Route path="/app-gallery" element={<ProtectedRoute><AppGallery /></ProtectedRoute>} />
 
-              {/* OrbitFlow Planner */}
-              <Route path="/planner" element={<ProtectedRoute><PlannerHome /></ProtectedRoute>} />
-              <Route path="/planner/my-work" element={<ProtectedRoute><MyWork /></ProtectedRoute>} />
-              <Route path="/planner/projects" element={<ProtectedRoute><ProjectsIndex /></ProtectedRoute>} />
-              <Route path="/planner/projects/:id" element={<ProtectedRoute><ProjectShell /></ProtectedRoute>} />
-              <Route path="/planner/portfolios" element={<ProtectedRoute><PortfoliosIndex /></ProtectedRoute>} />
-              <Route path="/planner/roadmaps" element={<ProtectedRoute><RoadmapsIndex /></ProtectedRoute>} />
-              <Route path="/planner/calendar" element={<ProtectedRoute><PlannerCalendar /></ProtectedRoute>} />
-              <Route path="/planner/resources" element={<ProtectedRoute><ResourcesIndex /></ProtectedRoute>} />
-              <Route path="/planner/reports" element={<ProtectedRoute><PlannerReports /></ProtectedRoute>} />
+              {/* OrbitFlow Planner (Unified View) */}
+              <Route path="/planner" element={<ProtectedRoute><MobilePlannerDashboard /></ProtectedRoute>} />
+              <Route path="/planner/daily-schedule" element={<ProtectedRoute><MobilePlannerDashboard /></ProtectedRoute>} />
+              <Route path="/planner/teams" element={<ProtectedRoute><TeamsPage /></ProtectedRoute>} />
+              <Route path="/planner/approvals" element={<ProtectedRoute><MobilePlannerDashboard /></ProtectedRoute>} />
+              <Route path="/planner/my-work" element={<ProtectedRoute><MobilePlannerDashboard /></ProtectedRoute>} />
+              <Route path="/planner/reports" element={<ProtectedRoute><MobilePlannerDashboard /></ProtectedRoute>} />
               <Route path="/planner/settings" element={<ProtectedRoute><PlannerSettings /></ProtectedRoute>} />
+              <Route path="/mobile/planner" element={<ProtectedRoute><MobilePlannerDashboard /></ProtectedRoute>} />
 
               {/* Universal Authenticated Routes */}
               <Route path="/profile" element={<ProtectedRoute><MyProfile /></ProtectedRoute>} />

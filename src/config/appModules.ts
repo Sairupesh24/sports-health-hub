@@ -112,7 +112,7 @@ export const APP_MODULES: AppModuleDefinition[] = [
     name: "Front Office Console",
     description: "Master calendar schedule, client registration, appointment check-ins, and front desk operations.",
     icon: CalendarDays,
-    href: "/admin/calendar",
+    href: "/admin/foe",
     color: "text-indigo-600 bg-indigo-100 border-indigo-200",
     gradient: "from-indigo-500/20 to-indigo-600/10",
     badgeStyle: "bg-indigo-100 text-indigo-800 border-indigo-200",

@@ -29,6 +29,7 @@ import {
 import { apiFetch } from "@/utils/api";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
 
 import { APP_MODULES, AppModuleDefinition, isModuleGrantedForUser } from "@/config/appModules";
 
@@ -41,13 +42,15 @@ interface UserProfile {
     profession?: string | null;
     ams_role?: string | null;
     avatar_url?: string | null;
+    is_approved: boolean;
+    allowed_consoles: string[];
     has_calendar_access: boolean;
     has_analytics_access: boolean;
     has_assign_work_access: boolean;
-    allowed_consoles?: string[] | string | null;
 }
 
 export default function ConsoleAccess() {
+    const { profile: currentAuthProfile, refreshAuth } = useAuth();
     const [users, setUsers] = useState<UserProfile[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState("");
@@ -181,6 +184,10 @@ export default function ConsoleAccess() {
 
             setUsers(prev => prev.map(u => u.id === userId ? { ...u, allowed_consoles: newAllowed } : u));
 
+            if (userId === currentAuthProfile?.id) {
+                await refreshAuth();
+            }
+
             toast({
                 title: isCurrentlyGranted ? "Console Access Revoked" : "Console Access Granted",
                 description: `Successfully ${isCurrentlyGranted ? 'revoked' : 'granted'} access to ${moduleObj.name} for ${targetUser.first_name}.`,
@@ -211,6 +218,10 @@ export default function ConsoleAccess() {
             });
 
             setUsers(prev => prev.map(u => u.id === userId ? { ...u, [featureKey]: targetVal } : u));
+
+            if (userId === currentAuthProfile?.id) {
+                await refreshAuth();
+            }
 
             const featureNames = {
                 has_calendar_access: "Admin Calendar",

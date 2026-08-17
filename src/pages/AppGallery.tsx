@@ -343,6 +343,19 @@ export default function AppGallery() {
                       });
                       return;
                     }
+                    if (mod.id === "foe") {
+                      sessionStorage.setItem("active_console", "foe");
+                    } else if (mod.id === "admin") {
+                      sessionStorage.setItem("active_console", "admin");
+                    } else if (mod.id === "hr") {
+                      sessionStorage.setItem("active_console", "hr");
+                    } else if (mod.id === "ams") {
+                      sessionStorage.setItem("active_console", "sports_scientist");
+                    } else if (mod.id === "clinical") {
+                      sessionStorage.setItem("active_console", "consultant");
+                    } else if (mod.id === "nutritionist") {
+                      sessionStorage.setItem("active_console", "nutritionist");
+                    }
                     navigate(mod.href);
                   }}
                   className={cn(
