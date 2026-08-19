@@ -1257,3 +1257,164 @@ model planner_dependencies {
   @@unique([predecessor_id, successor_id])
 }
 
+model user_organizations {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id         String   @db.Uuid
+  organization_id String   @db.Uuid
+  role            String   @default("member")
+  joined_at       DateTime @default(now()) @db.Timestamptz(6)
+  invited_by      String?  @db.Uuid
+
+  @@unique([user_id, organization_id])
+  @@index([user_id], map: "idx_user_organizations_user")
+  @@index([organization_id], map: "idx_user_organizations_org")
+}
+
+model chat_bots {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id String   @db.Uuid
+  name            String   @default("HubBot")
+  avatar_url      String?
+  description     String?
+  created_at      DateTime @default(now()) @db.Timestamptz(6)
+
+  @@unique([organization_id, name])
+  @@index([organization_id], map: "idx_chat_bots_org")
+}
+
+model chat_channels {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id String    @db.Uuid
+  name            String
+  description     String?
+  channel_type    String    @default("public")
+  created_by      String?   @db.Uuid
+  is_archived     Boolean   @default(false)
+  is_default      Boolean   @default(false)
+  last_message_at DateTime? @db.Timestamptz(6)
+  created_at      DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime  @default(now()) @db.Timestamptz(6)
+  deleted_at      DateTime? @db.Timestamptz(6)
+
+  @@unique([organization_id, name])
+  @@index([organization_id], map: "idx_chat_channels_org")
+  @@index([channel_type], map: "idx_chat_channels_type")
+}
+
+model channel_members {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  channel_id   String    @db.Uuid
+  user_id      String    @db.Uuid
+  role         String    @default("member")
+  muted        Boolean   @default(false)
+  joined_at    DateTime  @default(now()) @db.Timestamptz(6)
+  last_read_at DateTime? @db.Timestamptz(6)
+
+  @@unique([channel_id, user_id])
+  @@index([channel_id], map: "idx_channel_members_channel")
+  @@index([user_id], map: "idx_channel_members_user")
+}
+
+model direct_message_threads {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id String    @db.Uuid
+  user_a          String    @db.Uuid
+  user_b          String    @db.Uuid
+  last_message_at DateTime? @db.Timestamptz(6)
+  created_at      DateTime  @default(now()) @db.Timestamptz(6)
+
+  @@unique([organization_id, user_a, user_b])
+  @@index([user_a], map: "idx_dm_threads_user_a")
+  @@index([user_b], map: "idx_dm_threads_user_b")
+  @@index([organization_id], map: "idx_dm_threads_org")
+}
+
+model chat_messages {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id   String    @db.Uuid
+  channel_id        String?   @db.Uuid
+  dm_thread_id      String?   @db.Uuid
+  user_id           String?   @db.Uuid
+  bot_id            String?   @db.Uuid
+  parent_message_id String?   @db.Uuid
+  message_type      String    @default("user")
+  content           String?
+  content_html      String?
+  metadata          Json?
+  is_edited         Boolean   @default(false)
+  edited_at         DateTime? @db.Timestamptz(6)
+  created_at        DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at        DateTime  @default(now()) @db.Timestamptz(6)
+  deleted_at        DateTime? @db.Timestamptz(6)
+
+  @@index([channel_id, created_at(sort: Desc)], map: "idx_chat_messages_channel")
+  @@index([dm_thread_id, created_at(sort: Desc)], map: "idx_chat_messages_dm")
+  @@index([parent_message_id], map: "idx_chat_messages_thread")
+  @@index([organization_id, created_at(sort: Desc)], map: "idx_chat_messages_org")
+}
+
+model message_attachments {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  message_id  String   @db.Uuid
+  file_name   String
+  file_url    String
+  file_size   BigInt?
+  mime_type   String?
+  uploaded_by String?  @db.Uuid
+  uploaded_at DateTime @default(now()) @db.Timestamptz(6)
+
+  @@index([message_id], map: "idx_attachments_message")
+}
+
+model message_reactions {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  message_id String   @db.Uuid
+  user_id    String   @db.Uuid
+  emoji      String
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+
+  @@unique([message_id, user_id, emoji])
+  @@index([message_id], map: "idx_reactions_message")
+}
+
+model message_reads {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  message_id String   @db.Uuid
+  user_id    String   @db.Uuid
+  read_at    DateTime @default(now()) @db.Timestamptz(6)
+
+  @@unique([message_id, user_id])
+  @@index([user_id], map: "idx_reads_user")
+  @@index([message_id], map: "idx_reads_message")
+}
+
+model teamcomms_settings {
+  id                       String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id          String   @unique @db.Uuid
+  is_enabled               Boolean  @default(true)
+  notify_task_assigned     Boolean  @default(true)
+  notify_task_overdue      Boolean  @default(true)
+  notify_appointment       Boolean  @default(true)
+  notify_leave             Boolean  @default(true)
+  notify_clinical_report   Boolean  @default(true)
+  notify_meal_plan         Boolean  @default(true)
+  notify_membership_expiry Boolean  @default(true)
+  report_channel_id        String?  @db.Uuid
+  created_at               DateTime @default(now()) @db.Timestamptz(6)
+  updated_at               DateTime @default(now()) @db.Timestamptz(6)
+}
+
+model teamcomms_scheduled_reports {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id String    @db.Uuid
+  channel_id      String    @db.Uuid
+  report_type     String
+  cron_expression String
+  is_active       Boolean   @default(true)
+  last_run_at     DateTime? @db.Timestamptz(6)
+  created_by      String?   @db.Uuid
+  created_at      DateTime  @default(now()) @db.Timestamptz(6)
+
+  @@index([organization_id], map: "idx_scheduled_reports_org")
+}
+

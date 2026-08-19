@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { User, Mail, Phone, Upload, Loader2, Save, LogOut, ShieldCheck, Building2, Activity, CheckCircle2 } from "lucide-react";
+import { User, Mail, Phone, Upload, Loader2, Save, LogOut, ShieldCheck, Building2, Activity, CheckCircle2, Boxes } from "lucide-react";
 import { haptic } from "@/utils/haptic";
 import { useNavigate } from "react-router-dom";
 
@@ -347,7 +347,7 @@ export default function MobileProfilePage() {
         >
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-teal-600 text-white flex items-center justify-center shadow-md">
-              <Activity className="w-5 h-5" />
+              <Boxes className="w-5 h-5" />
             </div>
             <div>
               <h4 className="text-xs font-bold text-slate-900 dark:text-white">Return to App Gallery</h4>

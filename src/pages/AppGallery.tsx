@@ -111,6 +111,12 @@ const MODULE_HOVER_GLOWS: Record<string, { hoverBorder: string; hoverRing: strin
     hoverShadow: "hover:shadow-xl hover:shadow-sky-500/10",
     textHover: "group-hover:text-sky-600",
   },
+  teamcomms: {
+    hoverBorder: "hover:border-cyan-400",
+    hoverRing: "hover:ring-4 hover:ring-cyan-500/10",
+    hoverShadow: "hover:shadow-xl hover:shadow-cyan-500/10",
+    textHover: "group-hover:text-cyan-600",
+  },
 };
 
 export default function AppGallery() {

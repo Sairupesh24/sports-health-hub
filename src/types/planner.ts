@@ -7,6 +7,7 @@ export type DailyTaskPriority = 'critical' | 'high' | 'medium' | 'low';
 export type DailyTaskCategory = 'clinical_care' | 'rehab_evaluation' | 'staff_briefing' | 'equipment_check' | 'administrative' | 'training' | 'other';
 export type ApprovalStatus = 'pending' | 'approved' | 'rejected';
 export type TaskType = 'individual' | 'group';
+export type TaskTimeMode = 'range' | 'set_time' | 'flexible';
 
 export interface UserSummary {
   id: string;
@@ -44,9 +45,11 @@ export interface DailyTask {
   title: string;
   description?: string;
   date: string; // YYYY-MM-DD (start/scheduled date or created date)
-  start_time?: string; // HH:MM, e.g. "09:00" (optional if no specific time slot)
-  end_time?: string; // HH:MM, e.g. "10:30" (optional if no specific time slot)
+  time_mode?: TaskTimeMode; // 'range' | 'set_time' | 'flexible'
+  start_time?: string; // HH:MM, e.g. "09:00" (start time or single set time)
+  end_time?: string; // HH:MM, e.g. "10:30" (optional if set time or flexible)
   has_time_slot?: boolean; // false when task only has a deadline
+  is_set_time?: boolean; // true when task is scheduled at a single set time without end time
   deadline?: string; // YYYY-MM-DD (due date deadline)
   deadline_time?: string; // HH:MM, e.g. "17:00" (optional deadline time)
   category: DailyTaskCategory;

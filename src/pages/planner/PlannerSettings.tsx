@@ -26,25 +26,41 @@ import {
 } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
 
+import { plannerStore } from "@/services/plannerStore";
+
 export default function PlannerSettings() {
   const navigate = useNavigate();
-  const [startTime, setStartTime] = useState("08:00");
-  const [endTime, setEndTime] = useState("18:00");
-  const [duration, setDuration] = useState("60");
-  const [firstDay, setFirstDay] = useState("1");
+  const initialSettings = plannerStore.getSettings();
+
+  const [startTime, setStartTime] = useState(initialSettings.startTime || "08:00");
+  const [endTime, setEndTime] = useState(initialSettings.endTime || "18:00");
+  const [duration, setDuration] = useState(initialSettings.duration || "60");
+  const [firstDay, setFirstDay] = useState(initialSettings.firstDay || "1");
   
-  const [requireHighPriorityApproval, setRequireHighPriorityApproval] = useState(true);
-  const [notifyApprover, setNotifyApprover] = useState(true);
-  const [requireSignoffNote, setRequireSignoffNote] = useState(false);
-  const [allowCrossDept, setAllowCrossDept] = useState(true);
-  const [enableReminders, setEnableReminders] = useState(true);
-  const [reminderLeadTime, setReminderLeadTime] = useState("15");
+  const [requireHighPriorityApproval, setRequireHighPriorityApproval] = useState(initialSettings.requireHighPriorityApproval ?? true);
+  const [notifyApprover, setNotifyApprover] = useState(initialSettings.notifyApprover ?? true);
+  const [requireSignoffNote, setRequireSignoffNote] = useState(initialSettings.requireSignoffNote ?? false);
+  const [allowCrossDept, setAllowCrossDept] = useState(initialSettings.allowCrossDept ?? true);
+  const [enableReminders, setEnableReminders] = useState(initialSettings.enableReminders ?? true);
+  const [reminderLeadTime, setReminderLeadTime] = useState(initialSettings.reminderLeadTime || "15");
 
   const handleSave = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
+    plannerStore.updateSettings({
+      startTime,
+      endTime,
+      duration,
+      firstDay,
+      requireHighPriorityApproval,
+      notifyApprover,
+      requireSignoffNote,
+      allowCrossDept,
+      enableReminders,
+      reminderLeadTime,
+    });
     toast({
-      title: "Settings Saved",
-      description: "Daily Task Scheduler configuration has been updated successfully.",
+      title: "Planner Settings Saved",
+      description: "Task scheduler & reminder configuration updated successfully.",
     });
   };
 
@@ -265,7 +281,9 @@ export default function PlannerSettings() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="0">At time of task (0 minutes)</SelectItem>
                       <SelectItem value="5">5 minutes before</SelectItem>
+                      <SelectItem value="10">10 minutes before</SelectItem>
                       <SelectItem value="15">15 minutes before</SelectItem>
                       <SelectItem value="30">30 minutes before</SelectItem>
                       <SelectItem value="60">1 hour before</SelectItem>

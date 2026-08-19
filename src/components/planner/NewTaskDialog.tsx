@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   Dialog,
   DialogContent,
@@ -26,10 +26,13 @@ import {
   ShieldCheck,
   UserCheck,
   User,
+  Sparkles,
+  Layers,
+  AlarmClock,
   ArrowRight,
 } from "lucide-react";
 import { plannerStore, getTodayString } from "@/services/plannerStore";
-import { DailyTaskCategory, DailyTaskPriority, TaskType } from "@/types/planner";
+import { DailyTaskCategory, DailyTaskPriority, TaskType, TaskTimeMode, TeamMember } from "@/types/planner";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 
@@ -46,20 +49,45 @@ export default function NewTaskDialog({
   defaultDate,
   onTaskCreated,
 }: NewTaskDialogProps) {
-  const { profile } = useAuth();
+  const { profile, user } = useAuth();
   const teams = plannerStore.getTeams();
-  const members = plannerStore.getMembers();
+  const rawMembers = plannerStore.getMembers();
+
+  // Current logged in user info
+  const currentUserId = profile?.id || user?.id || "current_user";
+  const currentUserName = profile
+    ? `${profile.first_name || ""} ${profile.last_name || ""}`.trim() || profile.email || "You"
+    : user?.email || "You";
+  const currentUserRole = profile?.ams_role || profile?.profession || "Staff Member";
+  const currentUserDept = profile?.department || "Staff";
+
+  // Ensure current logged in user is in the members list
+  const members: TeamMember[] = useMemo(() => {
+    const list = [...rawMembers];
+    if (currentUserId && !list.some((m) => String(m.id) === String(currentUserId))) {
+      list.unshift({
+        id: currentUserId,
+        name: currentUserName,
+        role: currentUserRole,
+        department: currentUserDept,
+        email: profile?.email || user?.email,
+        avatar: profile?.avatar_url,
+      });
+    }
+    return list;
+  }, [rawMembers, currentUserId, currentUserName, currentUserRole, currentUserDept, profile, user]);
 
   // Basic task info
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [date, setDate] = useState(defaultDate || getTodayString());
-  
-  // Scheduling Mode: Time-Slotted vs Deadline-Only (No specific time slot)
-  const [hasTimeSlot, setHasTimeSlot] = useState<boolean>(true);
+
+  // Scheduling Mode: "range" (start & end) | "set_time" (single set time) | "flexible" (deadline only)
+  const [timeMode, setTimeMode] = useState<TaskTimeMode>("range");
   const [startTime, setStartTime] = useState("09:00");
   const [endTime, setEndTime] = useState("10:00");
-  
+  const [setTime, setSetTime] = useState("14:00");
+
   // Deadline Setting
   const [hasDeadline, setHasDeadline] = useState<boolean>(false);
   const [deadlineDate, setDeadlineDate] = useState<string>(defaultDate || getTodayString());
@@ -71,23 +99,41 @@ export default function NewTaskDialog({
   // Task Type Separation: "individual" | "group"
   const [taskType, setTaskType] = useState<TaskType>("individual");
 
-  // Assigner (Who is assigning the task)
-  const defaultAssigner = members.find((m) => m.id === profile?.id) || members[0];
-  const [assignerId, setAssignerId] = useState<string>(defaultAssigner?.id || "");
+  // Assigner (Who is assigning the task) - defaults to logged in user!
+  const [assignerId, setAssignerId] = useState<string>(currentUserId);
 
-  // Assignee Individual (Who is receiving the task if individual)
-  const [assigneeId, setAssigneeId] = useState<string>(
-    members.find((m) => m.id !== defaultAssigner?.id)?.id || members[0]?.id || ""
-  );
+  // Assignee Individual (Who is receiving the task if individual) - can be self or another staff member
+  const [assigneeId, setAssigneeId] = useState<string>(currentUserId);
 
   // Assigned Group / Team (Which group is receiving the task if group)
   const [teamId, setTeamId] = useState<string>(teams[0]?.id || "");
 
   // Approval Workflow
-  const [requiresApproval, setRequiresApproval] = useState<boolean>(true);
-  const [selectedApproverId, setSelectedApproverId] = useState<string>(
-    members.find((m) => m.role.toLowerCase().includes("doctor") || m.role.toLowerCase().includes("physician") || m.role.toLowerCase().includes("lead"))?.id || members[0]?.id || ""
-  );
+  const [requiresApproval, setRequiresApproval] = useState<boolean>(false);
+  const [selectedApproverId, setSelectedApproverId] = useState<string>("");
+
+  // Sync defaults whenever dialog opens
+  useEffect(() => {
+    if (open) {
+      if (currentUserId) {
+        setAssignerId(currentUserId);
+      }
+      if (defaultDate) {
+        setDate(defaultDate);
+        setDeadlineDate(defaultDate);
+      }
+      // Initialize approver default if needed
+      const doctorMember = members.find(
+        (m) =>
+          m.role.toLowerCase().includes("doctor") ||
+          m.role.toLowerCase().includes("physician") ||
+          m.role.toLowerCase().includes("lead")
+      );
+      setSelectedApproverId(doctorMember?.id || members[0]?.id || "");
+    }
+  }, [open, currentUserId, defaultDate, members]);
+
+  const isSelfAssigned = taskType === "individual" && String(assigneeId) === String(currentUserId);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -96,10 +142,15 @@ export default function NewTaskDialog({
       return;
     }
 
-    const assigner = members.find((m) => m.id === assignerId);
-    const assignee = taskType === "individual" ? members.find((m) => m.id === assigneeId) : undefined;
+    const assigner = members.find((m) => String(m.id) === String(assignerId)) || {
+      id: currentUserId,
+      name: currentUserName,
+    };
+    const assignee = taskType === "individual"
+      ? members.find((m) => String(m.id) === String(assigneeId)) || { id: currentUserId, name: currentUserName }
+      : undefined;
     const team = taskType === "group" ? teams.find((t) => t.id === teamId) : undefined;
-    const approver = members.find((m) => m.id === selectedApproverId);
+    const approver = members.find((m) => String(m.id) === String(selectedApproverId));
 
     if (taskType === "individual" && !assignee) {
       toast({ title: "Assignee Required", description: "Please select a staff member to assign this individual task to.", variant: "destructive" });
@@ -111,26 +162,35 @@ export default function NewTaskDialog({
       return;
     }
 
-    const effectiveDeadline = !hasTimeSlot ? (deadlineDate || date) : (hasDeadline ? deadlineDate : undefined);
-    const effectiveDeadlineTime = !hasTimeSlot ? deadlineTime : (hasDeadline ? deadlineTime : undefined);
+    const isRange = timeMode === "range";
+    const isSetTime = timeMode === "set_time";
+    const isFlexible = timeMode === "flexible";
+
+    const effectiveStartTime = isRange ? startTime : isSetTime ? setTime : undefined;
+    const effectiveEndTime = isRange ? endTime : undefined;
+    const effectiveHasTimeSlot = isRange || isSetTime;
+    const effectiveDeadline = isFlexible ? (deadlineDate || date) : (hasDeadline ? deadlineDate : undefined);
+    const effectiveDeadlineTime = isFlexible ? deadlineTime : (hasDeadline ? deadlineTime : undefined);
 
     plannerStore.addTask({
       title: title.trim(),
       description: description.trim(),
       date,
-      start_time: hasTimeSlot ? startTime : undefined,
-      end_time: hasTimeSlot ? endTime : undefined,
-      has_time_slot: hasTimeSlot,
+      time_mode: timeMode,
+      start_time: effectiveStartTime,
+      end_time: effectiveEndTime,
+      has_time_slot: effectiveHasTimeSlot,
+      is_set_time: isSetTime,
       deadline: effectiveDeadline,
       deadline_time: effectiveDeadlineTime,
       category,
       priority,
       status: requiresApproval ? "under_review" : "scheduled",
-      
+
       // Task Type Separation
       task_type: taskType,
-      assigner_id: assigner?.id,
-      assigner_name: assigner?.name,
+      assigner_id: assigner.id,
+      assigner_name: assigner.name,
 
       // Individual vs Group
       assignee_id: assignee?.id,
@@ -138,22 +198,29 @@ export default function NewTaskDialog({
       team_id: team?.id,
       team_name: team?.name,
 
-      creator_id: profile?.id || assigner?.id,
-      creator_name: profile ? `${profile.first_name || ""} ${profile.last_name || ""}`.trim() : assigner?.name,
+      creator_id: currentUserId,
+      creator_name: currentUserName,
 
-      // Approval Workflow (same for both individual and group tasks)
+      // Approval Workflow
       requires_approval: requiresApproval,
       approver_id: requiresApproval ? approver?.id : undefined,
       approver_name: requiresApproval ? approver?.name : undefined,
       approval_status: requiresApproval ? "pending" : undefined,
     });
 
-    const destination = taskType === "individual" ? `Staff Member ${assignee?.name}` : `Team ${team?.name}`;
+    const destination = taskType === "individual"
+      ? (String(assignee?.id) === String(currentUserId) ? "Self" : `Staff Member ${assignee?.name}`)
+      : `Team ${team?.name}`;
+
+    const timingDesc = isSetTime
+      ? `Scheduled at set time ${setTime} for ${date}`
+      : isRange
+      ? `Scheduled for ${startTime} - ${endTime} on ${date}`
+      : `Deadline set for ${effectiveDeadline}`;
+
     toast({
       title: `${taskType === "individual" ? "Individual" : "Group"} Task Scheduled`,
-      description: !hasTimeSlot 
-        ? `Task assigned to ${destination} with deadline ${effectiveDeadline}. Appears daily until completed.`
-        : `Task assigned by ${assigner?.name || "Assigner"} to ${destination} for ${date}.`,
+      description: `Task assigned to ${destination}. ${timingDesc}.`,
     });
 
     // Reset fields
@@ -167,318 +234,522 @@ export default function NewTaskDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       {open && (
         <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto bg-background border rounded-2xl shadow-xl p-4 sm:p-6">
-        <DialogHeader className="space-y-1">
-          <DialogTitle className="text-xl font-bold flex items-center gap-2">
-            <Clock className="w-5 h-5 text-fuchsia-600" />
-            Schedule Daily Task & Deadlines
-          </DialogTitle>
-          <DialogDescription className="text-xs text-muted-foreground">
-            Schedule a time-slotted or deadline-based task with assigner, assignee/group, and approval rules.
-          </DialogDescription>
-        </DialogHeader>
+          <DialogHeader className="space-y-1">
+            <DialogTitle className="text-xl font-bold flex items-center gap-2">
+              <Clock className="w-5 h-5 text-fuchsia-600" />
+              Schedule Daily Task & Deadlines
+            </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">
+              Schedule time-slotted, single set-time, or deadline-based tasks with assigner, self/staff assignee, and approval rules.
+            </DialogDescription>
+          </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4 py-2">
-          {/* TASK TYPE SELECTION TAB (Individual vs Group) */}
-          <div className="space-y-1.5">
-            <Label className="text-xs font-bold text-slate-900">Task Scope / Type *</Label>
-            <div className="grid grid-cols-2 gap-2 p-1 bg-slate-100 rounded-xl">
-              <button
-                type="button"
-                onClick={() => setTaskType("individual")}
-                className={`py-2 px-3 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all ${
-                  taskType === "individual"
-                    ? "bg-white text-fuchsia-700 shadow-sm border border-fuchsia-200"
-                    : "text-slate-600 hover:text-slate-900"
-                }`}
-              >
-                <User className="w-4 h-4 text-fuchsia-600" />
-                Individual Task
-              </button>
+          <form onSubmit={handleSubmit} className="space-y-4 py-2">
+            {/* TASK TYPE SELECTION TAB (Individual vs Group) */}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-bold text-slate-900">Task Scope / Type *</Label>
+              <div className="grid grid-cols-2 gap-2 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl">
+                <button
+                  type="button"
+                  onClick={() => setTaskType("individual")}
+                  className={`py-2 px-3 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all ${
+                    taskType === "individual"
+                      ? "bg-white dark:bg-slate-900 text-fuchsia-700 dark:text-fuchsia-300 shadow-sm border border-fuchsia-200 dark:border-fuchsia-800"
+                      : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                  }`}
+                >
+                  <User className="w-4 h-4 text-fuchsia-600" />
+                  Individual Task
+                </button>
 
-              <button
-                type="button"
-                onClick={() => setTaskType("group")}
-                className={`py-2 px-3 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all ${
-                  taskType === "group"
-                    ? "bg-white text-fuchsia-700 shadow-sm border border-fuchsia-200"
-                    : "text-slate-600 hover:text-slate-900"
-                }`}
-              >
-                <Users className="w-4 h-4 text-fuchsia-600" />
-                Group / Team Task
-              </button>
-            </div>
-          </div>
-
-          {/* Task Name / Title */}
-          <div className="space-y-1.5">
-            <Label className="text-xs font-semibold">Task Name / Procedure *</Label>
-            <Input
-              placeholder={
-                taskType === "individual"
-                  ? "e.g. Individual Rehabilitation Protocol & Assessment"
-                  : "e.g. Group Operations Safety Briefing & Audit"
-              }
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              className="h-9 text-sm"
-              required
-            />
-          </div>
-
-          {/* Description */}
-          <div className="space-y-1.5">
-            <Label className="text-xs font-semibold">Task Description / Instructions</Label>
-            <Textarea
-              placeholder="Key instructions, procedures, checklist, or patient notes..."
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              className="text-sm min-h-[65px] resize-none"
-            />
-          </div>
-
-          {/* SCHEDULING MODE: Time Slot vs Deadline Only */}
-          <div className="p-3 rounded-2xl bg-purple-50/70 border border-purple-100 space-y-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <Label className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
-                  <Clock className="w-3.5 h-3.5 text-fuchsia-600" />
-                  Time Slot Requirement
-                </Label>
-                <p className="text-[11px] text-slate-500">
-                  {hasTimeSlot ? "Task has specific start and end hours" : "No specific time slot (Deadline based)"}
-                </p>
+                <button
+                  type="button"
+                  onClick={() => setTaskType("group")}
+                  className={`py-2 px-3 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all ${
+                    taskType === "group"
+                      ? "bg-white dark:bg-slate-900 text-fuchsia-700 dark:text-fuchsia-300 shadow-sm border border-fuchsia-200 dark:border-fuchsia-800"
+                      : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                  }`}
+                >
+                  <Users className="w-4 h-4 text-fuchsia-600" />
+                  Group / Team Task
+                </button>
               </div>
-              <Switch
-                checked={hasTimeSlot}
-                onCheckedChange={(checked) => {
-                  setHasTimeSlot(checked);
-                  if (!checked) {
-                    setDeadlineDate(deadlineDate || date);
-                  }
-                }}
+            </div>
+
+            {/* Task Name / Title */}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold">Task Name / Procedure *</Label>
+              <Input
+                placeholder={
+                  taskType === "individual"
+                    ? "e.g. Individual Rehabilitation Protocol & Assessment"
+                    : "e.g. Group Operations Safety Briefing & Audit"
+                }
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                className="h-9 text-sm"
+                required
               />
             </div>
 
-            {hasTimeSlot ? (
-              /* SPECIFIC TIME SLOT FIELDS */
-              <div className="space-y-3 pt-1 border-t border-purple-100/70">
-                <div className="grid grid-cols-3 gap-2.5">
-                  <div className="space-y-1">
-                    <Label className="text-[11px] font-semibold text-slate-600 flex items-center gap-1">
-                      <Calendar className="w-3 h-3 text-slate-400" />
-                      Date *
-                    </Label>
-                    <Input
-                      type="date"
-                      value={date}
-                      onChange={(e) => setDate(e.target.value)}
-                      className="h-8 text-xs bg-white"
-                      required
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-[11px] font-semibold text-slate-600 flex items-center gap-1">
-                      <Clock className="w-3 h-3 text-slate-400" />
-                      Start Time
-                    </Label>
-                    <Input
-                      type="time"
-                      value={startTime}
-                      onChange={(e) => setStartTime(e.target.value)}
-                      className="h-8 text-xs bg-white"
-                      required
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-[11px] font-semibold text-slate-600 flex items-center gap-1">
-                      <Clock className="w-3 h-3 text-slate-400" />
-                      End Time
-                    </Label>
-                    <Input
-                      type="time"
-                      value={endTime}
-                      onChange={(e) => setEndTime(e.target.value)}
-                      className="h-8 text-xs bg-white"
-                      required
-                    />
-                  </div>
-                </div>
+            {/* Description */}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold">Task Description / Instructions</Label>
+              <Textarea
+                placeholder="Key instructions, procedures, checklist, or patient notes..."
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                className="text-sm min-h-[65px] resize-none"
+              />
+            </div>
 
-                {/* Optional Deadline for time-slotted tasks */}
-                <div className="flex items-center justify-between pt-1">
-                  <span className="text-[11px] font-medium text-slate-600">Attach Target Deadline Date?</span>
-                  <Switch checked={hasDeadline} onCheckedChange={setHasDeadline} />
-                </div>
+            {/* SCHEDULING MODE: Time Range vs Set Time vs Flexible/Deadline */}
+            <div className="p-3.5 rounded-2xl bg-purple-50/70 dark:bg-purple-950/20 border border-purple-100 dark:border-purple-900/40 space-y-3">
+              <div>
+                <Label className="text-xs font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1.5 mb-1.5">
+                  <Clock className="w-3.5 h-3.5 text-fuchsia-600" />
+                  Time & Schedule Configuration *
+                </Label>
 
-                {hasDeadline && (
-                  <div className="grid grid-cols-2 gap-2.5 pt-1">
+                {/* 3-Way Mode Segmented Buttons */}
+                <div className="grid grid-cols-3 gap-1.5 p-1 bg-white/80 dark:bg-slate-900 rounded-xl border border-purple-100 dark:border-slate-800">
+                  <button
+                    type="button"
+                    onClick={() => setTimeMode("range")}
+                    className={`py-1.5 px-2 rounded-lg text-[11px] font-bold flex flex-col items-center justify-center gap-0.5 transition-all text-center ${
+                      timeMode === "range"
+                        ? "bg-fuchsia-600 text-white shadow-sm"
+                        : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                    }`}
+                  >
+                    <div className="flex items-center gap-1">
+                      <Clock className="w-3 h-3" />
+                      <span>Time Range</span>
+                    </div>
+                    <span className={`text-[9px] font-normal leading-none ${timeMode === "range" ? "text-fuchsia-100" : "text-slate-400"}`}>
+                      Start & End time
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setTimeMode("set_time")}
+                    className={`py-1.5 px-2 rounded-lg text-[11px] font-bold flex flex-col items-center justify-center gap-0.5 transition-all text-center ${
+                      timeMode === "set_time"
+                        ? "bg-fuchsia-600 text-white shadow-sm"
+                        : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                    }`}
+                  >
+                    <div className="flex items-center gap-1">
+                      <AlarmClock className="w-3 h-3" />
+                      <span>Set Time</span>
+                    </div>
+                    <span className={`text-[9px] font-normal leading-none ${timeMode === "set_time" ? "text-fuchsia-100" : "text-slate-400"}`}>
+                      Single time (No end)
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setTimeMode("flexible")}
+                    className={`py-1.5 px-2 rounded-lg text-[11px] font-bold flex flex-col items-center justify-center gap-0.5 transition-all text-center ${
+                      timeMode === "flexible"
+                        ? "bg-fuchsia-600 text-white shadow-sm"
+                        : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                    }`}
+                  >
+                    <div className="flex items-center gap-1">
+                      <Layers className="w-3 h-3" />
+                      <span>Flexible</span>
+                    </div>
+                    <span className={`text-[9px] font-normal leading-none ${timeMode === "flexible" ? "text-fuchsia-100" : "text-slate-400"}`}>
+                      Deadline only
+                    </span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Mode 1: TIME RANGE (Start and End Time) */}
+              {timeMode === "range" && (
+                <div className="space-y-3 pt-1 border-t border-purple-100/70 dark:border-purple-900/40">
+                  <div className="grid grid-cols-3 gap-2.5">
                     <div className="space-y-1">
-                      <Label className="text-[11px] font-semibold text-slate-600">Deadline Due Date</Label>
+                      <Label className="text-[11px] font-semibold text-slate-600 dark:text-slate-300 flex items-center gap-1">
+                        <Calendar className="w-3 h-3 text-slate-400" />
+                        Date *
+                      </Label>
                       <Input
                         type="date"
-                        value={deadlineDate}
-                        onChange={(e) => setDeadlineDate(e.target.value)}
-                        className="h-8 text-xs bg-white"
+                        value={date}
+                        onChange={(e) => setDate(e.target.value)}
+                        className="h-8 text-xs bg-white dark:bg-slate-900"
                         required
                       />
                     </div>
                     <div className="space-y-1">
-                      <Label className="text-[11px] font-semibold text-slate-600">Deadline Due Time</Label>
+                      <Label className="text-[11px] font-semibold text-slate-600 dark:text-slate-300 flex items-center gap-1">
+                        <Clock className="w-3 h-3 text-slate-400" />
+                        Start Time *
+                      </Label>
                       <Input
                         type="time"
-                        value={deadlineTime}
-                        onChange={(e) => setDeadlineTime(e.target.value)}
-                        className="h-8 text-xs bg-white"
+                        value={startTime}
+                        onChange={(e) => setStartTime(e.target.value)}
+                        className="h-8 text-xs bg-white dark:bg-slate-900"
+                        required
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-[11px] font-semibold text-slate-600 dark:text-slate-300 flex items-center gap-1">
+                        <Clock className="w-3 h-3 text-slate-400" />
+                        End Time *
+                      </Label>
+                      <Input
+                        type="time"
+                        value={endTime}
+                        onChange={(e) => setEndTime(e.target.value)}
+                        className="h-8 text-xs bg-white dark:bg-slate-900"
+                        required
                       />
                     </div>
                   </div>
-                )}
-              </div>
-            ) : (
-              /* DEADLINE-ONLY / NO SPECIFIC TIME SLOT FIELDS */
-              <div className="space-y-2.5 pt-1 border-t border-purple-100/70">
-                <div className="p-2.5 bg-indigo-50/80 rounded-xl border border-indigo-100 text-[11px] text-indigo-900 leading-relaxed font-medium">
-                  📌 <strong>Daily Recurring Visibility:</strong> This task has no specific time slot and will automatically appear on the Daily Schedule every single day from the start date until the deadline is reached or until marked completed.
-                </div>
 
-                <div className="grid grid-cols-2 gap-2.5">
-                  <div className="space-y-1">
-                    <Label className="text-[11px] font-semibold text-slate-600 flex items-center gap-1">
-                      <Calendar className="w-3 h-3 text-slate-400" />
-                      Active From Date *
-                    </Label>
-                    <Input
-                      type="date"
-                      value={date}
-                      onChange={(e) => setDate(e.target.value)}
-                      className="h-8 text-xs bg-white"
-                      required
-                    />
+                  {/* Optional Deadline for time-slotted tasks */}
+                  <div className="flex items-center justify-between pt-1">
+                    <span className="text-[11px] font-medium text-slate-600 dark:text-slate-300">Attach Target Deadline Date?</span>
+                    <Switch checked={hasDeadline} onCheckedChange={setHasDeadline} />
+                  </div>
+
+                  {hasDeadline && (
+                    <div className="grid grid-cols-2 gap-2.5 pt-1">
+                      <div className="space-y-1">
+                        <Label className="text-[11px] font-semibold text-slate-600 dark:text-slate-300">Deadline Due Date</Label>
+                        <Input
+                          type="date"
+                          value={deadlineDate}
+                          onChange={(e) => setDeadlineDate(e.target.value)}
+                          className="h-8 text-xs bg-white dark:bg-slate-900"
+                          required
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-[11px] font-semibold text-slate-600 dark:text-slate-300">Deadline Due Time</Label>
+                        <Input
+                          type="time"
+                          value={deadlineTime}
+                          onChange={(e) => setDeadlineTime(e.target.value)}
+                          className="h-8 text-xs bg-white dark:bg-slate-900"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Mode 2: SINGLE SET TIME (No end time needed) */}
+              {timeMode === "set_time" && (
+                <div className="space-y-3 pt-1 border-t border-purple-100/70 dark:border-purple-900/40">
+                  <div className="p-2.5 bg-fuchsia-50/80 dark:bg-fuchsia-950/30 rounded-xl border border-fuchsia-100 dark:border-fuchsia-900/40 text-[11px] text-fuchsia-900 dark:text-fuchsia-200 leading-relaxed font-medium flex items-start gap-2">
+                    <AlarmClock className="w-3.5 h-3.5 text-fuchsia-600 mt-0.5 shrink-0" />
+                    <span>
+                      <strong>Single Set Time:</strong> This task is scheduled for a specific time on this date without requiring an end time.
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <div className="space-y-1">
+                      <Label className="text-[11px] font-semibold text-slate-600 dark:text-slate-300 flex items-center gap-1">
+                        <Calendar className="w-3 h-3 text-slate-400" />
+                        Scheduled Date *
+                      </Label>
+                      <Input
+                        type="date"
+                        value={date}
+                        onChange={(e) => setDate(e.target.value)}
+                        className="h-8 text-xs bg-white dark:bg-slate-900"
+                        required
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-[11px] font-bold text-fuchsia-800 dark:text-fuchsia-300 flex items-center gap-1">
+                        <AlarmClock className="w-3 h-3 text-fuchsia-600" />
+                        Scheduled Set Time *
+                      </Label>
+                      <Input
+                        type="time"
+                        value={setTime}
+                        onChange={(e) => setSetTime(e.target.value)}
+                        className="h-8 text-xs bg-white dark:bg-slate-900 font-bold text-fuchsia-950 dark:text-fuchsia-100 border-fuchsia-300 dark:border-fuchsia-800"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  {/* Optional Deadline toggle */}
+                  <div className="flex items-center justify-between pt-1">
+                    <span className="text-[11px] font-medium text-slate-600 dark:text-slate-300">Attach Target Deadline Date?</span>
+                    <Switch checked={hasDeadline} onCheckedChange={setHasDeadline} />
+                  </div>
+
+                  {hasDeadline && (
+                    <div className="grid grid-cols-2 gap-2.5 pt-1">
+                      <div className="space-y-1">
+                        <Label className="text-[11px] font-semibold text-slate-600 dark:text-slate-300">Deadline Due Date</Label>
+                        <Input
+                          type="date"
+                          value={deadlineDate}
+                          onChange={(e) => setDeadlineDate(e.target.value)}
+                          className="h-8 text-xs bg-white dark:bg-slate-900"
+                          required
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-[11px] font-semibold text-slate-600 dark:text-slate-300">Deadline Due Time</Label>
+                        <Input
+                          type="time"
+                          value={deadlineTime}
+                          onChange={(e) => setDeadlineTime(e.target.value)}
+                          className="h-8 text-xs bg-white dark:bg-slate-900"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Mode 3: FLEXIBLE / DEADLINE-ONLY */}
+              {timeMode === "flexible" && (
+                <div className="space-y-2.5 pt-1 border-t border-purple-100/70 dark:border-purple-900/40">
+                  <div className="p-2.5 bg-indigo-50/80 dark:bg-indigo-950/30 rounded-xl border border-indigo-100 dark:border-indigo-900/40 text-[11px] text-indigo-900 dark:text-indigo-200 leading-relaxed font-medium">
+                    📌 <strong>Daily Recurring Visibility:</strong> This task has no specific time slot and will automatically appear on the Daily Schedule every single day from the start date until the deadline is reached or marked completed.
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <div className="space-y-1">
+                      <Label className="text-[11px] font-semibold text-slate-600 dark:text-slate-300 flex items-center gap-1">
+                        <Calendar className="w-3 h-3 text-slate-400" />
+                        Active From Date *
+                      </Label>
+                      <Input
+                        type="date"
+                        value={date}
+                        onChange={(e) => setDate(e.target.value)}
+                        className="h-8 text-xs bg-white dark:bg-slate-900"
+                        required
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <Label className="text-[11px] font-bold text-fuchsia-700 dark:text-fuchsia-300 flex items-center gap-1">
+                        <Clock className="w-3 h-3 text-fuchsia-600" />
+                        Target Deadline Due Date *
+                      </Label>
+                      <Input
+                        type="date"
+                        value={deadlineDate}
+                        onChange={(e) => setDeadlineDate(e.target.value)}
+                        className="h-8 text-xs bg-white dark:bg-slate-900 border-fuchsia-300 dark:border-fuchsia-800 font-bold text-fuchsia-900 dark:text-fuchsia-100"
+                        required
+                      />
+                    </div>
                   </div>
 
                   <div className="space-y-1">
-                    <Label className="text-[11px] font-semibold text-slate-600 flex items-center gap-1 text-fuchsia-700 font-bold">
-                      <Clock className="w-3 h-3 text-fuchsia-600" />
-                      Target Deadline Due Date *
-                    </Label>
+                    <Label className="text-[11px] font-semibold text-slate-600 dark:text-slate-300">Deadline Due Time (Optional)</Label>
                     <Input
-                      type="date"
-                      value={deadlineDate}
-                      onChange={(e) => setDeadlineDate(e.target.value)}
-                      className="h-8 text-xs bg-white border-fuchsia-300 font-bold text-fuchsia-900"
-                      required
+                      type="time"
+                      value={deadlineTime}
+                      onChange={(e) => setDeadlineTime(e.target.value)}
+                      className="h-8 text-xs bg-white dark:bg-slate-900"
                     />
                   </div>
                 </div>
-
-                <div className="space-y-1">
-                  <Label className="text-[11px] font-semibold text-slate-600">Deadline Due Time (Optional)</Label>
-                  <Input
-                    type="time"
-                    value={deadlineTime}
-                    onChange={(e) => setDeadlineTime(e.target.value)}
-                    className="h-8 text-xs bg-white"
-                  />
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Category & Priority */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold">Category</Label>
-              <Select value={category} onValueChange={(val) => setCategory(val as DailyTaskCategory)}>
-                <SelectTrigger className="h-9 text-xs">
-                  <SelectValue placeholder="Category" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="clinical_care">Clinical Care</SelectItem>
-                  <SelectItem value="rehab_evaluation">Rehab & Evaluation</SelectItem>
-                  <SelectItem value="staff_briefing">Staff Briefing</SelectItem>
-                  <SelectItem value="equipment_check">Equipment Check</SelectItem>
-                  <SelectItem value="administrative">Administrative</SelectItem>
-                  <SelectItem value="training">Training</SelectItem>
-                  <SelectItem value="other">Other</SelectItem>
-                </SelectContent>
-              </Select>
+              )}
             </div>
 
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold">Priority</Label>
-              <Select value={priority} onValueChange={(val) => setPriority(val as DailyTaskPriority)}>
-                <SelectTrigger className="h-9 text-xs">
-                  <SelectValue placeholder="Priority" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="critical">🔴 Critical</SelectItem>
-                  <SelectItem value="high">🟠 High</SelectItem>
-                  <SelectItem value="medium">🟡 Medium</SelectItem>
-                  <SelectItem value="low">🔵 Low</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          {/* ASSIGNMENT SECTION (Separated for Individual vs Group) */}
-          <div className="rounded-xl border bg-slate-50 p-3.5 space-y-3">
-            <div className="flex items-center justify-between border-b pb-2">
-              <Label className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
-                <UserCheck className="w-4 h-4 text-fuchsia-600" />
-                {taskType === "individual" ? "Individual Task Assignment" : "Group Task Assignment"}
-              </Label>
-              <span className="text-[11px] font-semibold text-fuchsia-700 bg-fuchsia-50 px-2 py-0.5 rounded border border-fuchsia-200">
-                {taskType === "individual" ? "Assigner ➔ Staff Member" : "Assigner ➔ Functional Group"}
-              </span>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {/* Field 1: Assigned By (Who is Assigning) */}
+            {/* Category & Priority */}
+            <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-slate-700">Assigned By (Who is assigning?)</Label>
-                <Select value={assignerId} onValueChange={setAssignerId}>
-                  <SelectTrigger className="h-9 text-xs bg-white font-medium">
-                    <SelectValue placeholder="Select Assigner" />
+                <Label className="text-xs font-semibold">Category</Label>
+                <Select value={category} onValueChange={(val) => setCategory(val as DailyTaskCategory)}>
+                  <SelectTrigger className="h-9 text-xs">
+                    <SelectValue placeholder="Category" />
                   </SelectTrigger>
                   <SelectContent>
-                    {members.map((m) => (
-                      <SelectItem key={m.id} value={m.id}>
-                        {m.name} ({m.role})
-                      </SelectItem>
-                    ))}
+                    <SelectItem value="clinical_care">Clinical Care</SelectItem>
+                    <SelectItem value="rehab_evaluation">Rehab & Evaluation</SelectItem>
+                    <SelectItem value="staff_briefing">Staff Briefing</SelectItem>
+                    <SelectItem value="equipment_check">Equipment Check</SelectItem>
+                    <SelectItem value="administrative">Administrative</SelectItem>
+                    <SelectItem value="training">Training</SelectItem>
+                    <SelectItem value="other">Other</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
-              {/* Field 2: Assigned To (Individual Staff vs Group Team) */}
-              {taskType === "individual" ? (
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold">Priority</Label>
+                <Select value={priority} onValueChange={(val) => setPriority(val as DailyTaskPriority)}>
+                  <SelectTrigger className="h-9 text-xs">
+                    <SelectValue placeholder="Priority" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="critical">🔴 Critical</SelectItem>
+                    <SelectItem value="high">🟠 High</SelectItem>
+                    <SelectItem value="medium">🟡 Medium</SelectItem>
+                    <SelectItem value="low">🔵 Low</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* ASSIGNMENT SECTION */}
+            <div className="rounded-2xl border bg-slate-50/90 dark:bg-slate-900/60 p-3.5 sm:p-4 space-y-3 border-slate-200/80 dark:border-slate-800">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-fuchsia-100 dark:bg-fuchsia-950/60 text-fuchsia-600 flex items-center justify-center shrink-0">
+                    <UserCheck className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-slate-900 dark:text-slate-100 leading-tight">
+                      {taskType === "individual" ? "Task Assignment" : "Group Assignment"}
+                    </h4>
+                    <p className="text-[10px] text-muted-foreground">
+                      {taskType === "individual"
+                        ? (isSelfAssigned ? "Assigned to yourself" : "Assigned to staff member")
+                        : "Assigned to functional team"}
+                    </p>
+                  </div>
+                </div>
+
+                {taskType === "individual" && (
+                  <div className="flex items-center p-0.5 bg-slate-200/70 dark:bg-slate-800 rounded-lg border border-slate-300/50 dark:border-slate-700/60 text-[11px] font-semibold">
+                    <button
+                      type="button"
+                      onClick={() => setAssigneeId(currentUserId)}
+                      className={`px-2.5 py-1 rounded-md transition-all flex items-center gap-1 leading-none ${
+                        isSelfAssigned
+                          ? "bg-white dark:bg-slate-900 text-fuchsia-700 dark:text-fuchsia-300 shadow-xs font-bold"
+                          : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                      }`}
+                    >
+                      <Sparkles className="w-3 h-3 text-fuchsia-500" />
+                      Myself
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (isSelfAssigned) {
+                          const other = members.find((m) => String(m.id) !== String(currentUserId));
+                          if (other) setAssigneeId(other.id);
+                        }
+                      }}
+                      className={`px-2.5 py-1 rounded-md transition-all flex items-center gap-1 leading-none ${
+                        !isSelfAssigned
+                          ? "bg-white dark:bg-slate-900 text-fuchsia-700 dark:text-fuchsia-300 shadow-xs font-bold"
+                          : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                      }`}
+                    >
+                      <Users className="w-3 h-3 text-slate-500" />
+                      Other Staff
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1 border-t border-slate-200/60 dark:border-slate-800">
+                {/* Field 1: Assigned By */}
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-slate-700">Assigned To (Which Staff Member?)</Label>
-                  <Select value={assigneeId} onValueChange={setAssigneeId}>
-                    <SelectTrigger className="h-9 text-xs bg-white font-bold text-fuchsia-900 border-fuchsia-200">
-                      <SelectValue placeholder="Select Staff Member" />
+                  <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                    Assigned By
+                  </Label>
+                  <Select value={assignerId} onValueChange={setAssignerId}>
+                    <SelectTrigger className="h-9 text-xs bg-white dark:bg-slate-900 font-medium">
+                      <SelectValue placeholder="Select Assigner" />
                     </SelectTrigger>
                     <SelectContent>
                       {members.map((m) => (
                         <SelectItem key={m.id} value={m.id}>
-                          👤 {m.name} ({m.role})
+                          {m.name} {String(m.id) === String(currentUserId) ? "(You)" : `(${m.role})`}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
-              ) : (
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-slate-700">Assigned To Group (Which Team?)</Label>
-                  <Select value={teamId} onValueChange={setTeamId}>
-                    <SelectTrigger className="h-9 text-xs bg-white font-bold text-fuchsia-900 border-fuchsia-200">
-                      <SelectValue placeholder="Select Functional Group" />
+
+                {/* Field 2: Assigned To */}
+                {taskType === "individual" ? (
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                      Assigned To
+                    </Label>
+                    <Select value={assigneeId} onValueChange={setAssigneeId}>
+                      <SelectTrigger className="h-9 text-xs bg-white dark:bg-slate-900 font-bold text-fuchsia-900 dark:text-fuchsia-200 border-fuchsia-200 dark:border-fuchsia-800">
+                        <SelectValue placeholder="Select Staff Member" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={currentUserId} className="font-bold text-fuchsia-700 dark:text-fuchsia-300">
+                          ✨ Myself ({currentUserRole})
+                        </SelectItem>
+                        {members
+                          .filter((m) => String(m.id) !== String(currentUserId))
+                          .map((m) => (
+                            <SelectItem key={m.id} value={m.id}>
+                              👤 {m.name} ({m.role})
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                ) : (
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                      Assigned Team / Group
+                    </Label>
+                    <Select value={teamId} onValueChange={setTeamId}>
+                      <SelectTrigger className="h-9 text-xs bg-white dark:bg-slate-900 font-bold text-fuchsia-900 dark:text-fuchsia-200 border-fuchsia-200 dark:border-fuchsia-800">
+                        <SelectValue placeholder="Select Functional Group" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {teams.map((t) => (
+                          <SelectItem key={t.id} value={t.id}>
+                            👥 {t.name} ({t.code})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* APPROVAL WORKFLOW SECTION */}
+            <div className="rounded-xl border bg-fuchsia-50/60 dark:bg-fuchsia-950/20 p-3.5 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label className="text-xs font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
+                    <ShieldCheck className="w-4 h-4 text-fuchsia-600" />
+                    Requires Manager Approval
+                  </Label>
+                  <p className="text-[11px] text-muted-foreground">
+                    Task must be reviewed and approved by the designated manager before completion.
+                  </p>
+                </div>
+                <Switch checked={requiresApproval} onCheckedChange={setRequiresApproval} />
+              </div>
+
+              {requiresApproval && (
+                <div className="space-y-1.5 pt-1">
+                  <Label className="text-xs font-semibold text-slate-800 dark:text-slate-200">Designated Approver</Label>
+                  <Select value={selectedApproverId} onValueChange={setSelectedApproverId}>
+                    <SelectTrigger className="h-9 text-xs bg-white dark:bg-slate-900">
+                      <SelectValue placeholder="Select Approver" />
                     </SelectTrigger>
                     <SelectContent>
-                      {teams.map((t) => (
-                        <SelectItem key={t.id} value={t.id}>
-                          👥 {t.name} ({t.code})
+                      {members.map((m) => (
+                        <SelectItem key={m.id} value={m.id}>
+                          🛡️ {m.name} ({m.role}) {String(m.id) === String(currentUserId) ? "— (You)" : ""}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -486,50 +757,15 @@ export default function NewTaskDialog({
                 </div>
               )}
             </div>
-          </div>
 
-          {/* APPROVAL WORKFLOW SECTION (Same for both Individual & Group tasks) */}
-          <div className="rounded-xl border bg-fuchsia-50/60 p-3.5 space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
-                  <ShieldCheck className="w-4 h-4 text-fuchsia-600" />
-                  Requires Manager Approval
-                </Label>
-                <p className="text-[11px] text-muted-foreground">
-                  Task must be reviewed and approved by the designated manager before completion.
-                </p>
-              </div>
-              <Switch checked={requiresApproval} onCheckedChange={setRequiresApproval} />
-            </div>
-
-            {requiresApproval && (
-              <div className="space-y-1.5 pt-1">
-                <Label className="text-xs font-semibold text-slate-800">Designated Approver</Label>
-                <Select value={selectedApproverId} onValueChange={setSelectedApproverId}>
-                  <SelectTrigger className="h-9 text-xs bg-white">
-                    <SelectValue placeholder="Select Approver" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {members.map((m) => (
-                      <SelectItem key={m.id} value={m.id}>
-                        🛡️ {m.name} ({m.role})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-          </div>
-
-          <DialogFooter className="pt-2 gap-2">
-            <Button type="button" variant="outline" size="sm" onClick={() => onOpenChange(false)}>
-              Cancel
-            </Button>
-            <Button type="submit" size="sm" className="bg-fuchsia-600 hover:bg-fuchsia-700 text-white font-bold">
-              Schedule {taskType === "individual" ? "Individual" : "Group"} Task
-            </Button>
-          </DialogFooter>
+            <DialogFooter className="pt-2 gap-2">
+              <Button type="button" variant="outline" size="sm" onClick={() => onOpenChange(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" size="sm" className="bg-fuchsia-600 hover:bg-fuchsia-700 text-white font-bold">
+                Schedule {taskType === "individual" ? (isSelfAssigned ? "Personal" : "Individual") : "Group"} Task
+              </Button>
+            </DialogFooter>
           </form>
         </DialogContent>
       )}

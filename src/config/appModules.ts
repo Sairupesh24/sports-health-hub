@@ -13,6 +13,7 @@ import {
   CalendarDays,
   Stethoscope,
   TrendingUp,
+  MessageSquare,
 } from "lucide-react";
 
 export interface AppModuleDefinition {
@@ -163,6 +164,19 @@ export const APP_MODULES: AppModuleDefinition[] = [
     gradient: "from-sky-500/20 to-cyan-600/10",
     badgeStyle: "bg-sky-100 text-sky-800 border-sky-200",
     defaultRoles: ["admin", "super_admin", "client", "athlete"],
+  },
+  {
+    id: "teamcomms",
+    name: "TeamComms",
+    description: "Integrated team messenger: channels, direct messages, automated notifications from all Hub modules, and scheduled reports.",
+    icon: MessageSquare,
+    href: "/messenger",
+    color: "text-cyan-600 bg-cyan-100 border-cyan-200",
+    gradient: "from-cyan-500/20 via-sky-500/10 to-blue-600/10",
+    badgeStyle: "bg-cyan-100 text-cyan-800 border-cyan-200",
+    defaultRoles: ["admin", "super_admin", "sports_physician", "physiotherapist", "consultant",
+                   "sports_scientist", "nutritionist", "foe", "hr_manager", "client", "athlete"],
+    badge: "New",
   },
 ];
 

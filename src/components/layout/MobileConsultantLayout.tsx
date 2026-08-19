@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import ConsultantBottomNav from "../consultant/ConsultantBottomNav";
-import { Activity, Bell, X, LogOut, LayoutGrid, User } from "lucide-react";
+import { Activity, Bell, X, LogOut, Boxes, User } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -160,7 +160,7 @@ export default function MobileConsultantLayout({ children, title = "ISHPO" }: Mo
                   <p className="text-[10px] text-slate-400 truncate">{profile?.email}</p>
                 </div>
                 <DropdownMenuItem onClick={() => navigate("/app-gallery")} className="rounded-xl cursor-pointer text-xs font-semibold py-2 my-0.5">
-                  <LayoutGrid className="w-4 h-4 mr-2 text-teal-600" />
+                  <Boxes className="w-4 h-4 mr-2 text-teal-600" />
                   App Gallery
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => navigate("/mobile/profile")} className="rounded-xl cursor-pointer text-xs font-semibold py-2 my-0.5">

@@ -29,7 +29,7 @@ import {
   Info,
   Settings,
   UserPlus,
-  LayoutGrid,
+  Boxes,
   UserCircle,
   LogOut,
 } from "lucide-react";
@@ -363,7 +363,7 @@ export default function MobilePlannerDashboard() {
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => navigate("/app-gallery")} className="rounded-xl py-2 gap-2 font-medium text-slate-800">
-                  <LayoutGrid className="w-4 h-4 text-purple-600" />
+                  <Boxes className="w-4 h-4 text-purple-600" />
                   App Gallery
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => navigate("/profile")} className="rounded-xl py-2 gap-2 font-medium text-slate-800">
@@ -837,13 +837,18 @@ export default function MobilePlannerDashboard() {
 
                         {/* Time Slot & Deadline Badge & Category Badge */}
                         <div className="flex items-center gap-2 text-xs text-slate-500 font-medium mt-1 flex-wrap">
-                          {task.has_time_slot === false || (!task.start_time && task.deadline) ? (
-                            <span className="font-bold text-indigo-700 flex items-center gap-1 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-200/80">
+                          {task.time_mode === "set_time" || (task.start_time && !task.end_time) ? (
+                            <span className="font-bold text-fuchsia-800 dark:text-fuchsia-300 flex items-center gap-1 bg-fuchsia-50 dark:bg-fuchsia-950/40 px-2 py-0.5 rounded-md border border-fuchsia-200 dark:border-fuchsia-800">
+                              <Clock className="w-3.5 h-3.5 text-fuchsia-600" />
+                              At {task.start_time}
+                            </span>
+                          ) : task.has_time_slot === false || (!task.start_time && task.deadline) ? (
+                            <span className="font-bold text-indigo-700 dark:text-indigo-300 flex items-center gap-1 bg-indigo-50 dark:bg-indigo-950/40 px-2 py-0.5 rounded-md border border-indigo-200/80 dark:border-indigo-800">
                               <Layers className="w-3.5 h-3.5 text-indigo-600" />
                               Flexible (No time slot)
                             </span>
                           ) : (
-                            <span className="font-bold text-slate-700 flex items-center gap-1">
+                            <span className="font-bold text-slate-700 dark:text-slate-200 flex items-center gap-1">
                               <Clock className="w-3.5 h-3.5 text-fuchsia-600" />
                               {task.start_time} - {task.end_time}
                             </span>
@@ -986,8 +991,10 @@ export default function MobilePlannerDashboard() {
                   <CalendarIcon className="w-3.5 h-3.5 text-fuchsia-600" />
                   Schedule & Time Slot:
                 </span>
-                <strong className="text-slate-900">
-                  {detailedTask.has_time_slot === false || (!detailedTask.start_time && detailedTask.deadline)
+                <strong className="text-slate-900 dark:text-white">
+                  {detailedTask.time_mode === "set_time" || (detailedTask.start_time && !detailedTask.end_time)
+                    ? `${detailedTask.date} • At ${detailedTask.start_time} (Set Time)`
+                    : detailedTask.has_time_slot === false || (!detailedTask.start_time && detailedTask.deadline)
                     ? `Flexible (No time slot) • Active from ${detailedTask.date}`
                     : `${detailedTask.date} (${detailedTask.start_time} - ${detailedTask.end_time})`}
                 </strong>

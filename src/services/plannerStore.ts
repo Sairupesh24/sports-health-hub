@@ -49,6 +49,32 @@ export function formatStaffDepartment(role: string, profession?: string | null):
 export const REAL_INITIAL_TASKS: DailyTask[] = [];
 
 // Base initial team templates that will be populated with real staff members
+export interface PlannerSettingsData {
+  startTime: string;
+  endTime: string;
+  duration: string;
+  firstDay: string;
+  requireHighPriorityApproval: boolean;
+  notifyApprover: boolean;
+  requireSignoffNote: boolean;
+  allowCrossDept: boolean;
+  enableReminders: boolean;
+  reminderLeadTime: string; // "0" (At time of task), "5", "10", "15", "30", "60"
+}
+
+export const DEFAULT_PLANNER_SETTINGS: PlannerSettingsData = {
+  startTime: "08:00",
+  endTime: "18:00",
+  duration: "60",
+  firstDay: "1",
+  requireHighPriorityApproval: true,
+  notifyApprover: true,
+  requireSignoffNote: false,
+  allowCrossDept: true,
+  enableReminders: true,
+  reminderLeadTime: "15",
+};
+
 export const DEFAULT_TEAMS: TaskTeam[] = [
   {
     id: "team_clinical",
@@ -105,6 +131,7 @@ class PlannerStore {
   private tasks: DailyTask[] = [];
   private teams: TaskTeam[] = [];
   private members: TeamMember[] = [];
+  private settings: PlannerSettingsData = DEFAULT_PLANNER_SETTINGS;
   private listeners: (() => void)[] = [];
 
   constructor() {
@@ -129,13 +156,16 @@ class PlannerStore {
 
       const savedTeams = localStorage.getItem("orbit_planner_teams_v3");
       const savedMembers = localStorage.getItem("orbit_planner_members_v3");
+      const savedSettings = localStorage.getItem("orbit_planner_settings_v3");
 
       this.teams = savedTeams ? JSON.parse(savedTeams) : DEFAULT_TEAMS;
       this.members = savedMembers ? JSON.parse(savedMembers) : [];
+      this.settings = savedSettings ? { ...DEFAULT_PLANNER_SETTINGS, ...JSON.parse(savedSettings) } : DEFAULT_PLANNER_SETTINGS;
     } catch {
       this.tasks = [];
       this.teams = DEFAULT_TEAMS;
       this.members = [];
+      this.settings = DEFAULT_PLANNER_SETTINGS;
     }
   }
 
@@ -222,10 +252,21 @@ class PlannerStore {
       localStorage.setItem("orbit_planner_tasks_v3", JSON.stringify(this.tasks));
       localStorage.setItem("orbit_planner_teams_v3", JSON.stringify(this.teams));
       localStorage.setItem("orbit_planner_members_v3", JSON.stringify(this.members));
+      localStorage.setItem("orbit_planner_settings_v3", JSON.stringify(this.settings));
     } catch (e) {
       console.warn("LocalStorage save error:", e);
     }
     this.notify();
+  }
+
+  public getSettings(): PlannerSettingsData {
+    return { ...this.settings };
+  }
+
+  public updateSettings(updates: Partial<PlannerSettingsData>): PlannerSettingsData {
+    this.settings = { ...this.settings, ...updates };
+    this.saveStore();
+    return { ...this.settings };
   }
 
   public subscribe(listener: () => void) {

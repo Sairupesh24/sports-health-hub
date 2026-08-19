@@ -5,8 +5,9 @@
 
 const API_BASE_URL = '/api';
 
-interface FetchOptions extends RequestInit {
+interface FetchOptions extends Omit<RequestInit, 'body'> {
   data?: any;
+  body?: any;
   params?: Record<string, any>;
 }
 

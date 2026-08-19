@@ -99,7 +99,11 @@ export default function ApprovalActionModal({
               <div className="flex flex-wrap items-center gap-2 pt-1 text-[11px] text-slate-500">
                 <span className="flex items-center gap-1 font-semibold text-slate-700 bg-white px-2 py-0.5 rounded border">
                   <Clock className="w-3 h-3 text-fuchsia-600" />
-                  {task.date} ({task.start_time} - {task.end_time})
+                  {task.time_mode === "set_time" || (task.start_time && !task.end_time)
+                    ? `${task.date} (At ${task.start_time})`
+                    : !task.start_time
+                    ? `${task.date} (Flexible)`
+                    : `${task.date} (${task.start_time} - ${task.end_time})`}
                 </span>
 
                 {task.team_name && (

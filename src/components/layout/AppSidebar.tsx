@@ -1,7 +1,7 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
-  LayoutGrid,
+  Boxes,
   UserCheck,
   Users,
   Calendar,
@@ -377,7 +377,7 @@ export default function AppSidebar({ role, isMobile, className, onNavigate }: Ap
             )}
           >
             <div className="relative flex items-center justify-center shrink-0">
-              <LayoutGrid className="w-5 h-5 text-primary" />
+              <Boxes className="w-5 h-5 text-primary" />
             </div>
             <span
               className={cn(

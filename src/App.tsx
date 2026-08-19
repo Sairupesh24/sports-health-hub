@@ -77,9 +77,14 @@ import MobileProfilePage from "./pages/mobile/MobileProfilePage";
 import ReportsPage from "./pages/shared/ReportsPage";
 import AppGallery from "./pages/AppGallery";
 
+// TeamComms Messenger
+import MessengerPage from "./pages/messenger/MessengerPage";
+import TeamCommsGlobalNotifier from "./components/messenger/TeamCommsGlobalNotifier";
+
 // OrbitFlow Planner
 import TeamsPage from "./pages/planner/TeamsPage";
 import PlannerSettings from "./pages/planner/PlannerSettings";
+import TaskReminderNotifier from "./components/planner/TaskReminderNotifier";
 
 // Sports Scientist Console
 import SportsScientistDashboard from "./pages/sports-scientist/SportsScientistDashboard";
@@ -273,6 +278,9 @@ const App = () => (
               {/* App Gallery */}
               <Route path="/app-gallery" element={<ProtectedRoute><AppGallery /></ProtectedRoute>} />
 
+              {/* TeamComms Messenger */}
+              <Route path="/messenger" element={<ProtectedRoute><MessengerPage /></ProtectedRoute>} />
+
               {/* OrbitFlow Planner (Unified View) */}
               <Route path="/planner" element={<ProtectedRoute><MobilePlannerDashboard /></ProtectedRoute>} />
               <Route path="/planner/daily-schedule" element={<ProtectedRoute><MobilePlannerDashboard /></ProtectedRoute>} />
@@ -287,6 +295,8 @@ const App = () => (
               <Route path="/profile" element={<ProtectedRoute><MyProfile /></ProtectedRoute>} />
               <Route path="*" element={<NotFound />} />
             </Routes>
+            <TaskReminderNotifier />
+            <TeamCommsGlobalNotifier />
           </BrowserRouter>
         </TooltipProvider>
       </AuthProvider>

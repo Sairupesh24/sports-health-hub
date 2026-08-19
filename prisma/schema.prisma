@@ -1438,3 +1438,176 @@ model hr_leave_balances {
 
   @@unique([organization_id, employee_id], map: "unique_org_employee_leave_balance")
 }
+
+model UserOrganization {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId         String    @map("user_id") @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  role           String    @default("member")
+  joinedAt       DateTime  @default(now()) @map("joined_at") @db.Timestamptz(6)
+  invitedBy      String?   @map("invited_by") @db.Uuid
+
+  @@unique([userId, organizationId])
+  @@index([userId], map: "idx_user_organizations_user")
+  @@index([organizationId], map: "idx_user_organizations_org")
+  @@map("user_organizations")
+}
+
+model ChatBot {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  name           String    @default("HubBot")
+  avatarUrl      String?   @map("avatar_url")
+  description    String?
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@unique([organizationId, name])
+  @@index([organizationId], map: "idx_chat_bots_org")
+  @@map("chat_bots")
+}
+
+model ChatChannel {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId  String    @map("organization_id") @db.Uuid
+  name            String
+  description     String?
+  channelType     String    @default("public") @map("channel_type")
+  createdBy       String?   @map("created_by") @db.Uuid
+  isArchived      Boolean   @default(false) @map("is_archived")
+  isDefault       Boolean   @default(false) @map("is_default")
+  lastMessageAt   DateTime? @map("last_message_at") @db.Timestamptz(6)
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime  @default(now()) @map("updated_at") @db.Timestamptz(6)
+  deletedAt       DateTime? @map("deleted_at") @db.Timestamptz(6)
+
+  @@unique([organizationId, name])
+  @@index([organizationId], map: "idx_chat_channels_org")
+  @@index([channelType], map: "idx_chat_channels_type")
+  @@map("chat_channels")
+}
+
+model ChannelMember {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  channelId    String    @map("channel_id") @db.Uuid
+  userId       String    @map("user_id") @db.Uuid
+  role         String    @default("member")
+  muted        Boolean   @default(false)
+  joinedAt     DateTime  @default(now()) @map("joined_at") @db.Timestamptz(6)
+  lastReadAt   DateTime? @map("last_read_at") @db.Timestamptz(6)
+
+  @@unique([channelId, userId])
+  @@index([channelId], map: "idx_channel_members_channel")
+  @@index([userId], map: "idx_channel_members_user")
+  @@map("channel_members")
+}
+
+model DirectMessageThread {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  userA          String    @map("user_a") @db.Uuid
+  userB          String    @map("user_b") @db.Uuid
+  lastMessageAt  DateTime? @map("last_message_at") @db.Timestamptz(6)
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@unique([organizationId, userA, userB])
+  @@index([userA], map: "idx_dm_threads_user_a")
+  @@index([userB], map: "idx_dm_threads_user_b")
+  @@index([organizationId], map: "idx_dm_threads_org")
+  @@map("direct_message_threads")
+}
+
+model ChatMessage {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId    String    @map("organization_id") @db.Uuid
+  channelId         String?   @map("channel_id") @db.Uuid
+  dmThreadId        String?   @map("dm_thread_id") @db.Uuid
+  userId            String?   @map("user_id") @db.Uuid
+  botId             String?   @map("bot_id") @db.Uuid
+  parentMessageId   String?   @map("parent_message_id") @db.Uuid
+  messageType       String    @default("user") @map("message_type")
+  content           String?
+  contentHtml       String?   @map("content_html")
+  metadata          Json?
+  isEdited          Boolean   @default(false) @map("is_edited")
+  editedAt          DateTime? @map("edited_at") @db.Timestamptz(6)
+  createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime  @default(now()) @map("updated_at") @db.Timestamptz(6)
+  deletedAt         DateTime? @map("deleted_at") @db.Timestamptz(6)
+
+  @@index([channelId, createdAt(sort: Desc)], map: "idx_chat_messages_channel")
+  @@index([dmThreadId, createdAt(sort: Desc)], map: "idx_chat_messages_dm")
+  @@index([parentMessageId], map: "idx_chat_messages_thread")
+  @@index([organizationId, createdAt(sort: Desc)], map: "idx_chat_messages_org")
+  @@map("chat_messages")
+}
+
+model MessageAttachment {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  messageId  String   @map("message_id") @db.Uuid
+  fileName   String   @map("file_name")
+  fileUrl    String   @map("file_url")
+  fileSize   BigInt?  @map("file_size")
+  mimeType   String?  @map("mime_type")
+  uploadedBy String?  @map("uploaded_by") @db.Uuid
+  uploadedAt DateTime @default(now()) @map("uploaded_at") @db.Timestamptz(6)
+
+  @@index([messageId], map: "idx_attachments_message")
+  @@map("message_attachments")
+}
+
+model MessageReaction {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  messageId String   @map("message_id") @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  emoji     String
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@unique([messageId, userId, emoji])
+  @@index([messageId], map: "idx_reactions_message")
+  @@map("message_reactions")
+}
+
+model MessageRead {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  messageId String   @map("message_id") @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  readAt    DateTime @default(now()) @map("read_at") @db.Timestamptz(6)
+
+  @@unique([messageId, userId])
+  @@index([userId], map: "idx_reads_user")
+  @@index([messageId], map: "idx_reads_message")
+  @@map("message_reads")
+}
+
+model TeamcommsSettings {
+  id                     String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId         String    @unique @map("organization_id") @db.Uuid
+  isEnabled              Boolean   @default(true) @map("is_enabled")
+  notifyTaskAssigned     Boolean   @default(true) @map("notify_task_assigned")
+  notifyTaskOverdue      Boolean   @default(true) @map("notify_task_overdue")
+  notifyAppointment      Boolean   @default(true) @map("notify_appointment")
+  notifyLeave            Boolean   @default(true) @map("notify_leave")
+  notifyClinicalReport   Boolean   @default(true) @map("notify_clinical_report")
+  notifyMealPlan         Boolean   @default(true) @map("notify_meal_plan")
+  notifyMembershipExpiry Boolean   @default(true) @map("notify_membership_expiry")
+  reportChannelId        String?   @map("report_channel_id") @db.Uuid
+  createdAt              DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt              DateTime  @default(now()) @map("updated_at") @db.Timestamptz(6)
+
+  @@map("teamcomms_settings")
+}
+
+model TeamcommsScheduledReport {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  channelId      String    @map("channel_id") @db.Uuid
+  reportType     String    @map("report_type")
+  cronExpression String    @map("cron_expression")
+  isActive       Boolean   @default(true) @map("is_active")
+  lastRunAt      DateTime? @map("last_run_at") @db.Timestamptz(6)
+  createdBy      String?   @map("created_by") @db.Uuid
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([organizationId], map: "idx_scheduled_reports_org")
+  @@map("teamcomms_scheduled_reports")
+}

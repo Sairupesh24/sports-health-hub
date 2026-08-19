@@ -20,12 +20,16 @@ import {
     User, 
     Clock,
     X,
-    CheckCircle2
+    CheckCircle2,
+    Sparkles,
+    ExternalLink
 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
+import { plannerStore, getTodayString } from "@/services/plannerStore";
+import { DailyTask } from "@/types/planner";
 
 interface AnnouncementsManagerProps {
     open: boolean;
@@ -43,6 +47,22 @@ export function AnnouncementsManager({ open, onOpenChange }: AnnouncementsManage
     const [content, setContent] = useState("");
     const [priority, setPriority] = useState("normal");
     const [target, setTarget] = useState("all");
+
+    // Load active today's tasks from OrbitFlow Planner Store
+    const [todayTasks, setTodayTasks] = useState<DailyTask[]>(() => plannerStore.getTasks(getTodayString()));
+
+    useEffect(() => {
+        const refreshTasks = () => setTodayTasks(plannerStore.getTasks(getTodayString()));
+        refreshTasks();
+        const unsubscribe = plannerStore.subscribe(refreshTasks);
+        return unsubscribe;
+    }, [open]);
+
+    const activeTaskReminders = React.useMemo(() => {
+        return todayTasks.filter(
+            (t) => t.status !== "completed" && t.status !== "approved" && (t.start_time || t.deadline_time || t.time_mode === "set_time")
+        );
+    }, [todayTasks]);
 
     const { data: notifications = [], isLoading: listLoading } = useQuery({
         queryKey: ["staff-notifications-history", profile?.organization_id],
@@ -210,12 +230,110 @@ export function AnnouncementsManager({ open, onOpenChange }: AnnouncementsManage
                 <div className="flex-1 overflow-y-auto bg-slate-50 p-6 custom-scrollbar">
                     {mode === 'list' ? (
                         <div className="space-y-4">
+                            {/* ACTIVE TASK REMINDERS REGION */}
+                            {activeTaskReminders.length > 0 && (
+                                <div className="space-y-3 pb-2 border-b border-slate-200/80">
+                                    <div className="flex items-center justify-between px-1">
+                                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 flex items-center gap-1.5">
+                                            <Sparkles className="w-3.5 h-3.5 text-fuchsia-600" />
+                                            Active Task Reminders ({activeTaskReminders.length})
+                                        </span>
+                                        <button
+                                            type="button"
+                                            onClick={() => window.open("/planner", "_blank")}
+                                            className="text-[10px] font-black text-fuchsia-600 hover:text-fuchsia-700 flex items-center gap-1 uppercase tracking-wider hover:underline"
+                                        >
+                                            <span>Open Planner</span>
+                                            <ExternalLink className="w-3 h-3" />
+                                        </button>
+                                    </div>
+
+                                    {activeTaskReminders.map((task) => {
+                                        const prio = task.priority || "medium";
+                                        const isCritical = prio === "critical";
+                                        const isHigh = prio === "high";
+                                        const isLow = prio === "low";
+
+                                        return (
+                                            <div
+                                                key={`reminder_${task.id}`}
+                                                onClick={() => window.open("/planner", "_blank")}
+                                                className={cn(
+                                                    "p-5 rounded-[28px] border transition-all cursor-pointer relative overflow-hidden shadow-sm hover:shadow-md",
+                                                    isCritical
+                                                        ? "border-rose-500/60 bg-rose-50/70 dark:bg-rose-950/25 ring-1 ring-rose-500/30"
+                                                        : isHigh
+                                                        ? "border-amber-500/60 bg-amber-50/70 dark:bg-amber-950/25 ring-1 ring-amber-500/30"
+                                                        : isLow
+                                                        ? "border-blue-500/60 bg-blue-50/70 dark:bg-blue-950/25"
+                                                        : "border-yellow-500/60 bg-yellow-50/70 dark:bg-yellow-950/25"
+                                                )}
+                                            >
+                                                <div className="flex justify-between items-start mb-2.5">
+                                                    <div className="flex items-center gap-2 flex-wrap">
+                                                        <Badge
+                                                            className={cn(
+                                                                "border-none text-[8px] font-black uppercase tracking-widest px-2.5 py-0.5",
+                                                                isCritical
+                                                                    ? "bg-rose-500 text-white animate-pulse"
+                                                                    : isHigh
+                                                                    ? "bg-amber-500 text-white"
+                                                                    : isLow
+                                                                    ? "bg-blue-500 text-white"
+                                                                    : "bg-yellow-500 text-slate-900"
+                                                            )}
+                                                        >
+                                                            {isCritical ? "🔴 Critical Priority" : isHigh ? "🟠 High Priority" : isLow ? "🔵 Low Priority" : "🟡 Medium Priority"}
+                                                        </Badge>
+
+                                                        <span className="text-[10px] font-bold text-fuchsia-700 bg-fuchsia-100/70 px-2 py-0.5 rounded-full flex items-center gap-1">
+                                                            <Clock className="w-3 h-3" />
+                                                            {task.time_mode === "set_time" || (task.start_time && !task.end_time)
+                                                                ? `Today at ${task.start_time}`
+                                                                : task.start_time && task.end_time
+                                                                ? `${task.start_time} - ${task.end_time}`
+                                                                : `Deadline: ${task.deadline || task.date}`}
+                                                        </span>
+                                                    </div>
+
+                                                    <Badge variant="outline" className="border-fuchsia-200 text-fuchsia-700 bg-fuchsia-50 text-[8px] font-black uppercase">
+                                                        Task Reminder
+                                                    </Badge>
+                                                </div>
+
+                                                <h4 className="text-base font-black text-slate-900 dark:text-slate-100 leading-tight mb-1.5 tracking-tight uppercase italic">
+                                                    {task.title}
+                                                </h4>
+
+                                                {task.description && (
+                                                    <p className="text-xs font-medium text-slate-600 dark:text-slate-400 leading-relaxed mb-3 line-clamp-2">
+                                                        "{task.description}"
+                                                    </p>
+                                                )}
+
+                                                <div className="flex items-center justify-between pt-3 border-t border-slate-200/60 dark:border-slate-800 text-[11px]">
+                                                    <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300 font-medium">
+                                                        <span>Assigned To: <strong className="text-slate-900 dark:text-white font-bold">{task.assignee_name || "Myself"}</strong></span>
+                                                        {task.assigner_name && <span>• By: <strong>{task.assigner_name}</strong></span>}
+                                                    </div>
+
+                                                    <div className="flex items-center gap-1 text-fuchsia-700 dark:text-fuchsia-400 font-black text-xs">
+                                                        <span>Open in Planner</span>
+                                                        <ExternalLink className="w-3.5 h-3.5" />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
+
                             {listLoading ? (
                                 <div className="flex flex-col items-center justify-center py-20 gap-4">
                                     <Loader2 className="w-10 h-10 animate-spin text-primary/30" />
                                     <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Hydrating Inbox...</p>
                                 </div>
-                            ) : notifications.length === 0 ? (
+                            ) : notifications.length === 0 && activeTaskReminders.length === 0 ? (
                                 <div className="flex flex-col items-center justify-center py-20 text-center space-y-4">
                                     <div className="w-20 h-20 rounded-full bg-slate-100 flex items-center justify-center mb-2">
                                         <History className="w-8 h-8 text-slate-300" />
@@ -312,7 +430,7 @@ export function AnnouncementsManager({ open, onOpenChange }: AnnouncementsManage
                                                         <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-1">{n.sender?.profession || 'Specialist'}</p>
                                                     </div>
                                                 </div>
-                                                <Badge variant="ghost" className="text-[8px] font-black text-slate-300 uppercase tracking-tighter">ID: {n.id.substring(0, 8)}</Badge>
+                                                <Badge variant="secondary" className="text-[8px] font-black text-slate-400 bg-slate-100 uppercase tracking-tighter">ID: {n.id.substring(0, 8)}</Badge>
                                             </div>
                                         </div>
                                     );
