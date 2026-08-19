@@ -35,8 +35,30 @@ router.use(requireAuth);
 // HELPER UTILITIES
 // ================================================================
 
-/** Get the user's primary org (or org from JWT) */
-const userOrgId = (req) => req.user.organization_id;
+/** Resolve organization ID reliably from query, body, headers, JWT, profiles, user_organizations, or fallback */
+async function resolveOrgId(req) {
+  if (req.query?.org_id) return req.query.org_id;
+  if (req.body?.org_id) return req.body.org_id;
+  if (req.headers?.['x-organization-id']) return req.headers['x-organization-id'];
+  if (req.user?.organization_id) return req.user.organization_id;
+
+  const userId = req.user?.id;
+  if (!userId) return null;
+
+  try {
+    const profRes = await db.query(`SELECT organization_id FROM profiles WHERE id = $1`, [userId]);
+    if (profRes.rows[0]?.organization_id) return profRes.rows[0].organization_id;
+
+    const uoRes = await db.query(`SELECT organization_id FROM user_organizations WHERE user_id = $1 ORDER BY joined_at ASC LIMIT 1`, [userId]);
+    if (uoRes.rows[0]?.organization_id) return uoRes.rows[0].organization_id;
+
+    const firstOrg = await db.query(`SELECT id FROM organizations ORDER BY created_at ASC LIMIT 1`);
+    return firstOrg.rows[0]?.id || null;
+  } catch (err) {
+    console.error('[Messenger] Error resolving orgId:', err);
+    return null;
+  }
+}
 
 /** Paginate cursor: ISO timestamp string or null */
 const parseCursor = (cursor) => cursor ? new Date(cursor).toISOString() : null;
@@ -87,6 +109,27 @@ router.get('/my-organizations', async (req, res) => {
        ORDER BY uo.joined_at ASC`,
       [userId]
     );
+
+    if (result.rows.length === 0) {
+      // Auto-populate from user's primary profile organization if missing
+      const prof = await db.query(`SELECT organization_id FROM profiles WHERE id = $1`, [userId]);
+      const orgId = prof.rows[0]?.organization_id;
+      if (orgId) {
+        await db.query(
+          `INSERT INTO user_organizations (user_id, organization_id, role)
+           VALUES ($1, $2, 'member')
+           ON CONFLICT (user_id, organization_id) DO NOTHING`,
+          [userId, orgId]
+        );
+        const refetch = await db.query(
+          `SELECT o.id, o.name, o.logo_url, 'member' as role, NOW() as joined_at
+           FROM organizations o WHERE o.id = $1`,
+          [orgId]
+        );
+        return res.json({ organizations: refetch.rows });
+      }
+    }
+
     res.json({ organizations: result.rows });
   } catch (err) {
     console.error('[Messenger] Error fetching user orgs:', err);
@@ -103,12 +146,7 @@ router.get('/my-organizations', async (req, res) => {
 router.get('/channels', async (req, res) => {
   try {
     const userId = req.user.id;
-    let orgId = req.query.org_id || userOrgId(req);
-
-    if (!orgId) {
-      const userProf = await db.query(`SELECT organization_id FROM profiles WHERE id = $1`, [userId]);
-      orgId = userProf.rows[0]?.organization_id;
-    }
+    const orgId = await resolveOrgId(req);
 
     if (orgId) {
       // 1. Ensure default channels exist for this organization
@@ -133,7 +171,7 @@ router.get('/channels', async (req, res) => {
         `INSERT INTO channel_members (channel_id, user_id, role)
          SELECT id, $2, 'member'
          FROM chat_channels
-         WHERE organization_id = $1 AND (is_default = TRUE OR channel_type = 'public') AND deleted_at IS NULL
+         WHERE (organization_id = $1 OR organization_id IS NULL) AND (is_default = TRUE OR channel_type = 'public') AND deleted_at IS NULL
          ON CONFLICT (channel_id, user_id) DO NOTHING`,
         [orgId, userId]
       );
@@ -711,12 +749,7 @@ router.post('/channels/:id/read', async (req, res) => {
 router.get('/unread', async (req, res) => {
   try {
     const userId = req.user.id;
-    let orgId = req.query.org_id || userOrgId(req);
-
-    if (!orgId) {
-      const userProf = await db.query(`SELECT organization_id FROM profiles WHERE id = $1`, [userId]);
-      orgId = userProf.rows[0]?.organization_id;
-    }
+    const orgId = await resolveOrgId(req);
 
     const chResult = await db.query(
       `SELECT c.id as channel_id, c.name,
@@ -771,12 +804,7 @@ router.get('/unread', async (req, res) => {
 router.get('/dms', async (req, res) => {
   try {
     const userId = req.user.id;
-    let orgId = req.query.org_id || userOrgId(req);
-
-    if (!orgId) {
-      const userProf = await db.query(`SELECT organization_id FROM profiles WHERE id = $1`, [userId]);
-      orgId = userProf.rows[0]?.organization_id;
-    }
+    const orgId = await resolveOrgId(req);
 
     const result = await db.query(
       `SELECT dt.*,
@@ -1013,36 +1041,81 @@ router.get('/search', async (req, res) => {
 // List all members of the organization (for DM, invite, mentions)
 router.get('/users', async (req, res) => {
   try {
-    let orgId = req.query.org_id || userOrgId(req);
     const currentUserId = req.user.id;
+    const orgId = await resolveOrgId(req);
 
-    if (!orgId) {
-      const userProf = await db.query(`SELECT organization_id FROM profiles WHERE id = $1`, [currentUserId]);
-      orgId = userProf.rows[0]?.organization_id;
+    // 1. Ensure requesting user has a profile record if missing (e.g. super_admin)
+    const selfProf = await db.query(`SELECT id FROM profiles WHERE id = $1`, [currentUserId]);
+    if (selfProf.rows.length === 0) {
+      const userRes = await db.query(`SELECT email, role FROM users WHERE id = $1`, [currentUserId]);
+      const userEmail = userRes.rows[0]?.email || 'user';
+      const nameParts = userEmail.split('@')[0].split(/[._-]/);
+      const fName = nameParts[0]?.charAt(0).toUpperCase() + nameParts[0]?.slice(1) || 'Super';
+      const lName = nameParts[1]?.charAt(0).toUpperCase() + nameParts[1]?.slice(1) || 'Admin';
+      await db.query(
+        `INSERT INTO profiles (id, first_name, last_name, organization_id, is_approved)
+         VALUES ($1, $2, $3, $4, true)
+         ON CONFLICT (id) DO NOTHING`,
+        [currentUserId, fName, lName, orgId]
+      );
     }
 
+    // 2. Ensure requesting user is enrolled in default/public channels
+    if (orgId) {
+      await db.query(
+        `INSERT INTO channel_members (channel_id, user_id, role)
+         SELECT id, $2, 'member'
+         FROM chat_channels
+         WHERE (organization_id = $1 OR organization_id IS NULL) AND (is_default = TRUE OR channel_type = 'public') AND deleted_at IS NULL
+         ON CONFLICT (channel_id, user_id) DO NOTHING`,
+        [orgId, currentUserId]
+      );
+      await db.query(
+        `INSERT INTO user_organizations (user_id, organization_id, role)
+         VALUES ($1, $2, 'member')
+         ON CONFLICT (user_id, organization_id) DO NOTHING`,
+        [currentUserId, orgId]
+      );
+    }
+
+    // 3. Fetch all team members dynamically from users joined with profiles and user_organizations
     let result;
     if (orgId) {
       result = await db.query(
-        `SELECT p.id, p.first_name, p.last_name, p.avatar_url, 
-                COALESCE(p.profession, p.ams_role, u.role, 'Member') as role, 
-                p.profession, p.ams_role, u.email, p.uhid
-         FROM profiles p
-         LEFT JOIN users u ON u.id = p.id
-         WHERE p.organization_id = $1
-           AND p.id != $2
-         ORDER BY p.first_name ASC`,
+        `SELECT DISTINCT 
+            u.id, 
+            COALESCE(NULLIF(p.first_name, ''), split_part(u.email, '@', 1), 'Staff') as first_name,
+            COALESCE(p.last_name, '') as last_name,
+            p.avatar_url, 
+            COALESCE(p.profession, p.ams_role, u.role, 'Member') as role, 
+            p.profession, 
+            p.ams_role, 
+            u.email, 
+            p.uhid
+         FROM users u
+         LEFT JOIN profiles p ON p.id = u.id
+         LEFT JOIN user_organizations uo ON uo.user_id = u.id
+         WHERE (p.organization_id = $1 OR uo.organization_id = $1 OR p.organization_id IS NULL)
+           AND u.id != $2
+         ORDER BY first_name ASC`,
         [orgId, currentUserId]
       );
     } else {
       result = await db.query(
-        `SELECT p.id, p.first_name, p.last_name, p.avatar_url, 
-                COALESCE(p.profession, p.ams_role, u.role, 'Member') as role, 
-                p.profession, p.ams_role, u.email, p.uhid
-         FROM profiles p
-         LEFT JOIN users u ON u.id = p.id
-         WHERE p.id != $1
-         ORDER BY p.first_name ASC
+        `SELECT DISTINCT 
+            u.id, 
+            COALESCE(NULLIF(p.first_name, ''), split_part(u.email, '@', 1), 'Staff') as first_name,
+            COALESCE(p.last_name, '') as last_name,
+            p.avatar_url, 
+            COALESCE(p.profession, p.ams_role, u.role, 'Member') as role, 
+            p.profession, 
+            p.ams_role, 
+            u.email, 
+            p.uhid
+         FROM users u
+         LEFT JOIN profiles p ON p.id = u.id
+         WHERE u.id != $1
+         ORDER BY first_name ASC
          LIMIT 100`,
         [currentUserId]
       );
@@ -1061,7 +1134,7 @@ router.get('/users', async (req, res) => {
 // GET /api/messenger/settings
 router.get('/settings', async (req, res) => {
   try {
-    const orgId = userOrgId(req);
+    const orgId = await resolveOrgId(req);
     const result = await db.query(
       `SELECT ts.*,
               (SELECT json_agg(json_build_object(
@@ -1088,7 +1161,7 @@ router.get('/settings', async (req, res) => {
 // PATCH /api/messenger/settings
 router.patch('/settings', async (req, res) => {
   try {
-    const orgId = userOrgId(req);
+    const orgId = await resolveOrgId(req);
     if (!['admin', 'super_admin'].includes(req.user.role)) {
       return res.status(403).json({ error: 'Admin access required' });
     }
@@ -1137,7 +1210,7 @@ router.patch('/settings', async (req, res) => {
 // POST /api/messenger/scheduled-reports
 router.post('/scheduled-reports', async (req, res) => {
   try {
-    const orgId = userOrgId(req);
+    const orgId = await resolveOrgId(req);
     if (!['admin', 'super_admin'].includes(req.user.role)) {
       return res.status(403).json({ error: 'Admin access required' });
     }

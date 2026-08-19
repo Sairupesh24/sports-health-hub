@@ -85,34 +85,46 @@ const MessengerPage: React.FC = () => {
   // Load initial data
   const loadData = useCallback(async () => {
     try {
-      const [chRes, dmRes, unreadRes, usersRes] = await Promise.all([
-        getChannels(),
-        getDMs(),
-        getUnreadCounts(),
-        getUsers(),
+      const orgId = profile?.organization_id || undefined;
+      const [chRes, dmRes, unreadRes, usersRes] = await Promise.allSettled([
+        getChannels(orgId),
+        getDMs(orgId),
+        getUnreadCounts(orgId),
+        getUsers(orgId),
       ]);
-      setChannels(sortChannels(chRes.channels || []));
-      setDMs(sortDMs(dmRes.dms || []));
-      setUsers(usersRes.users || []);
-      const map: Record<string, number> = {};
-      (unreadRes.channels || []).forEach((c: { channel_id: string; unread_count: number }) => {
-        map[c.channel_id] = c.unread_count;
-      });
-      (unreadRes.dms || []).forEach((d) => {
-        map[d.dm_thread_id] = d.unread_count;
-      });
-      (dmRes.dms || []).forEach((d: any) => {
-        if (d.unread_count) {
-          map[d.id] = d.unread_count;
+
+      if (chRes.status === "fulfilled" && chRes.value?.channels) {
+        setChannels(sortChannels(chRes.value.channels));
+      }
+      if (dmRes.status === "fulfilled" && dmRes.value?.dms) {
+        setDMs(sortDMs(dmRes.value.dms));
+      }
+      if (usersRes.status === "fulfilled" && usersRes.value?.users) {
+        setUsers(usersRes.value.users);
+      }
+      if (unreadRes.status === "fulfilled" && unreadRes.value) {
+        const map: Record<string, number> = {};
+        (unreadRes.value.channels || []).forEach((c: { channel_id: string; unread_count: number }) => {
+          map[c.channel_id] = c.unread_count;
+        });
+        (unreadRes.value.dms || []).forEach((d) => {
+          map[d.dm_thread_id] = d.unread_count;
+        });
+        if (dmRes.status === "fulfilled" && dmRes.value?.dms) {
+          dmRes.value.dms.forEach((d: any) => {
+            if (d.unread_count) {
+              map[d.id] = d.unread_count;
+            }
+          });
         }
-      });
-      setUnreadMap(map);
+        setUnreadMap(map);
+      }
     } catch (err) {
       console.error("[MessengerPage] Failed to load data:", err);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [profile?.organization_id]);
 
   useEffect(() => {
     loadData();
