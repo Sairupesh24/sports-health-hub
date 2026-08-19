@@ -146,7 +146,29 @@ export function useMessenger(): UseMessengerReturn {
       parent_message_id?: string;
       attachments?: Array<{ file_name: string; file_url: string; file_size?: number; mime_type?: string }>;
     }) => {
-      socketRef.current?.emit("send_message", data);
+      if (socketRef.current?.connected) {
+        socketRef.current.emit("send_message", data);
+      } else {
+        // Fallback to REST API if socket is disconnected/reconnecting
+        if (data.channel_id) {
+          import("@/services/messengerService").then(({ sendChannelMessage }) => {
+            sendChannelMessage(data.channel_id!, {
+              content: data.content,
+              content_html: data.content_html,
+              parent_message_id: data.parent_message_id,
+              attachments: data.attachments,
+            }).catch((err) => console.error("[TeamComms] Failed to send channel message via REST fallback:", err));
+          });
+        } else if (data.dm_thread_id) {
+          import("@/services/messengerService").then(({ sendDMMessage }) => {
+            sendDMMessage(data.dm_thread_id!, {
+              content: data.content,
+              content_html: data.content_html,
+              attachments: data.attachments,
+            }).catch((err) => console.error("[TeamComms] Failed to send DM message via REST fallback:", err));
+          });
+        }
+      }
     },
     []
   );

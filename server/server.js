@@ -55,21 +55,65 @@ io.use((socket, next) => {
   }
 });
 
-io.on('connection', (socket) => {
-  const { id: userId, organization_id: orgId } = socket.user;
-  console.log(`[Socket.io] User ${userId} connected`);
+async function resolveSocketOrgId(socket, extraContext = {}) {
+  if (socket.orgId) return socket.orgId;
+  if (socket.user?.organization_id) return socket.user.organization_id;
+  if (socket.handshake.query?.org_id) return socket.handshake.query.org_id;
+  if (socket.handshake.auth?.org_id) return socket.handshake.auth.org_id;
+
+  const { channel_id, dm_thread_id } = extraContext;
+  try {
+    if (channel_id) {
+      const cRes = await db.query(`SELECT organization_id FROM chat_channels WHERE id = $1`, [channel_id]);
+      if (cRes.rows[0]?.organization_id) return cRes.rows[0].organization_id;
+    }
+    if (dm_thread_id) {
+      const dRes = await db.query(`SELECT organization_id FROM direct_message_threads WHERE id = $1`, [dm_thread_id]);
+      if (dRes.rows[0]?.organization_id) return dRes.rows[0].organization_id;
+    }
+
+    const userId = socket.user?.id;
+    if (userId) {
+      const pRes = await db.query(`SELECT organization_id FROM profiles WHERE id = $1`, [userId]);
+      if (pRes.rows[0]?.organization_id) return pRes.rows[0].organization_id;
+
+      const uoRes = await db.query(`SELECT organization_id FROM user_organizations WHERE user_id = $1 ORDER BY joined_at ASC LIMIT 1`, [userId]);
+      if (uoRes.rows[0]?.organization_id) return uoRes.rows[0].organization_id;
+    }
+
+    const firstOrg = await db.query(`SELECT id FROM organizations ORDER BY created_at ASC LIMIT 1`);
+    return firstOrg.rows[0]?.id || null;
+  } catch (err) {
+    console.error('[Socket.io] Error resolving orgId:', err);
+    return null;
+  }
+}
+
+io.on('connection', async (socket) => {
+  const userId = socket.user.id;
+  const orgId = await resolveSocketOrgId(socket);
+  socket.orgId = orgId;
+  console.log(`[Socket.io] User ${userId} connected (org: ${orgId})`);
 
   // Personal notification room
   socket.join(`user:${userId}`);
 
   // Join a channel room
-  socket.on('join_channel', ({ channel_id }) => {
-    if (channel_id) socket.join(`${orgId}:${channel_id}`);
+  socket.on('join_channel', async ({ channel_id }) => {
+    if (channel_id) {
+      socket.join(`channel:${channel_id}`);
+      const oId = socket.orgId || await resolveSocketOrgId(socket, { channel_id });
+      if (oId) socket.join(`${oId}:${channel_id}`);
+    }
   });
 
   // Leave a channel room
-  socket.on('leave_channel', ({ channel_id }) => {
-    if (channel_id) socket.leave(`${orgId}:${channel_id}`);
+  socket.on('leave_channel', async ({ channel_id }) => {
+    if (channel_id) {
+      socket.leave(`channel:${channel_id}`);
+      const oId = socket.orgId || await resolveSocketOrgId(socket, { channel_id });
+      if (oId) socket.leave(`${oId}:${channel_id}`);
+    }
   });
 
   // Join a DM room
@@ -88,12 +132,14 @@ io.on('connection', (socket) => {
       const { channel_id, dm_thread_id, content, content_html, parent_message_id, attachments } = data;
       if (!content && !content_html && (!attachments || attachments.length === 0)) return;
 
+      const effectiveOrgId = await resolveSocketOrgId(socket, { channel_id, dm_thread_id });
+
       const result = await db.query(
         `INSERT INTO chat_messages
            (organization_id, channel_id, dm_thread_id, user_id, message_type, content, content_html, parent_message_id)
          VALUES ($1, $2, $3, $4, 'user', $5, $6, $7)
          RETURNING *`,
-        [orgId, channel_id || null, dm_thread_id || null, userId,
+        [effectiveOrgId, channel_id || null, dm_thread_id || null, userId,
          content || '', content_html || null, parent_message_id || null]
       );
 
@@ -129,7 +175,8 @@ io.on('connection', (socket) => {
       };
 
       if (channel_id) {
-        io.to(`${orgId}:${channel_id}`).emit('new_message', message);
+        if (effectiveOrgId) io.to(`${effectiveOrgId}:${channel_id}`).emit('new_message', message);
+        io.to(`channel:${channel_id}`).emit('new_message', message);
       } else if (dm_thread_id) {
         // Update direct_message_threads timestamp
         await db.query(
