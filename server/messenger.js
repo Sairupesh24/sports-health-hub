@@ -508,7 +508,7 @@ router.post('/channels/:id/messages', async (req, res) => {
   try {
     const { id } = req.params;
     const userId = req.user.id;
-    const orgId = userOrgId(req);
+    const orgId = await resolveOrgId(req);
     if (!(await assertChannelMember(id, userId, res))) return;
 
     const { content, content_html, parent_message_id, attachments } = req.body;
@@ -854,11 +854,29 @@ router.get('/dms', async (req, res) => {
 router.post('/dms', async (req, res) => {
   try {
     const userId = req.user.id;
-    const orgId = req.body.org_id || userOrgId(req);
+    const orgId = await resolveOrgId(req);
     const { other_user_id } = req.body;
 
     if (!other_user_id) return res.status(400).json({ error: 'other_user_id is required' });
     if (other_user_id === userId) return res.status(400).json({ error: 'Cannot DM yourself' });
+
+    // Ensure profiles exist for both users to satisfy foreign key constraints
+    for (const uid of [userId, other_user_id]) {
+      const pCheck = await db.query(`SELECT id FROM profiles WHERE id = $1`, [uid]);
+      if (pCheck.rows.length === 0) {
+        const uRes = await db.query(`SELECT email, role FROM users WHERE id = $1`, [uid]);
+        const email = uRes.rows[0]?.email || 'user';
+        const parts = email.split('@')[0].split(/[._-]/);
+        const fn = parts[0]?.charAt(0).toUpperCase() + parts[0]?.slice(1) || 'Staff';
+        const ln = parts[1]?.charAt(0).toUpperCase() + parts[1]?.slice(1) || '';
+        await db.query(
+          `INSERT INTO profiles (id, first_name, last_name, organization_id, is_approved)
+           VALUES ($1, $2, $3, $4, true)
+           ON CONFLICT (id) DO NOTHING`,
+          [uid, fn, ln, orgId]
+        );
+      }
+    }
 
     const [userA, userB] = [userId, other_user_id].sort(); // canonical order
 
@@ -945,7 +963,7 @@ router.post('/dms/:id/messages', async (req, res) => {
   try {
     const { id } = req.params;
     const userId = req.user.id;
-    const orgId = userOrgId(req);
+    const orgId = await resolveOrgId(req);
     const { content, content_html, attachments } = req.body;
 
     if (!content && !content_html && (!attachments || attachments.length === 0)) {

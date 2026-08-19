@@ -38,20 +38,26 @@ const NewDMModal: React.FC<Props> = ({ users, onClose, onCreated }) => {
     return fullName.includes(term) || role.includes(term) || profession.includes(term) || email.includes(term);
   });
 
-  const handleStart = async () => {
-    if (!selected) return;
+  const handleStart = async (targetUser?: OrgUser) => {
+    const userToStart = (targetUser && typeof targetUser === "object" && "id" in targetUser && typeof targetUser.id === "string")
+      ? targetUser
+      : selected;
+    if (!userToStart || !userToStart.id) return;
     setLoading(true);
     try {
-      const res = (await startDM(selected.id)) as { dm_thread: { id: string } };
-      onCreated({
-        id: res.dm_thread.id,
-        other_user_id: selected.id,
-        other_first_name: selected.first_name,
-        other_last_name: selected.last_name,
-        other_avatar_url: selected.avatar_url,
-        other_role: selected.role,
-        other_profession: selected.profession,
-      });
+      const res = await startDM(userToStart.id);
+      const threadId = res?.dm_thread?.id || (res as any)?.id;
+      if (threadId) {
+        onCreated({
+          id: threadId,
+          other_user_id: userToStart.id,
+          other_first_name: userToStart.first_name,
+          other_last_name: userToStart.last_name,
+          other_avatar_url: userToStart.avatar_url,
+          other_role: userToStart.role,
+          other_profession: userToStart.profession,
+        });
+      }
     } catch (err) {
       console.error("Failed to start DM:", err);
     } finally {
@@ -101,6 +107,7 @@ const NewDMModal: React.FC<Props> = ({ users, onClose, onCreated }) => {
               <button
                 key={user.id}
                 onClick={() => setSelected(user)}
+                onDoubleClick={() => handleStart(user)}
                 className={cn(
                   "flex w-full items-center gap-3 rounded-2xl p-2.5 transition-all text-left border",
                   isSelected
@@ -160,7 +167,7 @@ const NewDMModal: React.FC<Props> = ({ users, onClose, onCreated }) => {
             Cancel
           </Button>
           <Button
-            onClick={handleStart}
+            onClick={() => handleStart()}
             disabled={!selected || loading}
             className="flex-1 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-bold shadow-sm transition-all"
           >
