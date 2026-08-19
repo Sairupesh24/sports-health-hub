@@ -405,7 +405,7 @@ export function SportsScientistSessionStatusModal({ open, onOpenChange, session,
                                 <span>{editInfo.lockReason}</span>
                             </div>
                         )}
-                        {editInfo.isNextDayOrLater && (
+                        {editInfo.isNextDayOrLater && !editInfo.isLocked && (
                             <div className="flex items-start gap-2 w-full rounded-xl border border-emerald-200 bg-emerald-50/70 p-2.5 sm:p-3.5 text-[11px] sm:text-xs text-emerald-800 font-medium">
                                 <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 mt-0.5 shrink-0 text-emerald-600" />
                                 <span>
@@ -413,7 +413,7 @@ export function SportsScientistSessionStatusModal({ open, onOpenChange, session,
                                 </span>
                             </div>
                         )}
-                        {editInfo.isToday && (
+                        {editInfo.isToday && !editInfo.isLocked && (
                             <div className="flex items-start gap-2 w-full rounded-xl border border-blue-200 bg-blue-50/70 p-2.5 sm:p-3.5 text-[11px] sm:text-xs text-blue-800 font-medium">
                                 <Info className="w-3.5 h-3.5 sm:w-4 sm:h-4 mt-0.5 shrink-0 text-blue-600" />
                                 <span>Today's session — scheduled for today. Click <strong>Reschedule Session</strong> below to change date or time, or record actual timings.</span>
@@ -451,6 +451,18 @@ export function SportsScientistSessionStatusModal({ open, onOpenChange, session,
                             <span className="text-muted-foreground font-medium">Scheduled</span>
                             <span className="font-semibold text-right truncate ml-2">{format(scheduledDate, "MMM d, h:mm a")} – {format(parseISO(session.scheduled_end || session.scheduled_start), "h:mm a")}</span>
                         </div>
+                        {(session.actual_start || session.actual_end) && (
+                            <div className="flex justify-between items-center text-[11px] sm:text-xs bg-emerald-500/10 dark:bg-emerald-950/40 p-2 sm:p-2.5 rounded-lg border border-emerald-300 dark:border-emerald-800">
+                                <span className="text-emerald-800 dark:text-emerald-300 font-bold flex items-center gap-1.5">
+                                    <Clock className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                                    Actual Timings
+                                </span>
+                                <span className="font-black text-emerald-900 dark:text-emerald-200 text-right truncate ml-2">
+                                    {session.actual_start ? format(parseISO(session.actual_start), "MMM d, h:mm a") : "--"}
+                                    {session.actual_end ? ` – ${format(parseISO(session.actual_end), "h:mm a")}` : " (In Progress)"}
+                                </span>
+                            </div>
+                        )}
                         <div className="flex justify-between items-center text-[11px] sm:text-xs">
                             <span className="text-muted-foreground font-medium">Current Status</span>
                             <span className={`px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold uppercase tracking-wide border ${getStatusStyle(status)}`}>

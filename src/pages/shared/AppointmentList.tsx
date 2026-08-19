@@ -114,9 +114,19 @@ export default function AppointmentList({ role, hideLayout = false }: { role: 'a
                                             <span className="text-xl font-black italic tracking-tighter">{format(new Date(apt.scheduled_start), "d")}</span>
                                         </div>
                                         <div>
-                                            <div className="flex items-center gap-2 mb-1">
+                                            <div className="flex items-center gap-2 mb-1 flex-wrap">
                                                 <Clock className="w-3.5 h-3.5 text-primary" />
-                                                <span className="text-sm font-black text-slate-900">{format(new Date(apt.scheduled_start), "hh:mm a")}</span>
+                                                <span className="text-sm font-black text-slate-900">
+                                                    {apt.actual_start 
+                                                        ? `${format(new Date(apt.actual_start), "hh:mm a")}${apt.actual_end ? ` - ${format(new Date(apt.actual_end), "hh:mm a")}` : ""}`
+                                                        : format(new Date(apt.scheduled_start), "hh:mm a")
+                                                    }
+                                                </span>
+                                                {apt.actual_start && format(new Date(apt.actual_start), "hh:mm a") !== format(new Date(apt.scheduled_start), "hh:mm a") && (
+                                                    <span className="text-xs text-muted-foreground line-through opacity-70">
+                                                        (Sch: {format(new Date(apt.scheduled_start), "hh:mm a")})
+                                                    </span>
+                                                )}
                                             </div>
                                             <h3 className="font-bold text-slate-800 tracking-tight capitalize">{apt.service_type || 'Physiotherapy Session'}</h3>
                                         </div>

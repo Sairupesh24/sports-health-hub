@@ -321,14 +321,29 @@ export default function SportsScientistDashboard() {
                                             onClick={() => setSelectedSession(session)}
                                         >
                                             <div className="flex items-center gap-5">
-                                                <div className="h-14 w-14 rounded-2xl bg-slate-50 flex flex-col items-center justify-center border border-slate-100">
-                                                    <span className="text-[10px] uppercase font-black text-slate-400">{format(parseISO(session.scheduled_start), "HH:mm")}</span>
+                                                <div className="h-14 w-14 rounded-2xl bg-slate-50 flex flex-col items-center justify-center border border-slate-100 px-1 text-center">
+                                                    <span className="text-[11px] uppercase font-black text-slate-700">
+                                                        {session.actual_start ? format(parseISO(session.actual_start), "HH:mm") : format(parseISO(session.scheduled_start), "HH:mm")}
+                                                    </span>
+                                                    {session.actual_start && format(parseISO(session.actual_start), "HH:mm") !== format(parseISO(session.scheduled_start), "HH:mm") && (
+                                                        <span className="text-[8px] text-muted-foreground line-through opacity-70">
+                                                            {format(parseISO(session.scheduled_start), "HH:mm")}
+                                                        </span>
+                                                    )}
                                                 </div>
                                                 <div>
                                                     <h4 className="font-black text-lg group-hover:text-primary transition-colors">
                                                         {session.session_mode === 'Group' ? `Group: ${session.group_name}` : session.session_mode === 'Other' ? session.session_type?.name : `${session.client?.first_name} ${session.client?.last_name}`}
                                                     </h4>
-                                                    <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground/60">{session.session_type?.name || "Sports Science Session"}</p>
+                                                    <div className="flex items-center gap-2 flex-wrap mt-0.5">
+                                                        <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground/60">{session.session_type?.name || "Sports Science Session"}</p>
+                                                        {session.actual_start && (
+                                                            <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-md border border-emerald-200 dark:border-emerald-800 flex items-center gap-1">
+                                                                <Clock className="w-2.5 h-2.5 text-emerald-600" />
+                                                                Actual: {format(parseISO(session.actual_start), "h:mm a")}{session.actual_end ? ` – ${format(parseISO(session.actual_end), "h:mm a")}` : " (In Progress)"}
+                                                            </span>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             </div>
                                             <div className="flex items-center gap-4">

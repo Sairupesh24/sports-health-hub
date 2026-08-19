@@ -307,8 +307,22 @@ export function SportsScientistSessionLog() {
                                         <span className="font-medium">{s.session_type?.name || "Sports Science"}</span>
                                         <span className="flex items-center gap-1">
                                             <Clock className="w-3 h-3" />
-                                            {format(scheduledDate, "HH:mm")}
-                                            {s.scheduled_end && ` – ${format(parseISO(s.scheduled_end), "HH:mm")}`}
+                                            {s.actual_start ? (
+                                                <span className="text-emerald-700 dark:text-emerald-400 font-semibold">
+                                                    {format(parseISO(s.actual_start), "HH:mm")}
+                                                    {s.actual_end ? ` – ${format(parseISO(s.actual_end), "HH:mm")}` : " (In Progress)"}
+                                                    {format(scheduledDate, "HH:mm") !== format(parseISO(s.actual_start), "HH:mm") && (
+                                                        <span className="text-muted-foreground text-xs font-normal ml-1 line-through opacity-70">
+                                                            (Sch: {format(scheduledDate, "HH:mm")})
+                                                        </span>
+                                                    )}
+                                                </span>
+                                            ) : (
+                                                <>
+                                                    {format(scheduledDate, "HH:mm")}
+                                                    {s.scheduled_end && ` – ${format(parseISO(s.scheduled_end), "HH:mm")}`}
+                                                </>
+                                            )}
                                             {duration && <span className="text-primary font-semibold">({duration})</span>}
                                         </span>
                                         {isGroup && <span className="flex items-center gap-1"><Users className="w-3 h-3" /> Group</span>}

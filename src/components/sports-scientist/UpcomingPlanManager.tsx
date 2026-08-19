@@ -425,6 +425,11 @@ export function UpcomingPlanManager({ clientId, clientName }: Props) {
                                                             <span className="text-xs text-muted-foreground font-mono">
                                                                 {format(startDateObj, "h:mm a")} - {session.scheduled_end ? format(parseISO(session.scheduled_end), "h:mm a") : ""}
                                                             </span>
+                                                            {session.actual_start && (
+                                                                <span className="text-[11px] text-emerald-700 dark:text-emerald-400 font-bold">
+                                                                    Actual: {format(parseISO(session.actual_start), "h:mm a")}{session.actual_end ? ` - ${format(parseISO(session.actual_end), "h:mm a")}` : ""}
+                                                                </span>
+                                                            )}
                                                         </div>
                                                     </TableCell>
                                                     <TableCell>

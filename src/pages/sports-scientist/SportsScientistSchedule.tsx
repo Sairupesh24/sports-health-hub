@@ -221,7 +221,14 @@ export default function SportsScientistSchedule() {
                                         )}
                                     >
                                         <div className="flex justify-between items-center mb-0.5">
-                                            <span className="font-bold opacity-80">{format(parseISO(event.scheduled_start), "HH:mm")}</span>
+                                            <span className="font-bold opacity-80">
+                                                {event.actual_start ? format(parseISO(event.actual_start), "HH:mm") : format(parseISO(event.scheduled_start), "HH:mm")}
+                                            </span>
+                                            {event.actual_start && format(parseISO(event.actual_start), "HH:mm") !== format(parseISO(event.scheduled_start), "HH:mm") && (
+                                                <span className="text-[8px] text-muted-foreground opacity-60 line-through">
+                                                    {format(parseISO(event.scheduled_start), "HH:mm")}
+                                                </span>
+                                            )}
                                         </div>
                                         <span className="truncate block">
                                             {event.session_mode === 'Group' ? `👥 ${event.group_name}` : event.session_mode === 'Other' ? `🏢 ${event.session_type?.name}` : `${event.client?.first_name} ${event.client?.last_name}`}
@@ -357,8 +364,33 @@ export default function SportsScientistSchedule() {
                                                         )}
                                                     >
                                                         <div>
-                                                            <div className="text-[9px] font-semibold text-slate-600 dark:text-slate-300 tracking-tighter leading-none mb-1">
-                                                                {format(startD, "h:mm a")} - {format(endD, "h:mm a")}
+                                                            <div className="text-[9px] font-semibold tracking-tighter leading-none mb-1">
+                                                                {event.actual_start && event.actual_end ? (
+                                                                    <div className="flex flex-col items-center">
+                                                                        <span className="text-emerald-700 dark:text-emerald-300 font-black flex items-center justify-center gap-0.5">
+                                                                            <Clock className="w-2.5 h-2.5 inline shrink-0" />
+                                                                            {format(parseISO(event.actual_start), "h:mm a")} - {format(parseISO(event.actual_end), "h:mm a")}
+                                                                        </span>
+                                                                        {format(startD, "HH:mm") !== format(parseISO(event.actual_start), "HH:mm") && (
+                                                                            <span className="text-[8px] text-slate-400 dark:text-slate-500 font-medium line-through mt-0.5">
+                                                                                Sch: {format(startD, "h:mm a")}
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                ) : event.actual_start ? (
+                                                                    <div className="flex flex-col items-center">
+                                                                        <span className="text-emerald-700 dark:text-emerald-300 font-black">
+                                                                            Started {format(parseISO(event.actual_start), "h:mm a")}
+                                                                        </span>
+                                                                        <span className="text-[8px] text-slate-400 dark:text-slate-500 font-medium mt-0.5">
+                                                                            Sch: {format(startD, "h:mm a")}
+                                                                        </span>
+                                                                    </div>
+                                                                ) : (
+                                                                    <span className="text-slate-600 dark:text-slate-300">
+                                                                        {format(startD, "h:mm a")} - {format(endD, "h:mm a")}
+                                                                    </span>
+                                                                )}
                                                             </div>
                                                             <div className="text-[10px] font-bold leading-tight text-slate-900 dark:text-white group-hover:text-primary transition-colors break-words line-clamp-2">
                                                                 {event.session_mode === 'Group' && "👥 "}
@@ -483,18 +515,39 @@ export default function SportsScientistSchedule() {
                                                                 <span>{event.client?.first_name} {event.client?.last_name || ''} ({event.client?.uhid || '-'})</span>
                                                             )}
                                                         </div>
-                                                        <span className="opacity-75 font-semibold shrink-0 leading-none">
-                                                            {event.session_type?.name || "Session"}
-                                                        </span>
+                                                        <div className="flex items-center gap-1 shrink-0">
+                                                            {event.actual_start && (
+                                                                <span className="text-emerald-700 dark:text-emerald-400 font-black text-[9px]">
+                                                                    {format(parseISO(event.actual_start), "HH:mm")}{event.actual_end ? `-${format(parseISO(event.actual_end), "HH:mm")}` : ""}
+                                                                </span>
+                                                            )}
+                                                            <span className="opacity-75 font-semibold shrink-0 leading-none">
+                                                                {event.session_type?.name || "Session"}
+                                                            </span>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             ) : (
                                                 <div className="flex justify-between items-start">
                                                     <div className="space-y-1">
-                                                        <div className="flex items-center gap-2">
-                                                            <span className="text-xs font-bold px-2 py-0.5 bg-white/50 dark:bg-slate-800/80 rounded-full border border-current shadow-sm">
-                                                                {format(startD, "HH:mm")} - {format(endD, "HH:mm")}
-                                                            </span>
+                                                        <div className="flex items-center gap-2 flex-wrap">
+                                                            {event.actual_start ? (
+                                                                <div className="flex items-center gap-1.5 flex-wrap">
+                                                                    <span className="text-xs font-black px-2.5 py-0.5 bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 rounded-full border border-emerald-300 dark:border-emerald-800 shadow-sm flex items-center gap-1">
+                                                                        <Clock className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+                                                                        Actual: {format(parseISO(event.actual_start), "h:mm a")} – {event.actual_end ? format(parseISO(event.actual_end), "h:mm a") : "In Progress"}
+                                                                    </span>
+                                                                    {format(startD, "HH:mm") !== format(parseISO(event.actual_start), "HH:mm") && (
+                                                                        <span className="text-[11px] font-semibold text-muted-foreground line-through">
+                                                                            Sch: {format(startD, "h:mm a")} – {format(endD, "h:mm a")}
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                            ) : (
+                                                                <span className="text-xs font-bold px-2 py-0.5 bg-white/50 dark:bg-slate-800/80 rounded-full border border-current shadow-sm">
+                                                                    {format(startD, "HH:mm")} - {format(endD, "HH:mm")}
+                                                                </span>
+                                                            )}
                                                             {event.session_mode === 'Group' && (
                                                                 <span className="text-[10px] font-black uppercase tracking-widest bg-primary/10 px-2 py-0.5 rounded-full">Group</span>
                                                             )}
@@ -761,9 +814,26 @@ export default function SportsScientistSchedule() {
                                                             <span className="text-[9px] text-slate-400 dark:text-slate-500 block truncate">
                                                                 Coach: {profile?.first_name} {profile?.last_name}
                                                             </span>
-                                                            <span className="text-[9px] font-bold text-slate-500 dark:text-slate-400 block mt-1">
-                                                                {format(startD, "h:mm a")} - {format(endD, "h:mm a")}
-                                                            </span>
+                                                            <div className="text-[9px] font-bold block mt-1">
+                                                                {event.actual_start && event.actual_end ? (
+                                                                    <span className="text-emerald-700 dark:text-emerald-400 font-bold">
+                                                                        Actual: {format(parseISO(event.actual_start), "h:mm a")} - {format(parseISO(event.actual_end), "h:mm a")}
+                                                                        {format(startD, "HH:mm") !== format(parseISO(event.actual_start), "HH:mm") && (
+                                                                            <span className="text-muted-foreground font-normal ml-1 line-through">
+                                                                                (Sch: {format(startD, "h:mm a")})
+                                                                            </span>
+                                                                        )}
+                                                                    </span>
+                                                                ) : event.actual_start ? (
+                                                                    <span className="text-emerald-700 dark:text-emerald-400 font-bold">
+                                                                        Started: {format(parseISO(event.actual_start), "h:mm a")}
+                                                                    </span>
+                                                                ) : (
+                                                                    <span className="text-slate-500 dark:text-slate-400">
+                                                                        {format(startD, "h:mm a")} - {format(endD, "h:mm a")}
+                                                                    </span>
+                                                                )}
+                                                            </div>
                                                         </div>
                                                         
                                                         <Button 

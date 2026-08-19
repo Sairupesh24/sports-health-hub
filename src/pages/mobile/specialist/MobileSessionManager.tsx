@@ -358,10 +358,18 @@ export default function MobileSessionManager() {
                       <CardContent className="p-5">
                          {/* Header: Time & Status */}
                          <div className="flex justify-between items-center mb-3">
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 flex-wrap">
                                <span className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-tight">
-                                 {format(parseISO(session.scheduled_start), "hh:mm a")}
+                                 {session.actual_start 
+                                     ? `${format(parseISO(session.actual_start), "hh:mm a")}${session.actual_end ? ` - ${format(parseISO(session.actual_end), "hh:mm a")}` : ""}`
+                                     : format(parseISO(session.scheduled_start), "hh:mm a")
+                                 }
                                </span>
+                               {session.actual_start && format(parseISO(session.actual_start), "hh:mm a") !== format(parseISO(session.scheduled_start), "hh:mm a") && (
+                                 <span className="text-[10px] text-muted-foreground line-through opacity-70">
+                                   Sch: {format(parseISO(session.scheduled_start), "hh:mm a")}
+                                 </span>
+                               )}
                                <span className={cn("text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded border leading-none", modeStyle.bg, modeStyle.text)}>
                                  {modeStyle.label}
                                </span>
@@ -680,10 +688,18 @@ export default function MobileSessionManager() {
                               <Clock className="w-5 h-5" />
                             </div>
                             <div className="min-w-0">
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-2 flex-wrap">
                                 <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">
-                                  {format(parseISO(session.scheduled_start), "hh:mm a")}
+                                  {session.actual_start 
+                                      ? `${format(parseISO(session.actual_start), "hh:mm a")}${session.actual_end ? ` - ${format(parseISO(session.actual_end), "hh:mm a")}` : ""}`
+                                      : format(parseISO(session.scheduled_start), "hh:mm a")
+                                  }
                                 </span>
+                                {session.actual_start && format(parseISO(session.actual_start), "hh:mm a") !== format(parseISO(session.scheduled_start), "hh:mm a") && (
+                                  <span className="text-[9px] text-muted-foreground line-through opacity-70">
+                                    Sch: {format(parseISO(session.scheduled_start), "hh:mm a")}
+                                  </span>
+                                )}
                                 <span className={cn("text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded border leading-none", modeStyle.bg, modeStyle.text)}>
                                   {modeStyle.label}
                                 </span>

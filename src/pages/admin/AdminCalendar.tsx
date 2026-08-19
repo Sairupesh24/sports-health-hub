@@ -1007,7 +1007,15 @@ export default function AdminCalendar() {
                                                     className={`absolute left-1 right-1 rounded border p-1.5 overflow-hidden shadow-sm hover:shadow-md cursor-pointer transition-all ${getStatusColor(event)}`}
                                                     style={{ top: `${topPos}px`, height: `${height}px`, minHeight: '24px' }}
                                                 >
-                                                    <div className="text-[9px] font-bold leading-none mb-0.5">{format(startD, "HH:mm")} - {format(endD, "HH:mm")}</div>
+                                                    <div className="text-[9px] font-bold leading-none mb-0.5">
+                                                        {event.actual_start ? (
+                                                            <span className="text-emerald-800 dark:text-emerald-300">
+                                                                {format(parseISO(event.actual_start), "HH:mm")}{event.actual_end ? `-${format(parseISO(event.actual_end), "HH:mm")}` : ""}
+                                                            </span>
+                                                        ) : (
+                                                            <>{format(startD, "HH:mm")} - {format(endD, "HH:mm")}</>
+                                                        )}
+                                                    </div>
                                                     <div className={cn("text-[9px] truncate font-medium flex items-center gap-1 leading-none", event.client?.is_vip && "text-[#D4AF37] font-bold")}>
                                                         {event.session_mode === 'Group' ? (
                                                             <span className="font-bold">👥 {event.group_name || 'Unnamed Group'}</span>
@@ -1445,7 +1453,13 @@ export default function AdminCalendar() {
                                                                 <div>
                                                                     <div className="flex justify-between items-start gap-1">
                                                                         <span className="font-bold text-[9px] leading-tight">
-                                                                            {format(startD, "h:mm a")} - {format(endD, "h:mm a")}
+                                                                            {event.actual_start ? (
+                                                                                <span className="text-emerald-800 dark:text-emerald-300">
+                                                                                    {format(parseISO(event.actual_start), "h:mm a")}{event.actual_end ? ` - ${format(parseISO(event.actual_end), "h:mm a")}` : ""}
+                                                                                </span>
+                                                                            ) : (
+                                                                                <>{format(startD, "h:mm a")} - {format(endD, "h:mm a")}</>
+                                                                            )}
                                                                         </span>
                                                                         {indicatorElement}
                                                                     </div>
