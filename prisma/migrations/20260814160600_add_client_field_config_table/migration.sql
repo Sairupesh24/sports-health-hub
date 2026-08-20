@@ -13,4 +13,12 @@ CREATE TABLE IF NOT EXISTS "client_field_config" (
 CREATE UNIQUE INDEX IF NOT EXISTS "client_field_config_organization_id_field_name_key" ON "client_field_config"("organization_id", "field_name");
 
 -- AddForeignKey
-ALTER TABLE "client_field_config" ADD CONSTRAINT "client_field_config_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "organizations"("id") ON DELETE CASCADE ON UPDATE NO ACTION;
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'client_field_config_organization_id_fkey'
+  ) THEN
+    ALTER TABLE "client_field_config" ADD CONSTRAINT "client_field_config_organization_id_fkey" 
+    FOREIGN KEY ("organization_id") REFERENCES "organizations"("id") ON DELETE CASCADE ON UPDATE NO ACTION;
+  END IF;
+END $$;
