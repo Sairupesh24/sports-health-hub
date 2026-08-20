@@ -50,6 +50,7 @@ const MessageInput: React.FC<Props> = ({ placeholder, onSend, onTypingChange, us
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [hasText, setHasText] = useState(false);
 
   const editor = useEditor({
     extensions: [
@@ -66,11 +67,14 @@ const MessageInput: React.FC<Props> = ({ placeholder, onSend, onTypingChange, us
     },
     onUpdate: ({ editor }) => {
       const text = editor.getText();
-      if (text.trim() && !isTyping.current) {
+      const hasContentNow = text.trim().length > 0;
+      setHasText(hasContentNow);
+
+      if (hasContentNow && !isTyping.current) {
         isTyping.current = true;
         onTypingChange(true);
       }
-      if (!text.trim() && isTyping.current) {
+      if (!hasContentNow && isTyping.current) {
         isTyping.current = false;
         onTypingChange(false);
       }
@@ -119,6 +123,7 @@ const MessageInput: React.FC<Props> = ({ placeholder, onSend, onTypingChange, us
 
     onSend(content, contentHtml === "<p></p>" ? "" : contentHtml, uploadedAttachments);
     editor.commands.clearContent();
+    setHasText(false);
     setPendingFiles([]);
 
     if (typingTimer.current) clearTimeout(typingTimer.current);
@@ -158,7 +163,7 @@ const MessageInput: React.FC<Props> = ({ placeholder, onSend, onTypingChange, us
     );
   }
 
-  const hasContent = (editor?.getText().trim().length ?? 0) > 0 || pendingFiles.length > 0;
+  const hasContent = hasText || (editor?.getText().trim().length ?? 0) > 0 || pendingFiles.length > 0;
 
   return (
     <div className="px-4 py-3 bg-white">

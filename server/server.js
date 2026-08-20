@@ -41,6 +41,7 @@ const io = new SocketIOServer(httpServer, {
   cors: { origin: '*', methods: ['GET', 'POST'] },
   transports: ['websocket', 'polling'],
 });
+app.set('io', io);
 
 // Socket.io JWT authentication middleware
 io.use((socket, next) => {

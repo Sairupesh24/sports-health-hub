@@ -540,7 +540,25 @@ router.post('/channels/:id/messages', async (req, res) => {
       }
     }
 
-    res.status(201).json({ message: { ...msgRow, attachments: savedAttachments } });
+    // Update channel last_message_at
+    await db.query(`UPDATE chat_channels SET last_message_at = NOW() WHERE id = $1`, [id]);
+
+    const profile = await db.query(
+      `SELECT p.first_name, p.last_name, p.avatar_url,
+              COALESCE(p.profession, p.ams_role, u.role, 'Member') as role
+       FROM profiles p
+       LEFT JOIN users u ON u.id = p.id
+       WHERE p.id = $1`, [userId]
+    );
+    const fullMsg = { ...msgRow, ...profile.rows[0], attachments: savedAttachments };
+
+    const io = req.app.get('io');
+    if (io) {
+      if (orgId) io.to(`${orgId}:${id}`).emit('new_message', fullMsg);
+      io.to(`channel:${id}`).emit('new_message', fullMsg);
+    }
+
+    res.status(201).json({ message: fullMsg });
   } catch (err) {
     console.error('[Messenger] Error sending message:', err);
     res.status(500).json({ error: 'Failed to send message' });
@@ -1004,7 +1022,35 @@ router.post('/dms/:id/messages', async (req, res) => {
       }
     }
 
-    res.status(201).json({ message: { ...msgRow, attachments: savedAttachments } });
+    // Update direct_message_threads timestamp
+    await db.query(`UPDATE direct_message_threads SET last_message_at = NOW() WHERE id = $1`, [id]);
+
+    const profile = await db.query(
+      `SELECT p.first_name, p.last_name, p.avatar_url,
+              COALESCE(p.profession, p.ams_role, u.role, 'Member') as role
+       FROM profiles p
+       LEFT JOIN users u ON u.id = p.id
+       WHERE p.id = $1`, [userId]
+    );
+    const fullMsg = { ...msgRow, ...profile.rows[0], attachments: savedAttachments };
+
+    const io = req.app.get('io');
+    if (io) {
+      const otherId = t.user_a === userId ? t.user_b : t.user_a;
+      io.to(`dm:${id}`).emit('new_dm_message', fullMsg);
+      io.to(`user:${userId}`).emit('new_dm_message', fullMsg);
+      io.to(`user:${otherId}`).emit('new_dm_message', fullMsg);
+      io.to(`user:${otherId}`).emit('new_message', fullMsg);
+      io.to(`user:${otherId}`).emit('dm_notification', {
+        dm_thread_id: id,
+        sender_id: userId,
+        sender_name: `${profile.rows[0]?.first_name || 'Team'} ${profile.rows[0]?.last_name || 'Member'}`.trim(),
+        content: content || (savedAttachments.length > 0 ? `📎 ${savedAttachments[0].file_name}` : 'Sent a file'),
+        created_at: new Date().toISOString()
+      });
+    }
+
+    res.status(201).json({ message: fullMsg });
   } catch (err) {
     console.error('[Messenger] Error sending DM:', err);
     res.status(500).json({ error: 'Failed to send DM' });
