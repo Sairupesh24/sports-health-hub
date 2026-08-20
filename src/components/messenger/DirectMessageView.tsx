@@ -125,11 +125,11 @@ const DirectMessageView: React.FC<Props> = ({
   );
 
   return (
-    <div className="flex flex-1 min-h-0 overflow-hidden bg-slate-50/50 w-full">
+    <div className="flex flex-1 min-h-0 h-full overflow-hidden bg-slate-50/50 w-full">
       {/* Main DM pane */}
-      <div className="flex flex-1 flex-col min-w-0">
+      <div className="flex flex-1 flex-col min-w-0 h-full overflow-hidden">
         {/* Header */}
-        <div className="flex items-center gap-2 sm:gap-3 px-4 sm:px-6 py-3 border-b border-slate-200/80 bg-white min-h-[56px] shadow-2xs">
+        <div className="flex items-center gap-2 sm:gap-3 px-3 sm:px-6 py-2.5 sm:py-3 border-b border-slate-200/80 bg-white min-h-[52px] sm:min-h-[56px] shadow-2xs flex-shrink-0 z-10 pt-[env(safe-area-inset-top,0px)]">
           {onBack && (
             <Button
               variant="ghost"
@@ -141,26 +141,26 @@ const DirectMessageView: React.FC<Props> = ({
               <ArrowLeft className="h-4 w-4" />
             </Button>
           )}
-          <Avatar className="h-9 w-9 ring-2 ring-teal-500/20 flex-shrink-0">
+          <Avatar className="h-8 w-8 sm:h-9 sm:w-9 ring-2 ring-teal-500/20 flex-shrink-0">
             <AvatarImage src={otherUser?.avatar_url} />
             <AvatarFallback className="bg-teal-600 text-white text-xs font-bold">
               {otherInitials}
             </AvatarFallback>
           </Avatar>
           <div className="min-w-0">
-            <div className="flex items-center gap-2 min-w-0">
-              <h2 className="font-black text-sm text-slate-900 truncate">
+            <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+              <h2 className="font-black text-xs sm:text-sm text-slate-900 truncate">
                 {otherUser ? `${otherUser.first_name} ${otherUser.last_name}` : "Direct Message"}
               </h2>
               <Badge
                 variant="outline"
-                className={`text-[10px] px-2 py-0.2 rounded-md font-semibold border truncate max-w-[120px] ${roleStyle.bg} ${roleStyle.text} ${roleStyle.border}`}
+                className={`text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0.2 rounded-md font-semibold border truncate max-w-[100px] sm:max-w-[120px] ${roleStyle.bg} ${roleStyle.text} ${roleStyle.border}`}
               >
                 {roleLabel}
               </Badge>
             </div>
             {otherUser?.email && (
-              <p className="text-[11px] text-slate-400 truncate">{otherUser.email}</p>
+              <p className="text-[10px] sm:text-[11px] text-slate-400 truncate">{otherUser.email}</p>
             )}
           </div>
         </div>
@@ -180,7 +180,7 @@ const DirectMessageView: React.FC<Props> = ({
         />
 
         {/* Input */}
-        <div className="border-t border-slate-200/80 bg-white">
+        <div className="border-t border-slate-200/80 bg-white flex-shrink-0 z-10">
           <MessageInput
             placeholder={`Message ${otherUser ? `${otherUser.first_name} ${otherUser.last_name}` : "..."}`}
             onSend={handleSend}

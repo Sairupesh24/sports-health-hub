@@ -243,16 +243,16 @@ const MessengerPage: React.FC = () => {
   }
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden bg-slate-50 text-slate-900 font-sans">
-      {/* Top Universal App Navigation Bar */}
-      <header className="h-14 border-b border-slate-200/80 bg-white/95 backdrop-blur-md flex-shrink-0 flex items-center justify-between px-4 z-30 shadow-xs">
+    <div className="fixed inset-0 h-[100dvh] max-h-[100dvh] w-full overflow-hidden flex flex-col bg-slate-50 text-slate-900 font-sans overscroll-none">
+      {/* Top Universal App Navigation Bar (shown on desktop, or on mobile when browsing sidebar) */}
+      <header className={cn("h-13 sm:h-14 border-b border-slate-200/80 bg-white/95 backdrop-blur-md flex-shrink-0 items-center justify-between px-3 sm:px-4 z-30 shadow-xs pt-[env(safe-area-inset-top,0px)]", activeView ? "hidden md:flex" : "flex")}>
         {/* Left: Back to App Gallery & Title */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5 sm:gap-3">
           <Button
             variant="ghost"
             size="sm"
             onClick={() => navigate("/app-gallery")}
-            className="flex items-center gap-2 h-9 px-3 rounded-xl border border-slate-200 bg-slate-50 hover:bg-teal-50 hover:text-teal-700 hover:border-teal-200 text-slate-700 font-bold text-xs transition-all shadow-2xs group"
+            className="flex items-center gap-1.5 sm:gap-2 h-8 sm:h-9 px-2.5 sm:px-3 rounded-xl border border-slate-200 bg-slate-50 hover:bg-teal-50 hover:text-teal-700 hover:border-teal-200 text-slate-700 font-bold text-xs transition-all shadow-2xs group"
           >
             <ArrowLeft className="h-3.5 w-3.5 group-hover:-translate-x-0.5 transition-transform" />
             <LayoutGrid className="h-3.5 w-3.5 text-teal-600" />

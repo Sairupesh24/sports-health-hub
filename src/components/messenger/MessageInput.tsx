@@ -166,21 +166,21 @@ const MessageInput: React.FC<Props> = ({ placeholder, onSend, onTypingChange, us
   const hasContent = hasText || (editor?.getText().trim().length ?? 0) > 0 || pendingFiles.length > 0;
 
   return (
-    <div className="px-4 py-3 bg-white">
+    <div className="px-2.5 sm:px-4 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom,0px))] bg-white">
       {/* Selected file attachment previews */}
       {pendingFiles.length > 0 && (
-        <div className="flex flex-wrap gap-2 mb-2.5">
+        <div className="flex flex-wrap gap-1.5 sm:gap-2 mb-2">
           {pendingFiles.map((file, i) => (
             <div
               key={`${file.name}-${i}`}
-              className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs text-slate-800 shadow-2xs group"
+              className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1 text-xs text-slate-800 shadow-2xs group"
             >
               {getFileIcon(file.name)}
               <div className="flex flex-col">
-                <span className="max-w-[160px] truncate font-semibold text-slate-800 text-[11px]">
+                <span className="max-w-[130px] sm:max-w-[160px] truncate font-semibold text-slate-800 text-[11px]">
                   {file.name}
                 </span>
-                <span className="text-[10px] text-slate-400 font-medium">
+                <span className="text-[9px] sm:text-[10px] text-slate-400 font-medium">
                   {formatFileSize(file.size)}
                 </span>
               </div>
@@ -197,12 +197,19 @@ const MessageInput: React.FC<Props> = ({ placeholder, onSend, onTypingChange, us
         </div>
       )}
 
-      <div className="flex items-end gap-2 bg-slate-50 border border-slate-200 rounded-2xl px-3 py-2 focus-within:border-teal-500 focus-within:bg-white focus-within:ring-2 focus-within:ring-teal-500/20 transition-all shadow-2xs">
+      {/* Mobile uploading alert */}
+      {uploading && (
+        <div className="flex sm:hidden items-center gap-1.5 text-teal-600 font-bold text-[11px] mb-1.5 px-1 animate-pulse">
+          <Loader2 className="h-3 w-3 animate-spin" /> Uploading attachment...
+        </div>
+      )}
+
+      <div className="flex items-end gap-1.5 sm:gap-2 bg-slate-50 border border-slate-200 rounded-2xl px-2.5 sm:px-3 py-1 sm:py-2 focus-within:border-teal-500 focus-within:bg-white focus-within:ring-2 focus-within:ring-teal-500/20 transition-all shadow-2xs">
         {/* File Attach Button */}
         <button
           type="button"
           onClick={() => fileInputRef.current?.click()}
-          className="text-slate-400 hover:text-teal-600 transition-colors pb-1 flex-shrink-0"
+          className="text-slate-400 hover:text-teal-600 transition-colors pb-1 flex-shrink-0 p-1"
           title="Attach file (Excel, Word, PDF, Image, etc.)"
           disabled={uploading}
         >
@@ -228,9 +235,9 @@ const MessageInput: React.FC<Props> = ({ placeholder, onSend, onTypingChange, us
           onClick={handleSend}
           disabled={!hasContent || uploading}
           className={cn(
-            "h-7 w-7 rounded-xl flex-shrink-0 transition-all",
+            "h-8 w-8 sm:h-7 sm:w-7 rounded-xl flex-shrink-0 transition-all mb-0.5",
             hasContent && !uploading
-              ? "bg-teal-600 hover:bg-teal-700 text-white shadow-xs"
+              ? "bg-teal-600 hover:bg-teal-700 text-white shadow-xs active:scale-95"
               : "bg-slate-200 text-slate-400 cursor-not-allowed"
           )}
         >
@@ -242,7 +249,7 @@ const MessageInput: React.FC<Props> = ({ placeholder, onSend, onTypingChange, us
         </Button>
       </div>
 
-      <p className="text-[10px] text-slate-400 mt-1 px-1 font-medium flex items-center justify-between">
+      <p className="text-[10px] text-slate-400 mt-1 px-1 font-medium hidden sm:flex items-center justify-between">
         <span>
           Press <kbd className="rounded border border-slate-200 bg-slate-50 px-1 text-slate-600 font-mono text-[9px]">Enter</kbd> to send ·{" "}
           <kbd className="rounded border border-slate-200 bg-slate-50 px-1 text-slate-600 font-mono text-[9px]">Shift + Enter</kbd> for new line

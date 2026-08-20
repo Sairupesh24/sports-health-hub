@@ -317,7 +317,7 @@ const MessengerSidebar: React.FC<Props> = ({
         </ScrollArea>
 
         {/* Footer — current logged-in user details */}
-        <div className="border-t border-slate-100 px-3 py-2.5 flex items-center gap-2.5 bg-slate-50/50">
+        <div className="border-t border-slate-100 px-3 pt-2.5 pb-[calc(0.625rem+env(safe-area-inset-bottom,0px))] flex items-center gap-2.5 bg-slate-50/50 flex-shrink-0">
           <Avatar className="h-8 w-8 ring-2 ring-teal-500/20">
             <AvatarImage src={profile?.avatar_url || undefined} />
             <AvatarFallback className="bg-teal-600 text-white text-xs font-bold">

@@ -149,11 +149,11 @@ const ChannelView: React.FC<Props> = ({
     });
 
   return (
-    <div className="flex flex-1 min-h-0 overflow-hidden bg-slate-50/50 w-full">
+    <div className="flex flex-1 min-h-0 h-full overflow-hidden bg-slate-50/50 w-full">
       {/* Main chat pane */}
-      <div className="flex flex-1 flex-col min-w-0">
+      <div className="flex flex-1 flex-col min-w-0 h-full overflow-hidden">
         {/* Channel Header */}
-        <div className="flex items-center justify-between px-4 sm:px-6 py-3 border-b border-slate-200/80 bg-white min-h-[56px] shadow-2xs">
+        <div className="flex items-center justify-between px-3 sm:px-6 py-2.5 sm:py-3 border-b border-slate-200/80 bg-white min-h-[52px] sm:min-h-[56px] shadow-2xs flex-shrink-0 z-10 pt-[env(safe-area-inset-top,0px)]">
           <div className="flex items-center gap-2 min-w-0">
             {onBack && (
               <Button
@@ -166,27 +166,27 @@ const ChannelView: React.FC<Props> = ({
                 <ArrowLeft className="h-4 w-4" />
               </Button>
             )}
-            <div className="w-8 h-8 rounded-xl bg-teal-50 border border-teal-200 flex items-center justify-center flex-shrink-0 text-teal-700 font-bold text-sm">
+            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-teal-50 border border-teal-200 flex items-center justify-center flex-shrink-0 text-teal-700 font-bold text-xs sm:text-sm">
               #
             </div>
             <div className="min-w-0">
-              <div className="flex items-center gap-2">
-                <h2 className="font-black text-sm text-slate-900 truncate">
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <h2 className="font-black text-xs sm:text-sm text-slate-900 truncate">
                   {channel?.name || "Channel"}
                 </h2>
                 {channel?.channel_type === "announcement" && (
-                  <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-amber-50 text-amber-700 border-amber-200">
+                  <Badge variant="outline" className="text-[9px] sm:text-[10px] px-1.5 py-0 bg-amber-50 text-amber-700 border-amber-200">
                     Announcements
                   </Badge>
                 )}
                 {channel?.channel_type === "automated" && (
-                  <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-blue-50 text-blue-700 border-blue-200">
+                  <Badge variant="outline" className="text-[9px] sm:text-[10px] px-1.5 py-0 bg-blue-50 text-blue-700 border-blue-200">
                     System
                   </Badge>
                 )}
               </div>
               {channel?.description && (
-                <p className="text-[11px] text-slate-400 truncate max-w-sm">
+                <p className="text-[10px] sm:text-[11px] text-slate-400 truncate max-w-xs sm:max-w-sm">
                   {channel.description}
                 </p>
               )}
@@ -223,7 +223,7 @@ const ChannelView: React.FC<Props> = ({
         {typingInChannel.length > 0 && <TypingIndicator names={typingInChannel} />}
 
         {/* Input */}
-        <div className="border-t border-slate-200/80 bg-white">
+        <div className="border-t border-slate-200/80 bg-white flex-shrink-0 z-10">
           <MessageInput
             placeholder={`Message #${channel?.name || "..."}`}
             onSend={handleSend}
