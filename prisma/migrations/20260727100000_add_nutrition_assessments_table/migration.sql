@@ -45,11 +45,27 @@ CREATE TABLE IF NOT EXISTS "nutrition_assessments" (
     CONSTRAINT "nutrition_assessments_pkey" PRIMARY KEY ("id")
 );
 
--- AddForeignKey
-ALTER TABLE "nutrition_assessments" ADD CONSTRAINT "nutrition_assessments_client_id_fkey" FOREIGN KEY ("client_id") REFERENCES "clients"("id") ON DELETE CASCADE ON UPDATE NO ACTION;
+-- AddForeignKeys
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'nutrition_assessments_client_id_fkey'
+  ) THEN
+    ALTER TABLE "nutrition_assessments" ADD CONSTRAINT "nutrition_assessments_client_id_fkey" 
+    FOREIGN KEY ("client_id") REFERENCES "clients"("id") ON DELETE CASCADE ON UPDATE NO ACTION;
+  END IF;
 
--- AddForeignKey
-ALTER TABLE "nutrition_assessments" ADD CONSTRAINT "nutrition_assessments_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "organizations"("id") ON DELETE CASCADE ON UPDATE NO ACTION;
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'nutrition_assessments_organization_id_fkey'
+  ) THEN
+    ALTER TABLE "nutrition_assessments" ADD CONSTRAINT "nutrition_assessments_organization_id_fkey" 
+    FOREIGN KEY ("organization_id") REFERENCES "organizations"("id") ON DELETE CASCADE ON UPDATE NO ACTION;
+  END IF;
 
--- AddForeignKey
-ALTER TABLE "nutrition_assessments" ADD CONSTRAINT "nutrition_assessments_nutritionist_id_fkey" FOREIGN KEY ("nutritionist_id") REFERENCES "profiles"("id") ON DELETE SET NULL ON UPDATE NO ACTION;
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'nutrition_assessments_nutritionist_id_fkey'
+  ) THEN
+    ALTER TABLE "nutrition_assessments" ADD CONSTRAINT "nutrition_assessments_nutritionist_id_fkey" 
+    FOREIGN KEY ("nutritionist_id") REFERENCES "profiles"("id") ON DELETE SET NULL ON UPDATE NO ACTION;
+  END IF;
+END $$;
