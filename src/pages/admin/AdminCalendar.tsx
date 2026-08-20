@@ -54,6 +54,8 @@ interface SessionEvent {
     therapist_id: string;
     scheduled_start: string;
     scheduled_end: string;
+    actual_start?: string | null;
+    actual_end?: string | null;
     status: string;
     service_id?: string | null;
     service_type: string;
