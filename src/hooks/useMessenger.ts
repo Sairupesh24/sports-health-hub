@@ -67,7 +67,19 @@ interface UseMessengerReturn {
   onPersonalNotification: (handler: (data: unknown) => void) => () => void;
 }
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+function getSocketUrl(): string {
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
+  }
+  if (typeof window !== "undefined") {
+    const { hostname, protocol } = window.location;
+    if (hostname === "localhost" || hostname === "127.0.0.1") {
+      return `${protocol}//${hostname}:3000`;
+    }
+    return window.location.origin;
+  }
+  return "http://localhost:3000";
+}
 
 export function useMessenger(): UseMessengerReturn {
   const { user } = useAuth();
@@ -76,11 +88,22 @@ export function useMessenger(): UseMessengerReturn {
   const [typingUsers, setTypingUsers] = useState<TypingUser[]>([]);
   const typingTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
 
+  // Persistent listener registries
+  const newMessageHandlers = useRef<Set<(msg: ChatMessage) => void>>(new Set());
+  const newDMMessageHandlers = useRef<Set<(msg: ChatMessage) => void>>(new Set());
+  const reactionHandlers = useRef<Set<(data: { message_id: string; reactions: Array<{ emoji: string; count: number; users: string[] }>; user_id: string; emoji: string; action: string }) => void>>(new Set());
+  const deletedHandlers = useRef<Set<(data: { message_id: string; channel_id?: string; dm_thread_id?: string; deleted_at: string; user_id: string }) => void>>(new Set());
+  const dmNotificationHandlers = useRef<Set<(data: { dm_thread_id: string; sender_id: string; sender_name: string; content: string; created_at: string }) => void>>(new Set());
+  const personalNotificationHandlers = useRef<Set<(data: unknown) => void>>(new Set());
+
   useEffect(() => {
     const token = localStorage.getItem("ishpo_jwt");
     if (!user || !token) return;
 
-    const socket = io(API_URL, {
+    const targetUrl = getSocketUrl();
+    console.log("[TeamComms] Connecting socket to:", targetUrl);
+
+    const socket = io(targetUrl, {
       auth: { token },
       transports: ["websocket", "polling"],
       reconnectionAttempts: 10,
@@ -103,6 +126,31 @@ export function useMessenger(): UseMessengerReturn {
       console.error("[TeamComms] Socket connection error:", err.message);
     });
 
+    // Real-time message events dispatch to persistent registries
+    socket.on("new_message", (msg: ChatMessage) => {
+      newMessageHandlers.current.forEach((fn) => fn(msg));
+    });
+
+    socket.on("new_dm_message", (msg: ChatMessage) => {
+      newDMMessageHandlers.current.forEach((fn) => fn(msg));
+    });
+
+    socket.on("reaction_updated", (data) => {
+      reactionHandlers.current.forEach((fn) => fn(data));
+    });
+
+    socket.on("message_deleted", (data) => {
+      deletedHandlers.current.forEach((fn) => fn(data));
+    });
+
+    socket.on("dm_notification", (data) => {
+      dmNotificationHandlers.current.forEach((fn) => fn(data));
+    });
+
+    socket.on("personal_notification", (data) => {
+      personalNotificationHandlers.current.forEach((fn) => fn(data));
+    });
+
     // Typing indicators
     socket.on("user_typing", (data: TypingUser) => {
       setTypingUsers((prev) => {
@@ -110,7 +158,6 @@ export function useMessenger(): UseMessengerReturn {
           return prev;
         return [...prev, data];
       });
-      // Auto-clear after 4s if no stop event
       const key = `${data.user_id}:${data.channel_id}`;
       if (typingTimers.current.has(key)) clearTimeout(typingTimers.current.get(key)!);
       typingTimers.current.set(
@@ -157,7 +204,13 @@ export function useMessenger(): UseMessengerReturn {
               content_html: data.content_html,
               parent_message_id: data.parent_message_id,
               attachments: data.attachments,
-            }).catch((err) => console.error("[TeamComms] Failed to send channel message via REST fallback:", err));
+            })
+              .then((res) => {
+                if (res?.message) {
+                  newMessageHandlers.current.forEach((fn) => fn(res.message));
+                }
+              })
+              .catch((err) => console.error("[TeamComms] Failed to send channel message via REST fallback:", err));
           });
         } else if (data.dm_thread_id) {
           import("@/services/messengerService").then(({ sendDMMessage }) => {
@@ -165,7 +218,13 @@ export function useMessenger(): UseMessengerReturn {
               content: data.content,
               content_html: data.content_html,
               attachments: data.attachments,
-            }).catch((err) => console.error("[TeamComms] Failed to send DM message via REST fallback:", err));
+            })
+              .then((res) => {
+                if (res?.message) {
+                  newDMMessageHandlers.current.forEach((fn) => fn(res.message));
+                }
+              })
+              .catch((err) => console.error("[TeamComms] Failed to send DM message via REST fallback:", err));
           });
         }
       }
@@ -230,39 +289,33 @@ export function useMessenger(): UseMessengerReturn {
   }, []);
 
   const onNewMessage = useCallback((handler: (msg: ChatMessage) => void) => {
-    const socket = socketRef.current;
-    socket?.on("new_message", handler);
-    return () => { socket?.off("new_message", handler); };
+    newMessageHandlers.current.add(handler);
+    return () => { newMessageHandlers.current.delete(handler); };
   }, []);
 
   const onNewDMMessage = useCallback((handler: (msg: ChatMessage) => void) => {
-    const socket = socketRef.current;
-    socket?.on("new_dm_message", handler);
-    return () => { socket?.off("new_dm_message", handler); };
+    newDMMessageHandlers.current.add(handler);
+    return () => { newDMMessageHandlers.current.delete(handler); };
   }, []);
 
   const onReactionUpdated = useCallback((handler: (data: { message_id: string; reactions: Array<{ emoji: string; count: number; users: string[] }>; user_id: string; emoji: string; action: string }) => void) => {
-    const socket = socketRef.current;
-    socket?.on("reaction_updated", handler);
-    return () => { socket?.off("reaction_updated", handler); };
+    reactionHandlers.current.add(handler);
+    return () => { reactionHandlers.current.delete(handler); };
   }, []);
 
   const onMessageDeleted = useCallback((handler: (data: { message_id: string; channel_id?: string; dm_thread_id?: string; deleted_at: string; user_id: string }) => void) => {
-    const socket = socketRef.current;
-    socket?.on("message_deleted", handler);
-    return () => { socket?.off("message_deleted", handler); };
+    deletedHandlers.current.add(handler);
+    return () => { deletedHandlers.current.delete(handler); };
   }, []);
 
   const onDMNotification = useCallback((handler: (data: { dm_thread_id: string; sender_id: string; sender_name: string; content: string; created_at: string }) => void) => {
-    const socket = socketRef.current;
-    socket?.on("dm_notification", handler);
-    return () => { socket?.off("dm_notification", handler); };
+    dmNotificationHandlers.current.add(handler);
+    return () => { dmNotificationHandlers.current.delete(handler); };
   }, []);
 
   const onPersonalNotification = useCallback((handler: (data: unknown) => void) => {
-    const socket = socketRef.current;
-    socket?.on("personal_notification", handler);
-    return () => { socket?.off("personal_notification", handler); };
+    personalNotificationHandlers.current.add(handler);
+    return () => { personalNotificationHandlers.current.delete(handler); };
   }, []);
 
   return {
