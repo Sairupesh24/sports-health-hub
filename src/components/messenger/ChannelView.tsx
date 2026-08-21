@@ -66,6 +66,34 @@ const ChannelView: React.FC<Props> = ({
     }
     messengerCtx.joinChannel(channelId);
     prevChannelId.current = channelId;
+
+    // Mobile wakeup sync — catch up with any messages sent while phone was asleep/locked
+    const handleWakeSync = () => {
+      if (document.visibilityState === "visible" && channelId) {
+        getMessages(channelId)
+          .then((res) => {
+            if (res?.messages) {
+              setMessages((prev) => {
+                const map = new Map(prev.map((m) => [m.id, m]));
+                res.messages.forEach((m) => map.set(m.id, m));
+                return Array.from(map.values()).sort(
+                  (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+                );
+              });
+              messengerCtx.markChannelRead(channelId);
+            }
+          })
+          .catch(() => {});
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleWakeSync);
+    window.addEventListener("focus", handleWakeSync);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleWakeSync);
+      window.removeEventListener("focus", handleWakeSync);
+    };
   }, [channelId, messengerCtx]);
 
   // Socket: real-time new messages

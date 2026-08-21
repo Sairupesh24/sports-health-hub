@@ -41,6 +41,7 @@ export interface ParsedAssessmentData {
   client: {
     name: string;
     birthdate: string;
+    gender?: string;
     tests: TestSession[];
     latestTest: TestSession | null;
   };

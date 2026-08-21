@@ -87,6 +87,7 @@ export function useMessenger(): UseMessengerReturn {
   const [isConnected, setIsConnected] = useState(false);
   const [typingUsers, setTypingUsers] = useState<TypingUser[]>([]);
   const typingTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+  const activeRoomRef = useRef<{ type: "channel" | "dm"; id: string } | null>(null);
 
   // Persistent listener registries
   const newMessageHandlers = useRef<Set<(msg: ChatMessage) => void>>(new Set());
@@ -106,8 +107,10 @@ export function useMessenger(): UseMessengerReturn {
     const socket = io(targetUrl, {
       auth: { token },
       transports: ["websocket", "polling"],
-      reconnectionAttempts: 10,
-      reconnectionDelay: 2000,
+      reconnectionAttempts: Infinity,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
+      timeout: 20000,
     });
 
     socketRef.current = socket;
@@ -115,6 +118,12 @@ export function useMessenger(): UseMessengerReturn {
     socket.on("connect", () => {
       setIsConnected(true);
       console.log("[TeamComms] Socket connected:", socket.id);
+      // Re-join active room after reconnect
+      if (activeRoomRef.current?.type === "channel") {
+        socket.emit("join_channel", { channel_id: activeRoomRef.current.id });
+      } else if (activeRoomRef.current?.type === "dm") {
+        socket.emit("join_dm", { dm_thread_id: activeRoomRef.current.id });
+      }
     });
 
     socket.on("disconnect", () => {
@@ -178,7 +187,23 @@ export function useMessenger(): UseMessengerReturn {
       );
     });
 
+    // Mobile background sleep / tab wakeup recovery
+    const handleWake = () => {
+      if (document.visibilityState === "visible") {
+        if (socketRef.current && !socketRef.current.connected) {
+          console.log("[TeamComms] Mobile tab visible: reconnecting socket...");
+          socketRef.current.connect();
+        }
+      }
+    };
+    document.addEventListener("visibilitychange", handleWake);
+    window.addEventListener("focus", handleWake);
+    window.addEventListener("online", handleWake);
+
     return () => {
+      document.removeEventListener("visibilitychange", handleWake);
+      window.removeEventListener("focus", handleWake);
+      window.removeEventListener("online", handleWake);
       socket.disconnect();
       socketRef.current = null;
     };
@@ -233,18 +258,22 @@ export function useMessenger(): UseMessengerReturn {
   );
 
   const joinChannel = useCallback((channelId: string) => {
+    activeRoomRef.current = { type: "channel", id: channelId };
     socketRef.current?.emit("join_channel", { channel_id: channelId });
   }, []);
 
   const leaveChannel = useCallback((channelId: string) => {
+    if (activeRoomRef.current?.id === channelId) activeRoomRef.current = null;
     socketRef.current?.emit("leave_channel", { channel_id: channelId });
   }, []);
 
   const joinDM = useCallback((threadId: string) => {
+    activeRoomRef.current = { type: "dm", id: threadId };
     socketRef.current?.emit("join_dm", { dm_thread_id: threadId });
   }, []);
 
   const leaveDM = useCallback((threadId: string) => {
+    if (activeRoomRef.current?.id === threadId) activeRoomRef.current = null;
     socketRef.current?.emit("leave_dm", { dm_thread_id: threadId });
   }, []);
 

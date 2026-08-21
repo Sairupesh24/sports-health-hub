@@ -511,11 +511,6 @@ export default function BodySvg({
       {hoveredRegion && (
         <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-slate-950/95 text-white px-4 py-2 rounded-2xl text-xs font-black uppercase tracking-wider backdrop-blur-md shadow-2xl border border-white/10 z-50 pointer-events-none animate-in fade-in zoom-in-95 duration-200 flex items-center gap-3">
           <span className="text-slate-200">{getHoveredRegionName()}</span>
-          {painData[hoveredRegion]?.painLevel > 0 && (
-            <span className="px-2 py-0.5 rounded-lg bg-red-500 font-bold text-[10px] text-white">
-              Pain: {painData[hoveredRegion].painLevel}/7
-            </span>
-          )}
         </div>
       )}
     </div>

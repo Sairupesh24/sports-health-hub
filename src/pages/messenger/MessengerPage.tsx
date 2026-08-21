@@ -128,6 +128,17 @@ const MessengerPage: React.FC = () => {
 
   useEffect(() => {
     loadData();
+    const handleWake = () => {
+      if (document.visibilityState === "visible") {
+        loadData();
+      }
+    };
+    document.addEventListener("visibilitychange", handleWake);
+    window.addEventListener("focus", handleWake);
+    return () => {
+      document.removeEventListener("visibilitychange", handleWake);
+      window.removeEventListener("focus", handleWake);
+    };
   }, [loadData]);
 
   // Auto-select first channel on desktop only (screen width >= 768px)

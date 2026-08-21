@@ -71,7 +71,7 @@ function reportReducer(state: ReportState, action: ReportAction): ReportState {
   }
 }
 
-// Map poor performing metrics (percentRef < -10%) to default pain data of 5
+// Map poor performing metrics (percentRef < -10%) to default region data
 function computeDefaultPainData(data: ParsedAssessmentData, activeTestIndex: number): MapData {
   const painData: MapData = {};
   const testIndex = activeTestIndex - 1;
@@ -141,7 +141,7 @@ function computeDefaultPainData(data: ParsedAssessmentData, activeTestIndex: num
           painData[regionId] = {
             painLevel: 5,
             notes: `Auto-populated from poor performing metric: ${metric.label} (${test.percentRef!.toFixed(1)}%)`,
-            qualities: ["Dull Ache"],
+            qualities: [],
           };
         } else {
           painData[regionId].notes += `, ${metric.label} (${test.percentRef!.toFixed(1)}%)`;
@@ -380,7 +380,7 @@ export default function AssessmentReport({
                     value={painData}
                     onChange={setPainData}
                     readOnly={readOnly}
-                    gender={state.data.client.gender?.toLowerCase() === "female" ? "female" : "male"}
+                    gender={(state.selectedClientGender || state.data.client.gender)?.toLowerCase() === "female" ? "female" : "male"}
                     layout="stacked"
                     numberedBadges={numberedBadges}
                   />
