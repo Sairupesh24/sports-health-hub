@@ -49,6 +49,7 @@ export default function TeamsPage() {
   };
 
   useEffect(() => {
+    plannerStore.syncWithServer();
     const unsubscribe = plannerStore.subscribe(refreshData);
     return unsubscribe;
   }, []);

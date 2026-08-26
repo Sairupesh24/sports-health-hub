@@ -316,7 +316,8 @@ export default function AdminCalendar() {
                 rawSession: session 
             } as SessionEvent));
         },
-        enabled: !!profile?.organization_id
+        enabled: !!profile?.organization_id,
+        refetchInterval: 10000,
     });
 
     // ── Pre-completion entitlement check for Planned sessions ─────────────────
@@ -386,7 +387,7 @@ export default function AdminCalendar() {
     }, [sessionsWithEntitlementStatus, consultants]);
 
     const sessions = useMemo(() => {
-        return sessionsWithEntitlementStatus.filter(s => {
+        const filtered = sessionsWithEntitlementStatus.filter(s => {
             const isUnassigned = !s.therapist_id || !consultants.some(c => c.id === s.therapist_id);
             if (filterMode === 'role') {
                 if (selectedRole === "all") return true;
@@ -397,6 +398,38 @@ export default function AdminCalendar() {
                 return selectedConsultants.includes(s.therapist_id);
             }
         });
+
+        // Deduplicate cards sharing the same client/group, practitioner, and scheduled start time, prioritizing Completed
+        const deduped: SessionEvent[] = [];
+        const seenMap = new Map<string, number>();
+
+        for (const s of filtered) {
+            const isGrp = s.session_mode === 'Group' || Boolean(s.group_name);
+            const targetEntity = isGrp
+                ? `grp:${(s.group_name || '').trim().toLowerCase()}`
+                : (s.client_id ? `cli:${s.client_id}` : (s.guest_name ? `gst:${s.guest_name}` : null));
+            const practitioner = s.therapist_id || 'unassigned';
+            const startKey = s.scheduled_start ? parseISO(s.scheduled_start).toISOString() : '';
+
+            if (!targetEntity || !startKey) {
+                deduped.push(s);
+                continue;
+            }
+
+            const key = `${targetEntity}|${practitioner}|${startKey}`;
+            if (seenMap.has(key)) {
+                const existingIdx = seenMap.get(key)!;
+                const existing = deduped[existingIdx];
+                if (s.status === 'Completed' && existing.status !== 'Completed') {
+                    deduped[existingIdx] = s;
+                }
+            } else {
+                seenMap.set(key, deduped.length);
+                deduped.push(s);
+            }
+        }
+
+        return deduped;
     }, [sessionsWithEntitlementStatus, filterMode, selectedRole, selectedConsultants, consultants]);
 
     // Mobile responsiveness
@@ -706,13 +739,17 @@ export default function AdminCalendar() {
         if (session.session_mode === 'Group') {
             let cardClasses = "";
             if (session.status === 'Completed') {
-                cardClasses = "bg-slate-100 text-slate-700 border-slate-200";
+                cardClasses = "bg-emerald-50/80 text-emerald-950 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-200 dark:border-emerald-700";
             } else if (session.status === 'Cancelled' || session.status === 'Rescheduled' || session.status === 'Reassigned') {
                 cardClasses = "bg-slate-100 text-slate-700 border-slate-200 opacity-60";
             } else {
                 cardClasses = "border-indigo-500 bg-indigo-50 text-indigo-900 dark:bg-indigo-950/30 dark:text-indigo-300 dark:border-indigo-800";
             }
-            const indicatorElement = (
+            const indicatorElement = session.status === 'Completed' ? (
+                <span className="flex items-center gap-1 text-[8px] font-bold text-emerald-600 dark:text-emerald-400 uppercase">
+                    <Check className="w-2.5 h-2.5 text-emerald-600" /> Group Done
+                </span>
+            ) : (
                 <span className="text-[8px] font-bold text-indigo-600 dark:text-indigo-400 uppercase">
                     👥 Group Planned
                 </span>
@@ -742,10 +779,10 @@ export default function AdminCalendar() {
 
         switch (state) {
             case 'completed':
-                cardClasses = "bg-slate-100 text-slate-700 border-slate-200";
+                cardClasses = "bg-emerald-50/80 text-emerald-950 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-200 dark:border-emerald-700 shadow-sm";
                 indicatorElement = (
-                    <span className="flex items-center gap-1 text-[8px] font-bold text-slate-500 uppercase">
-                        <Check className="w-2.5 h-2.5 text-slate-500" /> Completed
+                    <span className="flex items-center gap-1 text-[8px] font-black text-emerald-700 dark:text-emerald-400 uppercase tracking-tight">
+                        <Check className="w-2.5 h-2.5 text-emerald-600 dark:text-emerald-400 stroke-[3]" /> Completed
                     </span>
                 );
                 break;
@@ -1436,7 +1473,10 @@ export default function AdminCalendar() {
                                                         {layout.height < 45 ? (
                                                             <div className="flex flex-col justify-center h-full min-w-0">
                                                                 <div className="flex items-center justify-between gap-1 w-full">
-                                                                    <div className="font-bold text-[9px] truncate flex-1 leading-none">
+                                                                    <div className="font-bold text-[9px] truncate flex-1 leading-none flex items-center gap-1">
+                                                                        {event.status === 'Completed' && (
+                                                                            <span className="text-emerald-700 dark:text-emerald-400 shrink-0 font-black">✓</span>
+                                                                        )}
                                                                         {event.session_mode === 'Group' ? (
                                                                             <span>👥 {event.group_name || 'Group'}</span>
                                                                         ) : event.is_guest ? (
@@ -1445,9 +1485,16 @@ export default function AdminCalendar() {
                                                                             <span>{event.client?.first_name} {event.client?.last_name} ({(event.client as any)?.uhid || '-'})</span>
                                                                         )}
                                                                     </div>
-                                                                    <span className="text-[8px] opacity-75 font-semibold shrink-0 leading-none">
-                                                                        {event.service_type || "Session"}
-                                                                    </span>
+                                                                    <div className="flex items-center gap-1 shrink-0">
+                                                                        {event.status === 'Completed' && (
+                                                                            <span className="text-[7px] font-black uppercase px-1 py-0.5 bg-emerald-200/80 text-emerald-900 dark:bg-emerald-900/60 dark:text-emerald-300 rounded leading-none">
+                                                                                DONE
+                                                                            </span>
+                                                                        )}
+                                                                        <span className="text-[8px] opacity-75 font-semibold leading-none">
+                                                                            {event.service_type || "Session"}
+                                                                        </span>
+                                                                    </div>
                                                                 </div>
                                                             </div>
                                                         ) : (

@@ -43,17 +43,30 @@ export default function TaskReminderNotifier() {
     ? `${profile.first_name || ""} ${profile.last_name || ""}`.trim().toLowerCase()
     : (user?.email || "").toLowerCase();
 
-  // Check if task belongs/assigned to current user
+  // Check if task is assigned to current user
   const isTaskForCurrentUser = useCallback(
     (task: DailyTask) => {
-      if (!currentUserId && !currentUserName) return true; // If no user profile loaded yet, monitor all
+      if (!currentUserId && !currentUserName) return false;
+
+      // 1. Direct ID match
       if (task.assignee_id && String(task.assignee_id) === String(currentUserId)) return true;
-      if (task.assigner_id && String(task.assigner_id) === String(currentUserId)) return true;
-      if (task.creator_id && String(task.creator_id) === String(currentUserId)) return true;
-      if (task.assignee_name && currentUserName && task.assignee_name.toLowerCase().includes(currentUserName)) return true;
-      // Group task
-      if (task.task_type === "group") return true;
-      return true; // Allow all task reminders for staff awareness across modules
+
+      // 2. Direct Name match
+      if (task.assignee_name && currentUserName) {
+        const aName = task.assignee_name.toLowerCase().trim().replace(/^dr\.\s*/, "");
+        if (aName === currentUserName || aName.includes(currentUserName) || currentUserName.includes(aName)) return true;
+      }
+
+      // 3. Group task where user is a member
+      if (task.task_type === "group" && task.team_id) {
+        const teams = plannerStore.getTeams();
+        const team = teams.find((t) => t.id === task.team_id);
+        if (team && Array.isArray(team.member_ids) && team.member_ids.some((mid) => String(mid) === String(currentUserId))) {
+          return true;
+        }
+      }
+
+      return false;
     },
     [currentUserId, currentUserName]
   );

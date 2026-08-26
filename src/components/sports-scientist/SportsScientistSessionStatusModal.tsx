@@ -11,6 +11,7 @@ import { format, startOfDay, differenceInCalendarDays, parseISO, isFuture, isBef
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/contexts/AuthContext";
 import { Badge } from "@/components/ui/badge";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface Props {
     open: boolean;
@@ -64,6 +65,7 @@ function getSessionEditability(session: any): {
 }
 
 export function SportsScientistSessionStatusModal({ open, onOpenChange, session, onSuccess }: Props) {
+    const queryClient = useQueryClient();
     const { user } = useAuth();
     const { toast } = useToast();
     const [loading, setLoading] = useState(false);
@@ -206,6 +208,9 @@ export function SportsScientistSessionStatusModal({ open, onOpenChange, session,
                 });
                 
                 toast({ title: "Session Ended", description: "Session completed successfully." });
+                await queryClient.invalidateQueries({ queryKey: ["admin-master-sessions"] });
+                await queryClient.invalidateQueries({ queryKey: ["roster-sessions"] });
+                await queryClient.invalidateQueries({ queryKey: ["sports-scientist-sessions"] });
                 await onSuccess();
                 onOpenChange(false);
             } else if (action === "Missed") {
@@ -255,6 +260,9 @@ export function SportsScientistSessionStatusModal({ open, onOpenChange, session,
             }
 
             toast({ title: "Session Completed", description: "Actual timings recorded and balance updated." });
+            await queryClient.invalidateQueries({ queryKey: ["admin-master-sessions"] });
+            await queryClient.invalidateQueries({ queryKey: ["roster-sessions"] });
+            await queryClient.invalidateQueries({ queryKey: ["sports-scientist-sessions"] });
             await onSuccess();
             onOpenChange(false);
         } catch (error: any) {
@@ -358,6 +366,9 @@ export function SportsScientistSessionStatusModal({ open, onOpenChange, session,
                 title: timingsUpdated ? "Session Timings & Details Saved ✓" : "Session Saved ✓",
                 description: timingsUpdated ? "Session schedule timing updated successfully." : "Session details updated successfully."
             });
+            await queryClient.invalidateQueries({ queryKey: ["admin-master-sessions"] });
+            await queryClient.invalidateQueries({ queryKey: ["roster-sessions"] });
+            await queryClient.invalidateQueries({ queryKey: ["sports-scientist-sessions"] });
             await onSuccess();
             onOpenChange(false);
         } catch (error: any) {

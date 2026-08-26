@@ -148,8 +148,14 @@ export default function AppointmentList({ role, hideLayout = false }: { role: 'a
                                         <>
                                             <div className="hidden md:block w-px h-10 bg-slate-100" />
                                             <div className="flex flex-col gap-1">
-                                                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Client</p>
-                                                <VIPName name={`${apt.client?.first_name} ${apt.client?.last_name}`} isVIP={apt.client?.is_vip} className="text-sm font-bold text-slate-700" />
+                                                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                                                    {apt.session_mode === 'Group' ? 'Group' : 'Client'}
+                                                </p>
+                                                {apt.session_mode === 'Group' ? (
+                                                    <span className="text-sm font-bold text-slate-700">👥 {apt.group_name || 'Group Session'}</span>
+                                                ) : (
+                                                    <VIPName name={apt.client?.first_name ? `${apt.client.first_name} ${apt.client.last_name || ''}`.trim() : (apt.guest_name || 'Guest')} isVIP={apt.client?.is_vip} className="text-sm font-bold text-slate-700" />
+                                                )}
                                             </div>
                                         </>
                                     )}

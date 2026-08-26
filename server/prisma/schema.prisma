@@ -1418,3 +1418,64 @@ model teamcomms_scheduled_reports {
   @@index([organization_id], map: "idx_scheduled_reports_org")
 }
 
+model planner_daily_tasks {
+  id                String    @id
+  organization_id   String?   @db.Uuid
+  title             String
+  description       String?
+  date              String
+  time_mode         String?
+  start_time        String?
+  end_time          String?
+  has_time_slot     Boolean?  @default(false)
+  is_set_time       Boolean?  @default(false)
+  deadline          String?
+  deadline_time     String?
+  category          String?   @default("other")
+  priority          String?   @default("medium")
+  status            String?   @default("scheduled")
+  task_type         String?   @default("individual")
+  assigner_id       String?
+  assigner_name     String?
+  assignee_id       String?
+  assignee_name     String?
+  team_id           String?
+  team_name         String?
+  creator_id        String?
+  creator_name      String?
+  requires_approval Boolean?  @default(false)
+  approver_id       String?
+  approver_name     String?
+  approval_status   String?
+  approval_note     String?
+  rejection_reason  String?
+  reviewed_at       String?
+  completed_at      String?
+  created_at        DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at        DateTime? @default(now()) @db.Timestamptz(6)
+  deleted_at        DateTime? @db.Timestamptz(6)
+}
+
+model planner_teams {
+  id              String    @id
+  organization_id String?   @db.Uuid
+  name            String
+  code            String
+  department      String
+  description     String?
+  color           String?
+  lead_id         String?
+  lead_name       String?
+  member_ids      Json?     @default("[]")
+  created_at      DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime? @default(now()) @db.Timestamptz(6)
+  deleted_at      DateTime? @db.Timestamptz(6)
+}
+
+model planner_settings {
+  id              String    @id
+  organization_id String?   @db.Uuid
+  settings        Json
+  updated_at      DateTime? @default(now()) @db.Timestamptz(6)
+}
+

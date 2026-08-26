@@ -904,6 +904,7 @@ model Profile {
   hasCalendarAccess                          Boolean?                   @default(false) @map("has_calendar_access")
   hasAnalyticsAccess                         Boolean?                   @default(false) @map("has_analytics_access")
   hasAssignWorkAccess                        Boolean?                   @default(false) @map("has_assign_work_access")
+  allowedConsoles                            String?                    @map("allowed_consoles")
   availabilityexceptions                     AvailabilityException[]
   bulkAssignments                            BulkAssignment[]
   clientsClientsPrimaryScientistIdToprofiles Client[]                   @relation("clients_primary_scientist_idToprofiles")
@@ -1610,4 +1611,157 @@ model TeamcommsScheduledReport {
 
   @@index([organizationId], map: "idx_scheduled_reports_org")
   @@map("teamcomms_scheduled_reports")
+}
+
+model PlannerProject {
+  id                    String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId        String?                @map("organization_id") @db.Uuid
+  name                  String
+  code                  String
+  description           String?
+  department            String?                @default("General")
+  priority              String?                @default("medium")
+  health                String?                @default("on_track")
+  status                String?                @default("active")
+  progress              Int?                   @default(0)
+  startDate             DateTime?              @map("start_date") @db.Date
+  targetDate            DateTime?              @map("target_date") @db.Date
+  budget                Decimal?               @default(0.00) @db.Decimal(15, 2)
+  currency              String?                @default("INR")
+  ownerId               String?                @map("owner_id") @db.Uuid
+  managerId             String?                @map("manager_id") @db.Uuid
+  portfolioId           String?                @map("portfolio_id") @db.Uuid
+  createdAt             DateTime?              @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime?              @default(now()) @map("updated_at") @db.Timestamptz(6)
+  deletedAt             DateTime?              @map("deleted_at") @db.Timestamptz(6)
+  plannerWorkstreams    PlannerWorkstream[]
+  plannerWorkItems      PlannerWorkItem[]
+
+  @@map("planner_projects")
+}
+
+model PlannerWorkstream {
+  id                  String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  projectId           String?                @map("project_id") @db.Uuid
+  name                String
+  color               String?                @default("hsl(251 74% 60%)")
+  sortOrder           Int?                   @default(0) @map("sort_order")
+  createdAt           DateTime?              @default(now()) @map("created_at") @db.Timestamptz(6)
+  plannerProject      PlannerProject?        @relation(fields: [projectId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  plannerWorkItems    PlannerWorkItem[]
+
+  @@map("planner_workstreams")
+}
+
+model PlannerWorkItem {
+  id                    String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  projectId             String?                @map("project_id") @db.Uuid
+  workstreamId          String?                @map("workstream_id") @db.Uuid
+  parentId              String?                @map("parent_id") @db.Uuid
+  title                 String
+  description           String?
+  status                String?                @default("planned")
+  priority              String?                @default("medium")
+  assigneeId            String?                @map("assignee_id") @db.Uuid
+  creatorId             String?                @map("creator_id") @db.Uuid
+  sprintId              String?                @map("sprint_id") @db.Uuid
+  startDate             DateTime?              @map("start_date") @db.Date
+  dueDate               DateTime?              @map("due_date") @db.Date
+  estimatedHours        Decimal?               @default(0.00) @map("estimated_hours") @db.Decimal(8, 2)
+  actualHours           Decimal?               @default(0.00) @map("actual_hours") @db.Decimal(8, 2)
+  isMilestone           Boolean?               @default(false) @map("is_milestone")
+  isCritical            Boolean?               @default(false) @map("is_critical")
+  sortOrder             Int?                   @default(0) @map("sort_order")
+  createdAt             DateTime?              @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime?              @default(now()) @map("updated_at") @db.Timestamptz(6)
+  deletedAt             DateTime?              @map("deleted_at") @db.Timestamptz(6)
+  plannerProject        PlannerProject?        @relation(fields: [projectId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  plannerWorkstream     PlannerWorkstream?     @relation(fields: [workstreamId], references: [id], onUpdate: NoAction)
+  parent                PlannerWorkItem?       @relation("WorkItemHierarchy", fields: [parentId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  children              PlannerWorkItem[]      @relation("WorkItemHierarchy")
+  predecessorDeps       PlannerDependency[]    @relation("WorkItemPredecessor")
+  successorDeps         PlannerDependency[]    @relation("WorkItemSuccessor")
+
+  @@map("planner_work_items")
+}
+
+model PlannerDependency {
+  id              String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  predecessorId   String           @map("predecessor_id") @db.Uuid
+  successorId     String           @map("successor_id") @db.Uuid
+  type            String?          @default("FS")
+  lagDays         Int?             @default(0) @map("lag_days")
+  createdAt       DateTime?        @default(now()) @map("created_at") @db.Timestamptz(6)
+  predecessor     PlannerWorkItem  @relation("WorkItemPredecessor", fields: [predecessorId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  successor       PlannerWorkItem  @relation("WorkItemSuccessor", fields: [successorId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([predecessorId, successorId])
+  @@map("planner_dependencies")
+}
+
+model PlannerDailyTask {
+  id               String    @id
+  organizationId   String?   @map("organization_id") @db.Uuid
+  title            String
+  description      String?
+  date             String
+  timeMode         String?   @map("time_mode")
+  startTime        String?   @map("start_time")
+  endTime          String?   @map("end_time")
+  hasTimeSlot      Boolean?  @default(false) @map("has_time_slot")
+  isSetTime        Boolean?  @default(false) @map("is_set_time")
+  deadline         String?
+  deadlineTime     String?   @map("deadline_time")
+  category         String?   @default("other")
+  priority         String?   @default("medium")
+  status           String?   @default("scheduled")
+  taskType         String?   @default("individual") @map("task_type")
+  assignerId       String?   @map("assigner_id")
+  assignerName     String?   @map("assigner_name")
+  assigneeId       String?   @map("assignee_id")
+  assigneeName     String?   @map("assignee_name")
+  teamId           String?   @map("team_id")
+  teamName         String?   @map("team_name")
+  creatorId        String?   @map("creator_id")
+  creatorName      String?   @map("creator_name")
+  requiresApproval Boolean?  @default(false) @map("requires_approval")
+  approverId       String?   @map("approver_id")
+  approverName     String?   @map("approver_name")
+  approvalStatus   String?   @map("approval_status")
+  approvalNote     String?   @map("approval_note")
+  rejectionReason  String?   @map("rejection_reason")
+  reviewedAt       String?   @map("reviewed_at")
+  completedAt      String?   @map("completed_at")
+  createdAt        DateTime? @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime? @default(now()) @map("updated_at") @db.Timestamptz(6)
+  deletedAt        DateTime? @map("deleted_at") @db.Timestamptz(6)
+
+  @@map("planner_daily_tasks")
+}
+
+model PlannerTeam {
+  id             String    @id
+  organizationId String?   @map("organization_id") @db.Uuid
+  name           String
+  code           String
+  department     String
+  description    String?
+  color          String?
+  leadId         String?   @map("lead_id")
+  leadName       String?   @map("lead_name")
+  memberIds      Json?     @default("[]") @map("member_ids")
+  createdAt      DateTime? @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime? @default(now()) @map("updated_at") @db.Timestamptz(6)
+  deletedAt      DateTime? @map("deleted_at") @db.Timestamptz(6)
+
+  @@map("planner_teams")
+}
+
+model PlannerSetting {
+  id             String    @id
+  organizationId String?   @map("organization_id") @db.Uuid
+  settings       Json
+  updatedAt      DateTime? @default(now()) @map("updated_at") @db.Timestamptz(6)
+
+  @@map("planner_settings")
 }

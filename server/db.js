@@ -179,6 +179,67 @@ async function runMigrations() {
           created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
           UNIQUE(predecessor_id, successor_id)
         );
+
+        CREATE TABLE IF NOT EXISTS planner_daily_tasks (
+          id TEXT PRIMARY KEY,
+          organization_id UUID,
+          title TEXT NOT NULL,
+          description TEXT,
+          date TEXT NOT NULL,
+          time_mode TEXT,
+          start_time TEXT,
+          end_time TEXT,
+          has_time_slot BOOLEAN DEFAULT FALSE,
+          is_set_time BOOLEAN DEFAULT FALSE,
+          deadline TEXT,
+          deadline_time TEXT,
+          category TEXT DEFAULT 'other',
+          priority TEXT DEFAULT 'medium',
+          status TEXT DEFAULT 'scheduled',
+          task_type TEXT DEFAULT 'individual',
+          assigner_id TEXT,
+          assigner_name TEXT,
+          assignee_id TEXT,
+          assignee_name TEXT,
+          team_id TEXT,
+          team_name TEXT,
+          creator_id TEXT,
+          creator_name TEXT,
+          requires_approval BOOLEAN DEFAULT FALSE,
+          approver_id TEXT,
+          approver_name TEXT,
+          approval_status TEXT,
+          approval_note TEXT,
+          rejection_reason TEXT,
+          reviewed_at TEXT,
+          completed_at TEXT,
+          created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+          deleted_at TIMESTAMPTZ
+        );
+
+        CREATE TABLE IF NOT EXISTS planner_teams (
+          id TEXT PRIMARY KEY,
+          organization_id UUID,
+          name TEXT NOT NULL,
+          code TEXT NOT NULL,
+          department TEXT NOT NULL,
+          description TEXT,
+          color TEXT,
+          lead_id TEXT,
+          lead_name TEXT,
+          member_ids JSONB DEFAULT '[]'::jsonb,
+          created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+          deleted_at TIMESTAMPTZ
+        );
+
+        CREATE TABLE IF NOT EXISTS planner_settings (
+          id TEXT PRIMARY KEY,
+          organization_id UUID,
+          settings JSONB NOT NULL,
+          updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+        );
       `);
     } catch (err) {
       console.error('[PLANNER MIGRATION ERROR]', err.message);
@@ -666,7 +727,10 @@ async function runMigrations() {
         ['attachments', "JSONB DEFAULT '[]'::jsonb"],
         ['session_type_id', 'UUID REFERENCES services(id) ON DELETE SET NULL'],
         ['rescheduled_from_session_id', 'UUID REFERENCES Sessions(id) ON DELETE SET NULL'],
-        ['rescheduled_to_session_id', 'UUID REFERENCES Sessions(id) ON DELETE SET NULL']
+        ['rescheduled_to_session_id', 'UUID REFERENCES Sessions(id) ON DELETE SET NULL'],
+        ['is_guest', 'BOOLEAN DEFAULT false'],
+        ['guest_name', 'TEXT'],
+        ['guest_contact', 'TEXT']
     ];
     for (const [col, type] of sessionCols) {
         try {

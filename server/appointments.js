@@ -13,7 +13,7 @@ router.get('/', requireAuth, async (req, res) => {
         }
         const { start, end, therapist_id, therapist_ids, scientist_id, specialist_id, client_id, status, is_unentitled, category } = req.query;
         let query = `
-            SELECT s.id, s.organization_id, s.client_id, s.scientist_id, s.entitlement_id, s.service_id, s.service_type, s.session_mode, s.scheduled_start, s.scheduled_end, s.actual_start, s.actual_end, s.status, s.cancellation_reason, s.is_unentitled, s.preference_type, s.is_flexible_routing, s.created_by, s.created_at, s.updated_at, s.group_name, s.session_location, s.session_notes, s.attachments, s.session_type_id,
+            SELECT s.id, s.organization_id, s.client_id, s.scientist_id, s.entitlement_id, s.service_id, s.service_type, s.session_mode, s.scheduled_start, s.scheduled_end, s.actual_start, s.actual_end, s.status, s.cancellation_reason, s.is_unentitled, s.preference_type, s.is_flexible_routing, s.created_by, s.created_at, s.updated_at, s.group_name, s.session_location, s.session_notes, s.attachments, s.session_type_id, s.is_guest, s.guest_name, s.guest_contact,
                    COALESCE(s.therapist_id, s.scientist_id) as therapist_id,
                     CASE WHEN s.client_id IS NOT NULL THEN
                        json_build_object(
@@ -100,7 +100,39 @@ router.get('/', requireAuth, async (req, res) => {
         query += ' ORDER BY s.scheduled_start ASC';
 
         const result = await db.query(query, params);
-        res.json(result.rows);
+
+        // Deduplicate any redundant sessions for the same client/group & practitioner at the same scheduled slot, prioritizing Completed
+        const dedupedRows = [];
+        const seenKeyMap = new Map();
+
+        for (const row of result.rows) {
+            const isGrp = row.session_mode === 'Group' || Boolean(row.group_name);
+            const targetEntity = isGrp
+                ? `grp:${(row.group_name || '').trim().toLowerCase()}`
+                : (row.client_id ? `cli:${row.client_id}` : (row.guest_name ? `gst:${row.guest_name}` : null));
+            const providerKey = row.therapist_id || row.scientist_id || 'none';
+            const startKey = row.scheduled_start ? new Date(row.scheduled_start).toISOString() : '';
+
+            if (!targetEntity || !startKey) {
+                dedupedRows.push(row);
+                continue;
+            }
+
+            const key = `${targetEntity}|${providerKey}|${startKey}`;
+            if (seenKeyMap.has(key)) {
+                const existingIdx = seenKeyMap.get(key);
+                const existingRow = dedupedRows[existingIdx];
+                // Prioritize Completed session over Planned or others
+                if (row.status === 'Completed' && existingRow.status !== 'Completed') {
+                    dedupedRows[existingIdx] = row;
+                }
+            } else {
+                seenKeyMap.set(key, dedupedRows.length);
+                dedupedRows.push(row);
+            }
+        }
+
+        res.json(dedupedRows);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
@@ -312,6 +344,20 @@ router.post('/:id/complete', requireAuth, async (req, res) => {
                 'UPDATE cliententitlements SET sessions_used = sessions_used + 1 WHERE id = $1',
                 [entitlementId]
             );
+        }
+
+        // 4.5 Clean up any lingering duplicate Planned sessions for this client & provider at this exact slot
+        const providerId = session.therapist_id || session.scientist_id;
+        if (session.client_id && providerId && session.scheduled_start) {
+            await client.query(`
+                UPDATE sessions
+                SET status = 'Cancelled', cancellation_reason = 'Merged with completed session', updated_at = CURRENT_TIMESTAMP
+                WHERE organization_id = $1 AND client_id = $2
+                  AND (therapist_id = $3 OR scientist_id = $3)
+                  AND scheduled_start = $4
+                  AND id != $5
+                  AND status = 'Planned'
+            `, [orgId, session.client_id, providerId, session.scheduled_start, id]);
         }
 
         await client.query('COMMIT');

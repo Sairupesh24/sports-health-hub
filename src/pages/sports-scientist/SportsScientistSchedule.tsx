@@ -862,13 +862,21 @@ export default function SportsScientistSchedule() {
                 <SportsScientistBookSessionModal
                     open={isBookModalOpen}
                     onOpenChange={setIsBookModalOpen}
-                    onSuccess={refetch}
+                    onSuccess={async () => {
+                        await queryClient.invalidateQueries({ queryKey: ["admin-master-sessions"] });
+                        await queryClient.invalidateQueries({ queryKey: ["roster-sessions"] });
+                        await refetch();
+                    }}
                 />
 
                 <SportsScientistAssignWorkModal
                     open={isAssignModalOpen}
                     onOpenChange={setIsAssignModalOpen}
-                    onSuccess={refetch}
+                    onSuccess={async () => {
+                        await queryClient.invalidateQueries({ queryKey: ["admin-master-sessions"] });
+                        await queryClient.invalidateQueries({ queryKey: ["roster-sessions"] });
+                        await refetch();
+                    }}
                 />
 
                 <SportsScientistSessionStatusModal
@@ -876,7 +884,10 @@ export default function SportsScientistSchedule() {
                     onOpenChange={(open) => !open && setSelectedSession(null)}
                     session={selectedSession}
                     onSuccess={async () => {
+                        await queryClient.invalidateQueries({ queryKey: ["admin-master-sessions"] });
+                        await queryClient.invalidateQueries({ queryKey: ["roster-sessions"] });
                         await queryClient.invalidateQueries({ queryKey: ["sports-scientist-sessions"] });
+                        await refetch();
                     }}
                 />
 
@@ -886,7 +897,10 @@ export default function SportsScientistSchedule() {
                     currentDate={currentDate}
                     sessions={sessions}
                     onSuccess={async () => {
+                        await queryClient.invalidateQueries({ queryKey: ["admin-master-sessions"] });
+                        await queryClient.invalidateQueries({ queryKey: ["roster-sessions"] });
                         await queryClient.invalidateQueries({ queryKey: ["sports-scientist-sessions"] });
+                        await refetch();
                     }}
                 />
             </div>

@@ -133,10 +133,23 @@ class PlannerStore {
   private members: TeamMember[] = [];
   private settings: PlannerSettingsData = DEFAULT_PLANNER_SETTINGS;
   private listeners: (() => void)[] = [];
+  private isSyncing = false;
 
   constructor() {
     this.loadStore();
     this.fetchRealEmployeesFromAPI();
+    this.syncWithServer();
+
+    // Auto-sync when window regains focus (e.g. user switches tabs / devices)
+    if (typeof window !== "undefined") {
+      window.addEventListener("focus", () => {
+        this.syncWithServer();
+      });
+      // Polling every 25 seconds for cross-device updates
+      setInterval(() => {
+        this.syncWithServer();
+      }, 25000);
+    }
   }
 
   private loadStore() {
@@ -166,6 +179,74 @@ class PlannerStore {
       this.teams = DEFAULT_TEAMS;
       this.members = [];
       this.settings = DEFAULT_PLANNER_SETTINGS;
+    }
+  }
+
+  // Bidirectional synchronization between local cache and PostgreSQL backend
+  public async syncWithServer(): Promise<{ success: boolean; taskCount: number }> {
+    if (this.isSyncing) return { success: true, taskCount: this.tasks.length };
+    this.isSyncing = true;
+
+    try {
+      // 1. Sync daily tasks: upload local tasks (ensuring mobile tasks are saved) and retrieve all server tasks
+      const localTasks = [...this.tasks];
+      let serverTasks: DailyTask[] = [];
+
+      if (localTasks.length > 0) {
+        const syncRes = await apiFetch<{ tasks: DailyTask[] }>("/planner/daily-tasks/sync", {
+          method: "POST",
+          data: { tasks: localTasks },
+        });
+        serverTasks = syncRes.tasks || [];
+      } else {
+        const res = await apiFetch<{ tasks: DailyTask[] }>("/planner/daily-tasks");
+        serverTasks = res.tasks || [];
+      }
+
+      if (Array.isArray(serverTasks)) {
+        this.tasks = serverTasks;
+      }
+
+      // 2. Sync functional teams
+      try {
+        const teamsRes = await apiFetch<{ teams: any[] }>("/planner/teams");
+        if (Array.isArray(teamsRes.teams) && teamsRes.teams.length > 0) {
+          this.teams = teamsRes.teams.map((t) => ({
+            ...t,
+            member_ids: Array.isArray(t.member_ids)
+              ? t.member_ids
+              : typeof t.member_ids === "string"
+              ? JSON.parse(t.member_ids)
+              : [],
+          }));
+        } else if (this.teams.length > 0) {
+          // Push initial default teams to server if server is empty
+          for (const team of this.teams) {
+            apiFetch("/planner/teams", { method: "POST", data: team }).catch(() => {});
+          }
+        }
+      } catch (e) {
+        console.warn("[PlannerStore] Teams fetch error:", e);
+      }
+
+      // 3. Sync planner settings
+      try {
+        const settingsRes = await apiFetch<{ settings: PlannerSettingsData | null }>("/planner/settings");
+        if (settingsRes.settings) {
+          this.settings = { ...DEFAULT_PLANNER_SETTINGS, ...settingsRes.settings };
+        }
+      } catch (e) {
+        console.warn("[PlannerStore] Settings fetch error:", e);
+      }
+
+      this.saveStore();
+      this.notify();
+      return { success: true, taskCount: this.tasks.length };
+    } catch (e) {
+      console.warn("[PlannerStore] Server sync skipped (offline or unauthorized):", e);
+      return { success: false, taskCount: this.tasks.length };
+    } finally {
+      this.isSyncing = false;
     }
   }
 
@@ -266,6 +347,10 @@ class PlannerStore {
   public updateSettings(updates: Partial<PlannerSettingsData>): PlannerSettingsData {
     this.settings = { ...this.settings, ...updates };
     this.saveStore();
+    apiFetch("/planner/settings", {
+      method: "PUT",
+      data: { settings: this.settings },
+    }).catch((err) => console.warn("[PlannerStore] Error saving settings:", err));
     return { ...this.settings };
   }
 
@@ -312,6 +397,12 @@ class PlannerStore {
     };
     this.teams.push(newTeam);
     this.saveStore();
+
+    apiFetch("/planner/teams", {
+      method: "POST",
+      data: newTeam,
+    }).catch((err) => console.warn("[PlannerStore] Error creating team:", err));
+
     return newTeam;
   }
 
@@ -320,7 +411,26 @@ class PlannerStore {
     if (index === -1) return undefined;
     this.teams[index] = { ...this.teams[index], ...updates };
     this.saveStore();
+
+    apiFetch(`/planner/teams/${id}`, {
+      method: "PUT",
+      data: updates,
+    }).catch((err) => console.warn("[PlannerStore] Error updating team:", err));
+
     return this.teams[index];
+  }
+
+  public deleteTeam(id: string): boolean {
+    const initialLen = this.teams.length;
+    this.teams = this.teams.filter((t) => t.id !== id);
+    if (this.teams.length !== initialLen) {
+      this.saveStore();
+      apiFetch(`/planner/teams/${id}`, { method: "DELETE" }).catch((err) =>
+        console.warn("[PlannerStore] Error deleting team:", err)
+      );
+      return true;
+    }
+    return false;
   }
 
   // --- Daily Task Methods ---
@@ -365,6 +475,25 @@ class PlannerStore {
     };
     this.tasks.unshift(newTask);
     this.saveStore();
+
+    // Persist immediately to backend database
+    apiFetch<{ task: DailyTask }>("/planner/daily-tasks", {
+      method: "POST",
+      data: newTask,
+    })
+      .then((res) => {
+        if (res?.task?.id && res.task.id !== newTask.id) {
+          const idx = this.tasks.findIndex((t) => t.id === newTask.id);
+          if (idx !== -1) {
+            this.tasks[idx] = res.task;
+            this.saveStore();
+          }
+        }
+      })
+      .catch((err) => {
+        console.warn("[PlannerStore] Error saving task to database:", err);
+      });
+
     return newTask;
   }
 
@@ -380,6 +509,16 @@ class PlannerStore {
       task.completed_at = task.completed_at || getTodayString();
     }
     this.saveStore();
+
+    apiFetch(`/planner/daily-tasks/${id}`, {
+      method: "PUT",
+      data: {
+        status: task.status,
+        approval_status: task.approval_status,
+        completed_at: task.completed_at,
+      },
+    }).catch((err) => console.warn("[PlannerStore] Error updating task status:", err));
+
     return task;
   }
 
@@ -388,6 +527,12 @@ class PlannerStore {
     if (index === -1) return undefined;
     this.tasks[index] = { ...this.tasks[index], ...updates, updated_at: getTodayString() };
     this.saveStore();
+
+    apiFetch(`/planner/daily-tasks/${id}`, {
+      method: "PUT",
+      data: updates,
+    }).catch((err) => console.warn("[PlannerStore] Error updating task:", err));
+
     return this.tasks[index];
   }
 
@@ -396,6 +541,9 @@ class PlannerStore {
     this.tasks = this.tasks.filter((t) => t.id !== id);
     if (this.tasks.length !== initialLen) {
       this.saveStore();
+      apiFetch(`/planner/daily-tasks/${id}`, { method: "DELETE" }).catch((err) =>
+        console.warn("[PlannerStore] Error deleting task:", err)
+      );
       return true;
     }
     return false;
@@ -422,6 +570,18 @@ class PlannerStore {
     task.approver_name = approverName;
     task.reviewed_at = getTodayString();
     this.saveStore();
+
+    apiFetch(`/planner/daily-tasks/${id}`, {
+      method: "PUT",
+      data: {
+        approval_status: "approved",
+        status: "approved",
+        approval_note: task.approval_note,
+        approver_name: approverName,
+        reviewed_at: task.reviewed_at,
+      },
+    }).catch((err) => console.warn("[PlannerStore] Error approving task:", err));
+
     return task;
   }
 
@@ -435,6 +595,18 @@ class PlannerStore {
     task.approver_name = approverName;
     task.reviewed_at = getTodayString();
     this.saveStore();
+
+    apiFetch(`/planner/daily-tasks/${id}`, {
+      method: "PUT",
+      data: {
+        approval_status: "rejected",
+        status: "rejected",
+        rejection_reason: reason,
+        approver_name: approverName,
+        reviewed_at: task.reviewed_at,
+      },
+    }).catch((err) => console.warn("[PlannerStore] Error rejecting task:", err));
+
     return task;
   }
 }

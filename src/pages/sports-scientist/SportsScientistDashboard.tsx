@@ -70,6 +70,9 @@ export default function SportsScientistDashboard() {
                 title: "Session Ended",
                 description: "Session completed successfully & entitlement consumed."
             });
+            await queryClient.invalidateQueries({ queryKey: ["admin-master-sessions"] });
+            await queryClient.invalidateQueries({ queryKey: ["roster-sessions"] });
+            await queryClient.invalidateQueries({ queryKey: ["sports-scientist-sessions"] });
             await refetch();
         } catch (err: any) {
             toast({

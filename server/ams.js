@@ -459,23 +459,149 @@ router.post('/sessions/bulk', requireAuth, async (req, res) => {
                 }
             }
 
-            const keys = ['organization_id', 'created_by'];
-            const values = [orgId, userId];
-            let placeholders = ['$1', '$2'];
-            let idx = 3;
-
-            for (const [k, v] of Object.entries(session)) {
-                if (v !== undefined && !keys.includes(k)) {
-                    keys.push(k);
-                    values.push(v);
-                    placeholders.push(`$${idx}`);
-                    idx++;
-                }
+            // Check if an existing session already exists for this client/group, provider, and slot
+            let existingRes;
+            if (session.client_id) {
+                existingRes = await client.query(`
+                    SELECT * FROM Sessions
+                    WHERE organization_id = $1
+                      AND client_id = $2
+                      AND (therapist_id = $3 OR scientist_id = $3)
+                      AND scheduled_start = $4
+                      AND status NOT IN ('Cancelled', 'Deleted')
+                    LIMIT 1
+                `, [orgId, session.client_id, provider_id, session.scheduled_start]);
+            } else if (session.session_mode === 'Group' && (session.group_name || groupName)) {
+                existingRes = await client.query(`
+                    SELECT * FROM Sessions
+                    WHERE organization_id = $1
+                      AND session_mode = 'Group'
+                      AND group_name = $2
+                      AND (therapist_id = $3 OR scientist_id = $3)
+                      AND scheduled_start = $4
+                      AND status NOT IN ('Cancelled', 'Deleted')
+                    LIMIT 1
+                `, [orgId, session.group_name || groupName, provider_id, session.scheduled_start]);
             }
 
-            const query = `INSERT INTO Sessions (${keys.join(', ')}) VALUES (${placeholders.join(', ')}) RETURNING id`;
-            const sRes = await client.query(query, values);
-            insertedSessions.push({ id: sRes.rows[0].id });
+            if (existingRes && existingRes.rows.length > 0) {
+                // Update existing session in place without creating a new session card
+                const targetSession = existingRes.rows[0];
+                const targetSessionId = targetSession.id;
+                const updateFields = [];
+                const updateVals = [];
+                let uIdx = 1;
+
+                const updatable = [
+                    'status', 'actual_start', 'actual_end', 'session_notes',
+                    'cancellation_reason', 'service_id', 'service_type',
+                    'session_type_id', 'scheduled_end'
+                ];
+
+                for (const field of updatable) {
+                    if (session[field] !== undefined) {
+                        updateFields.push(`${field} = $${uIdx}`);
+                        updateVals.push(session[field]);
+                        uIdx++;
+                    }
+                }
+
+                // If marking Completed, ensure actual start and end are set
+                if (session.status === 'Completed') {
+                    if (session.actual_start === undefined && !targetSession.actual_start) {
+                        updateFields.push(`actual_start = $${uIdx}`);
+                        updateVals.push(session.scheduled_start);
+                        uIdx++;
+                    }
+                    if (session.actual_end === undefined && !targetSession.actual_end) {
+                        updateFields.push(`actual_end = $${uIdx}`);
+                        updateVals.push(session.scheduled_end || new Date(new Date(session.scheduled_start).getTime() + 60 * 60 * 1000).toISOString());
+                        uIdx++;
+                    }
+                }
+
+                updateFields.push(`updated_at = CURRENT_TIMESTAMP`);
+                updateVals.push(targetSessionId);
+                updateVals.push(orgId);
+
+                await client.query(`
+                    UPDATE Sessions
+                    SET ${updateFields.join(', ')}
+                    WHERE id = $${uIdx} AND organization_id = $${uIdx + 1}
+                `, updateVals);
+
+                // Entitlement deduction when transitioning to Completed
+                if (session.status === 'Completed' && targetSession.status !== 'Completed') {
+                    let entitlementId = targetSession.entitlement_id;
+                    let isUnentitled = targetSession.is_unentitled;
+
+                    if (!entitlementId && !isUnentitled && session.client_id) {
+                        const svcType = session.service_type || targetSession.service_type;
+                        const entRes = await client.query(`
+                            SELECT id FROM cliententitlements 
+                            WHERE client_id = $1 AND organization_id = $2 
+                            AND service_type = $3 AND status = 'active' AND (granted_sessions - sessions_used) > 0
+                            LIMIT 1
+                        `, [session.client_id, orgId, svcType]);
+
+                        if (entRes.rows.length > 0) {
+                            entitlementId = entRes.rows[0].id;
+                            await client.query(
+                                'UPDATE cliententitlements SET sessions_used = sessions_used + 1 WHERE id = $1',
+                                [entitlementId]
+                            );
+                            await client.query(
+                                'UPDATE sessions SET entitlement_id = $1, is_unentitled = false WHERE id = $2',
+                                [entitlementId, targetSessionId]
+                            );
+                        } else {
+                            await client.query(
+                                'UPDATE sessions SET is_unentitled = true WHERE id = $1',
+                                [targetSessionId]
+                            );
+                        }
+                    } else if (entitlementId && !isUnentitled) {
+                        await client.query(
+                            'UPDATE cliententitlements SET sessions_used = sessions_used + 1 WHERE id = $1',
+                            [entitlementId]
+                        );
+                    }
+                }
+
+                // If marked Completed, cancel any other lingering duplicate Planned session at this exact slot
+                if (session.status === 'Completed' && session.client_id && provider_id) {
+                    await client.query(`
+                        UPDATE sessions
+                        SET status = 'Cancelled', cancellation_reason = 'Merged with completed session', updated_at = CURRENT_TIMESTAMP
+                        WHERE organization_id = $1 AND client_id = $2
+                          AND (therapist_id = $3 OR scientist_id = $3)
+                          AND scheduled_start = $4
+                          AND id != $5
+                          AND status = 'Planned'
+                    `, [orgId, session.client_id, provider_id, session.scheduled_start, targetSessionId]);
+                }
+
+                insertedSessions.push({ id: targetSessionId });
+            } else {
+                // No existing session found, insert new session
+                const keys = ['organization_id', 'created_by'];
+                const values = [orgId, userId];
+                let placeholders = ['$1', '$2'];
+                let idx = 3;
+
+                for (const [k, v] of Object.entries(session)) {
+                    if (v !== undefined && !keys.includes(k)) {
+                        keys.push(k);
+                        values.push(v);
+                        placeholders.push(`$${idx}`);
+                        idx++;
+                    }
+                }
+
+                const query = `INSERT INTO Sessions (${keys.join(', ')}) VALUES (${placeholders.join(', ')}) RETURNING id`;
+                const sRes = await client.query(query, values);
+                insertedSessions.push({ id: sRes.rows[0].id });
+            }
         }
 
         // 2. If Group mode, create attendance rows and sync group architecture

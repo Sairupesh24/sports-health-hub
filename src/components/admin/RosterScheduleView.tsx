@@ -38,6 +38,20 @@ const ZOOM_CONFIGS: Record<ZoomLevel, {
     xl:  { colWidth: "w-[220px] min-w-[220px]", rowHeight: "h-36", textTiny: "text-[12px]"  },
 };
 
+function getSessionDisplayName(s: any): string {
+    const isGroup = s?.session_mode?.toLowerCase() === "group" || Boolean(s?.group_name);
+    if (isGroup) {
+        return s.group_name?.trim() || "Group Session";
+    }
+    if (s?.client?.first_name) {
+        return `${s.client.first_name} ${s.client.last_name || ""}`.trim();
+    }
+    if (s?.guest_name) {
+        return s.guest_name.trim();
+    }
+    return "Guest";
+}
+
 export function RosterScheduleView({ initialDate = new Date(), onClose }: RosterScheduleViewProps) {
     const { toast }                                   = useToast();
     const [selectedDate, setSelectedDate]             = useState<Date>(initialDate);
@@ -70,6 +84,7 @@ export function RosterScheduleView({ initialDate = new Date(), onClose }: Roster
         queryKey: ["roster-sessions", dateRange.start, dateRange.end],
         queryFn:  async () =>
             apiFetch<any[]>("/appointments", { params: { start: dateRange.start, end: dateRange.end } }),
+        refetchInterval: 10000,
     });
 
     // ── 1-hour time slots 05:00 – 20:00 ──────────────────────────────────────
@@ -120,7 +135,29 @@ export function RosterScheduleView({ initialDate = new Date(), onClose }: Roster
                 if (ssM < slE && seM > slS) {
                     const key = `${pid}-${slot}`;
                     if (!map[key]) map[key] = [];
-                    if (!map[key].some((x) => x.id === s.id)) map[key].push(s);
+
+                    const isGrp = s.session_mode?.toLowerCase() === "group" || Boolean(s.group_name);
+                    const entityKey = isGrp
+                        ? `grp:${(s.group_name || '').trim().toLowerCase()}`
+                        : (s.client_id ? `cli:${s.client_id}` : (s.guest_name ? `gst:${s.guest_name}` : `id:${s.id}`));
+
+                    const existingIdx = map[key].findIndex((x: any) => {
+                        if (x.id === s.id) return true;
+                        const xIsGrp = x.session_mode?.toLowerCase() === "group" || Boolean(x.group_name);
+                        const xEntityKey = xIsGrp
+                            ? `grp:${(x.group_name || '').trim().toLowerCase()}`
+                            : (x.client_id ? `cli:${x.client_id}` : (x.guest_name ? `gst:${x.guest_name}` : `id:${x.id}`));
+                        return xEntityKey === entityKey;
+                    });
+
+                    if (existingIdx !== -1) {
+                        // If current session is Completed and previous was not, replace
+                        if (s.status === "Completed" && map[key][existingIdx].status !== "Completed") {
+                            map[key][existingIdx] = s;
+                        }
+                    } else {
+                        map[key].push(s);
+                    }
                 }
             });
         });
@@ -207,10 +244,9 @@ export function RosterScheduleView({ initialDate = new Date(), onClose }: Roster
                     if (!items.length) return { content: "", styles: { fillColor: [255, 255, 255] } };
 
                     const lines = items.map((s: any) => {
-                        const name = s.client?.first_name
-                            ? `${s.client.first_name} ${s.client.last_name || ""}`.trim()
-                            : "Guest";
-                        const svc  = s.service_type ? s.service_type.substring(0, 14) : "Session";
+                        const name = getSessionDisplayName(s);
+                        const isGrp = s?.session_mode?.toLowerCase() === "group" || Boolean(s?.group_name);
+                        const svc  = s.service_type ? s.service_type.substring(0, 14) : (isGrp ? "Group Session" : "Session");
                         const flag = s.status === "Waitlisted" ? " [W]" : "";
                         return `${name}${flag}\n${svc}`;
                     });
@@ -457,36 +493,45 @@ export function RosterScheduleView({ initialDate = new Date(), onClose }: Roster
                                                             {has ? (
                                                                 <div className="flex flex-col gap-1 w-full">
                                                                     {list.map((session: any) => {
-                                                                        const isWait     = session.status === "Waitlisted";
-                                                                        const startD     = parseISO(session.scheduled_start);
-                                                                        const endD       = parseISO(session.scheduled_end);
-                                                                        const clientName = session.client?.first_name
-                                                                            ? `${session.client.first_name} ${session.client.last_name || ""}`.trim()
-                                                                            : "Guest";
+                                                                        const isWait      = session.status === "Waitlisted";
+                                                                        const isCompleted = session.status === "Completed";
+                                                                        const startD      = parseISO(session.scheduled_start);
+                                                                        const endD        = parseISO(session.scheduled_end);
+                                                                        const isGroup     = session.session_mode?.toLowerCase() === "group" || Boolean(session.group_name);
+                                                                        const clientName  = getSessionDisplayName(session);
                                                                         return (
                                                                             <Tooltip key={session.id} delayDuration={200}>
                                                                                 <TooltipTrigger asChild>
                                                                                     <div className={cn(
                                                                                         "rounded-md border p-1 flex flex-col truncate shrink-0 cursor-help transition-all",
                                                                                         isWait
-                                                                                            ? "bg-amber-500/10 text-amber-300 border-amber-500/40 hover:border-amber-400"
-                                                                                            : "bg-emerald-500/10 text-emerald-300 border-emerald-500/40 hover:border-emerald-400"
+                                                                                            ? "bg-amber-500/15 text-amber-300 border-amber-500/40 hover:border-amber-400"
+                                                                                            : isCompleted
+                                                                                                ? "bg-emerald-500/25 text-emerald-200 border-emerald-500/60 hover:border-emerald-400 shadow-sm"
+                                                                                                : "bg-sky-500/10 text-sky-200 border-sky-500/30 hover:border-sky-400"
                                                                                     )}>
-                                                                                        <span className={cn("font-black truncate uppercase leading-none", cfg.textTiny)}>{clientName}</span>
-                                                                                        <span className={cn("opacity-75 truncate leading-none mt-0.5", cfg.textTiny)}>{session.service_type || "Session"}</span>
+                                                                                        <span className={cn("font-black truncate uppercase leading-none flex items-center gap-1", cfg.textTiny)}>
+                                                                                            {isCompleted && <span className="text-emerald-400 font-black">✓</span>}
+                                                                                            <span className="truncate">{clientName}</span>
+                                                                                        </span>
+                                                                                        <span className={cn("opacity-75 truncate leading-none mt-0.5", cfg.textTiny)}>{session.service_type || (isGroup ? "Group Session" : "Session")}</span>
                                                                                         {zoomLevel !== "xs" && zoomLevel !== "sm" && (
-                                                                                            <span className={cn("opacity-50 font-bold uppercase leading-none mt-0.5", cfg.textTiny)}>
-                                                                                                {isWait ? "Waitlisted" : format(startD, "h:mm a")}
+                                                                                            <span className={cn("opacity-60 font-bold uppercase leading-none mt-0.5", cfg.textTiny)}>
+                                                                                                {isWait ? "Waitlisted" : isCompleted ? "Completed" : format(startD, "h:mm a")}
                                                                                             </span>
                                                                                         )}
                                                                                     </div>
                                                                                 </TooltipTrigger>
                                                                                 <TooltipContent side="top" className="bg-slate-900 border border-slate-700 text-slate-100 p-3 rounded-xl shadow-2xl max-w-xs z-50">
-                                                                                    <p className="font-extrabold text-sm leading-tight">{clientName}</p>
+                                                                                    <p className="font-extrabold text-sm leading-tight flex items-center gap-1.5">
+                                                                                        {isCompleted && <span className="text-emerald-400 font-black text-xs">✓</span>}
+                                                                                        <span>{clientName}</span>
+                                                                                    </p>
                                                                                     <div className="mt-1.5 space-y-0.5 text-[11px] text-slate-400">
-                                                                                        <p>Treatment: <span className="text-emerald-400 font-semibold">{session.service_type || "General Session"}</span></p>
+                                                                                        <p>{isGroup ? "Service" : "Treatment"}: <span className="text-emerald-400 font-semibold">{session.service_type || (isGroup ? "Group Session" : "General Session")}</span></p>
                                                                                         <p>Time: <span className="text-slate-200">{format(startD, "h:mm a")} – {format(endD, "h:mm a")}</span></p>
-                                                                                        <p>Status: <span className={cn("font-semibold capitalize", isWait ? "text-amber-400" : "text-emerald-400")}>{session.status}</span></p>
+                                                                                        <p>Status: <span className={cn("font-semibold capitalize", isWait ? "text-amber-400" : isCompleted ? "text-emerald-400" : "text-sky-300")}>{session.status}</span></p>
+                                                                                        {isGroup && session.group_name && <p>Group: <span className="text-slate-300">{session.group_name}</span></p>}
                                                                                         {session.client?.uhid && <p>UHID: <span className="text-slate-300">{session.client.uhid}</span></p>}
                                                                                     </div>
                                                                                 </TooltipContent>

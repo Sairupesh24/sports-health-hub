@@ -58,11 +58,30 @@ export function AnnouncementsManager({ open, onOpenChange }: AnnouncementsManage
         return unsubscribe;
     }, [open]);
 
+    const userFullName = profile ? `${profile.first_name || ""} ${profile.last_name || ""}`.trim().toLowerCase() : "";
+    const currentUserId = String(profile?.id || "");
+
     const activeTaskReminders = React.useMemo(() => {
-        return todayTasks.filter(
-            (t) => t.status !== "completed" && t.status !== "approved" && (t.start_time || t.deadline_time || t.time_mode === "set_time")
-        );
-    }, [todayTasks]);
+        return todayTasks.filter((t) => {
+            if (t.status === "completed" || t.status === "approved") return false;
+            if (!t.start_time && !t.deadline_time && t.time_mode !== "set_time") return false;
+
+            // Filter strictly by task assignment
+            if (t.assignee_id && currentUserId && String(t.assignee_id) === currentUserId) return true;
+            if (t.assignee_name && userFullName) {
+                const aName = t.assignee_name.toLowerCase().trim().replace(/^dr\.\s*/, "");
+                if (aName === userFullName || aName.includes(userFullName) || userFullName.includes(aName)) return true;
+            }
+            if (t.task_type === "group" && t.team_id) {
+                const teams = plannerStore.getTeams();
+                const team = teams.find((tm) => tm.id === t.team_id);
+                if (team && Array.isArray(team.member_ids) && team.member_ids.some((mid) => String(mid) === currentUserId)) {
+                    return true;
+                }
+            }
+            return false;
+        });
+    }, [todayTasks, profile, currentUserId, userFullName]);
 
     const { data: notifications = [], isLoading: listLoading } = useQuery({
         queryKey: ["staff-notifications-history", profile?.organization_id],

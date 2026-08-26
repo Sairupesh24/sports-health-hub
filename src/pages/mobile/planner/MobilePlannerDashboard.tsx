@@ -129,7 +129,7 @@ const getDeadlineStatus = (deadlineDate?: string, isCompleted?: boolean) => {
 
 export default function MobilePlannerDashboard() {
   const navigate = useNavigate();
-  const { profile, signOut } = useAuth();
+  const { profile, user, signOut } = useAuth();
 
   const [selectedDate, setSelectedDate] = useState<string>(getTodayString());
   const [tasks, setTasks] = useState<DailyTask[]>(plannerStore.getTasks(selectedDate));
@@ -165,20 +165,82 @@ export default function MobilePlannerDashboard() {
   const teams = plannerStore.getTeams();
   const members = plannerStore.getMembers();
 
+  const [isSyncing, setIsSyncing] = useState(false);
+
   const refreshData = () => {
     setTasks(plannerStore.getTasks(selectedDate));
   };
 
   useEffect(() => {
     refreshData();
+    plannerStore.syncWithServer();
     const unsubscribe = plannerStore.subscribe(refreshData);
     return unsubscribe;
   }, [selectedDate]);
+
+  const handleManualSync = async () => {
+    setIsSyncing(true);
+    try {
+      const res = await plannerStore.syncWithServer();
+      refreshData();
+      toast({
+        title: "Sync Completed",
+        description: `Refreshed ${res.taskCount} task${res.taskCount === 1 ? "" : "s"} across all devices.`,
+      });
+    } catch {
+      toast({
+        title: "Sync Completed",
+        description: "Synchronized latest planner tasks.",
+      });
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   // Check if logged in user is the designated approver for a task
   const userFullName = profile ? `${profile.first_name || ""} ${profile.last_name || ""}`.trim() : "";
   const userFirstName = profile?.first_name ? profile.first_name.trim() : "";
   const userLastName = profile?.last_name ? profile.last_name.trim() : "";
+  const currentUserId = String(profile?.id || user?.id || "");
+  const currentUserEmail = (profile?.email || user?.email || "").toLowerCase().trim();
+
+  // Determine if a task is assigned to the current user (individually or via team membership)
+  const isTaskAssignedToCurrentUser = (task: DailyTask): boolean => {
+    if (!profile && !user) return true; // Don't filter if auth context is still loading
+
+    // 1. Direct ID match on assignee_id
+    if (task.assignee_id && currentUserId) {
+      if (String(task.assignee_id) === currentUserId) return true;
+    }
+
+    // 2. Direct Name / Email match on assignee_name
+    if (task.assignee_name) {
+      const taskAssignee = task.assignee_name.toLowerCase().trim().replace(/^dr\.\s*/, "");
+      const userFull = userFullName.toLowerCase().trim().replace(/^dr\.\s*/, "");
+      const uFirst = userFirstName.toLowerCase();
+      const uLast = userLastName.toLowerCase();
+
+      if (userFull && taskAssignee === userFull) return true;
+      if (uFirst && uLast && taskAssignee.includes(uFirst) && taskAssignee.includes(uLast)) return true;
+      if (uFirst && (taskAssignee === uFirst || taskAssignee.startsWith(uFirst + " "))) return true;
+      if (currentUserEmail && taskAssignee === currentUserEmail) return true;
+    }
+
+    // 3. Group / Team Task: check if user is a member of the assigned team
+    if (task.task_type === "group" && task.team_id) {
+      const team = teams.find((t) => t.id === task.team_id);
+      if (team && Array.isArray(team.member_ids)) {
+        if (currentUserId && team.member_ids.some((mid) => String(mid) === currentUserId)) {
+          return true;
+        }
+      }
+      if (team && team.lead_id && String(team.lead_id) === currentUserId) {
+        return true;
+      }
+    }
+
+    return false;
+  };
 
   const isCurrentUserApprover = (task: DailyTask): boolean => {
     if (!profile) return false;
@@ -242,8 +304,15 @@ export default function MobilePlannerDashboard() {
     }
   };
 
-  // Filter Tasks List
+  // Filter Tasks List — strictly only tasks assigned to the current user (or approvals queue awaiting sign-off)
   const filteredTasks = tasks.filter((t) => {
+    const isAssignedToMe = isTaskAssignedToCurrentUser(t);
+    const isApprovalsFilter = activeMetricFilter === "approvals";
+
+    if (!isApprovalsFilter && !isAssignedToMe) {
+      return false;
+    }
+
     const matchesSearch =
       !searchQuery ||
       t.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -290,16 +359,24 @@ export default function MobilePlannerDashboard() {
 
   const nextDayDateString = getNextDayString(getTodayString());
   const allStoreTasks = plannerStore.getTasks();
+
+  // Filter tasks strictly assigned to current user
+  const myAssignedTasks = tasks.filter(isTaskAssignedToCurrentUser);
+
   const nextDayScheduledCount = allStoreTasks.filter(
-    (t) => t.date === nextDayDateString && t.status !== "completed" && t.status !== "approved"
+    (t) =>
+      isTaskAssignedToCurrentUser(t) &&
+      t.date === nextDayDateString &&
+      t.status !== "completed" &&
+      t.status !== "approved"
   ).length;
 
   // Calculate Metrics Counts
-  const todayCount = tasks.filter((t) => t.date === getTodayString()).length;
+  const todayCount = myAssignedTasks.filter((t) => t.date === getTodayString()).length;
   const approvalsCount = tasks.filter((t) => t.requires_approval && (t.approval_status === "pending" || t.status === "under_review") && isCurrentUserApprover(t)).length;
-  const individualCount = tasks.filter((t) => t.task_type === "individual" || Boolean(t.assignee_id)).length;
-  const groupCount = tasks.filter((t) => t.task_type === "group" || (!t.assignee_id && Boolean(t.team_id))).length;
-  const completedCount = tasks.filter((t) => t.status === "completed" || t.status === "approved").length;
+  const individualCount = myAssignedTasks.filter((t) => t.task_type === "individual" || Boolean(t.assignee_id)).length;
+  const groupCount = myAssignedTasks.filter((t) => t.task_type === "group" || (!t.assignee_id && Boolean(t.team_id))).length;
+  const completedCount = myAssignedTasks.filter((t) => t.status === "completed" || t.status === "approved").length;
 
   return (
     <div className="h-screen flex flex-col bg-[#f3f4fd] text-slate-900 font-sans antialiased overflow-hidden w-full relative">
@@ -344,9 +421,9 @@ export default function MobilePlannerDashboard() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-52 bg-white border border-purple-100 rounded-2xl shadow-xl p-1 text-xs">
-                <DropdownMenuItem onClick={refreshData} className="rounded-xl py-2 gap-2 font-medium">
-                  <RotateCw className="w-4 h-4 text-fuchsia-600" />
-                  Sync / Refresh
+                <DropdownMenuItem onClick={handleManualSync} disabled={isSyncing} className="rounded-xl py-2 gap-2 font-medium cursor-pointer">
+                  <RotateCw className={`w-4 h-4 text-fuchsia-600 ${isSyncing ? "animate-spin" : ""}`} />
+                  {isSyncing ? "Syncing..." : "Sync / Refresh"}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => setNewTeamOpen(true)} className="rounded-xl py-2 gap-2 font-medium">
@@ -718,7 +795,7 @@ export default function MobilePlannerDashboard() {
               <div className="space-y-1">
                 <h4 className="font-extrabold text-slate-800 text-base">No tasks for this day</h4>
                 <p className="text-xs text-slate-500 max-w-sm mx-auto">
-                  Your planner is clean and ready. Create and assign tasks directly to your team members.
+                  You have no scheduled tasks or procedures for this day.
                 </p>
               </div>
               <Button

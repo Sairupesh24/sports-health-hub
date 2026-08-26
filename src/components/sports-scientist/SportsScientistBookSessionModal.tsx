@@ -18,6 +18,8 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 
+import { useQueryClient } from "@tanstack/react-query";
+
 interface Props {
     open: boolean;
     onOpenChange: (open: boolean) => void;
@@ -25,6 +27,7 @@ interface Props {
 }
 
 export function SportsScientistBookSessionModal({ open, onOpenChange, onSuccess }: Props) {
+    const queryClient = useQueryClient();
     const { profile, user } = useAuth();
     const { toast } = useToast();
     const [loading, setLoading] = useState(false);
@@ -248,11 +251,15 @@ export function SportsScientistBookSessionModal({ open, onOpenChange, onSuccess 
 
             const sessionCount = sessionsToInsert.length;
             toast({ 
-                title: "Sessions Created", 
+                title: status === "Completed" ? "Session Logged" : "Sessions Created", 
                 description: sessionCount === 1 
-                    ? "Session booked successfully."
-                    : `${sessionCount} sessions booked successfully.`
+                    ? (status === "Completed" ? "Session marked as completed successfully." : "Session booked successfully.")
+                    : `${sessionCount} sessions saved successfully.`
             });
+            await queryClient.invalidateQueries({ queryKey: ["admin-master-sessions"] });
+            await queryClient.invalidateQueries({ queryKey: ["roster-sessions"] });
+            await queryClient.invalidateQueries({ queryKey: ["sports-scientist-sessions"] });
+            await queryClient.invalidateQueries({ queryKey: ["ss-sessions-log"] });
             onSuccess?.();
             onOpenChange(false);
             resetForm();
