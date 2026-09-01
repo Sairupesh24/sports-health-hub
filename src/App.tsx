@@ -81,6 +81,7 @@ import PublicQuestionnaireForm from "./pages/public/PublicQuestionnaireForm";
 // TeamComms Messenger
 import MessengerPage from "./pages/messenger/MessengerPage";
 import TeamCommsGlobalNotifier from "./components/messenger/TeamCommsGlobalNotifier";
+import { MessengerProvider } from "./contexts/MessengerContext";
 
 // OrbitFlow Planner
 import TeamsPage from "./pages/planner/TeamsPage";
@@ -141,10 +142,11 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <ErrorBoundary>
       <AuthProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
+        <MessengerProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/login" element={<LoginPage />} />
@@ -302,9 +304,10 @@ const App = () => (
             <TeamCommsGlobalNotifier />
           </BrowserRouter>
         </TooltipProvider>
-      </AuthProvider>
-    </ErrorBoundary>
-  </QueryClientProvider>
+      </MessengerProvider>
+    </AuthProvider>
+  </ErrorBoundary>
+</QueryClientProvider>
 );
 
 export default App;

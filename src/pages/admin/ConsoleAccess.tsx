@@ -93,6 +93,7 @@ export default function ConsoleAccess() {
                     profession: u.profession,
                     ams_role: u.ams_role,
                     avatar_url: u.avatar_url,
+                    is_approved: u.is_approved !== undefined ? Boolean(u.is_approved) : true,
                     has_calendar_access: !!u.has_calendar_access,
                     has_analytics_access: !!u.has_analytics_access,
                     has_assign_work_access: !!u.has_assign_work_access,
@@ -187,6 +188,7 @@ export default function ConsoleAccess() {
             if (userId === currentAuthProfile?.id) {
                 await refreshAuth();
             }
+            window.dispatchEvent(new Event('auth_updated'));
 
             toast({
                 title: isCurrentlyGranted ? "Console Access Revoked" : "Console Access Granted",
@@ -222,6 +224,7 @@ export default function ConsoleAccess() {
             if (userId === currentAuthProfile?.id) {
                 await refreshAuth();
             }
+            window.dispatchEvent(new Event('auth_updated'));
 
             const featureNames = {
                 has_calendar_access: "Admin Calendar",

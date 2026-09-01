@@ -21,6 +21,7 @@ import { startNotificationBridge } from './notification_bridge.js';
 import { startScheduler } from './scheduler.js';
 import { requireAuth } from './middleware.js';
 import { db } from './db.js';
+import { sendPushToUser, sendPushToChannelMembers, ensurePushSubscriptionsTable } from './pushNotificationService.js';
 
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -96,8 +97,31 @@ io.on('connection', async (socket) => {
   socket.orgId = orgId;
   console.log(`[Socket.io] User ${userId} connected (org: ${orgId})`);
 
-  // Personal notification room
+  // Personal notification room and org broadcast room
   socket.join(`user:${userId}`);
+  if (orgId) socket.join(`org:${orgId}`);
+
+  // Auto-join all channels and DM threads the user belongs to
+  try {
+    const userChannels = await db.query(
+      `SELECT channel_id FROM channel_members WHERE user_id = $1`,
+      [userId]
+    );
+    userChannels.rows.forEach((r) => {
+      socket.join(`channel:${r.channel_id}`);
+      if (orgId) socket.join(`${orgId}:${r.channel_id}`);
+    });
+
+    const userDMs = await db.query(
+      `SELECT id FROM direct_message_threads WHERE user_a = $1 OR user_b = $1`,
+      [userId]
+    );
+    userDMs.rows.forEach((r) => {
+      socket.join(`dm:${r.id}`);
+    });
+  } catch (err) {
+    console.error('[Socket.io] Error auto-joining user rooms:', err.message);
+  }
 
   // Join a channel room
   socket.on('join_channel', async ({ channel_id }) => {
@@ -176,8 +200,47 @@ io.on('connection', async (socket) => {
       };
 
       if (channel_id) {
-        if (effectiveOrgId) io.to(`${effectiveOrgId}:${channel_id}`).emit('new_message', message);
+        if (effectiveOrgId) {
+          io.to(`${effectiveOrgId}:${channel_id}`).emit('new_message', message);
+          io.to(`org:${effectiveOrgId}`).emit('new_message', message);
+        }
         io.to(`channel:${channel_id}`).emit('new_message', message);
+
+        // Also ensure all channel members receive the message in their personal rooms
+        try {
+          const memRes = await db.query(
+            `SELECT user_id FROM channel_members WHERE channel_id = $1`, [channel_id]
+          );
+          memRes.rows.forEach((m) => {
+            io.to(`user:${m.user_id}`).emit('new_message', message);
+          });
+        } catch (memErr) {
+          console.error('[Socket.io] Error broadcasting to channel member rooms:', memErr);
+        }
+
+        // Web Push notification to offline / background / locked mobile channel members
+        (async () => {
+          try {
+            const chRes = await db.query(`SELECT name FROM chat_channels WHERE id = $1`, [channel_id]);
+            const channelName = chRes.rows[0]?.name || 'general';
+            const senderName = `${profile.rows[0]?.first_name || 'Team'} ${profile.rows[0]?.last_name || 'Member'}`.trim();
+            const previewText = content || (savedAttachments.length > 0 ? `📎 ${savedAttachments[0].file_name}` : 'Sent an attachment');
+            await sendPushToChannelMembers(channel_id, userId, {
+              title: `#${channelName} • ${senderName}`,
+              body: previewText,
+              icon: profile.rows[0]?.avatar_url || '/logo.png',
+              badge: '/favicon.svg',
+              data: {
+                url: `/messenger?channel=${channel_id}`,
+                channelId: channel_id,
+                type: 'channel',
+              },
+              tag: `channel-${channel_id}`,
+            });
+          } catch (pushErr) {
+            console.error('[WebPush] Error sending channel push notification:', pushErr);
+          }
+        })();
       } else if (dm_thread_id) {
         // Update direct_message_threads timestamp
         await db.query(
@@ -191,23 +254,49 @@ io.on('connection', async (socket) => {
         );
         if (thread.rows.length > 0) {
           const t = thread.rows[0];
-          const otherId = t.user_a === userId ? t.user_b : t.user_a;
+          const otherId = String(t.user_a) === String(userId) ? String(t.user_b) : String(t.user_a);
 
           // Emit to both users and dm room
           io.to(`user:${otherId}`).emit('new_dm_message', message);
           io.to(`user:${otherId}`).emit('new_message', message);
           io.to(`user:${userId}`).emit('new_dm_message', message);
+          io.to(`user:${userId}`).emit('new_message', message);
           io.to(`dm:${dm_thread_id}`).emit('new_dm_message', message);
+          io.to(`dm:${dm_thread_id}`).emit('new_message', message);
           socket.emit('new_dm_message', message);
+          socket.emit('new_message', message);
+
+          const senderName = `${profile.rows[0]?.first_name || 'Team'} ${profile.rows[0]?.last_name || 'Member'}`.trim();
+          const previewText = content || (savedAttachments.length > 0 ? `📎 ${savedAttachments[0].file_name}` : 'Sent a file');
 
           // Emit instant notification event to receiver
           io.to(`user:${otherId}`).emit('dm_notification', {
             dm_thread_id,
             sender_id: userId,
-            sender_name: `${profile.rows[0]?.first_name || 'Team'} ${profile.rows[0]?.last_name || 'Member'}`.trim(),
-            content: content || (savedAttachments.length > 0 ? `📎 ${savedAttachments[0].file_name}` : 'Sent a file'),
+            sender_name: senderName,
+            content: previewText,
             created_at: new Date().toISOString()
           });
+
+          // Web Push notification to receiver (wakes up locked mobile or closed browser)
+          (async () => {
+            try {
+              await sendPushToUser(otherId, {
+                title: `New DM from ${senderName}`,
+                body: previewText,
+                icon: profile.rows[0]?.avatar_url || '/logo.png',
+                badge: '/favicon.svg',
+                data: {
+                  url: `/messenger?dm=${dm_thread_id}`,
+                  threadId: dm_thread_id,
+                  type: 'dm',
+                },
+                tag: `dm-${dm_thread_id}`,
+              });
+            } catch (pushErr) {
+              console.error('[WebPush] Error sending DM push notification:', pushErr);
+            }
+          })();
         }
       }
     } catch (err) {

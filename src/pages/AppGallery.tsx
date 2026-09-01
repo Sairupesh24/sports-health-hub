@@ -353,6 +353,8 @@ export default function AppGallery() {
                       sessionStorage.setItem("active_console", "foe");
                     } else if (mod.id === "admin") {
                       sessionStorage.setItem("active_console", "admin");
+                    } else if (mod.id === "settings") {
+                      sessionStorage.setItem("active_console", "settings");
                     } else if (mod.id === "hr") {
                       sessionStorage.setItem("active_console", "hr");
                     } else if (mod.id === "ams") {
@@ -361,6 +363,12 @@ export default function AppGallery() {
                       sessionStorage.setItem("active_console", "consultant");
                     } else if (mod.id === "nutritionist") {
                       sessionStorage.setItem("active_console", "nutritionist");
+                    } else if (mod.id === "super_admin") {
+                      sessionStorage.setItem("active_console", "super_admin");
+                    } else if (mod.id === "questionnaires") {
+                      sessionStorage.setItem("active_console", "questionnaires");
+                    } else if (mod.id === "client") {
+                      sessionStorage.setItem("active_console", "client");
                     }
                     navigate(mod.href);
                   }}

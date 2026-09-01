@@ -8,6 +8,7 @@
  */
 
 import { db } from './db.js';
+import { sendPushToUser } from './pushNotificationService.js';
 
 // ─────────────────────────────────────────────────────────────
 // HubBot message poster
@@ -120,6 +121,25 @@ async function postBotDM(orgId, targetUserId, messageType, content, metadata, io
         created_at: new Date().toISOString(),
       });
     }
+
+    // Web Push notification to target user
+    (async () => {
+      try {
+        await sendPushToUser(targetUserId, {
+          title: 'HubBot • Automated Alert',
+          body: content || 'You have a new system alert in TeamComms',
+          icon: '/logo.png',
+          badge: '/favicon.svg',
+          data: {
+            url: metadata?.action_url || `/messenger?channel=${channelId}`,
+            type: 'system',
+          },
+          tag: `bot-${Date.now()}`,
+        });
+      } catch (pushErr) {
+        console.error('[WebPush] Error sending bot DM push:', pushErr);
+      }
+    })();
   } catch (err) {
     console.error('[NotificationBridge] Error posting bot DM:', err);
   }

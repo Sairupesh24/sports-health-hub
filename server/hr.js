@@ -776,11 +776,15 @@ router.patch('/users/:id/role', requireAuth, async (req, res) => {
 
         await client.query('COMMIT');
 
-        // Notify the affected user about their role/profession change
+        // Notify the affected user about their role/profession/permissions change
         const changeDetails = [];
         if (role) changeDetails.push(`Role: ${role}`);
         if (profession !== undefined) changeDetails.push(`Profession: ${profession || 'N/A'}`);
         if (ams_role !== undefined) changeDetails.push(`AMS Role: ${ams_role || 'N/A'}`);
+        if (has_calendar_access !== undefined) changeDetails.push(`Calendar Access: ${has_calendar_access ? 'Enabled' : 'Disabled'}`);
+        if (has_analytics_access !== undefined) changeDetails.push(`Analytics Access: ${has_analytics_access ? 'Enabled' : 'Disabled'}`);
+        if (has_assign_work_access !== undefined) changeDetails.push(`Work Assignment: ${has_assign_work_access ? 'Enabled' : 'Disabled'}`);
+        if (allowed_consoles !== undefined) changeDetails.push(`Console Access Permissions Updated`);
 
         if (changeDetails.length > 0) {
             await db.query(`

@@ -1755,7 +1755,21 @@ async function runMigrations() {
         description TEXT,
         created_by UUID REFERENCES users(id),
         created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
-      )
+      );
+
+      -- Web Push Subscriptions (TeamComms & system alerts)
+      CREATE TABLE IF NOT EXISTS user_push_subscriptions (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+        endpoint TEXT NOT NULL,
+        p256dh TEXT NOT NULL,
+        auth TEXT NOT NULL,
+        user_agent TEXT,
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        updated_at TIMESTAMPTZ DEFAULT NOW(),
+        UNIQUE (user_id, endpoint)
+      );
+      CREATE INDEX IF NOT EXISTS idx_push_subs_user ON user_push_subscriptions(user_id);
     `);
 
     // Generate UHID Function

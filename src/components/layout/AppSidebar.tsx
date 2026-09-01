@@ -44,6 +44,7 @@ interface NavItem {
 
 const adminNav: NavItem[] = [
   { label: "Dashboard", icon: LayoutDashboard, href: "/admin" },
+  { label: "Staff Efficiency", icon: TrendingUp, href: "/admin/analytics/managerial" },
   { label: "Clients", icon: Users, href: "/admin/clients" },
   { label: "Billing", icon: CreditCard, href: "/admin/billing" },
   { label: "Calendar", icon: CalendarDays, href: "/admin/calendar" },
@@ -88,6 +89,7 @@ const sportsScientistNav: NavItem[] = [
 
 const managerNav: NavItem[] = [
   { label: "Dashboard", icon: LayoutDashboard, href: "/admin" },
+  { label: "Staff Efficiency", icon: TrendingUp, href: "/admin/analytics/managerial" },
   { label: "Clients", icon: Users, href: "/admin/clients" },
   { label: "Calendar", icon: CalendarDays, href: "/admin/calendar" },
   { label: "Reports", icon: ClipboardList, href: "/admin/reports" },
@@ -135,6 +137,20 @@ const nutritionistNav: NavItem[] = [
   { label: "Attendance", icon: CalendarClock, href: "/my-attendance" },
 ];
 
+const questionnairesNav: NavItem[] = [
+  { label: "Forms & Assessments", icon: ClipboardList, href: "/ams/questionnaires" },
+  { label: "Batch Testing", icon: Target, href: "/ams/batch-tests" },
+];
+
+const coachNav: NavItem[] = [
+  { label: "AMS Dashboard", icon: LayoutDashboard, href: "/ams/coach-dashboard" },
+  { label: "Programs", icon: Dumbbell, href: "/ams/programs" },
+  { label: "Feed", icon: Activity, href: "/ams/feed" },
+  { label: "Calendar", icon: CalendarDays, href: "/ams/calendar" },
+  { label: "Exercise Library", icon: ClipboardList, href: "/ams/exercises" },
+  { label: "Batch Testing", icon: Target, href: "/ams/batch-tests" },
+];
+
 const navMap: Record<string, NavItem[]> = {
   super_admin: superAdminNav,
   admin: adminNav,
@@ -148,6 +164,48 @@ const navMap: Record<string, NavItem[]> = {
   hr_manager: hrNav,
   sports_physician: consultantNav,
   nutritionist: nutritionistNav,
+  coach: coachNav,
+  settings: settingsNav,
+  questionnaires: questionnairesNav,
+};
+
+const getPrimaryConsole = (userRoles: string[] = [], userProfile: any = null, explicitRole?: string): string => {
+  if (explicitRole && explicitRole.trim()) {
+    if (["consultant", "physiotherapist", "sports_physician", "massage_therapist"].includes(explicitRole)) return "consultant";
+    if (explicitRole === "sports_scientist") return "sports_scientist";
+    if (explicitRole === "nutritionist") return "nutritionist";
+    if (explicitRole === "hr_manager") return "hr_manager";
+    if (explicitRole === "foe") return "foe";
+    if (explicitRole === "super_admin") return "super_admin";
+    if (explicitRole === "admin") return "admin";
+    if (explicitRole === "coach") return "coach";
+    if (explicitRole === "client" || explicitRole === "athlete") return "client";
+  }
+
+  const prof = (userProfile?.profession || userProfile?.role || "").toLowerCase();
+  const amsRole = (userProfile?.ams_role || "").toLowerCase();
+
+  if (userRoles.includes("super_admin")) return "super_admin";
+  if (userRoles.includes("admin")) return "admin";
+  if (userRoles.includes("hr_manager") || prof.includes("hr")) return "hr_manager";
+  if (userRoles.includes("nutritionist") || prof.includes("nutrition")) return "nutritionist";
+  if (userRoles.includes("sports_scientist") || amsRole === "sports_scientist" || prof.includes("sports_scientist") || prof.includes("scientist")) return "sports_scientist";
+  if (
+    userRoles.includes("physiotherapist") ||
+    userRoles.includes("sports_physician") ||
+    userRoles.includes("consultant") ||
+    userRoles.includes("massage_therapist") ||
+    prof.includes("physio") ||
+    prof.includes("physician")
+  ) {
+    return "consultant";
+  }
+  if (userRoles.includes("foe") || prof.includes("front office") || prof.includes("reception")) return "foe";
+  if (amsRole === "coach" || userRoles.includes("coach")) return "coach";
+  if (userRoles.includes("athlete") || amsRole === "athlete") return "athlete";
+  if (userRoles.includes("client") || amsRole === "client") return "client";
+
+  return "consultant";
 };
 
 interface AppSidebarProps {
@@ -163,7 +221,7 @@ export default function AppSidebar({ role, isMobile, className, onNavigate }: Ap
 
   const location = useLocation();
   const navigate = useNavigate();
-  const { signOut, profile, roles, loading } = useAuth();
+  const { signOut, profile, roles, loading, refreshAuth } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -213,7 +271,7 @@ export default function AppSidebar({ role, isMobile, className, onNavigate }: Ap
     refetchInterval: 30000
   });
 
-  // Subscribe to SSE to invalidate pending-approvals-count in real-time
+  // Subscribe to SSE to invalidate pending-approvals-count and permissions in real-time
   useEffect(() => {
     if (!profile?.id || isMobile) return;
 
@@ -226,6 +284,7 @@ export default function AppSidebar({ role, isMobile, className, onNavigate }: Ap
     eventSource.onmessage = () => {
       try {
         queryClient.invalidateQueries({ queryKey: ["pending-approvals-count"] });
+        refreshAuth();
       } catch (err) {
         console.error('[SSE Sidebar] Failed to parse message:', err);
       }
@@ -238,96 +297,218 @@ export default function AppSidebar({ role, isMobile, className, onNavigate }: Ap
     return () => {
       eventSource.close();
     };
-  }, [profile?.id, isMobile, queryClient]);
+  }, [profile?.id, isMobile, queryClient, refreshAuth]);
 
   const items = useMemo(() => {
-    let activeConsoleItems: NavItem[] | null = null;
     const path = location.pathname;
+    const primaryConsole = getPrimaryConsole(roles, profile, resolvedRole || role);
 
-    const storedConsole = sessionStorage.getItem("active_console");
-    const isPureFoeUser = Boolean(roles?.includes("foe") && !roles?.includes("admin") && !roles?.includes("super_admin"));
-    const isFoeActive = (path === "/admin/foe" || path.startsWith("/admin/foe")) || (isPureFoeUser && path.startsWith("/admin")) || (storedConsole === "foe" && path.startsWith("/admin") && !path.startsWith("/admin/users") && !path.startsWith("/admin/settings") && !path.startsWith("/admin/permissions"));
-
-    if (isFoeActive && (path.startsWith('/admin') || path.startsWith('/my-attendance'))) {
-      activeConsoleItems = foeNav;
-    } else if (path.startsWith('/admin/settings') || path.startsWith('/admin/permissions')) {
-      activeConsoleItems = settingsNav;
-    } else if (path.startsWith('/hr')) {
-      activeConsoleItems = hrNav;
-    } else if (path.startsWith('/sports-scientist')) {
-      activeConsoleItems = sportsScientistNav;
-    } else if (path.startsWith('/consultant')) {
-      activeConsoleItems = consultantNav;
-    } else if (path.startsWith('/nutritionist')) {
-      activeConsoleItems = nutritionistNav;
-    } else if (path.startsWith('/ams/questionnaires') || path.startsWith('/ams/batch-tests')) {
-      activeConsoleItems = [
-        { label: "Forms & Assessments", icon: ClipboardList, href: "/ams/questionnaires" },
-        { label: "Batch Testing", icon: Target, href: "/ams/batch-tests" },
-      ];
-    } else if (path.startsWith('/admin')) {
-      activeConsoleItems = adminNav;
-    }
-
-    let baseItems = activeConsoleItems || navMap[resolvedRole] || navMap[role] || [];
-
-    if (baseItems.length === 0) return [];
-
-    // Filter and inject calendar access depending on permissions (Sports Scientist, Consultant, HR, Admin, etc.)
-    const hasAdminCalendarPermission = (
-      resolvedRole === "admin" ||
+    const hasCalendarAccess = Boolean(
       roles?.includes("admin") ||
       roles?.includes("super_admin") ||
       profile?.has_calendar_access === true
     );
 
-    if (hasAdminCalendarPermission && !isFoeActive) {
-      if (!baseItems.find(i => i.href === "/admin/calendar")) {
-        const dashboardIdx = baseItems.findIndex(i => i.label.includes("Dashboard") || i.label === "Overview" || i.label === "Schedule");
-        const insertIdx = dashboardIdx !== -1 ? dashboardIdx + 1 : 1;
-        const newItems = [...baseItems];
-        newItems.splice(insertIdx, 0, { 
-          label: (resolvedRole === "admin" || path.startsWith("/admin")) ? "Calendar" : "Admin Calendar", 
-          icon: CalendarDays, 
-          href: "/admin/calendar" 
-        });
-        baseItems = newItems;
-      }
-    } else if (!isFoeActive) {
-      baseItems = baseItems.filter(item => item.href !== "/admin/calendar");
-    }
-
-    // Filter and inject managerial analytics access depending on permissions
-    const hasAnalyticsAccess = !isFoeActive && (
-      ["admin", "manager", "hr_manager"].includes(resolvedRole) ||
+    const hasAnalyticsAccess = Boolean(
       roles?.includes("admin") ||
       roles?.includes("super_admin") ||
+      ["admin", "manager", "hr_manager"].includes(resolvedRole) ||
       profile?.has_analytics_access === true
     );
-    if (hasAnalyticsAccess) {
-      if (!baseItems.find(i => i.href === "/admin/analytics/managerial")) {
-        const dashboardIdx = baseItems.findIndex(i => i.label.includes("Dashboard") || i.label === "Overview");
-        const insertIdx = dashboardIdx !== -1 ? dashboardIdx + 1 : 1;
-        const newItems = [...baseItems];
-        newItems.splice(insertIdx, 0, { label: "Staff Efficiency", icon: TrendingUp, href: "/admin/analytics/managerial" });
-        baseItems = newItems;
+
+    // Dynamic builders for primary console menus
+    const buildConsultantNav = (): NavItem[] => {
+      const nav: NavItem[] = [
+        { label: "Dashboard", icon: LayoutDashboard, href: "/consultant" },
+      ];
+      if (hasAnalyticsAccess) {
+        nav.push({ label: "Staff Efficiency", icon: TrendingUp, href: "/admin/analytics/managerial" });
       }
-    } else {
-      baseItems = baseItems.filter(item => item.href !== "/admin/analytics/managerial");
+      nav.push(
+        { label: "Clients", icon: Users, href: "/consultant/clients" },
+        { label: "Schedule", icon: Calendar, href: "/consultant/schedule" }
+      );
+      if (hasCalendarAccess) {
+        nav.push({ label: "Admin Calendar", icon: CalendarDays, href: "/admin/calendar" });
+      }
+      nav.push(
+        { label: "Reports", icon: ClipboardList, href: "/consultant/reports" },
+        { label: "Injury Repo", icon: Activity, href: "/consultant/injuries" },
+        { label: "My Attendance", icon: Clock, href: "/my-attendance" }
+      );
+      return nav;
+    };
+
+    const buildSportsScientistNav = (): NavItem[] => {
+      const nav: NavItem[] = [
+        { label: "Dashboard", icon: LayoutDashboard, href: "/sports-scientist" },
+      ];
+      if (hasAnalyticsAccess) {
+        nav.push({ label: "Staff Efficiency", icon: TrendingUp, href: "/admin/analytics/managerial" });
+      }
+      nav.push(
+        { label: "Schedule", icon: Calendar, href: "/sports-scientist/schedule" }
+      );
+      if (hasCalendarAccess) {
+        nav.push({ label: "Admin Calendar", icon: CalendarDays, href: "/admin/calendar" });
+      }
+      nav.push(
+        { label: "Clients", icon: Users, href: "/sports-scientist/clients" },
+        { label: "Reports", icon: ClipboardList, href: "/sports-scientist/reports" },
+        { label: "Manage Memberships", icon: CreditCard, href: "/sports-scientist/billing" },
+        { label: "My Attendance", icon: Clock, href: "/my-attendance" }
+      );
+      return nav;
+    };
+
+    const buildNutritionistNav = (): NavItem[] => {
+      const nav: NavItem[] = [
+        { label: "Dashboard", icon: LayoutDashboard, href: "/nutritionist" },
+      ];
+      if (hasAnalyticsAccess) {
+        nav.push({ label: "Staff Efficiency", icon: TrendingUp, href: "/admin/analytics/managerial" });
+      }
+      nav.push(
+        { label: "Nutrition Clients", icon: Users, href: "/nutritionist/clients" },
+        { label: "Assessments", icon: ClipboardList, href: "/nutritionist/assessments" },
+        { label: "Meal Plans", icon: Flame, href: "/nutritionist/meal-plans" },
+        { label: "Schedule", icon: Calendar, href: "/nutritionist/schedule" }
+      );
+      if (hasCalendarAccess) {
+        nav.push({ label: "Admin Calendar", icon: CalendarDays, href: "/admin/calendar" });
+      }
+      nav.push(
+        { label: "Attendance", icon: CalendarClock, href: "/my-attendance" }
+      );
+      return nav;
+    };
+
+    const buildAdminNav = (): NavItem[] => {
+      const nav: NavItem[] = [
+        { label: "Dashboard", icon: LayoutDashboard, href: "/admin" },
+      ];
+      if (hasAnalyticsAccess) {
+        nav.push({ label: "Staff Efficiency", icon: TrendingUp, href: "/admin/analytics/managerial" });
+      }
+      nav.push(
+        { label: "Clients", icon: Users, href: "/admin/clients" },
+        { label: "Billing", icon: CreditCard, href: "/admin/billing" }
+      );
+      if (hasCalendarAccess) {
+        nav.push({ label: "Calendar", icon: CalendarDays, href: "/admin/calendar" });
+      }
+      nav.push(
+        { label: "Leads", icon: MessageSquare, href: "/admin/leads" },
+        { label: "User Approvals", icon: UserCheck, href: "/admin/users" }
+      );
+      return nav;
+    };
+
+    const buildHrNav = (): NavItem[] => {
+      const nav: NavItem[] = [
+        { label: "HR Dashboard", icon: LayoutDashboard, href: "/hr" },
+        { label: "Activity Tracker", icon: Activity, href: "/hr/activity-tracker" },
+      ];
+      if (hasAnalyticsAccess) {
+        nav.push({ label: "Staff Efficiency", icon: TrendingUp, href: "/admin/analytics/managerial" });
+      }
+      nav.push(
+        { label: "My Attendance", icon: Clock, href: "/my-attendance" },
+        { label: "Day Planner", icon: CalendarDays, href: "/hr/day-planner" }
+      );
+      if (hasCalendarAccess) {
+        nav.push({ label: "Admin Calendar", icon: CalendarDays, href: "/admin/calendar" });
+      }
+      nav.push(
+        { label: "Leave Approvals", icon: CheckSquare, href: "/hr/leave-approvals" },
+        { label: "Staff Attendance Log", icon: CalendarClock, href: "/hr/attendance-logs" },
+        { label: "User Approvals", icon: UserCheck, href: "/hr/users" },
+        { label: "Settings & Permissions", icon: ShieldCheck, href: "/admin/settings/console-access" }
+      );
+      return nav;
+    };
+
+    const buildFoeNav = (): NavItem[] => {
+      return foeNav;
+    };
+
+    let activeConsoleItems: NavItem[] | null = null;
+    const storedConsole = sessionStorage.getItem("active_console");
+    const isPureFoeUser = Boolean(roles?.includes("foe") && !roles?.includes("admin") && !roles?.includes("super_admin"));
+    const isFoeActive = (path === "/admin/foe" || path.startsWith("/admin/foe")) || (isPureFoeUser && path.startsWith("/admin")) || (storedConsole === "foe" && path.startsWith("/admin") && !path.startsWith("/admin/users") && !path.startsWith("/admin/settings") && !path.startsWith("/admin/permissions"));
+
+    // 1. Settings Console: strictly settingsNav without injected tabs
+    if (path.startsWith('/admin/settings') || path.startsWith('/admin/permissions')) {
+      activeConsoleItems = settingsNav;
+    }
+    // 2. Specific console routes
+    else if (path.startsWith('/hr')) {
+      activeConsoleItems = buildHrNav();
+    } else if (path.startsWith('/sports-scientist')) {
+      activeConsoleItems = buildSportsScientistNav();
+    } else if (path.startsWith('/consultant')) {
+      activeConsoleItems = buildConsultantNav();
+    } else if (path.startsWith('/nutritionist')) {
+      activeConsoleItems = buildNutritionistNav();
+    } else if (path.startsWith('/ams/questionnaires') || path.startsWith('/ams/batch-tests')) {
+      activeConsoleItems = questionnairesNav;
+    } else if (path.startsWith('/ams/coach-dashboard') || path.startsWith('/ams/programs') || path.startsWith('/ams/feed') || path.startsWith('/ams/calendar') || path.startsWith('/ams/exercises')) {
+      activeConsoleItems = coachNav;
+    } else if (path.startsWith('/ams/athlete-portal') || path.startsWith('/ams/athlete')) {
+      activeConsoleItems = athleteNav;
+    } else if (path.startsWith('/client')) {
+      activeConsoleItems = clientNav;
+    } else if (path.startsWith('/super-admin')) {
+      activeConsoleItems = superAdminNav;
+    } else if (isFoeActive && (path.startsWith('/admin') || path.startsWith('/my-attendance'))) {
+      activeConsoleItems = buildFoeNav();
+    }
+    // 3. Shared cross-console pages: Admin Calendar or Staff Efficiency
+    // Keep user in their primary console's sidebar!
+    else if (path === '/admin/calendar' || path === '/admin/analytics/managerial') {
+      if (primaryConsole === 'consultant') {
+        activeConsoleItems = buildConsultantNav();
+      } else if (primaryConsole === 'sports_scientist') {
+        activeConsoleItems = buildSportsScientistNav();
+      } else if (primaryConsole === 'nutritionist') {
+        activeConsoleItems = buildNutritionistNav();
+      } else if (primaryConsole === 'hr_manager') {
+        activeConsoleItems = buildHrNav();
+      } else if (primaryConsole === 'foe' || isFoeActive) {
+        activeConsoleItems = buildFoeNav();
+      } else {
+        activeConsoleItems = buildAdminNav();
+      }
+    }
+    // 4. Other Admin console routes (/admin, /admin/clients, /admin/billing, etc.)
+    else if (path.startsWith('/admin')) {
+      activeConsoleItems = buildAdminNav();
+    }
+    // 5. Fallback routes (/my-attendance, /profile, etc.)
+    else {
+      if (primaryConsole === 'consultant') {
+        activeConsoleItems = buildConsultantNav();
+      } else if (primaryConsole === 'sports_scientist') {
+        activeConsoleItems = buildSportsScientistNav();
+      } else if (primaryConsole === 'nutritionist') {
+        activeConsoleItems = buildNutritionistNav();
+      } else if (primaryConsole === 'hr_manager') {
+        activeConsoleItems = buildHrNav();
+      } else if (primaryConsole === 'foe') {
+        activeConsoleItems = buildFoeNav();
+      } else if (primaryConsole === 'coach') {
+        activeConsoleItems = coachNav;
+      } else if (primaryConsole === 'super_admin') {
+        activeConsoleItems = superAdminNav;
+      } else if (primaryConsole === 'client' || primaryConsole === 'athlete') {
+        activeConsoleItems = clientNav;
+      } else {
+        activeConsoleItems = buildAdminNav();
+      }
     }
 
-    if (profile?.ams_role === "coach") {
-      if (!baseItems.find(i => i.label === "AMS Dashboard")) {
-        baseItems = [
-          ...baseItems,
-          { label: "AMS Dashboard", icon: LayoutDashboard, href: "/ams/coach-dashboard" },
-          { label: "Batch Testing", icon: Target, href: "/ams/batch-tests" }
-        ];
-      }
-    }
-
-    return baseItems;
-  }, [resolvedRole, role, roles, profile?.has_calendar_access, profile?.has_analytics_access, profile?.ams_role, location.pathname]);
+    return activeConsoleItems || [];
+  }, [resolvedRole, role, roles, profile?.has_calendar_access, profile?.has_analytics_access, profile?.profession, profile?.ams_role, profile?.role, location.pathname]);
 
   const isLoadingState = loading || items.length === 0;
 
@@ -404,10 +585,29 @@ export default function AppSidebar({ role, isMobile, className, onNavigate }: Ap
             ))
           ) : (
             items.map((item) => {
-              const isDashboardRoot = ["/hr", "/admin", "/super-admin", "/nutritionist", "/consultant", "/ams/athlete-portal", "/sports-scientist"].includes(item.href);
+              const isDashboardRoot = [
+                "/hr",
+                "/admin",
+                "/admin/foe",
+                "/super-admin",
+                "/nutritionist",
+                "/consultant",
+                "/ams/athlete-portal",
+                "/ams/coach-dashboard",
+                "/sports-scientist",
+                "/client"
+              ].includes(item.href);
               const isActive = isDashboardRoot
                 ? location.pathname === item.href
-                : (location.pathname === item.href || location.pathname.startsWith(item.href + '/'));
+                : (
+                    location.pathname === item.href ||
+                    location.pathname.startsWith(item.href + '/') ||
+                    (item.href === "/admin/settings/console-access" && (
+                      location.pathname === "/admin/settings" ||
+                      location.pathname.startsWith("/admin/settings/permissions") ||
+                      location.pathname.startsWith("/admin/permissions")
+                    ))
+                  );
               return (
                 <Link
                   key={item.href}

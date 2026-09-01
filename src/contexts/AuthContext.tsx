@@ -87,6 +87,49 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     refreshAuth();
   }, [refreshAuth]);
 
+  // Real-time permission & profile synchronization via SSE, focus, and local event
+  useEffect(() => {
+    if (!user) return;
+
+    const handleAuthUpdated = () => {
+      refreshAuth();
+    };
+
+    window.addEventListener('auth_updated', handleAuthUpdated);
+    window.addEventListener('focus', handleAuthUpdated);
+
+    const token = localStorage.getItem('ishpo_jwt');
+    let eventSource: EventSource | null = null;
+    if (token) {
+      const streamUrl = `/api/notifications/stream?token=${encodeURIComponent(token)}`;
+      eventSource = new EventSource(streamUrl);
+
+      eventSource.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (
+            data?.title?.toLowerCase().includes('permission') ||
+            data?.title?.toLowerCase().includes('role') ||
+            data?.title?.toLowerCase().includes('access') ||
+            data?.category === 'in_app'
+          ) {
+            refreshAuth();
+          }
+        } catch {
+          refreshAuth();
+        }
+      };
+    }
+
+    return () => {
+      window.removeEventListener('auth_updated', handleAuthUpdated);
+      window.removeEventListener('focus', handleAuthUpdated);
+      if (eventSource) {
+        eventSource.close();
+      }
+    };
+  }, [user?.id, refreshAuth]);
+
   useEffect(() => {
     if (!user) return;
 

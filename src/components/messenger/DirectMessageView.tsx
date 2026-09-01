@@ -41,6 +41,24 @@ const DirectMessageView: React.FC<Props> = ({
   const roleLabel = formatUserRole(otherUser?.role, otherUser?.profession);
   const roleStyle = getRoleBadgeStyle(otherUser?.role);
 
+  const fetchLatestMessages = useCallback(() => {
+    if (!threadId) return;
+    getDMMessages(threadId)
+      .then((res) => {
+        if (res?.messages) {
+          setMessages((prev) => {
+            const map = new Map(prev.map((m) => [m.id, m]));
+            res.messages.forEach((m) => map.set(m.id, m));
+            return Array.from(map.values()).sort(
+              (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+            );
+          });
+          messengerCtx.markDMRead(threadId);
+        }
+      })
+      .catch(() => {});
+  }, [threadId, messengerCtx]);
+
   useEffect(() => {
     if (!threadId) return;
     setMessages([]);
@@ -56,23 +74,9 @@ const DirectMessageView: React.FC<Props> = ({
 
     messengerCtx.joinDM(threadId);
 
-    // Mobile wakeup sync — catch up with any messages sent while phone was asleep/locked
     const handleWakeSync = () => {
-      if (document.visibilityState === "visible" && threadId) {
-        getDMMessages(threadId)
-          .then((res) => {
-            if (res?.messages) {
-              setMessages((prev) => {
-                const map = new Map(prev.map((m) => [m.id, m]));
-                res.messages.forEach((m) => map.set(m.id, m));
-                return Array.from(map.values()).sort(
-                  (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-                );
-              });
-              messengerCtx.markDMRead(threadId);
-            }
-          })
-          .catch(() => {});
+      if (document.visibilityState === "visible") {
+        fetchLatestMessages();
       }
     };
 
@@ -84,7 +88,21 @@ const DirectMessageView: React.FC<Props> = ({
       window.removeEventListener("focus", handleWakeSync);
       messengerCtx.leaveDM(threadId);
     };
-  }, [threadId, messengerCtx, currentUserId]);
+  }, [threadId, messengerCtx, fetchLatestMessages]);
+
+  // Catch-up delta sync whenever socket reconnects or background sync triggers
+  useEffect(() => {
+    if (messengerCtx.syncTrigger) {
+      fetchLatestMessages();
+    }
+  }, [messengerCtx.syncTrigger, fetchLatestMessages]);
+
+  useEffect(() => {
+    const unsub = messengerCtx.onSyncNeeded?.(() => {
+      fetchLatestMessages();
+    });
+    return unsub;
+  }, [messengerCtx, fetchLatestMessages]);
 
   // Real-time DM messages
   useEffect(() => {

@@ -5,6 +5,13 @@ import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { db } from './db.js';
 import { requireAuth } from './middleware.js';
+import {
+  getVapidPublicKey,
+  savePushSubscription,
+  removePushSubscription,
+  sendPushToUser,
+  sendPushToChannelMembers
+} from './pushNotificationService.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -29,6 +36,18 @@ const messengerUpload = multer({
 });
 
 const router = express.Router();
+
+// Public VAPID key route (no auth required for browser registration)
+router.get('/push/vapid-public-key', (req, res) => {
+  try {
+    const key = getVapidPublicKey();
+    res.json({ publicKey: key });
+  } catch (err) {
+    console.error('[Messenger] Error getting VAPID key:', err);
+    res.status(500).json({ error: 'Failed to get VAPID public key' });
+  }
+});
+
 router.use(requireAuth);
 
 // ================================================================
@@ -558,6 +577,30 @@ router.post('/channels/:id/messages', async (req, res) => {
       io.to(`channel:${id}`).emit('new_message', fullMsg);
     }
 
+    // Web Push notification to channel members
+    (async () => {
+      try {
+        const chRes = await db.query(`SELECT name FROM chat_channels WHERE id = $1`, [id]);
+        const channelName = chRes.rows[0]?.name || 'general';
+        const senderName = `${profile.rows[0]?.first_name || 'Team'} ${profile.rows[0]?.last_name || 'Member'}`.trim();
+        const previewText = content || (savedAttachments.length > 0 ? `📎 ${savedAttachments[0].file_name}` : 'Sent an attachment');
+        await sendPushToChannelMembers(id, userId, {
+          title: `#${channelName} • ${senderName}`,
+          body: previewText,
+          icon: profile.rows[0]?.avatar_url || '/logo.png',
+          badge: '/favicon.svg',
+          data: {
+            url: `/messenger?channel=${id}`,
+            channelId: id,
+            type: 'channel',
+          },
+          tag: `channel-${id}`,
+        });
+      } catch (pushErr) {
+        console.error('[WebPush] Error sending channel REST push notification:', pushErr);
+      }
+    })();
+
     res.status(201).json({ message: fullMsg });
   } catch (err) {
     console.error('[Messenger] Error sending message:', err);
@@ -1034,9 +1077,12 @@ router.post('/dms/:id/messages', async (req, res) => {
     );
     const fullMsg = { ...msgRow, ...profile.rows[0], attachments: savedAttachments };
 
+    const otherId = t.user_a === userId ? t.user_b : t.user_a;
+    const senderName = `${profile.rows[0]?.first_name || 'Team'} ${profile.rows[0]?.last_name || 'Member'}`.trim();
+    const previewText = content || (savedAttachments.length > 0 ? `📎 ${savedAttachments[0].file_name}` : 'Sent a file');
+
     const io = req.app.get('io');
     if (io) {
-      const otherId = t.user_a === userId ? t.user_b : t.user_a;
       io.to(`dm:${id}`).emit('new_dm_message', fullMsg);
       io.to(`user:${userId}`).emit('new_dm_message', fullMsg);
       io.to(`user:${otherId}`).emit('new_dm_message', fullMsg);
@@ -1044,11 +1090,31 @@ router.post('/dms/:id/messages', async (req, res) => {
       io.to(`user:${otherId}`).emit('dm_notification', {
         dm_thread_id: id,
         sender_id: userId,
-        sender_name: `${profile.rows[0]?.first_name || 'Team'} ${profile.rows[0]?.last_name || 'Member'}`.trim(),
-        content: content || (savedAttachments.length > 0 ? `📎 ${savedAttachments[0].file_name}` : 'Sent a file'),
+        sender_name: senderName,
+        content: previewText,
         created_at: new Date().toISOString()
       });
     }
+
+    // Web Push notification to receiver (wakes up locked phone / closed browser)
+    (async () => {
+      try {
+        await sendPushToUser(otherId, {
+          title: `New DM from ${senderName}`,
+          body: previewText,
+          icon: profile.rows[0]?.avatar_url || '/logo.png',
+          badge: '/favicon.svg',
+          data: {
+            url: `/messenger?dm=${id}`,
+            threadId: id,
+            type: 'dm',
+          },
+          tag: `dm-${id}`,
+        });
+      } catch (pushErr) {
+        console.error('[WebPush] Error sending DM REST push notification:', pushErr);
+      }
+    })();
 
     res.status(201).json({ message: fullMsg });
   } catch (err) {
@@ -1300,7 +1366,7 @@ router.post('/scheduled-reports', async (req, res) => {
 router.delete('/scheduled-reports/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const orgId = userOrgId(req);
+    const orgId = await resolveOrgId(req);
     if (!['admin', 'super_admin'].includes(req.user.role)) {
       return res.status(403).json({ error: 'Admin access required' });
     }
@@ -1312,6 +1378,93 @@ router.delete('/scheduled-reports/:id', async (req, res) => {
   } catch (err) {
     console.error('[Messenger] Error deleting scheduled report:', err);
     res.status(500).json({ error: 'Failed to delete scheduled report' });
+  }
+});
+
+// ================================================================
+// WEB PUSH NOTIFICATIONS
+// ================================================================
+
+// GET /api/messenger/push/vapid-public-key
+router.get('/push/vapid-public-key', (req, res) => {
+  try {
+    const key = getVapidPublicKey();
+    res.json({ publicKey: key });
+  } catch (err) {
+    console.error('[Messenger] Error getting VAPID key:', err);
+    res.status(500).json({ error: 'Failed to get VAPID public key' });
+  }
+});
+
+// POST /api/messenger/push/subscribe
+router.post('/push/subscribe', async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { subscription } = req.body;
+    const userAgent = req.headers['user-agent'] || '';
+
+    if (!subscription) {
+      return res.status(400).json({ error: 'subscription is required' });
+    }
+
+    const saved = await savePushSubscription(userId, subscription, userAgent);
+    res.status(201).json({ success: true, id: saved?.id });
+  } catch (err) {
+    console.error('[Messenger] Error subscribing to push:', err);
+    res.status(500).json({ error: 'Failed to register push subscription' });
+  }
+});
+
+// POST /api/messenger/push/unsubscribe
+router.post('/push/unsubscribe', async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { endpoint } = req.body;
+    if (!endpoint) {
+      return res.status(400).json({ error: 'endpoint is required' });
+    }
+    await removePushSubscription(userId, endpoint);
+    res.json({ success: true });
+  } catch (err) {
+    console.error('[Messenger] Error unsubscribing push:', err);
+    res.status(500).json({ error: 'Failed to unregister push subscription' });
+  }
+});
+
+// GET /api/messenger/push/status
+router.get('/push/status', async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const result = await db.query(
+      `SELECT COUNT(*)::int as count FROM user_push_subscriptions WHERE user_id = $1`,
+      [userId]
+    );
+    res.json({ isSubscribed: (result.rows[0]?.count || 0) > 0 });
+  } catch (err) {
+    console.error('[Messenger] Error checking push status:', err);
+    res.status(500).json({ error: 'Failed to check push status' });
+  }
+});
+
+// POST /api/messenger/push/test
+router.post('/push/test', async (req, res) => {
+  try {
+    const userId = req.user.id;
+    await sendPushToUser(userId, {
+      title: 'TeamComms Alert Active',
+      body: 'You are now actively receiving TeamComms messages even when browser is closed or phone is locked!',
+      icon: '/logo.png',
+      badge: '/favicon.svg',
+      data: {
+        url: '/messenger',
+        type: 'test'
+      },
+      tag: 'test-notification'
+    });
+    res.json({ success: true, message: 'Test push notification dispatched' });
+  } catch (err) {
+    console.error('[Messenger] Error sending test push:', err);
+    res.status(500).json({ error: 'Failed to send test push notification' });
   }
 });
 

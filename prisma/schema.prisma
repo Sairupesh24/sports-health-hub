@@ -932,6 +932,7 @@ model Profile {
   staffSchedules                             StaffSchedule?
   trainingprograms                           TrainingProgram[]
   waitlist                                   Waitlist[]
+  userPushSubscriptions                      UserPushSubscription[]
 
   @@map("profiles")
 }
@@ -1443,12 +1444,12 @@ model hr_leave_balances {
 }
 
 model UserOrganization {
-  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId         String    @map("user_id") @db.Uuid
-  organizationId String    @map("organization_id") @db.Uuid
-  role           String    @default("member")
-  joinedAt       DateTime  @default(now()) @map("joined_at") @db.Timestamptz(6)
-  invitedBy      String?   @map("invited_by") @db.Uuid
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId         String   @map("user_id") @db.Uuid
+  organizationId String   @map("organization_id") @db.Uuid
+  role           String   @default("member")
+  joinedAt       DateTime @default(now()) @map("joined_at") @db.Timestamptz(6)
+  invitedBy      String?  @map("invited_by") @db.Uuid
 
   @@unique([userId, organizationId])
   @@index([userId], map: "idx_user_organizations_user")
@@ -1457,12 +1458,12 @@ model UserOrganization {
 }
 
 model ChatBot {
-  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  organizationId String    @map("organization_id") @db.Uuid
-  name           String    @default("HubBot")
-  avatarUrl      String?   @map("avatar_url")
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId String   @map("organization_id") @db.Uuid
+  name           String   @default("HubBot")
+  avatarUrl      String?  @map("avatar_url")
   description    String?
-  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
   @@unique([organizationId, name])
   @@index([organizationId], map: "idx_chat_bots_org")
@@ -1470,18 +1471,18 @@ model ChatBot {
 }
 
 model ChatChannel {
-  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  organizationId  String    @map("organization_id") @db.Uuid
-  name            String
-  description     String?
-  channelType     String    @default("public") @map("channel_type")
-  createdBy       String?   @map("created_by") @db.Uuid
-  isArchived      Boolean   @default(false) @map("is_archived")
-  isDefault       Boolean   @default(false) @map("is_default")
-  lastMessageAt   DateTime? @map("last_message_at") @db.Timestamptz(6)
-  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt       DateTime  @default(now()) @map("updated_at") @db.Timestamptz(6)
-  deletedAt       DateTime? @map("deleted_at") @db.Timestamptz(6)
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  name           String
+  description    String?
+  channelType    String    @default("public") @map("channel_type")
+  createdBy      String?   @map("created_by") @db.Uuid
+  isArchived     Boolean   @default(false) @map("is_archived")
+  isDefault      Boolean   @default(false) @map("is_default")
+  lastMessageAt  DateTime? @map("last_message_at") @db.Timestamptz(6)
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime  @default(now()) @map("updated_at") @db.Timestamptz(6)
+  deletedAt      DateTime? @map("deleted_at") @db.Timestamptz(6)
 
   @@unique([organizationId, name])
   @@index([organizationId], map: "idx_chat_channels_org")
@@ -1490,13 +1491,13 @@ model ChatChannel {
 }
 
 model ChannelMember {
-  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  channelId    String    @map("channel_id") @db.Uuid
-  userId       String    @map("user_id") @db.Uuid
-  role         String    @default("member")
-  muted        Boolean   @default(false)
-  joinedAt     DateTime  @default(now()) @map("joined_at") @db.Timestamptz(6)
-  lastReadAt   DateTime? @map("last_read_at") @db.Timestamptz(6)
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  channelId  String    @map("channel_id") @db.Uuid
+  userId     String    @map("user_id") @db.Uuid
+  role       String    @default("member")
+  muted      Boolean   @default(false)
+  joinedAt   DateTime  @default(now()) @map("joined_at") @db.Timestamptz(6)
+  lastReadAt DateTime? @map("last_read_at") @db.Timestamptz(6)
 
   @@unique([channelId, userId])
   @@index([channelId], map: "idx_channel_members_channel")
@@ -1520,22 +1521,22 @@ model DirectMessageThread {
 }
 
 model ChatMessage {
-  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  organizationId    String    @map("organization_id") @db.Uuid
-  channelId         String?   @map("channel_id") @db.Uuid
-  dmThreadId        String?   @map("dm_thread_id") @db.Uuid
-  userId            String?   @map("user_id") @db.Uuid
-  botId             String?   @map("bot_id") @db.Uuid
-  parentMessageId   String?   @map("parent_message_id") @db.Uuid
-  messageType       String    @default("user") @map("message_type")
-  content           String?
-  contentHtml       String?   @map("content_html")
-  metadata          Json?
-  isEdited          Boolean   @default(false) @map("is_edited")
-  editedAt          DateTime? @map("edited_at") @db.Timestamptz(6)
-  createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt         DateTime  @default(now()) @map("updated_at") @db.Timestamptz(6)
-  deletedAt         DateTime? @map("deleted_at") @db.Timestamptz(6)
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId  String    @map("organization_id") @db.Uuid
+  channelId       String?   @map("channel_id") @db.Uuid
+  dmThreadId      String?   @map("dm_thread_id") @db.Uuid
+  userId          String?   @map("user_id") @db.Uuid
+  botId           String?   @map("bot_id") @db.Uuid
+  parentMessageId String?   @map("parent_message_id") @db.Uuid
+  messageType     String    @default("user") @map("message_type")
+  content         String?
+  contentHtml     String?   @map("content_html")
+  metadata        Json?
+  isEdited        Boolean   @default(false) @map("is_edited")
+  editedAt        DateTime? @map("edited_at") @db.Timestamptz(6)
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime  @default(now()) @map("updated_at") @db.Timestamptz(6)
+  deletedAt       DateTime? @map("deleted_at") @db.Timestamptz(6)
 
   @@index([channelId, createdAt(sort: Desc)], map: "idx_chat_messages_channel")
   @@index([dmThreadId, createdAt(sort: Desc)], map: "idx_chat_messages_dm")
@@ -1583,19 +1584,19 @@ model MessageRead {
 }
 
 model TeamcommsSettings {
-  id                     String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  organizationId         String    @unique @map("organization_id") @db.Uuid
-  isEnabled              Boolean   @default(true) @map("is_enabled")
-  notifyTaskAssigned     Boolean   @default(true) @map("notify_task_assigned")
-  notifyTaskOverdue      Boolean   @default(true) @map("notify_task_overdue")
-  notifyAppointment      Boolean   @default(true) @map("notify_appointment")
-  notifyLeave            Boolean   @default(true) @map("notify_leave")
-  notifyClinicalReport   Boolean   @default(true) @map("notify_clinical_report")
-  notifyMealPlan         Boolean   @default(true) @map("notify_meal_plan")
-  notifyMembershipExpiry Boolean   @default(true) @map("notify_membership_expiry")
-  reportChannelId        String?   @map("report_channel_id") @db.Uuid
-  createdAt              DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt              DateTime  @default(now()) @map("updated_at") @db.Timestamptz(6)
+  id                     String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId         String   @unique @map("organization_id") @db.Uuid
+  isEnabled              Boolean  @default(true) @map("is_enabled")
+  notifyTaskAssigned     Boolean  @default(true) @map("notify_task_assigned")
+  notifyTaskOverdue      Boolean  @default(true) @map("notify_task_overdue")
+  notifyAppointment      Boolean  @default(true) @map("notify_appointment")
+  notifyLeave            Boolean  @default(true) @map("notify_leave")
+  notifyClinicalReport   Boolean  @default(true) @map("notify_clinical_report")
+  notifyMealPlan         Boolean  @default(true) @map("notify_meal_plan")
+  notifyMembershipExpiry Boolean  @default(true) @map("notify_membership_expiry")
+  reportChannelId        String?  @map("report_channel_id") @db.Uuid
+  createdAt              DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt              DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
 
   @@map("teamcomms_settings")
 }
@@ -1616,86 +1617,86 @@ model TeamcommsScheduledReport {
 }
 
 model PlannerProject {
-  id                    String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  organizationId        String?                @map("organization_id") @db.Uuid
-  name                  String
-  code                  String
-  description           String?
-  department            String?                @default("General")
-  priority              String?                @default("medium")
-  health                String?                @default("on_track")
-  status                String?                @default("active")
-  progress              Int?                   @default(0)
-  startDate             DateTime?              @map("start_date") @db.Date
-  targetDate            DateTime?              @map("target_date") @db.Date
-  budget                Decimal?               @default(0.00) @db.Decimal(15, 2)
-  currency              String?                @default("INR")
-  ownerId               String?                @map("owner_id") @db.Uuid
-  managerId             String?                @map("manager_id") @db.Uuid
-  portfolioId           String?                @map("portfolio_id") @db.Uuid
-  createdAt             DateTime?              @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt             DateTime?              @default(now()) @map("updated_at") @db.Timestamptz(6)
-  deletedAt             DateTime?              @map("deleted_at") @db.Timestamptz(6)
-  plannerWorkstreams    PlannerWorkstream[]
-  plannerWorkItems      PlannerWorkItem[]
+  id                 String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId     String?             @map("organization_id") @db.Uuid
+  name               String
+  code               String
+  description        String?
+  department         String?             @default("General")
+  priority           String?             @default("medium")
+  health             String?             @default("on_track")
+  status             String?             @default("active")
+  progress           Int?                @default(0)
+  startDate          DateTime?           @map("start_date") @db.Date
+  targetDate         DateTime?           @map("target_date") @db.Date
+  budget             Decimal?            @default(0.00) @db.Decimal(15, 2)
+  currency           String?             @default("INR")
+  ownerId            String?             @map("owner_id") @db.Uuid
+  managerId          String?             @map("manager_id") @db.Uuid
+  portfolioId        String?             @map("portfolio_id") @db.Uuid
+  createdAt          DateTime?           @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime?           @default(now()) @map("updated_at") @db.Timestamptz(6)
+  deletedAt          DateTime?           @map("deleted_at") @db.Timestamptz(6)
+  plannerWorkstreams PlannerWorkstream[]
+  plannerWorkItems   PlannerWorkItem[]
 
   @@map("planner_projects")
 }
 
 model PlannerWorkstream {
-  id                  String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  projectId           String?                @map("project_id") @db.Uuid
-  name                String
-  color               String?                @default("hsl(251 74% 60%)")
-  sortOrder           Int?                   @default(0) @map("sort_order")
-  createdAt           DateTime?              @default(now()) @map("created_at") @db.Timestamptz(6)
-  plannerProject      PlannerProject?        @relation(fields: [projectId], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  plannerWorkItems    PlannerWorkItem[]
+  id               String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  projectId        String?           @map("project_id") @db.Uuid
+  name             String
+  color            String?           @default("hsl(251 74% 60%)")
+  sortOrder        Int?              @default(0) @map("sort_order")
+  createdAt        DateTime?         @default(now()) @map("created_at") @db.Timestamptz(6)
+  plannerProject   PlannerProject?   @relation(fields: [projectId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  plannerWorkItems PlannerWorkItem[]
 
   @@map("planner_workstreams")
 }
 
 model PlannerWorkItem {
-  id                    String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  projectId             String?                @map("project_id") @db.Uuid
-  workstreamId          String?                @map("workstream_id") @db.Uuid
-  parentId              String?                @map("parent_id") @db.Uuid
-  title                 String
-  description           String?
-  status                String?                @default("planned")
-  priority              String?                @default("medium")
-  assigneeId            String?                @map("assignee_id") @db.Uuid
-  creatorId             String?                @map("creator_id") @db.Uuid
-  sprintId              String?                @map("sprint_id") @db.Uuid
-  startDate             DateTime?              @map("start_date") @db.Date
-  dueDate               DateTime?              @map("due_date") @db.Date
-  estimatedHours        Decimal?               @default(0.00) @map("estimated_hours") @db.Decimal(8, 2)
-  actualHours           Decimal?               @default(0.00) @map("actual_hours") @db.Decimal(8, 2)
-  isMilestone           Boolean?               @default(false) @map("is_milestone")
-  isCritical            Boolean?               @default(false) @map("is_critical")
-  sortOrder             Int?                   @default(0) @map("sort_order")
-  createdAt             DateTime?              @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt             DateTime?              @default(now()) @map("updated_at") @db.Timestamptz(6)
-  deletedAt             DateTime?              @map("deleted_at") @db.Timestamptz(6)
-  plannerProject        PlannerProject?        @relation(fields: [projectId], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  plannerWorkstream     PlannerWorkstream?     @relation(fields: [workstreamId], references: [id], onUpdate: NoAction)
-  parent                PlannerWorkItem?       @relation("WorkItemHierarchy", fields: [parentId], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  children              PlannerWorkItem[]      @relation("WorkItemHierarchy")
-  predecessorDeps       PlannerDependency[]    @relation("WorkItemPredecessor")
-  successorDeps         PlannerDependency[]    @relation("WorkItemSuccessor")
+  id                String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  projectId         String?             @map("project_id") @db.Uuid
+  workstreamId      String?             @map("workstream_id") @db.Uuid
+  parentId          String?             @map("parent_id") @db.Uuid
+  title             String
+  description       String?
+  status            String?             @default("planned")
+  priority          String?             @default("medium")
+  assigneeId        String?             @map("assignee_id") @db.Uuid
+  creatorId         String?             @map("creator_id") @db.Uuid
+  sprintId          String?             @map("sprint_id") @db.Uuid
+  startDate         DateTime?           @map("start_date") @db.Date
+  dueDate           DateTime?           @map("due_date") @db.Date
+  estimatedHours    Decimal?            @default(0.00) @map("estimated_hours") @db.Decimal(8, 2)
+  actualHours       Decimal?            @default(0.00) @map("actual_hours") @db.Decimal(8, 2)
+  isMilestone       Boolean?            @default(false) @map("is_milestone")
+  isCritical        Boolean?            @default(false) @map("is_critical")
+  sortOrder         Int?                @default(0) @map("sort_order")
+  createdAt         DateTime?           @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime?           @default(now()) @map("updated_at") @db.Timestamptz(6)
+  deletedAt         DateTime?           @map("deleted_at") @db.Timestamptz(6)
+  plannerProject    PlannerProject?     @relation(fields: [projectId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  plannerWorkstream PlannerWorkstream?  @relation(fields: [workstreamId], references: [id], onUpdate: NoAction)
+  parent            PlannerWorkItem?    @relation("WorkItemHierarchy", fields: [parentId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  children          PlannerWorkItem[]   @relation("WorkItemHierarchy")
+  predecessorDeps   PlannerDependency[] @relation("WorkItemPredecessor")
+  successorDeps     PlannerDependency[] @relation("WorkItemSuccessor")
 
   @@map("planner_work_items")
 }
 
 model PlannerDependency {
-  id              String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  predecessorId   String           @map("predecessor_id") @db.Uuid
-  successorId     String           @map("successor_id") @db.Uuid
-  type            String?          @default("FS")
-  lagDays         Int?             @default(0) @map("lag_days")
-  createdAt       DateTime?        @default(now()) @map("created_at") @db.Timestamptz(6)
-  predecessor     PlannerWorkItem  @relation("WorkItemPredecessor", fields: [predecessorId], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  successor       PlannerWorkItem  @relation("WorkItemSuccessor", fields: [successorId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  id            String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  predecessorId String          @map("predecessor_id") @db.Uuid
+  successorId   String          @map("successor_id") @db.Uuid
+  type          String?         @default("FS")
+  lagDays       Int?            @default(0) @map("lag_days")
+  createdAt     DateTime?       @default(now()) @map("created_at") @db.Timestamptz(6)
+  predecessor   PlannerWorkItem @relation("WorkItemPredecessor", fields: [predecessorId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  successor     PlannerWorkItem @relation("WorkItemSuccessor", fields: [successorId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@unique([predecessorId, successorId])
   @@map("planner_dependencies")
@@ -1766,4 +1767,20 @@ model PlannerSetting {
   updatedAt      DateTime? @default(now()) @map("updated_at") @db.Timestamptz(6)
 
   @@map("planner_settings")
+}
+
+model UserPushSubscription {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  endpoint  String
+  p256dh    String
+  auth      String
+  userAgent String?  @map("user_agent")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+  profiles  Profile  @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([userId, endpoint])
+  @@index([userId], map: "idx_push_subs_user")
+  @@map("user_push_subscriptions")
 }

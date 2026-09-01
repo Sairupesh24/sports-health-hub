@@ -132,6 +132,8 @@ export const sendMessage = (
     body: JSON.stringify(body),
   });
 
+export const sendChannelMessage = sendMessage;
+
 export const editMessage = (
   messageId: string,
   body: { content: string; content_html?: string }
