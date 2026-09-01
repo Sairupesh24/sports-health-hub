@@ -76,6 +76,7 @@ import MyProfile from "./pages/shared/MyProfile";
 import MobileProfilePage from "./pages/mobile/MobileProfilePage";
 import ReportsPage from "./pages/shared/ReportsPage";
 import AppGallery from "./pages/AppGallery";
+import PublicQuestionnaireForm from "./pages/public/PublicQuestionnaireForm";
 
 // TeamComms Messenger
 import MessengerPage from "./pages/messenger/MessengerPage";
@@ -152,6 +153,8 @@ const App = () => (
               <Route path="/enquiry/:orgSlug" element={<PublicEnquiry />} />
               <Route path="/forgot-password" element={<ForgotPasswordPage />} />
               <Route path="/reset-password" element={<ResetPasswordPage />} />
+              {/* Public Questionnaire — no auth required */}
+              <Route path="/q/:token" element={<PublicQuestionnaireForm />} />
               <Route path="/ams/athlete-portal" element={<ProtectedRoute><AthleteDashboard /></ProtectedRoute>} />
               <Route path="/ams/coach-dashboard" element={<ProtectedRoute><CoachDashboard /></ProtectedRoute>} />
               <Route path="/pending-approval" element={<PendingApprovalPage />} />

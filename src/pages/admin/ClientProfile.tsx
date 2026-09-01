@@ -5,7 +5,7 @@ import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, User, Phone, MapPin, Shield, Activity, CalendarDays, FileText, Download, Users, Banknote, Smartphone, Landmark, CreditCard, Plus, X } from "lucide-react";
+import { ArrowLeft, User, Phone, MapPin, Shield, Activity, CalendarDays, FileText, Download, Users, Banknote, Smartphone, Landmark, CreditCard, Plus, X, ClipboardList } from "lucide-react";
 import { apiFetch } from "@/utils/api";
 import { formatStaffName } from "@/utils/serviceMapping";
 import { format, parse } from "date-fns";
@@ -36,6 +36,7 @@ import { EnquiryContextWindow } from "@/components/admin/EnquiryContextWindow";
 import { AssessmentReportsList } from "@/components/shared/assessment/AssessmentReportsList";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { UpcomingPlanManager } from "@/components/sports-scientist/UpcomingPlanManager";
+import ClientQuestionnairesTab from "@/components/client/ClientQuestionnairesTab";
 
 
 
@@ -595,36 +596,39 @@ export default function ClientProfile() {
                     </div>
                 </div>
 
-                {/* Content Tabs - Responsive Horizontal Scrollable Container */}
+                {/* Content Tabs - Full-width evenly distributed */}
                 <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-                    <div className="w-full overflow-x-auto no-scrollbar pb-2 mb-4 border-b border-border/40">
-                        <TabsList className="inline-flex h-10.5 items-center justify-start rounded-2xl bg-muted/60 p-1 text-muted-foreground min-w-max gap-0.5 sm:gap-1">
-                            <TabsTrigger value="upcoming" className="rounded-xl px-2.5 sm:px-3 py-1.5 text-[11px] sm:text-xs font-bold tracking-tight transition-all data-[state=active]:bg-primary data-[state=active]:text-white shadow-xs gap-1 whitespace-nowrap">
-                                <CalendarDays className="w-3.5 h-3.5" /> Upcoming Events & Plan
+                    <div className="w-full mb-4 border-b border-border/40 pb-px">
+                        <TabsList className="flex w-full h-10 items-center rounded-xl bg-muted/60 p-0.5 text-muted-foreground gap-0">
+                            <TabsTrigger value="upcoming" className="flex-1 rounded-lg py-1.5 text-[10px] font-bold tracking-tight transition-all data-[state=active]:bg-primary data-[state=active]:text-white gap-1 justify-center whitespace-nowrap overflow-hidden">
+                                <CalendarDays className="w-3 h-3 shrink-0" /> <span className="truncate">Upcoming Events & Plan</span>
                             </TabsTrigger>
-                            <TabsTrigger value="profile" className="rounded-xl px-2.5 sm:px-3 py-1.5 text-[11px] sm:text-xs font-bold tracking-tight transition-all data-[state=active]:bg-primary data-[state=active]:text-white shadow-xs gap-1 whitespace-nowrap">
-                                <User className="w-3.5 h-3.5" /> Profile Details
+                            <TabsTrigger value="profile" className="flex-1 rounded-lg py-1.5 text-[10px] font-bold tracking-tight transition-all data-[state=active]:bg-primary data-[state=active]:text-white gap-1 justify-center whitespace-nowrap overflow-hidden">
+                                <User className="w-3 h-3 shrink-0" /> <span className="truncate">Profile Details</span>
                             </TabsTrigger>
-                            <TabsTrigger value="sessions" className="rounded-xl px-2.5 sm:px-3 py-1.5 text-[11px] sm:text-xs font-bold tracking-tight transition-all data-[state=active]:bg-primary data-[state=active]:text-white shadow-xs gap-1 whitespace-nowrap">
-                                <History className="w-3.5 h-3.5" /> Physio Sessions History
+                            <TabsTrigger value="sessions" className="flex-1 rounded-lg py-1.5 text-[10px] font-bold tracking-tight transition-all data-[state=active]:bg-primary data-[state=active]:text-white gap-1 justify-center whitespace-nowrap overflow-hidden">
+                                <History className="w-3 h-3 shrink-0" /> <span className="truncate">Physio Sessions History</span>
                             </TabsTrigger>
                             {isAdminOrFoe && (
-                                <TabsTrigger value="entitlements" className="rounded-xl px-2.5 sm:px-3 py-1.5 text-[11px] sm:text-xs font-bold tracking-tight transition-all data-[state=active]:bg-primary data-[state=active]:text-white shadow-xs gap-1 whitespace-nowrap">
-                                    <ShieldCheck className="w-3.5 h-3.5" /> Entitlements
+                                <TabsTrigger value="entitlements" className="flex-1 rounded-lg py-1.5 text-[10px] font-bold tracking-tight transition-all data-[state=active]:bg-primary data-[state=active]:text-white gap-1 justify-center whitespace-nowrap overflow-hidden">
+                                    <ShieldCheck className="w-3 h-3 shrink-0" /> <span className="truncate">Entitlements</span>
                                 </TabsTrigger>
                             )}
                             {isAdminOrFoe && (
-                                <TabsTrigger value="billing" className="rounded-xl px-2.5 sm:px-3 py-1.5 text-[11px] sm:text-xs font-bold tracking-tight transition-all data-[state=active]:bg-primary data-[state=active]:text-white shadow-xs gap-1 whitespace-nowrap">
-                                    <Banknote className="w-3.5 h-3.5" /> Billing History
+                                <TabsTrigger value="billing" className="flex-1 rounded-lg py-1.5 text-[10px] font-bold tracking-tight transition-all data-[state=active]:bg-primary data-[state=active]:text-white gap-1 justify-center whitespace-nowrap overflow-hidden">
+                                    <Banknote className="w-3 h-3 shrink-0" /> <span className="truncate">Billing History</span>
                                 </TabsTrigger>
                             )}
                             {canAccessDocuments && (
-                                <TabsTrigger value="documents" className="rounded-xl px-2.5 sm:px-3 py-1.5 text-[11px] sm:text-xs font-bold tracking-tight transition-all data-[state=active]:bg-primary data-[state=active]:text-white shadow-xs gap-1 whitespace-nowrap">
-                                    <FileText className="w-3.5 h-3.5" /> Documents
+                                <TabsTrigger value="documents" className="flex-1 rounded-lg py-1.5 text-[10px] font-bold tracking-tight transition-all data-[state=active]:bg-primary data-[state=active]:text-white gap-1 justify-center whitespace-nowrap overflow-hidden">
+                                    <FileText className="w-3 h-3 shrink-0" /> <span className="truncate">Documents</span>
                                 </TabsTrigger>
                             )}
-                            <TabsTrigger value="assessment-reports" className="rounded-xl px-2.5 sm:px-3 py-1.5 text-[11px] sm:text-xs font-bold tracking-tight transition-all data-[state=active]:bg-primary data-[state=active]:text-white shadow-xs gap-1 whitespace-nowrap">
-                                <Activity className="w-3.5 h-3.5" /> Assessment Reports
+                            <TabsTrigger value="assessment-reports" className="flex-1 rounded-lg py-1.5 text-[10px] font-bold tracking-tight transition-all data-[state=active]:bg-primary data-[state=active]:text-white gap-1 justify-center whitespace-nowrap overflow-hidden">
+                                <Activity className="w-3 h-3 shrink-0" /> <span className="truncate">Assessment Reports</span>
+                            </TabsTrigger>
+                            <TabsTrigger value="questionnaires" className="flex-1 rounded-lg py-1.5 text-[10px] font-bold tracking-tight transition-all data-[state=active]:bg-primary data-[state=active]:text-white gap-1 justify-center whitespace-nowrap overflow-hidden">
+                                <ClipboardList className="w-3 h-3 shrink-0" /> <span className="truncate">Questionnaires</span>
                             </TabsTrigger>
                         </TabsList>
                     </div>
@@ -1322,6 +1326,18 @@ export default function ClientProfile() {
                     {/* ASSESSMENT REPORTS TAB */}
                     <TabsContent value="assessment-reports">
                         <AssessmentReportsList clientId={id!} showDelete={true} />
+                    </TabsContent>
+
+                    {/* QUESTIONNAIRES TAB */}
+                    <TabsContent value="questionnaires" className="space-y-6">
+                        <ClientQuestionnairesTab
+                            clientId={id!}
+                            clientName={fullName}
+                            clientAge={client?.age}
+                            clientGender={client?.gender}
+                            clientContact={client?.mobile_no}
+                            clientObj={client}
+                        />
                     </TabsContent>
                 </Tabs>
             </div>

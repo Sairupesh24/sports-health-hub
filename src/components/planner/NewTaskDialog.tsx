@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import {
   Dialog,
   DialogContent,
@@ -20,6 +20,19 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
+} from "@/components/ui/popover";
+import {
+  Command,
+  CommandInput,
+  CommandList,
+  CommandEmpty,
+  CommandGroup,
+  CommandItem,
+} from "@/components/ui/command";
+import {
   Calendar,
   Clock,
   Users,
@@ -30,7 +43,12 @@ import {
   Layers,
   AlarmClock,
   ArrowRight,
+  Lock,
+  Check,
+  ChevronsUpDown,
+  Search,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { plannerStore, getTodayString } from "@/services/plannerStore";
 import { DailyTaskCategory, DailyTaskPriority, TaskType, TaskTimeMode, TeamMember } from "@/types/planner";
 import { useAuth } from "@/contexts/AuthContext";
@@ -59,7 +77,7 @@ export default function NewTaskDialog({
     ? `${profile.first_name || ""} ${profile.last_name || ""}`.trim() || profile.email || "You"
     : user?.email || "You";
   const currentUserRole = profile?.ams_role || profile?.profession || "Staff Member";
-  const currentUserDept = profile?.department || "Staff";
+  const currentUserDept = (profile as any)?.department || "Staff";
 
   // Ensure current logged in user is in the members list
   const members: TeamMember[] = useMemo(() => {
@@ -99,14 +117,22 @@ export default function NewTaskDialog({
   // Task Type Separation: "individual" | "group"
   const [taskType, setTaskType] = useState<TaskType>("individual");
 
-  // Assigner (Who is assigning the task) - defaults to logged in user!
-  const [assignerId, setAssignerId] = useState<string>(currentUserId);
-
   // Assignee Individual (Who is receiving the task if individual) - can be self or another staff member
   const [assigneeId, setAssigneeId] = useState<string>(currentUserId);
+  const [assigneeOpen, setAssigneeOpen] = useState<boolean>(false);
 
   // Assigned Group / Team (Which group is receiving the task if group)
   const [teamId, setTeamId] = useState<string>(teams[0]?.id || "");
+  const [teamOpen, setTeamOpen] = useState<boolean>(false);
+
+  // Memoized selected member and team objects
+  const selectedAssigneeMember = useMemo(() => {
+    return members.find((m) => String(m.id) === String(assigneeId));
+  }, [members, assigneeId]);
+
+  const selectedTeam = useMemo(() => {
+    return teams.find((t) => String(t.id) === String(teamId));
+  }, [teams, teamId]);
 
   // Approval Workflow
   const [requiresApproval, setRequiresApproval] = useState<boolean>(false);
@@ -115,9 +141,8 @@ export default function NewTaskDialog({
   // Sync defaults whenever dialog opens
   useEffect(() => {
     if (open) {
-      if (currentUserId) {
-        setAssignerId(currentUserId);
-      }
+      setAssigneeOpen(false);
+      setTeamOpen(false);
       if (defaultDate) {
         setDate(defaultDate);
         setDeadlineDate(defaultDate);
@@ -131,7 +156,7 @@ export default function NewTaskDialog({
       );
       setSelectedApproverId(doctorMember?.id || members[0]?.id || "");
     }
-  }, [open, currentUserId, defaultDate, members]);
+  }, [open]);
 
   const isSelfAssigned = taskType === "individual" && String(assigneeId) === String(currentUserId);
 
@@ -142,7 +167,7 @@ export default function NewTaskDialog({
       return;
     }
 
-    const assigner = members.find((m) => String(m.id) === String(assignerId)) || {
+    const assigner = {
       id: currentUserId,
       name: currentUserName,
     };
@@ -187,10 +212,10 @@ export default function NewTaskDialog({
       priority,
       status: requiresApproval ? "under_review" : "scheduled",
 
-      // Task Type Separation
+      // Task Type Separation - Assigner is permanently the logged-in user
       task_type: taskType,
-      assigner_id: assigner.id,
-      assigner_name: assigner.name,
+      assigner_id: currentUserId,
+      assigner_name: currentUserName,
 
       // Individual vs Group
       assignee_id: assignee?.id,
@@ -659,66 +684,178 @@ export default function NewTaskDialog({
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1 border-t border-slate-200/60 dark:border-slate-800">
-                {/* Field 1: Assigned By */}
+                {/* Field 1: Assigned By (Always logged-in user, non-changeable) */}
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                    Assigned By
-                  </Label>
-                  <Select value={assignerId} onValueChange={setAssignerId}>
-                    <SelectTrigger className="h-9 text-xs bg-white dark:bg-slate-900 font-medium">
-                      <SelectValue placeholder="Select Assigner" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {members.map((m) => (
-                        <SelectItem key={m.id} value={m.id}>
-                          {m.name} {String(m.id) === String(currentUserId) ? "(You)" : `(${m.role})`}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                      Assigned By
+                    </Label>
+                    <span className="text-[10px] text-slate-400 font-medium flex items-center gap-1">
+                      <Lock className="w-2.5 h-2.5 text-slate-400" /> Logged In User
+                    </span>
+                  </div>
+                  <div
+                    title="Assigned By is permanently set to the logged in user and cannot be changed"
+                    className="h-9 px-3 rounded-md border border-slate-200 dark:border-slate-800 bg-slate-100/80 dark:bg-slate-900/60 flex items-center justify-between text-xs text-slate-700 dark:text-slate-300 font-medium cursor-not-allowed select-none shadow-xs"
+                  >
+                    <div className="flex items-center gap-2 truncate">
+                      <User className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                      <span className="truncate">{currentUserName} (You)</span>
+                    </div>
+                    <Lock className="w-3 h-3 text-slate-400 shrink-0" />
+                  </div>
                 </div>
 
+                {/* Field 2: Assigned To (Dynamic searchable dropdown that updates as we type) */}
                 {/* Field 2: Assigned To */}
                 {taskType === "individual" ? (
                   <div className="space-y-1.5">
                     <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
                       Assigned To
                     </Label>
-                    <Select value={assigneeId} onValueChange={setAssigneeId}>
-                      <SelectTrigger className="h-9 text-xs bg-white dark:bg-slate-900 font-bold text-fuchsia-900 dark:text-fuchsia-200 border-fuchsia-200 dark:border-fuchsia-800">
-                        <SelectValue placeholder="Select Staff Member" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value={currentUserId} className="font-bold text-fuchsia-700 dark:text-fuchsia-300">
-                          ✨ Myself ({currentUserRole})
-                        </SelectItem>
-                        {members
-                          .filter((m) => String(m.id) !== String(currentUserId))
-                          .map((m) => (
-                            <SelectItem key={m.id} value={m.id}>
-                              👤 {m.name} ({m.role})
-                            </SelectItem>
-                          ))}
-                      </SelectContent>
-                    </Select>
+                    <Popover open={assigneeOpen} onOpenChange={setAssigneeOpen}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          role="combobox"
+                          aria-expanded={assigneeOpen}
+                          className="w-full justify-between h-9 text-xs bg-white dark:bg-slate-900 font-bold text-fuchsia-900 dark:text-fuchsia-200 border-fuchsia-200 dark:border-fuchsia-800 px-3 hover:bg-slate-50 dark:hover:bg-slate-800/80 shadow-2xs"
+                        >
+                          <div className="flex items-center gap-1.5 truncate">
+                            {isSelfAssigned ? (
+                              <>
+                                <span className="text-fuchsia-600 dark:text-fuchsia-400 font-bold">✨</span>
+                                <span className="truncate">Myself ({currentUserRole})</span>
+                              </>
+                            ) : selectedAssigneeMember ? (
+                              <>
+                                <User className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                                <span className="truncate">{selectedAssigneeMember.name} ({selectedAssigneeMember.role})</span>
+                              </>
+                            ) : (
+                              <span className="text-slate-400 font-normal">Select Staff Member...</span>
+                            )}
+                          </div>
+                          <ChevronsUpDown className="ml-2 h-3.5 w-3.5 shrink-0 text-slate-400 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[320px] sm:w-[350px] p-0 z-[100] pointer-events-auto" align="start">
+                        <Command>
+                          <CommandInput placeholder="Search staff by name or role..." className="h-9 text-xs" />
+                          <CommandList className="max-h-60 overflow-y-auto pointer-events-auto custom-scrollbar">
+                            <CommandEmpty className="py-3 text-center text-xs text-muted-foreground">
+                              No staff member found.
+                            </CommandEmpty>
+                            <CommandGroup heading="Staff Members">
+                              <CommandItem
+                                value={`Myself ${currentUserName} ${currentUserRole} you`}
+                                onSelect={() => {
+                                  setAssigneeId(currentUserId);
+                                  setAssigneeOpen(false);
+                                }}
+                                className="text-xs cursor-pointer flex items-center justify-between py-2 px-2.5"
+                              >
+                                <div className="flex items-center gap-2 font-bold text-fuchsia-700 dark:text-fuchsia-300">
+                                  <span>✨</span>
+                                  <span>Myself ({currentUserRole})</span>
+                                </div>
+                                {isSelfAssigned && <Check className="w-3.5 h-3.5 text-fuchsia-600 shrink-0" />}
+                              </CommandItem>
+                              {members
+                                .filter((m) => String(m.id) !== String(currentUserId))
+                                .map((m) => {
+                                  const isSelected = String(m.id) === String(assigneeId);
+                                  return (
+                                    <CommandItem
+                                      key={m.id}
+                                      value={`${m.name} ${m.role} ${m.department || ""}`}
+                                      onSelect={() => {
+                                        setAssigneeId(m.id);
+                                        setAssigneeOpen(false);
+                                      }}
+                                      className="text-xs cursor-pointer flex items-center justify-between py-2 px-2.5"
+                                    >
+                                      <div className="flex items-center gap-2 truncate">
+                                        <User className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                                        <div className="truncate flex items-baseline gap-1.5">
+                                          <span className="font-semibold text-slate-900 dark:text-slate-100 truncate">{m.name}</span>
+                                          <span className="text-[11px] text-slate-500 font-normal truncate">({m.role})</span>
+                                        </div>
+                                      </div>
+                                      {isSelected && <Check className="w-3.5 h-3.5 text-fuchsia-600 shrink-0 ml-2" />}
+                                    </CommandItem>
+                                  );
+                                })}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
                   </div>
                 ) : (
                   <div className="space-y-1.5">
                     <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
                       Assigned Team / Group
                     </Label>
-                    <Select value={teamId} onValueChange={setTeamId}>
-                      <SelectTrigger className="h-9 text-xs bg-white dark:bg-slate-900 font-bold text-fuchsia-900 dark:text-fuchsia-200 border-fuchsia-200 dark:border-fuchsia-800">
-                        <SelectValue placeholder="Select Functional Group" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {teams.map((t) => (
-                          <SelectItem key={t.id} value={t.id}>
-                            👥 {t.name} ({t.code})
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <Popover open={teamOpen} onOpenChange={setTeamOpen}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          role="combobox"
+                          aria-expanded={teamOpen}
+                          className="w-full justify-between h-9 text-xs bg-white dark:bg-slate-900 font-bold text-fuchsia-900 dark:text-fuchsia-200 border-fuchsia-200 dark:border-fuchsia-800 px-3 hover:bg-slate-50 dark:hover:bg-slate-800/80 shadow-2xs"
+                        >
+                          <div className="flex items-center gap-1.5 truncate">
+                            {selectedTeam ? (
+                              <>
+                                <Users className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                                <span className="truncate">{selectedTeam.name} ({selectedTeam.code})</span>
+                              </>
+                            ) : (
+                              <span className="text-slate-400 font-normal">Select Functional Group...</span>
+                            )}
+                          </div>
+                          <ChevronsUpDown className="ml-2 h-3.5 w-3.5 shrink-0 text-slate-400 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[320px] sm:w-[350px] p-0 z-[100] pointer-events-auto" align="start">
+                        <Command>
+                          <CommandInput placeholder="Type to search team or group..." className="h-9 text-xs" />
+                          <CommandList className="max-h-60 overflow-y-auto pointer-events-auto custom-scrollbar">
+                            <CommandEmpty className="py-3 text-center text-xs text-muted-foreground">
+                              No team found.
+                            </CommandEmpty>
+                            <CommandGroup heading="Functional Teams">
+                              {teams.map((t) => {
+                                const isSelected = String(t.id) === String(teamId);
+                                return (
+                                  <CommandItem
+                                    key={t.id}
+                                    value={`${t.name} ${t.code} ${t.department || ""}`}
+                                    onSelect={() => {
+                                      setTeamId(t.id);
+                                      setTeamOpen(false);
+                                    }}
+                                    className="text-xs cursor-pointer flex items-center justify-between py-2 px-2.5"
+                                  >
+                                    <div className="flex items-center gap-2 truncate">
+                                      <Users className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                                      <div className="truncate flex items-baseline gap-1.5">
+                                        <span className="font-semibold text-slate-900 dark:text-slate-100 truncate">{t.name}</span>
+                                        <span className="text-[11px] text-slate-500 font-normal truncate">({t.code})</span>
+                                      </div>
+                                    </div>
+                                    {isSelected && <Check className="w-3.5 h-3.5 text-fuchsia-600 shrink-0 ml-2" />}
+                                  </CommandItem>
+                                );
+                              })}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
                   </div>
                 )}
               </div>

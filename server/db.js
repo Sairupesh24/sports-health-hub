@@ -81,6 +81,12 @@ async function runMigrations() {
       await pool.query(`ALTER TABLE organizations ADD COLUMN default_slot_duration INTEGER DEFAULT 60;`);
     } catch (e) {}
     try {
+      await pool.query(`ALTER TABLE organizations ADD COLUMN default_slot_capacity INTEGER DEFAULT 2;`);
+    } catch (e) {}
+    try {
+      await pool.query(`ALTER TABLE organizations ADD COLUMN custom_specialist_settings JSONB DEFAULT '{}'::jsonb;`);
+    } catch (e) {}
+    try {
       // Default auto clock-out time — staff who forget to check out are auto-checked-out at this time
       await pool.query(`ALTER TABLE organizations ADD COLUMN IF NOT EXISTS default_checkout_time TIME DEFAULT '18:00:00';`);
       await pool.query(`ALTER TABLE organizations ADD COLUMN IF NOT EXISTS default_shift_end_time TIME DEFAULT '18:00:00';`);
@@ -1591,9 +1597,16 @@ async function runMigrations() {
         response_data JSONB,
         clinical_interpretation TEXT,
         submitted_at TIMESTAMPTZ,
+        public_token TEXT,
         created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
       )
     `);
+
+    // Safely add public_token to form_responses if not exists
+    try {
+      await pool.query(`ALTER TABLE form_responses ADD COLUMN IF NOT EXISTS public_token TEXT;`);
+      await pool.query(`CREATE INDEX IF NOT EXISTS idx_form_responses_public_token ON form_responses(public_token);`);
+    } catch (e) {}
 
     // Notifications
     await pool.query(`

@@ -15,6 +15,7 @@ import { Calendar as CalendarIcon, Clock, User, Plus, Loader2, Check, ChevronsUp
 import { format } from "date-fns";
 import { VIPName } from "@/components/ui/VIPBadge";
 import { filterServicesByRole, Service } from "@/utils/serviceMapping";
+import { resolveSpecialistSettings } from "@/utils/dynamicSlots";
 
 interface Props {
     open: boolean;
@@ -178,15 +179,11 @@ export function ConsultantBookSlotModal({ open, onOpenChange, defaultDate, onSuc
         }
     };
 
-    // Calculate dynamic slot duration based on Admin org settings / availability rules
+    // Calculate dynamic slot duration based on Admin org settings / specialist overrides
     const slotDurationNum = useMemo(() => {
-        const dateObj = new Date(`${sessionDate}T00:00:00`);
-        const dayOfWeek = dateObj.getDay();
-        const rule = availabilityRules.find(
-            (r) => r.consultant_id === profile?.id && Number(r.day_of_week) === dayOfWeek
-        );
-        return rule?.slot_duration_interval || orgSettings?.default_slot_duration || parseInt(durationMinutes, 10) || 60;
-    }, [availabilityRules, profile?.id, sessionDate, orgSettings, durationMinutes]);
+        const resolved = resolveSpecialistSettings(orgSettings, profile);
+        return resolved.slotDuration || parseInt(durationMinutes, 10) || 60;
+    }, [profile, orgSettings, durationMinutes]);
 
     // Calculate end time string from selected slot or start time + duration
     const endTime = useMemo(() => {

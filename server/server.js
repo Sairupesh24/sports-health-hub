@@ -520,12 +520,20 @@ app.get('/api/organizations/:id', requireAuth, async (req, res) => {
 app.get('/api/organizations/:id/settings', requireAuth, async (req, res) => {
   const { id } = req.params;
   try {
-    const orgRes = await db.query('SELECT allow_custom_duration, default_slot_duration, default_checkout_time, default_shift_end_time FROM organizations WHERE id = $1', [id]);
+    const orgRes = await db.query(
+      `SELECT allow_custom_duration, default_slot_duration, default_slot_capacity, custom_specialist_settings,
+              default_checkout_time, default_shift_end_time 
+       FROM organizations WHERE id = $1`,
+      [id]
+    );
     if (orgRes.rows.length === 0) {
       return res.status(404).json({ error: 'Organization not found' });
     }
     const settings = orgRes.rows[0];
     settings.allow_custom_duration = Boolean(settings.allow_custom_duration);
+    settings.default_slot_duration = settings.default_slot_duration || 60;
+    settings.default_slot_capacity = settings.default_slot_capacity || 2;
+    settings.custom_specialist_settings = settings.custom_specialist_settings || {};
     res.json(settings);
   } catch (err) {
     console.error('[SERVER ERROR]', err);
@@ -535,24 +543,43 @@ app.get('/api/organizations/:id/settings', requireAuth, async (req, res) => {
 
 app.patch('/api/organizations/:id/settings', requireAuth, async (req, res) => {
   const { id } = req.params;
-  const { allow_custom_duration, default_slot_duration, default_checkout_time, default_shift_end_time } = req.body;
+  const { 
+    allow_custom_duration, 
+    default_slot_duration, 
+    default_slot_capacity, 
+    custom_specialist_settings, 
+    default_checkout_time, 
+    default_shift_end_time 
+  } = req.body;
   const shiftTime = default_shift_end_time || default_checkout_time || null;
   try {
     const result = await db.query(
       `UPDATE organizations
-       SET allow_custom_duration = $1,
-           default_slot_duration = $2,
-           default_checkout_time = COALESCE($3::time, default_checkout_time),
-           default_shift_end_time = COALESCE($3::time, default_shift_end_time)
-       WHERE id = $4
-       RETURNING allow_custom_duration, default_slot_duration, default_checkout_time, default_shift_end_time`,
-      [allow_custom_duration, default_slot_duration, shiftTime, id]
+       SET allow_custom_duration = COALESCE($1, allow_custom_duration),
+           default_slot_duration = COALESCE($2, default_slot_duration),
+           default_slot_capacity = COALESCE($3, default_slot_capacity),
+           custom_specialist_settings = COALESCE($4, custom_specialist_settings),
+           default_checkout_time = COALESCE($5::time, default_checkout_time),
+           default_shift_end_time = COALESCE($5::time, default_shift_end_time)
+       WHERE id = $6
+       RETURNING allow_custom_duration, default_slot_duration, default_slot_capacity, custom_specialist_settings, default_checkout_time, default_shift_end_time`,
+      [
+        allow_custom_duration !== undefined ? Boolean(allow_custom_duration) : null,
+        default_slot_duration !== undefined ? parseInt(default_slot_duration, 10) : null,
+        default_slot_capacity !== undefined ? parseInt(default_slot_capacity, 10) : null,
+        custom_specialist_settings !== undefined ? (typeof custom_specialist_settings === 'string' ? custom_specialist_settings : JSON.stringify(custom_specialist_settings)) : null,
+        shiftTime,
+        id
+      ]
     );
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Organization not found' });
     }
     const settings = result.rows[0];
     settings.allow_custom_duration = Boolean(settings.allow_custom_duration);
+    settings.default_slot_duration = settings.default_slot_duration || 60;
+    settings.default_slot_capacity = settings.default_slot_capacity || 2;
+    settings.custom_specialist_settings = settings.custom_specialist_settings || {};
     res.json(settings);
   } catch (err) {
     console.error('[SERVER ERROR]', err);

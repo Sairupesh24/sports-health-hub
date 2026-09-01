@@ -10,7 +10,8 @@ import { format, startOfDay, differenceInCalendarDays, addDays } from "date-fns"
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
-import { filterServicesByRole, Service, formatStaffName } from "@/utils/serviceMapping";
+import { filterServicesByRole, filterConsultantsByService, Service, formatStaffName } from "@/utils/serviceMapping";
+import { generateDynamicSlots, resolveSpecialistSettings, DynamicSlot } from "@/utils/dynamicSlots";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -41,12 +42,16 @@ export function AdminSessionStatusModal({ open, onOpenChange, session, onSuccess
 
     // Reassignment states
     const [staffList, setStaffList] = useState<any[]>([]);
+    const [serviceMappings, setServiceMappings] = useState<any[]>([]);
+    const [targetSchedule, setTargetSchedule] = useState<any>(null);
+    const [hrLeaves, setHrLeaves] = useState<any[]>([]);
+    const [orgSettings, setOrgSettings] = useState<any>(null);
     const [loadingStaff, setLoadingStaff] = useState(false);
     const [reassignConsultantId, setReassignConsultantId] = useState("");
     const [reassignDate, setReassignDate] = useState("");
     const [targetBookedSessions, setTargetBookedSessions] = useState<any[]>([]);
     const [loadingTargetBookings, setLoadingTargetBookings] = useState(false);
-    const [reassignSelectedSlot, setReassignSelectedSlot] = useState<{ startTime: string; endTime: string; label: string } | null>(null);
+    const [reassignSelectedSlot, setReassignSelectedSlot] = useState<DynamicSlot | null>(null);
 
     useEffect(() => {
         if (open && session) {
@@ -54,8 +59,43 @@ export function AdminSessionStatusModal({ open, onOpenChange, session, onSuccess
             setReassignConsultantId("");
             setReassignSelectedSlot(null);
             fetchStaffList();
+            fetchServiceMappings();
+            fetchLeaves();
+            fetchOrgSettings();
         }
     }, [open, session]);
+
+    const fetchOrgSettings = async () => {
+        if (!session?.organization_id) return;
+        try {
+            const data = await apiFetch<any>(`/organizations/${session.organization_id}/settings`);
+            if (data) setOrgSettings(data);
+        } catch (err) {
+            console.warn("Failed to fetch org settings in status modal:", err);
+        }
+    };
+
+    const fetchServiceMappings = async () => {
+        try {
+            const data = await apiFetch<any[]>('/admin/consultant-services');
+            if (data) setServiceMappings(data);
+        } catch (err) {
+            console.warn("Failed to fetch service mappings in status modal:", err);
+        }
+    };
+
+    const fetchLeaves = async () => {
+        try {
+            const res = await apiFetch<any>('/hr/leaves');
+            if (res?.data) {
+                setHrLeaves(res.data);
+            } else if (Array.isArray(res)) {
+                setHrLeaves(res);
+            }
+        } catch (err) {
+            console.warn("Failed to fetch leaves in status modal:", err);
+        }
+    };
 
     const fetchStaffList = async () => {
         try {
@@ -70,6 +110,38 @@ export function AdminSessionStatusModal({ open, onOpenChange, session, onSuccess
             setLoadingStaff(false);
         }
     };
+
+    // Filter staff list to only qualified specialists for current session's service
+    const qualifiedStaffList = useMemo(() => {
+        const sessionServiceId = serviceId || session?.service_id;
+        const sessionServiceName = session?.service_type || "";
+        const currentService = services.find(s => s.id === sessionServiceId || s.name.toLowerCase() === sessionServiceName.toLowerCase())
+            || (sessionServiceId ? { id: sessionServiceId, name: sessionServiceName, category: null, organization_id: session?.organization_id || "" } : null);
+
+        if (!currentService) return staffList;
+        return filterConsultantsByService(staffList, currentService, serviceMappings);
+    }, [staffList, services, serviceId, session?.service_id, session?.service_type, session?.organization_id, serviceMappings]);
+
+    useEffect(() => {
+        async function fetchTargetConsultantSchedule() {
+            if (!reassignConsultantId) {
+                setTargetSchedule(null);
+                return;
+            }
+            try {
+                const res = await apiFetch<any>(`/hr/staff-schedules/${reassignConsultantId}`);
+                if (res) {
+                    setTargetSchedule(res);
+                } else {
+                    setTargetSchedule(null);
+                }
+            } catch (err) {
+                console.warn("Failed to fetch target consultant schedule:", err);
+                setTargetSchedule(null);
+            }
+        }
+        fetchTargetConsultantSchedule();
+    }, [reassignConsultantId]);
 
     useEffect(() => {
         if (open && reassignConsultantId && reassignDate) {
@@ -96,54 +168,47 @@ export function AdminSessionStatusModal({ open, onOpenChange, session, onSuccess
         }
     };
 
-    // Calculate available time slots for target consultant on reassignDate
+    const targetConsultantLeave = useMemo(() => {
+        if (!reassignConsultantId || !reassignDate || !hrLeaves.length) return null;
+        return hrLeaves.find((leave: any) => {
+            if (leave.employee_id !== reassignConsultantId) return false;
+            if (leave.status !== 'Approved') return false;
+            const startStr = leave.start_date ? String(leave.start_date).split('T')[0] : '';
+            const endStr = leave.end_date ? String(leave.end_date).split('T')[0] : '';
+            return reassignDate >= startStr && reassignDate <= endStr;
+        });
+    }, [reassignConsultantId, reassignDate, hrLeaves]);
+
+    // Calculate dynamic available time slots for target consultant on reassignDate
     const reassignAvailableSlots = useMemo(() => {
         if (!reassignConsultantId || !reassignDate) return [];
+        if (targetConsultantLeave) return [];
 
-        let startMinutes = 9 * 60;  // 09:00 AM
-        let endMinutes = 18 * 60;   // 06:00 PM
-        const slotDur = 60; // 60 mins
+        const dateObj = new Date(`${reassignDate}T00:00:00`);
+        const dayOfWeek = dateObj.getDay();
 
-        const slots: { startTime: string; endTime: string; label: string }[] = [];
-        let current = startMinutes;
+        const targetStaff = staffList.find(s => s.id === reassignConsultantId);
+        const resolved = resolveSpecialistSettings(orgSettings, targetStaff);
+        const capacityLimit = resolved.capacityLimit;
+        const defaultSlotDuration = resolved.slotDuration;
 
-        while (current + slotDur <= endMinutes) {
-            const startH = Math.floor(current / 60);
-            const startM = current % 60;
-            const endTotal = current + slotDur;
-            const endH = Math.floor(endTotal / 60);
-            const endM = endTotal % 60;
+        const shiftStart = targetSchedule?.shift_start || orgSettings?.working_hours_start || "08:00:00";
+        const shiftEnd = targetSchedule?.shift_end || orgSettings?.working_hours_end || "17:00:00";
 
-            const formatTwoDigits = (num: number) => (num < 10 ? `0${num}` : `${num}`);
-            const startFormatted = `${formatTwoDigits(startH)}:${formatTwoDigits(startM)}`;
-            const endFormatted = `${formatTwoDigits(endH)}:${formatTwoDigits(endM)}`;
+        const dynamicSlots = generateDynamicSlots({
+            shiftStart,
+            shiftEnd,
+            breaks: targetSchedule?.breaks || [],
+            dayOfWeek,
+            defaultSlotDuration,
+            bookedSessions: targetBookedSessions,
+            consultantId: reassignConsultantId,
+            dateStr: reassignDate,
+            capacityLimit
+        });
 
-            const formatAmPm = (hh: number, mm: number) => {
-                const ampm = hh >= 12 ? "PM" : "AM";
-                const displayH = hh % 12 === 0 ? 12 : hh % 12;
-                return `${displayH}:${formatTwoDigits(mm)} ${ampm}`;
-            };
-
-            const label = `${formatAmPm(startH, startM)} - ${formatAmPm(endH, endM)}`;
-
-            const isBooked = targetBookedSessions.some((b) => {
-                if (!b.scheduled_start) return false;
-                const bStart = new Date(b.scheduled_start);
-                const bEnd = b.scheduled_end ? new Date(b.scheduled_end) : new Date(bStart.getTime() + slotDur * 60000);
-                const slotStartObj = new Date(`${reassignDate}T${startFormatted}:00`);
-                const slotEndObj = new Date(`${reassignDate}T${endFormatted}:00`);
-                return slotStartObj < bEnd && slotEndObj > bStart;
-            });
-
-            if (!isBooked) {
-                slots.push({ startTime: startFormatted, endTime: endFormatted, label });
-            }
-
-            current += slotDur;
-        }
-
-        return slots;
-    }, [reassignConsultantId, reassignDate, targetBookedSessions]);
+        return dynamicSlots.filter(s => s.status === 'available');
+    }, [reassignConsultantId, reassignDate, targetConsultantLeave, targetSchedule, orgSettings, targetBookedSessions, staffList]);
 
     useEffect(() => {
         if (session) {
@@ -674,7 +739,7 @@ export function AdminSessionStatusModal({ open, onOpenChange, session, onSuccess
                                                     <SelectValue placeholder={loadingStaff ? "Loading staff..." : "Select consultant"} />
                                                 </SelectTrigger>
                                                 <SelectContent className="max-h-60">
-                                                    {staffList.map((s) => (
+                                                    {(qualifiedStaffList.length > 0 ? qualifiedStaffList : staffList).map((s) => (
                                                         <SelectItem key={s.id} value={s.id}>
                                                             {formatStaffName(s, { showProfession: true, useFirstName: true })}
                                                         </SelectItem>
@@ -694,7 +759,16 @@ export function AdminSessionStatusModal({ open, onOpenChange, session, onSuccess
                                         </div>
                                     </div>
 
-                                    {reassignConsultantId && (
+                                    {targetConsultantLeave && (
+                                        <div className="p-2.5 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 text-xs text-amber-800 dark:text-amber-300 rounded-lg flex items-center gap-2">
+                                            <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+                                            <span>
+                                                Staff member is on approved leave (<strong>{targetConsultantLeave.leave_type?.replace(/_/g, ' ') || 'Leave'}</strong>) on this date.
+                                            </span>
+                                        </div>
+                                    )}
+
+                                    {reassignConsultantId && !targetConsultantLeave && (
                                         <div className="space-y-2 pt-1">
                                             <div className="flex items-center justify-between text-xs">
                                                 <Label className="font-semibold text-purple-900 dark:text-purple-200 text-xs">
@@ -736,7 +810,7 @@ export function AdminSessionStatusModal({ open, onOpenChange, session, onSuccess
                                     {reassignSelectedSlot && (
                                         <div className="p-2.5 bg-purple-100 dark:bg-purple-900/40 border border-purple-300 dark:border-purple-700 rounded-lg text-xs text-purple-900 dark:text-purple-200 font-medium flex items-center justify-between">
                                             <span>Selected New Slot: <strong className="font-mono">{reassignSelectedSlot.label}</strong></span>
-                                            <span className="text-[10px] bg-purple-600 text-white px-1.5 py-0.5 rounded font-bold uppercase">60 Mins</span>
+                                            <span className="text-[10px] bg-purple-600 text-white px-1.5 py-0.5 rounded font-bold uppercase">{reassignSelectedSlot.duration} Mins</span>
                                         </div>
                                     )}
 

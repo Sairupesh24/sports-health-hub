@@ -83,23 +83,6 @@ export function filterConsultantsByService(
 ): any[] {
     if (!service) return consultants;
 
-    // If service is universal, all clinical consultants are qualified to conduct it
-    if (service.is_universal) {
-        return consultants;
-    }
-
-    // 1. Try dynamic mappings first
-    if (dynamicMappings && dynamicMappings.length > 0) {
-        const mappedIds = dynamicMappings
-            .filter(m => m.service_id === service.id)
-            .map(m => m.consultant_id);
-        
-        if (mappedIds.length > 0) {
-            return consultants.filter(c => mappedIds.includes(c.id));
-        }
-    }
-
-    // 2. Fallback to existing role-based logic
     const sName = (service.name || "").toLowerCase().trim();
     const sCat = (service.category || "").toLowerCase().trim();
 
@@ -107,7 +90,7 @@ export function filterConsultantsByService(
         const rawProf = c.profession || c.role || "";
         const role = (c.role || "").toLowerCase();
 
-        // STRICT EXCLUSION: Admins and FOE are not specialists
+        // STRICT EXCLUSION: Admins and FOE are not specialists unless they have an explicit clinical profession
         const adminRoles = ['admin', 'clinic_admin', 'foe', 'front_office'];
         if (adminRoles.includes(role)) {
             // Only allow if they have an EXPLICIT clinical profession assigned
@@ -115,8 +98,22 @@ export function filterConsultantsByService(
                 return false;
             }
         }
-        
-        // Find matching category list with robust key matching
+
+        // 1. If this consultant has explicit mappings in dynamicMappings (Staff Override Matrix):
+        // Overrides strictly determine which services the consultant is qualified for (takes precedence over is_universal)
+        const consultantOverrides = dynamicMappings ? dynamicMappings.filter(m => m.consultant_id === c.id) : [];
+        const hasExplicitOverrides = consultantOverrides.length > 0;
+
+        if (hasExplicitOverrides) {
+            return consultantOverrides.some(m => m.service_id === service.id);
+        }
+
+        // 2. If no explicit overrides exist for this consultant, check if service is universal
+        if (service.is_universal) {
+            return true;
+        }
+
+        // 3. Fallback to role-based category matching
         let allowedCats: string[] = [];
         const exactMatch = ROLE_SERVICE_CATEGORY_MAP[rawProf];
         

@@ -5,7 +5,7 @@ import DashboardLayout from "@/components/layout/DashboardLayout";
 import { apiFetch } from "@/utils/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
-import { ClipboardList, Plus, Users, History, Search, LayoutGrid, List, Sparkles, ArrowRight, TrendingUp, Clock, CheckCircle2, Inbox, Play, Pause, Trash2, Calendar } from "lucide-react";
+import { ClipboardList, Plus, Users, History, Search, LayoutGrid, List, Sparkles, ArrowRight, TrendingUp, Clock, CheckCircle2, Inbox, Play, Pause, Trash2, Calendar, Link2, User } from "lucide-react";
 import { format } from "date-fns";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
 import BulkAssignmentModal from "@/components/ams/BulkAssignmentModal";
 import BulkStatusDashboard from "@/components/ams/BulkStatusDashboard";
 import FormBuilder from "@/components/ams/FormBuilder";
+import SingleClientAssignModal from "@/components/ams/SingleClientAssignModal";
 
 export default function QuestionnaireLibrary() {
   const { profile, roles } = useAuth();
@@ -23,8 +24,10 @@ export default function QuestionnaireLibrary() {
   
   const [searchQuery, setSearchQuery] = useState("");
   const [assignmentModalOpen, setAssignmentModalOpen] = useState(false);
+  const [singleAssignModalOpen, setSingleAssignModalOpen] = useState(false);
   const [builderOpen, setBuilderOpen] = useState(false);
   const [selectedForm, setSelectedForm] = useState<any>(null);
+  const [singleAssignForm, setSingleAssignForm] = useState<any>(null);
   const [editingForm, setEditingForm] = useState<any>(null);
 
   const { data: forms, isLoading: formsLoading, refetch: refetchForms } = useQuery({
@@ -88,6 +91,11 @@ export default function QuestionnaireLibrary() {
     setAssignmentModalOpen(true);
   };
 
+  const handleAssignToClient = (form: any) => {
+    setSingleAssignForm(form);
+    setSingleAssignModalOpen(true);
+  };
+
   const handleEditTemplate = (form: any) => {
     setEditingForm(form);
     setBuilderOpen(true);
@@ -120,7 +128,7 @@ export default function QuestionnaireLibrary() {
               </p>
             </div>
             
-            {isClinical && (
+            {(isClinical || isAdminOrFoe) && (
               <Button 
                 onClick={handleCreateNew}
                 className="h-14 px-8 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-black uppercase tracking-widest text-[11px] gap-3 shadow-xl transition-all hover:scale-105"
@@ -218,18 +226,27 @@ export default function QuestionnaireLibrary() {
                                </div>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-3">
-                              <Button 
-                                onClick={() => handleAssign(form)}
-                                className="h-12 rounded-2xl bg-primary text-white font-black uppercase tracking-widest text-[10px] gap-2 shadow-lg shadow-primary/10 hover:shadow-primary/20 transition-all border-none"
-                              >
-                                <Users className="w-3.5 h-3.5" /> Assign
-                              </Button>
-                               {isClinical && (
+                            <div className="space-y-2.5">
+                              <div className="grid grid-cols-2 gap-2.5">
+                                <Button 
+                                  onClick={() => handleAssign(form)}
+                                  className="h-11 rounded-2xl bg-primary text-white font-black uppercase tracking-widest text-[9px] gap-1.5 shadow-lg shadow-primary/10 hover:shadow-primary/20 transition-all border-none"
+                                >
+                                  <Users className="w-3.5 h-3.5" /> Squad Assign
+                                </Button>
+                                <Button 
+                                  onClick={() => handleAssignToClient(form)}
+                                  variant="outline"
+                                  className="h-11 rounded-2xl border-slate-200 text-slate-700 font-black uppercase tracking-widest text-[9px] gap-1.5 hover:bg-slate-50 hover:border-primary/40 hover:text-primary transition-all"
+                                >
+                                  <User className="w-3.5 h-3.5" /> Assign + Link
+                                </Button>
+                              </div>
+                              {(isClinical || isAdminOrFoe) && (
                                 <Button 
                                   variant="outline"
                                   onClick={() => handleEditTemplate(form)}
-                                  className="h-12 rounded-2xl border-slate-200 text-slate-600 font-black uppercase tracking-widest text-[10px] hover:bg-slate-50"
+                                  className="w-full h-10 rounded-2xl border-slate-200 text-slate-500 font-black uppercase tracking-widest text-[9px] hover:bg-slate-50"
                                 >
                                   Edit Template
                                 </Button>
@@ -419,6 +436,17 @@ export default function QuestionnaireLibrary() {
               // Refresh query
             }}
             form={selectedForm}
+          />
+        )}
+
+        {singleAssignForm && (
+          <SingleClientAssignModal
+            isOpen={singleAssignModalOpen}
+            onClose={() => {
+              setSingleAssignModalOpen(false);
+              setSingleAssignForm(null);
+            }}
+            form={singleAssignForm}
           />
         )}
 

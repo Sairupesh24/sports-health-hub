@@ -150,18 +150,34 @@ router.post('/', requireAuth, async (req, res) => {
 
         await client.query('BEGIN');
 
+        // 0. Check if therapist is on approved leave on scheduled_start date
+        if (therapist_id) {
+            const leaveCheck = await client.query(`
+                SELECT leave_type, reason, start_date, end_date FROM hrleaves
+                WHERE employee_id = $1
+                  AND organization_id = $2
+                  AND status = 'Approved'
+                  AND $3::date >= start_date::date
+                  AND $3::date <= end_date::date
+            `, [therapist_id, orgId, scheduled_start]);
+
+            if (leaveCheck.rows.length > 0) {
+                await client.query('ROLLBACK');
+                const leave = leaveCheck.rows[0];
+                const leaveTypeDisplay = (leave.leave_type || 'Leave').replace(/_/g, ' ');
+                return res.status(400).json({
+                    error: `Staff member is on approved leave (${leaveTypeDisplay}) on this date. Booking cannot be created.`
+                });
+            }
+        }
+
         // 1. Check capacity for this therapist
         const providerRes = await client.query('SELECT ams_role, profession FROM profiles WHERE id = $1', [therapist_id]);
         const provider = providerRes.rows.length > 0 ? providerRes.rows[0] : null;
         const profession = provider?.profession?.toLowerCase();
         const amsRole = provider?.ams_role?.toLowerCase();
 
-        let capacityLimit = 1;
-        if (profession === 'physiotherapist' || profession === 'physiotherapy' || profession === 'sports physician' || profession === 'physician' || profession === 'sports_physician') {
-            capacityLimit = 2;
-        } else if (profession === 'sports scientist' || amsRole === 'sports_scientist' || (profession && profession.includes('scientist')) || (amsRole && amsRole.includes('scientist'))) {
-            capacityLimit = Infinity;
-        }
+        const capacityLimit = await resolveProviderCapacity(client, orgId, therapist_id, profession, amsRole);
 
         const activeRes = await client.query(`
             SELECT id FROM sessions 
@@ -387,6 +403,47 @@ async function checkIsAdmin(userId, userRole) {
     return false;
 }
 
+// Helper to resolve dynamic provider capacity based on organization settings & specialist overrides
+async function resolveProviderCapacity(client, orgId, providerId, profession, amsRole) {
+    const prof = (profession || '').toLowerCase();
+    const role = (amsRole || '').toLowerCase();
+
+    const isScientist = prof.includes('scientist') || role.includes('scientist');
+    let defaultCapacity = isScientist ? Infinity : 2;
+
+    try {
+        const orgRes = await client.query(
+            'SELECT default_slot_capacity, allow_custom_duration, custom_specialist_settings FROM organizations WHERE id = $1',
+            [orgId]
+        );
+        if (orgRes.rows.length > 0) {
+            const org = orgRes.rows[0];
+            const globalCap = parseInt(org.default_slot_capacity, 10);
+            if (!isNaN(globalCap) && !isScientist) {
+                defaultCapacity = globalCap;
+            }
+
+            if (org.allow_custom_duration && org.custom_specialist_settings) {
+                const custom = typeof org.custom_specialist_settings === 'string'
+                    ? JSON.parse(org.custom_specialist_settings)
+                    : org.custom_specialist_settings;
+
+                const override = (providerId && custom[providerId]) || custom[prof] || custom[role];
+                if (override && override.capacity !== undefined) {
+                    if (override.capacity === 'infinity' || override.capacity === Infinity) {
+                        return Infinity;
+                    }
+                    const parsed = parseInt(override.capacity, 10);
+                    if (!isNaN(parsed)) return parsed;
+                }
+            }
+        }
+    } catch (e) {
+        console.warn('Error resolving provider capacity:', e.message);
+    }
+    return defaultCapacity;
+}
+
 // POST reschedule session
 router.post('/:id/reschedule', requireAuth, async (req, res) => {
     const client = await db.connect();
@@ -419,19 +476,14 @@ router.post('/:id/reschedule', requireAuth, async (req, res) => {
             return res.status(403).json({ error: 'Only authorized specialists or administrators can reschedule booked slots.' });
         }
 
-        // 2. Check capacity for the target practitioner (Sports Scientists: max 3)
+        // 2. Check capacity for the target practitioner
         const providerId = old.scientist_id || old.therapist_id || req.user.id;
         const providerRes = await client.query('SELECT ams_role, profession FROM profiles WHERE id = $1', [providerId]);
         const provider = providerRes.rows.length > 0 ? providerRes.rows[0] : null;
         const profession = (provider?.profession || '').toLowerCase();
         const amsRole = (provider?.ams_role || '').toLowerCase();
 
-        let capacityLimit = 1;
-        if (profession.includes('physio')) {
-            capacityLimit = 2;
-        } else if (profession.includes('scientist') || amsRole.includes('scientist')) {
-            capacityLimit = Infinity;
-        }
+        const capacityLimit = await resolveProviderCapacity(client, orgId, providerId, profession, amsRole);
 
         const activeRes = await client.query(`
             SELECT id FROM sessions 
@@ -577,12 +629,7 @@ router.post('/:id/reschedule-future', requireAuth, async (req, res) => {
         const profession = (provider?.profession || '').toLowerCase();
         const amsRole = (provider?.ams_role || '').toLowerCase();
 
-        let capacityLimit = 1;
-        if (profession.includes('physio')) {
-            capacityLimit = 2;
-        } else if (profession.includes('scientist') || amsRole.includes('scientist')) {
-            capacityLimit = Infinity;
-        }
+        const capacityLimit = await resolveProviderCapacity(client, orgId, providerId, profession, amsRole);
 
         let confirmedCount = 0;
         let waitlistedCount = 0;
@@ -828,7 +875,30 @@ router.get('/client-therapist-availability', requireAuth, async (req, res) => {
             return res.json({ status: 'Unassigned', assigned_therapist: null, free_slots: [], alternate_therapists: [] });
         }
         
-        // 3. Get standard availability for the day of week
+        // 3. Check for approved leaves in hrleaves
+        const hrLeaveRes = await db.query(`
+            SELECT leave_type, reason FROM hrleaves
+            WHERE employee_id = $1
+              AND status = 'Approved'
+              AND $2::date >= start_date::date
+              AND $2::date <= end_date::date
+        `, [therapistId, date]);
+
+        if (hrLeaveRes.rows.length > 0) {
+            return res.json({
+                status: 'On Leave',
+                assigned_therapist: {
+                    id: therapist.id,
+                    name: `${therapist.first_name} ${therapist.last_name}`,
+                    profession: therapist.profession
+                },
+                free_slots: [],
+                leave_type: hrLeaveRes.rows[0].leave_type,
+                alternate_therapists: []
+            });
+        }
+
+        // 4. Get standard availability for the day of week
         const dayOfWeek = new Date(date).getDay();
         const availRes = await db.query(
             'SELECT start_time, end_time FROM consultantavailability WHERE consultant_id = $1 AND day_of_week = $2',
@@ -843,7 +913,7 @@ router.get('/client-therapist-availability', requireAuth, async (req, res) => {
         } else {
             const { start_time, end_time } = availRes.rows[0];
 
-            // 4. Check for exceptions (Leaves)
+            // 5. Check for exceptions (Leaves/Blocks in availabilityexceptions)
             const excRes = await db.query(
                 'SELECT is_blocked, start_time as exc_start, end_time as exc_end FROM availabilityexceptions WHERE consultant_id = $1 AND exception_date = $2',
                 [therapistId, date]
@@ -852,7 +922,7 @@ router.get('/client-therapist-availability', requireAuth, async (req, res) => {
             if (excRes.rows.length > 0 && excRes.rows[0].is_blocked && !excRes.rows[0].exc_start) {
                 status = 'On Leave';
             } else {
-                // 5. Get booked sessions
+                // 6. Get booked sessions
                 const bookedRes = await db.query(
                     'SELECT scheduled_start, scheduled_end FROM sessions WHERE therapist_id = $1 AND status != $2 AND scheduled_start::date = $3',
                     [therapistId, 'Cancelled', date]
@@ -906,9 +976,26 @@ router.get('/availability', requireAuth, async (req, res) => {
         const { therapist_id, date } = req.query;
         if (!therapist_id || !date) return res.status(400).json({ error: 'therapist_id and date are required' });
 
+        // 1. Check for approved leaves in hrleaves
+        const hrLeaveRes = await db.query(`
+            SELECT leave_type, reason FROM hrleaves
+            WHERE employee_id = $1
+              AND status = 'Approved'
+              AND $2::date >= start_date::date
+              AND $2::date <= end_date::date
+        `, [therapist_id, date]);
+
+        if (hrLeaveRes.rows.length > 0) {
+            return res.json({
+                status: 'On Leave',
+                slots: [],
+                leave_type: hrLeaveRes.rows[0].leave_type
+            });
+        }
+
         const dayOfWeek = new Date(date).getDay();
 
-        // 1. Get standard availability
+        // 2. Get standard availability
         const availRes = await db.query(
             'SELECT start_time, end_time FROM consultantavailability WHERE consultant_id = $1 AND day_of_week = $2',
             [therapist_id, dayOfWeek]
@@ -920,7 +1007,7 @@ router.get('/availability', requireAuth, async (req, res) => {
 
         const { start_time, end_time } = availRes.rows[0];
 
-        // 2. Check for exceptions (Leaves)
+        // 3. Check for exceptions (Leaves)
         const excRes = await db.query(
             'SELECT is_blocked, start_time as exc_start, end_time as exc_end FROM availabilityexceptions WHERE consultant_id = $1 AND exception_date = $2',
             [therapist_id, date]

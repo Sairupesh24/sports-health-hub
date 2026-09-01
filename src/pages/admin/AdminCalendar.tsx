@@ -642,6 +642,27 @@ export default function AdminCalendar() {
     };
 
     const getSlotStats = (clinicianId: string, clinicianSessions: any[]) => {
+        // Check if clinician is currently on approved leave today
+        const clinicianLeave = hrLeaves.find((leave: any) => {
+            if (leave.employee_id !== clinicianId) return false;
+            if (leave.status !== 'Approved') return false;
+            const startStr = leave.start_date ? String(leave.start_date).split('T')[0] : '';
+            const endStr = leave.end_date ? String(leave.end_date).split('T')[0] : '';
+            const currentStr = format(currentDate, "yyyy-MM-dd");
+            return currentStr >= startStr && currentStr <= endStr;
+        });
+
+        const bookedCount = clinicianSessions.length;
+
+        if (clinicianLeave) {
+            return {
+                booked: bookedCount,
+                available: 0,
+                onLeave: true,
+                leaveType: clinicianLeave.leave_type || 'Leave'
+            };
+        }
+
         const schedule = staffSchedules.find((s: any) => s.consultant_id === clinicianId);
         let shiftStartStr = "08:00";
         let shiftEndStr = "17:00";
@@ -665,7 +686,6 @@ export default function AdminCalendar() {
         const shiftEndMins = timeToMins(shiftEndStr);
 
         let availableCount = 0;
-        const bookedCount = clinicianSessions.length;
 
         timeSlots.forEach(slot => {
             const slotStartMins = timeToMins(slot.start);
@@ -727,7 +747,9 @@ export default function AdminCalendar() {
 
         return {
             booked: bookedCount,
-            available: availableCount
+            available: availableCount,
+            onLeave: false,
+            leaveType: null
         };
     };
 
@@ -843,6 +865,28 @@ export default function AdminCalendar() {
     };
 
     const handleCellClick = (consultantId: string, startTime: string) => {
+        if (consultantId !== 'unassigned') {
+            const clinicianLeave = hrLeaves.find((leave: any) => {
+                if (leave.employee_id !== consultantId) return false;
+                if (leave.status !== 'Approved') return false;
+                const startStr = leave.start_date ? String(leave.start_date).split('T')[0] : '';
+                const endStr = leave.end_date ? String(leave.end_date).split('T')[0] : '';
+                const currentStr = format(currentDate, "yyyy-MM-dd");
+                return currentStr >= startStr && currentStr <= endStr;
+            });
+
+            if (clinicianLeave) {
+                const clinicianName = consultants.find(c => c.id === consultantId)?.name || "Staff member";
+                const leaveLabel = clinicianLeave.leave_type ? clinicianLeave.leave_type.replace(/_/g, ' ') : "Leave";
+                toast({
+                    title: "Staff Member On Leave",
+                    description: `${clinicianName} is on approved ${leaveLabel} on ${format(currentDate, "MMMM d, yyyy")}. Slots cannot be booked.`,
+                    variant: "destructive"
+                });
+                return;
+            }
+        }
+
         setWaitlistInitialData({
             consultantId,
             sessionDate: format(currentDate, "yyyy-MM-dd"),
@@ -899,6 +943,23 @@ export default function AdminCalendar() {
                 const dayEvents = sessions.filter(s => isSameDay(parseISO(s.scheduled_start), cloneDay));
                 const hasWaitlist = waitlistSummary.some((w: any) => isSameDay(parseISO(w.preferred_date), cloneDay));
 
+                const leavesOnDay = hrLeaves.filter((leave: any) => {
+                    if (leave.status !== 'Approved') return false;
+                    const startStr = leave.start_date ? String(leave.start_date).split('T')[0] : '';
+                    const endStr = leave.end_date ? String(leave.end_date).split('T')[0] : '';
+                    const dayStr = format(cloneDay, "yyyy-MM-dd");
+                    if (!(dayStr >= startStr && dayStr <= endStr)) return false;
+
+                    if (filterMode === 'role') {
+                        if (selectedRole === 'all') return true;
+                        const emp = consultants.find(c => c.id === leave.employee_id);
+                        return emp?.profession === selectedRole;
+                    } else {
+                        if (selectedConsultants.length === 0) return true;
+                        return selectedConsultants.includes(leave.employee_id);
+                    }
+                });
+
                 days.push(
                     <div
                         key={cloneDay.toString()}
@@ -906,7 +967,9 @@ export default function AdminCalendar() {
                             ? "bg-muted/30 text-muted-foreground opacity-50"
                             : isSameDay(cloneDay, new Date())
                                 ? "bg-primary/5"
-                                : "bg-card"
+                                : leavesOnDay.length > 0
+                                    ? "bg-rose-50/20 dark:bg-rose-950/10"
+                                    : "bg-card"
                             }`}
                     >
                         {emergencyAlerts?.some(a => isSameDay(parseISO(a.created_at), cloneDay)) && isSameMonth(cloneDay, monthStart) && (
@@ -925,8 +988,28 @@ export default function AdminCalendar() {
                             <span className={`text-sm font-medium w-7 h-7 flex items-center justify-center rounded-full ${isSameDay(cloneDay, new Date()) ? "bg-primary text-primary-foreground" : ""}`}>
                                 {formattedDate}
                             </span>
+                            {leavesOnDay.length > 0 && isSameMonth(cloneDay, monthStart) && (
+                                <span className="text-[9px] font-bold text-rose-600 dark:text-rose-400 flex items-center gap-0.5 bg-rose-100 dark:bg-rose-950/80 px-1.5 py-0.5 rounded" title={leavesOnDay.map((l: any) => { const emp = consultants.find(c => c.id === l.employee_id); return `${emp?.name || l.first_name || 'Staff'}: ${l.leave_type || 'Leave'}`; }).join(', ')}>
+                                    🏖️ {leavesOnDay.length} on leave
+                                </span>
+                            )}
                         </div>
                         <div className="mt-2 space-y-1 overflow-y-auto max-h-[80px] no-scrollbar">
+                            {leavesOnDay.map((l: any) => {
+                                const emp = consultants.find(c => c.id === l.employee_id);
+                                const empName = emp ? emp.name : (l.first_name ? `${l.first_name} ${l.last_name}` : "Staff");
+                                const leaveLabel = l.leave_type ? l.leave_type.replace(/_/g, ' ') : "Leave";
+                                return (
+                                    <div
+                                        key={`leave-chip-${l.id}-${cloneDay}`}
+                                        className="text-[8px] leading-tight px-1.5 py-0.5 rounded bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800 font-bold truncate flex items-center gap-1"
+                                        title={`${empName} on leave (${leaveLabel})`}
+                                    >
+                                        <span className="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0" />
+                                        <span className="truncate">🏖️ {empName}</span>
+                                    </div>
+                                );
+                            })}
                             {dayEvents.map(event => (
                                 <div
                                     key={event.id}
@@ -992,14 +1075,41 @@ export default function AdminCalendar() {
             <div className="flex flex-col border border-border/50 rounded-lg overflow-hidden bg-card">
                 <div className="flex border-b border-border/50 bg-muted/50">
                     <div className="w-16 border-r border-border/50 shrink-0"></div>
-                    {weekDays.map(day => (
-                        <div key={day.toString()} className={`flex-1 p-3 text-center border-r border-border/50 last:border-r-0 ${isSameDay(day, new Date()) ? "bg-primary/5" : ""}`}>
-                            <div className="text-xs uppercase text-muted-foreground font-medium">{format(day, 'EEE')}</div>
-                            <div className={`text-lg font-medium w-8 h-8 mx-auto flex items-center justify-center rounded-full mt-1 ${isSameDay(day, new Date()) ? "bg-primary text-primary-foreground" : ""}`}>
-                                {format(day, 'd')}
+                    {weekDays.map(day => {
+                        const leavesOnWeekDay = hrLeaves.filter((leave: any) => {
+                            if (leave.status !== 'Approved') return false;
+                            const startStr = leave.start_date ? String(leave.start_date).split('T')[0] : '';
+                            const endStr = leave.end_date ? String(leave.end_date).split('T')[0] : '';
+                            const dayStr = format(day, "yyyy-MM-dd");
+                            if (!(dayStr >= startStr && dayStr <= endStr)) return false;
+
+                            if (filterMode === 'role') {
+                                if (selectedRole === 'all') return true;
+                                const emp = consultants.find(c => c.id === leave.employee_id);
+                                return emp?.profession === selectedRole;
+                            } else {
+                                if (selectedConsultants.length === 0) return true;
+                                return selectedConsultants.includes(leave.employee_id);
+                            }
+                        });
+
+                        return (
+                            <div key={day.toString()} className={`flex-1 p-3 text-center border-r border-border/50 last:border-r-0 ${isSameDay(day, new Date()) ? "bg-primary/5" : ""}`}>
+                                <div className="text-xs uppercase text-muted-foreground font-medium">{format(day, 'EEE')}</div>
+                                <div className={`text-lg font-medium w-8 h-8 mx-auto flex items-center justify-center rounded-full mt-1 ${isSameDay(day, new Date()) ? "bg-primary text-primary-foreground" : ""}`}>
+                                    {format(day, 'd')}
+                                </div>
+                                {leavesOnWeekDay.length > 0 && (
+                                    <div 
+                                        className="mt-1 px-1.5 py-0.5 rounded-full bg-rose-100 dark:bg-rose-950/80 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800 text-[8px] font-bold truncate max-w-[95%] mx-auto"
+                                        title={leavesOnWeekDay.map((l: any) => { const emp = consultants.find(c => c.id === l.employee_id); return `${emp?.name || l.first_name || 'Staff'}: ${l.leave_type || 'Leave'}`; }).join(', ')}
+                                    >
+                                        🏖️ {leavesOnWeekDay.length} on leave
+                                    </div>
+                                )}
                             </div>
-                        </div>
-                    ))}
+                        );
+                    })}
                 </div>
 
                 <div className="relative overflow-y-auto max-h-[600px] flex">
@@ -1216,16 +1326,17 @@ export default function AdminCalendar() {
                             const hasEmergency = clinician.emergency_alerts && clinician.emergency_alerts.length > 0;
 
                             // Leaves Overlay logic
-                            const isCurrentlyOnLeave = hrLeaves.some((leave: any) => {
+                            const activeLeave = hrLeaves.find((leave: any) => {
                                 if (leave.employee_id !== clinician.id) return false;
                                 if (leave.status !== 'Approved') return false;
                                 
-                                const startStr = leave.start_date.split('T')[0];
-                                const endStr = leave.end_date.split('T')[0];
+                                const startStr = leave.start_date ? String(leave.start_date).split('T')[0] : '';
+                                const endStr = leave.end_date ? String(leave.end_date).split('T')[0] : '';
                                 const currentStr = format(currentDate, "yyyy-MM-dd");
                                 
                                 return currentStr >= startStr && currentStr <= endStr;
                             });
+                            const isCurrentlyOnLeave = Boolean(activeLeave);
 
                             // Breaks logic
                             const clinicianBreaks = getClinicianBreaks(clinician.id);
@@ -1348,9 +1459,15 @@ export default function AdminCalendar() {
                                                         {stats.booked} booked
                                                     </span>
                                                     {!isUnassigned && (
-                                                        <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 text-[9px] font-bold">
-                                                            {stats.available} available
-                                                        </span>
+                                                        isCurrentlyOnLeave ? (
+                                                            <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-rose-100 dark:bg-rose-950/80 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800 text-[9px] font-bold">
+                                                                On Leave
+                                                            </span>
+                                                        ) : (
+                                                            <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 text-[9px] font-bold">
+                                                                {stats.available} available
+                                                            </span>
+                                                        )
                                                     )}
                                                 </div>
                                             </div>
@@ -1380,9 +1497,11 @@ export default function AdminCalendar() {
                                                     onClick={() => handleCellClick(clinician.id, slot.start)}
                                                     className={cn(
                                                         "absolute left-0 right-0 border-b border-border/10 cursor-pointer transition-colors",
-                                                        isUnassigned || isInsideShift
-                                                            ? "hover:bg-muted/30 bg-white dark:bg-slate-950"
-                                                            : "hover:bg-slate-200/50 bg-slate-100/70 dark:bg-slate-900/60"
+                                                        isCurrentlyOnLeave 
+                                                            ? "bg-rose-50/20 dark:bg-rose-950/10 cursor-not-allowed"
+                                                            : isUnassigned || isInsideShift
+                                                                ? "hover:bg-muted/30 bg-white dark:bg-slate-950"
+                                                                : "hover:bg-slate-200/50 bg-slate-100/70 dark:bg-slate-900/60"
                                                     )}
                                                     style={{ top: `${i * 60}px`, height: '60px' }}
                                                 />
@@ -1424,10 +1543,31 @@ export default function AdminCalendar() {
                                         {/* Leaves Overlay */}
                                         {isCurrentlyOnLeave && (
                                             <div 
-                                                className="absolute inset-0 z-30 flex flex-col items-center justify-center backdrop-blur-sm bg-slate-200/50 text-slate-700 font-bold text-sm text-center p-4 border-b border-slate-300 select-none"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    const leaveLabel = activeLeave?.leave_type ? activeLeave.leave_type.replace(/_/g, ' ') : "Approved Leave";
+                                                    toast({
+                                                        title: "Staff Member On Leave",
+                                                        description: `${clinician.name} is on approved ${leaveLabel} on ${format(currentDate, "MMMM d, yyyy")}. Slots cannot be booked.`,
+                                                        variant: "destructive"
+                                                    });
+                                                }}
+                                                className="absolute inset-0 z-30 flex flex-col items-center justify-center backdrop-blur-[2px] bg-rose-50/70 dark:bg-rose-950/60 text-slate-700 dark:text-slate-300 font-bold text-sm text-center p-4 border-x border-b border-rose-200/80 dark:border-rose-900/60 select-none cursor-not-allowed transition-all"
                                             >
-                                                <AlertCircle className="w-6 h-6 text-slate-500 mb-1" />
-                                                Unavailable - Staff Leave
+                                                <div className="bg-white/95 dark:bg-slate-900/95 shadow-lg border border-rose-200 dark:border-rose-800 rounded-xl p-4 flex flex-col items-center max-w-[210px] gap-1.5">
+                                                    <div className="w-9 h-9 rounded-full bg-rose-100 dark:bg-rose-900/50 flex items-center justify-center text-rose-600 dark:text-rose-400">
+                                                        <AlertCircle className="w-5 h-5" />
+                                                    </div>
+                                                    <span className="text-xs font-black text-rose-800 dark:text-rose-300 uppercase tracking-wide">
+                                                        Staff On Leave
+                                                    </span>
+                                                    <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300 capitalize">
+                                                        {activeLeave?.leave_type ? activeLeave.leave_type.replace(/_/g, ' ') : "Approved Leave"}
+                                                    </span>
+                                                    <span className="text-[9px] text-slate-400 dark:text-slate-500 font-medium">
+                                                        Slots unavailable for booking
+                                                    </span>
+                                                </div>
                                             </div>
                                         )}
 

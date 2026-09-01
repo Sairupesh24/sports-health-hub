@@ -74,6 +74,29 @@ export function RosterScheduleView({ initialDate = new Date(), onClose }: Roster
         },
     });
 
+    // ── Leaves ───────────────────────────────────────────────────────────────
+    const { data: hrLeaves = [] } = useQuery({
+        queryKey: ["roster-leaves"],
+        queryFn: async () => {
+            const data = await apiFetch<any[]>("/hr/leaves");
+            return Array.isArray(data) ? data : (data as any)?.data || [];
+        },
+    });
+
+    const staffLeavesMap = useMemo(() => {
+        const map: Record<string, any> = {};
+        const curDateStr = format(selectedDate, "yyyy-MM-dd");
+        hrLeaves.forEach((leave: any) => {
+            if (leave.status !== 'Approved') return;
+            const startStr = leave.start_date ? String(leave.start_date).split('T')[0] : '';
+            const endStr = leave.end_date ? String(leave.end_date).split('T')[0] : '';
+            if (curDateStr >= startStr && curDateStr <= endStr) {
+                map[leave.employee_id] = leave;
+            }
+        });
+        return map;
+    }, [hrLeaves, selectedDate]);
+
     // ── Sessions ─────────────────────────────────────────────────────────────
     const dateRange = useMemo(() => ({
         start: startOfDay(selectedDate).toISOString(),
@@ -234,12 +257,25 @@ export function RosterScheduleView({ initialDate = new Date(), onClose }: Roster
 
             const body: (string | { content: string; styles?: any })[][] = filteredStaff.map((staff) => {
                 const load = staffClientLoad[staff.id] || 0;
+                const staffLeave = staffLeavesMap[staff.id];
                 const staffCell = {
-                    content: `${staff.name}\n${staff.profession}${load ? `  (${load} client${load > 1 ? "s" : ""})` : ""}`,
+                    content: `${staff.name}${staffLeave ? " [ON LEAVE]" : ""}\n${staff.profession}${load ? `  (${load} client${load > 1 ? "s" : ""})` : ""}`,
                     styles: { fontStyle: "bold" as const, fontSize: 8 },
                 };
 
                 const slotCells = timeSlots.map((slot) => {
+                    if (staffLeave) {
+                        return {
+                            content: `On Leave\n(${staffLeave.leave_type ? staffLeave.leave_type.replace(/_/g, ' ') : 'Leave'})`,
+                            styles: {
+                                fillColor: [255, 241, 242], // rose-50
+                                textColor: [190, 18, 60],   // rose-700
+                                fontStyle: "bold" as const,
+                                fontSize: 7,
+                            },
+                        };
+                    }
+
                     const items = cellSessionsMap[`${staff.id}-${slot}`] || [];
                     if (!items.length) return { content: "", styles: { fillColor: [255, 255, 255] } };
 
@@ -463,6 +499,7 @@ export function RosterScheduleView({ initialDate = new Date(), onClose }: Roster
                             <div className="divide-y divide-slate-900/60">
                                 {filteredStaff.map((staff) => {
                                     const load = staffClientLoad[staff.id] || 0;
+                                    const staffLeave = staffLeavesMap[staff.id];
                                     return (
                                         <div key={staff.id} className="flex hover:bg-slate-900/10 transition-colors">
                                             {/* Sticky name cell */}
@@ -470,7 +507,13 @@ export function RosterScheduleView({ initialDate = new Date(), onClose }: Roster
                                                 <span className="text-xs font-black text-slate-100 truncate">{staff.name}</span>
                                                 <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
                                                     <span className="px-1.5 py-0.5 rounded bg-slate-900 text-slate-400 border border-slate-800 text-[8px] font-black uppercase tracking-wider">{staff.profession}</span>
-                                                    <span className="px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[8px] font-bold">{load} {load === 1 ? "Client" : "Clients"}</span>
+                                                    {staffLeave ? (
+                                                        <span className="px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/30 text-[8px] font-black uppercase tracking-wider">
+                                                            🏖️ On Leave
+                                                        </span>
+                                                    ) : (
+                                                        <span className="px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[8px] font-bold">{load} {load === 1 ? "Client" : "Clients"}</span>
+                                                    )}
                                                 </div>
                                             </div>
 
@@ -487,10 +530,21 @@ export function RosterScheduleView({ initialDate = new Date(), onClose }: Roster
                                                                 "border-r border-slate-900/50 p-1.5 flex flex-col justify-center overflow-hidden",
                                                                 cfg.colWidth,
                                                                 cfg.rowHeight,
-                                                                has ? "bg-slate-900/20" : "hover:bg-slate-900/10"
+                                                                staffLeave
+                                                                    ? "bg-rose-950/20"
+                                                                    : has 
+                                                                        ? "bg-slate-900/20" 
+                                                                        : "hover:bg-slate-900/10"
                                                             )}
                                                         >
-                                                            {has ? (
+                                                            {staffLeave ? (
+                                                                <div className="flex flex-col items-center justify-center w-full h-full bg-rose-950/30 text-rose-300/80 border border-rose-900/30 rounded p-1 text-center select-none">
+                                                                    <span className={cn("font-black uppercase tracking-wider text-rose-300", cfg.textTiny)}>On Leave</span>
+                                                                    <span className={cn("opacity-75 capitalize truncate text-rose-400", cfg.textTiny)}>
+                                                                        {staffLeave.leave_type ? staffLeave.leave_type.replace(/_/g, ' ') : 'Leave'}
+                                                                    </span>
+                                                                </div>
+                                                            ) : has ? (
                                                                 <div className="flex flex-col gap-1 w-full">
                                                                     {list.map((session: any) => {
                                                                         const isWait      = session.status === "Waitlisted";

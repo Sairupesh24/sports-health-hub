@@ -1,4 +1,5 @@
 import express from 'express';
+import crypto from 'crypto';
 import { db } from './db.js';
 import { requireAuth } from './middleware.js';
 import { autoCompleteStartedSessions } from './appointments.js';
@@ -430,16 +431,27 @@ router.post('/sessions/bulk', requireAuth, async (req, res) => {
                 // Check capacity
                 const providerRes = await client.query('SELECT ams_role, profession FROM profiles WHERE id = $1', [provider_id]);
                 const provider = providerRes.rows.length > 0 ? providerRes.rows[0] : null;
-                const profession = provider?.profession?.toLowerCase();
-                const amsRole = provider?.ams_role?.toLowerCase();
+                const profession = (provider?.profession || '').toLowerCase();
+                const amsRole = (provider?.ams_role || '').toLowerCase();
 
                 // Sports scientists have no capacity limit — they can take any number of clients per slot.
-                const isSportsScientist = profession === 'sports scientist' || amsRole === 'sports_scientist';
+                const isSportsScientist = profession.includes('scientist') || amsRole.includes('scientist');
                 if (!isSportsScientist) {
-                    let capacityLimit = 1;
-                    if (profession === 'physiotherapist') {
-                        capacityLimit = 2;
-                    }
+                    let capacityLimit = 2;
+                    try {
+                        const orgRes = await client.query('SELECT default_slot_capacity, allow_custom_duration, custom_specialist_settings FROM organizations WHERE id = $1', [orgId]);
+                        if (orgRes.rows.length > 0) {
+                            const org = orgRes.rows[0];
+                            if (org.default_slot_capacity) capacityLimit = parseInt(org.default_slot_capacity, 10) || 2;
+                            if (org.allow_custom_duration && org.custom_specialist_settings) {
+                                const custom = typeof org.custom_specialist_settings === 'string' ? JSON.parse(org.custom_specialist_settings) : org.custom_specialist_settings;
+                                const override = (provider_id && custom[provider_id]) || custom[profession] || custom[amsRole];
+                                if (override && override.capacity !== undefined) {
+                                    capacityLimit = override.capacity === 'infinity' ? Infinity : (parseInt(override.capacity, 10) || capacityLimit);
+                                }
+                            }
+                        }
+                    } catch (e) {}
 
                     const activeRes = await client.query(`
                         SELECT id FROM sessions 
@@ -1038,6 +1050,212 @@ router.post('/bulk-assignments', requireAuth, async (req, res) => {
     }
 });
 
+// POST Create Single Form Response (with public_token)
+router.post('/form-responses', requireAuth, async (req, res) => {
+    try {
+        const { form_id, client_id, status } = req.body;
+        const orgId = req.user.organization_id;
+        
+        if (!form_id || !client_id) {
+            return res.status(400).json({ error: 'form_id and client_id are required' });
+        }
+
+        const publicToken = crypto.randomUUID();
+
+        const insertRes = await db.query(`
+            INSERT INTO form_responses (organization_id, form_id, client_id, specialist_id, status, public_token)
+            VALUES ($1, $2, $3, $4, $5, $6)
+            RETURNING id, public_token
+        `, [orgId, form_id, client_id, req.user.id, status || 'pending', publicToken]);
+
+        const row = insertRes.rows[0];
+
+        // Notify client if configured
+        try {
+            const settingsRes = await db.query(
+                'SELECT enable_in_app_notifications, notify_questionnaire_assigned FROM organization_notification_settings WHERE organization_id = $1',
+                [orgId]
+            );
+            const shouldNotify = settingsRes.rows.length > 0
+                ? (settingsRes.rows[0].enable_in_app_notifications && settingsRes.rows[0].notify_questionnaire_assigned)
+                : true;
+
+            if (shouldNotify) {
+                const specRes = await db.query('SELECT first_name, last_name FROM profiles WHERE id = $1', [req.user.id]);
+                const specName = specRes.rows.length > 0 ? `${specRes.rows[0].first_name} ${specRes.rows[0].last_name}` : 'A specialist';
+
+                const formRes = await db.query('SELECT name FROM questionnaires WHERE id = $1', [form_id]);
+                const formName = formRes.rows.length > 0 ? formRes.rows[0].name : 'a form';
+
+                const clientRes = await db.query('SELECT is_vip FROM clients WHERE id = $1', [client_id]);
+                const isVip = clientRes.rows.length > 0 ? clientRes.rows[0].is_vip : false;
+
+                await db.query(`
+                    INSERT INTO notifications (
+                        organization_id, title, content, type, target_user_id, category, is_vip, sender_id
+                    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                `, [
+                    orgId,
+                    'New Questionnaire Assigned',
+                    `${specName} has assigned a new form: ${formName}. Please complete the assessment.`,
+                    'info',
+                    client_id,
+                    'in_app',
+                    isVip,
+                    req.user.id
+                ]);
+            }
+        } catch (notifErr) {
+            console.error('Error dispatching notification for single form assignment:', notifErr);
+        }
+
+        res.status(201).json({
+            id: row.id,
+            public_token: row.public_token
+        });
+    } catch (error) {
+        console.error('POST /form-responses error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// GET Public Questionnaire by Token (No Auth Required)
+router.get('/public/form/:token', async (req, res) => {
+    try {
+        const { token } = req.params;
+        if (!token) {
+            return res.status(400).json({ error: 'Token is required' });
+        }
+
+        const frRes = await db.query(`
+            SELECT fr.*,
+                   q.name as questionnaire_name, q.classification, q.questions,
+                   c.first_name, c.last_name, c.honorific, c.age, c.gender, c.mobile_no,
+                   o.name as org_name, o.logo_url as org_logo_url
+            FROM form_responses fr
+            JOIN questionnaires q ON fr.form_id = q.id
+            JOIN clients c ON fr.client_id = c.id
+            JOIN organizations o ON fr.organization_id = o.id
+            WHERE fr.public_token = $1
+        `, [token]);
+
+        if (frRes.rows.length === 0) {
+            return res.status(404).json({ error: 'This questionnaire link is invalid or could not be found.' });
+        }
+
+        const fr = frRes.rows[0];
+
+        if (fr.status === 'completed') {
+            return res.status(400).json({ error: 'This questionnaire has already been completed.' });
+        }
+
+        const fullName = `${fr.honorific ? fr.honorific + ' ' : ''}${fr.first_name || ''} ${fr.last_name || ''}`.trim();
+
+        res.json({
+            form_response_id: fr.id,
+            questionnaire_name: fr.questionnaire_name,
+            classification: fr.classification || 'performance',
+            questions: typeof fr.questions === 'string' ? JSON.parse(fr.questions) : (fr.questions || []),
+            pre_fill: {
+                full_name: fullName,
+                age: fr.age,
+                gender: fr.gender,
+                contact: fr.mobile_no
+            },
+            org_name: fr.org_name,
+            org_logo_url: fr.org_logo_url
+        });
+    } catch (error) {
+        console.error('GET /public/form/:token error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// POST Submit Public Questionnaire by Token (No Auth Required)
+router.post('/public/form/:token/submit', async (req, res) => {
+    try {
+        const { token } = req.params;
+        const { answers } = req.body;
+
+        if (!token) {
+            return res.status(400).json({ error: 'Token is required' });
+        }
+        if (!answers) {
+            return res.status(400).json({ error: 'Answers are required' });
+        }
+
+        const frRes = await db.query(`
+            SELECT fr.*, q.name as form_title, c.first_name, c.last_name, c.is_vip
+            FROM form_responses fr
+            JOIN questionnaires q ON fr.form_id = q.id
+            JOIN clients c ON fr.client_id = c.id
+            WHERE fr.public_token = $1
+        `, [token]);
+
+        if (frRes.rows.length === 0) {
+            return res.status(404).json({ error: 'Invalid questionnaire link.' });
+        }
+
+        const fr = frRes.rows[0];
+        if (fr.status === 'completed') {
+            return res.status(400).json({ error: 'This questionnaire has already been submitted.' });
+        }
+
+        await db.query(`
+            UPDATE form_responses
+            SET status = 'completed',
+                response_data = $1,
+                submitted_at = CURRENT_TIMESTAMP
+            WHERE id = $2
+        `, [JSON.stringify({ answers }), fr.id]);
+
+        if (fr.bulk_assignment_id) {
+            await db.query(`
+                UPDATE bulk_assignments
+                SET responded_count = responded_count + 1
+                WHERE id = $1
+            `, [fr.bulk_assignment_id]);
+        }
+
+        if (fr.specialist_id) {
+            try {
+                const settingsRes = await db.query(
+                    'SELECT enable_in_app_notifications, notify_questionnaire_completed FROM organization_notification_settings WHERE organization_id = $1',
+                    [fr.organization_id]
+                );
+                const shouldNotify = settingsRes.rows.length > 0
+                    ? (settingsRes.rows[0].enable_in_app_notifications && settingsRes.rows[0].notify_questionnaire_completed)
+                    : true;
+
+                if (shouldNotify) {
+                    const clientName = `${fr.first_name || ''} ${fr.last_name || ''}`.trim() || 'A client';
+                    await db.query(`
+                        INSERT INTO notifications (
+                            organization_id, title, content, type, target_user_id, category, is_vip, sender_id
+                        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                    `, [
+                        fr.organization_id,
+                        'Questionnaire Completed',
+                        `Client ${clientName} has completed the questionnaire: ${fr.form_title}.`,
+                        'info',
+                        fr.specialist_id,
+                        'in_app',
+                        Boolean(fr.is_vip),
+                        fr.client_id
+                    ]);
+                }
+            } catch (notifErr) {
+                console.error('Notification error on form submit:', notifErr);
+            }
+        }
+
+        res.json({ success: true, message: 'Response recorded successfully.' });
+    } catch (error) {
+        console.error('POST /public/form/:token/submit error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 // POST Create Form Responses (Bulk)
 router.post('/form-responses/bulk', requireAuth, async (req, res) => {
     const client = await db.connect();
@@ -1068,11 +1286,12 @@ router.post('/form-responses/bulk', requireAuth, async (req, res) => {
 
         const results = [];
         for (const r of responses) {
+            const publicToken = crypto.randomUUID();
             const insertRes = await client.query(`
-                INSERT INTO form_responses (organization_id, form_id, client_id, specialist_id, bulk_assignment_id, status)
-                VALUES ($1, $2, $3, $4, $5, $6)
+                INSERT INTO form_responses (organization_id, form_id, client_id, specialist_id, bulk_assignment_id, status, public_token)
+                VALUES ($1, $2, $3, $4, $5, $6, $7)
                 RETURNING *
-            `, [req.user.organization_id, r.form_id, r.client_id, req.user.id, r.bulk_assignment_id, r.status || 'pending']);
+            `, [req.user.organization_id, r.form_id, r.client_id, req.user.id, r.bulk_assignment_id, r.status || 'pending', publicToken]);
             results.push(insertRes.rows[0]);
 
             // Check if client is VIP

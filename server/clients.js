@@ -421,6 +421,58 @@ router.get('/:id/sessions', requireAuth, async (req, res) => {
     }
 });
 
+// GET Client questionnaires
+router.get('/:id/questionnaires', requireAuth, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const orgId = req.user.organization_id;
+
+        const result = await db.query(`
+            SELECT fr.id,
+                   fr.form_id,
+                   q.name as form_name,
+                   q.classification,
+                   fr.created_at as assigned_at,
+                   fr.status,
+                   fr.public_token,
+                   fr.submitted_at as responded_at,
+                   fr.response_data,
+                   fr.clinical_interpretation
+            FROM form_responses fr
+            LEFT JOIN questionnaires q ON fr.form_id = q.id
+            WHERE fr.client_id = $1 AND fr.organization_id = $2
+            ORDER BY fr.created_at DESC
+        `, [id, orgId]);
+
+        const mapped = result.rows.map(row => {
+            let answers = null;
+            if (row.response_data) {
+                answers = row.response_data.answers || row.response_data;
+                if (typeof answers === 'string') {
+                    try { answers = JSON.parse(answers); } catch (e) {}
+                }
+            }
+            return {
+                id: row.id,
+                form_id: row.form_id,
+                form_name: row.form_name || 'Questionnaire',
+                classification: row.classification || 'performance',
+                assigned_at: row.assigned_at,
+                status: row.status || 'pending',
+                public_token: row.public_token,
+                responded_at: row.responded_at,
+                answers: answers,
+                clinical_interpretation: row.clinical_interpretation
+            };
+        });
+
+        res.json(mapped);
+    } catch (error) {
+        console.error('GET /clients/:id/questionnaires error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 // GET Client bills
 router.get('/:id/bills', requireAuth, async (req, res) => {
     try {

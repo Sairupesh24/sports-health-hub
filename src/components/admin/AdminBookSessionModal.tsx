@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 import { VIPName } from "@/components/ui/VIPBadge";
 import { filterServicesByRole, filterConsultantsByService, type Service } from "@/utils/serviceMapping";
+import { generateDynamicSlots, resolveSpecialistSettings } from "@/utils/dynamicSlots";
 import { Calendar } from "@/components/ui/calendar";
 import { Checkbox } from "@/components/ui/checkbox";
 import { addDays, isSameDay, startOfDay as startOfDateDay, parseISO } from "date-fns";
@@ -117,6 +118,7 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess, initialDa
     const [clientEntitlements, setClientEntitlements] = useState<any[]>([]);
     const [clientPackageEntitlements, setClientPackageEntitlements] = useState<any[]>([]);
     const [consultantSchedule, setConsultantSchedule] = useState<any>(null);
+    const [hrLeaves, setHrLeaves] = useState<any[]>([]);
 
     const groupedPackageEntitlements = useMemo(() => {
         const groups: Record<string, any[]> = {};
@@ -145,6 +147,17 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess, initialDa
         };
     }, [clientId, serviceType, clientPackageEntitlements, isGuest]);
 
+    const selectedConsultantLeave = useMemo(() => {
+        if (!consultantId || !sessionDate || !hrLeaves.length) return null;
+        return hrLeaves.find((leave: any) => {
+            if (leave.employee_id !== consultantId) return false;
+            if (leave.status !== 'Approved') return false;
+            const startStr = leave.start_date ? String(leave.start_date).split('T')[0] : '';
+            const endStr = leave.end_date ? String(leave.end_date).split('T')[0] : '';
+            return sessionDate >= startStr && sessionDate <= endStr;
+        });
+    }, [consultantId, sessionDate, hrLeaves]);
+
 
     useEffect(() => {
         if (open && profile?.organization_id) {
@@ -155,6 +168,7 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess, initialDa
             fetchOrgSettings();
             fetchOrganizationBranding();
             fetchServiceMappings();
+            fetchLeaves();
 
             if (initialData) {
                 if (initialData.waitlistId) setWaitlistId(initialData.waitlistId);
@@ -296,14 +310,18 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess, initialDa
 
     const filteredServices = useMemo(() => {
         if (consultantId) {
-            return services.filter(s => 
-                (s as any).is_universal || 
-                serviceMappings.some((m: any) => m.consultant_id === consultantId && m.service_id === s.id)
-            );
+            const consultantHasOverrides = serviceMappings.some((m: any) => m.consultant_id === consultantId);
+            if (consultantHasOverrides) {
+                return services.filter(s => 
+                    serviceMappings.some((m: any) => m.consultant_id === consultantId && m.service_id === s.id)
+                );
+            }
+            const consultant = consultants.find(c => c.id === consultantId);
+            return filterServicesByRole(services, consultant?.profession, consultant?.role);
         }
         const userRole = roles.find(r => ['admin', 'clinic_admin', 'front_office', 'foe'].includes(r));
         return filterServicesByRole(services, null, userRole);
-    }, [services, roles, consultantId, serviceMappings]);
+    }, [services, roles, consultantId, serviceMappings, consultants]);
 
     const filteredConsultants = useMemo(() => {
         const selectedService = services.find(s => s.id === serviceId);
@@ -387,17 +405,11 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess, initialDa
     };
 
     useEffect(() => {
-        if (!consultantId || !sessionDate || allConsultantAvailability.length === 0) return;
-        const dateObj = parse(sessionDate, "yyyy-MM-dd", new Date());
-        const dayOfWeek = dateObj.getDay();
-        const primaryAvail = allConsultantAvailability.find(a => a.consultant_id === consultantId && a.day_of_week === dayOfWeek);
-        if (primaryAvail) {
-            const slotDuration = primaryAvail.slot_duration_interval || orgSettings?.default_slot_duration || 60;
-            setSessionDuration(slotDuration);
-        } else if (orgSettings?.default_slot_duration) {
-            setSessionDuration(orgSettings.default_slot_duration);
-        }
-    }, [consultantId, sessionDate, allConsultantAvailability, orgSettings]);
+        if (!consultantId || !sessionDate) return;
+        const consultant = filteredConsultants.find(c => c.id === consultantId) || consultants.find(c => c.id === consultantId);
+        const resolved = resolveSpecialistSettings(orgSettings, consultant);
+        setSessionDuration(resolved.slotDuration);
+    }, [consultantId, sessionDate, orgSettings, filteredConsultants, consultants]);
 
     const fetchServices = async () => {
         try {
@@ -447,18 +459,30 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess, initialDa
         }
     };
 
-
+    const fetchLeaves = async () => {
+        try {
+            const res = await apiFetch<any>('/hr/leaves');
+            if (res?.data) {
+                setHrLeaves(res.data);
+            } else if (Array.isArray(res)) {
+                setHrLeaves(res);
+            }
+        } catch (error) {
+            console.error("Fetch Leaves Error in AdminBookSessionModal:", error);
+        }
+    };
 
     const availableSlots = useMemo(() => {
         if (!consultantId || !sessionDate) return [];
+        if (selectedConsultantLeave) return [];
 
         const dateObj = parse(sessionDate, "yyyy-MM-dd", new Date());
         const dayOfWeek = dateObj.getDay();
 
-        // ────────────────────────────────────────────────────────────────────────
-        // 1. Shift window — prefer consultantSchedule (Resource Schedule Manager)
-        //    then fall back to consultantavailability, then org defaults
-        // ────────────────────────────────────────────────────────────────────────
+        // 1. Resolve duration & capacity from org settings / specialist overrides
+        const consultant = filteredConsultants.find(c => c.id === consultantId) || consultants.find(c => c.id === consultantId);
+        const resolved = resolveSpecialistSettings(orgSettings, consultant);
+
         const schedStartRaw = consultantSchedule?.shift_start
             || allConsultantAvailability.find(a => a.consultant_id === consultantId && a.day_of_week === dayOfWeek)?.start_time
             || orgSettings?.working_hours_start
@@ -467,110 +491,55 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess, initialDa
             || allConsultantAvailability.find(a => a.consultant_id === consultantId && a.day_of_week === dayOfWeek)?.end_time
             || orgSettings?.working_hours_end
             || "17:00:00";
-        const slotDuration: number = 
-            allConsultantAvailability.find(a => a.consultant_id === consultantId && a.day_of_week === dayOfWeek)?.slot_duration_interval
-            || orgSettings?.default_slot_duration 
-            || 60;
+        const slotDuration: number = resolved.slotDuration;
+        const capacityLimit = resolved.capacityLimit;
 
-        const pad = (s: string) => s.length === 5 ? `${s}:00` : s;
-        const shiftStart = parse(pad(schedStartRaw), "HH:mm:ss", dateObj);
-        const shiftEnd   = parse(pad(schedEndRaw),   "HH:mm:ss", dateObj);
+        // 2. Generate dynamic slots
+        const dynamicSlots = generateDynamicSlots({
+            shiftStart: schedStartRaw,
+            shiftEnd: schedEndRaw,
+            breaks: consultantSchedule?.breaks || [],
+            dayOfWeek,
+            defaultSlotDuration: slotDuration,
+            bookedSessions: allBookedSessions,
+            consultantId,
+            dateStr: sessionDate,
+            capacityLimit
+        });
 
-        // ────────────────────────────────────────────────────────────────────────
-        // 2. Breaks — from consultantSchedule (Resource Schedule Manager)
-        // ────────────────────────────────────────────────────────────────────────
-        const timeToMinutes = (timeStr: string): number => {
-            if (!timeStr) return 0;
-            const [h = 0, m = 0] = timeStr.split(':').map(Number);
-            return h * 60 + m;
-        };
+        return dynamicSlots.map(s => {
+            const startH = parseInt(s.startTime.split(':')[0], 10);
+            const startM = parseInt(s.startTime.split(':')[1], 10);
+            const ampm = startH >= 12 ? "PM" : "AM";
+            const h12 = startH % 12 === 0 ? 12 : startH % 12;
+            const pad = (n: number) => (n < 10 ? `0${n}` : `${n}`);
+            const timeLabel = `${h12}:${pad(startM)} ${ampm}`;
 
-        let activeBreaks: { start_time: string; end_time: string }[] = [];
-        if (consultantSchedule?.breaks) {
-            const bd = consultantSchedule.breaks;
-            if (Array.isArray(bd)) {
-                activeBreaks = bd;
-            } else if (bd.all && Array.isArray(bd.all) && bd.all.length > 0) {
-                activeBreaks = bd.all;
-            } else if (bd[dayOfWeek.toString()] && Array.isArray(bd[dayOfWeek.toString()])) {
-                activeBreaks = bd[dayOfWeek.toString()];
-            }
-        }
-
-        // ────────────────────────────────────────────────────────────────────────
-        // 3. Consultant capacity
-        // ────────────────────────────────────────────────────────────────────────
-        const consultant = filteredConsultants.find(c => c.id === consultantId) || consultants.find(c => c.id === consultantId);
-        const prof = consultant?.profession?.toLowerCase() || '';
-        const role = consultant?.role?.toLowerCase() || '';
-        const isSportsScientist = prof === 'sports scientist' || role === 'sports_scientist';
-        const isPhysioOrPhysician = prof === 'physiotherapist' || prof === 'physiotherapy' 
-            || prof === 'sports physician' || prof === 'physician' || prof === 'sports_physician';
-        const capacityLimit = isPhysioOrPhysician ? 2 : (isSportsScientist ? Infinity : 1);
-
-        // ────────────────────────────────────────────────────────────────────────
-        // 4. Generate slots
-        // ────────────────────────────────────────────────────────────────────────
-        const slots: { start: string, end: string, label: string, status: 'available' | 'flex' | 'waitlist', duration: number }[] = [];
-        let currentStart = new Date(shiftStart);
-
-        while (currentStart.getTime() < shiftEnd.getTime()) {
-            const startMin = currentStart.getHours() * 60 + currentStart.getMinutes();
-            const shiftEndMin = shiftEnd.getHours() * 60 + shiftEnd.getMinutes();
-
-            // Skip if inside a break
-            const insideBreak = activeBreaks.find(br =>
-                startMin >= timeToMinutes(br.start_time) && startMin < timeToMinutes(br.end_time)
-            );
-            if (insideBreak) {
-                const brEndMin = timeToMinutes(insideBreak.end_time);
-                currentStart = new Date(currentStart);
-                currentStart.setHours(Math.floor(brEndMin / 60), brEndMin % 60, 0, 0);
-                continue;
+            let label = `${timeLabel} (${s.duration}m)`;
+            if (s.isBooked) {
+                label = `${timeLabel} (FULL)`;
             }
 
-            // Truncate slot at next break start
-            const nextBreak = activeBreaks
-                .map(br => ({ startMin: timeToMinutes(br.start_time), endMin: timeToMinutes(br.end_time) }))
-                .filter(br => br.startMin > startMin)
-                .sort((a, b) => a.startMin - b.startMin)[0];
-
-            let targetEndMin = startMin + slotDuration;
-            if (nextBreak && nextBreak.startMin < targetEndMin) targetEndMin = nextBreak.startMin;
-            if (targetEndMin > shiftEndMin) targetEndMin = shiftEndMin;
-
-            const actualDuration = targetEndMin - startMin;
-
-            if (actualDuration >= 15) {
-                const currentEnd = new Date(currentStart.getTime() + actualDuration * 60000);
-                const startT = currentStart.getTime();
-                const endT   = currentEnd.getTime();
-
-                // Count active (non-cancelled, non-waitlisted) bookings that overlap this slot for this consultant
-                const bookedCount = getBookedCountForSlot(consultantId, startT, endT, allBookedSessions);
-
-                // Slot label: just time + duration (clean, no capacity numbers)
-                let label = `${format(currentStart, "h:mm a")} (${actualDuration}m)`;
-                // For full slots, append FULL indicator in label
-                if (bookedCount >= capacityLimit && capacityLimit !== Infinity) {
-                    label = `${format(currentStart, "h:mm a")} (FULL)`;
-                }
-
-                const status: 'available' | 'flex' | 'waitlist' = bookedCount >= capacityLimit ? 'waitlist' : 'available';
-
-                slots.push({ start: format(currentStart, "HH:mm"), end: format(currentEnd, "HH:mm"), label, status, duration: actualDuration });
-            }
-
-            currentStart = new Date(currentStart.getTime() + actualDuration * 60000);
-            if (slots.length >= 50) break;
-        }
-
-        return slots;
-    }, [consultantId, sessionDate, allConsultantAvailability, allBookedSessions, orgSettings, filteredConsultants, consultants, consultantSchedule]);
+            return {
+                start: s.startTime,
+                end: s.endTime,
+                label,
+                status: s.status,
+                duration: s.duration
+            };
+        });
+    }, [consultantId, sessionDate, allConsultantAvailability, allBookedSessions, orgSettings, filteredConsultants, consultants, consultantSchedule, selectedConsultantLeave]);
 
     const checkSlotAvailability = async (time: string, endT: string) => {
         if (!time || !endT || !consultantId) return;
         
+        if (selectedConsultantLeave) {
+            setIsAvailable(false);
+            setIsConflict(true);
+            setCheckingAvailability(false);
+            return;
+        }
+
         setIsAvailable(null);
         setIsConflict(false);
         setCheckingAvailability(true);
@@ -681,7 +650,7 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess, initialDa
             }
         }, 300);
         return () => clearTimeout(timer);
-    }, [startTime, endTime, sessionDate, consultantId, allBookedSessions, allConsultantAvailability, consultantSchedule]);
+    }, [startTime, endTime, sessionDate, consultantId, allBookedSessions, allConsultantAvailability, consultantSchedule, selectedConsultantLeave]);
 
     useEffect(() => {
         const selected = services.find(s => s.id === serviceId);
@@ -715,6 +684,16 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess, initialDa
 
         if (!consultantId || !sessionDate || !profile?.organization_id) {
             toast({ title: "Validation Error", description: "Please fill all required fields.", variant: "destructive" });
+            return;
+        }
+
+        if (selectedConsultantLeave) {
+            const leaveLabel = selectedConsultantLeave.leave_type ? selectedConsultantLeave.leave_type.replace(/_/g, ' ') : 'Leave';
+            toast({
+                title: "Staff Member On Leave",
+                description: `Selected practitioner is on approved ${leaveLabel} on ${sessionDate}. Booking cannot be placed.`,
+                variant: "destructive"
+            });
             return;
         }
 
@@ -1069,16 +1048,33 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess, initialDa
                                         </div>
                                     ) : (
                                         <div className="grid grid-cols-1 gap-2 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar animate-in fade-in slide-in-from-top-2 duration-300">
-                                            {filteredConsultants.map(c => (
-                                                <div key={c.id} onClick={() => setConsultantId(c.id)} className={cn("flex items-center gap-3 p-3 rounded-lg border cursor-pointer hover:bg-muted/50 transition-all", consultantId === c.id ? "border-primary bg-primary/5 ring-1 ring-primary shadow-sm" : "border-border/50")}>
-                                                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs">{c.name?.[0]}</div>
-                                                    <div className="flex-1">
-                                                        <div className="text-sm font-semibold uppercase">{c.name}</div>
-                                                        <div className="text-[10px] text-muted-foreground">{c.profession}</div>
+                                            {filteredConsultants.map(c => {
+                                                const cLeave = hrLeaves.find((l: any) => {
+                                                    if (l.employee_id !== c.id) return false;
+                                                    if (l.status !== 'Approved') return false;
+                                                    const startStr = l.start_date ? String(l.start_date).split('T')[0] : '';
+                                                    const endStr = l.end_date ? String(l.end_date).split('T')[0] : '';
+                                                    return sessionDate >= startStr && sessionDate <= endStr;
+                                                });
+
+                                                return (
+                                                    <div key={c.id} onClick={() => setConsultantId(c.id)} className={cn("flex items-center gap-3 p-3 rounded-lg border cursor-pointer hover:bg-muted/50 transition-all", consultantId === c.id ? "border-primary bg-primary/5 ring-1 ring-primary shadow-sm" : "border-border/50")}>
+                                                        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs">{c.name?.[0]}</div>
+                                                        <div className="flex-1 min-w-0">
+                                                            <div className="text-sm font-semibold uppercase truncate flex items-center gap-1.5">
+                                                                <span className="truncate">{c.name}</span>
+                                                                {cLeave && (
+                                                                    <span className="px-1.5 py-0.5 rounded bg-rose-100 dark:bg-rose-950/80 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800 text-[8px] font-bold shrink-0 uppercase tracking-tighter">
+                                                                        On Leave
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                            <div className="text-[10px] text-muted-foreground truncate">{c.profession}</div>
+                                                        </div>
+                                                        {consultantId === c.id && <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />}
                                                     </div>
-                                                    {consultantId === c.id && <CheckCircle2 className="w-4 h-4 text-primary" />}
-                                                </div>
-                                            ))}
+                                                );
+                                            })}
                                             {filteredConsultants.length === 0 && (
                                                 <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg flex gap-3 text-orange-800">
                                                     <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
@@ -1119,6 +1115,23 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess, initialDa
                                             </PopoverContent>
                                         </Popover>
                                     </div>
+
+                                    {selectedConsultantLeave && (
+                                        <div className="p-3.5 rounded-xl border border-rose-200 bg-rose-50/90 dark:bg-rose-950/40 text-rose-800 dark:text-rose-200 flex items-start gap-2.5 animate-in fade-in slide-in-from-top-2 duration-300 shadow-sm">
+                                            <AlertCircle className="w-4.5 h-4.5 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
+                                            <div className="space-y-1">
+                                                <p className="text-xs font-bold uppercase tracking-wider text-rose-900 dark:text-rose-200 flex items-center gap-1.5">
+                                                    <span>Specialist On Leave</span>
+                                                    <span className="px-1.5 py-0.2 rounded bg-rose-200/80 text-rose-800 dark:bg-rose-900 dark:text-rose-200 text-[9px] font-extrabold capitalize">
+                                                        {selectedConsultantLeave.leave_type ? selectedConsultantLeave.leave_type.replace(/_/g, ' ') : 'Leave'}
+                                                    </span>
+                                                </p>
+                                                <p className="text-[11px] leading-relaxed text-rose-700 dark:text-rose-300 font-medium">
+                                                    {filteredConsultants.find(c => c.id === consultantId)?.name || 'Selected specialist'} is on approved leave on {format(safeParseDate(sessionDate), "MMMM d, yyyy")}. All time slots are blocked and unavailable for booking.
+                                                </p>
+                                            </div>
+                                        </div>
+                                    )}
 
                                     {!isRecurring ? (
                                         <div className="space-y-4 animate-in fade-in slide-in-from-right-2 duration-300">
