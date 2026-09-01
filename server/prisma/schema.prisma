@@ -687,6 +687,8 @@ model organizations {
   allowed_ips                        String?
   allow_custom_duration              Boolean?                            @default(false)
   default_slot_duration              Int?                                @default(60)
+  default_slot_capacity              Int?                                @default(2)
+  custom_specialist_settings         Json?                               @default("{}")
   default_checkout_time              DateTime?                           @db.Time(6)
   default_shift_end_time             DateTime?                           @db.Time(6)
   enabled_modules                    String?

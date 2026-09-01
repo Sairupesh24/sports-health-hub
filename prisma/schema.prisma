@@ -758,6 +758,8 @@ model Organization {
   allowedIps                       String?                          @map("allowed_ips")
   allowCustomDuration              Boolean?                         @default(false) @map("allow_custom_duration")
   defaultSlotDuration              Int?                             @default(60) @map("default_slot_duration")
+  defaultSlotCapacity              Int?                             @default(2) @map("default_slot_capacity")
+  customSpecialistSettings         Json?                            @default("{}") @map("custom_specialist_settings")
   defaultCheckoutTime              DateTime?                        @default(dbgenerated("'18:00:00'::time without time zone")) @map("default_checkout_time") @db.Time(6)
   default_shift_end_time           DateTime?                        @default(dbgenerated("'18:00:00'::time without time zone")) @db.Time(6)
   enabledModules                   String?                          @map("enabled_modules")
