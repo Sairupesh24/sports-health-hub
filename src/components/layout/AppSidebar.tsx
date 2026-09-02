@@ -304,15 +304,12 @@ export default function AppSidebar({ role, isMobile, className, onNavigate }: Ap
     const primaryConsole = getPrimaryConsole(roles, profile, resolvedRole || role);
 
     const hasCalendarAccess = Boolean(
-      roles?.includes("admin") ||
-      roles?.includes("super_admin") ||
+      roles?.some(r => ["admin", "super_admin", "foe"].includes(r)) ||
       profile?.has_calendar_access === true
     );
 
     const hasAnalyticsAccess = Boolean(
-      roles?.includes("admin") ||
-      roles?.includes("super_admin") ||
-      ["admin", "manager", "hr_manager"].includes(resolvedRole) ||
+      roles?.some(r => ["admin", "super_admin", "manager", "hr_manager"].includes(r)) ||
       profile?.has_analytics_access === true
     );
 
@@ -432,82 +429,99 @@ export default function AppSidebar({ role, isMobile, className, onNavigate }: Ap
       return foeNav;
     };
 
-    let activeConsoleItems: NavItem[] | null = null;
     const storedConsole = sessionStorage.getItem("active_console");
     const isPureFoeUser = Boolean(roles?.includes("foe") && !roles?.includes("admin") && !roles?.includes("super_admin"));
-    const isFoeActive = (path === "/admin/foe" || path.startsWith("/admin/foe")) || (isPureFoeUser && path.startsWith("/admin")) || (storedConsole === "foe" && path.startsWith("/admin") && !path.startsWith("/admin/users") && !path.startsWith("/admin/settings") && !path.startsWith("/admin/permissions"));
 
-    // 1. Settings Console: strictly settingsNav without injected tabs
+    let effectiveConsole = storedConsole;
+
+    // Detect console from unambiguous routes
     if (path.startsWith('/admin/settings') || path.startsWith('/admin/permissions')) {
-      activeConsoleItems = settingsNav;
-    }
-    // 2. Specific console routes
-    else if (path.startsWith('/hr')) {
-      activeConsoleItems = buildHrNav();
+      effectiveConsole = 'settings';
+      try { sessionStorage.setItem('active_console', 'settings'); } catch {}
+    } else if (path.startsWith('/hr')) {
+      effectiveConsole = 'hr';
+      try { sessionStorage.setItem('active_console', 'hr'); } catch {}
     } else if (path.startsWith('/sports-scientist')) {
-      activeConsoleItems = buildSportsScientistNav();
+      effectiveConsole = 'sports_scientist';
+      try { sessionStorage.setItem('active_console', 'sports_scientist'); } catch {}
     } else if (path.startsWith('/consultant')) {
-      activeConsoleItems = buildConsultantNav();
+      effectiveConsole = 'consultant';
+      try { sessionStorage.setItem('active_console', 'consultant'); } catch {}
     } else if (path.startsWith('/nutritionist')) {
-      activeConsoleItems = buildNutritionistNav();
+      effectiveConsole = 'nutritionist';
+      try { sessionStorage.setItem('active_console', 'nutritionist'); } catch {}
     } else if (path.startsWith('/ams/questionnaires') || path.startsWith('/ams/batch-tests')) {
-      activeConsoleItems = questionnairesNav;
+      if (storedConsole !== 'sports_scientist' && storedConsole !== 'consultant' && storedConsole !== 'coach') {
+        effectiveConsole = 'questionnaires';
+      }
     } else if (path.startsWith('/ams/coach-dashboard') || path.startsWith('/ams/programs') || path.startsWith('/ams/feed') || path.startsWith('/ams/calendar') || path.startsWith('/ams/exercises')) {
-      activeConsoleItems = coachNav;
+      effectiveConsole = 'coach';
+      try { sessionStorage.setItem('active_console', 'coach'); } catch {}
     } else if (path.startsWith('/ams/athlete-portal') || path.startsWith('/ams/athlete')) {
-      activeConsoleItems = athleteNav;
+      effectiveConsole = 'athlete';
+      try { sessionStorage.setItem('active_console', 'athlete'); } catch {}
     } else if (path.startsWith('/client')) {
-      activeConsoleItems = clientNav;
+      effectiveConsole = 'client';
+      try { sessionStorage.setItem('active_console', 'client'); } catch {}
     } else if (path.startsWith('/super-admin')) {
-      activeConsoleItems = superAdminNav;
-    } else if (isFoeActive && (path.startsWith('/admin') || path.startsWith('/my-attendance'))) {
-      activeConsoleItems = buildFoeNav();
-    }
-    // 3. Shared cross-console pages: Admin Calendar or Staff Efficiency
-    // Keep user in their primary console's sidebar!
-    else if (path === '/admin/calendar' || path === '/admin/analytics/managerial') {
-      if (primaryConsole === 'consultant') {
-        activeConsoleItems = buildConsultantNav();
-      } else if (primaryConsole === 'sports_scientist') {
-        activeConsoleItems = buildSportsScientistNav();
-      } else if (primaryConsole === 'nutritionist') {
-        activeConsoleItems = buildNutritionistNav();
-      } else if (primaryConsole === 'hr_manager') {
-        activeConsoleItems = buildHrNav();
-      } else if (primaryConsole === 'foe' || isFoeActive) {
-        activeConsoleItems = buildFoeNav();
-      } else {
-        activeConsoleItems = buildAdminNav();
-      }
-    }
-    // 4. Other Admin console routes (/admin, /admin/clients, /admin/billing, etc.)
-    else if (path.startsWith('/admin')) {
-      activeConsoleItems = buildAdminNav();
-    }
-    // 5. Fallback routes (/my-attendance, /profile, etc.)
-    else {
-      if (primaryConsole === 'consultant') {
-        activeConsoleItems = buildConsultantNav();
-      } else if (primaryConsole === 'sports_scientist') {
-        activeConsoleItems = buildSportsScientistNav();
-      } else if (primaryConsole === 'nutritionist') {
-        activeConsoleItems = buildNutritionistNav();
-      } else if (primaryConsole === 'hr_manager') {
-        activeConsoleItems = buildHrNav();
-      } else if (primaryConsole === 'foe') {
-        activeConsoleItems = buildFoeNav();
-      } else if (primaryConsole === 'coach') {
-        activeConsoleItems = coachNav;
-      } else if (primaryConsole === 'super_admin') {
-        activeConsoleItems = superAdminNav;
-      } else if (primaryConsole === 'client' || primaryConsole === 'athlete') {
-        activeConsoleItems = clientNav;
-      } else {
-        activeConsoleItems = buildAdminNav();
-      }
+      effectiveConsole = 'super_admin';
+      try { sessionStorage.setItem('active_console', 'super_admin'); } catch {}
+    } else if (path === '/admin/foe' || path.startsWith('/admin/foe') || isPureFoeUser) {
+      effectiveConsole = 'foe';
+      try { sessionStorage.setItem('active_console', 'foe'); } catch {}
+    } else if (path === '/admin' || (path.startsWith('/admin') && !path.startsWith('/admin/calendar') && !path.startsWith('/admin/analytics') && !path.startsWith('/admin/clients') && !path.startsWith('/admin/billing') && !path.startsWith('/admin/leads') && storedConsole === 'admin')) {
+      effectiveConsole = 'admin';
+      try { sessionStorage.setItem('active_console', 'admin'); } catch {}
     }
 
-    return activeConsoleItems || [];
+    if (!effectiveConsole) {
+      effectiveConsole = primaryConsole;
+    }
+
+    let activeConsoleItems: NavItem[] = buildAdminNav();
+
+    switch (effectiveConsole) {
+      case 'settings':
+        activeConsoleItems = settingsNav;
+        break;
+      case 'consultant':
+        activeConsoleItems = buildConsultantNav();
+        break;
+      case 'sports_scientist':
+        activeConsoleItems = buildSportsScientistNav();
+        break;
+      case 'nutritionist':
+        activeConsoleItems = buildNutritionistNav();
+        break;
+      case 'hr':
+      case 'hr_manager':
+        activeConsoleItems = buildHrNav();
+        break;
+      case 'foe':
+        activeConsoleItems = buildFoeNav();
+        break;
+      case 'coach':
+        activeConsoleItems = coachNav;
+        break;
+      case 'questionnaires':
+        activeConsoleItems = questionnairesNav;
+        break;
+      case 'super_admin':
+        activeConsoleItems = superAdminNav;
+        break;
+      case 'athlete':
+        activeConsoleItems = athleteNav;
+        break;
+      case 'client':
+        activeConsoleItems = clientNav;
+        break;
+      case 'admin':
+      default:
+        activeConsoleItems = buildAdminNav();
+        break;
+    }
+
+    return activeConsoleItems;
   }, [resolvedRole, role, roles, profile?.has_calendar_access, profile?.has_analytics_access, profile?.profession, profile?.ams_role, profile?.role, location.pathname]);
 
   const isLoadingState = loading || items.length === 0;

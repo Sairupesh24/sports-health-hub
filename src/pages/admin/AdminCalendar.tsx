@@ -1701,7 +1701,7 @@ export default function AdminCalendar() {
     };
 
     return (
-        <DashboardLayout role="admin">
+        <DashboardLayout role={roles?.[0] || "admin"}>
             <div className="max-w-7xl mx-auto space-y-6 pb-10 fade-in animate-in">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div>

@@ -187,8 +187,8 @@ export default function ConsoleAccess() {
 
             if (userId === currentAuthProfile?.id) {
                 await refreshAuth();
+                window.dispatchEvent(new Event('auth_updated'));
             }
-            window.dispatchEvent(new Event('auth_updated'));
 
             toast({
                 title: isCurrentlyGranted ? "Console Access Revoked" : "Console Access Granted",
@@ -223,8 +223,8 @@ export default function ConsoleAccess() {
 
             if (userId === currentAuthProfile?.id) {
                 await refreshAuth();
+                window.dispatchEvent(new Event('auth_updated'));
             }
-            window.dispatchEvent(new Event('auth_updated'));
 
             const featureNames = {
                 has_calendar_access: "Admin Calendar",

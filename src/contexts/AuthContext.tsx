@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from "react";
+import { createContext, useContext, useEffect, useState, ReactNode, useCallback, useRef } from "react";
 import { apiFetch } from "@/utils/api";
 
 interface Profile {
@@ -52,6 +52,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [clientId, setClientId] = useState<string | null>(null);
   const [roles, setRoles] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+  const isInitialLoad = useRef(true);
 
   const refreshAuth = useCallback(async () => {
     const token = localStorage.getItem("ishpo_jwt");
@@ -61,11 +62,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setRoles([]);
       setClientId(null);
       setLoading(false);
+      isInitialLoad.current = false;
       return;
     }
 
     try {
-      setLoading(true);
+      if (isInitialLoad.current) {
+        setLoading(true);
+      }
       const data = await apiFetch<{ user: any; profile: Profile; roles: string[]; clientId?: string }>("/auth/me");
       setUser(data.user);
       setProfile(data.profile);
@@ -79,7 +83,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setRoles([]);
       setClientId(null);
     } finally {
-      setLoading(false);
+      if (isInitialLoad.current) {
+        setLoading(false);
+        isInitialLoad.current = false;
+      }
     }
   }, []);
 
