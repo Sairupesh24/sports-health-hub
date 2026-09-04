@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Activity, User } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { formatClientName } from "@/lib/utils";
 
 interface InjuryWithProfile {
     id: string;
@@ -88,7 +89,7 @@ export default function InjuriesWidget() {
                                 <div className="flex-1 min-w-0">
                                     <div className="flex justify-between items-start mb-0.5">
                                         <p className="font-medium text-sm truncate pr-2 text-foreground">
-                                            {injury.client?.first_name} {injury.client?.last_name}
+                                            {formatClientName(injury.client)}
                                         </p>
                                         <Badge variant={getStatusVariant(injury.status) as any} className="text-[10px] h-5">
                                             {injury.status}

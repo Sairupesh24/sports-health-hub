@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { CalendarX, Loader2, AlertCircle, Clock, Trash2, Calendar as CalendarIcon, Info } from "lucide-react";
 import { format, parseISO, isSameDay, startOfDay, endOfDay, isAfter, addDays } from "date-fns";
+import { formatClientName } from "@/lib/utils";
 
 interface CancelDayModalProps {
     open: boolean;
@@ -241,7 +242,7 @@ export function SportsScientistCancelDayModal({
                                         ? `👥 ${s.group_name || 'Group'}`
                                         : s.session_mode === 'Other'
                                             ? `🏢 ${s.session_type?.name}`
-                                            : `${s.client?.first_name || ''} ${s.client?.last_name || ''}`;
+                                            : formatClientName(s.client);
 
                                     const isCancellingThis = cancellingSingleId === s.id;
 

@@ -33,6 +33,7 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import NutritionistBookAppointmentModal from "@/components/nutrition/NutritionistBookAppointmentModal";
+import { formatClientName } from "@/lib/utils";
 
 type ViewMode = "day" | "week" | "month";
 
@@ -246,7 +247,7 @@ export default function NutritionistSchedule() {
                       {dayAppointments.map((apt) => {
                         const clientObj = apt.client || {};
                         const clientName = clientObj.first_name
-                          ? `${clientObj.first_name} ${clientObj.last_name}`
+                          ? formatClientName(clientObj)
                           : apt.client_name || "Client";
                         const clientId = clientObj.id || apt.client_id;
                         const timeStr = apt.scheduled_start ? format(new Date(apt.scheduled_start), "hh:mm a") : "--";

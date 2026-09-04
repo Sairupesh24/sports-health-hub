@@ -20,7 +20,7 @@ import {
 import { apiFetch } from "@/utils/api";
 import { useToast } from "@/components/ui/use-toast";
 import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
+import { cn, formatClientName } from "@/lib/utils";
 import { format } from "date-fns";
 import AmsQuickBuilder from "./AmsQuickBuilder";
 import { MoveRight, Sparkles } from "lucide-react";
@@ -241,7 +241,7 @@ export default function ProgramAssignmentModal({
   };
 
   const filteredAthletes = athletes.filter(a => 
-    `${a.first_name} ${a.last_name} ${a.uhid}`.toLowerCase().includes(searchQuery.toLowerCase())
+    `${formatClientName(a)} ${a.uhid}`.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
@@ -331,7 +331,7 @@ export default function ProgramAssignmentModal({
                               {athlete.first_name?.[0]}{athlete.last_name?.[0]}
                             </div>
                             <div>
-                              <div className="font-bold text-sm text-slate-100 uppercase tracking-tight">{athlete.last_name}, {athlete.first_name}</div>
+                              <div className="font-bold text-sm text-slate-100 uppercase tracking-tight">{formatClientName(athlete)}</div>
                               <div className="text-[9px] opacity-20 font-bold uppercase tracking-widest">{athlete.uhid || "CLIENT"}</div>
                             </div>
                           </div>

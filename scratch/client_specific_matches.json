@@ -1,0 +1,902 @@
+[
+  {
+    "file": "src/components/admin/AdminBookSessionModal.tsx",
+    "lineNum": 839,
+    "line": "return c ? <VIPName name={`${c.first_name} ${c.last_name}`} isVIP={c.is_vip} /> : \"Selected\";"
+  },
+  {
+    "file": "src/components/admin/AdminBookSessionModal.tsx",
+    "lineNum": 860,
+    "line": "<CommandItem key={c.id} value={`${c.first_name} ${c.last_name}`} onSelect={() => {"
+  },
+  {
+    "file": "src/components/admin/AdminBookSessionModal.tsx",
+    "lineNum": 865,
+    "line": "<VIPName name={`${c.first_name} ${c.last_name}`} isVIP={c.is_vip} />"
+  },
+  {
+    "file": "src/components/admin/AdminSessionStatusModal.tsx",
+    "lineNum": 510,
+    "line": "<p><strong>Client:</strong> {session.client?.first_name} {session.client?.last_name}</p>"
+  },
+  {
+    "file": "src/components/admin/ClientBulkUpload.tsx",
+    "lineNum": 215,
+    "line": "first_name: row.first_name,"
+  },
+  {
+    "file": "src/components/admin/ClientGroupsModal.tsx",
+    "lineNum": 163,
+    "line": "const fullName = `${c.first_name || \"\"} ${c.last_name || \"\"}`.toLowerCase();"
+  },
+  {
+    "file": "src/components/admin/ClientGroupsModal.tsx",
+    "lineNum": 393,
+    "line": "const clientName = [client.honorific, client.first_name, client.last_name].filter(Boolean).join(\" \");"
+  },
+  {
+    "file": "src/components/admin/EmergencyResponseModal.tsx",
+    "lineNum": 258,
+    "line": "{session.client?.first_name?.[0]}{session.client?.last_name?.[0]}"
+  },
+  {
+    "file": "src/components/admin/EmergencyResponseModal.tsx",
+    "lineNum": 262,
+    "line": "<span className=\"font-black text-slate-900\">{session.client?.first_name} {session.client?.last_name}</span>"
+  },
+  {
+    "file": "src/components/admin/EnquiryContextWindow.tsx",
+    "lineNum": 169,
+    "line": "<span>{item.profiles ? `${item.profiles.first_name} ${item.profiles.last_name}` : 'Front Office'}</span>"
+  },
+  {
+    "file": "src/components/admin/EnquiryHistory.tsx",
+    "lineNum": 108,
+    "line": "Recorded by: <span className=\"text-slate-600\">{item.first_name ? `${item.first_name} ${item.last_name}` : 'Unknown'}</span>"
+  },
+  {
+    "file": "src/components/admin/RosterScheduleView.tsx",
+    "lineNum": 46,
+    "line": "if (s?.client?.first_name) {"
+  },
+  {
+    "file": "src/components/admin/RosterScheduleView.tsx",
+    "lineNum": 47,
+    "line": "return `${s.client.first_name} ${s.client.last_name || \"\"}`.trim();"
+  },
+  {
+    "file": "src/components/admin/WaitlistDashboard.tsx",
+    "lineNum": 56,
+    "line": "const clientName = `${item.client?.first_name} ${item.client?.last_name}`.toLowerCase();"
+  },
+  {
+    "file": "src/components/admin/WaitlistDashboard.tsx",
+    "lineNum": 132,
+    "line": "<VIPName name={`${item.client?.first_name} ${item.client?.last_name}`} isVIP={item.client?.is_vip} />"
+  },
+  {
+    "file": "src/components/admin/WaitlistSidebar.tsx",
+    "lineNum": 182,
+    "line": "<VIPName name={`${item.client?.first_name} ${item.client?.last_name}`} isVIP={item.client?.is_vip} className=\"text-sm font-bold\" />"
+  },
+  {
+    "file": "src/components/ams/AthleteList.tsx",
+    "lineNum": 123,
+    "line": "{athlete.first_name?.[0]}{athlete.last_name?.[0] || athlete.full_name?.[0]}"
+  },
+  {
+    "file": "src/components/ams/BatchCreationModal.tsx",
+    "lineNum": 157,
+    "line": "`${a.first_name} ${a.last_name} ${a.uhid}`.toLowerCase().includes(searchQuery.toLowerCase())"
+  },
+  {
+    "file": "src/components/ams/BatchCreationModal.tsx",
+    "lineNum": 228,
+    "line": "{athlete.first_name?.[0]}{athlete.last_name?.[0]}"
+  },
+  {
+    "file": "src/components/ams/BatchCreationModal.tsx",
+    "lineNum": 231,
+    "line": "<div className=\"font-black text-slate-100 uppercase tracking-tight\">{athlete.last_name}, {athlete.first_name}</div>"
+  },
+  {
+    "file": "src/components/ams/BulkAssignmentModal.tsx",
+    "lineNum": 112,
+    "line": "const matchesSearch = `${c.first_name} ${c.last_name} ${c.uhid}`.toLowerCase().includes(searchQuery.toLowerCase());"
+  },
+  {
+    "file": "src/components/ams/BulkAssignmentModal.tsx",
+    "lineNum": 353,
+    "line": "{client.first_name?.[0]}{client.last_name?.[0]}"
+  },
+  {
+    "file": "src/components/ams/BulkAssignmentModal.tsx",
+    "lineNum": 357,
+    "line": "<span className=\"font-black text-[12px] uppercase tracking-tight\">{client.first_name} {client.last_name}</span>"
+  },
+  {
+    "file": "src/components/ams/ProgramAssignmentModal.tsx",
+    "lineNum": 244,
+    "line": "`${a.first_name} ${a.last_name} ${a.uhid}`.toLowerCase().includes(searchQuery.toLowerCase())"
+  },
+  {
+    "file": "src/components/ams/ProgramAssignmentModal.tsx",
+    "lineNum": 331,
+    "line": "{athlete.first_name?.[0]}{athlete.last_name?.[0]}"
+  },
+  {
+    "file": "src/components/ams/ProgramAssignmentModal.tsx",
+    "lineNum": 334,
+    "line": "<div className=\"font-bold text-sm text-slate-100 uppercase tracking-tight\">{athlete.last_name}, {athlete.first_name}</div>"
+  },
+  {
+    "file": "src/components/ams/SingleClientAssignModal.tsx",
+    "lineNum": 99,
+    "line": "const fullName = `${c.first_name} ${c.last_name}`.toLowerCase();"
+  },
+  {
+    "file": "src/components/ams/SingleClientAssignModal.tsx",
+    "lineNum": 225,
+    "line": "{c.honorific ? c.honorific + \" \" : \"\"}{c.first_name} {c.last_name}"
+  },
+  {
+    "file": "src/components/billing/SubscriptionDetailDrawer.tsx",
+    "lineNum": 57,
+    "line": "<SheetDescription className=\"font-medium text-slate-500\">Full history and status for {subscription.client?.first_name} {subscription.client?.last_name}</SheetDescription>"
+  },
+  {
+    "file": "src/components/client/ClientQuestionnairesTab.tsx",
+    "lineNum": 483,
+    "line": "first_name: clientObj.first_name,"
+  },
+  {
+    "file": "src/components/consultant/ConsultantBookSlotModal.tsx",
+    "lineNum": 429,
+    "line": "value={`${c.first_name} ${c.last_name} ${c.uhid || \"\"} ${c.mobile_no || \"\"}`}"
+  },
+  {
+    "file": "src/components/consultant/ConsultantBookSlotModal.tsx",
+    "lineNum": 443,
+    "line": "<VIPName name={`${c.first_name} ${c.last_name}`} isVIP={c.is_vip} />"
+  },
+  {
+    "file": "src/components/consultant/InjuryDetailModal.tsx",
+    "lineNum": 60,
+    "line": "setPrimaryTherapist(`Dr. ${c.first_name} ${c.last_name}${profLabel}`);"
+  },
+  {
+    "file": "src/components/consultant/InjuryDetailModal.tsx",
+    "lineNum": 128,
+    "line": "{injury.client?.first_name} {injury.client?.last_name}"
+  },
+  {
+    "file": "src/components/consultant/LogInjuryModal.tsx",
+    "lineNum": 161,
+    "line": "{c.first_name} {c.last_name}"
+  },
+  {
+    "file": "src/components/consultant/SOAPNoteModal.tsx",
+    "lineNum": 281,
+    "line": "const first = session.therapist.first_name || \"\";"
+  },
+  {
+    "file": "src/components/consultant/SOAPNoteModal.tsx",
+    "lineNum": 323,
+    "line": "Client: <span className=\"font-semibold text-slate-800 dark:text-slate-200\">{client?.first_name || session.client?.first_name || session.first_name || \"Unknown\"} {client?.last_name || session.client?.last_name || session.last_name || \"Client\"}</span>"
+  },
+  {
+    "file": "src/components/dashboard/AMSTrainingLoadWidget.tsx",
+    "lineNum": 100,
+    "line": "{load.client?.first_name} {load.client?.last_name}"
+  },
+  {
+    "file": "src/components/dashboard/InjuriesWidget.tsx",
+    "lineNum": 91,
+    "line": "{injury.client?.first_name} {injury.client?.last_name}"
+  },
+  {
+    "file": "src/components/nutrition/NutritionAssessmentForm.tsx",
+    "lineNum": 128,
+    "line": "const fullName = `${c.first_name || \"\"} ${c.last_name || \"\"}`.trim() || \"Unnamed Client\";"
+  },
+  {
+    "file": "src/components/nutrition/NutritionAssessmentForm.tsx",
+    "lineNum": 587,
+    "line": "const fullName = `${c.first_name || \"\"} ${c.last_name || \"\"}`.trim() || \"Unnamed Client\";"
+  },
+  {
+    "file": "src/components/nutrition/NutritionistBookAppointmentModal.tsx",
+    "lineNum": 226,
+    "line": "`${c.first_name || \"\"} ${c.last_name || \"\"}`.toLowerCase().includes(clientSearch.toLowerCase()) ||"
+  },
+  {
+    "file": "src/components/nutrition/NutritionistBookAppointmentModal.tsx",
+    "lineNum": 350,
+    "line": "setClientSearch(`${c.first_name || \"\"} ${c.last_name || \"\"} (${c.uhid || \"No UHID\"})`);"
+  },
+  {
+    "file": "src/components/nutrition/NutritionistBookAppointmentModal.tsx",
+    "lineNum": 357,
+    "line": "{c.first_name} {c.last_name}"
+  },
+  {
+    "file": "src/components/shared/assessment/ReportEntryPanel.tsx",
+    "lineNum": 215,
+    "line": "{c.first_name} {c.last_name}"
+  },
+  {
+    "file": "src/components/shared/EmergencyLeaveModal.tsx",
+    "lineNum": 59,
+    "line": "first_name: session.client_first_name,"
+  },
+  {
+    "file": "src/components/shared/EmergencyLeaveModal.tsx",
+    "lineNum": 175,
+    "line": "<span className=\"text-xs font-bold\">{session.client?.first_name} {session.client?.last_name}</span>"
+  },
+  {
+    "file": "src/components/sports-scientist/MobileAthleteDrawer.tsx",
+    "lineNum": 83,
+    "line": "{athlete.first_name?.[0]}{athlete.last_name?.[0]}"
+  },
+  {
+    "file": "src/components/sports-scientist/MobileAthleteDrawer.tsx",
+    "lineNum": 87,
+    "line": "{athlete.first_name} {athlete.last_name}"
+  },
+  {
+    "file": "src/components/sports-scientist/resources/AddResourceModal.tsx",
+    "lineNum": 193,
+    "line": "? clients.find(c => c.id === selectedAthleteId)?.first_name + \" \" + clients.find(c => c.id === selectedAthleteId)?.last_name"
+  },
+  {
+    "file": "src/components/sports-scientist/resources/AddResourceModal.tsx",
+    "lineNum": 207,
+    "line": "value={`${c.first_name} ${c.last_name} ${c.uhid}`}"
+  },
+  {
+    "file": "src/components/sports-scientist/resources/AddResourceModal.tsx",
+    "lineNum": 213,
+    "line": "<span className=\"font-bold\">{c.first_name} {c.last_name}</span>"
+  },
+  {
+    "file": "src/components/sports-scientist/resources/ResourceCard.tsx",
+    "lineNum": 107,
+    "line": "<span className=\"text-xs font-bold text-slate-700\">{resource.athlete.first_name} {resource.athlete.last_name}</span>"
+  },
+  {
+    "file": "src/components/sports-scientist/resources/ScientificResourcesManager.tsx",
+    "lineNum": 49,
+    "line": "(res.athlete?.first_name?.toLowerCase() || \"\").includes(searchQuery.toLowerCase()) ||"
+  },
+  {
+    "file": "src/components/sports-scientist/SportsScientistAssignWorkModal.tsx",
+    "lineNum": 511,
+    "line": "{c ? `${c.first_name} ${c.last_name}` : id}"
+  },
+  {
+    "file": "src/components/sports-scientist/SportsScientistAssignWorkModal.tsx",
+    "lineNum": 552,
+    "line": "value={`${c.first_name} ${c.last_name} ${c.uhid}`}"
+  },
+  {
+    "file": "src/components/sports-scientist/SportsScientistAssignWorkModal.tsx",
+    "lineNum": 559,
+    "line": "<span className=\"font-bold\">{c.first_name} {c.last_name}</span>"
+  },
+  {
+    "file": "src/components/sports-scientist/SportsScientistBookSessionModal.tsx",
+    "lineNum": 478,
+    "line": "{c ? `${c.first_name} ${c.last_name}` : id}"
+  },
+  {
+    "file": "src/components/sports-scientist/SportsScientistBookSessionModal.tsx",
+    "lineNum": 517,
+    "line": "value={`${c.first_name} ${c.last_name} ${c.uhid}`}"
+  },
+  {
+    "file": "src/components/sports-scientist/SportsScientistBookSessionModal.tsx",
+    "lineNum": 524,
+    "line": "<span className=\"font-bold\">{c.first_name} {c.last_name}</span>"
+  },
+  {
+    "file": "src/components/sports-scientist/SportsScientistCancelDayModal.tsx",
+    "lineNum": 244,
+    "line": ": `${s.client?.first_name || ''} ${s.client?.last_name || ''}`;"
+  },
+  {
+    "file": "src/components/sports-scientist/SportsScientistRescheduleModal.tsx",
+    "lineNum": 125,
+    "line": ": `${session.client?.first_name || \"Client\"} ${session.client?.last_name || \"\"}`.trim();"
+  },
+  {
+    "file": "src/components/sports-scientist/SportsScientistSessionLog.tsx",
+    "lineNum": 120,
+    "line": "s.client?.first_name?.toLowerCase().includes(q) ||"
+  },
+  {
+    "file": "src/components/sports-scientist/SportsScientistSessionLog.tsx",
+    "lineNum": 300,
+    "line": "{isGroup ? `👥 ${s.group_name}` : `${s.client?.first_name ?? \"\"} ${s.client?.last_name ?? \"\"}`}"
+  },
+  {
+    "file": "src/components/sports-scientist/SportsScientistSessionStatusModal.tsx",
+    "lineNum": 456,
+    "line": ": session.client?.first_name"
+  },
+  {
+    "file": "src/components/sports-scientist/SportsScientistSessionStatusModal.tsx",
+    "lineNum": 457,
+    "line": "? `${session.client.first_name} ${session.client.last_name}`"
+  },
+  {
+    "file": "src/components/sports-scientist/SubscriptionModal.tsx",
+    "lineNum": 101,
+    "line": "{c.first_name} {c.last_name} ({c.uhid})"
+  },
+  {
+    "file": "src/components/sports-scientist/UpcomingPlanManager.tsx",
+    "lineNum": 275,
+    "line": "const scientistName = [session.scientist_first_name, session.scientist_last_name].filter(Boolean).join(\" \") || \"Unassigned\";"
+  },
+  {
+    "file": "src/components/sports-scientist/UpcomingPlanManager.tsx",
+    "lineNum": 408,
+    "line": "const scientistName = [session.scientist_first_name, session.scientist_last_name].filter(Boolean).join(\" \") || \"Unassigned\";"
+  },
+  {
+    "file": "src/pages/admin/AdminCalendar.tsx",
+    "lineNum": 62,
+    "line": "client: { first_name: string; last_name: string; is_vip?: boolean } | null;"
+  },
+  {
+    "file": "src/pages/admin/AdminCalendar.tsx",
+    "lineNum": 308,
+    "line": "first_name: session.client?.first_name || session.client_first_name,"
+  },
+  {
+    "file": "src/pages/admin/AdminCalendar.tsx",
+    "lineNum": 313,
+    "line": "first_name: session.therapist?.first_name || session.therapist_first_name,"
+  },
+  {
+    "file": "src/pages/admin/AdminCalendar.tsx",
+    "lineNum": 992,
+    "line": "<span className=\"text-[9px] font-bold text-rose-600 dark:text-rose-400 flex items-center gap-0.5 bg-rose-100 dark:bg-rose-950/80 px-1.5 py-0.5 rounded\" title={leavesOnDay.map((l: any) => { const emp = consultants.find(c => c.id === l.employee_id); return `${emp?.name || l.first_name || 'Staff'}: ${l.leave_type || 'Leave'}`; }).join(', ')}>"
+  },
+  {
+    "file": "src/pages/admin/AdminCalendar.tsx",
+    "lineNum": 1030,
+    "line": "`${event.client?.first_name} ${event.client?.last_name}`"
+  },
+  {
+    "file": "src/pages/admin/AdminCalendar.tsx",
+    "lineNum": 1105,
+    "line": "title={leavesOnWeekDay.map((l: any) => { const emp = consultants.find(c => c.id === l.employee_id); return `${emp?.name || l.first_name || 'Staff'}: ${l.leave_type || 'Leave'}`; }).join(', ')}"
+  },
+  {
+    "file": "src/pages/admin/AdminCalendar.tsx",
+    "lineNum": 1174,
+    "line": "<>C: {event.client?.first_name} {event.client?.last_name}</>"
+  },
+  {
+    "file": "src/pages/admin/AdminCalendar.tsx",
+    "lineNum": 1625,
+    "line": "<span>{event.client?.first_name} {event.client?.last_name} ({(event.client as any)?.uhid || '-'})</span>"
+  },
+  {
+    "file": "src/pages/admin/AdminCalendar.tsx",
+    "lineNum": 1662,
+    "line": "<span>{event.client?.first_name} {event.client?.last_name}</span>"
+  },
+  {
+    "file": "src/pages/admin/AdminDashboard.tsx",
+    "lineNum": 215,
+    "line": "const client = session.client || { first_name: session.client_first_name, last_name: session.client_last_name };"
+  },
+  {
+    "file": "src/pages/admin/AdminDashboard.tsx",
+    "lineNum": 216,
+    "line": "const clientName = client.first_name ? `${client.first_name || ''} ${client.last_name || ''}`.trim() : 'Unknown';"
+  },
+  {
+    "file": "src/pages/admin/AdminDashboard.tsx",
+    "lineNum": 237,
+    "line": "description: `${client.first_name || ''} ${client.last_name || ''}`.trim() || 'New client',"
+  },
+  {
+    "file": "src/pages/admin/AdminDashboard.tsx",
+    "lineNum": 250,
+    "line": "const client = session.client || { first_name: session.client_first_name, last_name: session.client_last_name };"
+  },
+  {
+    "file": "src/pages/admin/AdminDashboard.tsx",
+    "lineNum": 251,
+    "line": "const clientName = client.first_name ? `${client.first_name || ''} ${client.last_name || ''}`.trim() : 'Client';"
+  },
+  {
+    "file": "src/pages/admin/AdminDashboard.tsx",
+    "lineNum": 252,
+    "line": "const therapist = session.therapist || { first_name: session.therapist_first_name, last_name: session.therapist_last_name, service_type: session.service_type };"
+  },
+  {
+    "file": "src/pages/admin/AdminDashboard.tsx",
+    "lineNum": 430,
+    "line": "<p className=\"text-sm font-semibold text-orange-950\">{w.client_first_name} {w.client_last_name}</p>"
+  },
+  {
+    "file": "src/pages/admin/Billing.tsx",
+    "lineNum": 283,
+    "line": "id: c.id, first_name: c.first_name, last_name: c.last_name, uhid: c.uhid, email: c.email, mobile_no: c.mobile_no, is_vip: c.is_vip"
+  },
+  {
+    "file": "src/pages/admin/Billing.tsx",
+    "lineNum": 387,
+    "line": "client_name: client ? `${client.first_name} ${client.last_name}` : 'Unknown',"
+  },
+  {
+    "file": "src/pages/admin/Billing.tsx",
+    "lineNum": 896,
+    "line": "? clients.find((c) => c.id === selectedClient)?.first_name + \" \" + clients.find((c) => c.id === selectedClient)?.last_name"
+  },
+  {
+    "file": "src/pages/admin/Billing.tsx",
+    "lineNum": 910,
+    "line": "value={`${c.first_name} ${c.last_name} ${c.uhid} ${c.mobile_no || \"\"}`}"
+  },
+  {
+    "file": "src/pages/admin/Billing.tsx",
+    "lineNum": 924,
+    "line": "{c.first_name} {c.last_name}"
+  },
+  {
+    "file": "src/pages/admin/Billing.tsx",
+    "lineNum": 1277,
+    "line": "{sub.client?.first_name} {sub.client?.last_name}"
+  },
+  {
+    "file": "src/pages/admin/ClientList.tsx",
+    "lineNum": 89,
+    "line": "\"First Name\": c.first_name || \"\","
+  },
+  {
+    "file": "src/pages/admin/ClientProfile.tsx",
+    "lineNum": 67,
+    "line": "const fullName = client ? `${client.honorific ? client.honorific + \" \" : \"\"}${client.first_name} ${client.last_name}` : \"\";"
+  },
+  {
+    "file": "src/pages/admin/ClientProfile.tsx",
+    "lineNum": 153,
+    "line": "first_name: client.first_name || \"\","
+  },
+  {
+    "file": "src/pages/admin/ClientProfile.tsx",
+    "lineNum": 553,
+    "line": "{client.first_name?.[0]}{client.last_name?.[0]}"
+  },
+  {
+    "file": "src/pages/admin/ClientRegistration.tsx",
+    "lineNum": 351,
+    "line": "description: `UHID: ${result.uhid} — ${data.first_name} ${data.last_name}`,"
+  },
+  {
+    "file": "src/pages/admin/FOEDashboard.tsx",
+    "lineNum": 191,
+    "line": "{sub.client?.first_name} {sub.client?.last_name} ({sub.client?.uhid}) — {sub.status === 'Suspended' ? \"Service access blocked due to non-payment.\" : `Payment reminder sent (Step ${sub.dunning_step})`}"
+  },
+  {
+    "file": "src/pages/admin/FOEDashboard.tsx",
+    "lineNum": 269,
+    "line": "<span className=\"font-bold text-foreground\">{session.client?.first_name} {session.client?.last_name}</span>"
+  },
+  {
+    "file": "src/pages/admin/FOEDashboard.tsx",
+    "lineNum": 338,
+    "line": "{item.client?.first_name} {item.client?.last_name}"
+  },
+  {
+    "file": "src/pages/admin/FOEDashboard.tsx",
+    "lineNum": 395,
+    "line": "<span className=\"text-sm font-bold text-rose-950\">{session.client?.first_name} {session.client?.last_name}</span>"
+  },
+  {
+    "file": "src/pages/admin/FOEDashboard.tsx",
+    "lineNum": 463,
+    "line": "{c.first_name?.[0]}{c.last_name?.[0]}"
+  },
+  {
+    "file": "src/pages/admin/LeadsDashboard.tsx",
+    "lineNum": 537,
+    "line": "<p className=\"font-bold text-sm\">{client.first_name} {client.last_name}</p>"
+  },
+  {
+    "file": "src/pages/admin/ManagerialAnalytics.tsx",
+    "lineNum": 401,
+    "line": "<p className=\"font-bold\">{item.firstName} {item.lastName}</p>"
+  },
+  {
+    "file": "src/pages/admin/ServiceMapping.tsx",
+    "lineNum": 274,
+    "line": "`${c.first_name} ${c.last_name}`.toLowerCase().includes(q) ||"
+  },
+  {
+    "file": "src/pages/admin/ServiceMapping.tsx",
+    "lineNum": 417,
+    "line": "{c.first_name} {c.last_name}"
+  },
+  {
+    "file": "src/pages/ams/AmsCalendar.tsx",
+    "lineNum": 297,
+    "line": "<CommandItem key={athlete.id} value={`${athlete.first_name} ${athlete.last_name} ${athlete.uhid || ''}`} onSelect={() => { setSelectedAthlete(athlete); setIsAthletePopoverOpen(false); }} className=\"flex items-center gap-3 p-4 cursor-pointer data-[selected=true]:bg-primary/30 hover:bg-white/10 transition-all text-white border-b border-white/5 last:border-none\">"
+  },
+  {
+    "file": "src/pages/ams/AmsCalendar.tsx",
+    "lineNum": 299,
+    "line": "<AvatarFallback className=\"bg-white/5 text-[10px] font-black\">{athlete.first_name?.[0]}{athlete.last_name?.[0]}</AvatarFallback>"
+  },
+  {
+    "file": "src/pages/ams/AmsCalendar.tsx",
+    "lineNum": 302,
+    "line": "<span className=\"font-black text-sm uppercase tracking-tight\">{athlete.last_name}, {athlete.first_name}</span>"
+  },
+  {
+    "file": "src/pages/consultant/ClientProfile.tsx",
+    "lineNum": 180,
+    "line": "<VIPName name={`${client.first_name} ${client.last_name}`} isVIP={client.is_vip} />"
+  },
+  {
+    "file": "src/pages/consultant/ClientProfile.tsx",
+    "lineNum": 223,
+    "line": "<UpcomingPlanManager clientId={client.id} clientName={`${client.first_name} ${client.last_name}`} />"
+  },
+  {
+    "file": "src/pages/consultant/ClientProfile.tsx",
+    "lineNum": 464,
+    "line": "const consultantName = session.therapist?.first_name || session.therapist?.last_name ? ("
+  },
+  {
+    "file": "src/pages/consultant/ClientProfile.tsx",
+    "lineNum": 465,
+    "line": "`${session.therapist.first_name || \"\"} ${session.therapist.last_name || \"\"}`.trim()"
+  },
+  {
+    "file": "src/pages/consultant/ClientProfile.tsx",
+    "lineNum": 557,
+    "line": "{session.therapist?.first_name || session.therapist?.last_name ? ("
+  },
+  {
+    "file": "src/pages/consultant/ClientProfile.tsx",
+    "lineNum": 558,
+    "line": "`${session.therapist.first_name || \"\"} ${session.therapist.last_name || \"\"}`.trim()"
+  },
+  {
+    "file": "src/pages/consultant/ClientProfile.tsx",
+    "lineNum": 655,
+    "line": "Client Documents - {client.first_name} {client.last_name}"
+  },
+  {
+    "file": "src/pages/consultant/ClientProfile.tsx",
+    "lineNum": 674,
+    "line": "Scientist Hub - {client.first_name} {client.last_name}"
+  },
+  {
+    "file": "src/pages/consultant/ConsultantDashboard.tsx",
+    "lineNum": 92,
+    "line": "const rawName = `${session.first_name || \"\"} ${session.last_name || \"\"}`.trim() || session.guest_name || \"Client\";"
+  },
+  {
+    "file": "src/pages/consultant/ConsultantDashboard.tsx",
+    "lineNum": 109,
+    "line": "first_name: session.first_name || session.guest_name || \"Guest\","
+  },
+  {
+    "file": "src/pages/consultant/ConsultantSchedule.tsx",
+    "lineNum": 47,
+    "line": "client: { first_name: string; last_name: string; is_vip?: boolean };"
+  },
+  {
+    "file": "src/pages/consultant/ConsultantSchedule.tsx",
+    "lineNum": 295,
+    "line": "<VIPName name={`${event.client?.first_name} ${event.client?.last_name}`} isVIP={event.client?.is_vip} />"
+  },
+  {
+    "file": "src/pages/consultant/ConsultantSchedule.tsx",
+    "lineNum": 410,
+    "line": "<VIPName name={`${event.client?.first_name} ${event.client?.last_name}`} isVIP={event.client?.is_vip} />"
+  },
+  {
+    "file": "src/pages/consultant/ConsultantSchedule.tsx",
+    "lineNum": 503,
+    "line": "<VIPName name={`${event.client?.first_name} ${event.client?.last_name}`} isVIP={event.client?.is_vip} className=\"truncate\" />"
+  },
+  {
+    "file": "src/pages/consultant/ConsultantSchedule.tsx",
+    "lineNum": 566,
+    "line": "<VIPName name={`${s.client?.first_name} ${s.client?.last_name}`} isVIP={s.client?.is_vip} />"
+  },
+  {
+    "file": "src/pages/consultant/InjuryRepoPage.tsx",
+    "lineNum": 57,
+    "line": "const clientName = inj.client ? `${inj.client.first_name} ${inj.client.last_name}` : \"\";"
+  },
+  {
+    "file": "src/pages/consultant/InjuryRepoPage.tsx",
+    "lineNum": 174,
+    "line": "{injury.client?.first_name} {injury.client?.last_name}"
+  },
+  {
+    "file": "src/pages/hr/StaffProfile.tsx",
+    "lineNum": 93,
+    "line": "client?: { first_name?: string; last_name?: string };"
+  },
+  {
+    "file": "src/pages/hr/StaffProfile.tsx",
+    "lineNum": 180,
+    "line": "const cName = s.client_name || (s.client ? `${s.client.first_name || ''} ${s.client.last_name || ''}`.trim() : '');"
+  },
+  {
+    "file": "src/pages/hr/StaffProfile.tsx",
+    "lineNum": 568,
+    "line": "const clientName = session.client_name || (session.client ? `${session.client.first_name || ''} ${session.client.last_name || ''}`.trim() : 'Client');"
+  },
+  {
+    "file": "src/pages/hr/StaffProfile.tsx",
+    "lineNum": 675,
+    "line": "const therapistName = session.therapist_name || (session.therapist ? `${session.therapist.first_name || ''} ${session.therapist.last_name || ''}`.trim() : 'Practitioner');"
+  },
+  {
+    "file": "src/pages/hr/UserApproval.tsx",
+    "lineNum": 445,
+    "line": "description: `Linked user to client profile ${matchedClient.first_name} ${matchedClient.last_name}`"
+  },
+  {
+    "file": "src/pages/mobile/consultant/MobileConsultantDashboard.tsx",
+    "lineNum": 68,
+    "line": "const rawName = `${session.first_name || \"\"} ${session.last_name || \"\"}`.trim() || session.guest_name || \"Client\";"
+  },
+  {
+    "file": "src/pages/mobile/consultant/MobileConsultantSchedule.tsx",
+    "lineNum": 37,
+    "line": "client: { first_name: string; last_name: string; is_vip?: boolean };"
+  },
+  {
+    "file": "src/pages/mobile/consultant/MobileConsultantSchedule.tsx",
+    "lineNum": 258,
+    "line": "<VIPName name={`${event.client?.first_name} ${event.client?.last_name}`} isVIP={event.client?.is_vip} className=\"truncate\" />"
+  },
+  {
+    "file": "src/pages/mobile/specialist/MobileBulkAssignment.tsx",
+    "lineNum": 108,
+    "line": "`${a.first_name} ${a.last_name} ${a.uhid}`.toLowerCase().includes(searchQuery.toLowerCase())"
+  },
+  {
+    "file": "src/pages/mobile/specialist/MobileBulkAssignment.tsx",
+    "lineNum": 215,
+    "line": "{athlete.first_name?.[0]}{athlete.last_name?.[0]}"
+  },
+  {
+    "file": "src/pages/mobile/specialist/MobileBulkAssignment.tsx",
+    "lineNum": 219,
+    "line": "{athlete.first_name} {athlete.last_name}"
+  },
+  {
+    "file": "src/pages/mobile/specialist/MobileClients.tsx",
+    "lineNum": 134,
+    "line": "c.first_name.toLowerCase().includes(searchQuery.toLowerCase()) ||"
+  },
+  {
+    "file": "src/pages/mobile/specialist/MobileClients.tsx",
+    "lineNum": 162,
+    "line": "{client.first_name?.[0]}{client.last_name?.[0]}"
+  },
+  {
+    "file": "src/pages/mobile/specialist/MobileClients.tsx",
+    "lineNum": 167,
+    "line": "{client.first_name} {client.last_name}"
+  },
+  {
+    "file": "src/pages/mobile/specialist/MobileClients.tsx",
+    "lineNum": 275,
+    "line": "{client.first_name} {client.last_name[0]}."
+  },
+  {
+    "file": "src/pages/mobile/specialist/MobileClients.tsx",
+    "lineNum": 343,
+    "line": "<span className=\"text-sm font-bold leading-none\">{client.first_name} {client.last_name}</span>"
+  },
+  {
+    "file": "src/pages/mobile/specialist/MobileMemberships.tsx",
+    "lineNum": 41,
+    "line": "const firstName = m.client?.first_name || \"\";"
+  },
+  {
+    "file": "src/pages/mobile/specialist/MobileMemberships.tsx",
+    "lineNum": 165,
+    "line": "{athlete.first_name?.[0]}{athlete.last_name?.[0]}"
+  },
+  {
+    "file": "src/pages/mobile/specialist/MobileMemberships.tsx",
+    "lineNum": 169,
+    "line": "{athlete.first_name} {athlete.last_name}"
+  },
+  {
+    "file": "src/pages/mobile/specialist/MobileSessionManager.tsx",
+    "lineNum": 402,
+    "line": ": session.client?.first_name ? `${session.client.first_name} ${session.client.last_name}` : \"N/A\"}"
+  },
+  {
+    "file": "src/pages/mobile/specialist/MobileSessionManager.tsx",
+    "lineNum": 541,
+    "line": "{session.client ? `${session.client.first_name} ${session.client.last_name}` : \"No Athlete\"}"
+  },
+  {
+    "file": "src/pages/mobile/specialist/MobileSessionManager.tsx",
+    "lineNum": 708,
+    "line": "{session.client ? `${session.client.first_name} ${session.client.last_name}` : \"No Athlete\"}"
+  },
+  {
+    "file": "src/pages/mobile/specialist/MobileSessionManager.tsx",
+    "lineNum": 749,
+    "line": "{session.client ? `${session.client.first_name} ${session.client.last_name}` : \"No Athlete\"}"
+  },
+  {
+    "file": "src/pages/mobile/specialist/MobileSpecialistDashboard.tsx",
+    "lineNum": 259,
+    "line": "{session.client?.first_name?.[0]}{session.client?.last_name?.[0]}"
+  },
+  {
+    "file": "src/pages/mobile/specialist/MobileSpecialistDashboard.tsx",
+    "lineNum": 263,
+    "line": "{session.client?.first_name} {session.client?.last_name}"
+  },
+  {
+    "file": "src/pages/mobile/specialist/MobileTestingAssessments.tsx",
+    "lineNum": 81,
+    "line": "`${a.first_name} ${a.last_name} ${a.uhid}`.toLowerCase().includes(searchQuery.toLowerCase())"
+  },
+  {
+    "file": "src/pages/mobile/specialist/MobileTestingAssessments.tsx",
+    "lineNum": 175,
+    "line": "{athlete.first_name?.[0]}{athlete.last_name?.[0]}"
+  },
+  {
+    "file": "src/pages/mobile/specialist/MobileTestingAssessments.tsx",
+    "lineNum": 179,
+    "line": "{athlete.first_name} {athlete.last_name}"
+  },
+  {
+    "file": "src/pages/nutritionist/NutritionistClientProfile.tsx",
+    "lineNum": 80,
+    "line": "? `${clientData.first_name || \"\"} ${clientData.last_name || \"\"}`.trim()"
+  },
+  {
+    "file": "src/pages/nutritionist/NutritionistSchedule.tsx",
+    "lineNum": 248,
+    "line": "const clientName = clientObj.first_name"
+  },
+  {
+    "file": "src/pages/nutritionist/NutritionistSchedule.tsx",
+    "lineNum": 249,
+    "line": "? `${clientObj.first_name} ${clientObj.last_name}`"
+  },
+  {
+    "file": "src/pages/PublicEnquiry.tsx",
+    "lineNum": 121,
+    "line": "first_name: data.name.split(' ')[0],"
+  },
+  {
+    "file": "src/pages/shared/AppointmentList.tsx",
+    "lineNum": 33,
+    "line": "const client = apt.client && apt.client.first_name !== undefined ? apt.client : {"
+  },
+  {
+    "file": "src/pages/shared/AppointmentList.tsx",
+    "lineNum": 34,
+    "line": "first_name: apt.client_first_name,"
+  },
+  {
+    "file": "src/pages/shared/AppointmentList.tsx",
+    "lineNum": 157,
+    "line": "<VIPName name={apt.client?.first_name ? `${apt.client.first_name} ${apt.client.last_name || ''}`.trim() : (apt.guest_name || 'Guest')} isVIP={apt.client?.is_vip} className=\"text-sm font-bold text-slate-700\" />"
+  },
+  {
+    "file": "src/pages/sports-scientist/SportsScientistAnalytics.tsx",
+    "lineNum": 157,
+    "line": "{athleteData.client.first_name} {athleteData.client.last_name}"
+  },
+  {
+    "file": "src/pages/sports-scientist/SportsScientistAnalytics.tsx",
+    "lineNum": 167,
+    "line": "athleteName={`${athleteData.client.first_name} ${athleteData.client.last_name}`}"
+  },
+  {
+    "file": "src/pages/sports-scientist/SportsScientistBilling.tsx",
+    "lineNum": 118,
+    "line": "const matchesSearch = `${s.client?.first_name} ${s.client?.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) ||"
+  },
+  {
+    "file": "src/pages/sports-scientist/SportsScientistBilling.tsx",
+    "lineNum": 192,
+    "line": "{sub.client?.first_name} {sub.client?.last_name}"
+  },
+  {
+    "file": "src/pages/sports-scientist/SportsScientistClients.tsx",
+    "lineNum": 187,
+    "line": "{[c.honorific, c.first_name, c.last_name].filter(Boolean).join(\" \")}"
+  },
+  {
+    "file": "src/pages/sports-scientist/SportsScientistDashboard.tsx",
+    "lineNum": 262,
+    "line": "{session.client?.first_name?.[0] || 'A'}"
+  },
+  {
+    "file": "src/pages/sports-scientist/SportsScientistDashboard.tsx",
+    "lineNum": 266,
+    "line": "{session.session_mode === 'Group' ? `Group: ${session.group_name}` : `${session.client?.first_name} ${session.client?.last_name || ''}`}"
+  },
+  {
+    "file": "src/pages/sports-scientist/SportsScientistDashboard.tsx",
+    "lineNum": 339,
+    "line": "{session.session_mode === 'Group' ? `Group: ${session.group_name}` : session.session_mode === 'Other' ? session.session_type?.name : `${session.client?.first_name} ${session.client?.last_name}`}"
+  },
+  {
+    "file": "src/pages/sports-scientist/SportsScientistSchedule.recent_functional_version.tsx",
+    "lineNum": 179,
+    "line": "{event.session_mode === 'Group' ? `👥 ${event.group_name}` : event.session_mode === 'Other' ? `🏢 ${event.session_type?.name}` : `${event.client?.first_name} ${event.client?.last_name}`}"
+  },
+  {
+    "file": "src/pages/sports-scientist/SportsScientistSchedule.recent_functional_version.tsx",
+    "lineNum": 260,
+    "line": "{event.session_mode === 'Group' ? event.group_name : event.session_mode === 'Other' ? event.session_type?.name : `${event.client?.first_name} ${event.client?.last_name}`}"
+  },
+  {
+    "file": "src/pages/sports-scientist/SportsScientistSchedule.recent_functional_version.tsx",
+    "lineNum": 335,
+    "line": "{event.session_mode === 'Group' ? `👥 ${event.group_name}` : event.session_mode === 'Other' ? `🏢 ${event.session_type?.name}` : `${event.client?.first_name} ${event.client?.last_name}`}"
+  },
+  {
+    "file": "src/pages/sports-scientist/SportsScientistSchedule.tsx",
+    "lineNum": 234,
+    "line": "{event.session_mode === 'Group' ? `👥 ${event.group_name}` : event.session_mode === 'Other' ? `🏢 ${event.session_type?.name}` : `${event.client?.first_name} ${event.client?.last_name}`}"
+  },
+  {
+    "file": "src/pages/sports-scientist/SportsScientistSchedule.tsx",
+    "lineNum": 353,
+    "line": ": `${event.client?.first_name || ''} ${event.client?.last_name || ''}`.trim();"
+  },
+  {
+    "file": "src/pages/sports-scientist/SportsScientistSchedule.tsx",
+    "lineNum": 515,
+    "line": "<span>{event.client?.first_name} {event.client?.last_name || ''} ({event.client?.uhid || '-'})</span>"
+  },
+  {
+    "file": "src/pages/sports-scientist/SportsScientistSchedule.tsx",
+    "lineNum": 556,
+    "line": "{event.session_mode === 'Group' ? `👥 ${event.group_name}` : event.session_mode === 'Other' ? `🏢 ${event.session_type?.name}` : `${event.client?.first_name} ${event.client?.last_name}`}"
+  },
+  {
+    "file": "src/pages/sports-scientist/SportsScientistSchedule.tsx",
+    "lineNum": 812,
+    "line": ": `${event.client?.first_name} ${event.client?.last_name || ''}`}"
+  },
+  {
+    "file": "src/pages/super-admin/OnboardOrganization.tsx",
+    "lineNum": 49,
+    "line": "firstName: formData.firstName,"
+  },
+  {
+    "file": "src/pages/super-admin/OnboardOrganization.tsx",
+    "lineNum": 207,
+    "line": "value={formData.firstName}"
+  },
+  {
+    "file": "src/test/calendar.test.tsx",
+    "lineNum": 65,
+    "line": "client: { first_name: 'Sai Pavan', last_name: 'K', is_vip: true },"
+  },
+  {
+    "file": "src/test/staffLeaveCalendarSync.test.tsx",
+    "lineNum": 89,
+    "line": "return [{ id: 'client-1', first_name: 'John', last_name: 'Doe', uhid: 'U12345' }];"
+  }
+]

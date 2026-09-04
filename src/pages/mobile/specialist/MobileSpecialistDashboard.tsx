@@ -20,7 +20,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
+import { cn, formatClientName } from "@/lib/utils";
 import MobileAthleteDrawer from "@/components/sports-scientist/MobileAthleteDrawer";
 import { haptic } from "@/utils/haptic";
 import { useNavigate } from "react-router-dom";
@@ -260,7 +260,7 @@ export default function MobileSpecialistDashboard() {
                       </div>
                       <div className="flex-1 overflow-hidden">
                         <h4 className="font-black text-slate-900 dark:text-white truncate text-base">
-                          {session.client?.first_name} {session.client?.last_name}
+                          {formatClientName(session.client)}
                         </h4>
                         <p className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest truncate">
                           {session.client?.sport || "General"} • {session.client?.uhid}

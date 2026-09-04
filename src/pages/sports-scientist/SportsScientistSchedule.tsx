@@ -46,7 +46,7 @@ import { SportsScientistSessionLog } from "@/components/sports-scientist/SportsS
 import { SportsScientistAssignWorkModal } from "@/components/sports-scientist/SportsScientistAssignWorkModal";
 import { SportsScientistCancelDayModal } from "@/components/sports-scientist/SportsScientistCancelDayModal";
 import { useLocation } from "react-router-dom";
-import { cn } from "@/lib/utils";
+import { cn, formatClientName } from "@/lib/utils";
 
 type ViewMode = "day" | "week" | "month";
 
@@ -231,7 +231,7 @@ export default function SportsScientistSchedule() {
                                             )}
                                         </div>
                                         <span className="truncate block">
-                                            {event.session_mode === 'Group' ? `👥 ${event.group_name}` : event.session_mode === 'Other' ? `🏢 ${event.session_type?.name}` : `${event.client?.first_name} ${event.client?.last_name}`}
+                                            {event.session_mode === 'Group' ? `👥 ${event.group_name}` : event.session_mode === 'Other' ? `🏢 ${event.session_type?.name}` : formatClientName(event.client)}
                                         </span>
                                     </div>
                                 ))}
@@ -350,7 +350,7 @@ export default function SportsScientistSchedule() {
                                                     ? event.group_name
                                                     : event.session_mode === 'Other'
                                                         ? event.session_type?.name
-                                                        : `${event.client?.first_name || ''} ${event.client?.last_name || ''}`.trim();
+                                                        : formatClientName(event.client);
 
                                                 const serviceName = event.session_type?.name || event.service_type;
 
@@ -512,7 +512,7 @@ export default function SportsScientistSchedule() {
                                                             ) : event.session_mode === 'Other' ? (
                                                                 <span>🏢 {event.session_type?.name}</span>
                                                             ) : (
-                                                                <span>{event.client?.first_name} {event.client?.last_name || ''} ({event.client?.uhid || '-'})</span>
+                                                                <span>{formatClientName(event.client)} ({event.client?.uhid || '-'})</span>
                                                             )}
                                                         </div>
                                                         <div className="flex items-center gap-1 shrink-0">
@@ -553,7 +553,7 @@ export default function SportsScientistSchedule() {
                                                             )}
                                                         </div>
                                                         <h3 className="text-lg font-display font-bold leading-tight mt-1 group-hover:text-primary transition-colors">
-                                                            {event.session_mode === 'Group' ? `👥 ${event.group_name}` : event.session_mode === 'Other' ? `🏢 ${event.session_type?.name}` : `${event.client?.first_name} ${event.client?.last_name}`}
+                                                            {event.session_mode === 'Group' ? `👥 ${event.group_name}` : event.session_mode === 'Other' ? `🏢 ${event.session_type?.name}` : formatClientName(event.client)}
                                                         </h3>
                                                         <div className="flex items-center gap-4 text-xs font-medium opacity-70">
                                                             <span className="flex items-center gap-1.5 capitalize">
@@ -809,7 +809,7 @@ export default function SportsScientistSchedule() {
                                                                     ? event.group_name 
                                                                     : event.session_mode === 'Other' 
                                                                         ? event.session_type?.name 
-                                                                        : `${event.client?.first_name} ${event.client?.last_name || ''}`}
+                                                                        : formatClientName(event.client)}
                                                             </span>
                                                             <span className="text-[9px] text-slate-400 dark:text-slate-500 block truncate">
                                                                 Coach: {profile?.first_name} {profile?.last_name}

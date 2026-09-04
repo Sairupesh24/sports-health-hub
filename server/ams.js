@@ -187,7 +187,9 @@ router.get('/mobile-dashboard/stats', requireAuth, async (req, res) => {
                    json_build_object(
                        'id', c.id, 
                        'first_name', c.first_name, 
+                       'middle_name', c.middle_name,
                        'last_name', c.last_name, 
+                       'honorific', c.honorific,
                        'uhid', c.uhid, 
                        'is_vip', c.is_vip, 
                        'sport', c.sport, 
@@ -284,7 +286,7 @@ router.get('/dashboard/stats', requireAuth, async (req, res) => {
         
         // 1. Today's sessions
         const sessionsRes = await db.query(`
-            SELECT s.*, c.first_name, c.last_name, st.name as session_type_name
+            SELECT s.*, c.first_name, c.middle_name, c.last_name, c.honorific, st.name as session_type_name
             FROM Sessions s
             LEFT JOIN Clients c ON s.client_id = c.id
             LEFT JOIN Services st ON s.service_id = st.id
@@ -300,7 +302,9 @@ router.get('/dashboard/stats', requireAuth, async (req, res) => {
                    json_build_object(
                        'id', c.id, 
                        'first_name', c.first_name, 
+                       'middle_name', c.middle_name,
                        'last_name', c.last_name, 
+                       'honorific', c.honorific,
                        'uhid', c.uhid, 
                        'is_vip', c.is_vip, 
                        'sport', c.sport, 
@@ -945,8 +949,8 @@ router.patch('/form-responses/:id', requireAuth, async (req, res) => {
 
         if (status === 'completed' && updatedRow) {
             // Fetch client details
-            const clientRes = await db.query('SELECT p.first_name, p.last_name, c.is_vip FROM profiles p LEFT JOIN clients c ON p.id = c.id WHERE p.id = $1', [updatedRow.client_id]);
-            const clientName = clientRes.rows.length > 0 ? `${clientRes.rows[0].first_name} ${clientRes.rows[0].last_name}` : 'A client';
+            const clientRes = await db.query('SELECT p.first_name, c.middle_name, p.last_name, c.is_vip FROM profiles p LEFT JOIN clients c ON p.id = c.id WHERE p.id = $1', [updatedRow.client_id]);
+            const clientName = clientRes.rows.length > 0 ? [clientRes.rows[0].first_name, clientRes.rows[0].middle_name, clientRes.rows[0].last_name].filter(Boolean).join(' ') : 'A client';
             const isVip = clientRes.rows.length > 0 ? Boolean(clientRes.rows[0].is_vip) : false;
 
             // Fetch form/questionnaire title
@@ -1130,7 +1134,7 @@ router.get('/public/form/:token', async (req, res) => {
         const frRes = await db.query(`
             SELECT fr.*,
                    q.name as questionnaire_name, q.classification, q.questions,
-                   c.first_name, c.last_name, c.honorific, c.age, c.gender, c.mobile_no,
+                   c.first_name, c.middle_name, c.last_name, c.honorific, c.age, c.gender, c.mobile_no,
                    o.name as org_name, o.logo_url as org_logo_url
             FROM form_responses fr
             JOIN questionnaires q ON fr.form_id = q.id
@@ -1185,7 +1189,7 @@ router.post('/public/form/:token/submit', async (req, res) => {
         }
 
         const frRes = await db.query(`
-            SELECT fr.*, q.name as form_title, c.first_name, c.last_name, c.is_vip
+            SELECT fr.*, q.name as form_title, c.first_name, c.middle_name, c.last_name, c.honorific, c.is_vip
             FROM form_responses fr
             JOIN questionnaires q ON fr.form_id = q.id
             JOIN clients c ON fr.client_id = c.id
@@ -2122,7 +2126,7 @@ router.get('/resources', requireAuth, async (req, res) => {
         
         let query = `
             SELECT sr.*, 
-                   (SELECT json_build_object('first_name', c.first_name, 'last_name', c.last_name, 'uhid', c.uhid) 
+                   (SELECT json_build_object('first_name', c.first_name, 'middle_name', c.middle_name, 'last_name', c.last_name, 'honorific', c.honorific, 'uhid', c.uhid) 
                     FROM clients c WHERE c.id = sr.athlete_id) as athlete
             FROM scientific_resources sr
             WHERE sr.organization_id = $1

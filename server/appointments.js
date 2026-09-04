@@ -19,7 +19,9 @@ router.get('/', requireAuth, async (req, res) => {
                        json_build_object(
                            'id', c.id, 
                            'first_name', c.first_name, 
+                           'middle_name', c.middle_name,
                            'last_name', c.last_name, 
+                           'honorific', c.honorific,
                            'uhid', c.uhid, 
                            'is_vip', c.is_vip,
                            'mobile_no', c.mobile_no,
@@ -1062,7 +1064,9 @@ router.get('/waitlist', requireAuth, async (req, res) => {
                    json_build_object(
                        'id', c.id, 
                        'first_name', c.first_name, 
+                       'middle_name', c.middle_name,
                        'last_name', c.last_name, 
+                       'honorific', c.honorific,
                        'uhid', c.uhid, 
                        'is_vip', c.is_vip, 
                        'mobile_no', c.mobile_no
@@ -1100,6 +1104,7 @@ router.get('/waitlist', requireAuth, async (req, res) => {
             client: (row.client && row.client.id) ? row.client : {
                 id: row.client_id,
                 first_name: row.client_first_name || '',
+                middle_name: row.client_middle_name || '',
                 last_name: row.client_last_name || '',
                 is_vip: row.client_is_vip || false,
                 uhid: row.client_uhid || '',
@@ -1409,7 +1414,7 @@ router.get('/:id/attendees', requireAuth, async (req, res) => {
         const orgId = req.user.organization_id;
 
         const query = `
-            SELECT c.id, c.first_name, c.last_name, c.uhid,
+            SELECT c.id, c.first_name, c.middle_name, c.last_name, c.honorific, c.uhid,
                    COALESCE((
                        SELECT SUM(b.total - COALESCE((SELECT SUM(bp.amount) FROM billpayments bp WHERE bp.bill_id = b.id), 0))
                        FROM bills b

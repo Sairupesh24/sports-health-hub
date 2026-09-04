@@ -18,7 +18,7 @@ import { Plus, Download, CheckCircle, CreditCard, Banknote, Smartphone, Trash2, 
 import { useAuth } from "@/contexts/AuthContext";
 import { apiFetch } from "@/utils/api";
 import { toast } from "@/hooks/use-toast";
-import { cn, getImageDimensions } from "@/lib/utils";
+import { cn, getImageDimensions, formatClientName } from "@/lib/utils";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { format } from "date-fns";
@@ -78,7 +78,7 @@ type Bill = {
     client_is_vip?: boolean;
 };
 
-type Client = { id: string; first_name: string; last_name: string; uhid: string; email?: string; mobile_no?: string; is_vip?: boolean };
+type Client = { id: string; first_name: string; middle_name?: string; last_name: string; honorific?: string; uhid: string; email?: string; mobile_no?: string; is_vip?: boolean };
 type Package = { id: string; name: string; price: number; category?: string; tax_amount?: number; service_package_items?: { service_type: string; default_sessions: number; }[] };
 type ReferralSource = { id: string; name: string };
 
@@ -280,7 +280,7 @@ export default function BillingPage() {
             // Fetch Clients
             const clientsData = await apiFetch<any[]>('/clients');
             const parsedClients = clientsData.map(c => ({
-                id: c.id, first_name: c.first_name, last_name: c.last_name, uhid: c.uhid, email: c.email, mobile_no: c.mobile_no, is_vip: c.is_vip
+                id: c.id, first_name: c.first_name, middle_name: c.middle_name, last_name: c.last_name, honorific: c.honorific, uhid: c.uhid, email: c.email, mobile_no: c.mobile_no, is_vip: c.is_vip
             }));
             setClients(parsedClients);
 
@@ -384,7 +384,7 @@ export default function BillingPage() {
                 id: r.id,
                 type: 'refund' as const,
                 date: r.created_at,
-                client_name: client ? `${client.first_name} ${client.last_name}` : 'Unknown',
+                client_name: formatClientName(client, { fallback: 'Unknown' }),
                 client_uhid: client?.uhid,
                 amount: r.amount,
                 refund_mode: r.refund_mode,
@@ -893,7 +893,7 @@ export default function BillingPage() {
                                                             className="w-full justify-between font-normal"
                                                         >
                                                             {selectedClient
-                                                                ? clients.find((c) => c.id === selectedClient)?.first_name + " " + clients.find((c) => c.id === selectedClient)?.last_name
+                                                                ? formatClientName(clients.find((c) => c.id === selectedClient))
                                                                 : "Search for a client..."}
                                                             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                                         </Button>
@@ -907,7 +907,7 @@ export default function BillingPage() {
                                                                     {clients.map((c) => (
                                                                         <CommandItem
                                                                             key={c.id}
-                                                                            value={`${c.first_name} ${c.last_name} ${c.uhid} ${c.mobile_no || ""}`}
+                                                                            value={`${formatClientName(c)} ${c.uhid} ${c.mobile_no || ""}`}
                                                                             onSelect={() => {
                                                                                 setSelectedClient(c.id);
                                                                                 setOpenCombobox(false);
@@ -921,7 +921,7 @@ export default function BillingPage() {
                                                                             />
                                                                                 <div>
                                                                                     <div className="flex items-center gap-2">
-                                                                                        {c.first_name} {c.last_name}
+                                                                                        {formatClientName(c)}
                                                                                         <VIPBadge isVIP={c.is_vip} iconOnly size="sm" />
                                                                                     </div>
                                                                                     <div className="text-[10px] text-muted-foreground flex items-center gap-2">
@@ -1274,7 +1274,7 @@ export default function BillingPage() {
                                                             >
                                                                 <TableCell>
                                                                     <div className="font-bold text-xs">
-                                                                        {sub.client?.first_name} {sub.client?.last_name}
+                                                                        {formatClientName(sub.client)}
                                                                     </div>
                                                                     <div className="text-[10px] text-muted-foreground">{sub.client?.uhid}</div>
                                                                 </TableCell>

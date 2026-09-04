@@ -27,6 +27,7 @@ import PerformanceAnalytics from "@/components/ams/PerformanceAnalytics";
 import { useToast } from "@/hooks/use-toast";
 import { usePerformanceResults, usePersonalBests } from "@/hooks/usePerformanceResults";
 import { FileDown, Trophy } from "lucide-react";
+import { formatClientName } from "@/lib/utils";
 
 
 export default function SportsScientistAnalytics() {
@@ -154,7 +155,7 @@ export default function SportsScientistAnalytics() {
                         <div>
                             <div className="flex items-center gap-3">
                                 <h1 className="text-3xl font-display font-bold text-foreground">
-                                    {athleteData.client.first_name} {athleteData.client.last_name}
+                                    {formatClientName(athleteData.client)}
                                 </h1>
                                 <Badge variant="outline" className="font-mono text-lg">{athleteData.client.uhid}</Badge>
                             </div>
@@ -164,7 +165,7 @@ export default function SportsScientistAnalytics() {
                         </div>
                         <div className="ml-auto">
                            <PerformanceReportButton 
-                                athleteName={`${athleteData.client.first_name} ${athleteData.client.last_name}`}
+                                athleteName={formatClientName(athleteData.client)}
                                 athleteId={clientId}
                                 orgName={(athleteData.client as any).organizations?.official_name || "ISHPO High Performance"}
                                 orgLogo={(athleteData.client as any).organizations?.logo_url}

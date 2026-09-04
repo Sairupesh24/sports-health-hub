@@ -16,7 +16,7 @@ import {
     Loader2,
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { cn } from "@/lib/utils";
+import { cn, formatClientName } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 
 interface RosterScheduleViewProps {
@@ -43,8 +43,9 @@ function getSessionDisplayName(s: any): string {
     if (isGroup) {
         return s.group_name?.trim() || "Group Session";
     }
-    if (s?.client?.first_name) {
-        return `${s.client.first_name} ${s.client.last_name || ""}`.trim();
+    if (s?.client) {
+        const name = formatClientName(s.client);
+        if (name) return name;
     }
     if (s?.guest_name) {
         return s.guest_name.trim();

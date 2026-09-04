@@ -14,7 +14,7 @@ import {
   Calendar
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
+import { cn, formatClientName } from "@/lib/utils";
 import { haptic } from "@/utils/haptic";
 import { useNavigate } from "react-router-dom";
 import AttendanceMarker from "@/components/attendance/AttendanceMarker";
@@ -65,7 +65,7 @@ export default function MobileConsultantDashboard() {
       const formattedSessions = (response.todaySessions || []).map((session: any) => {
         const checkedIn = isCheckedInStatus(session.status);
         const isCancelled = isCancelledStatus(session.status);
-        const rawName = `${session.first_name || ""} ${session.last_name || ""}`.trim() || session.guest_name || "Client";
+        const rawName = formatClientName(session, { includeHonorific: true }) || session.guest_name || "Client";
 
         return {
           ...session,

@@ -9,6 +9,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { VIPName } from "@/components/ui/VIPBadge";
+import { formatClientName } from "@/lib/utils";
 import { format, isAfter } from "date-fns";
 import { Loader2, Phone, CheckCircle, XCircle, Bell, Clock, Filter, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -53,7 +54,7 @@ export function WaitlistDashboard() {
     };
 
     const filteredWaitlist = waitlist.filter(item => {
-        const clientName = `${item.client?.first_name} ${item.client?.last_name}`.toLowerCase();
+        const clientName = formatClientName(item.client).toLowerCase();
         const therapistName = item.therapist ? formatStaffName(item.therapist, { useFirstName: true }).toLowerCase() : "anyone";
         return clientName.includes(searchTerm.toLowerCase()) || therapistName.includes(searchTerm.toLowerCase());
     });
@@ -129,7 +130,7 @@ export function WaitlistDashboard() {
                                     <TableCell>
                                         <div className="flex flex-col">
                                             <div className="font-semibold text-foreground">
-                                                <VIPName name={`${item.client?.first_name} ${item.client?.last_name}`} isVIP={item.client?.is_vip} />
+                                                <VIPName name={formatClientName(item.client)} isVIP={item.client?.is_vip} />
                                             </div>
                                             <div className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">{item.client?.uhid}</div>
                                         </div>

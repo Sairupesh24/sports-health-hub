@@ -17,7 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import type { Database } from "@/integrations/supabase/types";
 import AttendanceMarker from "@/components/attendance/AttendanceMarker";
 import EmergencyLeaveModal from "@/components/shared/EmergencyLeaveModal";
-import { cn } from "@/lib/utils";
+import { cn, formatClientName } from "@/lib/utils";
 
 
 interface SessionData {
@@ -27,7 +27,9 @@ interface SessionData {
   service_type: string;
   client: {
     first_name: string;
+    middle_name?: string;
     last_name: string;
+    honorific?: string;
     is_vip?: boolean;
   };
 }
@@ -89,7 +91,7 @@ export default function ConsultantDashboard() {
       const formatted = (data.todaySessions || []).map((session: any) => {
         const checkedIn = isCheckedInStatus(session.status);
         const isCancelled = isCancelledStatus(session.status);
-        const rawName = `${session.first_name || ""} ${session.last_name || ""}`.trim() || session.guest_name || "Client";
+        const rawName = formatClientName(session, { fallback: session.guest_name || "Client" });
 
         return {
           id: session.id,
@@ -107,7 +109,9 @@ export default function ConsultantDashboard() {
             ...session,
             client: {
               first_name: session.first_name || session.guest_name || "Guest",
+              middle_name: session.middle_name || "",
               last_name: session.last_name || "",
+              honorific: session.honorific,
               is_vip: session.is_vip
             }
           }

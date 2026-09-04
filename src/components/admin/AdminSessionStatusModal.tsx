@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { filterServicesByRole, filterConsultantsByService, Service, formatStaffName } from "@/utils/serviceMapping";
 import { generateDynamicSlots, resolveSpecialistSettings, DynamicSlot } from "@/utils/dynamicSlots";
-import { cn } from "@/lib/utils";
+import { cn, formatClientName } from "@/lib/utils";
 
 interface Props {
     open: boolean;
@@ -507,7 +507,7 @@ export function AdminSessionStatusModal({ open, onOpenChange, session, onSuccess
                         {session.session_mode === 'Group' ? (
                             <p><strong>Group:</strong> {session.group_name || 'Unnamed Group'}</p>
                         ) : (
-                            <p><strong>Client:</strong> {session.client?.first_name} {session.client?.last_name}</p>
+                            <p><strong>Client:</strong> {formatClientName(session.client)}</p>
                         )}
                         <p><strong>Consultant:</strong> {formatStaffName(session.therapist || session.scientist || session.staff, { useFirstName: true })}</p>
                         <p className="flex items-center gap-1.5 flex-wrap">

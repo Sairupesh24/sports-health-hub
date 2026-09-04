@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 import { apiFetch } from "@/utils/api";
 import { useToast } from "@/components/ui/use-toast";
-import { cn } from "@/lib/utils";
+import { cn, formatClientName } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 
 interface BatchCreationModalProps {
@@ -154,7 +154,7 @@ export default function BatchCreationModal({
   };
 
   const filteredAthletes = athletes.filter(a => 
-    `${a.first_name} ${a.last_name} ${a.uhid}`.toLowerCase().includes(searchQuery.toLowerCase())
+    `${formatClientName(a)} ${a.uhid}`.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
@@ -228,7 +228,7 @@ export default function BatchCreationModal({
                           {athlete.first_name?.[0]}{athlete.last_name?.[0]}
                         </div>
                         <div>
-                          <div className="font-black text-slate-100 uppercase tracking-tight">{athlete.last_name}, {athlete.first_name}</div>
+                          <div className="font-black text-slate-100 uppercase tracking-tight">{formatClientName(athlete)}</div>
                           <div className="text-[9px] opacity-40 font-black uppercase tracking-widest">{athlete.uhid || "CLIENT RECORD"}</div>
                         </div>
                       </div>

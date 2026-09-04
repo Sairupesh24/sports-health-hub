@@ -151,7 +151,7 @@ router.get('/invoices', requireAuth, async (req, res) => {
 
         let query = `
             SELECT b.*, 
-                   c.first_name as client_first_name, c.last_name as client_last_name, c.uhid as client_uhid, c.is_vip as client_is_vip,
+                   c.first_name as client_first_name, c.middle_name as client_middle_name, c.last_name as client_last_name, c.honorific as client_honorific, c.uhid as client_uhid, c.is_vip as client_is_vip,
                    r.name as referral_source_name,
                    o.name as organization_name, o.logo_url as organization_logo, o.official_name as organization_official_name, o.official_address as organization_official_address,
                    s.first_name as staff_first_name, s.last_name as staff_last_name
@@ -215,7 +215,7 @@ router.get('/invoices', requireAuth, async (req, res) => {
 
             return {
                 ...bill,
-                client_name: `${bill.client_first_name} ${bill.client_last_name}`,
+                client_name: [bill.client_first_name, bill.client_middle_name, bill.client_last_name].filter(Boolean).join(' ') || `${bill.client_first_name || ''} ${bill.client_last_name || ''}`.trim(),
                 billing_staff_name: staffName,
                 billed_by_name: staffName,
                 paid_amount: parseFloat(payments.rows[0].paid || 0),
@@ -262,7 +262,7 @@ router.get('/subscriptions', requireAuth, async (req, res) => {
         const orgId = req.user.organization_id;
         const result = await db.query(`
             SELECT s.*, 
-                   c.first_name as client_first_name, c.last_name as client_last_name, c.uhid as client_uhid, 
+                   c.first_name as client_first_name, c.middle_name as client_middle_name, c.last_name as client_last_name, c.honorific as client_honorific, c.uhid as client_uhid, 
                    c.mobile_no as client_mobile_no, c.is_vip as client_is_vip, c.sport as client_sport,
                    p.name as package_name, p.price as package_price
             FROM subscriptions s
@@ -277,7 +277,9 @@ router.get('/subscriptions', requireAuth, async (req, res) => {
             client: { 
                 id: row.client_id,
                 first_name: row.client_first_name, 
+                middle_name: row.client_middle_name,
                 last_name: row.client_last_name, 
+                honorific: row.client_honorific,
                 uhid: row.client_uhid,
                 mobile_no: row.client_mobile_no,
                 is_vip: row.client_is_vip,
@@ -682,7 +684,7 @@ router.get('/dunning-alerts', requireAuth, async (req, res) => {
         const orgId = req.user.organization_id;
         const result = await db.query(`
             SELECT s.*, 
-                   json_build_object('id', c.id, 'first_name', c.first_name, 'last_name', c.last_name, 'uhid', c.uhid) as client
+                   json_build_object('id', c.id, 'first_name', c.first_name, 'middle_name', c.middle_name, 'last_name', c.last_name, 'honorific', c.honorific, 'uhid', c.uhid) as client
             FROM subscriptions s
             JOIN clients c ON s.client_id = c.id
             WHERE s.organization_id = $1 AND s.status IN ('Past Due', 'Suspended')

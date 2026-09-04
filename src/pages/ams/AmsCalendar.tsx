@@ -32,6 +32,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { formatClientName } from "@/lib/utils";
 import { 
   Popover,
   PopoverContent,
@@ -266,7 +267,7 @@ export default function AmsCalendar() {
                   <PopoverTrigger asChild>
                     <button className="flex items-center gap-2 group transition-all">
                       <span className="text-white font-black text-lg uppercase tracking-tight group-hover:underline underline-offset-4 decoration-white/40">
-                        {selectedAthlete ? (selectedAthlete.entityType === 'batch' ? selectedAthlete.name : `${selectedAthlete.last_name}, ${selectedAthlete.first_name}`) : "Select Athlete"}
+                        {selectedAthlete ? (selectedAthlete.entityType === 'batch' ? selectedAthlete.name : formatClientName(selectedAthlete)) : "Select Athlete"}
                       </span>
                       <ChevronDown className="w-5 h-5 text-white/60 group-hover:text-white transition-colors" />
                     </button>
@@ -294,12 +295,12 @@ export default function AmsCalendar() {
                         )}
                         <CommandGroup heading="Individual Athletes" className="text-[10px] font-black uppercase text-white/20 py-2 px-3">
                           {athletes.filter(a => a.entityType === 'athlete').map((athlete) => (
-                            <CommandItem key={athlete.id} value={`${athlete.first_name} ${athlete.last_name} ${athlete.uhid || ''}`} onSelect={() => { setSelectedAthlete(athlete); setIsAthletePopoverOpen(false); }} className="flex items-center gap-3 p-4 cursor-pointer data-[selected=true]:bg-primary/30 hover:bg-white/10 transition-all text-white border-b border-white/5 last:border-none">
+                            <CommandItem key={athlete.id} value={`${formatClientName(athlete)} ${athlete.uhid || ''}`} onSelect={() => { setSelectedAthlete(athlete); setIsAthletePopoverOpen(false); }} className="flex items-center gap-3 p-4 cursor-pointer data-[selected=true]:bg-primary/30 hover:bg-white/10 transition-all text-white border-b border-white/5 last:border-none">
                               <Avatar className="h-8 w-8 border border-white/10">
                                 <AvatarFallback className="bg-white/5 text-[10px] font-black">{athlete.first_name?.[0]}{athlete.last_name?.[0]}</AvatarFallback>
                               </Avatar>
                               <div className="flex flex-col flex-1">
-                                <span className="font-black text-sm uppercase tracking-tight">{athlete.last_name}, {athlete.first_name}</span>
+                                <span className="font-black text-sm uppercase tracking-tight">{formatClientName(athlete)}</span>
                                 <span className="text-[10px] opacity-40 font-bold">{athlete.uhid || "CLIENT RECORD"}</span>
                               </div>
                             </CommandItem>
@@ -427,7 +428,7 @@ export default function AmsCalendar() {
             </div>
           </div>
         </div>
-        <ProgramAssignmentModal isOpen={isAssignModalOpen} onClose={() => { setIsAssignModalOpen(false); setSelectedAssignDate(null); setEditingWorkoutDays(null); }} program={null} onSuccess={fetchAthleteWorkouts} initialSelectedAthleteId={selectedAthlete?.entityType !== 'batch' ? selectedAthlete?.id : null} initialSelectedBatchId={selectedAthlete?.entityType === 'batch' ? selectedAthlete?.id : null} initialStartDate={selectedAssignDate ? format(selectedAssignDate, 'yyyy-MM-dd') : undefined} initialDays={editingWorkoutDays || undefined} recipientName={selectedAthlete ? (selectedAthlete.entityType === 'batch' ? selectedAthlete.name : `${selectedAthlete.last_name}, ${selectedAthlete.first_name}`) : undefined} />
+        <ProgramAssignmentModal isOpen={isAssignModalOpen} onClose={() => { setIsAssignModalOpen(false); setSelectedAssignDate(null); setEditingWorkoutDays(null); }} program={null} onSuccess={fetchAthleteWorkouts} initialSelectedAthleteId={selectedAthlete?.entityType !== 'batch' ? selectedAthlete?.id : null} initialSelectedBatchId={selectedAthlete?.entityType === 'batch' ? selectedAthlete?.id : null} initialStartDate={selectedAssignDate ? format(selectedAssignDate, 'yyyy-MM-dd') : undefined} initialDays={editingWorkoutDays || undefined} recipientName={selectedAthlete ? (selectedAthlete.entityType === 'batch' ? selectedAthlete.name : formatClientName(selectedAthlete)) : undefined} />
         <BatchCreationModal isOpen={isBatchModalOpen} onClose={() => { setIsBatchModalOpen(false); setEditingBatch(null); }} onSuccess={fetchAthletes} batchToEdit={editingBatch} />
         {editingItem && <WorkoutItemModal isOpen={!!editingItem} onClose={() => setEditingItem(null)} dayId={editingItem.workout_day_id} orgId={profile?.organization_id || ""} initialItem={editingItem} onSave={() => { toast({ title: "Exercise updated" }); fetchAthleteWorkouts(); }} />}
       </div>

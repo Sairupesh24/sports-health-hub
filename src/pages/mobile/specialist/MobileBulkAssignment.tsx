@@ -17,7 +17,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
+import { cn, formatClientName } from "@/lib/utils";
 import { haptic } from "@/utils/haptic";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
@@ -105,7 +105,7 @@ export default function MobileBulkAssignment() {
   };
 
   const filteredAthletes = athletes?.filter(a => 
-    `${a.first_name} ${a.last_name} ${a.uhid}`.toLowerCase().includes(searchQuery.toLowerCase())
+    `${formatClientName(a)} ${a.uhid}`.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
@@ -216,7 +216,7 @@ export default function MobileBulkAssignment() {
                         </div>
                         <div>
                            <h4 className="font-bold text-slate-900 dark:text-white leading-tight">
-                             {athlete.first_name} {athlete.last_name}
+                             {formatClientName(athlete)}
                            </h4>
                            <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/60 leading-none mt-1">
                              {athlete.org_name || "General"}

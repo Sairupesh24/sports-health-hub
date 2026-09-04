@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Flame, Info } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { formatClientName } from "@/lib/utils";
 
 interface TrainingLoadWithProfile {
     id: string;
@@ -97,7 +98,7 @@ export default function AMSTrainingLoadWidget({ clientId }: { clientId?: string 
                             <div key={load.id} className="flex items-center justify-between gap-4 pt-4 first:pt-0">
                                 <div className="flex-1 min-w-0">
                                     <p className="font-medium text-sm truncate text-foreground">
-                                        {load.client?.first_name} {load.client?.last_name}
+                                        {formatClientName(load.client)}
                                     </p>
                                     <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
                                         <span className="truncate max-w-[120px]" title={load.workout_name || 'Workout'}>

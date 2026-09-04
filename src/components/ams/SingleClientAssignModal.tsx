@@ -25,7 +25,7 @@ import {
 } from "lucide-react";
 import { apiFetch } from "@/utils/api";
 import { useToast } from "@/hooks/use-toast";
-import { cn } from "@/lib/utils";
+import { cn, formatClientName } from "@/lib/utils";
 
 interface SingleClientAssignModalProps {
   isOpen: boolean;
@@ -96,7 +96,7 @@ export default function SingleClientAssignModal({
   };
 
   const filteredClients = clients.filter((c) => {
-    const fullName = `${c.first_name} ${c.last_name}`.toLowerCase();
+    const fullName = formatClientName(c).toLowerCase();
     const q = searchQuery.toLowerCase();
     return fullName.includes(q) || (c.uhid || "").toLowerCase().includes(q) || (c.mobile_no || "").includes(q);
   });
@@ -149,7 +149,7 @@ export default function SingleClientAssignModal({
 
   const handleWhatsApp = () => {
     const clientName = selectedClient
-      ? `${selectedClient.honorific ? selectedClient.honorific + " " : ""}${selectedClient.first_name} ${selectedClient.last_name}`
+      ? formatClientName(selectedClient, { includeHonorific: true })
       : "";
     const text = encodeURIComponent(
       `Hi ${clientName}! Please complete your "${form?.name}" questionnaire using this link:\n\n${generatedLink}\n\nThe link will remain active until you submit your responses.`
@@ -158,7 +158,7 @@ export default function SingleClientAssignModal({
   };
 
   const clientFullName = selectedClient
-    ? `${selectedClient.honorific ? selectedClient.honorific + " " : ""}${selectedClient.first_name} ${selectedClient.last_name}`
+    ? formatClientName(selectedClient, { includeHonorific: true })
     : "";
 
   return (
@@ -222,7 +222,7 @@ export default function SingleClientAssignModal({
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="font-black text-white text-sm truncate">
-                          {c.honorific ? c.honorific + " " : ""}{c.first_name} {c.last_name}
+                          {formatClientName(c, { includeHonorific: true })}
                         </p>
                         <p className="text-[10px] font-bold text-white/40 uppercase tracking-wider mt-0.5">
                           {c.uhid ? `UHID: ${c.uhid}` : c.mobile_no || ""}

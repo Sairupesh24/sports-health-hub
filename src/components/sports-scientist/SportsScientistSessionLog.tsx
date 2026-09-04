@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { format, parseISO, startOfDay, differenceInCalendarDays, startOfMonth, endOfMonth, subMonths } from "date-fns";
 import { SportsScientistSessionStatusModal } from "@/components/sports-scientist/SportsScientistSessionStatusModal";
+import { formatClientName } from "@/lib/utils";
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
@@ -297,7 +298,7 @@ export function SportsScientistSessionLog() {
                                 <div className="flex-1 min-w-0">
                                     <div className="flex items-center gap-2 flex-wrap">
                                         <span className="font-bold text-base truncate">
-                                            {isGroup ? `👥 ${s.group_name}` : `${s.client?.first_name ?? ""} ${s.client?.last_name ?? ""}`}
+                                            {isGroup ? `👥 ${s.group_name}` : formatClientName(s.client)}
                                         </span>
                                         {!isGroup && s.client?.uhid && (
                                             <span className="text-[10px] text-muted-foreground font-mono bg-muted px-1.5 py-0.5 rounded">{s.client.uhid}</span>

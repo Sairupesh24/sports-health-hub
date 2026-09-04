@@ -9,13 +9,16 @@ import InjuryDetailModal from "@/components/consultant/InjuryDetailModal";
 import LogInjuryModal from "@/components/consultant/LogInjuryModal";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/contexts/AuthContext";
+import { formatClientName } from "@/lib/utils";
 import type { Database } from "@/integrations/supabase/types";
 
-type InjuryWithClient = Database['public']['Tables']['injuries']['Row'] & {
+export type InjuryOverview = Database['public']['Tables']['injuries']['Row'] & {
     client: {
         id: string;
         first_name: string;
+        middle_name?: string;
         last_name: string;
+        honorific?: string;
     } | null;
 };
 
@@ -29,16 +32,16 @@ const STATUS_COLORS: Record<string, string> = {
 
 export default function InjuryRepoPage() {
     const { profile, user } = useAuth();
-    const [injuries, setInjuries] = useState<InjuryWithClient[]>([]);
+    const [injuries, setInjuries] = useState<InjuryOverview[]>([]);
     const [loading, setLoading] = useState(true);
-    const [selectedInjury, setSelectedInjury] = useState<InjuryWithClient | null>(null);
+    const [selectedInjury, setSelectedInjury] = useState<InjuryOverview | null>(null);
     const [search, setSearch] = useState("");
 
     const fetchAllInjuries = async () => {
         try {
                 if (!user) return;
 
-                const data = await apiFetch<InjuryWithClient[]>("/clinical/injuries");
+                const data = await apiFetch<InjuryOverview[]>("/clinical/injuries");
                 setInjuries(data);
             } catch (err) {
                 console.error(err);
@@ -54,7 +57,7 @@ export default function InjuryRepoPage() {
     const filtered = injuries.filter(inj => {
         if (!search) return true;
         const q = search.toLowerCase();
-        const clientName = inj.client ? `${inj.client.first_name} ${inj.client.last_name}` : "";
+        const clientName = formatClientName(inj.client);
         return (
             clientName.toLowerCase().includes(q) ||
             (inj.diagnosis || "").toLowerCase().includes(q) ||
@@ -171,7 +174,7 @@ export default function InjuryRepoPage() {
                                                         <User className="w-4 h-4" />
                                                     </div>
                                                     <span className="font-medium text-foreground">
-                                                        {injury.client?.first_name} {injury.client?.last_name}
+                                                        {formatClientName(injury.client)}
                                                     </span>
                                                 </div>
                                             </td>

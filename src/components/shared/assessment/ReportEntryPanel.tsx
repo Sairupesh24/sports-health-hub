@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Search, Upload, AlertTriangle, Loader2, RefreshCw, X, User } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { formatClientName } from "@/lib/utils";
 
 interface Client {
   id: string;
@@ -48,7 +49,7 @@ export default function ReportEntryPanel({ clients = [], onParseSuccess }: Repor
   });
 
   const getClientFullName = (c: Client) => {
-    return [c.first_name, c.middle_name, c.last_name].filter(Boolean).join(" ");
+    return formatClientName(c);
   };
 
   const handleSelectClient = (c: Client) => {
@@ -212,7 +213,7 @@ export default function ReportEntryPanel({ clients = [], onParseSuccess }: Repor
                           className="text-[10px] h-8 font-bold border-dashed uppercase tracking-wider rounded-xl hover:bg-primary/10 hover:text-primary"
                         >
                           <User className="w-3 h-3 mr-1.5" />
-                          {c.first_name} {c.last_name}
+                          {getClientFullName(c)}
                         </Button>
                       ))}
                     </div>

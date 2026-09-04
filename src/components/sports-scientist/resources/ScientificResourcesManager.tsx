@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { toast } from "@/hooks/use-toast";
 import { AddResourceModal } from "./AddResourceModal";
 import { ResourceCard } from "./ResourceCard";
+import { formatClientName } from "@/lib/utils";
 
 interface ScientificResourcesManagerProps {
   athleteId?: string; // Optional: If provided, filter by this athlete and show "Athlete Profile" mode
@@ -27,7 +28,7 @@ export function ScientificResourcesManager({ athleteId }: ScientificResourcesMan
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
-  const { data: resources, isLoading, refetch } = useQuery({
+  const { data: resources, isLoading, refetch } = useQuery<any[]>({
     queryKey: ["scientist-resources", athleteId, activeCategory],
     queryFn: async () => {
       let queryUrl = '/api/ams/resources';
@@ -39,15 +40,14 @@ export function ScientificResourcesManager({ athleteId }: ScientificResourcesMan
         queryUrl += `?${params.toString()}`;
       }
 
-      return await apiFetch(queryUrl);
+      return await apiFetch<any[]>(queryUrl);
     },
   });
 
   const filteredResources = resources?.filter((res) => {
     const matchesSearch = res.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
                          (res.description?.toLowerCase() || "").includes(searchQuery.toLowerCase()) ||
-                         (res.athlete?.first_name?.toLowerCase() || "").includes(searchQuery.toLowerCase()) ||
-                         (res.athlete?.last_name?.toLowerCase() || "").includes(searchQuery.toLowerCase());
+                         (res.athlete && formatClientName(res.athlete).toLowerCase().includes(searchQuery.toLowerCase()));
     return matchesSearch;
   });
 

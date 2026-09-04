@@ -29,7 +29,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { VIPBadge } from "@/components/ui/VIPBadge";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
-import { cn } from "@/lib/utils";
+import { cn, formatClientName } from "@/lib/utils";
 
 interface EmergencyResponseModalProps {
   open: boolean;
@@ -49,7 +49,7 @@ export default function EmergencyResponseModal({ open, onOpenChange, organizatio
     if (!organizationId) return;
     setAlertsLoading(true);
     try {
-      const data = await apiFetch(`/hr/emergencies?status=unresolved`);
+      const data = await apiFetch<any>(`/hr/emergencies?status=unresolved`);
       const alertsData = data?.data || [];
       setAlerts(alertsData);
       if (alertsData.length > 0) {
@@ -78,13 +78,13 @@ export default function EmergencyResponseModal({ open, onOpenChange, organizatio
   );
 
   // 2. Fetch Sessions for the selected staff member
-  const { data: affectedSessions, isLoading: sessionsLoading } = useQuery({
+  const { data: affectedSessions, isLoading: sessionsLoading } = useQuery<any[]>({
     queryKey: ["emergency-affected-sessions", selectedAlert?.staff_id],
     queryFn: async () => {
       if (!selectedAlert?.staff_id) return [];
       const start = parseISO(selectedAlert.created_at);
       const end = addHours(start, 24).toISOString();
-      const data = await apiFetch(`/api/appointments?therapist_id=${selectedAlert.staff_id}&start=${start.toISOString()}&end=${end}`);
+      const data = await apiFetch<any[]>(`/api/appointments?therapist_id=${selectedAlert.staff_id}&start=${start.toISOString()}&end=${end}`);
       return data || [];
     },
     enabled: !!selectedAlert?.staff_id
@@ -259,7 +259,7 @@ export default function EmergencyResponseModal({ open, onOpenChange, organizatio
                                 </div>
                                 <div className="space-y-0.5">
                                   <div className="flex items-center gap-2">
-                                    <span className="font-black text-slate-900">{session.client?.first_name} {session.client?.last_name}</span>
+                                    <span className="font-black text-slate-900">{formatClientName(session.client)}</span>
                                     <VIPBadge isVIP={session.client?.is_vip} size="sm" showText={false} />
                                   </div>
                                   <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">UHID: {session.client?.uhid}</span>

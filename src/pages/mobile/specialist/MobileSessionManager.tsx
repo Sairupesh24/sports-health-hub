@@ -21,7 +21,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
+import { cn, formatClientName } from "@/lib/utils";
 import { haptic } from "@/utils/haptic";
 import { useToast } from "@/hooks/use-toast";
 import { 
@@ -399,7 +399,7 @@ export default function MobileSessionManager() {
                                      <p className="text-xs font-bold text-slate-800 dark:text-white leading-none flex items-center gap-1.5">
                                         {session.session_mode === "Group"
                                             ? `👥 Group: ${session.group_name}`
-                                            : session.client?.first_name ? `${session.client.first_name} ${session.client.last_name}` : "N/A"}
+                                            : session.client ? formatClientName(session.client) : "N/A"}
                                         {session.session_mode === "Individual" && session.client?.outstanding_balance > 0 && (
                                             <span className="text-[7px] bg-rose-500 text-white font-black uppercase tracking-widest px-1 py-0.5 rounded leading-none shrink-0 animate-pulse">DUE</span>
                                         )}
@@ -538,7 +538,7 @@ export default function MobileSessionManager() {
                                       </span>
                                     </div>
                                      <h4 className="font-bold text-sm text-slate-900 dark:text-white truncate mt-0.5 flex items-center gap-1.5">
-                                       {session.client ? `${session.client.first_name} ${session.client.last_name}` : "No Athlete"}
+                                       {session.client ? formatClientName(session.client) : "No Athlete"}
                                        {session.session_mode === "Individual" && session.client?.outstanding_balance > 0 && (
                                            <span className="text-[7px] bg-rose-500 text-white font-black uppercase tracking-widest px-1 py-0.5 rounded leading-none shrink-0 animate-pulse">DUE</span>
                                        )}
@@ -705,7 +705,7 @@ export default function MobileSessionManager() {
                                 </span>
                               </div>
                               <h4 className="font-bold text-sm text-slate-900 dark:text-white truncate mt-0.5">
-                                {session.client ? `${session.client.first_name} ${session.client.last_name}` : "No Athlete"}
+                                {session.client ? formatClientName(session.client) : "No Athlete"}
                               </h4>
                               <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 truncate leading-none">
                                 {session.session_type?.name || "Standard Session"} {session.session_mode === 'Group' && session.group_name ? `• ${session.group_name}` : ''}
@@ -746,7 +746,7 @@ export default function MobileSessionManager() {
                             </span>
                             <div className="min-w-0">
                               <h6 className="font-bold text-xs text-slate-900 dark:text-white truncate">
-                                {session.client ? `${session.client.first_name} ${session.client.last_name}` : "No Athlete"}
+                                {session.client ? formatClientName(session.client) : "No Athlete"}
                               </h6>
                               <p className="text-[9px] text-slate-400 truncate mt-0.5">
                                 {format(parseISO(session.scheduled_start), "hh:mm a")} • {session.session_type?.name || "Session"}

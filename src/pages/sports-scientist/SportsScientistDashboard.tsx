@@ -22,7 +22,7 @@ import { apiFetch } from "@/utils/api";
 import { SportsScientistBookSessionModal } from "@/components/sports-scientist/SportsScientistBookSessionModal";
 import { SportsScientistSessionStatusModal } from "@/components/sports-scientist/SportsScientistSessionStatusModal";
 import AmsStaffNav from "@/components/ams/AmsStaffNav";
-import { cn } from "@/lib/utils";
+import { cn, formatClientName } from "@/lib/utils";
 import AttendanceMarker from "@/components/attendance/AttendanceMarker";
 import EmergencyLeaveModal from "@/components/shared/EmergencyLeaveModal";
 import { AnnouncementsManager } from "@/components/shared/AnnouncementsManager";
@@ -263,7 +263,7 @@ export default function SportsScientistDashboard() {
                                                         </div>
                                                         <div>
                                                             <h4 className="font-black text-slate-900 group-hover:text-primary transition-colors flex items-center gap-2">
-                                                                {session.session_mode === 'Group' ? `Group: ${session.group_name}` : `${session.client?.first_name} ${session.client?.last_name || ''}`}
+                                                                {session.session_mode === 'Group' ? `Group: ${session.group_name}` : formatClientName(session.client)}
                                                                 {session.client?.is_vip && <span className="text-[9px] bg-amber-500 text-white font-black px-1.5 py-0.5 rounded uppercase">VIP</span>}
                                                             </h4>
                                                             <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">
@@ -336,7 +336,7 @@ export default function SportsScientistDashboard() {
                                                 </div>
                                                 <div>
                                                     <h4 className="font-black text-lg group-hover:text-primary transition-colors">
-                                                        {session.session_mode === 'Group' ? `Group: ${session.group_name}` : session.session_mode === 'Other' ? session.session_type?.name : `${session.client?.first_name} ${session.client?.last_name}`}
+                                                        {session.session_mode === 'Group' ? `Group: ${session.group_name}` : session.session_mode === 'Other' ? session.session_type?.name : formatClientName(session.client)}
                                                     </h4>
                                                     <div className="flex items-center gap-2 flex-wrap mt-0.5">
                                                         <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground/60">{session.session_type?.name || "Sports Science Session"}</p>

@@ -24,6 +24,7 @@ import { VIPName } from "@/components/ui/VIPBadge";
 import { Button } from "@/components/ui/button";
 import { haptic } from "@/utils/haptic";
 import { toast } from "@/hooks/use-toast";
+import { formatClientName } from "@/lib/utils";
 
 interface SessionEvent {
     id: string;
@@ -34,7 +35,7 @@ interface SessionEvent {
     service_id?: string | null;
     service_type: string;
     is_adhoc?: boolean;
-    client: { first_name: string; last_name: string; is_vip?: boolean };
+    client: { first_name: string; middle_name?: string; last_name: string; is_vip?: boolean };
     rawSession: any;
     is_unentitled?: boolean;
     is_pre_unentitled?: boolean;
@@ -255,7 +256,7 @@ export default function MobileConsultantSchedule() {
                                     </div>
                                     <div className="font-display font-black text-sm flex items-center gap-1.5 truncate">
                                         <User className="w-3.5 h-3.5 opacity-70" />
-                                        <VIPName name={`${event.client?.first_name} ${event.client?.last_name}`} isVIP={event.client?.is_vip} className="truncate" />
+                                        <VIPName name={formatClientName(event.client)} isVIP={event.client?.is_vip} className="truncate" />
                                     </div>
                                     <div className="text-[10px] font-semibold opacity-70 truncate mt-0.5 uppercase tracking-wide">
                                         {event.service_type}

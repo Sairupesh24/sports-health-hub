@@ -7,7 +7,7 @@ import { format } from "date-fns";
 import { Calendar, Clock, User, ClipboardList, ChevronRight, MapPin } from "lucide-react";
 import { AdminSessionStatusModal } from "@/components/admin/AdminSessionStatusModal";
 import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
+import { cn, formatClientName } from "@/lib/utils";
 import { VIPBadge, VIPName } from "@/components/ui/VIPBadge";
 
 export default function AppointmentList({ role, hideLayout = false }: { role: 'admin' | 'consultant' | 'client', hideLayout?: boolean }) {
@@ -154,7 +154,7 @@ export default function AppointmentList({ role, hideLayout = false }: { role: 'a
                                                 {apt.session_mode === 'Group' ? (
                                                     <span className="text-sm font-bold text-slate-700">👥 {apt.group_name || 'Group Session'}</span>
                                                 ) : (
-                                                    <VIPName name={apt.client?.first_name ? `${apt.client.first_name} ${apt.client.last_name || ''}`.trim() : (apt.guest_name || 'Guest')} isVIP={apt.client?.is_vip} className="text-sm font-bold text-slate-700" />
+                                                    <VIPName name={apt.client ? formatClientName(apt.client) : (apt.guest_name || 'Guest')} isVIP={apt.client?.is_vip} className="text-sm font-bold text-slate-700" />
                                                 )}
                                             </div>
                                         </>

@@ -11,7 +11,7 @@ import { toast } from "@/hooks/use-toast";
 import { Loader2, Upload, Link as LinkIcon, Check, ChevronsUpDown, X } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { cn } from "@/lib/utils";
+import { cn, formatClientName } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
@@ -190,7 +190,7 @@ export function AddResourceModal({ isOpen, onClose, onSuccess, initialAthleteId 
                       className={cn("w-full justify-between h-12 bg-slate-50 border-slate-100 rounded-2xl font-bold", !selectedAthleteId && "text-slate-400")}
                     >
                       {selectedAthleteId 
-                          ? clients.find(c => c.id === selectedAthleteId)?.first_name + " " + clients.find(c => c.id === selectedAthleteId)?.last_name
+                          ? formatClientName(clients.find(c => c.id === selectedAthleteId))
                           : "Search athlete..."}
                       <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </Button>
@@ -204,13 +204,13 @@ export function AddResourceModal({ isOpen, onClose, onSuccess, initialAthleteId 
                           {clients.map((c) => (
                             <CommandItem
                               key={c.id}
-                              value={`${c.first_name} ${c.last_name} ${c.uhid}`}
+                              value={`${formatClientName(c)} ${c.uhid}`}
                               onSelect={() => setSelectedAthleteId(c.id)}
                               className="h-12"
                             >
                               <Check className={cn("mr-2 h-4 w-4", selectedAthleteId === c.id ? "opacity-100" : "opacity-0")} />
                               <div className="flex flex-col">
-                                <span className="font-bold">{c.first_name} {c.last_name}</span>
+                                <span className="font-bold">{formatClientName(c)}</span>
                                 <span className="text-[10px] font-bold text-slate-400 uppercase">{c.uhid}</span>
                               </div>
                             </CommandItem>

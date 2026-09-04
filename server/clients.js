@@ -141,7 +141,7 @@ router.get('/', requireAuth, async (req, res) => {
 
         if (search) {
             params.push(`%${search}%`);
-            query += ` AND (c.first_name ILIKE $${params.length} OR c.last_name ILIKE $${params.length} OR c.uhid ILIKE $${params.length} OR c.mobile_no ILIKE $${params.length})`;
+            query += ` AND (c.first_name ILIKE $${params.length} OR c.middle_name ILIKE $${params.length} OR c.last_name ILIKE $${params.length} OR c.uhid ILIKE $${params.length} OR c.mobile_no ILIKE $${params.length})`;
         }
 
         if (startDate) {
@@ -307,7 +307,7 @@ router.post('/:id/ams-access', requireAuth, async (req, res) => {
         const orgId = req.user.organization_id;
 
         // Find client
-        const clientRes = await db.query('SELECT uhid, email, first_name, last_name FROM clients WHERE id = $1 AND organization_id = $2', [id, orgId]);
+        const clientRes = await db.query('SELECT uhid, email, first_name, middle_name, last_name, honorific FROM clients WHERE id = $1 AND organization_id = $2', [id, orgId]);
         if (clientRes.rows.length === 0) return res.status(404).json({ error: 'Client not found' });
         const client = clientRes.rows[0];
 
@@ -789,7 +789,7 @@ router.post('/bulk', requireAuth, async (req, res) => {
                 INSERT INTO clients (organization_id, uhid, ${keys.join(', ')})
                 VALUES ($1, $2, ${placeholders})
             `, [orgId, uhid, ...values]);
-            results.push({ uhid, first_name: c.first_name, last_name: c.last_name });
+            results.push({ uhid, first_name: c.first_name, middle_name: c.middle_name, last_name: c.last_name });
         }
         
         await client.query('COMMIT');

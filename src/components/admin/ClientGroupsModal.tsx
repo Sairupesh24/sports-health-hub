@@ -8,7 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { apiFetch } from "@/utils/api";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Trash2, Edit, Check, Loader2, Search, ArrowLeft, Users, Pencil, X } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, formatClientName } from "@/lib/utils";
 
 interface Props {
     open: boolean;
@@ -160,7 +160,7 @@ export function ClientGroupsModal({ open, onOpenChange }: Props) {
 
     // Filter clients list by search query
     const filteredClients = clients.filter(c => {
-        const fullName = `${c.first_name || ""} ${c.last_name || ""}`.toLowerCase();
+        const fullName = formatClientName(c).toLowerCase();
         const uhid = (c.uhid || "").toLowerCase();
         const query = searchQuery.toLowerCase();
         return fullName.includes(query) || uhid.includes(query);
@@ -390,7 +390,7 @@ export function ClientGroupsModal({ open, onOpenChange }: Props) {
                                 ) : (
                                     filteredClients.map((client) => {
                                         const isChecked = selectedMemberIds.includes(client.id);
-                                        const clientName = [client.honorific, client.first_name, client.last_name].filter(Boolean).join(" ");
+                                        const clientName = formatClientName(client, { includeHonorific: true });
                                         return (
                                             <div
                                                 key={client.id}

@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { cn } from "@/lib/utils";
+import { cn, formatClientName } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { apiFetch } from "@/utils/api";
 
@@ -84,7 +84,7 @@ export default function MobileAthleteDrawer({ open, onOpenChange, athlete }: Mob
               </div>
               <div className="flex-1 pb-1">
                 <SheetTitle className="text-xl font-black text-white italic tracking-tight">
-                  {athlete.first_name} {athlete.last_name}
+                  {formatClientName(athlete)}
                 </SheetTitle>
                 <div className="flex items-center gap-2 mt-1">
                   <Badge variant="outline" className="bg-white/10 border-white/20 text-white text-[9px] font-black uppercase">

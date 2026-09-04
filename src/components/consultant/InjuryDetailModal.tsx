@@ -7,6 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, ReferenceLine } from "recharts";
 import { InjuryOverview } from "@/pages/consultant/InjuryRepoPage";
+import { formatClientName } from "@/lib/utils";
 
 interface InjuryDetailModalProps {
     open: boolean;
@@ -52,7 +53,7 @@ export default function InjuryDetailModal({ open, onOpenChange, injury }: Injury
 
             try {
                 // 1. PRIMARY THERAPIST — from clients.assigned_consultant_id → profiles
-                const clientRow = await apiFetch(`/api/clients/${injury.client_id}`);
+                const clientRow = await apiFetch<any>(`/api/clients/${injury.client_id}`);
 
                 if (clientRow?.consultant) {
                     const c = clientRow.consultant;
@@ -63,7 +64,7 @@ export default function InjuryDetailModal({ open, onOpenChange, injury }: Injury
                 }
 
                 // 2. RECENT THERAPIST — from latest session that has a therapist_id
-                const sessionsData = await apiFetch(`/api/appointments?client_id=${injury.client_id}`);
+                const sessionsData = await apiFetch<any[]>(`/api/appointments?client_id=${injury.client_id}`);
 
                 if (sessionsData && sessionsData.length > 0) {
                     // Most recent session with a therapist
@@ -125,7 +126,7 @@ export default function InjuryDetailModal({ open, onOpenChange, injury }: Injury
                     <div className="flex items-start justify-between gap-3 flex-wrap">
                         <div>
                             <DialogTitle className="text-xl font-display">
-                                {injury.client?.first_name} {injury.client?.last_name}
+                                {formatClientName(injury.client)}
                             </DialogTitle>
                             <DialogDescription className="mt-1 font-medium text-sm text-foreground/70">
                                 {injury.diagnosis || injury.injury_type || "Injury record"}

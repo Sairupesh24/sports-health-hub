@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { cn } from "@/lib/utils";
+import { cn, formatClientName } from "@/lib/utils";
 import { apiFetch } from "@/utils/api";
 import {
   Table,
@@ -534,7 +534,7 @@ export default function LeadsDashboard() {
                   )}
                 >
                   <div>
-                    <p className="font-bold text-sm">{client.first_name} {client.last_name}</p>
+                    <p className="font-bold text-sm">{formatClientName(client)}</p>
                     <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">{client.uhid}</p>
                   </div>
                   {selectedClient?.id === client.id && <CheckCircle2 className="w-4 h-4 text-primary" />}

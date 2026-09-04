@@ -13,6 +13,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { formatClientName } from "@/lib/utils";
 
 interface ResourceCardProps {
   resource: any;
@@ -104,7 +105,7 @@ export function ResourceCard({ resource, onDelete }: ResourceCardProps) {
               <User className="w-3.5 h-3.5 text-primary" />
               <div className="flex flex-col">
                 <span className="text-[10px] font-black uppercase tracking-widest text-primary">Associated Lead</span>
-                <span className="text-xs font-bold text-slate-700">{resource.athlete.first_name} {resource.athlete.last_name}</span>
+                <span className="text-xs font-bold text-slate-700">{formatClientName(resource.athlete)}</span>
               </div>
             </div>
           )}

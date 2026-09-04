@@ -11,7 +11,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval, parseISO, formatDistanceToNow, format } from "date-fns";
 import { useAuth } from "@/contexts/AuthContext";
 import type { Database } from "@/integrations/supabase/types";
-import { cn } from "@/lib/utils";
+import { cn, formatClientName } from "@/lib/utils";
 import EmergencyAlertIcon from "@/components/admin/EmergencyAlertIcon";
 import EmergencyResponseModal from "@/components/admin/EmergencyResponseModal";
 import { AnnouncementsManager } from "@/components/shared/AnnouncementsManager";
@@ -21,7 +21,9 @@ import AttendanceMarker from "@/components/attendance/AttendanceMarker";
 type WaitlistItem = Database['public']['Tables']['waitlist']['Row'] & {
     client: {
         first_name: string;
+        middle_name?: string;
         last_name: string;
+        honorific?: string;
         is_vip: boolean | null;
         mobile_no: string;
     } | null;
@@ -212,8 +214,8 @@ export default function AdminDashboard() {
   const schedule = useMemo(() => {
     if (!todaysSessions) return [];
     return todaysSessions.map(session => {
-      const client = session.client || { first_name: session.client_first_name, last_name: session.client_last_name };
-      const clientName = client.first_name ? `${client.first_name || ''} ${client.last_name || ''}`.trim() : 'Unknown';
+      const client = session.client || { first_name: session.client_first_name, middle_name: session.client_middle_name, last_name: session.client_last_name, honorific: session.client_honorific };
+      const clientName = formatClientName(client, { fallback: 'Unknown' });
       return {
         id: session.id,
         time: session.scheduled_start ? format(parseISO(session.scheduled_start), 'HH:mm') : '--:--',
@@ -234,7 +236,7 @@ export default function AdminDashboard() {
         activityList.push({
           id: `client-${client.id}`,
           title: "New client registered",
-          description: `${client.first_name || ''} ${client.last_name || ''}`.trim() || 'New client',
+          description: formatClientName(client, { fallback: 'New client' }),
           time: formatDistanceToNow(parseISO(client.created_at), { addSuffix: true }),
           type: 'client'
         });
@@ -247,8 +249,8 @@ export default function AdminDashboard() {
         .filter(s => s.status === 'Completed')
         .slice(0, 5);
       completedSessions.forEach(session => {
-        const client = session.client || { first_name: session.client_first_name, last_name: session.client_last_name };
-        const clientName = client.first_name ? `${client.first_name || ''} ${client.last_name || ''}`.trim() : 'Client';
+        const client = session.client || { first_name: session.client_first_name, middle_name: session.client_middle_name, last_name: session.client_last_name, honorific: session.client_honorific };
+        const clientName = formatClientName(client, { fallback: 'Client' });
         const therapist = session.therapist || { first_name: session.therapist_first_name, last_name: session.therapist_last_name, service_type: session.service_type };
         const therapistName = therapist.first_name || therapist.last_name ? formatStaffName(therapist, { useFirstName: true }) : 'Therapist';
         activityList.push({
@@ -427,7 +429,7 @@ export default function AdminDashboard() {
                     notifiedWaitlist.map((w) => (
                       <div key={w.id} className="flex items-center justify-between p-3 rounded-lg bg-white/60 border border-orange-200 shadow-sm">
                         <div className="flex flex-col">
-                          <p className="text-sm font-semibold text-orange-950">{w.client_first_name} {w.client_last_name}</p>
+                          <p className="text-sm font-semibold text-orange-950">{formatClientName({ first_name: w.client_first_name, middle_name: w.client_middle_name, last_name: w.client_last_name, honorific: w.client_honorific })}</p>
                           <p className="text-[10px] text-orange-800/70">{format(new Date(w.preferred_date), "MMM d")} @ {w.preferred_time_slot.substring(0, 5)}</p>
                         </div>
                         <a href={`tel:${w.mobile_no}`} className="p-2 rounded-full bg-orange-500 text-white hover:bg-orange-600 transition-colors">

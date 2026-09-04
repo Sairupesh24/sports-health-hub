@@ -33,7 +33,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import type { Database } from "@/integrations/supabase/types";
 import { AssessmentReportsList } from "@/components/shared/assessment/AssessmentReportsList";
 import { UpcomingPlanManager } from "@/components/sports-scientist/UpcomingPlanManager";
-import { cn } from "@/lib/utils";
+import { cn, formatClientName } from "@/lib/utils";
 
 
 
@@ -41,7 +41,9 @@ interface ClientProfile {
     id: string;
     uhid: string;
     first_name: string;
+    middle_name?: string;
     last_name: string;
+    honorific?: string;
     mobile_no: string;
     gender: string;
     age: number;
@@ -177,7 +179,7 @@ export default function ConsultantClientProfile() {
                     <div className="flex-1">
                         <div className="flex flex-col sm:flex-row sm:items-center gap-3">
                             <h1 className="text-2xl font-display font-bold text-foreground">
-                                <VIPName name={`${client.first_name} ${client.last_name}`} isVIP={client.is_vip} />
+                                <VIPName name={formatClientName(client, { includeHonorific: true })} isVIP={client.is_vip} />
                             </h1>
                             <Badge variant="outline" className="font-mono">{client.uhid}</Badge>
                         </div>
@@ -220,7 +222,7 @@ export default function ConsultantClientProfile() {
                 </div>
 
                 {/* Upcoming Events & Training Plan */}
-                <UpcomingPlanManager clientId={client.id} clientName={`${client.first_name} ${client.last_name}`} />
+                <UpcomingPlanManager clientId={client.id} clientName={formatClientName(client, { includeHonorific: true })} />
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     {/* Left Column: Clinical Info */}                    <div className="lg:col-span-2 space-y-6">
@@ -652,7 +654,7 @@ export default function ConsultantClientProfile() {
                                         <div className="p-2 bg-primary/10 rounded-lg">
                                             <FileStack className="w-5 h-5 text-primary" />
                                         </div>
-                                        Client Documents - {client.first_name} {client.last_name}
+                                        Client Documents - {formatClientName(client, { includeHonorific: true })}
                                     </DialogTitle>
                                 </DialogHeader>
                                 <div className="mt-4">
@@ -671,7 +673,7 @@ export default function ConsultantClientProfile() {
                                         </div>
                                         <div>
                                             <p className="text-[10px] uppercase font-black tracking-widest text-slate-400">Secure Scientist Repository</p>
-                                            Scientist Hub - {client.first_name} {client.last_name}
+                                            Scientist Hub - {formatClientName(client, { includeHonorific: true })}
                                         </div>
                                     </DialogTitle>
                                 </DialogHeader>

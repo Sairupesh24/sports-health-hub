@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { LogEnquiryModal } from "@/components/admin/LogEnquiryModal";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { cn, formatClientName } from "@/lib/utils";
 import { apiFetch } from "@/utils/api";
 import { formatStaffName } from "@/utils/serviceMapping";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -188,7 +189,7 @@ export default function FOEDashboard() {
                       {sub.status === 'Suspended' ? "MEMBERSHIP SUSPENDED" : "PAYMENT OVERDUE"}
                     </h3>
                     <p className="text-xs font-bold opacity-70">
-                      {sub.client?.first_name} {sub.client?.last_name} ({sub.client?.uhid}) — {sub.status === 'Suspended' ? "Service access blocked due to non-payment." : `Payment reminder sent (Step ${sub.dunning_step})`}
+                      {formatClientName(sub.client)} ({sub.client?.uhid}) — {sub.status === 'Suspended' ? "Service access blocked due to non-payment." : `Payment reminder sent (Step ${sub.dunning_step})`}
                     </p>
                   </div>
                 </div>
@@ -266,7 +267,7 @@ export default function FOEDashboard() {
                             </div>
                             <div>
                                 <div className="flex items-center gap-2">
-                                    <span className="font-bold text-foreground">{session.client?.first_name} {session.client?.last_name}</span>
+                                    <span className="font-bold text-foreground">{formatClientName(session.client)}</span>
                                     <VIPBadge isVIP={session.client?.is_vip} />
                                 </div>
                                 <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
@@ -335,7 +336,7 @@ export default function FOEDashboard() {
                                         className="font-bold text-orange-950 hover:text-orange-700 cursor-pointer transition-colors"
                                         onClick={() => navigate(`/admin/clients/${item.client?.id}?tab=entitlements`)}
                                     >
-                                        {item.client?.first_name} {item.client?.last_name}
+                                        {formatClientName(item.client)}
                                     </span>
                                     <VIPBadge isVIP={item.client?.is_vip} />
                                 </div>
@@ -392,7 +393,7 @@ export default function FOEDashboard() {
                             {unentitledSessions.map((session: any) => (
                                 <div key={session.id} className="p-3 bg-white/60 border border-rose-100 rounded-xl flex flex-col gap-2 group hover:border-rose-300 transition-all">
                                     <div className="flex items-center justify-between">
-                                        <span className="text-sm font-bold text-rose-950">{session.client?.first_name} {session.client?.last_name}</span>
+                                        <span className="text-sm font-bold text-rose-950">{formatClientName(session.client)}</span>
                                         <Badge variant="destructive" className="text-[8px] font-black uppercase tracking-tighter h-4">Unpaid</Badge>
                                     </div>
                                     <div className="flex items-center justify-between text-[10px] font-bold text-rose-900/60 uppercase tracking-widest">

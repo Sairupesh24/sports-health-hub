@@ -14,6 +14,7 @@ import { format } from "date-fns";
 import { filterServicesByRole, Service } from "@/utils/serviceMapping";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/contexts/AuthContext";
+import { formatClientName } from "@/lib/utils";
 import LogInjuryModal from "./LogInjuryModal";
 import PainMap from "./PainMap";
 
@@ -320,7 +321,7 @@ export default function SOAPNoteModal({ open, onOpenChange, session, clientId, o
                                 )}
                             </div>
                             <DialogDescription className="text-sm text-slate-500">
-                                Client: <span className="font-semibold text-slate-800 dark:text-slate-200">{client?.first_name || session.client?.first_name || session.first_name || "Unknown"} {client?.last_name || session.client?.last_name || session.last_name || "Client"}</span>
+                                Client: <span className="font-semibold text-slate-800 dark:text-slate-200">{formatClientName(client || session.client || session, { fallback: "Unknown Client" })}</span>
                             </DialogDescription>
                         </div>
                         {!isCompleted && (

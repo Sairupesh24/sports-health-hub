@@ -1,0 +1,1992 @@
+[
+  {
+    "file": "src/components/admin/AdminBookSessionModal.tsx",
+    "lineNum": 444,
+    "line": "name: `${p.first_name} ${p.last_name}`,"
+  },
+  {
+    "file": "src/components/admin/AdminBookSessionModal.tsx",
+    "lineNum": 839,
+    "line": "return c ? <VIPName name={`${c.first_name} ${c.last_name}`} isVIP={c.is_vip} /> : \"Selected\";"
+  },
+  {
+    "file": "src/components/admin/AdminBookSessionModal.tsx",
+    "lineNum": 860,
+    "line": "<CommandItem key={c.id} value={`${c.first_name} ${c.last_name}`} onSelect={() => {"
+  },
+  {
+    "file": "src/components/admin/AdminBookSessionModal.tsx",
+    "lineNum": 865,
+    "line": "<VIPName name={`${c.first_name} ${c.last_name}`} isVIP={c.is_vip} />"
+  },
+  {
+    "file": "src/components/admin/AdminSessionStatusModal.tsx",
+    "lineNum": 510,
+    "line": "<p><strong>Client:</strong> {session.client?.first_name} {session.client?.last_name}</p>"
+  },
+  {
+    "file": "src/components/admin/AdminSessionStatusModal.tsx",
+    "lineNum": 569,
+    "line": "<span className=\"font-medium text-slate-800\">{attendee.first_name} {attendee.last_name}</span>"
+  },
+  {
+    "file": "src/components/admin/ClientBulkUpload.tsx",
+    "lineNum": 54,
+    "line": "const REQUIRED_FIELDS = [\"first_name\", \"last_name\", \"mobile_no\"];"
+  },
+  {
+    "file": "src/components/admin/ClientGroupsModal.tsx",
+    "lineNum": 163,
+    "line": "const fullName = `${c.first_name || \"\"} ${c.last_name || \"\"}`.toLowerCase();"
+  },
+  {
+    "file": "src/components/admin/ClientGroupsModal.tsx",
+    "lineNum": 393,
+    "line": "const clientName = [client.honorific, client.first_name, client.last_name].filter(Boolean).join(\" \");"
+  },
+  {
+    "file": "src/components/admin/EmergencyResponseModal.tsx",
+    "lineNum": 176,
+    "line": "{alert.staff?.first_name} {alert.staff?.last_name}"
+  },
+  {
+    "file": "src/components/admin/EmergencyResponseModal.tsx",
+    "lineNum": 206,
+    "line": "Dr. {selectedAlert.staff?.first_name} {selectedAlert.staff?.last_name}"
+  },
+  {
+    "file": "src/components/admin/EmergencyResponseModal.tsx",
+    "lineNum": 258,
+    "line": "{session.client?.first_name?.[0]}{session.client?.last_name?.[0]}"
+  },
+  {
+    "file": "src/components/admin/EmergencyResponseModal.tsx",
+    "lineNum": 262,
+    "line": "<span className=\"font-black text-slate-900\">{session.client?.first_name} {session.client?.last_name}</span>"
+  },
+  {
+    "file": "src/components/admin/EnquiryContextWindow.tsx",
+    "lineNum": 169,
+    "line": "<span>{item.profiles ? `${item.profiles.first_name} ${item.profiles.last_name}` : 'Front Office'}</span>"
+  },
+  {
+    "file": "src/components/admin/EnquiryHistory.tsx",
+    "lineNum": 108,
+    "line": "Recorded by: <span className=\"text-slate-600\">{item.first_name ? `${item.first_name} ${item.last_name}` : 'Unknown'}</span>"
+  },
+  {
+    "file": "src/components/admin/RosterScheduleView.tsx",
+    "lineNum": 47,
+    "line": "return `${s.client.first_name} ${s.client.last_name || \"\"}`.trim();"
+  },
+  {
+    "file": "src/components/admin/RosterScheduleView.tsx",
+    "lineNum": 70,
+    "line": "name:       `${p.first_name} ${p.last_name}`,"
+  },
+  {
+    "file": "src/components/admin/WaitlistDashboard.tsx",
+    "lineNum": 56,
+    "line": "const clientName = `${item.client?.first_name} ${item.client?.last_name}`.toLowerCase();"
+  },
+  {
+    "file": "src/components/admin/WaitlistDashboard.tsx",
+    "lineNum": 132,
+    "line": "<VIPName name={`${item.client?.first_name} ${item.client?.last_name}`} isVIP={item.client?.is_vip} />"
+  },
+  {
+    "file": "src/components/admin/WaitlistSidebar.tsx",
+    "lineNum": 182,
+    "line": "<VIPName name={`${item.client?.first_name} ${item.client?.last_name}`} isVIP={item.client?.is_vip} className=\"text-sm font-bold\" />"
+  },
+  {
+    "file": "src/components/ams/AthleteList.tsx",
+    "lineNum": 123,
+    "line": "{athlete.first_name?.[0]}{athlete.last_name?.[0] || athlete.full_name?.[0]}"
+  },
+  {
+    "file": "src/components/ams/BatchCreationModal.tsx",
+    "lineNum": 157,
+    "line": "`${a.first_name} ${a.last_name} ${a.uhid}`.toLowerCase().includes(searchQuery.toLowerCase())"
+  },
+  {
+    "file": "src/components/ams/BatchCreationModal.tsx",
+    "lineNum": 228,
+    "line": "{athlete.first_name?.[0]}{athlete.last_name?.[0]}"
+  },
+  {
+    "file": "src/components/ams/BatchInfoPopover.tsx",
+    "lineNum": 105,
+    "line": "{member.first_name?.[0]}{member.last_name?.[0]}"
+  },
+  {
+    "file": "src/components/ams/BulkAssignmentModal.tsx",
+    "lineNum": 112,
+    "line": "const matchesSearch = `${c.first_name} ${c.last_name} ${c.uhid}`.toLowerCase().includes(searchQuery.toLowerCase());"
+  },
+  {
+    "file": "src/components/ams/BulkAssignmentModal.tsx",
+    "lineNum": 353,
+    "line": "{client.first_name?.[0]}{client.last_name?.[0]}"
+  },
+  {
+    "file": "src/components/ams/BulkAssignmentModal.tsx",
+    "lineNum": 357,
+    "line": "<span className=\"font-black text-[12px] uppercase tracking-tight\">{client.first_name} {client.last_name}</span>"
+  },
+  {
+    "file": "src/components/ams/PerformanceTestingGrid.tsx",
+    "lineNum": 53,
+    "line": "full_name: `${d.first_name || ''} ${d.last_name || ''}`"
+  },
+  {
+    "file": "src/components/ams/ProgramAssignmentModal.tsx",
+    "lineNum": 244,
+    "line": "`${a.first_name} ${a.last_name} ${a.uhid}`.toLowerCase().includes(searchQuery.toLowerCase())"
+  },
+  {
+    "file": "src/components/ams/ProgramAssignmentModal.tsx",
+    "lineNum": 331,
+    "line": "{athlete.first_name?.[0]}{athlete.last_name?.[0]}"
+  },
+  {
+    "file": "src/components/ams/SingleClientAssignModal.tsx",
+    "lineNum": 99,
+    "line": "const fullName = `${c.first_name} ${c.last_name}`.toLowerCase();"
+  },
+  {
+    "file": "src/components/ams/SingleClientAssignModal.tsx",
+    "lineNum": 152,
+    "line": "? `${selectedClient.honorific ? selectedClient.honorific + \" \" : \"\"}${selectedClient.first_name} ${selectedClient.last_name}`"
+  },
+  {
+    "file": "src/components/ams/SingleClientAssignModal.tsx",
+    "lineNum": 161,
+    "line": "? `${selectedClient.honorific ? selectedClient.honorific + \" \" : \"\"}${selectedClient.first_name} ${selectedClient.last_name}`"
+  },
+  {
+    "file": "src/components/ams/SingleClientAssignModal.tsx",
+    "lineNum": 225,
+    "line": "{c.honorific ? c.honorific + \" \" : \"\"}{c.first_name} {c.last_name}"
+  },
+  {
+    "file": "src/components/ams/SingleClientAssignModal.tsx",
+    "lineNum": 260,
+    "line": "{selectedClient.first_name?.[0]}{selectedClient.last_name?.[0]}"
+  },
+  {
+    "file": "src/components/billing/SubscriptionDetailDrawer.tsx",
+    "lineNum": 57,
+    "line": "<SheetDescription className=\"font-medium text-slate-500\">Full history and status for {subscription.client?.first_name} {subscription.client?.last_name}</SheetDescription>"
+  },
+  {
+    "file": "src/components/client/ClientQuestionnairesTab.tsx",
+    "lineNum": 133,
+    "line": "specialistName: profile ? `${profile.first_name} ${profile.last_name}`.trim() : \"Specialist\","
+  },
+  {
+    "file": "src/components/client/TherapistAssignmentCard.tsx",
+    "lineNum": 101,
+    "line": "name: `${p.first_name} ${p.last_name}`,"
+  },
+  {
+    "file": "src/components/client/TherapistAssignmentCard.tsx",
+    "lineNum": 328,
+    "line": "{entry.therapist?.first_name} {entry.therapist?.last_name}"
+  },
+  {
+    "file": "src/components/consultant/ConsultantBookSlotModal.tsx",
+    "lineNum": 342,
+    "line": "description: `Slot (${selectedSlot.label}) for ${selectedClient ? `${selectedClient.first_name} ${selectedClient.last_name}` : \"Client\"} has been scheduled. Note: Changes or cancellations must be made through an Admin.`,"
+  },
+  {
+    "file": "src/components/consultant/ConsultantBookSlotModal.tsx",
+    "lineNum": 388,
+    "line": "{profile?.first_name} {profile?.last_name} {profile?.profession ? `(${profile.profession})` : \"\"}"
+  },
+  {
+    "file": "src/components/consultant/ConsultantBookSlotModal.tsx",
+    "lineNum": 406,
+    "line": "<VIPName name={`${selectedClient.first_name} ${selectedClient.last_name}`} isVIP={selectedClient.is_vip} />"
+  },
+  {
+    "file": "src/components/consultant/ConsultantBookSlotModal.tsx",
+    "lineNum": 429,
+    "line": "value={`${c.first_name} ${c.last_name} ${c.uhid || \"\"} ${c.mobile_no || \"\"}`}"
+  },
+  {
+    "file": "src/components/consultant/ConsultantBookSlotModal.tsx",
+    "lineNum": 443,
+    "line": "<VIPName name={`${c.first_name} ${c.last_name}`} isVIP={c.is_vip} />"
+  },
+  {
+    "file": "src/components/consultant/InjuryDetailModal.tsx",
+    "lineNum": 60,
+    "line": "setPrimaryTherapist(`Dr. ${c.first_name} ${c.last_name}${profLabel}`);"
+  },
+  {
+    "file": "src/components/consultant/InjuryDetailModal.tsx",
+    "lineNum": 74,
+    "line": "setRecentTherapist(`Dr. ${t.first_name} ${t.last_name}${profLabel}`);"
+  },
+  {
+    "file": "src/components/consultant/InjuryDetailModal.tsx",
+    "lineNum": 128,
+    "line": "{injury.client?.first_name} {injury.client?.last_name}"
+  },
+  {
+    "file": "src/components/consultant/LogInjuryModal.tsx",
+    "lineNum": 161,
+    "line": "{c.first_name} {c.last_name}"
+  },
+  {
+    "file": "src/components/consultant/SOAPNoteModal.tsx",
+    "lineNum": 323,
+    "line": "Client: <span className=\"font-semibold text-slate-800 dark:text-slate-200\">{client?.first_name || session.client?.first_name || session.first_name || \"Unknown\"} {client?.last_name || session.client?.last_name || session.last_name || \"Client\"}</span>"
+  },
+  {
+    "file": "src/components/dashboard/AMSTrainingLoadWidget.tsx",
+    "lineNum": 100,
+    "line": "{load.client?.first_name} {load.client?.last_name}"
+  },
+  {
+    "file": "src/components/dashboard/InjuriesWidget.tsx",
+    "lineNum": 91,
+    "line": "{injury.client?.first_name} {injury.client?.last_name}"
+  },
+  {
+    "file": "src/components/hr/UserProfileModal.tsx",
+    "lineNum": 97,
+    "line": "const fullName = profile ? [profile.first_name, profile.last_name].filter(Boolean).join(\" \") || profile.email : \"\";"
+  },
+  {
+    "file": "src/components/layout/MobileConsultantLayout.tsx",
+    "lineNum": 150,
+    "line": "{profile?.first_name?.[0]}{profile?.last_name?.[0]}"
+  },
+  {
+    "file": "src/components/layout/MobileConsultantLayout.tsx",
+    "lineNum": 158,
+    "line": "{profile?.first_name} {profile?.last_name}"
+  },
+  {
+    "file": "src/components/layout/MobileSpecialistLayout.tsx",
+    "lineNum": 150,
+    "line": "{profile?.first_name?.[0]}{profile?.last_name?.[0]}"
+  },
+  {
+    "file": "src/components/layout/MobileSpecialistLayout.tsx",
+    "lineNum": 158,
+    "line": "{profile?.first_name} {profile?.last_name}"
+  },
+  {
+    "file": "src/components/messenger/ChannelSettingsModal.tsx",
+    "lineNum": 126,
+    "line": "{user.first_name?.[0] || \"\"}{user.last_name?.[0] || \"\"}"
+  },
+  {
+    "file": "src/components/messenger/ChannelSettingsModal.tsx",
+    "lineNum": 131,
+    "line": "{user.first_name} {user.last_name}"
+  },
+  {
+    "file": "src/components/messenger/ChannelView.tsx",
+    "lineNum": 194,
+    "line": "return found ? `${found.first_name} ${found.last_name}` : \"Someone\";"
+  },
+  {
+    "file": "src/components/messenger/DirectMessageView.tsx",
+    "lineNum": 39,
+    "line": "? `${otherUser.first_name?.[0] || \"\"}${otherUser.last_name?.[0] || \"\"}`.toUpperCase()"
+  },
+  {
+    "file": "src/components/messenger/DirectMessageView.tsx",
+    "lineNum": 197,
+    "line": "{otherUser ? `${otherUser.first_name} ${otherUser.last_name}` : \"Direct Message\"}"
+  },
+  {
+    "file": "src/components/messenger/DirectMessageView.tsx",
+    "lineNum": 229,
+    "line": "placeholder={`Message ${otherUser ? `${otherUser.first_name} ${otherUser.last_name}` : \"...\"}`}"
+  },
+  {
+    "file": "src/components/messenger/MessageBubble.tsx",
+    "lineNum": 55,
+    "line": "? `${message.first_name} ${message.last_name || \"\"}`.trim()"
+  },
+  {
+    "file": "src/components/messenger/MessageBubble.tsx",
+    "lineNum": 57,
+    "line": "? `${senderUser.first_name} ${senderUser.last_name || \"\"}`.trim()"
+  },
+  {
+    "file": "src/components/messenger/MessengerSidebar.tsx",
+    "lineNum": 30,
+    "line": "profile: { first_name?: string; last_name?: string; avatar_url?: string | null; role?: string | null } | null;"
+  },
+  {
+    "file": "src/components/messenger/MessengerSidebar.tsx",
+    "lineNum": 99,
+    "line": "? `${profile.first_name?.[0] || \"\"}${profile.last_name?.[0] || \"\"}`.toUpperCase()"
+  },
+  {
+    "file": "src/components/messenger/MessengerSidebar.tsx",
+    "lineNum": 329,
+    "line": "{profile?.first_name} {profile?.last_name}"
+  },
+  {
+    "file": "src/components/messenger/NewChannelModal.tsx",
+    "lineNum": 40,
+    "line": "const fullName = `${u.first_name || \"\"} ${u.last_name || \"\"}`.toLowerCase();"
+  },
+  {
+    "file": "src/components/messenger/NewChannelModal.tsx",
+    "lineNum": 184,
+    "line": "{user.first_name?.[0] || \"\"}{user.last_name?.[0] || \"\"}"
+  },
+  {
+    "file": "src/components/messenger/NewChannelModal.tsx",
+    "lineNum": 188,
+    "line": "{user.first_name} {user.last_name}"
+  },
+  {
+    "file": "src/components/messenger/NewDMModal.tsx",
+    "lineNum": 34,
+    "line": "const fullName = `${u.first_name || \"\"} ${u.last_name || \"\"}`.toLowerCase();"
+  },
+  {
+    "file": "src/components/messenger/NewDMModal.tsx",
+    "lineNum": 121,
+    "line": "{user.first_name?.[0] || \"\"}{user.last_name?.[0] || \"\"}"
+  },
+  {
+    "file": "src/components/messenger/NewDMModal.tsx",
+    "lineNum": 127,
+    "line": "{user.first_name} {user.last_name}"
+  },
+  {
+    "file": "src/components/messenger/TeamCommsGlobalNotifier.tsx",
+    "lineNum": 48,
+    "line": "msg.first_name || msg.last_name"
+  },
+  {
+    "file": "src/components/messenger/TeamCommsGlobalNotifier.tsx",
+    "lineNum": 49,
+    "line": "? `${msg.first_name || \"\"} ${msg.last_name || \"\"}`.trim()"
+  },
+  {
+    "file": "src/components/messenger/ThreadPanel.tsx",
+    "lineNum": 67,
+    "line": "? `${message.first_name} ${message.last_name || \"\"}`.trim()"
+  },
+  {
+    "file": "src/components/messenger/ThreadPanel.tsx",
+    "lineNum": 69,
+    "line": "? `${senderUser.first_name} ${senderUser.last_name || \"\"}`.trim()"
+  },
+  {
+    "file": "src/components/nutrition/NutritionAssessmentForm.tsx",
+    "lineNum": 67,
+    "line": "? `${profile.first_name || \"\"} ${profile.last_name || \"\"}`.trim() || \"Lead Nutritionist\""
+  },
+  {
+    "file": "src/components/nutrition/NutritionAssessmentForm.tsx",
+    "lineNum": 128,
+    "line": "const fullName = `${c.first_name || \"\"} ${c.last_name || \"\"}`.trim() || \"Unnamed Client\";"
+  },
+  {
+    "file": "src/components/nutrition/NutritionAssessmentForm.tsx",
+    "lineNum": 587,
+    "line": "const fullName = `${c.first_name || \"\"} ${c.last_name || \"\"}`.trim() || \"Unnamed Client\";"
+  },
+  {
+    "file": "src/components/nutrition/NutritionistBookAppointmentModal.tsx",
+    "lineNum": 226,
+    "line": "`${c.first_name || \"\"} ${c.last_name || \"\"}`.toLowerCase().includes(clientSearch.toLowerCase()) ||"
+  },
+  {
+    "file": "src/components/nutrition/NutritionistBookAppointmentModal.tsx",
+    "lineNum": 324,
+    "line": "? `${selected.first_name || \"\"} ${selected.last_name || \"\"} (${selected.uhid || \"No UHID\"})`"
+  },
+  {
+    "file": "src/components/nutrition/NutritionistBookAppointmentModal.tsx",
+    "lineNum": 350,
+    "line": "setClientSearch(`${c.first_name || \"\"} ${c.last_name || \"\"} (${c.uhid || \"No UHID\"})`);"
+  },
+  {
+    "file": "src/components/nutrition/NutritionistBookAppointmentModal.tsx",
+    "lineNum": 357,
+    "line": "{c.first_name} {c.last_name}"
+  },
+  {
+    "file": "src/components/nutrition/NutritionistBookAppointmentModal.tsx",
+    "lineNum": 404,
+    "line": "{s.first_name} {s.last_name} ({s.profession || s.ams_role || \"Nutritionist\"})"
+  },
+  {
+    "file": "src/components/planner/NewTaskDialog.tsx",
+    "lineNum": 77,
+    "line": "? `${profile.first_name || \"\"} ${profile.last_name || \"\"}`.trim() || profile.email || \"You\""
+  },
+  {
+    "file": "src/components/planner/TaskReminderNotifier.tsx",
+    "lineNum": 43,
+    "line": "? `${profile.first_name || \"\"} ${profile.last_name || \"\"}`.trim().toLowerCase()"
+  },
+  {
+    "file": "src/components/shared/AnnouncementsManager.tsx",
+    "lineNum": 61,
+    "line": "const userFullName = profile ? `${profile.first_name || \"\"} ${profile.last_name || \"\"}`.trim().toLowerCase() : \"\";"
+  },
+  {
+    "file": "src/components/shared/AnnouncementsManager.tsx",
+    "lineNum": 448,
+    "line": "<p className=\"text-[10px] font-black text-slate-900 dark:text-slate-200 leading-none lowercase italic\">{n.sender?.first_name || 'System'} {n.sender?.last_name || ''}</p>"
+  },
+  {
+    "file": "src/components/shared/assessment/ReportEntryPanel.tsx",
+    "lineNum": 215,
+    "line": "{c.first_name} {c.last_name}"
+  },
+  {
+    "file": "src/components/shared/EmergencyLeaveModal.tsx",
+    "lineNum": 175,
+    "line": "<span className=\"text-xs font-bold\">{session.client?.first_name} {session.client?.last_name}</span>"
+  },
+  {
+    "file": "src/components/sports-scientist/MobileAthleteDrawer.tsx",
+    "lineNum": 83,
+    "line": "{athlete.first_name?.[0]}{athlete.last_name?.[0]}"
+  },
+  {
+    "file": "src/components/sports-scientist/MobileAthleteDrawer.tsx",
+    "lineNum": 87,
+    "line": "{athlete.first_name} {athlete.last_name}"
+  },
+  {
+    "file": "src/components/sports-scientist/resources/AddResourceModal.tsx",
+    "lineNum": 193,
+    "line": "? clients.find(c => c.id === selectedAthleteId)?.first_name + \" \" + clients.find(c => c.id === selectedAthleteId)?.last_name"
+  },
+  {
+    "file": "src/components/sports-scientist/resources/AddResourceModal.tsx",
+    "lineNum": 207,
+    "line": "value={`${c.first_name} ${c.last_name} ${c.uhid}`}"
+  },
+  {
+    "file": "src/components/sports-scientist/resources/AddResourceModal.tsx",
+    "lineNum": 213,
+    "line": "<span className=\"font-bold\">{c.first_name} {c.last_name}</span>"
+  },
+  {
+    "file": "src/components/sports-scientist/resources/ResourceCard.tsx",
+    "lineNum": 107,
+    "line": "<span className=\"text-xs font-bold text-slate-700\">{resource.athlete.first_name} {resource.athlete.last_name}</span>"
+  },
+  {
+    "file": "src/components/sports-scientist/SportsScientistAssignWorkModal.tsx",
+    "lineNum": 352,
+    "line": "{scientist.first_name} {scientist.last_name} ({scientist.profession || \"Sports Scientist\"})"
+  },
+  {
+    "file": "src/components/sports-scientist/SportsScientistAssignWorkModal.tsx",
+    "lineNum": 511,
+    "line": "{c ? `${c.first_name} ${c.last_name}` : id}"
+  },
+  {
+    "file": "src/components/sports-scientist/SportsScientistAssignWorkModal.tsx",
+    "lineNum": 552,
+    "line": "value={`${c.first_name} ${c.last_name} ${c.uhid}`}"
+  },
+  {
+    "file": "src/components/sports-scientist/SportsScientistAssignWorkModal.tsx",
+    "lineNum": 559,
+    "line": "<span className=\"font-bold\">{c.first_name} {c.last_name}</span>"
+  },
+  {
+    "file": "src/components/sports-scientist/SportsScientistBookSessionModal.tsx",
+    "lineNum": 478,
+    "line": "{c ? `${c.first_name} ${c.last_name}` : id}"
+  },
+  {
+    "file": "src/components/sports-scientist/SportsScientistBookSessionModal.tsx",
+    "lineNum": 517,
+    "line": "value={`${c.first_name} ${c.last_name} ${c.uhid}`}"
+  },
+  {
+    "file": "src/components/sports-scientist/SportsScientistBookSessionModal.tsx",
+    "lineNum": 524,
+    "line": "<span className=\"font-bold\">{c.first_name} {c.last_name}</span>"
+  },
+  {
+    "file": "src/components/sports-scientist/SportsScientistCancelDayModal.tsx",
+    "lineNum": 244,
+    "line": ": `${s.client?.first_name || ''} ${s.client?.last_name || ''}`;"
+  },
+  {
+    "file": "src/components/sports-scientist/SportsScientistRescheduleModal.tsx",
+    "lineNum": 125,
+    "line": ": `${session.client?.first_name || \"Client\"} ${session.client?.last_name || \"\"}`.trim();"
+  },
+  {
+    "file": "src/components/sports-scientist/SportsScientistSessionLog.tsx",
+    "lineNum": 300,
+    "line": "{isGroup ? `👥 ${s.group_name}` : `${s.client?.first_name ?? \"\"} ${s.client?.last_name ?? \"\"}`}"
+  },
+  {
+    "file": "src/components/sports-scientist/SportsScientistSessionStatusModal.tsx",
+    "lineNum": 457,
+    "line": "? `${session.client.first_name} ${session.client.last_name}`"
+  },
+  {
+    "file": "src/components/sports-scientist/SubscriptionModal.tsx",
+    "lineNum": 101,
+    "line": "{c.first_name} {c.last_name} ({c.uhid})"
+  },
+  {
+    "file": "src/pages/admin/AdminCalendar.tsx",
+    "lineNum": 62,
+    "line": "client: { first_name: string; last_name: string; is_vip?: boolean } | null;"
+  },
+  {
+    "file": "src/pages/admin/AdminCalendar.tsx",
+    "lineNum": 63,
+    "line": "therapist: { first_name: string; last_name: string; role?: string };"
+  },
+  {
+    "file": "src/pages/admin/AdminCalendar.tsx",
+    "lineNum": 180,
+    "line": "name: `${p.first_name} ${p.last_name}`,"
+  },
+  {
+    "file": "src/pages/admin/AdminCalendar.tsx",
+    "lineNum": 1000,
+    "line": "const empName = emp ? emp.name : (l.first_name ? `${l.first_name} ${l.last_name}` : \"Staff\");"
+  },
+  {
+    "file": "src/pages/admin/AdminCalendar.tsx",
+    "lineNum": 1030,
+    "line": "`${event.client?.first_name} ${event.client?.last_name}`"
+  },
+  {
+    "file": "src/pages/admin/AdminCalendar.tsx",
+    "lineNum": 1174,
+    "line": "<>C: {event.client?.first_name} {event.client?.last_name}</>"
+  },
+  {
+    "file": "src/pages/admin/AdminCalendar.tsx",
+    "lineNum": 1180,
+    "line": "{event.therapist?.first_name} {event.therapist?.last_name}"
+  },
+  {
+    "file": "src/pages/admin/AdminCalendar.tsx",
+    "lineNum": 1625,
+    "line": "<span>{event.client?.first_name} {event.client?.last_name} ({(event.client as any)?.uhid || '-'})</span>"
+  },
+  {
+    "file": "src/pages/admin/AdminCalendar.tsx",
+    "lineNum": 1662,
+    "line": "<span>{event.client?.first_name} {event.client?.last_name}</span>"
+  },
+  {
+    "file": "src/pages/admin/AdminDashboard.tsx",
+    "lineNum": 158,
+    "line": "name: formatStaffName(s.therapist || { first_name: s.therapist_first_name, last_name: s.therapist_last_name, service_type: s.service_type }, { useFirstName: true }),"
+  },
+  {
+    "file": "src/pages/admin/AdminDashboard.tsx",
+    "lineNum": 215,
+    "line": "const client = session.client || { first_name: session.client_first_name, last_name: session.client_last_name };"
+  },
+  {
+    "file": "src/pages/admin/AdminDashboard.tsx",
+    "lineNum": 216,
+    "line": "const clientName = client.first_name ? `${client.first_name || ''} ${client.last_name || ''}`.trim() : 'Unknown';"
+  },
+  {
+    "file": "src/pages/admin/AdminDashboard.tsx",
+    "lineNum": 237,
+    "line": "description: `${client.first_name || ''} ${client.last_name || ''}`.trim() || 'New client',"
+  },
+  {
+    "file": "src/pages/admin/AdminDashboard.tsx",
+    "lineNum": 250,
+    "line": "const client = session.client || { first_name: session.client_first_name, last_name: session.client_last_name };"
+  },
+  {
+    "file": "src/pages/admin/AdminDashboard.tsx",
+    "lineNum": 251,
+    "line": "const clientName = client.first_name ? `${client.first_name || ''} ${client.last_name || ''}`.trim() : 'Client';"
+  },
+  {
+    "file": "src/pages/admin/AdminDashboard.tsx",
+    "lineNum": 252,
+    "line": "const therapist = session.therapist || { first_name: session.therapist_first_name, last_name: session.therapist_last_name, service_type: session.service_type };"
+  },
+  {
+    "file": "src/pages/admin/AdminDashboard.tsx",
+    "lineNum": 253,
+    "line": "const therapistName = therapist.first_name || therapist.last_name ? formatStaffName(therapist, { useFirstName: true }) : 'Therapist';"
+  },
+  {
+    "file": "src/pages/admin/AdminPermissions.tsx",
+    "lineNum": 208,
+    "line": "const fullName = `${user.first_name} ${user.last_name}`.toLowerCase();"
+  },
+  {
+    "file": "src/pages/admin/AdminPermissions.tsx",
+    "lineNum": 345,
+    "line": "alt={`${user.first_name} ${user.last_name}`}"
+  },
+  {
+    "file": "src/pages/admin/AdminPermissions.tsx",
+    "lineNum": 350,
+    "line": "{user.first_name[0]}{user.last_name[0]}"
+  },
+  {
+    "file": "src/pages/admin/AdminPermissions.tsx",
+    "lineNum": 355,
+    "line": "{user.first_name} {user.last_name}"
+  },
+  {
+    "file": "src/pages/admin/Billing.tsx",
+    "lineNum": 81,
+    "line": "type Client = { id: string; first_name: string; last_name: string; uhid: string; email?: string; mobile_no?: string; is_vip?: boolean };"
+  },
+  {
+    "file": "src/pages/admin/Billing.tsx",
+    "lineNum": 283,
+    "line": "id: c.id, first_name: c.first_name, last_name: c.last_name, uhid: c.uhid, email: c.email, mobile_no: c.mobile_no, is_vip: c.is_vip"
+  },
+  {
+    "file": "src/pages/admin/Billing.tsx",
+    "lineNum": 387,
+    "line": "client_name: client ? `${client.first_name} ${client.last_name}` : 'Unknown',"
+  },
+  {
+    "file": "src/pages/admin/Billing.tsx",
+    "lineNum": 896,
+    "line": "? clients.find((c) => c.id === selectedClient)?.first_name + \" \" + clients.find((c) => c.id === selectedClient)?.last_name"
+  },
+  {
+    "file": "src/pages/admin/Billing.tsx",
+    "lineNum": 910,
+    "line": "value={`${c.first_name} ${c.last_name} ${c.uhid} ${c.mobile_no || \"\"}`}"
+  },
+  {
+    "file": "src/pages/admin/Billing.tsx",
+    "lineNum": 924,
+    "line": "{c.first_name} {c.last_name}"
+  },
+  {
+    "file": "src/pages/admin/Billing.tsx",
+    "lineNum": 1137,
+    "line": "value={profile ? `${profile.first_name} ${profile.last_name}` : \"\"}"
+  },
+  {
+    "file": "src/pages/admin/Billing.tsx",
+    "lineNum": 1277,
+    "line": "{sub.client?.first_name} {sub.client?.last_name}"
+  },
+  {
+    "file": "src/pages/admin/ClientProfile.tsx",
+    "lineNum": 67,
+    "line": "const fullName = client ? `${client.honorific ? client.honorific + \" \" : \"\"}${client.first_name} ${client.last_name}` : \"\";"
+  },
+  {
+    "file": "src/pages/admin/ClientProfile.tsx",
+    "lineNum": 472,
+    "line": "first_name, last_name, uhid, honorific, gender, age, dob, blood_group,"
+  },
+  {
+    "file": "src/pages/admin/ClientProfile.tsx",
+    "lineNum": 553,
+    "line": "{client.first_name?.[0]}{client.last_name?.[0]}"
+  },
+  {
+    "file": "src/pages/admin/ClientProfile.tsx",
+    "lineNum": 1675,
+    "line": "disabled={!editForm.first_name.trim() || !editForm.last_name.trim() || !editForm.mobile_no.trim()}"
+  },
+  {
+    "file": "src/pages/admin/ClientRegistration.tsx",
+    "lineNum": 351,
+    "line": "description: `UHID: ${result.uhid} — ${data.first_name} ${data.last_name}`,"
+  },
+  {
+    "file": "src/pages/admin/ConsoleAccess.tsx",
+    "lineNum": 122,
+    "line": "const fullName = `${user.first_name} ${user.last_name}`.toLowerCase();"
+  },
+  {
+    "file": "src/pages/admin/ConsoleAccess.tsx",
+    "lineNum": 398,
+    "line": "{user.first_name[0]}{user.last_name[0]}"
+  },
+  {
+    "file": "src/pages/admin/ConsoleAccess.tsx",
+    "lineNum": 404,
+    "line": "<span className=\"truncate\">{user.first_name} {user.last_name}</span>"
+  },
+  {
+    "file": "src/pages/admin/ConsoleAccess.tsx",
+    "lineNum": 450,
+    "line": "{selectedUser.first_name[0]}{selectedUser.last_name[0]}"
+  },
+  {
+    "file": "src/pages/admin/ConsoleAccess.tsx",
+    "lineNum": 456,
+    "line": "{selectedUser.first_name} {selectedUser.last_name}"
+  },
+  {
+    "file": "src/pages/admin/FOEDashboard.tsx",
+    "lineNum": 191,
+    "line": "{sub.client?.first_name} {sub.client?.last_name} ({sub.client?.uhid}) — {sub.status === 'Suspended' ? \"Service access blocked due to non-payment.\" : `Payment reminder sent (Step ${sub.dunning_step})`}"
+  },
+  {
+    "file": "src/pages/admin/FOEDashboard.tsx",
+    "lineNum": 269,
+    "line": "<span className=\"font-bold text-foreground\">{session.client?.first_name} {session.client?.last_name}</span>"
+  },
+  {
+    "file": "src/pages/admin/FOEDashboard.tsx",
+    "lineNum": 338,
+    "line": "{item.client?.first_name} {item.client?.last_name}"
+  },
+  {
+    "file": "src/pages/admin/FOEDashboard.tsx",
+    "lineNum": 395,
+    "line": "<span className=\"text-sm font-bold text-rose-950\">{session.client?.first_name} {session.client?.last_name}</span>"
+  },
+  {
+    "file": "src/pages/admin/FOEDashboard.tsx",
+    "lineNum": 463,
+    "line": "{c.first_name?.[0]}{c.last_name?.[0]}"
+  },
+  {
+    "file": "src/pages/admin/LeadsDashboard.tsx",
+    "lineNum": 537,
+    "line": "<p className=\"font-bold text-sm\">{client.first_name} {client.last_name}</p>"
+  },
+  {
+    "file": "src/pages/admin/ManagerialAnalytics.tsx",
+    "lineNum": 115,
+    "line": "const fullName = `${member.firstName || \"\"} ${member.lastName || \"\"}`.toLowerCase();"
+  },
+  {
+    "file": "src/pages/admin/ManagerialAnalytics.tsx",
+    "lineNum": 401,
+    "line": "<p className=\"font-bold\">{item.firstName} {item.lastName}</p>"
+  },
+  {
+    "file": "src/pages/admin/ManagerialAnalytics.tsx",
+    "lineNum": 457,
+    "line": "<p className=\"font-bold text-sm text-slate-900\">{top.firstName} {top.lastName}</p>"
+  },
+  {
+    "file": "src/pages/admin/ManagerialAnalytics.tsx",
+    "lineNum": 548,
+    "line": "<div className=\"font-bold text-slate-900\">{member.firstName} {member.lastName}</div>"
+  },
+  {
+    "file": "src/pages/admin/ResourceScheduleManager.tsx",
+    "lineNum": 109,
+    "line": "name: `${p.first_name} ${p.last_name}`,"
+  },
+  {
+    "file": "src/pages/admin/ServiceMapping.tsx",
+    "lineNum": 274,
+    "line": "`${c.first_name} ${c.last_name}`.toLowerCase().includes(q) ||"
+  },
+  {
+    "file": "src/pages/admin/ServiceMapping.tsx",
+    "lineNum": 417,
+    "line": "{c.first_name} {c.last_name}"
+  },
+  {
+    "file": "src/pages/admin/ServiceMapping.tsx",
+    "lineNum": 444,
+    "line": "{selectedConsultant.first_name[0]}{selectedConsultant.last_name[0]}"
+  },
+  {
+    "file": "src/pages/admin/ServiceMapping.tsx",
+    "lineNum": 448,
+    "line": "{selectedConsultant.first_name} {selectedConsultant.last_name}"
+  },
+  {
+    "file": "src/pages/ams/AmsCalendar.tsx",
+    "lineNum": 297,
+    "line": "<CommandItem key={athlete.id} value={`${athlete.first_name} ${athlete.last_name} ${athlete.uhid || ''}`} onSelect={() => { setSelectedAthlete(athlete); setIsAthletePopoverOpen(false); }} className=\"flex items-center gap-3 p-4 cursor-pointer data-[selected=true]:bg-primary/30 hover:bg-white/10 transition-all text-white border-b border-white/5 last:border-none\">"
+  },
+  {
+    "file": "src/pages/ams/AmsCalendar.tsx",
+    "lineNum": 299,
+    "line": "<AvatarFallback className=\"bg-white/5 text-[10px] font-black\">{athlete.first_name?.[0]}{athlete.last_name?.[0]}</AvatarFallback>"
+  },
+  {
+    "file": "src/pages/AppGallery.tsx",
+    "lineNum": 164,
+    "line": "? `${profile.first_name?.[0] ?? \"\"}${profile.last_name?.[0] ?? \"\"}`.toUpperCase()"
+  },
+  {
+    "file": "src/pages/AppGallery.tsx",
+    "lineNum": 168,
+    "line": "? `${profile.first_name} ${profile.last_name}`"
+  },
+  {
+    "file": "src/pages/consultant/ClientProfile.tsx",
+    "lineNum": 76,
+    "line": "therapist?: { first_name: string | null; last_name: string | null };"
+  },
+  {
+    "file": "src/pages/consultant/ClientProfile.tsx",
+    "lineNum": 152,
+    "line": "'Consultant': s.therapist?.first_name || s.therapist?.last_name"
+  },
+  {
+    "file": "src/pages/consultant/ClientProfile.tsx",
+    "lineNum": 153,
+    "line": "? `${s.therapist.first_name || \"\"} ${s.therapist.last_name || \"\"}`.trim()"
+  },
+  {
+    "file": "src/pages/consultant/ClientProfile.tsx",
+    "lineNum": 180,
+    "line": "<VIPName name={`${client.first_name} ${client.last_name}`} isVIP={client.is_vip} />"
+  },
+  {
+    "file": "src/pages/consultant/ClientProfile.tsx",
+    "lineNum": 223,
+    "line": "<UpcomingPlanManager clientId={client.id} clientName={`${client.first_name} ${client.last_name}`} />"
+  },
+  {
+    "file": "src/pages/consultant/ClientProfile.tsx",
+    "lineNum": 464,
+    "line": "const consultantName = session.therapist?.first_name || session.therapist?.last_name ? ("
+  },
+  {
+    "file": "src/pages/consultant/ClientProfile.tsx",
+    "lineNum": 465,
+    "line": "`${session.therapist.first_name || \"\"} ${session.therapist.last_name || \"\"}`.trim()"
+  },
+  {
+    "file": "src/pages/consultant/ClientProfile.tsx",
+    "lineNum": 557,
+    "line": "{session.therapist?.first_name || session.therapist?.last_name ? ("
+  },
+  {
+    "file": "src/pages/consultant/ClientProfile.tsx",
+    "lineNum": 558,
+    "line": "`${session.therapist.first_name || \"\"} ${session.therapist.last_name || \"\"}`.trim()"
+  },
+  {
+    "file": "src/pages/consultant/ClientProfile.tsx",
+    "lineNum": 655,
+    "line": "Client Documents - {client.first_name} {client.last_name}"
+  },
+  {
+    "file": "src/pages/consultant/ClientProfile.tsx",
+    "lineNum": 674,
+    "line": "Scientist Hub - {client.first_name} {client.last_name}"
+  },
+  {
+    "file": "src/pages/consultant/ConsultantDashboard.tsx",
+    "lineNum": 92,
+    "line": "const rawName = `${session.first_name || \"\"} ${session.last_name || \"\"}`.trim() || session.guest_name || \"Client\";"
+  },
+  {
+    "file": "src/pages/consultant/ConsultantSchedule.tsx",
+    "lineNum": 47,
+    "line": "client: { first_name: string; last_name: string; is_vip?: boolean };"
+  },
+  {
+    "file": "src/pages/consultant/ConsultantSchedule.tsx",
+    "lineNum": 295,
+    "line": "<VIPName name={`${event.client?.first_name} ${event.client?.last_name}`} isVIP={event.client?.is_vip} />"
+  },
+  {
+    "file": "src/pages/consultant/ConsultantSchedule.tsx",
+    "lineNum": 410,
+    "line": "<VIPName name={`${event.client?.first_name} ${event.client?.last_name}`} isVIP={event.client?.is_vip} />"
+  },
+  {
+    "file": "src/pages/consultant/ConsultantSchedule.tsx",
+    "lineNum": 503,
+    "line": "<VIPName name={`${event.client?.first_name} ${event.client?.last_name}`} isVIP={event.client?.is_vip} className=\"truncate\" />"
+  },
+  {
+    "file": "src/pages/consultant/ConsultantSchedule.tsx",
+    "lineNum": 566,
+    "line": "<VIPName name={`${s.client?.first_name} ${s.client?.last_name}`} isVIP={s.client?.is_vip} />"
+  },
+  {
+    "file": "src/pages/consultant/InjuryRepoPage.tsx",
+    "lineNum": 57,
+    "line": "const clientName = inj.client ? `${inj.client.first_name} ${inj.client.last_name}` : \"\";"
+  },
+  {
+    "file": "src/pages/consultant/InjuryRepoPage.tsx",
+    "lineNum": 174,
+    "line": "{injury.client?.first_name} {injury.client?.last_name}"
+  },
+  {
+    "file": "src/pages/hr/DailyLogs.tsx",
+    "lineNum": 194,
+    "line": "staffName: `${firstLog.profile?.first_name} ${firstLog.profile?.last_name}`,"
+  },
+  {
+    "file": "src/pages/hr/DailyLogs.tsx",
+    "lineNum": 236,
+    "line": "? `${staffList.find(s => s.id === selectedStaffId)?.first_name} ${staffList.find(s => s.id === selectedStaffId)?.last_name}`"
+  },
+  {
+    "file": "src/pages/hr/DailyLogs.tsx",
+    "lineNum": 260,
+    "line": "value={`${staff.first_name} ${staff.last_name}`}"
+  },
+  {
+    "file": "src/pages/hr/DailyLogs.tsx",
+    "lineNum": 267,
+    "line": "{staff.first_name} {staff.last_name}"
+  },
+  {
+    "file": "src/pages/hr/LeaveApprovals.tsx",
+    "lineNum": 64,
+    "line": "employee: { first_name: leave.first_name, last_name: leave.last_name, profession: leave.profession },"
+  },
+  {
+    "file": "src/pages/hr/LeaveApprovals.tsx",
+    "lineNum": 82,
+    "line": "const empName = `${leave.employee?.first_name || \"\"} ${leave.employee?.last_name || \"\"}`.toLowerCase();"
+  },
+  {
+    "file": "src/pages/hr/LeaveApprovals.tsx",
+    "lineNum": 100,
+    "line": "const empName = `${emp.first_name || \"\"} ${emp.last_name || \"\"}`.toLowerCase();"
+  },
+  {
+    "file": "src/pages/hr/LeaveApprovals.tsx",
+    "lineNum": 156,
+    "line": "description: `Successfully updated leave allocations for ${selectedEmp?.first_name} ${selectedEmp?.last_name}.`"
+  },
+  {
+    "file": "src/pages/hr/LeaveApprovals.tsx",
+    "lineNum": 269,
+    "line": "{leave.employee?.first_name?.[0]}{leave.employee?.last_name?.[0]}"
+  },
+  {
+    "file": "src/pages/hr/LeaveApprovals.tsx",
+    "lineNum": 273,
+    "line": "{leave.employee?.first_name} {leave.employee?.last_name}"
+  },
+  {
+    "file": "src/pages/hr/LeaveApprovals.tsx",
+    "lineNum": 403,
+    "line": "{emp.first_name?.[0]}{emp.last_name?.[0]}"
+  },
+  {
+    "file": "src/pages/hr/LeaveApprovals.tsx",
+    "lineNum": 406,
+    "line": "<p className=\"font-black text-slate-900\">{emp.first_name} {emp.last_name}</p>"
+  },
+  {
+    "file": "src/pages/hr/LeaveApprovals.tsx",
+    "lineNum": 477,
+    "line": "Configure yearly leave allocations for <b>{selectedEmp?.first_name} {selectedEmp?.last_name}</b>."
+  },
+  {
+    "file": "src/pages/hr/StaffProfile.tsx",
+    "lineNum": 93,
+    "line": "client?: { first_name?: string; last_name?: string };"
+  },
+  {
+    "file": "src/pages/hr/StaffProfile.tsx",
+    "lineNum": 94,
+    "line": "therapist?: { first_name?: string; last_name?: string };"
+  },
+  {
+    "file": "src/pages/hr/StaffProfile.tsx",
+    "lineNum": 155,
+    "line": "const fullName = profile ? [profile.first_name, profile.last_name].filter(Boolean).join(\" \") || profile.email : \"\";"
+  },
+  {
+    "file": "src/pages/hr/StaffProfile.tsx",
+    "lineNum": 180,
+    "line": "const cName = s.client_name || (s.client ? `${s.client.first_name || ''} ${s.client.last_name || ''}`.trim() : '');"
+  },
+  {
+    "file": "src/pages/hr/StaffProfile.tsx",
+    "lineNum": 188,
+    "line": "const tName = s.therapist_name || (s.therapist ? `${s.therapist.first_name || ''} ${s.therapist.last_name || ''}`.trim() : '');"
+  },
+  {
+    "file": "src/pages/hr/StaffProfile.tsx",
+    "lineNum": 568,
+    "line": "const clientName = session.client_name || (session.client ? `${session.client.first_name || ''} ${session.client.last_name || ''}`.trim() : 'Client');"
+  },
+  {
+    "file": "src/pages/hr/StaffProfile.tsx",
+    "lineNum": 675,
+    "line": "const therapistName = session.therapist_name || (session.therapist ? `${session.therapist.first_name || ''} ${session.therapist.last_name || ''}`.trim() : 'Practitioner');"
+  },
+  {
+    "file": "src/pages/hr/UserApproval.tsx",
+    "lineNum": 48,
+    "line": "const fullName = `${u.first_name || \"\"} ${u.last_name || \"\"}`.toLowerCase();"
+  },
+  {
+    "file": "src/pages/hr/UserApproval.tsx",
+    "lineNum": 445,
+    "line": "description: `Linked user to client profile ${matchedClient.first_name} ${matchedClient.last_name}`"
+  },
+  {
+    "file": "src/pages/hr/UserApproval.tsx",
+    "lineNum": 679,
+    "line": "<p className=\"text-sm font-semibold\">{linkingUser?.first_name} {linkingUser?.last_name}</p>"
+  },
+  {
+    "file": "src/pages/hr/UserApproval.tsx",
+    "lineNum": 860,
+    "line": "{u.first_name || u.last_name ? `${u.first_name} ${u.last_name}`.trim() : \"No name provided\"}"
+  },
+  {
+    "file": "src/pages/mobile/client/MobileNotifications.tsx",
+    "lineNum": 119,
+    "line": "{n.sender?.first_name?.[0]}{n.sender?.last_name?.[0]}"
+  },
+  {
+    "file": "src/pages/mobile/client/MobileNotifications.tsx",
+    "lineNum": 122,
+    "line": "{n.sender?.first_name} {n.sender?.last_name} • {n.sender?.profession || 'Staff'}"
+  },
+  {
+    "file": "src/pages/mobile/consultant/MobileConsultantDashboard.tsx",
+    "lineNum": 68,
+    "line": "const rawName = `${session.first_name || \"\"} ${session.last_name || \"\"}`.trim() || session.guest_name || \"Client\";"
+  },
+  {
+    "file": "src/pages/mobile/consultant/MobileConsultantSchedule.tsx",
+    "lineNum": 37,
+    "line": "client: { first_name: string; last_name: string; is_vip?: boolean };"
+  },
+  {
+    "file": "src/pages/mobile/consultant/MobileConsultantSchedule.tsx",
+    "lineNum": 258,
+    "line": "<VIPName name={`${event.client?.first_name} ${event.client?.last_name}`} isVIP={event.client?.is_vip} className=\"truncate\" />"
+  },
+  {
+    "file": "src/pages/mobile/MobileProfilePage.tsx",
+    "lineNum": 183,
+    "line": "<AvatarImage src={avatarUrl} alt={`${firstName} ${lastName}`} />"
+  },
+  {
+    "file": "src/pages/mobile/MobileProfilePage.tsx",
+    "lineNum": 185,
+    "line": "{firstName?.charAt(0)}{lastName?.charAt(0)}"
+  },
+  {
+    "file": "src/pages/mobile/MobileProfilePage.tsx",
+    "lineNum": 209,
+    "line": "{firstName} {lastName}"
+  },
+  {
+    "file": "src/pages/mobile/planner/MobilePlannerDashboard.tsx",
+    "lineNum": 201,
+    "line": "const userFullName = profile ? `${profile.first_name || \"\"} ${profile.last_name || \"\"}`.trim() : \"\";"
+  },
+  {
+    "file": "src/pages/mobile/specialist/MobileBulkAssignment.tsx",
+    "lineNum": 108,
+    "line": "`${a.first_name} ${a.last_name} ${a.uhid}`.toLowerCase().includes(searchQuery.toLowerCase())"
+  },
+  {
+    "file": "src/pages/mobile/specialist/MobileBulkAssignment.tsx",
+    "lineNum": 215,
+    "line": "{athlete.first_name?.[0]}{athlete.last_name?.[0]}"
+  },
+  {
+    "file": "src/pages/mobile/specialist/MobileBulkAssignment.tsx",
+    "lineNum": 219,
+    "line": "{athlete.first_name} {athlete.last_name}"
+  },
+  {
+    "file": "src/pages/mobile/specialist/MobileClients.tsx",
+    "lineNum": 162,
+    "line": "{client.first_name?.[0]}{client.last_name?.[0]}"
+  },
+  {
+    "file": "src/pages/mobile/specialist/MobileClients.tsx",
+    "lineNum": 167,
+    "line": "{client.first_name} {client.last_name}"
+  },
+  {
+    "file": "src/pages/mobile/specialist/MobileClients.tsx",
+    "lineNum": 275,
+    "line": "{client.first_name} {client.last_name[0]}."
+  },
+  {
+    "file": "src/pages/mobile/specialist/MobileClients.tsx",
+    "lineNum": 343,
+    "line": "<span className=\"text-sm font-bold leading-none\">{client.first_name} {client.last_name}</span>"
+  },
+  {
+    "file": "src/pages/mobile/specialist/MobileMemberships.tsx",
+    "lineNum": 43,
+    "line": "const fullName = `${firstName} ${lastName}`.toLowerCase();"
+  },
+  {
+    "file": "src/pages/mobile/specialist/MobileMemberships.tsx",
+    "lineNum": 165,
+    "line": "{athlete.first_name?.[0]}{athlete.last_name?.[0]}"
+  },
+  {
+    "file": "src/pages/mobile/specialist/MobileMemberships.tsx",
+    "lineNum": 169,
+    "line": "{athlete.first_name} {athlete.last_name}"
+  },
+  {
+    "file": "src/pages/mobile/specialist/MobileSessionManager.tsx",
+    "lineNum": 402,
+    "line": ": session.client?.first_name ? `${session.client.first_name} ${session.client.last_name}` : \"N/A\"}"
+  },
+  {
+    "file": "src/pages/mobile/specialist/MobileSessionManager.tsx",
+    "lineNum": 541,
+    "line": "{session.client ? `${session.client.first_name} ${session.client.last_name}` : \"No Athlete\"}"
+  },
+  {
+    "file": "src/pages/mobile/specialist/MobileSessionManager.tsx",
+    "lineNum": 708,
+    "line": "{session.client ? `${session.client.first_name} ${session.client.last_name}` : \"No Athlete\"}"
+  },
+  {
+    "file": "src/pages/mobile/specialist/MobileSessionManager.tsx",
+    "lineNum": 749,
+    "line": "{session.client ? `${session.client.first_name} ${session.client.last_name}` : \"No Athlete\"}"
+  },
+  {
+    "file": "src/pages/mobile/specialist/MobileSpecialistDashboard.tsx",
+    "lineNum": 259,
+    "line": "{session.client?.first_name?.[0]}{session.client?.last_name?.[0]}"
+  },
+  {
+    "file": "src/pages/mobile/specialist/MobileSpecialistDashboard.tsx",
+    "lineNum": 263,
+    "line": "{session.client?.first_name} {session.client?.last_name}"
+  },
+  {
+    "file": "src/pages/mobile/specialist/MobileTestingAssessments.tsx",
+    "lineNum": 81,
+    "line": "`${a.first_name} ${a.last_name} ${a.uhid}`.toLowerCase().includes(searchQuery.toLowerCase())"
+  },
+  {
+    "file": "src/pages/mobile/specialist/MobileTestingAssessments.tsx",
+    "lineNum": 175,
+    "line": "{athlete.first_name?.[0]}{athlete.last_name?.[0]}"
+  },
+  {
+    "file": "src/pages/mobile/specialist/MobileTestingAssessments.tsx",
+    "lineNum": 179,
+    "line": "{athlete.first_name} {athlete.last_name}"
+  },
+  {
+    "file": "src/pages/nutritionist/NutritionistClientProfile.tsx",
+    "lineNum": 80,
+    "line": "? `${clientData.first_name || \"\"} ${clientData.last_name || \"\"}`.trim()"
+  },
+  {
+    "file": "src/pages/nutritionist/NutritionistDashboard.tsx",
+    "lineNum": 135,
+    "line": "{profile ? `${profile.first_name} ${profile.last_name}` : \"Nutritionist\"}"
+  },
+  {
+    "file": "src/pages/nutritionist/NutritionistSchedule.tsx",
+    "lineNum": 249,
+    "line": "? `${clientObj.first_name} ${clientObj.last_name}`"
+  },
+  {
+    "file": "src/pages/shared/AppointmentList.tsx",
+    "lineNum": 143,
+    "line": "<span className=\"text-sm font-bold text-slate-700\">{apt.therapist?.first_name} {apt.therapist?.last_name}</span>"
+  },
+  {
+    "file": "src/pages/shared/AppointmentList.tsx",
+    "lineNum": 157,
+    "line": "<VIPName name={apt.client?.first_name ? `${apt.client.first_name} ${apt.client.last_name || ''}`.trim() : (apt.guest_name || 'Guest')} isVIP={apt.client?.is_vip} className=\"text-sm font-bold text-slate-700\" />"
+  },
+  {
+    "file": "src/pages/shared/MyProfile.tsx",
+    "lineNum": 210,
+    "line": "<AvatarImage src={avatarUrl} alt={`${firstName} ${lastName}`} />"
+  },
+  {
+    "file": "src/pages/shared/MyProfile.tsx",
+    "lineNum": 212,
+    "line": "{firstName?.charAt(0)}{lastName?.charAt(0)}"
+  },
+  {
+    "file": "src/pages/shared/MyProfile.tsx",
+    "lineNum": 233,
+    "line": "<h3 className=\"text-xl font-bold font-display\">{firstName} {lastName}</h3>"
+  },
+  {
+    "file": "src/pages/sports-scientist/SportsScientistAnalytics.tsx",
+    "lineNum": 157,
+    "line": "{athleteData.client.first_name} {athleteData.client.last_name}"
+  },
+  {
+    "file": "src/pages/sports-scientist/SportsScientistAnalytics.tsx",
+    "lineNum": 167,
+    "line": "athleteName={`${athleteData.client.first_name} ${athleteData.client.last_name}`}"
+  },
+  {
+    "file": "src/pages/sports-scientist/SportsScientistBilling.tsx",
+    "lineNum": 118,
+    "line": "const matchesSearch = `${s.client?.first_name} ${s.client?.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) ||"
+  },
+  {
+    "file": "src/pages/sports-scientist/SportsScientistBilling.tsx",
+    "lineNum": 192,
+    "line": "{sub.client?.first_name} {sub.client?.last_name}"
+  },
+  {
+    "file": "src/pages/sports-scientist/SportsScientistClients.tsx",
+    "lineNum": 187,
+    "line": "{[c.honorific, c.first_name, c.last_name].filter(Boolean).join(\" \")}"
+  },
+  {
+    "file": "src/pages/sports-scientist/SportsScientistDashboard.tsx",
+    "lineNum": 266,
+    "line": "{session.session_mode === 'Group' ? `Group: ${session.group_name}` : `${session.client?.first_name} ${session.client?.last_name || ''}`}"
+  },
+  {
+    "file": "src/pages/sports-scientist/SportsScientistDashboard.tsx",
+    "lineNum": 339,
+    "line": "{session.session_mode === 'Group' ? `Group: ${session.group_name}` : session.session_mode === 'Other' ? session.session_type?.name : `${session.client?.first_name} ${session.client?.last_name}`}"
+  },
+  {
+    "file": "src/pages/sports-scientist/SportsScientistSchedule.recent_functional_version.tsx",
+    "lineNum": 179,
+    "line": "{event.session_mode === 'Group' ? `👥 ${event.group_name}` : event.session_mode === 'Other' ? `🏢 ${event.session_type?.name}` : `${event.client?.first_name} ${event.client?.last_name}`}"
+  },
+  {
+    "file": "src/pages/sports-scientist/SportsScientistSchedule.recent_functional_version.tsx",
+    "lineNum": 260,
+    "line": "{event.session_mode === 'Group' ? event.group_name : event.session_mode === 'Other' ? event.session_type?.name : `${event.client?.first_name} ${event.client?.last_name}`}"
+  },
+  {
+    "file": "src/pages/sports-scientist/SportsScientistSchedule.recent_functional_version.tsx",
+    "lineNum": 335,
+    "line": "{event.session_mode === 'Group' ? `👥 ${event.group_name}` : event.session_mode === 'Other' ? `🏢 ${event.session_type?.name}` : `${event.client?.first_name} ${event.client?.last_name}`}"
+  },
+  {
+    "file": "src/pages/sports-scientist/SportsScientistSchedule.tsx",
+    "lineNum": 234,
+    "line": "{event.session_mode === 'Group' ? `👥 ${event.group_name}` : event.session_mode === 'Other' ? `🏢 ${event.session_type?.name}` : `${event.client?.first_name} ${event.client?.last_name}`}"
+  },
+  {
+    "file": "src/pages/sports-scientist/SportsScientistSchedule.tsx",
+    "lineNum": 353,
+    "line": ": `${event.client?.first_name || ''} ${event.client?.last_name || ''}`.trim();"
+  },
+  {
+    "file": "src/pages/sports-scientist/SportsScientistSchedule.tsx",
+    "lineNum": 515,
+    "line": "<span>{event.client?.first_name} {event.client?.last_name || ''} ({event.client?.uhid || '-'})</span>"
+  },
+  {
+    "file": "src/pages/sports-scientist/SportsScientistSchedule.tsx",
+    "lineNum": 556,
+    "line": "{event.session_mode === 'Group' ? `👥 ${event.group_name}` : event.session_mode === 'Other' ? `🏢 ${event.session_type?.name}` : `${event.client?.first_name} ${event.client?.last_name}`}"
+  },
+  {
+    "file": "src/pages/sports-scientist/SportsScientistSchedule.tsx",
+    "lineNum": 595,
+    "line": "Manage schedule and bookings for {profile?.first_name} {profile?.last_name}"
+  },
+  {
+    "file": "src/pages/sports-scientist/SportsScientistSchedule.tsx",
+    "lineNum": 812,
+    "line": ": `${event.client?.first_name} ${event.client?.last_name || ''}`}"
+  },
+  {
+    "file": "src/pages/sports-scientist/SportsScientistSchedule.tsx",
+    "lineNum": 815,
+    "line": "Coach: {profile?.first_name} {profile?.last_name}"
+  },
+  {
+    "file": "src/pages/super-admin/OrganizationUsers.tsx",
+    "lineNum": 134,
+    "line": "if (!firstName || !lastName || !email) {"
+  },
+  {
+    "file": "src/pages/UserProfile.tsx",
+    "lineNum": 97,
+    "line": "const fullName = userProfile ? [userProfile.first_name, userProfile.last_name].filter(Boolean).join(\" \") || userProfile.email : \"\";"
+  },
+  {
+    "file": "src/services/plannerStore.ts",
+    "lineNum": 266,
+    "line": "const fullName = `${u.first_name || \"\"} ${u.last_name || \"\"}`.trim() || u.email || \"Staff Member\";"
+  },
+  {
+    "file": "src/test/calendar.test.tsx",
+    "lineNum": 65,
+    "line": "client: { first_name: 'Sai Pavan', last_name: 'K', is_vip: true },"
+  },
+  {
+    "file": "src/test/calendar.test.tsx",
+    "lineNum": 66,
+    "line": "therapist: { first_name: 'Sandeep', last_name: 'S' }"
+  },
+  {
+    "file": "src/test/reportsRender.test.tsx",
+    "lineNum": 19,
+    "line": "profile: { id: 'admin-prof', organization_id: 'd735732c-5951-45e6-bb16-7668b8a95925', first_name: 'Dr. Sandeep', last_name: 'S', profession: 'Sports Physician' },"
+  },
+  {
+    "file": "src/test/staffLeaveCalendarSync.test.tsx",
+    "lineNum": 89,
+    "line": "return [{ id: 'client-1', first_name: 'John', last_name: 'Doe', uhid: 'U12345' }];"
+  },
+  {
+    "file": "src/utils/serviceMapping.ts",
+    "lineNum": 215,
+    "line": "fullName = `${firstName} ${lastName}`.trim();"
+  },
+  {
+    "file": "server/admin.js",
+    "lineNum": 15,
+    "line": "p.first_name as therapist_first_name, p.last_name as therapist_last_name,"
+  },
+  {
+    "file": "server/admin.js",
+    "lineNum": 16,
+    "line": "c.first_name as client_first_name, c.last_name as client_last_name"
+  },
+  {
+    "file": "server/admin.js",
+    "lineNum": 27,
+    "line": "c.first_name as client_first_name, c.last_name as client_last_name"
+  },
+  {
+    "file": "server/admin.js",
+    "lineNum": 51,
+    "line": "SELECT id, first_name, last_name, created_at"
+  },
+  {
+    "file": "server/admin.js",
+    "lineNum": 70,
+    "line": "c.first_name as client_first_name, c.last_name as client_last_name,"
+  },
+  {
+    "file": "server/admin.js",
+    "lineNum": 352,
+    "line": "p.first_name, p.last_name, p.profession,"
+  },
+  {
+    "file": "server/admin.js",
+    "lineNum": 565,
+    "line": "SELECT p.id, p.first_name, p.last_name, p.profession, u.email, u.role,"
+  },
+  {
+    "file": "server/admin.js",
+    "lineNum": 578,
+    "line": "ORDER BY p.first_name, p.last_name"
+  },
+  {
+    "file": "server/ams.js",
+    "lineNum": 287,
+    "line": "SELECT s.*, c.first_name, c.last_name, st.name as session_type_name"
+  },
+  {
+    "file": "server/ams.js",
+    "lineNum": 891,
+    "line": "p.first_name || ' ' || p.last_name as specialist_full_name,"
+  },
+  {
+    "file": "server/ams.js",
+    "lineNum": 896,
+    "line": "pr.first_name || ' ' || pr.last_name as client_full_name,"
+  },
+  {
+    "file": "server/ams.js",
+    "lineNum": 948,
+    "line": "const clientRes = await db.query('SELECT p.first_name, p.last_name, c.is_vip FROM profiles p LEFT JOIN clients c ON p.id = c.id WHERE p.id = $1', [updatedRow.client_id]);"
+  },
+  {
+    "file": "server/ams.js",
+    "lineNum": 949,
+    "line": "const clientName = clientRes.rows.length > 0 ? `${clientRes.rows[0].first_name} ${clientRes.rows[0].last_name}` : 'A client';"
+  },
+  {
+    "file": "server/ams.js",
+    "lineNum": 1016,
+    "line": "p.first_name || ' ' || p.last_name as client_full_name,"
+  },
+  {
+    "file": "server/ams.js",
+    "lineNum": 1084,
+    "line": "const specRes = await db.query('SELECT first_name, last_name FROM profiles WHERE id = $1', [req.user.id]);"
+  },
+  {
+    "file": "server/ams.js",
+    "lineNum": 1085,
+    "line": "const specName = specRes.rows.length > 0 ? `${specRes.rows[0].first_name} ${specRes.rows[0].last_name}` : 'A specialist';"
+  },
+  {
+    "file": "server/ams.js",
+    "lineNum": 1133,
+    "line": "c.first_name, c.last_name, c.honorific, c.age, c.gender, c.mobile_no,"
+  },
+  {
+    "file": "server/ams.js",
+    "lineNum": 1152,
+    "line": "const fullName = `${fr.honorific ? fr.honorific + ' ' : ''}${fr.first_name || ''} ${fr.last_name || ''}`.trim();"
+  },
+  {
+    "file": "server/ams.js",
+    "lineNum": 1188,
+    "line": "SELECT fr.*, q.name as form_title, c.first_name, c.last_name, c.is_vip"
+  },
+  {
+    "file": "server/ams.js",
+    "lineNum": 1231,
+    "line": "const clientName = `${fr.first_name || ''} ${fr.last_name || ''}`.trim() || 'A client';"
+  },
+  {
+    "file": "server/ams.js",
+    "lineNum": 1267,
+    "line": "const specRes = await client.query('SELECT first_name, last_name FROM profiles WHERE id = $1', [req.user.id]);"
+  },
+  {
+    "file": "server/ams.js",
+    "lineNum": 1268,
+    "line": "const specName = specRes.rows.length > 0 ? `${specRes.rows[0].first_name} ${specRes.rows[0].last_name}` : 'A specialist';"
+  },
+  {
+    "file": "server/ams.js",
+    "lineNum": 1462,
+    "line": "SELECT e.*, p.first_name, p.last_name"
+  },
+  {
+    "file": "server/ams.js",
+    "lineNum": 1483,
+    "line": "client: { id: r.client_id, first_name: r.first_name, last_name: r.last_name }"
+  },
+  {
+    "file": "server/ams.js",
+    "lineNum": 1788,
+    "line": "SELECT p.id, p.first_name, p.last_name, p.uhid"
+  },
+  {
+    "file": "server/ams.js",
+    "lineNum": 1879,
+    "line": "const specRes = await client.query('SELECT first_name, last_name FROM profiles WHERE id = $1', [req.user.id]);"
+  },
+  {
+    "file": "server/ams.js",
+    "lineNum": 1880,
+    "line": "const specName = specRes.rows.length > 0 ? `${specRes.rows[0].first_name} ${specRes.rows[0].last_name}` : 'A specialist';"
+  },
+  {
+    "file": "server/ams.js",
+    "lineNum": 2088,
+    "line": "const specNameRes = await db.query('SELECT first_name, last_name FROM profiles WHERE id = $1', [req.user.id]);"
+  },
+  {
+    "file": "server/ams.js",
+    "lineNum": 2090,
+    "line": "? `${specNameRes.rows[0].first_name} ${specNameRes.rows[0].last_name}`"
+  },
+  {
+    "file": "server/ams.js",
+    "lineNum": 2125,
+    "line": "(SELECT json_build_object('first_name', c.first_name, 'last_name', c.last_name, 'uhid', c.uhid)"
+  },
+  {
+    "file": "server/ams.js",
+    "lineNum": 2168,
+    "line": "const specRes = await db.query('SELECT first_name, last_name FROM profiles WHERE id = $1', [req.user.id]);"
+  },
+  {
+    "file": "server/ams.js",
+    "lineNum": 2170,
+    "line": "? `${specRes.rows[0].first_name} ${specRes.rows[0].last_name}`"
+  },
+  {
+    "file": "server/ams.js",
+    "lineNum": 2599,
+    "line": "p.first_name || ' ' || p.last_name as specialist_name"
+  },
+  {
+    "file": "server/ams.js",
+    "lineNum": 2673,
+    "line": "SELECT rq.*, q.name as questionnaire_name, p.first_name || ' ' || p.last_name as specialist_name"
+  },
+  {
+    "file": "server/appointments.js",
+    "lineNum": 35,
+    "line": "json_build_object('first_name', p.first_name, 'last_name', p.last_name) as therapist,"
+  },
+  {
+    "file": "server/appointments.js",
+    "lineNum": 209,
+    "line": "const clientProfileRes = await client.query('SELECT p.first_name, p.last_name, c.is_vip FROM profiles p LEFT JOIN clients c ON p.id = c.id WHERE p.id = $1', [client_id]);"
+  },
+  {
+    "file": "server/appointments.js",
+    "lineNum": 210,
+    "line": "const clientName = clientProfileRes.rows.length > 0 ? `${clientProfileRes.rows[0].first_name} ${clientProfileRes.rows[0].last_name}` : 'A client';"
+  },
+  {
+    "file": "server/appointments.js",
+    "lineNum": 871,
+    "line": "const therapistRes = await db.query('SELECT id, first_name, last_name, profession FROM profiles WHERE id = $1', [therapistId]);"
+  },
+  {
+    "file": "server/appointments.js",
+    "lineNum": 892,
+    "line": "name: `${therapist.first_name} ${therapist.last_name}`,"
+  },
+  {
+    "file": "server/appointments.js",
+    "lineNum": 962,
+    "line": "name: `${therapist.first_name} ${therapist.last_name}`,"
+  },
+  {
+    "file": "server/appointments.js",
+    "lineNum": 1070,
+    "line": "json_build_object('first_name', p.first_name, 'last_name', p.last_name) as therapist,"
+  },
+  {
+    "file": "server/appointments.js",
+    "lineNum": 1412,
+    "line": "SELECT c.id, c.first_name, c.last_name, c.uhid,"
+  },
+  {
+    "file": "server/appointments.js",
+    "lineNum": 1491,
+    "line": "const userName = [req.user.first_name, req.user.last_name].filter(Boolean).join(\" \") || req.user.email || \"Specialist\";"
+  },
+  {
+    "file": "server/appointments.js",
+    "lineNum": 1529,
+    "line": "const userName = [req.user.first_name, req.user.last_name].filter(Boolean).join(\" \") || req.user.email || \"Specialist\";"
+  },
+  {
+    "file": "server/appointments.js",
+    "lineNum": 1583,
+    "line": "const userName = [req.user.first_name, req.user.last_name].filter(Boolean).join(\" \") || req.user.email || \"Specialist\";"
+  },
+  {
+    "file": "server/auth.js",
+    "lineNum": 30,
+    "line": "const { email, password, firstName, lastName, orgCode, role } = req.body;"
+  },
+  {
+    "file": "server/auth.js",
+    "lineNum": 60,
+    "line": "'INSERT INTO profiles (id, first_name, last_name, organization_id, is_approved) VALUES ($1, $2, $3, $4, $5)',"
+  },
+  {
+    "file": "server/auth.js",
+    "lineNum": 61,
+    "line": "[userId, firstName, lastName, orgId, false]"
+  },
+  {
+    "file": "server/auth.js",
+    "lineNum": 78,
+    "line": "const approvalContent = `Approval Required: ${firstName} ${lastName} has signed up as ${role || 'client'}.`;"
+  },
+  {
+    "file": "server/auth.js",
+    "lineNum": 356,
+    "line": "const allowedFields = ['first_name', 'last_name', 'profession', 'avatar_url', 'mobile_no'];"
+  },
+  {
+    "file": "server/auth.js",
+    "lineNum": 393,
+    "line": "// Also allow first_name and last_name to sync to client record"
+  },
+  {
+    "file": "server/auth.js",
+    "lineNum": 394,
+    "line": "if (clientAllowedFields.includes(key) || ['first_name', 'last_name'].includes(key)) {"
+  },
+  {
+    "file": "server/billing.js",
+    "lineNum": 154,
+    "line": "c.first_name as client_first_name, c.last_name as client_last_name, c.uhid as client_uhid, c.is_vip as client_is_vip,"
+  },
+  {
+    "file": "server/billing.js",
+    "lineNum": 157,
+    "line": "s.first_name as staff_first_name, s.last_name as staff_last_name"
+  },
+  {
+    "file": "server/billing.js",
+    "lineNum": 265,
+    "line": "c.first_name as client_first_name, c.last_name as client_last_name, c.uhid as client_uhid,"
+  },
+  {
+    "file": "server/billing.js",
+    "lineNum": 304,
+    "line": "const staffProfile = await client.query('SELECT first_name, last_name FROM profiles WHERE id = $1', [staffId]);"
+  },
+  {
+    "file": "server/billing.js",
+    "lineNum": 306,
+    "line": "? `${staffProfile.rows[0].first_name} ${staffProfile.rows[0].last_name}`"
+  },
+  {
+    "file": "server/billing.js",
+    "lineNum": 553,
+    "line": "const staffProfile = await client.query('SELECT first_name, last_name FROM profiles WHERE id = $1', [staffId]);"
+  },
+  {
+    "file": "server/billing.js",
+    "lineNum": 555,
+    "line": "? `${staffProfile.rows[0].first_name} ${staffProfile.rows[0].last_name}`"
+  },
+  {
+    "file": "server/billing.js",
+    "lineNum": 685,
+    "line": "json_build_object('id', c.id, 'first_name', c.first_name, 'last_name', c.last_name, 'uhid', c.uhid) as client"
+  },
+  {
+    "file": "server/clients.js",
+    "lineNum": 144,
+    "line": "query += ` AND (c.first_name ILIKE $${params.length} OR c.last_name ILIKE $${params.length} OR c.uhid ILIKE $${params.length} OR c.mobile_no ILIKE $${params.length})`;"
+  },
+  {
+    "file": "server/clients.js",
+    "lineNum": 281,
+    "line": "p.first_name, p.last_name, p.profession"
+  },
+  {
+    "file": "server/clients.js",
+    "lineNum": 310,
+    "line": "const clientRes = await db.query('SELECT uhid, email, first_name, last_name FROM clients WHERE id = $1 AND organization_id = $2', [id, orgId]);"
+  },
+  {
+    "file": "server/clients.js",
+    "lineNum": 347,
+    "line": "'INSERT INTO profiles (id, first_name, last_name, organization_id, is_approved, uhid, ams_role) VALUES ($1, $2, $3, $4, $5, $6, $7)',"
+  },
+  {
+    "file": "server/clients.js",
+    "lineNum": 348,
+    "line": "[userId, client.first_name, client.last_name, orgId, true, client.uhid, 'athlete']"
+  },
+  {
+    "file": "server/clients.js",
+    "lineNum": 385,
+    "line": "p.first_name as therapist_first_name, p.last_name as therapist_last_name,"
+  },
+  {
+    "file": "server/clients.js",
+    "lineNum": 414,
+    "line": "therapist: { first_name: r.therapist_first_name, last_name: r.therapist_last_name },"
+  },
+  {
+    "file": "server/clients.js",
+    "lineNum": 543,
+    "line": "TRIM(e.first_name || ' ' || COALESCE(e.last_name, '')) as name,"
+  },
+  {
+    "file": "server/clients.js",
+    "lineNum": 562,
+    "line": "const { name, contact, first_name, last_name, mobile_no, ...rest } = req.body;"
+  },
+  {
+    "file": "server/clients.js",
+    "lineNum": 573,
+    "line": "const keys = ['organization_id', 'first_name', 'last_name', 'mobile_no', ...Object.keys(rest)];"
+  },
+  {
+    "file": "server/clients.js",
+    "lineNum": 592,
+    "line": "TRIM(first_name || ' ' || COALESCE(last_name, '')) as name,"
+  },
+  {
+    "file": "server/clients.js",
+    "lineNum": 610,
+    "line": "SELECT ei.*, p.first_name, p.last_name"
+  },
+  {
+    "file": "server/clients.js",
+    "lineNum": 792,
+    "line": "results.push({ uhid, first_name: c.first_name, last_name: c.last_name });"
+  },
+  {
+    "file": "server/clinical.js",
+    "lineNum": 15,
+    "line": "c.first_name, c.last_name, c.id as client_id_raw,"
+  },
+  {
+    "file": "server/clinical.js",
+    "lineNum": 139,
+    "line": "SELECT s.*, c.first_name, c.last_name, c.is_vip,"
+  },
+  {
+    "file": "server/clinical.js",
+    "lineNum": 140,
+    "line": "json_build_object('first_name', p.first_name, 'last_name', p.last_name) as therapist"
+  },
+  {
+    "file": "server/clinical.js",
+    "lineNum": 627,
+    "line": "query += ` AND (c.first_name ILIKE $${params.length} OR c.last_name ILIKE $${params.length} OR c.uhid ILIKE $${params.length} OR c.mobile_no ILIKE $${params.length})`;"
+  },
+  {
+    "file": "server/clinical.js",
+    "lineNum": 639,
+    "line": "name: `${row.first_name || ''} ${row.last_name || ''}`.trim(),"
+  },
+  {
+    "file": "server/clinical.js",
+    "lineNum": 657,
+    "line": "c.id as client_id, c.first_name, c.last_name, c.uhid, c.sport, c.occupation,"
+  },
+  {
+    "file": "server/clinical.js",
+    "lineNum": 693,
+    "line": "client_name: `${row.first_name || ''} ${row.last_name || ''}`.trim(),"
+  },
+  {
+    "file": "server/clinical.js",
+    "lineNum": 734,
+    "line": "name: `${row.first_name || ''} ${row.last_name || ''}`.trim(),"
+  },
+  {
+    "file": "server/db.js",
+    "lineNum": 2079,
+    "line": "const staffRes = await executor.query(`SELECT first_name, last_name FROM profiles WHERE id = $1`, [staffId]);"
+  },
+  {
+    "file": "server/db.js",
+    "lineNum": 2081,
+    "line": "? `${staffRes.rows[0].first_name} ${staffRes.rows[0].last_name}`"
+  },
+  {
+    "file": "server/get_real_employees.js",
+    "lineNum": 15,
+    "line": "SELECT p.id, p.first_name, p.last_name, p.profession, u.email, u.role, p.is_approved"
+  },
+  {
+    "file": "server/get_real_employees.js",
+    "lineNum": 25,
+    "line": "SELECT e.*, p.first_name, p.last_name, p.profession"
+  },
+  {
+    "file": "server/hr.js",
+    "lineNum": 78,
+    "line": "SELECT p.id, p.first_name, p.last_name, p.profession, u.role, u.email"
+  },
+  {
+    "file": "server/hr.js",
+    "lineNum": 147,
+    "line": "name: `${staff.first_name || ''} ${staff.last_name || ''}`.trim() || staff.email,"
+  },
+  {
+    "file": "server/hr.js",
+    "lineNum": 249,
+    "line": "SELECT p.id, p.first_name, p.last_name, p.profession, u.role, u.email"
+  },
+  {
+    "file": "server/hr.js",
+    "lineNum": 271,
+    "line": "name: `${staff.first_name || ''} ${staff.last_name || ''}`.trim() || staff.email,"
+  },
+  {
+    "file": "server/hr.js",
+    "lineNum": 313,
+    "line": "const staffRes = await db.query(`SELECT p.id, p.first_name, p.last_name, p.profession, u.role, u.email FROM profiles p JOIN users u ON p.id = u.id WHERE u.role NOT IN ('client', 'athlete') ORDER BY p.first_name ASC`);"
+  },
+  {
+    "file": "server/hr.js",
+    "lineNum": 327,
+    "line": "name: `${staff.first_name || ''} ${staff.last_name || ''}`.trim() || staff.email,"
+  },
+  {
+    "file": "server/hr.js",
+    "lineNum": 385,
+    "line": "json_build_object('first_name', p.first_name, 'last_name', p.last_name, 'profession', p.profession) as profiles,"
+  },
+  {
+    "file": "server/hr.js",
+    "lineNum": 838,
+    "line": "const { email, firstName, lastName, role, profession, uhid, ams_role } = req.body;"
+  },
+  {
+    "file": "server/hr.js",
+    "lineNum": 857,
+    "line": "'INSERT INTO profiles (id, first_name, last_name, organization_id, is_approved, profession, uhid, ams_role) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',"
+  },
+  {
+    "file": "server/hr.js",
+    "lineNum": 858,
+    "line": "[userId, firstName, lastName, orgId, true, profession || null, uhid || null, ams_role || null]"
+  },
+  {
+    "file": "server/hr.js",
+    "lineNum": 883,
+    "line": "SELECT l.*, p.first_name, p.last_name"
+  },
+  {
+    "file": "server/hr.js",
+    "lineNum": 946,
+    "line": "const staffRes = await db.query('SELECT first_name, last_name FROM profiles WHERE id = $1', [userId]);"
+  },
+  {
+    "file": "server/hr.js",
+    "lineNum": 947,
+    "line": "const staffName = staffRes.rows.length > 0 ? `${staffRes.rows[0].first_name} ${staffRes.rows[0].last_name}` : 'A staff member';"
+  },
+  {
+    "file": "server/hr.js",
+    "lineNum": 1023,
+    "line": "SELECT p.id as employee_id, p.first_name, p.last_name, p.profession, u.email,"
+  },
+  {
+    "file": "server/hr.js",
+    "lineNum": 1180,
+    "line": "json_build_object('id', p.id, 'first_name', p.first_name, 'last_name', p.last_name, 'profession', p.profession) as staff"
+  },
+  {
+    "file": "server/hr.js",
+    "lineNum": 1239,
+    "line": "const staffRes = await client.query('SELECT first_name, last_name FROM profiles WHERE id = $1', [staffId]);"
+  },
+  {
+    "file": "server/hr.js",
+    "lineNum": 1240,
+    "line": "const staffName = staffRes.rows.length > 0 ? `${staffRes.rows[0].first_name} ${staffRes.rows[0].last_name}` : 'A staff member';"
+  },
+  {
+    "file": "server/masterConsole.js",
+    "lineNum": 189,
+    "line": "const { name, email, firstName, lastName, phone, role } = req.body;"
+  },
+  {
+    "file": "server/masterConsole.js",
+    "lineNum": 211,
+    "line": "'INSERT INTO profiles (id, first_name, last_name, organization_id, is_approved) VALUES ($1, $2, $3, $4, $5)',"
+  },
+  {
+    "file": "server/masterConsole.js",
+    "lineNum": 212,
+    "line": "[userId, firstName, lastName, organizationId, true]"
+  },
+  {
+    "file": "server/masterConsole.js",
+    "lineNum": 264,
+    "line": "'INSERT INTO profiles (id, first_name, last_name, organization_id, is_approved) VALUES ($1, $2, $3, $4, $5)',"
+  },
+  {
+    "file": "server/masterConsole.js",
+    "lineNum": 265,
+    "line": "[userId, user.firstName, user.lastName, organizationId, true]"
+  },
+  {
+    "file": "server/messenger.js",
+    "lineNum": 409,
+    "line": "p.first_name, p.last_name, p.avatar_url, p.profession,"
+  },
+  {
+    "file": "server/messenger.js",
+    "lineNum": 446,
+    "line": "p.first_name, p.last_name, p.avatar_url,"
+  },
+  {
+    "file": "server/messenger.js",
+    "lineNum": 566,
+    "line": "`SELECT p.first_name, p.last_name, p.avatar_url,"
+  },
+  {
+    "file": "server/messenger.js",
+    "lineNum": 585,
+    "line": "const senderName = `${profile.rows[0]?.first_name || 'Team'} ${profile.rows[0]?.last_name || 'Member'}`.trim();"
+  },
+  {
+    "file": "server/messenger.js",
+    "lineNum": 672,
+    "line": "p.first_name, p.last_name, p.avatar_url,"
+  },
+  {
+    "file": "server/messenger.js",
+    "lineNum": 934,
+    "line": "`INSERT INTO profiles (id, first_name, last_name, organization_id, is_approved)"
+  },
+  {
+    "file": "server/messenger.js",
+    "lineNum": 983,
+    "line": "p.first_name, p.last_name, p.avatar_url,"
+  },
+  {
+    "file": "server/messenger.js",
+    "lineNum": 1072,
+    "line": "`SELECT p.first_name, p.last_name, p.avatar_url,"
+  },
+  {
+    "file": "server/messenger.js",
+    "lineNum": 1081,
+    "line": "const senderName = `${profile.rows[0]?.first_name || 'Team'} ${profile.rows[0]?.last_name || 'Member'}`.trim();"
+  },
+  {
+    "file": "server/messenger.js",
+    "lineNum": 1144,
+    "line": "p.first_name, p.last_name, p.avatar_url,"
+  },
+  {
+    "file": "server/messenger.js",
+    "lineNum": 1186,
+    "line": "`INSERT INTO profiles (id, first_name, last_name, organization_id, is_approved)"
+  },
+  {
+    "file": "server/scratch_test.js",
+    "lineNum": 21,
+    "line": "SELECT s.id, s.therapist_id, s.scheduled_start, s.scheduled_end, p.first_name, p.last_name"
+  },
+  {
+    "file": "server/server.js",
+    "lineNum": 190,
+    "line": "`SELECT p.first_name, p.last_name, p.avatar_url,"
+  },
+  {
+    "file": "server/server.js",
+    "lineNum": 226,
+    "line": "const senderName = `${profile.rows[0]?.first_name || 'Team'} ${profile.rows[0]?.last_name || 'Member'}`.trim();"
+  },
+  {
+    "file": "server/server.js",
+    "lineNum": 269,
+    "line": "const senderName = `${profile.rows[0]?.first_name || 'Team'} ${profile.rows[0]?.last_name || 'Member'}`.trim();"
+  },
+  {
+    "file": "server/server.js",
+    "lineNum": 563,
+    "line": "organization_id, first_name, last_name, mobile_no, email,"
+  },
+  {
+    "file": "server/server.js",
+    "lineNum": 570,
+    "line": "organization_id, first_name, last_name, mobile_no, email,"
+  },
+  {
+    "file": "server/server.js",
+    "lineNum": 576,
+    "line": "organization_id, first_name, last_name, mobile_no, email,"
+  },
+  {
+    "file": "server/test_calendar.js",
+    "lineNum": 20,
+    "line": "p.first_name, p.last_name"
+  },
+  {
+    "file": "server/test_conn.js",
+    "lineNum": 12,
+    "line": "const profiles = await db.query(\"SELECT id, first_name, last_name FROM profiles\");"
+  }
+]

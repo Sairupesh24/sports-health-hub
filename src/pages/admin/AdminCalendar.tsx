@@ -23,7 +23,7 @@ import {
     parseISO,
     parse
 } from "date-fns";
-import { cn } from "@/lib/utils";
+import { cn, formatClientName } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -59,7 +59,7 @@ interface SessionEvent {
     status: string;
     service_id?: string | null;
     service_type: string;
-    client: { first_name: string; last_name: string; is_vip?: boolean } | null;
+    client: { first_name: string; middle_name?: string; last_name: string; honorific?: string; is_vip?: boolean } | null;
     therapist: { first_name: string; last_name: string; role?: string };
     rawSession: any;
     is_unentitled?: boolean;
@@ -1027,7 +1027,7 @@ export default function AdminCalendar() {
                                                 <span className="px-1 bg-orange-100 text-orange-600 rounded-[2px] text-[7px] font-bold uppercase tracking-tighter">Prov</span>
                                             </span>
                                         ) : (
-                                            `${event.client?.first_name} ${event.client?.last_name}`
+                                            formatClientName(event.client)
                                         )}
                                     </span>
                                     {event.session_mode !== 'Group' && !event.is_guest && <VIPBadge isVIP={event.client?.is_vip} iconOnly size="sm" className="ml-1 inline-flex" />}
@@ -1171,7 +1171,7 @@ export default function AdminCalendar() {
                                                         ) : event.is_guest ? (
                                                             <span className="italic">G: {event.guest_name} <span className="text-[8px] bg-orange-100 text-orange-600 px-1 rounded font-bold uppercase ml-1">PROV</span></span>
                                                         ) : (
-                                                            <>C: {event.client?.first_name} {event.client?.last_name}</>
+                                                            <>C: {formatClientName(event.client)}</>
                                                         )}
                                                         {event.session_mode !== 'Group' && !event.is_guest && <VIPBadge isVIP={event.client?.is_vip} iconOnly size="sm" />}
                                                     </div>
@@ -1622,7 +1622,7 @@ export default function AdminCalendar() {
                                                                         ) : event.is_guest ? (
                                                                             <span>G: {event.guest_name}</span>
                                                                         ) : (
-                                                                            <span>{event.client?.first_name} {event.client?.last_name} ({(event.client as any)?.uhid || '-'})</span>
+                                                                            <span>{formatClientName(event.client)} ({(event.client as any)?.uhid || '-'})</span>
                                                                         )}
                                                                     </div>
                                                                     <div className="flex items-center gap-1 shrink-0">
@@ -1659,7 +1659,7 @@ export default function AdminCalendar() {
                                                                         ) : event.is_guest ? (
                                                                             <span className="italic opacity-85">G: {event.guest_name}</span>
                                                                         ) : (
-                                                                            <span>{event.client?.first_name} {event.client?.last_name}</span>
+                                                                            <span>{formatClientName(event.client)}</span>
                                                                         )}
                                                                         {event.session_mode !== 'Group' && !event.is_guest && <VIPBadge isVIP={event.client?.is_vip} size="sm" iconOnly />}
                                                                     </div>

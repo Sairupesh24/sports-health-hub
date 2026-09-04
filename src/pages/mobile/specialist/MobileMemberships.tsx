@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { apiFetch } from "@/utils/api";
 import { useAuth } from "@/contexts/AuthContext";
@@ -6,17 +7,18 @@ import MobileSpecialistLayout from "@/components/layout/MobileSpecialistLayout";
 import { 
   CreditCard, 
   Search, 
-  ChevronRight,
-  ShieldCheck,
-  AlertTriangle
+  ChevronRight, 
+  ShieldCheck, 
+  AlertTriangle 
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
+import { cn, formatClientName } from "@/lib/utils";
 import { haptic } from "@/utils/haptic";
 import MobileAthleteDrawer from "@/components/sports-scientist/MobileAthleteDrawer";
 
 export default function MobileMemberships() {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedAthlete, setSelectedAthlete] = useState<any>(null);
@@ -38,9 +40,7 @@ export default function MobileMemberships() {
   const complianceRate = totalCount > 0 ? Math.round((activeCount / totalCount) * 100) : 0;
 
   const filteredMemberships = memberships?.filter(m => {
-    const firstName = m.client?.first_name || "";
-    const lastName = m.client?.last_name || "";
-    const fullName = `${firstName} ${lastName}`.toLowerCase();
+    const fullName = formatClientName(m.client).toLowerCase();
     const uhid = (m.client?.uhid || "").toLowerCase();
     const query = searchQuery.toLowerCase().trim();
     
@@ -166,7 +166,7 @@ export default function MobileMemberships() {
                        </div>
                        <div>
                           <h4 className="font-black text-slate-900 dark:text-white leading-none">
-                            {athlete.first_name} {athlete.last_name}
+                            {formatClientName(athlete)}
                           </h4>
                           <div className="flex items-center gap-2 mt-1.5">
                              <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">{athlete.uhid}</span>

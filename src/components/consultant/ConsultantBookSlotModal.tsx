@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { cn } from "@/lib/utils";
+import { cn, formatClientName } from "@/lib/utils";
 import { apiFetch } from "@/utils/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -339,7 +339,7 @@ export function ConsultantBookSlotModal({ open, onOpenChange, defaultDate, onSuc
 
             toast({
                 title: "Slot Booked Successfully",
-                description: `Slot (${selectedSlot.label}) for ${selectedClient ? `${selectedClient.first_name} ${selectedClient.last_name}` : "Client"} has been scheduled. Note: Changes or cancellations must be made through an Admin.`,
+                description: `Slot (${selectedSlot.label}) for ${selectedClient ? formatClientName(selectedClient) : "Client"} has been scheduled. Note: Changes or cancellations must be made through an Admin.`,
             });
 
             onOpenChange(false);
@@ -403,7 +403,7 @@ export function ConsultantBookSlotModal({ open, onOpenChange, defaultDate, onSuc
                                     {selectedClient ? (
                                         <div className="flex items-center gap-2 truncate">
                                             <User className="w-4 h-4 text-primary shrink-0" />
-                                            <VIPName name={`${selectedClient.first_name} ${selectedClient.last_name}`} isVIP={selectedClient.is_vip} />
+                                            <VIPName name={formatClientName(selectedClient)} isVIP={selectedClient.is_vip} />
                                             {selectedClient.uhid && (
                                                 <span className="text-xs text-muted-foreground">({selectedClient.uhid})</span>
                                             )}
@@ -426,7 +426,7 @@ export function ConsultantBookSlotModal({ open, onOpenChange, defaultDate, onSuc
                                             {clients.map((c) => (
                                                 <CommandItem
                                                     key={c.id}
-                                                    value={`${c.first_name} ${c.last_name} ${c.uhid || ""} ${c.mobile_no || ""}`}
+                                                    value={`${formatClientName(c)} ${c.uhid || ""} ${c.mobile_no || ""}`}
                                                     onSelect={() => {
                                                         setSelectedClientId(c.id);
                                                         setClientOpen(false);
@@ -440,7 +440,7 @@ export function ConsultantBookSlotModal({ open, onOpenChange, defaultDate, onSuc
                                                     />
                                                     <div className="flex flex-col">
                                                         <div className="font-medium text-sm">
-                                                            <VIPName name={`${c.first_name} ${c.last_name}`} isVIP={c.is_vip} />
+                                                            <VIPName name={formatClientName(c)} isVIP={c.is_vip} />
                                                         </div>
                                                         <div className="text-xs text-muted-foreground flex items-center gap-2">
                                                             {c.uhid && <span>UHID: {c.uhid}</span>}

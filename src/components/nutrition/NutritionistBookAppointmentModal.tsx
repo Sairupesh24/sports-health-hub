@@ -11,6 +11,7 @@ import { apiFetch } from "@/utils/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
+import { formatClientName } from "@/lib/utils";
 
 interface SlotItem {
   startTime: string; // HH:mm format, e.g. "09:30"
@@ -223,7 +224,7 @@ export default function NutritionistBookAppointmentModal({
 
   const filteredClients = clients.filter(
     (c) =>
-      `${c.first_name || ""} ${c.last_name || ""}`.toLowerCase().includes(clientSearch.toLowerCase()) ||
+      formatClientName(c).toLowerCase().includes(clientSearch.toLowerCase()) ||
       (c.uhid || "").toLowerCase().includes(clientSearch.toLowerCase()) ||
       (c.mobile_no || "").includes(clientSearch)
   );
@@ -347,14 +348,14 @@ export default function NutritionistBookAppointmentModal({
                           type="button"
                           onClick={() => {
                             setSelectedClientId(c.id);
-                            setClientSearch(`${c.first_name || ""} ${c.last_name || ""} (${c.uhid || "No UHID"})`);
+                            setClientSearch(`${formatClientName(c)} (${c.uhid || "No UHID"})`);
                             setClientDropdownOpen(false);
                           }}
                           className="w-full text-left px-3 py-2 text-xs hover:bg-muted/60 transition-colors flex items-center justify-between gap-2 border-b border-border/40 last:border-b-0"
                         >
                           <div className="flex flex-col min-w-0">
                             <span className="font-semibold text-foreground truncate">
-                              {c.first_name} {c.last_name}
+                              {formatClientName(c)}
                             </span>
                             <span className="text-[10px] text-muted-foreground font-mono">
                               {c.uhid || "No UHID"} {c.mobile_no ? `• ${c.mobile_no}` : ""}

@@ -23,7 +23,7 @@ import { toast } from "@/hooks/use-toast";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import * as XLSX from 'xlsx';
-import { cn } from "@/lib/utils";
+import { cn, formatClientName } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { RefundModal } from "@/components/admin/RefundModal";
 import { generateRefundVoucher } from "@/lib/refundActions";
@@ -64,7 +64,7 @@ export default function ClientProfile() {
         setSearchParams({ tab: value });
     };
     const [client, setClient] = useState<any>(null);
-    const fullName = client ? `${client.honorific ? client.honorific + " " : ""}${client.first_name} ${client.last_name}` : "";
+    const fullName = formatClientName(client, { includeHonorific: true });
     const [loading, setLoading] = useState(true);
     const [paymentBillId, setPaymentBillId] = useState<string>("");
     const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);

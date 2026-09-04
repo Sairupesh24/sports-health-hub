@@ -9,6 +9,7 @@ import { Loader2, Calendar as CalendarIcon, Clock, AlertTriangle, CheckCircle2, 
 import { format, parseISO, addMinutes } from "date-fns";
 import { useAuth } from "@/contexts/AuthContext";
 import { Badge } from "@/components/ui/badge";
+import { formatClientName } from "@/lib/utils";
 
 interface Props {
   open: boolean;
@@ -122,7 +123,7 @@ export function SportsScientistRescheduleModal({ open, onOpenChange, session, on
 
   const clientName = session.session_mode === "Group"
     ? `Group: ${session.group_name || "Session"}`
-    : `${session.client?.first_name || "Client"} ${session.client?.last_name || ""}`.trim();
+    : formatClientName(session.client) || "Client";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

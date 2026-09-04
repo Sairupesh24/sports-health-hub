@@ -9,7 +9,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
-import { cn } from "@/lib/utils";
+import { cn, formatClientName } from "@/lib/utils";
 import { VIPName } from "@/components/ui/VIPBadge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
@@ -179,7 +179,7 @@ export function WaitlistSidebar({ selectedDate, onBook }: Props) {
                                             <div className="space-y-2">
                                                 <div className="flex justify-between items-start">
                                                     <div className="flex flex-col">
-                                                        <VIPName name={`${item.client?.first_name} ${item.client?.last_name}`} isVIP={item.client?.is_vip} className="text-sm font-bold" />
+                                                        <VIPName name={formatClientName(item.client)} isVIP={item.client?.is_vip} className="text-sm font-bold" />
                                                         <span className="text-[9px] font-mono text-muted-foreground font-bold tracking-widest">{item.client?.uhid}</span>
                                                     </div>
                                                     <Badge variant="outline" className="text-[10px] h-5 bg-white border-primary/20 text-primary font-mono font-normal">

@@ -13,7 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import MobileAthleteDrawer from "@/components/sports-scientist/MobileAthleteDrawer";
 import { startOfMonth, endOfMonth, format } from "date-fns";
-import { cn } from "@/lib/utils";
+import { cn, formatClientName } from "@/lib/utils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
@@ -131,8 +131,7 @@ export default function MobileClients() {
 
     const renderClientList = (list: any[], showEmptyMessage: string) => {
         const filtered = list.filter(c => 
-            c.first_name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-            c.last_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            formatClientName(c).toLowerCase().includes(searchQuery.toLowerCase()) || 
             c.uhid.toLowerCase().includes(searchQuery.toLowerCase())
         );
 
@@ -164,7 +163,7 @@ export default function MobileClients() {
                         <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
                                 <h3 className="font-bold text-slate-900 dark:text-white truncate">
-                                    {client.first_name} {client.last_name}
+                                    {formatClientName(client)}
                                 </h3>
                                 {client.is_vip && <Badge variant="secondary" className="bg-amber-100 text-amber-700 hover:bg-amber-100 border-none text-[8px] px-1.5 py-0">VIP</Badge>}
                             </div>
@@ -272,7 +271,7 @@ export default function MobileClients() {
                                                         if (!client) return null;
                                                         return (
                                                             <Badge key={m.client_id} variant="outline" className="bg-slate-50 dark:bg-slate-800 text-[9px] px-1.5 py-0 border-slate-200 dark:border-slate-700">
-                                                                {client.first_name} {client.last_name[0]}.
+                                                                {formatClientName(client)}
                                                             </Badge>
                                                         );
                                                     })}
@@ -340,7 +339,7 @@ export default function MobileClients() {
                                     htmlFor={`client-${client.id}`}
                                     className="flex-1 flex flex-col gap-0.5 cursor-pointer"
                                 >
-                                    <span className="text-sm font-bold leading-none">{client.first_name} {client.last_name}</span>
+                                    <span className="text-sm font-bold leading-none">{formatClientName(client)}</span>
                                     <span className="text-[10px] text-muted-foreground">{client.uhid} • {client.sport || 'General'}</span>
                                 </Label>
                             </div>

@@ -13,6 +13,7 @@ import { CheckCircle, Users, UserX, Plus, Copy, ExternalLink, Search, Trash2, Cl
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { useNavigate } from "react-router-dom";
 import { UserProfileModal } from "@/components/hr/UserProfileModal";
+import { formatClientName } from "@/lib/utils";
 
 interface PendingUser {
   id: string;
@@ -442,7 +443,7 @@ export default function UserApproval() {
 
       toast({ 
         title: "Account Linked Successfully", 
-        description: `Linked user to client profile ${matchedClient.first_name} ${matchedClient.last_name}` 
+        description: `Linked user to client profile ${formatClientName(matchedClient)}` 
       });
       setIsLinkingDialogOpen(false);
       

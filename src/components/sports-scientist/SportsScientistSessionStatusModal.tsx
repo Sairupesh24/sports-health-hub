@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { useAuth } from "@/contexts/AuthContext";
 import { Badge } from "@/components/ui/badge";
 import { useQueryClient } from "@tanstack/react-query";
+import { formatClientName } from "@/lib/utils";
 
 interface Props {
     open: boolean;
@@ -453,8 +454,8 @@ export function SportsScientistSessionStatusModal({ open, onOpenChange, session,
                                     ? `👥 Group: ${session.group_name}`
                                     : session.session_mode === "Other"
                                     ? `🏢 Internal: ${session.session_type?.name}`
-                                    : session.client?.first_name
-                                    ? `${session.client.first_name} ${session.client.last_name}`
+                                    : session.client
+                                    ? formatClientName(session.client)
                                     : "N/A"}
                             </span>
                         </div>

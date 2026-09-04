@@ -42,7 +42,7 @@ import {
   CartesianGrid 
 } from "recharts";
 import { format, parseISO } from "date-fns";
-import { cn } from "@/lib/utils";
+import { cn, formatClientName } from "@/lib/utils";
 
 interface ProfileActivityResponse {
   profile: {
@@ -90,7 +90,7 @@ interface Appointment {
   service_type?: string;
   client_name?: string;
   therapist_name?: string;
-  client?: { first_name?: string; last_name?: string };
+  client?: { first_name?: string; middle_name?: string; last_name?: string };
   therapist?: { first_name?: string; last_name?: string };
 }
 
@@ -177,7 +177,7 @@ export default function StaffProfile() {
   // Filter provider sessions
   const filteredProviderSessions = providerSessions.filter((s) => {
     const matchesStatus = providerStatusFilter === "all" || s.status.toLowerCase() === providerStatusFilter.toLowerCase();
-    const cName = s.client_name || (s.client ? `${s.client.first_name || ''} ${s.client.last_name || ''}`.trim() : '');
+    const cName = s.client_name || (s.client ? formatClientName(s.client) : '');
     const matchesSearch = !providerSearch.trim() || cName.toLowerCase().includes(providerSearch.toLowerCase()) || (s.service_type || '').toLowerCase().includes(providerSearch.toLowerCase());
     return matchesStatus && matchesSearch;
   });
@@ -565,7 +565,7 @@ export default function StaffProfile() {
                     ) : (
                       <div className="space-y-3">
                         {filteredProviderSessions.map((session) => {
-                          const clientName = session.client_name || (session.client ? `${session.client.first_name || ''} ${session.client.last_name || ''}`.trim() : 'Client');
+                          const clientName = session.client_name || (session.client ? formatClientName(session.client) : 'Client');
 
                           return (
                             <div 

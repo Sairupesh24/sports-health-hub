@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { cn } from "@/lib/utils";
+import { cn, formatClientName } from "@/lib/utils";
 import { apiFetch } from "@/utils/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -475,7 +475,7 @@ export function SportsScientistBookSessionModal({ open, onOpenChange, onSuccess 
                                                         const c = clients.find(x => x.id === id);
                                                         return (
                                                             <Badge key={id} variant="secondary" className="bg-primary/10 text-primary border-none py-1 px-2 font-black italic tracking-tighter">
-                                                                {c ? `${c.first_name} ${c.last_name}` : id}
+                                                                {c ? formatClientName(c) : id}
                                                                 <X className="w-3 h-3 ml-1.5 cursor-pointer opacity-50 hover:opacity-100" onClick={(e) => { e.stopPropagation(); toggleClient(id); }} />
                                                             </Badge>
                                                         );
@@ -514,14 +514,14 @@ export function SportsScientistBookSessionModal({ open, onOpenChange, onSuccess 
                                                     {displayedClients.map((c) => (
                                                         <CommandItem
                                                             key={c.id}
-                                                            value={`${c.first_name} ${c.last_name} ${c.uhid}`}
+                                                            value={`${formatClientName(c)} ${c.uhid}`}
                                                             onSelect={() => toggleClient(c.id)}
                                                             className="py-3 px-4 flex items-center justify-between"
                                                         >
                                                             <div className="flex items-center">
                                                                 <Check className={cn("mr-2 h-4 w-4 text-primary", selectedClientIds.includes(c.id) ? "opacity-100" : "opacity-0")} />
                                                                 <div className="flex flex-col">
-                                                                    <span className="font-bold">{c.first_name} {c.last_name}</span>
+                                                                    <span className="font-bold">{formatClientName(c)}</span>
                                                                     <span className="text-[10px] text-muted-foreground uppercase font-black">{c.uhid}</span>
                                                                 </div>
                                                             </div>

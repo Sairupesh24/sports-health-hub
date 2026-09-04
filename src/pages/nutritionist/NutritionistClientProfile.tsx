@@ -33,6 +33,7 @@ import {
   Printer,
   Eye,
 } from "lucide-react";
+import { formatClientName } from "@/lib/utils";
 import { apiFetch } from "@/utils/api";
 import NutritionAssessmentForm from "@/components/nutrition/NutritionAssessmentForm";
 import NutritionAssessmentViewer, { formatDateDDMMYYYY } from "@/components/nutrition/NutritionAssessmentViewer";
@@ -77,7 +78,7 @@ export default function NutritionistClientProfile() {
   }, [id]);
 
   const clientName = clientData
-    ? `${clientData.first_name || ""} ${clientData.last_name || ""}`.trim()
+    ? formatClientName(clientData, { includeHonorific: true }) || "Client Profile"
     : "Client Profile";
 
   const uhid = clientData?.uhid || "N/A";

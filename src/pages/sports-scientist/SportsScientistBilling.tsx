@@ -40,12 +40,11 @@ import { Badge } from "@/components/ui/badge";
 import { apiFetch } from "@/utils/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { format } from "date-fns";
-import { cn } from "@/lib/utils";
+import { cn, formatClientName } from "@/lib/utils";
 import { toast } from "sonner";
 import { SubscriptionModal } from "@/components/sports-scientist/SubscriptionModal";
 import { PackageModal } from "@/components/sports-scientist/PackageModal";
 import { SubscriptionDetailDrawer } from "@/components/billing/SubscriptionDetailDrawer";
-import { PaymentModal } from "@/components/billing/PaymentModal";
 
 export default function SportsScientistBilling() {
     const { profile } = useAuth();
@@ -55,26 +54,24 @@ export default function SportsScientistBilling() {
     const [isPkgModalOpen, setIsPkgModalOpen] = useState(false);
     const [selectedSub, setSelectedSub] = useState<any>(null);
     const [isSubDrawerOpen, setIsSubDrawerOpen] = useState(false);
-    const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
-    const [paymentBillId, setPaymentBillId] = useState("");
     const [statusFilter, setStatusFilter] = useState<string>("All");
 
     // 1. Fetch Subscriptions
-    const { data: subscriptions, isLoading: subsLoading } = useQuery({
+    const { data: subscriptions, isLoading: subsLoading } = useQuery<any[]>({
         queryKey: ["ss-subscriptions", profile?.organization_id],
         queryFn: async () => {
             if (!profile?.organization_id) return [];
-            return await apiFetch('/api/billing/subscriptions');
+            return await apiFetch<any[]>('/api/billing/subscriptions');
         },
         enabled: !!profile?.organization_id
     });
 
     // 2. Fetch subscription history
-    const { data: subHistory } = useQuery({
+    const { data: subHistory } = useQuery<any[]>({
         queryKey: ["subscription-history", selectedSub?.id],
         queryFn: async () => {
             if (!selectedSub?.id) return [];
-            return await apiFetch(`/api/billing/invoices?subscription_id=${selectedSub.id}`);
+            return await apiFetch<any[]>(`/api/billing/invoices?subscription_id=${selectedSub.id}`);
         },
         enabled: !!selectedSub?.id
     });
@@ -115,7 +112,7 @@ export default function SportsScientistBilling() {
     });
 
     const filteredSubs = subscriptions?.filter(s => {
-        const matchesSearch = `${s.client?.first_name} ${s.client?.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        const matchesSearch = formatClientName(s.client).toLowerCase().includes(searchTerm.toLowerCase()) ||
                              s.client?.uhid?.toLowerCase().includes(searchTerm.toLowerCase());
         const matchesStatus = statusFilter === "All" || s.status === statusFilter;
         return matchesSearch && matchesStatus;
@@ -189,7 +186,7 @@ export default function SportsScientistBilling() {
                                             <TableCell className="py-5 pl-8">
                                                 <div className="flex flex-col">
                                                     <span className="font-black text-slate-900 group-hover:text-primary transition-colors">
-                                                        {sub.client?.first_name} {sub.client?.last_name}
+                                                        {formatClientName(sub.client)}
                                                     </span>
                                                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
                                                         {sub.client?.uhid}
@@ -249,10 +246,7 @@ export default function SportsScientistBilling() {
                     history={subHistory || []}
                     onGenerateEarlyInvoice={() => generateEarlyInvoice.mutate(selectedSub.id)}
                     onCancelSubscription={() => cancelSubscription.mutate(selectedSub.id)}
-                    onCollectPayment={(billId: string) => {
-                        setPaymentBillId(billId);
-                        setIsPaymentModalOpen(true);
-                    }}
+                    onCollectPayment={() => {}}
                     isGenerating={generateEarlyInvoice.isPending}
                     isCancelling={cancelSubscription.isPending}
                     hideRevenue={true}

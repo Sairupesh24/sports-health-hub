@@ -17,6 +17,7 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { ClientGroupsModal } from "@/components/admin/ClientGroupsModal";
+import { formatClientName } from "@/lib/utils";
 
 export default function SportsScientistClients() {
     const navigate = useNavigate();
@@ -184,7 +185,7 @@ export default function SportsScientistClients() {
                                                 >
                                                     <div className="flex flex-col">
                                                         <span className="font-bold text-slate-900 group-hover:text-primary transition-colors hover:underline">
-                                                            {[c.honorific, c.first_name, c.last_name].filter(Boolean).join(" ")}
+                                                            {formatClientName(c, { includeHonorific: true })}
                                                         </span>
                                                         <span className="text-xs text-muted-foreground font-mono">{c.uhid}</span>
                                                     </div>

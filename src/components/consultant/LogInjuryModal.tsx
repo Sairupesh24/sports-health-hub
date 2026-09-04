@@ -9,6 +9,7 @@ import { toast } from "@/hooks/use-toast";
 import { PlusCircle } from "lucide-react";
 import { apiFetch } from "@/utils/api";
 import { useAuth } from "@/contexts/AuthContext";
+import { formatClientName } from "@/lib/utils";
 
 interface LogInjuryModalProps {
     clientId?: string;
@@ -158,7 +159,7 @@ export default function LogInjuryModal({ clientId, organizationId, onSuccess }: 
                                 <SelectContent>
                                     {clients.map(c => (
                                         <SelectItem key={c.id} value={c.id}>
-                                            {c.first_name} {c.last_name}
+                                            {formatClientName(c)}
                                         </SelectItem>
                                     ))}
                                 </SelectContent>

@@ -12,7 +12,7 @@ router.get('/injuries', requireAuth, async (req, res) => {
         
         let query = `
             SELECT i.*, 
-                   c.first_name, c.last_name, c.id as client_id_raw,
+                   c.first_name, c.middle_name, c.last_name, c.honorific, c.id as client_id_raw,
                    (SELECT row_to_json(rp_sub) FROM (SELECT * FROM rehab_progress WHERE injury_id = i.id ORDER BY created_at DESC LIMIT 1) rp_sub) as latest_rehab
             FROM Injuries i
             LEFT JOIN Clients c ON i.client_id = c.id
@@ -136,7 +136,7 @@ router.get('/dashboard/stats', requireAuth, async (req, res) => {
         
         // 1. Today's sessions
         const sessionsRes = await db.query(`
-            SELECT s.*, c.first_name, c.last_name, c.is_vip,
+            SELECT s.*, c.first_name, c.middle_name, c.last_name, c.honorific, c.is_vip,
                    json_build_object('first_name', p.first_name, 'last_name', p.last_name) as therapist
             FROM Sessions s
             LEFT JOIN Clients c ON s.client_id = c.id
@@ -624,7 +624,7 @@ router.get('/nutrition/dashboard/stats', requireAuth, async (req, res) => {
 
         if (search) {
             params.push(`%${search}%`);
-            query += ` AND (c.first_name ILIKE $${params.length} OR c.last_name ILIKE $${params.length} OR c.uhid ILIKE $${params.length} OR c.mobile_no ILIKE $${params.length})`;
+            query += ` AND (c.first_name ILIKE $${params.length} OR c.middle_name ILIKE $${params.length} OR c.last_name ILIKE $${params.length} OR c.uhid ILIKE $${params.length} OR c.mobile_no ILIKE $${params.length})`;
         }
 
         query += ` ORDER BY c.registered_on DESC, c.created_at DESC`;
@@ -636,7 +636,7 @@ router.get('/nutrition/dashboard/stats', requireAuth, async (req, res) => {
             const allergies = latest.allergies_intolerances || (row.allergies ? [row.allergies] : []);
             return {
                 id: row.id,
-                name: `${row.first_name || ''} ${row.last_name || ''}`.trim(),
+                name: [row.honorific, row.first_name, row.middle_name, row.last_name].filter(Boolean).join(' '),
                 uhid: row.uhid || 'N/A',
                 sport_or_goal: row.sport || row.occupation || '--',
                 preference: latest.dietary_preference || 'Not Set',
@@ -654,7 +654,7 @@ router.get('/nutrition/dashboard/stats', requireAuth, async (req, res) => {
         const todayEnd = new Date(); todayEnd.setHours(23,59,59,999);
         const todaySessionsRes = await db.query(`
             SELECT s.id, s.scheduled_start, s.service_type, s.status,
-                   c.id as client_id, c.first_name, c.last_name, c.uhid, c.sport, c.occupation,
+                   c.id as client_id, c.first_name, c.middle_name, c.last_name, c.honorific, c.uhid, c.sport, c.occupation,
                    (
                      SELECT row_to_json(na_sub) FROM (
                        SELECT * FROM nutrition_assessments 
@@ -690,7 +690,7 @@ router.get('/nutrition/dashboard/stats', requireAuth, async (req, res) => {
                 service_type: row.service_type || 'Nutrition Consultation',
                 status: row.status || 'Planned',
                 client_id: row.client_id,
-                client_name: `${row.first_name || ''} ${row.last_name || ''}`.trim(),
+                client_name: [row.first_name, row.middle_name, row.last_name].filter(Boolean).join(' ') || `${row.first_name || ''} ${row.last_name || ''}`.trim(),
                 uhid: row.uhid || 'N/A',
                 sport_or_goal: row.sport || row.occupation || '--',
                 preference: latest.dietary_preference || 'Not Set',
@@ -731,7 +731,7 @@ router.get('/nutrition/dashboard/stats', requireAuth, async (req, res) => {
             const allergies = latest.allergies_intolerances || (row.allergies ? [row.allergies] : []);
             return {
                 id: row.id,
-                name: `${row.first_name || ''} ${row.last_name || ''}`.trim(),
+                name: [row.first_name, row.middle_name, row.last_name].filter(Boolean).join(' ') || `${row.first_name || ''} ${row.last_name || ''}`.trim(),
                 uhid: row.uhid || 'N/A',
                 registered_on: row.registered_on || row.created_at || null,
                 mobile_no: row.mobile_no || '--',

@@ -13,7 +13,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { apiFetch } from "@/utils/api";
-import { cn } from "@/lib/utils";
+import { cn, formatClientName } from "@/lib/utils";
 import {
   User,
   Activity,
@@ -125,7 +125,7 @@ export default function NutritionAssessmentForm({
   }, [clientId, initialData?.client_id]);
 
   const handleSelectClient = (c: any) => {
-    const fullName = `${c.first_name || ""} ${c.last_name || ""}`.trim() || "Unnamed Client";
+    const fullName = formatClientName(c) || "Unnamed Client";
     setName(fullName);
     setSelectedClientId(c.id);
     setSelectedClientUhid(c.uhid || "");
@@ -584,7 +584,7 @@ export default function NutritionAssessmentForm({
                           </CommandEmpty>
                           <CommandGroup>
                             {clients.map((c) => {
-                              const fullName = `${c.first_name || ""} ${c.last_name || ""}`.trim() || "Unnamed Client";
+                              const fullName = formatClientName(c) || "Unnamed Client";
                               const isSelected = selectedClientId === c.id;
                               return (
                                 <CommandItem

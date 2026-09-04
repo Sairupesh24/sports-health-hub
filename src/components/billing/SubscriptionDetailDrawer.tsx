@@ -15,7 +15,7 @@ import {
     CreditCard
 } from "lucide-react";
 import { format } from "date-fns";
-import { cn } from "@/lib/utils";
+import { cn, formatClientName } from "@/lib/utils";
 
 interface SubscriptionDetailDrawerProps {
     open: boolean;
@@ -54,7 +54,7 @@ export function SubscriptionDetailDrawer({
                         </div>
                         <div>
                             <SheetTitle className="text-2xl font-black text-slate-900 tracking-tight">Membership Details</SheetTitle>
-                            <SheetDescription className="font-medium text-slate-500">Full history and status for {subscription.client?.first_name} {subscription.client?.last_name}</SheetDescription>
+                            <SheetDescription className="font-medium text-slate-500">Full history and status for {formatClientName(subscription.client)}</SheetDescription>
                         </div>
                     </div>
                 </SheetHeader>

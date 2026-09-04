@@ -9,6 +9,7 @@ import { toast } from "@/hooks/use-toast";
 import { format, addHours } from "date-fns";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { VIPBadge } from "@/components/ui/VIPBadge";
+import { formatClientName } from "@/lib/utils";
 
 interface EmergencyLeaveModalProps {
   open: boolean;
@@ -34,7 +35,7 @@ export default function EmergencyLeaveModal({ open, onOpenChange }: EmergencyLea
 
   const checkExistingEmergency = async () => {
     try {
-      const data = await apiFetch('/hr/emergency-alerts/today');
+      const data = await apiFetch<any[]>('/hr/emergency-alerts/today');
       if (data && data.length > 0) {
         setExistingEmergency(data[0]);
       }
@@ -51,12 +52,13 @@ export default function EmergencyLeaveModal({ open, onOpenChange }: EmergencyLea
 
       const isScientist = profile?.ams_role === 'sports_scientist' || profile?.profession === 'Sports Scientist';
       const roleFilter = isScientist ? 'scientist_id' : 'therapist_id';
-      const data = await apiFetch(`/api/appointments?${roleFilter}=${profile?.id}&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`);
+      const data = await apiFetch<any[]>(`/api/appointments?${roleFilter}=${profile?.id}&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`);
       
       const mappedData = (data || []).map((session: any) => ({
         ...session,
         client: session.client || {
           first_name: session.client_first_name,
+          middle_name: session.client_middle_name,
           last_name: session.client_last_name,
           uhid: session.client_uhid,
           is_vip: session.client_is_vip
@@ -172,7 +174,7 @@ export default function EmergencyLeaveModal({ open, onOpenChange }: EmergencyLea
                         <div key={session.id} className="flex items-center justify-between p-2 rounded-lg bg-white/50 border border-destructive/5">
                           <div className="flex flex-col">
                             <div className="flex items-center gap-2">
-                              <span className="text-xs font-bold">{session.client?.first_name} {session.client?.last_name}</span>
+                              <span className="text-xs font-bold">{formatClientName(session.client)}</span>
                               <VIPBadge isVIP={session.client?.is_vip} />
                             </div>
                             <span className="text-[10px] text-muted-foreground uppercase font-medium">{session.service_type}</span>

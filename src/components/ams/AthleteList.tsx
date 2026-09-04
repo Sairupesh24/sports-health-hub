@@ -21,6 +21,7 @@ import WellnessRadarChart from "@/components/ams/charts/WellnessRadarChart";
 import ReturnToPlayChart from "@/components/ams/charts/ReturnToPlayChart";
 import { DocumentManager } from "@/components/admin/documents/DocumentManager";
 import { useAuth } from "@/contexts/AuthContext";
+import { formatClientName } from "@/lib/utils";
 
 
 
@@ -50,7 +51,7 @@ export default function AthleteList({ athletes, dateRange }: AthleteListProps) {
       const acwr = calculateACWR(acute, chronic);
       
       if (acwr > 1.5 && !toastedRef.current.has(athlete.id)) {
-        toast.error(`High Workload Warning: ${athlete.full_name} (ACWR: ${acwr})`, {
+        toast.error(`High Workload Warning: ${formatClientName(athlete) || athlete.full_name} (ACWR: ${acwr})`, {
           description: "Athlete is in the Danger Zone (> 1.5). Please adjust training load.",
           duration: Number.POSITIVE_INFINITY, // Important enough to remain
           action: {
@@ -123,7 +124,7 @@ export default function AthleteList({ athletes, dateRange }: AthleteListProps) {
                         {athlete.first_name?.[0]}{athlete.last_name?.[0] || athlete.full_name?.[0]}
                       </div>
                       <div className="flex flex-col">
-                        <span className="font-bold text-slate-800 text-sm">{athlete.full_name}</span>
+                        <span className="font-bold text-slate-800 text-sm">{formatClientName(athlete) || athlete.full_name}</span>
                         <span className="text-[10px] text-muted-foreground font-medium">{athlete.position}</span>
                       </div>
                     </div>

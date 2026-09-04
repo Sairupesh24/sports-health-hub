@@ -13,7 +13,7 @@ router.get('/dashboard-stats', requireAuth, async (req, res) => {
         const sessionsRes = await db.query(`
             SELECT s.id, s.status, s.scheduled_start, s.scheduled_end, s.service_type, COALESCE(s.therapist_id, s.scientist_id) as therapist_id, s.client_id,
                    p.first_name as therapist_first_name, p.last_name as therapist_last_name,
-                   c.first_name as client_first_name, c.last_name as client_last_name
+                   c.first_name as client_first_name, c.middle_name as client_middle_name, c.last_name as client_last_name, c.honorific as client_honorific
             FROM Sessions s
             LEFT JOIN Profiles p ON COALESCE(s.therapist_id, s.scientist_id) = p.id
             LEFT JOIN Clients c ON s.client_id = c.id
@@ -24,7 +24,7 @@ router.get('/dashboard-stats', requireAuth, async (req, res) => {
         const today = new Date().toISOString().split('T')[0];
         const todaysSessionsRes = await db.query(`
             SELECT s.id, s.status, s.scheduled_start, s.scheduled_end, s.service_type,
-                   c.first_name as client_first_name, c.last_name as client_last_name
+                   c.first_name as client_first_name, c.middle_name as client_middle_name, c.last_name as client_last_name, c.honorific as client_honorific
             FROM Sessions s
             LEFT JOIN Clients c ON s.client_id = c.id
             WHERE s.organization_id = $1
@@ -48,7 +48,7 @@ router.get('/dashboard-stats', requireAuth, async (req, res) => {
 
         // 5. Recent Clients
         const recentClientsRes = await db.query(`
-            SELECT id, first_name, last_name, created_at
+            SELECT id, first_name, middle_name, last_name, honorific, created_at
             FROM Clients
             WHERE organization_id = $1
             ORDER BY created_at DESC
@@ -67,7 +67,7 @@ router.get('/dashboard-stats', requireAuth, async (req, res) => {
         // 7. Waitlist Alerts
         const waitlistRes = await db.query(`
             SELECT w.id, w.status, w.preferred_date, w.preferred_time_slot,
-                   c.first_name as client_first_name, c.last_name as client_last_name, 
+                   c.first_name as client_first_name, c.middle_name as client_middle_name, c.last_name as client_last_name, c.honorific as client_honorific, 
                    c.is_vip, c.mobile_no
             FROM Waitlist w
             LEFT JOIN Clients c ON w.client_id = c.id

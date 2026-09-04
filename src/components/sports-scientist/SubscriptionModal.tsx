@@ -22,7 +22,7 @@ import { toast } from "sonner";
 import { Loader2, Check, ChevronsUpDown } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from "@/components/ui/command";
-import { cn } from "@/lib/utils";
+import { cn, formatClientName } from "@/lib/utils";
 
 interface SubscriptionModalProps {
     open: boolean;
@@ -98,7 +98,7 @@ export function SubscriptionModal({ open, onOpenChange, orgId, onSuccess }: Subs
                             <SelectContent>
                                 {clients?.map((c: any) => (
                                     <SelectItem key={c.id} value={c.id}>
-                                        {c.first_name} {c.last_name} ({c.uhid})
+                                        {formatClientName(c)} ({c.uhid})
                                     </SelectItem>
                                 ))}
                             </SelectContent>

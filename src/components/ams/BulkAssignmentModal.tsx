@@ -23,7 +23,7 @@ import {
 } from "lucide-react";
 import { apiFetch } from "@/utils/api";
 import { useToast } from "@/hooks/use-toast";
-import { cn } from "@/lib/utils";
+import { cn, formatClientName } from "@/lib/utils";
 import {
   Select,
   SelectContent,
@@ -109,7 +109,7 @@ export default function BulkAssignmentModal({
   };
 
   const filteredClients = clients.filter(c => {
-    const matchesSearch = `${c.first_name} ${c.last_name} ${c.uhid}`.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSearch = `${formatClientName(c)} ${c.uhid}`.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesSport = sportFilter === "all" || c.sport === sportFilter;
     const matchesTeam = teamFilter === "all" || c.org_name === teamFilter;
     return matchesSearch && matchesSport && matchesTeam;
@@ -354,7 +354,7 @@ export default function BulkAssignmentModal({
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
-                          <span className="font-black text-[12px] uppercase tracking-tight">{client.first_name} {client.last_name}</span>
+                          <span className="font-black text-[12px] uppercase tracking-tight">{formatClientName(client)}</span>
                           {client.is_vip && <Crown className="w-2.5 h-2.5 text-amber-500 fill-amber-500" />}
                         </div>
                         <div className="flex items-center gap-3 mt-0">
