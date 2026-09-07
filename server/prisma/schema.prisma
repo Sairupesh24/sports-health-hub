@@ -844,6 +844,7 @@ model profiles {
   staff_schedules                                staff_schedules?
   trainingprograms                               trainingprograms[]
   waitlist                                       waitlist[]
+  user_push_subscriptions                        user_push_subscriptions[]
 }
 
 model program_assignments {

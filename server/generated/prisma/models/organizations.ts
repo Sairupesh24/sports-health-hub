@@ -31,6 +31,7 @@ export type OrganizationsAvgAggregateOutputType = {
   clinic_longitude: runtime.Decimal | null
   geofence_radius: runtime.Decimal | null
   default_slot_duration: number | null
+  default_slot_capacity: number | null
 }
 
 export type OrganizationsSumAggregateOutputType = {
@@ -38,6 +39,7 @@ export type OrganizationsSumAggregateOutputType = {
   clinic_longitude: runtime.Decimal | null
   geofence_radius: runtime.Decimal | null
   default_slot_duration: number | null
+  default_slot_capacity: number | null
 }
 
 export type OrganizationsMinAggregateOutputType = {
@@ -64,7 +66,10 @@ export type OrganizationsMinAggregateOutputType = {
   allowed_ips: string | null
   allow_custom_duration: boolean | null
   default_slot_duration: number | null
+  default_slot_capacity: number | null
   default_checkout_time: Date | null
+  default_shift_end_time: Date | null
+  enabled_modules: string | null
 }
 
 export type OrganizationsMaxAggregateOutputType = {
@@ -91,7 +96,10 @@ export type OrganizationsMaxAggregateOutputType = {
   allowed_ips: string | null
   allow_custom_duration: boolean | null
   default_slot_duration: number | null
+  default_slot_capacity: number | null
   default_checkout_time: Date | null
+  default_shift_end_time: Date | null
+  enabled_modules: string | null
 }
 
 export type OrganizationsCountAggregateOutputType = {
@@ -118,7 +126,11 @@ export type OrganizationsCountAggregateOutputType = {
   allowed_ips: number
   allow_custom_duration: number
   default_slot_duration: number
+  default_slot_capacity: number
+  custom_specialist_settings: number
   default_checkout_time: number
+  default_shift_end_time: number
+  enabled_modules: number
   _all: number
 }
 
@@ -128,6 +140,7 @@ export type OrganizationsAvgAggregateInputType = {
   clinic_longitude?: true
   geofence_radius?: true
   default_slot_duration?: true
+  default_slot_capacity?: true
 }
 
 export type OrganizationsSumAggregateInputType = {
@@ -135,6 +148,7 @@ export type OrganizationsSumAggregateInputType = {
   clinic_longitude?: true
   geofence_radius?: true
   default_slot_duration?: true
+  default_slot_capacity?: true
 }
 
 export type OrganizationsMinAggregateInputType = {
@@ -161,7 +175,10 @@ export type OrganizationsMinAggregateInputType = {
   allowed_ips?: true
   allow_custom_duration?: true
   default_slot_duration?: true
+  default_slot_capacity?: true
   default_checkout_time?: true
+  default_shift_end_time?: true
+  enabled_modules?: true
 }
 
 export type OrganizationsMaxAggregateInputType = {
@@ -188,7 +205,10 @@ export type OrganizationsMaxAggregateInputType = {
   allowed_ips?: true
   allow_custom_duration?: true
   default_slot_duration?: true
+  default_slot_capacity?: true
   default_checkout_time?: true
+  default_shift_end_time?: true
+  enabled_modules?: true
 }
 
 export type OrganizationsCountAggregateInputType = {
@@ -215,7 +235,11 @@ export type OrganizationsCountAggregateInputType = {
   allowed_ips?: true
   allow_custom_duration?: true
   default_slot_duration?: true
+  default_slot_capacity?: true
+  custom_specialist_settings?: true
   default_checkout_time?: true
+  default_shift_end_time?: true
+  enabled_modules?: true
   _all?: true
 }
 
@@ -329,7 +353,11 @@ export type OrganizationsGroupByOutputType = {
   allowed_ips: string | null
   allow_custom_duration: boolean | null
   default_slot_duration: number | null
+  default_slot_capacity: number | null
+  custom_specialist_settings: runtime.JsonValue | null
   default_checkout_time: Date | null
+  default_shift_end_time: Date | null
+  enabled_modules: string | null
   _count: OrganizationsCountAggregateOutputType | null
   _avg: OrganizationsAvgAggregateOutputType | null
   _sum: OrganizationsSumAggregateOutputType | null
@@ -379,7 +407,11 @@ export type organizationsWhereInput = {
   allowed_ips?: Prisma.StringNullableFilter<"organizations"> | string | null
   allow_custom_duration?: Prisma.BoolNullableFilter<"organizations"> | boolean | null
   default_slot_duration?: Prisma.IntNullableFilter<"organizations"> | number | null
+  default_slot_capacity?: Prisma.IntNullableFilter<"organizations"> | number | null
+  custom_specialist_settings?: Prisma.JsonNullableFilter<"organizations">
   default_checkout_time?: Prisma.DateTimeNullableFilter<"organizations"> | Date | string | null
+  default_shift_end_time?: Prisma.DateTimeNullableFilter<"organizations"> | Date | string | null
+  enabled_modules?: Prisma.StringNullableFilter<"organizations"> | string | null
   athlete_item_logs?: Prisma.Athlete_item_logsListRelationFilter
   athlete_workout_completions?: Prisma.Athlete_workout_completionsListRelationFilter
   availabilityexceptions?: Prisma.AvailabilityexceptionsListRelationFilter
@@ -388,6 +420,7 @@ export type organizationsWhereInput = {
   bills?: Prisma.BillsListRelationFilter
   bulk_assignments?: Prisma.Bulk_assignmentsListRelationFilter
   client_assessment_reports?: Prisma.Client_assessment_reportsListRelationFilter
+  client_field_config?: Prisma.Client_field_configListRelationFilter
   client_groups?: Prisma.Client_groupsListRelationFilter
   clientdocuments?: Prisma.ClientdocumentsListRelationFilter
   cliententitlements?: Prisma.CliententitlementsListRelationFilter
@@ -455,7 +488,11 @@ export type organizationsOrderByWithRelationInput = {
   allowed_ips?: Prisma.SortOrderInput | Prisma.SortOrder
   allow_custom_duration?: Prisma.SortOrderInput | Prisma.SortOrder
   default_slot_duration?: Prisma.SortOrderInput | Prisma.SortOrder
+  default_slot_capacity?: Prisma.SortOrderInput | Prisma.SortOrder
+  custom_specialist_settings?: Prisma.SortOrderInput | Prisma.SortOrder
   default_checkout_time?: Prisma.SortOrderInput | Prisma.SortOrder
+  default_shift_end_time?: Prisma.SortOrderInput | Prisma.SortOrder
+  enabled_modules?: Prisma.SortOrderInput | Prisma.SortOrder
   athlete_item_logs?: Prisma.athlete_item_logsOrderByRelationAggregateInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsOrderByRelationAggregateInput
   availabilityexceptions?: Prisma.availabilityexceptionsOrderByRelationAggregateInput
@@ -464,6 +501,7 @@ export type organizationsOrderByWithRelationInput = {
   bills?: Prisma.billsOrderByRelationAggregateInput
   bulk_assignments?: Prisma.bulk_assignmentsOrderByRelationAggregateInput
   client_assessment_reports?: Prisma.client_assessment_reportsOrderByRelationAggregateInput
+  client_field_config?: Prisma.client_field_configOrderByRelationAggregateInput
   client_groups?: Prisma.client_groupsOrderByRelationAggregateInput
   clientdocuments?: Prisma.clientdocumentsOrderByRelationAggregateInput
   cliententitlements?: Prisma.cliententitlementsOrderByRelationAggregateInput
@@ -534,7 +572,11 @@ export type organizationsWhereUniqueInput = Prisma.AtLeast<{
   allowed_ips?: Prisma.StringNullableFilter<"organizations"> | string | null
   allow_custom_duration?: Prisma.BoolNullableFilter<"organizations"> | boolean | null
   default_slot_duration?: Prisma.IntNullableFilter<"organizations"> | number | null
+  default_slot_capacity?: Prisma.IntNullableFilter<"organizations"> | number | null
+  custom_specialist_settings?: Prisma.JsonNullableFilter<"organizations">
   default_checkout_time?: Prisma.DateTimeNullableFilter<"organizations"> | Date | string | null
+  default_shift_end_time?: Prisma.DateTimeNullableFilter<"organizations"> | Date | string | null
+  enabled_modules?: Prisma.StringNullableFilter<"organizations"> | string | null
   athlete_item_logs?: Prisma.Athlete_item_logsListRelationFilter
   athlete_workout_completions?: Prisma.Athlete_workout_completionsListRelationFilter
   availabilityexceptions?: Prisma.AvailabilityexceptionsListRelationFilter
@@ -543,6 +585,7 @@ export type organizationsWhereUniqueInput = Prisma.AtLeast<{
   bills?: Prisma.BillsListRelationFilter
   bulk_assignments?: Prisma.Bulk_assignmentsListRelationFilter
   client_assessment_reports?: Prisma.Client_assessment_reportsListRelationFilter
+  client_field_config?: Prisma.Client_field_configListRelationFilter
   client_groups?: Prisma.Client_groupsListRelationFilter
   clientdocuments?: Prisma.ClientdocumentsListRelationFilter
   cliententitlements?: Prisma.CliententitlementsListRelationFilter
@@ -610,7 +653,11 @@ export type organizationsOrderByWithAggregationInput = {
   allowed_ips?: Prisma.SortOrderInput | Prisma.SortOrder
   allow_custom_duration?: Prisma.SortOrderInput | Prisma.SortOrder
   default_slot_duration?: Prisma.SortOrderInput | Prisma.SortOrder
+  default_slot_capacity?: Prisma.SortOrderInput | Prisma.SortOrder
+  custom_specialist_settings?: Prisma.SortOrderInput | Prisma.SortOrder
   default_checkout_time?: Prisma.SortOrderInput | Prisma.SortOrder
+  default_shift_end_time?: Prisma.SortOrderInput | Prisma.SortOrder
+  enabled_modules?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.organizationsCountOrderByAggregateInput
   _avg?: Prisma.organizationsAvgOrderByAggregateInput
   _max?: Prisma.organizationsMaxOrderByAggregateInput
@@ -645,7 +692,11 @@ export type organizationsScalarWhereWithAggregatesInput = {
   allowed_ips?: Prisma.StringNullableWithAggregatesFilter<"organizations"> | string | null
   allow_custom_duration?: Prisma.BoolNullableWithAggregatesFilter<"organizations"> | boolean | null
   default_slot_duration?: Prisma.IntNullableWithAggregatesFilter<"organizations"> | number | null
+  default_slot_capacity?: Prisma.IntNullableWithAggregatesFilter<"organizations"> | number | null
+  custom_specialist_settings?: Prisma.JsonNullableWithAggregatesFilter<"organizations">
   default_checkout_time?: Prisma.DateTimeNullableWithAggregatesFilter<"organizations"> | Date | string | null
+  default_shift_end_time?: Prisma.DateTimeNullableWithAggregatesFilter<"organizations"> | Date | string | null
+  enabled_modules?: Prisma.StringNullableWithAggregatesFilter<"organizations"> | string | null
 }
 
 export type organizationsCreateInput = {
@@ -672,7 +723,11 @@ export type organizationsCreateInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_slot_capacity?: number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Date | string | null
+  default_shift_end_time?: Date | string | null
+  enabled_modules?: string | null
   athlete_item_logs?: Prisma.athlete_item_logsCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutOrganizationsInput
@@ -681,6 +736,7 @@ export type organizationsCreateInput = {
   bills?: Prisma.billsCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutOrganizationsInput
+  client_field_config?: Prisma.client_field_configCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutOrganizationsInput
   cliententitlements?: Prisma.cliententitlementsCreateNestedManyWithoutOrganizationsInput
@@ -748,7 +804,11 @@ export type organizationsUncheckedCreateInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_slot_capacity?: number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Date | string | null
+  default_shift_end_time?: Date | string | null
+  enabled_modules?: string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -757,6 +817,7 @@ export type organizationsUncheckedCreateInput = {
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutOrganizationsInput
+  client_field_config?: Prisma.client_field_configUncheckedCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsUncheckedCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutOrganizationsInput
   cliententitlements?: Prisma.cliententitlementsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -824,7 +885,11 @@ export type organizationsUpdateInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_slot_capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  default_shift_end_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  enabled_modules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutOrganizationsNestedInput
@@ -833,6 +898,7 @@ export type organizationsUpdateInput = {
   bills?: Prisma.billsUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutOrganizationsNestedInput
+  client_field_config?: Prisma.client_field_configUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutOrganizationsNestedInput
   cliententitlements?: Prisma.cliententitlementsUpdateManyWithoutOrganizationsNestedInput
@@ -900,7 +966,11 @@ export type organizationsUncheckedUpdateInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_slot_capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  default_shift_end_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  enabled_modules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -909,6 +979,7 @@ export type organizationsUncheckedUpdateInput = {
   bills?: Prisma.billsUncheckedUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  client_field_config?: Prisma.client_field_configUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUncheckedUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   cliententitlements?: Prisma.cliententitlementsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -976,7 +1047,11 @@ export type organizationsCreateManyInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_slot_capacity?: number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Date | string | null
+  default_shift_end_time?: Date | string | null
+  enabled_modules?: string | null
 }
 
 export type organizationsUpdateManyMutationInput = {
@@ -1003,7 +1078,11 @@ export type organizationsUpdateManyMutationInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_slot_capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  default_shift_end_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  enabled_modules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type organizationsUncheckedUpdateManyInput = {
@@ -1030,7 +1109,11 @@ export type organizationsUncheckedUpdateManyInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_slot_capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  default_shift_end_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  enabled_modules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type OrganizationsNullableScalarRelationFilter = {
@@ -1067,7 +1150,11 @@ export type organizationsCountOrderByAggregateInput = {
   allowed_ips?: Prisma.SortOrder
   allow_custom_duration?: Prisma.SortOrder
   default_slot_duration?: Prisma.SortOrder
+  default_slot_capacity?: Prisma.SortOrder
+  custom_specialist_settings?: Prisma.SortOrder
   default_checkout_time?: Prisma.SortOrder
+  default_shift_end_time?: Prisma.SortOrder
+  enabled_modules?: Prisma.SortOrder
 }
 
 export type organizationsAvgOrderByAggregateInput = {
@@ -1075,6 +1162,7 @@ export type organizationsAvgOrderByAggregateInput = {
   clinic_longitude?: Prisma.SortOrder
   geofence_radius?: Prisma.SortOrder
   default_slot_duration?: Prisma.SortOrder
+  default_slot_capacity?: Prisma.SortOrder
 }
 
 export type organizationsMaxOrderByAggregateInput = {
@@ -1101,7 +1189,10 @@ export type organizationsMaxOrderByAggregateInput = {
   allowed_ips?: Prisma.SortOrder
   allow_custom_duration?: Prisma.SortOrder
   default_slot_duration?: Prisma.SortOrder
+  default_slot_capacity?: Prisma.SortOrder
   default_checkout_time?: Prisma.SortOrder
+  default_shift_end_time?: Prisma.SortOrder
+  enabled_modules?: Prisma.SortOrder
 }
 
 export type organizationsMinOrderByAggregateInput = {
@@ -1128,7 +1219,10 @@ export type organizationsMinOrderByAggregateInput = {
   allowed_ips?: Prisma.SortOrder
   allow_custom_duration?: Prisma.SortOrder
   default_slot_duration?: Prisma.SortOrder
+  default_slot_capacity?: Prisma.SortOrder
   default_checkout_time?: Prisma.SortOrder
+  default_shift_end_time?: Prisma.SortOrder
+  enabled_modules?: Prisma.SortOrder
 }
 
 export type organizationsSumOrderByAggregateInput = {
@@ -1136,6 +1230,7 @@ export type organizationsSumOrderByAggregateInput = {
   clinic_longitude?: Prisma.SortOrder
   geofence_radius?: Prisma.SortOrder
   default_slot_duration?: Prisma.SortOrder
+  default_slot_capacity?: Prisma.SortOrder
 }
 
 export type organizationsCreateNestedOneWithoutAthlete_item_logsInput = {
@@ -1282,6 +1377,20 @@ export type organizationsUpdateOneRequiredWithoutClientdocumentsNestedInput = {
   upsert?: Prisma.organizationsUpsertWithoutClientdocumentsInput
   connect?: Prisma.organizationsWhereUniqueInput
   update?: Prisma.XOR<Prisma.XOR<Prisma.organizationsUpdateToOneWithWhereWithoutClientdocumentsInput, Prisma.organizationsUpdateWithoutClientdocumentsInput>, Prisma.organizationsUncheckedUpdateWithoutClientdocumentsInput>
+}
+
+export type organizationsCreateNestedOneWithoutClient_field_configInput = {
+  create?: Prisma.XOR<Prisma.organizationsCreateWithoutClient_field_configInput, Prisma.organizationsUncheckedCreateWithoutClient_field_configInput>
+  connectOrCreate?: Prisma.organizationsCreateOrConnectWithoutClient_field_configInput
+  connect?: Prisma.organizationsWhereUniqueInput
+}
+
+export type organizationsUpdateOneRequiredWithoutClient_field_configNestedInput = {
+  create?: Prisma.XOR<Prisma.organizationsCreateWithoutClient_field_configInput, Prisma.organizationsUncheckedCreateWithoutClient_field_configInput>
+  connectOrCreate?: Prisma.organizationsCreateOrConnectWithoutClient_field_configInput
+  upsert?: Prisma.organizationsUpsertWithoutClient_field_configInput
+  connect?: Prisma.organizationsWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.organizationsUpdateToOneWithWhereWithoutClient_field_configInput, Prisma.organizationsUpdateWithoutClient_field_configInput>, Prisma.organizationsUncheckedUpdateWithoutClient_field_configInput>
 }
 
 export type organizationsCreateNestedOneWithoutCliententitlementsInput = {
@@ -1868,7 +1977,11 @@ export type organizationsCreateWithoutAthlete_item_logsInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_slot_capacity?: number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Date | string | null
+  default_shift_end_time?: Date | string | null
+  enabled_modules?: string | null
   athlete_workout_completions?: Prisma.athlete_workout_completionsCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutOrganizationsInput
   billitems?: Prisma.billitemsCreateNestedManyWithoutOrganizationsInput
@@ -1876,6 +1989,7 @@ export type organizationsCreateWithoutAthlete_item_logsInput = {
   bills?: Prisma.billsCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutOrganizationsInput
+  client_field_config?: Prisma.client_field_configCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutOrganizationsInput
   cliententitlements?: Prisma.cliententitlementsCreateNestedManyWithoutOrganizationsInput
@@ -1943,7 +2057,11 @@ export type organizationsUncheckedCreateWithoutAthlete_item_logsInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_slot_capacity?: number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Date | string | null
+  default_shift_end_time?: Date | string | null
+  enabled_modules?: string | null
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutOrganizationsInput
   billitems?: Prisma.billitemsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -1951,6 +2069,7 @@ export type organizationsUncheckedCreateWithoutAthlete_item_logsInput = {
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutOrganizationsInput
+  client_field_config?: Prisma.client_field_configUncheckedCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsUncheckedCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutOrganizationsInput
   cliententitlements?: Prisma.cliententitlementsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -2034,7 +2153,11 @@ export type organizationsUpdateWithoutAthlete_item_logsInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_slot_capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  default_shift_end_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  enabled_modules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   athlete_workout_completions?: Prisma.athlete_workout_completionsUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutOrganizationsNestedInput
   billitems?: Prisma.billitemsUpdateManyWithoutOrganizationsNestedInput
@@ -2042,6 +2165,7 @@ export type organizationsUpdateWithoutAthlete_item_logsInput = {
   bills?: Prisma.billsUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutOrganizationsNestedInput
+  client_field_config?: Prisma.client_field_configUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutOrganizationsNestedInput
   cliententitlements?: Prisma.cliententitlementsUpdateManyWithoutOrganizationsNestedInput
@@ -2109,7 +2233,11 @@ export type organizationsUncheckedUpdateWithoutAthlete_item_logsInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_slot_capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  default_shift_end_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  enabled_modules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutOrganizationsNestedInput
   billitems?: Prisma.billitemsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -2117,6 +2245,7 @@ export type organizationsUncheckedUpdateWithoutAthlete_item_logsInput = {
   bills?: Prisma.billsUncheckedUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  client_field_config?: Prisma.client_field_configUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUncheckedUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   cliententitlements?: Prisma.cliententitlementsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -2184,7 +2313,11 @@ export type organizationsCreateWithoutAthlete_workout_completionsInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_slot_capacity?: number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Date | string | null
+  default_shift_end_time?: Date | string | null
+  enabled_modules?: string | null
   athlete_item_logs?: Prisma.athlete_item_logsCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutOrganizationsInput
   billitems?: Prisma.billitemsCreateNestedManyWithoutOrganizationsInput
@@ -2192,6 +2325,7 @@ export type organizationsCreateWithoutAthlete_workout_completionsInput = {
   bills?: Prisma.billsCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutOrganizationsInput
+  client_field_config?: Prisma.client_field_configCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutOrganizationsInput
   cliententitlements?: Prisma.cliententitlementsCreateNestedManyWithoutOrganizationsInput
@@ -2259,7 +2393,11 @@ export type organizationsUncheckedCreateWithoutAthlete_workout_completionsInput 
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_slot_capacity?: number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Date | string | null
+  default_shift_end_time?: Date | string | null
+  enabled_modules?: string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutOrganizationsInput
   billitems?: Prisma.billitemsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -2267,6 +2405,7 @@ export type organizationsUncheckedCreateWithoutAthlete_workout_completionsInput 
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutOrganizationsInput
+  client_field_config?: Prisma.client_field_configUncheckedCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsUncheckedCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutOrganizationsInput
   cliententitlements?: Prisma.cliententitlementsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -2350,7 +2489,11 @@ export type organizationsUpdateWithoutAthlete_workout_completionsInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_slot_capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  default_shift_end_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  enabled_modules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutOrganizationsNestedInput
   billitems?: Prisma.billitemsUpdateManyWithoutOrganizationsNestedInput
@@ -2358,6 +2501,7 @@ export type organizationsUpdateWithoutAthlete_workout_completionsInput = {
   bills?: Prisma.billsUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutOrganizationsNestedInput
+  client_field_config?: Prisma.client_field_configUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutOrganizationsNestedInput
   cliententitlements?: Prisma.cliententitlementsUpdateManyWithoutOrganizationsNestedInput
@@ -2425,7 +2569,11 @@ export type organizationsUncheckedUpdateWithoutAthlete_workout_completionsInput 
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_slot_capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  default_shift_end_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  enabled_modules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutOrganizationsNestedInput
   billitems?: Prisma.billitemsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -2433,6 +2581,7 @@ export type organizationsUncheckedUpdateWithoutAthlete_workout_completionsInput 
   bills?: Prisma.billsUncheckedUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  client_field_config?: Prisma.client_field_configUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUncheckedUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   cliententitlements?: Prisma.cliententitlementsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -2500,7 +2649,11 @@ export type organizationsCreateWithoutAvailabilityexceptionsInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_slot_capacity?: number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Date | string | null
+  default_shift_end_time?: Date | string | null
+  enabled_modules?: string | null
   athlete_item_logs?: Prisma.athlete_item_logsCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsCreateNestedManyWithoutOrganizationsInput
   billitems?: Prisma.billitemsCreateNestedManyWithoutOrganizationsInput
@@ -2508,6 +2661,7 @@ export type organizationsCreateWithoutAvailabilityexceptionsInput = {
   bills?: Prisma.billsCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutOrganizationsInput
+  client_field_config?: Prisma.client_field_configCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutOrganizationsInput
   cliententitlements?: Prisma.cliententitlementsCreateNestedManyWithoutOrganizationsInput
@@ -2575,7 +2729,11 @@ export type organizationsUncheckedCreateWithoutAvailabilityexceptionsInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_slot_capacity?: number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Date | string | null
+  default_shift_end_time?: Date | string | null
+  enabled_modules?: string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedCreateNestedManyWithoutOrganizationsInput
   billitems?: Prisma.billitemsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -2583,6 +2741,7 @@ export type organizationsUncheckedCreateWithoutAvailabilityexceptionsInput = {
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutOrganizationsInput
+  client_field_config?: Prisma.client_field_configUncheckedCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsUncheckedCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutOrganizationsInput
   cliententitlements?: Prisma.cliententitlementsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -2666,7 +2825,11 @@ export type organizationsUpdateWithoutAvailabilityexceptionsInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_slot_capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  default_shift_end_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  enabled_modules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUpdateManyWithoutOrganizationsNestedInput
   billitems?: Prisma.billitemsUpdateManyWithoutOrganizationsNestedInput
@@ -2674,6 +2837,7 @@ export type organizationsUpdateWithoutAvailabilityexceptionsInput = {
   bills?: Prisma.billsUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutOrganizationsNestedInput
+  client_field_config?: Prisma.client_field_configUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutOrganizationsNestedInput
   cliententitlements?: Prisma.cliententitlementsUpdateManyWithoutOrganizationsNestedInput
@@ -2741,7 +2905,11 @@ export type organizationsUncheckedUpdateWithoutAvailabilityexceptionsInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_slot_capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  default_shift_end_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  enabled_modules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedUpdateManyWithoutOrganizationsNestedInput
   billitems?: Prisma.billitemsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -2749,6 +2917,7 @@ export type organizationsUncheckedUpdateWithoutAvailabilityexceptionsInput = {
   bills?: Prisma.billsUncheckedUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  client_field_config?: Prisma.client_field_configUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUncheckedUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   cliententitlements?: Prisma.cliententitlementsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -2816,7 +2985,11 @@ export type organizationsCreateWithoutBillitemsInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_slot_capacity?: number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Date | string | null
+  default_shift_end_time?: Date | string | null
+  enabled_modules?: string | null
   athlete_item_logs?: Prisma.athlete_item_logsCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutOrganizationsInput
@@ -2824,6 +2997,7 @@ export type organizationsCreateWithoutBillitemsInput = {
   bills?: Prisma.billsCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutOrganizationsInput
+  client_field_config?: Prisma.client_field_configCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutOrganizationsInput
   cliententitlements?: Prisma.cliententitlementsCreateNestedManyWithoutOrganizationsInput
@@ -2891,7 +3065,11 @@ export type organizationsUncheckedCreateWithoutBillitemsInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_slot_capacity?: number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Date | string | null
+  default_shift_end_time?: Date | string | null
+  enabled_modules?: string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -2899,6 +3077,7 @@ export type organizationsUncheckedCreateWithoutBillitemsInput = {
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutOrganizationsInput
+  client_field_config?: Prisma.client_field_configUncheckedCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsUncheckedCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutOrganizationsInput
   cliententitlements?: Prisma.cliententitlementsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -2982,7 +3161,11 @@ export type organizationsUpdateWithoutBillitemsInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_slot_capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  default_shift_end_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  enabled_modules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutOrganizationsNestedInput
@@ -2990,6 +3173,7 @@ export type organizationsUpdateWithoutBillitemsInput = {
   bills?: Prisma.billsUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutOrganizationsNestedInput
+  client_field_config?: Prisma.client_field_configUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutOrganizationsNestedInput
   cliententitlements?: Prisma.cliententitlementsUpdateManyWithoutOrganizationsNestedInput
@@ -3057,7 +3241,11 @@ export type organizationsUncheckedUpdateWithoutBillitemsInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_slot_capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  default_shift_end_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  enabled_modules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -3065,6 +3253,7 @@ export type organizationsUncheckedUpdateWithoutBillitemsInput = {
   bills?: Prisma.billsUncheckedUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  client_field_config?: Prisma.client_field_configUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUncheckedUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   cliententitlements?: Prisma.cliententitlementsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -3132,7 +3321,11 @@ export type organizationsCreateWithoutBillpaymentsInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_slot_capacity?: number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Date | string | null
+  default_shift_end_time?: Date | string | null
+  enabled_modules?: string | null
   athlete_item_logs?: Prisma.athlete_item_logsCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutOrganizationsInput
@@ -3140,6 +3333,7 @@ export type organizationsCreateWithoutBillpaymentsInput = {
   bills?: Prisma.billsCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutOrganizationsInput
+  client_field_config?: Prisma.client_field_configCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutOrganizationsInput
   cliententitlements?: Prisma.cliententitlementsCreateNestedManyWithoutOrganizationsInput
@@ -3207,7 +3401,11 @@ export type organizationsUncheckedCreateWithoutBillpaymentsInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_slot_capacity?: number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Date | string | null
+  default_shift_end_time?: Date | string | null
+  enabled_modules?: string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -3215,6 +3413,7 @@ export type organizationsUncheckedCreateWithoutBillpaymentsInput = {
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutOrganizationsInput
+  client_field_config?: Prisma.client_field_configUncheckedCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsUncheckedCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutOrganizationsInput
   cliententitlements?: Prisma.cliententitlementsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -3298,7 +3497,11 @@ export type organizationsUpdateWithoutBillpaymentsInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_slot_capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  default_shift_end_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  enabled_modules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutOrganizationsNestedInput
@@ -3306,6 +3509,7 @@ export type organizationsUpdateWithoutBillpaymentsInput = {
   bills?: Prisma.billsUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutOrganizationsNestedInput
+  client_field_config?: Prisma.client_field_configUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutOrganizationsNestedInput
   cliententitlements?: Prisma.cliententitlementsUpdateManyWithoutOrganizationsNestedInput
@@ -3373,7 +3577,11 @@ export type organizationsUncheckedUpdateWithoutBillpaymentsInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_slot_capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  default_shift_end_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  enabled_modules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -3381,6 +3589,7 @@ export type organizationsUncheckedUpdateWithoutBillpaymentsInput = {
   bills?: Prisma.billsUncheckedUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  client_field_config?: Prisma.client_field_configUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUncheckedUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   cliententitlements?: Prisma.cliententitlementsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -3448,7 +3657,11 @@ export type organizationsCreateWithoutBillsInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_slot_capacity?: number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Date | string | null
+  default_shift_end_time?: Date | string | null
+  enabled_modules?: string | null
   athlete_item_logs?: Prisma.athlete_item_logsCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutOrganizationsInput
@@ -3456,6 +3669,7 @@ export type organizationsCreateWithoutBillsInput = {
   billpayments?: Prisma.billpaymentsCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutOrganizationsInput
+  client_field_config?: Prisma.client_field_configCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutOrganizationsInput
   cliententitlements?: Prisma.cliententitlementsCreateNestedManyWithoutOrganizationsInput
@@ -3523,7 +3737,11 @@ export type organizationsUncheckedCreateWithoutBillsInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_slot_capacity?: number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Date | string | null
+  default_shift_end_time?: Date | string | null
+  enabled_modules?: string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -3531,6 +3749,7 @@ export type organizationsUncheckedCreateWithoutBillsInput = {
   billpayments?: Prisma.billpaymentsUncheckedCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutOrganizationsInput
+  client_field_config?: Prisma.client_field_configUncheckedCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsUncheckedCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutOrganizationsInput
   cliententitlements?: Prisma.cliententitlementsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -3614,7 +3833,11 @@ export type organizationsUpdateWithoutBillsInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_slot_capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  default_shift_end_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  enabled_modules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutOrganizationsNestedInput
@@ -3622,6 +3845,7 @@ export type organizationsUpdateWithoutBillsInput = {
   billpayments?: Prisma.billpaymentsUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutOrganizationsNestedInput
+  client_field_config?: Prisma.client_field_configUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutOrganizationsNestedInput
   cliententitlements?: Prisma.cliententitlementsUpdateManyWithoutOrganizationsNestedInput
@@ -3689,7 +3913,11 @@ export type organizationsUncheckedUpdateWithoutBillsInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_slot_capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  default_shift_end_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  enabled_modules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -3697,6 +3925,7 @@ export type organizationsUncheckedUpdateWithoutBillsInput = {
   billpayments?: Prisma.billpaymentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  client_field_config?: Prisma.client_field_configUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUncheckedUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   cliententitlements?: Prisma.cliententitlementsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -3764,7 +3993,11 @@ export type organizationsCreateWithoutBulk_assignmentsInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_slot_capacity?: number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Date | string | null
+  default_shift_end_time?: Date | string | null
+  enabled_modules?: string | null
   athlete_item_logs?: Prisma.athlete_item_logsCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutOrganizationsInput
@@ -3772,6 +4005,7 @@ export type organizationsCreateWithoutBulk_assignmentsInput = {
   billpayments?: Prisma.billpaymentsCreateNestedManyWithoutOrganizationsInput
   bills?: Prisma.billsCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutOrganizationsInput
+  client_field_config?: Prisma.client_field_configCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutOrganizationsInput
   cliententitlements?: Prisma.cliententitlementsCreateNestedManyWithoutOrganizationsInput
@@ -3839,7 +4073,11 @@ export type organizationsUncheckedCreateWithoutBulk_assignmentsInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_slot_capacity?: number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Date | string | null
+  default_shift_end_time?: Date | string | null
+  enabled_modules?: string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -3847,6 +4085,7 @@ export type organizationsUncheckedCreateWithoutBulk_assignmentsInput = {
   billpayments?: Prisma.billpaymentsUncheckedCreateNestedManyWithoutOrganizationsInput
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutOrganizationsInput
+  client_field_config?: Prisma.client_field_configUncheckedCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsUncheckedCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutOrganizationsInput
   cliententitlements?: Prisma.cliententitlementsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -3930,7 +4169,11 @@ export type organizationsUpdateWithoutBulk_assignmentsInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_slot_capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  default_shift_end_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  enabled_modules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutOrganizationsNestedInput
@@ -3938,6 +4181,7 @@ export type organizationsUpdateWithoutBulk_assignmentsInput = {
   billpayments?: Prisma.billpaymentsUpdateManyWithoutOrganizationsNestedInput
   bills?: Prisma.billsUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutOrganizationsNestedInput
+  client_field_config?: Prisma.client_field_configUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutOrganizationsNestedInput
   cliententitlements?: Prisma.cliententitlementsUpdateManyWithoutOrganizationsNestedInput
@@ -4005,7 +4249,11 @@ export type organizationsUncheckedUpdateWithoutBulk_assignmentsInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_slot_capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  default_shift_end_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  enabled_modules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -4013,6 +4261,7 @@ export type organizationsUncheckedUpdateWithoutBulk_assignmentsInput = {
   billpayments?: Prisma.billpaymentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   bills?: Prisma.billsUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  client_field_config?: Prisma.client_field_configUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUncheckedUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   cliententitlements?: Prisma.cliententitlementsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -4080,7 +4329,11 @@ export type organizationsCreateWithoutClient_assessment_reportsInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_slot_capacity?: number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Date | string | null
+  default_shift_end_time?: Date | string | null
+  enabled_modules?: string | null
   athlete_item_logs?: Prisma.athlete_item_logsCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutOrganizationsInput
@@ -4088,6 +4341,7 @@ export type organizationsCreateWithoutClient_assessment_reportsInput = {
   billpayments?: Prisma.billpaymentsCreateNestedManyWithoutOrganizationsInput
   bills?: Prisma.billsCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutOrganizationsInput
+  client_field_config?: Prisma.client_field_configCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutOrganizationsInput
   cliententitlements?: Prisma.cliententitlementsCreateNestedManyWithoutOrganizationsInput
@@ -4155,7 +4409,11 @@ export type organizationsUncheckedCreateWithoutClient_assessment_reportsInput = 
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_slot_capacity?: number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Date | string | null
+  default_shift_end_time?: Date | string | null
+  enabled_modules?: string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -4163,6 +4421,7 @@ export type organizationsUncheckedCreateWithoutClient_assessment_reportsInput = 
   billpayments?: Prisma.billpaymentsUncheckedCreateNestedManyWithoutOrganizationsInput
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutOrganizationsInput
+  client_field_config?: Prisma.client_field_configUncheckedCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsUncheckedCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutOrganizationsInput
   cliententitlements?: Prisma.cliententitlementsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -4246,7 +4505,11 @@ export type organizationsUpdateWithoutClient_assessment_reportsInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_slot_capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  default_shift_end_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  enabled_modules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutOrganizationsNestedInput
@@ -4254,6 +4517,7 @@ export type organizationsUpdateWithoutClient_assessment_reportsInput = {
   billpayments?: Prisma.billpaymentsUpdateManyWithoutOrganizationsNestedInput
   bills?: Prisma.billsUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutOrganizationsNestedInput
+  client_field_config?: Prisma.client_field_configUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutOrganizationsNestedInput
   cliententitlements?: Prisma.cliententitlementsUpdateManyWithoutOrganizationsNestedInput
@@ -4321,7 +4585,11 @@ export type organizationsUncheckedUpdateWithoutClient_assessment_reportsInput = 
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_slot_capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  default_shift_end_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  enabled_modules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -4329,6 +4597,7 @@ export type organizationsUncheckedUpdateWithoutClient_assessment_reportsInput = 
   billpayments?: Prisma.billpaymentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   bills?: Prisma.billsUncheckedUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  client_field_config?: Prisma.client_field_configUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUncheckedUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   cliententitlements?: Prisma.cliententitlementsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -4396,7 +4665,11 @@ export type organizationsCreateWithoutClient_groupsInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_slot_capacity?: number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Date | string | null
+  default_shift_end_time?: Date | string | null
+  enabled_modules?: string | null
   athlete_item_logs?: Prisma.athlete_item_logsCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutOrganizationsInput
@@ -4405,6 +4678,7 @@ export type organizationsCreateWithoutClient_groupsInput = {
   bills?: Prisma.billsCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutOrganizationsInput
+  client_field_config?: Prisma.client_field_configCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutOrganizationsInput
   cliententitlements?: Prisma.cliententitlementsCreateNestedManyWithoutOrganizationsInput
   clientorganizations?: Prisma.clientorganizationsCreateNestedManyWithoutOrganizationsInput
@@ -4471,7 +4745,11 @@ export type organizationsUncheckedCreateWithoutClient_groupsInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_slot_capacity?: number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Date | string | null
+  default_shift_end_time?: Date | string | null
+  enabled_modules?: string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -4480,6 +4758,7 @@ export type organizationsUncheckedCreateWithoutClient_groupsInput = {
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutOrganizationsInput
+  client_field_config?: Prisma.client_field_configUncheckedCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutOrganizationsInput
   cliententitlements?: Prisma.cliententitlementsUncheckedCreateNestedManyWithoutOrganizationsInput
   clientorganizations?: Prisma.clientorganizationsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -4562,7 +4841,11 @@ export type organizationsUpdateWithoutClient_groupsInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_slot_capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  default_shift_end_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  enabled_modules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutOrganizationsNestedInput
@@ -4571,6 +4854,7 @@ export type organizationsUpdateWithoutClient_groupsInput = {
   bills?: Prisma.billsUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutOrganizationsNestedInput
+  client_field_config?: Prisma.client_field_configUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutOrganizationsNestedInput
   cliententitlements?: Prisma.cliententitlementsUpdateManyWithoutOrganizationsNestedInput
   clientorganizations?: Prisma.clientorganizationsUpdateManyWithoutOrganizationsNestedInput
@@ -4637,7 +4921,11 @@ export type organizationsUncheckedUpdateWithoutClient_groupsInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_slot_capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  default_shift_end_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  enabled_modules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -4646,6 +4934,7 @@ export type organizationsUncheckedUpdateWithoutClient_groupsInput = {
   bills?: Prisma.billsUncheckedUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  client_field_config?: Prisma.client_field_configUncheckedUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   cliententitlements?: Prisma.cliententitlementsUncheckedUpdateManyWithoutOrganizationsNestedInput
   clientorganizations?: Prisma.clientorganizationsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -4712,7 +5001,11 @@ export type organizationsCreateWithoutClientdocumentsInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_slot_capacity?: number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Date | string | null
+  default_shift_end_time?: Date | string | null
+  enabled_modules?: string | null
   athlete_item_logs?: Prisma.athlete_item_logsCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutOrganizationsInput
@@ -4721,6 +5014,7 @@ export type organizationsCreateWithoutClientdocumentsInput = {
   bills?: Prisma.billsCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutOrganizationsInput
+  client_field_config?: Prisma.client_field_configCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsCreateNestedManyWithoutOrganizationsInput
   cliententitlements?: Prisma.cliententitlementsCreateNestedManyWithoutOrganizationsInput
   clientorganizations?: Prisma.clientorganizationsCreateNestedManyWithoutOrganizationsInput
@@ -4787,7 +5081,11 @@ export type organizationsUncheckedCreateWithoutClientdocumentsInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_slot_capacity?: number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Date | string | null
+  default_shift_end_time?: Date | string | null
+  enabled_modules?: string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -4796,6 +5094,7 @@ export type organizationsUncheckedCreateWithoutClientdocumentsInput = {
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutOrganizationsInput
+  client_field_config?: Prisma.client_field_configUncheckedCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsUncheckedCreateNestedManyWithoutOrganizationsInput
   cliententitlements?: Prisma.cliententitlementsUncheckedCreateNestedManyWithoutOrganizationsInput
   clientorganizations?: Prisma.clientorganizationsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -4878,7 +5177,11 @@ export type organizationsUpdateWithoutClientdocumentsInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_slot_capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  default_shift_end_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  enabled_modules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutOrganizationsNestedInput
@@ -4887,6 +5190,7 @@ export type organizationsUpdateWithoutClientdocumentsInput = {
   bills?: Prisma.billsUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutOrganizationsNestedInput
+  client_field_config?: Prisma.client_field_configUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUpdateManyWithoutOrganizationsNestedInput
   cliententitlements?: Prisma.cliententitlementsUpdateManyWithoutOrganizationsNestedInput
   clientorganizations?: Prisma.clientorganizationsUpdateManyWithoutOrganizationsNestedInput
@@ -4953,7 +5257,347 @@ export type organizationsUncheckedUpdateWithoutClientdocumentsInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_slot_capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  default_shift_end_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  enabled_modules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  athlete_item_logs?: Prisma.athlete_item_logsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  billitems?: Prisma.billitemsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  billpayments?: Prisma.billpaymentsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  bills?: Prisma.billsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  client_field_config?: Prisma.client_field_configUncheckedUpdateManyWithoutOrganizationsNestedInput
+  client_groups?: Prisma.client_groupsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  cliententitlements?: Prisma.cliententitlementsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  clientorganizations?: Prisma.clientorganizationsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  clients?: Prisma.clientsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  consultant_services?: Prisma.consultant_servicesUncheckedUpdateManyWithoutOrganizationsNestedInput
+  consultantavailability?: Prisma.consultantavailabilityUncheckedUpdateManyWithoutOrganizationsNestedInput
+  emergency_alerts?: Prisma.emergency_alertsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  enquiries?: Prisma.enquiriesUncheckedUpdateManyWithoutOrganizationsNestedInput
+  excel_diagnostic_reports?: Prisma.excel_diagnostic_reportsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  exercises?: Prisma.exercisesUncheckedUpdateManyWithoutOrganizationsNestedInput
+  external_training_summary?: Prisma.external_training_summaryUncheckedUpdateManyWithoutOrganizationsNestedInput
+  form_responses?: Prisma.form_responsesUncheckedUpdateManyWithoutOrganizationsNestedInput
+  hr_employees?: Prisma.hr_employeesUncheckedUpdateManyWithoutOrganizationsNestedInput
+  hr_jobs?: Prisma.hr_jobsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  hrattendancelogs?: Prisma.hrattendancelogsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  hrleaves?: Prisma.hrleavesUncheckedUpdateManyWithoutOrganizationsNestedInput
+  injuries?: Prisma.injuriesUncheckedUpdateManyWithoutOrganizationsNestedInput
+  injury_master_data?: Prisma.injury_master_dataUncheckedUpdateManyWithoutOrganizationsNestedInput
+  locations?: Prisma.locationsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  notifications?: Prisma.notificationsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  organization_notification_settings?: Prisma.organization_notification_settingsUncheckedUpdateOneWithoutOrganizationsNestedInput
+  packages?: Prisma.packagesUncheckedUpdateManyWithoutOrganizationsNestedInput
+  performance_assessments?: Prisma.performance_assessmentsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  profiles?: Prisma.profilesUncheckedUpdateManyWithoutOrganizationsNestedInput
+  program_assignments?: Prisma.program_assignmentsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  questionnaires?: Prisma.questionnairesUncheckedUpdateManyWithoutOrganizationsNestedInput
+  referralsources?: Prisma.referralsourcesUncheckedUpdateManyWithoutOrganizationsNestedInput
+  refunds?: Prisma.refundsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  report_templates?: Prisma.report_templatesUncheckedUpdateManyWithoutOrganizationsNestedInput
+  scientific_resources?: Prisma.scientific_resourcesUncheckedUpdateManyWithoutOrganizationsNestedInput
+  services?: Prisma.servicesUncheckedUpdateManyWithoutOrganizationsNestedInput
+  sessions?: Prisma.sessionsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  staff_schedules?: Prisma.staff_schedulesUncheckedUpdateManyWithoutOrganizationsNestedInput
+  subscription_logs?: Prisma.subscription_logsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  subscriptions?: Prisma.subscriptionsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  trainingprograms?: Prisma.trainingprogramsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  uhidsequences?: Prisma.uhidsequencesUncheckedUpdateManyWithoutOrganizationsNestedInput
+  waitlist?: Prisma.waitlistUncheckedUpdateManyWithoutOrganizationsNestedInput
+  wellness_logs?: Prisma.wellness_logsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  workoutdays?: Prisma.workoutdaysUncheckedUpdateManyWithoutOrganizationsNestedInput
+}
+
+export type organizationsCreateWithoutClient_field_configInput = {
+  id?: string
+  name: string
+  created_at?: Date | string | null
+  updated_at?: Date | string | null
+  deleted_at?: Date | string | null
+  org_code?: string | null
+  slug?: string | null
+  subscription_plan?: string | null
+  status?: string | null
+  uhid_prefix?: string | null
+  logo_url?: string | null
+  official_name?: string | null
+  official_address?: string | null
+  contact_email?: string | null
+  contact_phone?: string | null
+  clinic_latitude?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  clinic_longitude?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  geofence_radius?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  enable_geofencing?: boolean | null
+  enable_ip_locking?: boolean | null
+  allowed_ips?: string | null
+  allow_custom_duration?: boolean | null
+  default_slot_duration?: number | null
+  default_slot_capacity?: number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  default_checkout_time?: Date | string | null
+  default_shift_end_time?: Date | string | null
+  enabled_modules?: string | null
+  athlete_item_logs?: Prisma.athlete_item_logsCreateNestedManyWithoutOrganizationsInput
+  athlete_workout_completions?: Prisma.athlete_workout_completionsCreateNestedManyWithoutOrganizationsInput
+  availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutOrganizationsInput
+  billitems?: Prisma.billitemsCreateNestedManyWithoutOrganizationsInput
+  billpayments?: Prisma.billpaymentsCreateNestedManyWithoutOrganizationsInput
+  bills?: Prisma.billsCreateNestedManyWithoutOrganizationsInput
+  bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutOrganizationsInput
+  client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutOrganizationsInput
+  client_groups?: Prisma.client_groupsCreateNestedManyWithoutOrganizationsInput
+  clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutOrganizationsInput
+  cliententitlements?: Prisma.cliententitlementsCreateNestedManyWithoutOrganizationsInput
+  clientorganizations?: Prisma.clientorganizationsCreateNestedManyWithoutOrganizationsInput
+  clients?: Prisma.clientsCreateNestedManyWithoutOrganizationsInput
+  consultant_services?: Prisma.consultant_servicesCreateNestedManyWithoutOrganizationsInput
+  consultantavailability?: Prisma.consultantavailabilityCreateNestedManyWithoutOrganizationsInput
+  emergency_alerts?: Prisma.emergency_alertsCreateNestedManyWithoutOrganizationsInput
+  enquiries?: Prisma.enquiriesCreateNestedManyWithoutOrganizationsInput
+  excel_diagnostic_reports?: Prisma.excel_diagnostic_reportsCreateNestedManyWithoutOrganizationsInput
+  exercises?: Prisma.exercisesCreateNestedManyWithoutOrganizationsInput
+  external_training_summary?: Prisma.external_training_summaryCreateNestedManyWithoutOrganizationsInput
+  form_responses?: Prisma.form_responsesCreateNestedManyWithoutOrganizationsInput
+  hr_employees?: Prisma.hr_employeesCreateNestedManyWithoutOrganizationsInput
+  hr_jobs?: Prisma.hr_jobsCreateNestedManyWithoutOrganizationsInput
+  hrattendancelogs?: Prisma.hrattendancelogsCreateNestedManyWithoutOrganizationsInput
+  hrleaves?: Prisma.hrleavesCreateNestedManyWithoutOrganizationsInput
+  injuries?: Prisma.injuriesCreateNestedManyWithoutOrganizationsInput
+  injury_master_data?: Prisma.injury_master_dataCreateNestedManyWithoutOrganizationsInput
+  locations?: Prisma.locationsCreateNestedManyWithoutOrganizationsInput
+  notifications?: Prisma.notificationsCreateNestedManyWithoutOrganizationsInput
+  organization_notification_settings?: Prisma.organization_notification_settingsCreateNestedOneWithoutOrganizationsInput
+  packages?: Prisma.packagesCreateNestedManyWithoutOrganizationsInput
+  performance_assessments?: Prisma.performance_assessmentsCreateNestedManyWithoutOrganizationsInput
+  profiles?: Prisma.profilesCreateNestedManyWithoutOrganizationsInput
+  program_assignments?: Prisma.program_assignmentsCreateNestedManyWithoutOrganizationsInput
+  questionnaires?: Prisma.questionnairesCreateNestedManyWithoutOrganizationsInput
+  referralsources?: Prisma.referralsourcesCreateNestedManyWithoutOrganizationsInput
+  refunds?: Prisma.refundsCreateNestedManyWithoutOrganizationsInput
+  report_templates?: Prisma.report_templatesCreateNestedManyWithoutOrganizationsInput
+  scientific_resources?: Prisma.scientific_resourcesCreateNestedManyWithoutOrganizationsInput
+  services?: Prisma.servicesCreateNestedManyWithoutOrganizationsInput
+  sessions?: Prisma.sessionsCreateNestedManyWithoutOrganizationsInput
+  staff_schedules?: Prisma.staff_schedulesCreateNestedManyWithoutOrganizationsInput
+  subscription_logs?: Prisma.subscription_logsCreateNestedManyWithoutOrganizationsInput
+  subscriptions?: Prisma.subscriptionsCreateNestedManyWithoutOrganizationsInput
+  trainingprograms?: Prisma.trainingprogramsCreateNestedManyWithoutOrganizationsInput
+  uhidsequences?: Prisma.uhidsequencesCreateNestedManyWithoutOrganizationsInput
+  waitlist?: Prisma.waitlistCreateNestedManyWithoutOrganizationsInput
+  wellness_logs?: Prisma.wellness_logsCreateNestedManyWithoutOrganizationsInput
+  workoutdays?: Prisma.workoutdaysCreateNestedManyWithoutOrganizationsInput
+}
+
+export type organizationsUncheckedCreateWithoutClient_field_configInput = {
+  id?: string
+  name: string
+  created_at?: Date | string | null
+  updated_at?: Date | string | null
+  deleted_at?: Date | string | null
+  org_code?: string | null
+  slug?: string | null
+  subscription_plan?: string | null
+  status?: string | null
+  uhid_prefix?: string | null
+  logo_url?: string | null
+  official_name?: string | null
+  official_address?: string | null
+  contact_email?: string | null
+  contact_phone?: string | null
+  clinic_latitude?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  clinic_longitude?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  geofence_radius?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  enable_geofencing?: boolean | null
+  enable_ip_locking?: boolean | null
+  allowed_ips?: string | null
+  allow_custom_duration?: boolean | null
+  default_slot_duration?: number | null
+  default_slot_capacity?: number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  default_checkout_time?: Date | string | null
+  default_shift_end_time?: Date | string | null
+  enabled_modules?: string | null
+  athlete_item_logs?: Prisma.athlete_item_logsUncheckedCreateNestedManyWithoutOrganizationsInput
+  athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedCreateNestedManyWithoutOrganizationsInput
+  availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutOrganizationsInput
+  billitems?: Prisma.billitemsUncheckedCreateNestedManyWithoutOrganizationsInput
+  billpayments?: Prisma.billpaymentsUncheckedCreateNestedManyWithoutOrganizationsInput
+  bills?: Prisma.billsUncheckedCreateNestedManyWithoutOrganizationsInput
+  bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutOrganizationsInput
+  client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutOrganizationsInput
+  client_groups?: Prisma.client_groupsUncheckedCreateNestedManyWithoutOrganizationsInput
+  clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutOrganizationsInput
+  cliententitlements?: Prisma.cliententitlementsUncheckedCreateNestedManyWithoutOrganizationsInput
+  clientorganizations?: Prisma.clientorganizationsUncheckedCreateNestedManyWithoutOrganizationsInput
+  clients?: Prisma.clientsUncheckedCreateNestedManyWithoutOrganizationsInput
+  consultant_services?: Prisma.consultant_servicesUncheckedCreateNestedManyWithoutOrganizationsInput
+  consultantavailability?: Prisma.consultantavailabilityUncheckedCreateNestedManyWithoutOrganizationsInput
+  emergency_alerts?: Prisma.emergency_alertsUncheckedCreateNestedManyWithoutOrganizationsInput
+  enquiries?: Prisma.enquiriesUncheckedCreateNestedManyWithoutOrganizationsInput
+  excel_diagnostic_reports?: Prisma.excel_diagnostic_reportsUncheckedCreateNestedManyWithoutOrganizationsInput
+  exercises?: Prisma.exercisesUncheckedCreateNestedManyWithoutOrganizationsInput
+  external_training_summary?: Prisma.external_training_summaryUncheckedCreateNestedManyWithoutOrganizationsInput
+  form_responses?: Prisma.form_responsesUncheckedCreateNestedManyWithoutOrganizationsInput
+  hr_employees?: Prisma.hr_employeesUncheckedCreateNestedManyWithoutOrganizationsInput
+  hr_jobs?: Prisma.hr_jobsUncheckedCreateNestedManyWithoutOrganizationsInput
+  hrattendancelogs?: Prisma.hrattendancelogsUncheckedCreateNestedManyWithoutOrganizationsInput
+  hrleaves?: Prisma.hrleavesUncheckedCreateNestedManyWithoutOrganizationsInput
+  injuries?: Prisma.injuriesUncheckedCreateNestedManyWithoutOrganizationsInput
+  injury_master_data?: Prisma.injury_master_dataUncheckedCreateNestedManyWithoutOrganizationsInput
+  locations?: Prisma.locationsUncheckedCreateNestedManyWithoutOrganizationsInput
+  notifications?: Prisma.notificationsUncheckedCreateNestedManyWithoutOrganizationsInput
+  organization_notification_settings?: Prisma.organization_notification_settingsUncheckedCreateNestedOneWithoutOrganizationsInput
+  packages?: Prisma.packagesUncheckedCreateNestedManyWithoutOrganizationsInput
+  performance_assessments?: Prisma.performance_assessmentsUncheckedCreateNestedManyWithoutOrganizationsInput
+  profiles?: Prisma.profilesUncheckedCreateNestedManyWithoutOrganizationsInput
+  program_assignments?: Prisma.program_assignmentsUncheckedCreateNestedManyWithoutOrganizationsInput
+  questionnaires?: Prisma.questionnairesUncheckedCreateNestedManyWithoutOrganizationsInput
+  referralsources?: Prisma.referralsourcesUncheckedCreateNestedManyWithoutOrganizationsInput
+  refunds?: Prisma.refundsUncheckedCreateNestedManyWithoutOrganizationsInput
+  report_templates?: Prisma.report_templatesUncheckedCreateNestedManyWithoutOrganizationsInput
+  scientific_resources?: Prisma.scientific_resourcesUncheckedCreateNestedManyWithoutOrganizationsInput
+  services?: Prisma.servicesUncheckedCreateNestedManyWithoutOrganizationsInput
+  sessions?: Prisma.sessionsUncheckedCreateNestedManyWithoutOrganizationsInput
+  staff_schedules?: Prisma.staff_schedulesUncheckedCreateNestedManyWithoutOrganizationsInput
+  subscription_logs?: Prisma.subscription_logsUncheckedCreateNestedManyWithoutOrganizationsInput
+  subscriptions?: Prisma.subscriptionsUncheckedCreateNestedManyWithoutOrganizationsInput
+  trainingprograms?: Prisma.trainingprogramsUncheckedCreateNestedManyWithoutOrganizationsInput
+  uhidsequences?: Prisma.uhidsequencesUncheckedCreateNestedManyWithoutOrganizationsInput
+  waitlist?: Prisma.waitlistUncheckedCreateNestedManyWithoutOrganizationsInput
+  wellness_logs?: Prisma.wellness_logsUncheckedCreateNestedManyWithoutOrganizationsInput
+  workoutdays?: Prisma.workoutdaysUncheckedCreateNestedManyWithoutOrganizationsInput
+}
+
+export type organizationsCreateOrConnectWithoutClient_field_configInput = {
+  where: Prisma.organizationsWhereUniqueInput
+  create: Prisma.XOR<Prisma.organizationsCreateWithoutClient_field_configInput, Prisma.organizationsUncheckedCreateWithoutClient_field_configInput>
+}
+
+export type organizationsUpsertWithoutClient_field_configInput = {
+  update: Prisma.XOR<Prisma.organizationsUpdateWithoutClient_field_configInput, Prisma.organizationsUncheckedUpdateWithoutClient_field_configInput>
+  create: Prisma.XOR<Prisma.organizationsCreateWithoutClient_field_configInput, Prisma.organizationsUncheckedCreateWithoutClient_field_configInput>
+  where?: Prisma.organizationsWhereInput
+}
+
+export type organizationsUpdateToOneWithWhereWithoutClient_field_configInput = {
+  where?: Prisma.organizationsWhereInput
+  data: Prisma.XOR<Prisma.organizationsUpdateWithoutClient_field_configInput, Prisma.organizationsUncheckedUpdateWithoutClient_field_configInput>
+}
+
+export type organizationsUpdateWithoutClient_field_configInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  created_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  updated_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deleted_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  org_code?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  slug?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  subscription_plan?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  uhid_prefix?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  logo_url?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  official_name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  official_address?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contact_email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contact_phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  clinic_latitude?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  clinic_longitude?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  geofence_radius?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  enable_geofencing?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  enable_ip_locking?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_slot_capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  default_shift_end_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  enabled_modules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  athlete_item_logs?: Prisma.athlete_item_logsUpdateManyWithoutOrganizationsNestedInput
+  athlete_workout_completions?: Prisma.athlete_workout_completionsUpdateManyWithoutOrganizationsNestedInput
+  availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutOrganizationsNestedInput
+  billitems?: Prisma.billitemsUpdateManyWithoutOrganizationsNestedInput
+  billpayments?: Prisma.billpaymentsUpdateManyWithoutOrganizationsNestedInput
+  bills?: Prisma.billsUpdateManyWithoutOrganizationsNestedInput
+  bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutOrganizationsNestedInput
+  client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutOrganizationsNestedInput
+  client_groups?: Prisma.client_groupsUpdateManyWithoutOrganizationsNestedInput
+  clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutOrganizationsNestedInput
+  cliententitlements?: Prisma.cliententitlementsUpdateManyWithoutOrganizationsNestedInput
+  clientorganizations?: Prisma.clientorganizationsUpdateManyWithoutOrganizationsNestedInput
+  clients?: Prisma.clientsUpdateManyWithoutOrganizationsNestedInput
+  consultant_services?: Prisma.consultant_servicesUpdateManyWithoutOrganizationsNestedInput
+  consultantavailability?: Prisma.consultantavailabilityUpdateManyWithoutOrganizationsNestedInput
+  emergency_alerts?: Prisma.emergency_alertsUpdateManyWithoutOrganizationsNestedInput
+  enquiries?: Prisma.enquiriesUpdateManyWithoutOrganizationsNestedInput
+  excel_diagnostic_reports?: Prisma.excel_diagnostic_reportsUpdateManyWithoutOrganizationsNestedInput
+  exercises?: Prisma.exercisesUpdateManyWithoutOrganizationsNestedInput
+  external_training_summary?: Prisma.external_training_summaryUpdateManyWithoutOrganizationsNestedInput
+  form_responses?: Prisma.form_responsesUpdateManyWithoutOrganizationsNestedInput
+  hr_employees?: Prisma.hr_employeesUpdateManyWithoutOrganizationsNestedInput
+  hr_jobs?: Prisma.hr_jobsUpdateManyWithoutOrganizationsNestedInput
+  hrattendancelogs?: Prisma.hrattendancelogsUpdateManyWithoutOrganizationsNestedInput
+  hrleaves?: Prisma.hrleavesUpdateManyWithoutOrganizationsNestedInput
+  injuries?: Prisma.injuriesUpdateManyWithoutOrganizationsNestedInput
+  injury_master_data?: Prisma.injury_master_dataUpdateManyWithoutOrganizationsNestedInput
+  locations?: Prisma.locationsUpdateManyWithoutOrganizationsNestedInput
+  notifications?: Prisma.notificationsUpdateManyWithoutOrganizationsNestedInput
+  organization_notification_settings?: Prisma.organization_notification_settingsUpdateOneWithoutOrganizationsNestedInput
+  packages?: Prisma.packagesUpdateManyWithoutOrganizationsNestedInput
+  performance_assessments?: Prisma.performance_assessmentsUpdateManyWithoutOrganizationsNestedInput
+  profiles?: Prisma.profilesUpdateManyWithoutOrganizationsNestedInput
+  program_assignments?: Prisma.program_assignmentsUpdateManyWithoutOrganizationsNestedInput
+  questionnaires?: Prisma.questionnairesUpdateManyWithoutOrganizationsNestedInput
+  referralsources?: Prisma.referralsourcesUpdateManyWithoutOrganizationsNestedInput
+  refunds?: Prisma.refundsUpdateManyWithoutOrganizationsNestedInput
+  report_templates?: Prisma.report_templatesUpdateManyWithoutOrganizationsNestedInput
+  scientific_resources?: Prisma.scientific_resourcesUpdateManyWithoutOrganizationsNestedInput
+  services?: Prisma.servicesUpdateManyWithoutOrganizationsNestedInput
+  sessions?: Prisma.sessionsUpdateManyWithoutOrganizationsNestedInput
+  staff_schedules?: Prisma.staff_schedulesUpdateManyWithoutOrganizationsNestedInput
+  subscription_logs?: Prisma.subscription_logsUpdateManyWithoutOrganizationsNestedInput
+  subscriptions?: Prisma.subscriptionsUpdateManyWithoutOrganizationsNestedInput
+  trainingprograms?: Prisma.trainingprogramsUpdateManyWithoutOrganizationsNestedInput
+  uhidsequences?: Prisma.uhidsequencesUpdateManyWithoutOrganizationsNestedInput
+  waitlist?: Prisma.waitlistUpdateManyWithoutOrganizationsNestedInput
+  wellness_logs?: Prisma.wellness_logsUpdateManyWithoutOrganizationsNestedInput
+  workoutdays?: Prisma.workoutdaysUpdateManyWithoutOrganizationsNestedInput
+}
+
+export type organizationsUncheckedUpdateWithoutClient_field_configInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  created_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  updated_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deleted_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  org_code?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  slug?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  subscription_plan?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  uhid_prefix?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  logo_url?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  official_name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  official_address?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contact_email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contact_phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  clinic_latitude?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  clinic_longitude?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  geofence_radius?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  enable_geofencing?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  enable_ip_locking?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_slot_capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  default_shift_end_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  enabled_modules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -4963,6 +5607,7 @@ export type organizationsUncheckedUpdateWithoutClientdocumentsInput = {
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   cliententitlements?: Prisma.cliententitlementsUncheckedUpdateManyWithoutOrganizationsNestedInput
   clientorganizations?: Prisma.clientorganizationsUncheckedUpdateManyWithoutOrganizationsNestedInput
   clients?: Prisma.clientsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -5028,7 +5673,11 @@ export type organizationsCreateWithoutCliententitlementsInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_slot_capacity?: number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Date | string | null
+  default_shift_end_time?: Date | string | null
+  enabled_modules?: string | null
   athlete_item_logs?: Prisma.athlete_item_logsCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutOrganizationsInput
@@ -5037,6 +5686,7 @@ export type organizationsCreateWithoutCliententitlementsInput = {
   bills?: Prisma.billsCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutOrganizationsInput
+  client_field_config?: Prisma.client_field_configCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutOrganizationsInput
   clientorganizations?: Prisma.clientorganizationsCreateNestedManyWithoutOrganizationsInput
@@ -5103,7 +5753,11 @@ export type organizationsUncheckedCreateWithoutCliententitlementsInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_slot_capacity?: number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Date | string | null
+  default_shift_end_time?: Date | string | null
+  enabled_modules?: string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -5112,6 +5766,7 @@ export type organizationsUncheckedCreateWithoutCliententitlementsInput = {
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutOrganizationsInput
+  client_field_config?: Prisma.client_field_configUncheckedCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsUncheckedCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutOrganizationsInput
   clientorganizations?: Prisma.clientorganizationsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -5194,7 +5849,11 @@ export type organizationsUpdateWithoutCliententitlementsInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_slot_capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  default_shift_end_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  enabled_modules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutOrganizationsNestedInput
@@ -5203,6 +5862,7 @@ export type organizationsUpdateWithoutCliententitlementsInput = {
   bills?: Prisma.billsUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutOrganizationsNestedInput
+  client_field_config?: Prisma.client_field_configUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutOrganizationsNestedInput
   clientorganizations?: Prisma.clientorganizationsUpdateManyWithoutOrganizationsNestedInput
@@ -5269,7 +5929,11 @@ export type organizationsUncheckedUpdateWithoutCliententitlementsInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_slot_capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  default_shift_end_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  enabled_modules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -5278,6 +5942,7 @@ export type organizationsUncheckedUpdateWithoutCliententitlementsInput = {
   bills?: Prisma.billsUncheckedUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  client_field_config?: Prisma.client_field_configUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUncheckedUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   clientorganizations?: Prisma.clientorganizationsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -5344,7 +6009,11 @@ export type organizationsCreateWithoutClientorganizationsInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_slot_capacity?: number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Date | string | null
+  default_shift_end_time?: Date | string | null
+  enabled_modules?: string | null
   athlete_item_logs?: Prisma.athlete_item_logsCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutOrganizationsInput
@@ -5353,6 +6022,7 @@ export type organizationsCreateWithoutClientorganizationsInput = {
   bills?: Prisma.billsCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutOrganizationsInput
+  client_field_config?: Prisma.client_field_configCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutOrganizationsInput
   cliententitlements?: Prisma.cliententitlementsCreateNestedManyWithoutOrganizationsInput
@@ -5419,7 +6089,11 @@ export type organizationsUncheckedCreateWithoutClientorganizationsInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_slot_capacity?: number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Date | string | null
+  default_shift_end_time?: Date | string | null
+  enabled_modules?: string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -5428,6 +6102,7 @@ export type organizationsUncheckedCreateWithoutClientorganizationsInput = {
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutOrganizationsInput
+  client_field_config?: Prisma.client_field_configUncheckedCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsUncheckedCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutOrganizationsInput
   cliententitlements?: Prisma.cliententitlementsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -5510,7 +6185,11 @@ export type organizationsUpdateWithoutClientorganizationsInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_slot_capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  default_shift_end_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  enabled_modules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutOrganizationsNestedInput
@@ -5519,6 +6198,7 @@ export type organizationsUpdateWithoutClientorganizationsInput = {
   bills?: Prisma.billsUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutOrganizationsNestedInput
+  client_field_config?: Prisma.client_field_configUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutOrganizationsNestedInput
   cliententitlements?: Prisma.cliententitlementsUpdateManyWithoutOrganizationsNestedInput
@@ -5585,7 +6265,11 @@ export type organizationsUncheckedUpdateWithoutClientorganizationsInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_slot_capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  default_shift_end_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  enabled_modules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -5594,6 +6278,7 @@ export type organizationsUncheckedUpdateWithoutClientorganizationsInput = {
   bills?: Prisma.billsUncheckedUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  client_field_config?: Prisma.client_field_configUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUncheckedUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   cliententitlements?: Prisma.cliententitlementsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -5660,7 +6345,11 @@ export type organizationsCreateWithoutClientsInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_slot_capacity?: number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Date | string | null
+  default_shift_end_time?: Date | string | null
+  enabled_modules?: string | null
   athlete_item_logs?: Prisma.athlete_item_logsCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutOrganizationsInput
@@ -5669,6 +6358,7 @@ export type organizationsCreateWithoutClientsInput = {
   bills?: Prisma.billsCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutOrganizationsInput
+  client_field_config?: Prisma.client_field_configCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutOrganizationsInput
   cliententitlements?: Prisma.cliententitlementsCreateNestedManyWithoutOrganizationsInput
@@ -5735,7 +6425,11 @@ export type organizationsUncheckedCreateWithoutClientsInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_slot_capacity?: number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Date | string | null
+  default_shift_end_time?: Date | string | null
+  enabled_modules?: string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -5744,6 +6438,7 @@ export type organizationsUncheckedCreateWithoutClientsInput = {
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutOrganizationsInput
+  client_field_config?: Prisma.client_field_configUncheckedCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsUncheckedCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutOrganizationsInput
   cliententitlements?: Prisma.cliententitlementsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -5826,7 +6521,11 @@ export type organizationsUpdateWithoutClientsInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_slot_capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  default_shift_end_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  enabled_modules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutOrganizationsNestedInput
@@ -5835,6 +6534,7 @@ export type organizationsUpdateWithoutClientsInput = {
   bills?: Prisma.billsUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutOrganizationsNestedInput
+  client_field_config?: Prisma.client_field_configUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutOrganizationsNestedInput
   cliententitlements?: Prisma.cliententitlementsUpdateManyWithoutOrganizationsNestedInput
@@ -5901,7 +6601,11 @@ export type organizationsUncheckedUpdateWithoutClientsInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_slot_capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  default_shift_end_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  enabled_modules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -5910,6 +6614,7 @@ export type organizationsUncheckedUpdateWithoutClientsInput = {
   bills?: Prisma.billsUncheckedUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  client_field_config?: Prisma.client_field_configUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUncheckedUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   cliententitlements?: Prisma.cliententitlementsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -5976,7 +6681,11 @@ export type organizationsCreateWithoutConsultant_servicesInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_slot_capacity?: number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Date | string | null
+  default_shift_end_time?: Date | string | null
+  enabled_modules?: string | null
   athlete_item_logs?: Prisma.athlete_item_logsCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutOrganizationsInput
@@ -5985,6 +6694,7 @@ export type organizationsCreateWithoutConsultant_servicesInput = {
   bills?: Prisma.billsCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutOrganizationsInput
+  client_field_config?: Prisma.client_field_configCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutOrganizationsInput
   cliententitlements?: Prisma.cliententitlementsCreateNestedManyWithoutOrganizationsInput
@@ -6051,7 +6761,11 @@ export type organizationsUncheckedCreateWithoutConsultant_servicesInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_slot_capacity?: number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Date | string | null
+  default_shift_end_time?: Date | string | null
+  enabled_modules?: string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -6060,6 +6774,7 @@ export type organizationsUncheckedCreateWithoutConsultant_servicesInput = {
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutOrganizationsInput
+  client_field_config?: Prisma.client_field_configUncheckedCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsUncheckedCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutOrganizationsInput
   cliententitlements?: Prisma.cliententitlementsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -6142,7 +6857,11 @@ export type organizationsUpdateWithoutConsultant_servicesInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_slot_capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  default_shift_end_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  enabled_modules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutOrganizationsNestedInput
@@ -6151,6 +6870,7 @@ export type organizationsUpdateWithoutConsultant_servicesInput = {
   bills?: Prisma.billsUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutOrganizationsNestedInput
+  client_field_config?: Prisma.client_field_configUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutOrganizationsNestedInput
   cliententitlements?: Prisma.cliententitlementsUpdateManyWithoutOrganizationsNestedInput
@@ -6217,7 +6937,11 @@ export type organizationsUncheckedUpdateWithoutConsultant_servicesInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_slot_capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  default_shift_end_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  enabled_modules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -6226,6 +6950,7 @@ export type organizationsUncheckedUpdateWithoutConsultant_servicesInput = {
   bills?: Prisma.billsUncheckedUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  client_field_config?: Prisma.client_field_configUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUncheckedUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   cliententitlements?: Prisma.cliententitlementsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -6292,7 +7017,11 @@ export type organizationsCreateWithoutConsultantavailabilityInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_slot_capacity?: number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Date | string | null
+  default_shift_end_time?: Date | string | null
+  enabled_modules?: string | null
   athlete_item_logs?: Prisma.athlete_item_logsCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutOrganizationsInput
@@ -6301,6 +7030,7 @@ export type organizationsCreateWithoutConsultantavailabilityInput = {
   bills?: Prisma.billsCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutOrganizationsInput
+  client_field_config?: Prisma.client_field_configCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutOrganizationsInput
   cliententitlements?: Prisma.cliententitlementsCreateNestedManyWithoutOrganizationsInput
@@ -6367,7 +7097,11 @@ export type organizationsUncheckedCreateWithoutConsultantavailabilityInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_slot_capacity?: number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Date | string | null
+  default_shift_end_time?: Date | string | null
+  enabled_modules?: string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -6376,6 +7110,7 @@ export type organizationsUncheckedCreateWithoutConsultantavailabilityInput = {
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutOrganizationsInput
+  client_field_config?: Prisma.client_field_configUncheckedCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsUncheckedCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutOrganizationsInput
   cliententitlements?: Prisma.cliententitlementsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -6458,7 +7193,11 @@ export type organizationsUpdateWithoutConsultantavailabilityInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_slot_capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  default_shift_end_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  enabled_modules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutOrganizationsNestedInput
@@ -6467,6 +7206,7 @@ export type organizationsUpdateWithoutConsultantavailabilityInput = {
   bills?: Prisma.billsUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutOrganizationsNestedInput
+  client_field_config?: Prisma.client_field_configUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutOrganizationsNestedInput
   cliententitlements?: Prisma.cliententitlementsUpdateManyWithoutOrganizationsNestedInput
@@ -6533,7 +7273,11 @@ export type organizationsUncheckedUpdateWithoutConsultantavailabilityInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_slot_capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  default_shift_end_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  enabled_modules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -6542,6 +7286,7 @@ export type organizationsUncheckedUpdateWithoutConsultantavailabilityInput = {
   bills?: Prisma.billsUncheckedUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  client_field_config?: Prisma.client_field_configUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUncheckedUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   cliententitlements?: Prisma.cliententitlementsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -6608,7 +7353,11 @@ export type organizationsCreateWithoutEmergency_alertsInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_slot_capacity?: number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Date | string | null
+  default_shift_end_time?: Date | string | null
+  enabled_modules?: string | null
   athlete_item_logs?: Prisma.athlete_item_logsCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutOrganizationsInput
@@ -6617,6 +7366,7 @@ export type organizationsCreateWithoutEmergency_alertsInput = {
   bills?: Prisma.billsCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutOrganizationsInput
+  client_field_config?: Prisma.client_field_configCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutOrganizationsInput
   cliententitlements?: Prisma.cliententitlementsCreateNestedManyWithoutOrganizationsInput
@@ -6683,7 +7433,11 @@ export type organizationsUncheckedCreateWithoutEmergency_alertsInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_slot_capacity?: number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Date | string | null
+  default_shift_end_time?: Date | string | null
+  enabled_modules?: string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -6692,6 +7446,7 @@ export type organizationsUncheckedCreateWithoutEmergency_alertsInput = {
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutOrganizationsInput
+  client_field_config?: Prisma.client_field_configUncheckedCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsUncheckedCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutOrganizationsInput
   cliententitlements?: Prisma.cliententitlementsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -6774,7 +7529,11 @@ export type organizationsUpdateWithoutEmergency_alertsInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_slot_capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  default_shift_end_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  enabled_modules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutOrganizationsNestedInput
@@ -6783,6 +7542,7 @@ export type organizationsUpdateWithoutEmergency_alertsInput = {
   bills?: Prisma.billsUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutOrganizationsNestedInput
+  client_field_config?: Prisma.client_field_configUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutOrganizationsNestedInput
   cliententitlements?: Prisma.cliententitlementsUpdateManyWithoutOrganizationsNestedInput
@@ -6849,7 +7609,11 @@ export type organizationsUncheckedUpdateWithoutEmergency_alertsInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_slot_capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  default_shift_end_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  enabled_modules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -6858,6 +7622,7 @@ export type organizationsUncheckedUpdateWithoutEmergency_alertsInput = {
   bills?: Prisma.billsUncheckedUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  client_field_config?: Prisma.client_field_configUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUncheckedUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   cliententitlements?: Prisma.cliententitlementsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -6924,7 +7689,11 @@ export type organizationsCreateWithoutEnquiriesInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_slot_capacity?: number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Date | string | null
+  default_shift_end_time?: Date | string | null
+  enabled_modules?: string | null
   athlete_item_logs?: Prisma.athlete_item_logsCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutOrganizationsInput
@@ -6933,6 +7702,7 @@ export type organizationsCreateWithoutEnquiriesInput = {
   bills?: Prisma.billsCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutOrganizationsInput
+  client_field_config?: Prisma.client_field_configCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutOrganizationsInput
   cliententitlements?: Prisma.cliententitlementsCreateNestedManyWithoutOrganizationsInput
@@ -6999,7 +7769,11 @@ export type organizationsUncheckedCreateWithoutEnquiriesInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_slot_capacity?: number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Date | string | null
+  default_shift_end_time?: Date | string | null
+  enabled_modules?: string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -7008,6 +7782,7 @@ export type organizationsUncheckedCreateWithoutEnquiriesInput = {
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutOrganizationsInput
+  client_field_config?: Prisma.client_field_configUncheckedCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsUncheckedCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutOrganizationsInput
   cliententitlements?: Prisma.cliententitlementsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -7090,7 +7865,11 @@ export type organizationsUpdateWithoutEnquiriesInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_slot_capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  default_shift_end_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  enabled_modules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutOrganizationsNestedInput
@@ -7099,6 +7878,7 @@ export type organizationsUpdateWithoutEnquiriesInput = {
   bills?: Prisma.billsUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutOrganizationsNestedInput
+  client_field_config?: Prisma.client_field_configUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutOrganizationsNestedInput
   cliententitlements?: Prisma.cliententitlementsUpdateManyWithoutOrganizationsNestedInput
@@ -7165,7 +7945,11 @@ export type organizationsUncheckedUpdateWithoutEnquiriesInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_slot_capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  default_shift_end_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  enabled_modules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -7174,6 +7958,7 @@ export type organizationsUncheckedUpdateWithoutEnquiriesInput = {
   bills?: Prisma.billsUncheckedUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  client_field_config?: Prisma.client_field_configUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUncheckedUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   cliententitlements?: Prisma.cliententitlementsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -7240,7 +8025,11 @@ export type organizationsCreateWithoutExcel_diagnostic_reportsInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_slot_capacity?: number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Date | string | null
+  default_shift_end_time?: Date | string | null
+  enabled_modules?: string | null
   athlete_item_logs?: Prisma.athlete_item_logsCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutOrganizationsInput
@@ -7249,6 +8038,7 @@ export type organizationsCreateWithoutExcel_diagnostic_reportsInput = {
   bills?: Prisma.billsCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutOrganizationsInput
+  client_field_config?: Prisma.client_field_configCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutOrganizationsInput
   cliententitlements?: Prisma.cliententitlementsCreateNestedManyWithoutOrganizationsInput
@@ -7315,7 +8105,11 @@ export type organizationsUncheckedCreateWithoutExcel_diagnostic_reportsInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_slot_capacity?: number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Date | string | null
+  default_shift_end_time?: Date | string | null
+  enabled_modules?: string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -7324,6 +8118,7 @@ export type organizationsUncheckedCreateWithoutExcel_diagnostic_reportsInput = {
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutOrganizationsInput
+  client_field_config?: Prisma.client_field_configUncheckedCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsUncheckedCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutOrganizationsInput
   cliententitlements?: Prisma.cliententitlementsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -7406,7 +8201,11 @@ export type organizationsUpdateWithoutExcel_diagnostic_reportsInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_slot_capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  default_shift_end_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  enabled_modules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutOrganizationsNestedInput
@@ -7415,6 +8214,7 @@ export type organizationsUpdateWithoutExcel_diagnostic_reportsInput = {
   bills?: Prisma.billsUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutOrganizationsNestedInput
+  client_field_config?: Prisma.client_field_configUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutOrganizationsNestedInput
   cliententitlements?: Prisma.cliententitlementsUpdateManyWithoutOrganizationsNestedInput
@@ -7481,7 +8281,11 @@ export type organizationsUncheckedUpdateWithoutExcel_diagnostic_reportsInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_slot_capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  default_shift_end_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  enabled_modules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -7490,6 +8294,7 @@ export type organizationsUncheckedUpdateWithoutExcel_diagnostic_reportsInput = {
   bills?: Prisma.billsUncheckedUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  client_field_config?: Prisma.client_field_configUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUncheckedUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   cliententitlements?: Prisma.cliententitlementsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -7556,7 +8361,11 @@ export type organizationsCreateWithoutExercisesInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_slot_capacity?: number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Date | string | null
+  default_shift_end_time?: Date | string | null
+  enabled_modules?: string | null
   athlete_item_logs?: Prisma.athlete_item_logsCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutOrganizationsInput
@@ -7565,6 +8374,7 @@ export type organizationsCreateWithoutExercisesInput = {
   bills?: Prisma.billsCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutOrganizationsInput
+  client_field_config?: Prisma.client_field_configCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutOrganizationsInput
   cliententitlements?: Prisma.cliententitlementsCreateNestedManyWithoutOrganizationsInput
@@ -7631,7 +8441,11 @@ export type organizationsUncheckedCreateWithoutExercisesInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_slot_capacity?: number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Date | string | null
+  default_shift_end_time?: Date | string | null
+  enabled_modules?: string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -7640,6 +8454,7 @@ export type organizationsUncheckedCreateWithoutExercisesInput = {
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutOrganizationsInput
+  client_field_config?: Prisma.client_field_configUncheckedCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsUncheckedCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutOrganizationsInput
   cliententitlements?: Prisma.cliententitlementsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -7722,7 +8537,11 @@ export type organizationsUpdateWithoutExercisesInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_slot_capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  default_shift_end_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  enabled_modules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutOrganizationsNestedInput
@@ -7731,6 +8550,7 @@ export type organizationsUpdateWithoutExercisesInput = {
   bills?: Prisma.billsUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutOrganizationsNestedInput
+  client_field_config?: Prisma.client_field_configUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutOrganizationsNestedInput
   cliententitlements?: Prisma.cliententitlementsUpdateManyWithoutOrganizationsNestedInput
@@ -7797,7 +8617,11 @@ export type organizationsUncheckedUpdateWithoutExercisesInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_slot_capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  default_shift_end_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  enabled_modules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -7806,6 +8630,7 @@ export type organizationsUncheckedUpdateWithoutExercisesInput = {
   bills?: Prisma.billsUncheckedUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  client_field_config?: Prisma.client_field_configUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUncheckedUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   cliententitlements?: Prisma.cliententitlementsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -7872,7 +8697,11 @@ export type organizationsCreateWithoutExternal_training_summaryInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_slot_capacity?: number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Date | string | null
+  default_shift_end_time?: Date | string | null
+  enabled_modules?: string | null
   athlete_item_logs?: Prisma.athlete_item_logsCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutOrganizationsInput
@@ -7881,6 +8710,7 @@ export type organizationsCreateWithoutExternal_training_summaryInput = {
   bills?: Prisma.billsCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutOrganizationsInput
+  client_field_config?: Prisma.client_field_configCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutOrganizationsInput
   cliententitlements?: Prisma.cliententitlementsCreateNestedManyWithoutOrganizationsInput
@@ -7947,7 +8777,11 @@ export type organizationsUncheckedCreateWithoutExternal_training_summaryInput = 
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_slot_capacity?: number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Date | string | null
+  default_shift_end_time?: Date | string | null
+  enabled_modules?: string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -7956,6 +8790,7 @@ export type organizationsUncheckedCreateWithoutExternal_training_summaryInput = 
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutOrganizationsInput
+  client_field_config?: Prisma.client_field_configUncheckedCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsUncheckedCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutOrganizationsInput
   cliententitlements?: Prisma.cliententitlementsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -8038,7 +8873,11 @@ export type organizationsUpdateWithoutExternal_training_summaryInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_slot_capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  default_shift_end_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  enabled_modules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutOrganizationsNestedInput
@@ -8047,6 +8886,7 @@ export type organizationsUpdateWithoutExternal_training_summaryInput = {
   bills?: Prisma.billsUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutOrganizationsNestedInput
+  client_field_config?: Prisma.client_field_configUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutOrganizationsNestedInput
   cliententitlements?: Prisma.cliententitlementsUpdateManyWithoutOrganizationsNestedInput
@@ -8113,7 +8953,11 @@ export type organizationsUncheckedUpdateWithoutExternal_training_summaryInput = 
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_slot_capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  default_shift_end_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  enabled_modules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -8122,6 +8966,7 @@ export type organizationsUncheckedUpdateWithoutExternal_training_summaryInput = 
   bills?: Prisma.billsUncheckedUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  client_field_config?: Prisma.client_field_configUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUncheckedUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   cliententitlements?: Prisma.cliententitlementsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -8188,7 +9033,11 @@ export type organizationsCreateWithoutForm_responsesInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_slot_capacity?: number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Date | string | null
+  default_shift_end_time?: Date | string | null
+  enabled_modules?: string | null
   athlete_item_logs?: Prisma.athlete_item_logsCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutOrganizationsInput
@@ -8197,6 +9046,7 @@ export type organizationsCreateWithoutForm_responsesInput = {
   bills?: Prisma.billsCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutOrganizationsInput
+  client_field_config?: Prisma.client_field_configCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutOrganizationsInput
   cliententitlements?: Prisma.cliententitlementsCreateNestedManyWithoutOrganizationsInput
@@ -8263,7 +9113,11 @@ export type organizationsUncheckedCreateWithoutForm_responsesInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_slot_capacity?: number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Date | string | null
+  default_shift_end_time?: Date | string | null
+  enabled_modules?: string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -8272,6 +9126,7 @@ export type organizationsUncheckedCreateWithoutForm_responsesInput = {
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutOrganizationsInput
+  client_field_config?: Prisma.client_field_configUncheckedCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsUncheckedCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutOrganizationsInput
   cliententitlements?: Prisma.cliententitlementsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -8354,7 +9209,11 @@ export type organizationsUpdateWithoutForm_responsesInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_slot_capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  default_shift_end_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  enabled_modules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutOrganizationsNestedInput
@@ -8363,6 +9222,7 @@ export type organizationsUpdateWithoutForm_responsesInput = {
   bills?: Prisma.billsUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutOrganizationsNestedInput
+  client_field_config?: Prisma.client_field_configUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutOrganizationsNestedInput
   cliententitlements?: Prisma.cliententitlementsUpdateManyWithoutOrganizationsNestedInput
@@ -8429,7 +9289,11 @@ export type organizationsUncheckedUpdateWithoutForm_responsesInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_slot_capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  default_shift_end_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  enabled_modules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -8438,6 +9302,7 @@ export type organizationsUncheckedUpdateWithoutForm_responsesInput = {
   bills?: Prisma.billsUncheckedUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  client_field_config?: Prisma.client_field_configUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUncheckedUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   cliententitlements?: Prisma.cliententitlementsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -8504,7 +9369,11 @@ export type organizationsCreateWithoutHr_employeesInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_slot_capacity?: number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Date | string | null
+  default_shift_end_time?: Date | string | null
+  enabled_modules?: string | null
   athlete_item_logs?: Prisma.athlete_item_logsCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutOrganizationsInput
@@ -8513,6 +9382,7 @@ export type organizationsCreateWithoutHr_employeesInput = {
   bills?: Prisma.billsCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutOrganizationsInput
+  client_field_config?: Prisma.client_field_configCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutOrganizationsInput
   cliententitlements?: Prisma.cliententitlementsCreateNestedManyWithoutOrganizationsInput
@@ -8579,7 +9449,11 @@ export type organizationsUncheckedCreateWithoutHr_employeesInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_slot_capacity?: number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Date | string | null
+  default_shift_end_time?: Date | string | null
+  enabled_modules?: string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -8588,6 +9462,7 @@ export type organizationsUncheckedCreateWithoutHr_employeesInput = {
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutOrganizationsInput
+  client_field_config?: Prisma.client_field_configUncheckedCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsUncheckedCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutOrganizationsInput
   cliententitlements?: Prisma.cliententitlementsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -8670,7 +9545,11 @@ export type organizationsUpdateWithoutHr_employeesInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_slot_capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  default_shift_end_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  enabled_modules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutOrganizationsNestedInput
@@ -8679,6 +9558,7 @@ export type organizationsUpdateWithoutHr_employeesInput = {
   bills?: Prisma.billsUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutOrganizationsNestedInput
+  client_field_config?: Prisma.client_field_configUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutOrganizationsNestedInput
   cliententitlements?: Prisma.cliententitlementsUpdateManyWithoutOrganizationsNestedInput
@@ -8745,7 +9625,11 @@ export type organizationsUncheckedUpdateWithoutHr_employeesInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_slot_capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  default_shift_end_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  enabled_modules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -8754,6 +9638,7 @@ export type organizationsUncheckedUpdateWithoutHr_employeesInput = {
   bills?: Prisma.billsUncheckedUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  client_field_config?: Prisma.client_field_configUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUncheckedUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   cliententitlements?: Prisma.cliententitlementsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -8820,7 +9705,11 @@ export type organizationsCreateWithoutHr_jobsInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_slot_capacity?: number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Date | string | null
+  default_shift_end_time?: Date | string | null
+  enabled_modules?: string | null
   athlete_item_logs?: Prisma.athlete_item_logsCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutOrganizationsInput
@@ -8829,6 +9718,7 @@ export type organizationsCreateWithoutHr_jobsInput = {
   bills?: Prisma.billsCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutOrganizationsInput
+  client_field_config?: Prisma.client_field_configCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutOrganizationsInput
   cliententitlements?: Prisma.cliententitlementsCreateNestedManyWithoutOrganizationsInput
@@ -8895,7 +9785,11 @@ export type organizationsUncheckedCreateWithoutHr_jobsInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_slot_capacity?: number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Date | string | null
+  default_shift_end_time?: Date | string | null
+  enabled_modules?: string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -8904,6 +9798,7 @@ export type organizationsUncheckedCreateWithoutHr_jobsInput = {
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutOrganizationsInput
+  client_field_config?: Prisma.client_field_configUncheckedCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsUncheckedCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutOrganizationsInput
   cliententitlements?: Prisma.cliententitlementsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -8986,7 +9881,11 @@ export type organizationsUpdateWithoutHr_jobsInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_slot_capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  default_shift_end_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  enabled_modules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutOrganizationsNestedInput
@@ -8995,6 +9894,7 @@ export type organizationsUpdateWithoutHr_jobsInput = {
   bills?: Prisma.billsUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutOrganizationsNestedInput
+  client_field_config?: Prisma.client_field_configUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutOrganizationsNestedInput
   cliententitlements?: Prisma.cliententitlementsUpdateManyWithoutOrganizationsNestedInput
@@ -9061,7 +9961,11 @@ export type organizationsUncheckedUpdateWithoutHr_jobsInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_slot_capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  default_shift_end_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  enabled_modules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -9070,6 +9974,7 @@ export type organizationsUncheckedUpdateWithoutHr_jobsInput = {
   bills?: Prisma.billsUncheckedUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  client_field_config?: Prisma.client_field_configUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUncheckedUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   cliententitlements?: Prisma.cliententitlementsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -9136,7 +10041,11 @@ export type organizationsCreateWithoutHrattendancelogsInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_slot_capacity?: number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Date | string | null
+  default_shift_end_time?: Date | string | null
+  enabled_modules?: string | null
   athlete_item_logs?: Prisma.athlete_item_logsCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutOrganizationsInput
@@ -9145,6 +10054,7 @@ export type organizationsCreateWithoutHrattendancelogsInput = {
   bills?: Prisma.billsCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutOrganizationsInput
+  client_field_config?: Prisma.client_field_configCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutOrganizationsInput
   cliententitlements?: Prisma.cliententitlementsCreateNestedManyWithoutOrganizationsInput
@@ -9211,7 +10121,11 @@ export type organizationsUncheckedCreateWithoutHrattendancelogsInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_slot_capacity?: number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Date | string | null
+  default_shift_end_time?: Date | string | null
+  enabled_modules?: string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -9220,6 +10134,7 @@ export type organizationsUncheckedCreateWithoutHrattendancelogsInput = {
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutOrganizationsInput
+  client_field_config?: Prisma.client_field_configUncheckedCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsUncheckedCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutOrganizationsInput
   cliententitlements?: Prisma.cliententitlementsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -9302,7 +10217,11 @@ export type organizationsUpdateWithoutHrattendancelogsInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_slot_capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  default_shift_end_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  enabled_modules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutOrganizationsNestedInput
@@ -9311,6 +10230,7 @@ export type organizationsUpdateWithoutHrattendancelogsInput = {
   bills?: Prisma.billsUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutOrganizationsNestedInput
+  client_field_config?: Prisma.client_field_configUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutOrganizationsNestedInput
   cliententitlements?: Prisma.cliententitlementsUpdateManyWithoutOrganizationsNestedInput
@@ -9377,7 +10297,11 @@ export type organizationsUncheckedUpdateWithoutHrattendancelogsInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_slot_capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  default_shift_end_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  enabled_modules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -9386,6 +10310,7 @@ export type organizationsUncheckedUpdateWithoutHrattendancelogsInput = {
   bills?: Prisma.billsUncheckedUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  client_field_config?: Prisma.client_field_configUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUncheckedUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   cliententitlements?: Prisma.cliententitlementsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -9452,7 +10377,11 @@ export type organizationsCreateWithoutHrleavesInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_slot_capacity?: number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Date | string | null
+  default_shift_end_time?: Date | string | null
+  enabled_modules?: string | null
   athlete_item_logs?: Prisma.athlete_item_logsCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutOrganizationsInput
@@ -9461,6 +10390,7 @@ export type organizationsCreateWithoutHrleavesInput = {
   bills?: Prisma.billsCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutOrganizationsInput
+  client_field_config?: Prisma.client_field_configCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutOrganizationsInput
   cliententitlements?: Prisma.cliententitlementsCreateNestedManyWithoutOrganizationsInput
@@ -9527,7 +10457,11 @@ export type organizationsUncheckedCreateWithoutHrleavesInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_slot_capacity?: number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Date | string | null
+  default_shift_end_time?: Date | string | null
+  enabled_modules?: string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -9536,6 +10470,7 @@ export type organizationsUncheckedCreateWithoutHrleavesInput = {
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutOrganizationsInput
+  client_field_config?: Prisma.client_field_configUncheckedCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsUncheckedCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutOrganizationsInput
   cliententitlements?: Prisma.cliententitlementsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -9618,7 +10553,11 @@ export type organizationsUpdateWithoutHrleavesInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_slot_capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  default_shift_end_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  enabled_modules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutOrganizationsNestedInput
@@ -9627,6 +10566,7 @@ export type organizationsUpdateWithoutHrleavesInput = {
   bills?: Prisma.billsUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutOrganizationsNestedInput
+  client_field_config?: Prisma.client_field_configUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutOrganizationsNestedInput
   cliententitlements?: Prisma.cliententitlementsUpdateManyWithoutOrganizationsNestedInput
@@ -9693,7 +10633,11 @@ export type organizationsUncheckedUpdateWithoutHrleavesInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_slot_capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  default_shift_end_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  enabled_modules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -9702,6 +10646,7 @@ export type organizationsUncheckedUpdateWithoutHrleavesInput = {
   bills?: Prisma.billsUncheckedUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  client_field_config?: Prisma.client_field_configUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUncheckedUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   cliententitlements?: Prisma.cliententitlementsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -9768,7 +10713,11 @@ export type organizationsCreateWithoutInjuriesInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_slot_capacity?: number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Date | string | null
+  default_shift_end_time?: Date | string | null
+  enabled_modules?: string | null
   athlete_item_logs?: Prisma.athlete_item_logsCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutOrganizationsInput
@@ -9777,6 +10726,7 @@ export type organizationsCreateWithoutInjuriesInput = {
   bills?: Prisma.billsCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutOrganizationsInput
+  client_field_config?: Prisma.client_field_configCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutOrganizationsInput
   cliententitlements?: Prisma.cliententitlementsCreateNestedManyWithoutOrganizationsInput
@@ -9843,7 +10793,11 @@ export type organizationsUncheckedCreateWithoutInjuriesInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_slot_capacity?: number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Date | string | null
+  default_shift_end_time?: Date | string | null
+  enabled_modules?: string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -9852,6 +10806,7 @@ export type organizationsUncheckedCreateWithoutInjuriesInput = {
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutOrganizationsInput
+  client_field_config?: Prisma.client_field_configUncheckedCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsUncheckedCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutOrganizationsInput
   cliententitlements?: Prisma.cliententitlementsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -9934,7 +10889,11 @@ export type organizationsUpdateWithoutInjuriesInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_slot_capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  default_shift_end_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  enabled_modules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutOrganizationsNestedInput
@@ -9943,6 +10902,7 @@ export type organizationsUpdateWithoutInjuriesInput = {
   bills?: Prisma.billsUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutOrganizationsNestedInput
+  client_field_config?: Prisma.client_field_configUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutOrganizationsNestedInput
   cliententitlements?: Prisma.cliententitlementsUpdateManyWithoutOrganizationsNestedInput
@@ -10009,7 +10969,11 @@ export type organizationsUncheckedUpdateWithoutInjuriesInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_slot_capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  default_shift_end_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  enabled_modules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -10018,6 +10982,7 @@ export type organizationsUncheckedUpdateWithoutInjuriesInput = {
   bills?: Prisma.billsUncheckedUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  client_field_config?: Prisma.client_field_configUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUncheckedUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   cliententitlements?: Prisma.cliententitlementsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -10084,7 +11049,11 @@ export type organizationsCreateWithoutInjury_master_dataInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_slot_capacity?: number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Date | string | null
+  default_shift_end_time?: Date | string | null
+  enabled_modules?: string | null
   athlete_item_logs?: Prisma.athlete_item_logsCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutOrganizationsInput
@@ -10093,6 +11062,7 @@ export type organizationsCreateWithoutInjury_master_dataInput = {
   bills?: Prisma.billsCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutOrganizationsInput
+  client_field_config?: Prisma.client_field_configCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutOrganizationsInput
   cliententitlements?: Prisma.cliententitlementsCreateNestedManyWithoutOrganizationsInput
@@ -10159,7 +11129,11 @@ export type organizationsUncheckedCreateWithoutInjury_master_dataInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_slot_capacity?: number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Date | string | null
+  default_shift_end_time?: Date | string | null
+  enabled_modules?: string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -10168,6 +11142,7 @@ export type organizationsUncheckedCreateWithoutInjury_master_dataInput = {
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutOrganizationsInput
+  client_field_config?: Prisma.client_field_configUncheckedCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsUncheckedCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutOrganizationsInput
   cliententitlements?: Prisma.cliententitlementsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -10250,7 +11225,11 @@ export type organizationsUpdateWithoutInjury_master_dataInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_slot_capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  default_shift_end_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  enabled_modules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutOrganizationsNestedInput
@@ -10259,6 +11238,7 @@ export type organizationsUpdateWithoutInjury_master_dataInput = {
   bills?: Prisma.billsUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutOrganizationsNestedInput
+  client_field_config?: Prisma.client_field_configUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutOrganizationsNestedInput
   cliententitlements?: Prisma.cliententitlementsUpdateManyWithoutOrganizationsNestedInput
@@ -10325,7 +11305,11 @@ export type organizationsUncheckedUpdateWithoutInjury_master_dataInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_slot_capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  default_shift_end_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  enabled_modules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -10334,6 +11318,7 @@ export type organizationsUncheckedUpdateWithoutInjury_master_dataInput = {
   bills?: Prisma.billsUncheckedUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  client_field_config?: Prisma.client_field_configUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUncheckedUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   cliententitlements?: Prisma.cliententitlementsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -10400,7 +11385,11 @@ export type organizationsCreateWithoutLocationsInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_slot_capacity?: number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Date | string | null
+  default_shift_end_time?: Date | string | null
+  enabled_modules?: string | null
   athlete_item_logs?: Prisma.athlete_item_logsCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutOrganizationsInput
@@ -10409,6 +11398,7 @@ export type organizationsCreateWithoutLocationsInput = {
   bills?: Prisma.billsCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutOrganizationsInput
+  client_field_config?: Prisma.client_field_configCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutOrganizationsInput
   cliententitlements?: Prisma.cliententitlementsCreateNestedManyWithoutOrganizationsInput
@@ -10475,7 +11465,11 @@ export type organizationsUncheckedCreateWithoutLocationsInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_slot_capacity?: number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Date | string | null
+  default_shift_end_time?: Date | string | null
+  enabled_modules?: string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -10484,6 +11478,7 @@ export type organizationsUncheckedCreateWithoutLocationsInput = {
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutOrganizationsInput
+  client_field_config?: Prisma.client_field_configUncheckedCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsUncheckedCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutOrganizationsInput
   cliententitlements?: Prisma.cliententitlementsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -10566,7 +11561,11 @@ export type organizationsUpdateWithoutLocationsInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_slot_capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  default_shift_end_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  enabled_modules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutOrganizationsNestedInput
@@ -10575,6 +11574,7 @@ export type organizationsUpdateWithoutLocationsInput = {
   bills?: Prisma.billsUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutOrganizationsNestedInput
+  client_field_config?: Prisma.client_field_configUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutOrganizationsNestedInput
   cliententitlements?: Prisma.cliententitlementsUpdateManyWithoutOrganizationsNestedInput
@@ -10641,7 +11641,11 @@ export type organizationsUncheckedUpdateWithoutLocationsInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_slot_capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  default_shift_end_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  enabled_modules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -10650,6 +11654,7 @@ export type organizationsUncheckedUpdateWithoutLocationsInput = {
   bills?: Prisma.billsUncheckedUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  client_field_config?: Prisma.client_field_configUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUncheckedUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   cliententitlements?: Prisma.cliententitlementsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -10716,7 +11721,11 @@ export type organizationsCreateWithoutNotificationsInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_slot_capacity?: number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Date | string | null
+  default_shift_end_time?: Date | string | null
+  enabled_modules?: string | null
   athlete_item_logs?: Prisma.athlete_item_logsCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutOrganizationsInput
@@ -10725,6 +11734,7 @@ export type organizationsCreateWithoutNotificationsInput = {
   bills?: Prisma.billsCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutOrganizationsInput
+  client_field_config?: Prisma.client_field_configCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutOrganizationsInput
   cliententitlements?: Prisma.cliententitlementsCreateNestedManyWithoutOrganizationsInput
@@ -10791,7 +11801,11 @@ export type organizationsUncheckedCreateWithoutNotificationsInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_slot_capacity?: number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Date | string | null
+  default_shift_end_time?: Date | string | null
+  enabled_modules?: string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -10800,6 +11814,7 @@ export type organizationsUncheckedCreateWithoutNotificationsInput = {
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutOrganizationsInput
+  client_field_config?: Prisma.client_field_configUncheckedCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsUncheckedCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutOrganizationsInput
   cliententitlements?: Prisma.cliententitlementsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -10882,7 +11897,11 @@ export type organizationsUpdateWithoutNotificationsInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_slot_capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  default_shift_end_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  enabled_modules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutOrganizationsNestedInput
@@ -10891,6 +11910,7 @@ export type organizationsUpdateWithoutNotificationsInput = {
   bills?: Prisma.billsUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutOrganizationsNestedInput
+  client_field_config?: Prisma.client_field_configUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutOrganizationsNestedInput
   cliententitlements?: Prisma.cliententitlementsUpdateManyWithoutOrganizationsNestedInput
@@ -10957,7 +11977,11 @@ export type organizationsUncheckedUpdateWithoutNotificationsInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_slot_capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  default_shift_end_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  enabled_modules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -10966,6 +11990,7 @@ export type organizationsUncheckedUpdateWithoutNotificationsInput = {
   bills?: Prisma.billsUncheckedUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  client_field_config?: Prisma.client_field_configUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUncheckedUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   cliententitlements?: Prisma.cliententitlementsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -11032,7 +12057,11 @@ export type organizationsCreateWithoutOrganization_notification_settingsInput = 
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_slot_capacity?: number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Date | string | null
+  default_shift_end_time?: Date | string | null
+  enabled_modules?: string | null
   athlete_item_logs?: Prisma.athlete_item_logsCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutOrganizationsInput
@@ -11041,6 +12070,7 @@ export type organizationsCreateWithoutOrganization_notification_settingsInput = 
   bills?: Prisma.billsCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutOrganizationsInput
+  client_field_config?: Prisma.client_field_configCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutOrganizationsInput
   cliententitlements?: Prisma.cliententitlementsCreateNestedManyWithoutOrganizationsInput
@@ -11107,7 +12137,11 @@ export type organizationsUncheckedCreateWithoutOrganization_notification_setting
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_slot_capacity?: number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Date | string | null
+  default_shift_end_time?: Date | string | null
+  enabled_modules?: string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -11116,6 +12150,7 @@ export type organizationsUncheckedCreateWithoutOrganization_notification_setting
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutOrganizationsInput
+  client_field_config?: Prisma.client_field_configUncheckedCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsUncheckedCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutOrganizationsInput
   cliententitlements?: Prisma.cliententitlementsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -11198,7 +12233,11 @@ export type organizationsUpdateWithoutOrganization_notification_settingsInput = 
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_slot_capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  default_shift_end_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  enabled_modules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutOrganizationsNestedInput
@@ -11207,6 +12246,7 @@ export type organizationsUpdateWithoutOrganization_notification_settingsInput = 
   bills?: Prisma.billsUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutOrganizationsNestedInput
+  client_field_config?: Prisma.client_field_configUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutOrganizationsNestedInput
   cliententitlements?: Prisma.cliententitlementsUpdateManyWithoutOrganizationsNestedInput
@@ -11273,7 +12313,11 @@ export type organizationsUncheckedUpdateWithoutOrganization_notification_setting
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_slot_capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  default_shift_end_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  enabled_modules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -11282,6 +12326,7 @@ export type organizationsUncheckedUpdateWithoutOrganization_notification_setting
   bills?: Prisma.billsUncheckedUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  client_field_config?: Prisma.client_field_configUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUncheckedUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   cliententitlements?: Prisma.cliententitlementsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -11348,7 +12393,11 @@ export type organizationsCreateWithoutPackagesInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_slot_capacity?: number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Date | string | null
+  default_shift_end_time?: Date | string | null
+  enabled_modules?: string | null
   athlete_item_logs?: Prisma.athlete_item_logsCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutOrganizationsInput
@@ -11357,6 +12406,7 @@ export type organizationsCreateWithoutPackagesInput = {
   bills?: Prisma.billsCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutOrganizationsInput
+  client_field_config?: Prisma.client_field_configCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutOrganizationsInput
   cliententitlements?: Prisma.cliententitlementsCreateNestedManyWithoutOrganizationsInput
@@ -11423,7 +12473,11 @@ export type organizationsUncheckedCreateWithoutPackagesInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_slot_capacity?: number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Date | string | null
+  default_shift_end_time?: Date | string | null
+  enabled_modules?: string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -11432,6 +12486,7 @@ export type organizationsUncheckedCreateWithoutPackagesInput = {
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutOrganizationsInput
+  client_field_config?: Prisma.client_field_configUncheckedCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsUncheckedCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutOrganizationsInput
   cliententitlements?: Prisma.cliententitlementsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -11514,7 +12569,11 @@ export type organizationsUpdateWithoutPackagesInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_slot_capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  default_shift_end_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  enabled_modules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutOrganizationsNestedInput
@@ -11523,6 +12582,7 @@ export type organizationsUpdateWithoutPackagesInput = {
   bills?: Prisma.billsUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutOrganizationsNestedInput
+  client_field_config?: Prisma.client_field_configUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutOrganizationsNestedInput
   cliententitlements?: Prisma.cliententitlementsUpdateManyWithoutOrganizationsNestedInput
@@ -11589,7 +12649,11 @@ export type organizationsUncheckedUpdateWithoutPackagesInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_slot_capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  default_shift_end_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  enabled_modules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -11598,6 +12662,7 @@ export type organizationsUncheckedUpdateWithoutPackagesInput = {
   bills?: Prisma.billsUncheckedUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  client_field_config?: Prisma.client_field_configUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUncheckedUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   cliententitlements?: Prisma.cliententitlementsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -11664,7 +12729,11 @@ export type organizationsCreateWithoutPerformance_assessmentsInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_slot_capacity?: number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Date | string | null
+  default_shift_end_time?: Date | string | null
+  enabled_modules?: string | null
   athlete_item_logs?: Prisma.athlete_item_logsCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutOrganizationsInput
@@ -11673,6 +12742,7 @@ export type organizationsCreateWithoutPerformance_assessmentsInput = {
   bills?: Prisma.billsCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutOrganizationsInput
+  client_field_config?: Prisma.client_field_configCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutOrganizationsInput
   cliententitlements?: Prisma.cliententitlementsCreateNestedManyWithoutOrganizationsInput
@@ -11739,7 +12809,11 @@ export type organizationsUncheckedCreateWithoutPerformance_assessmentsInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_slot_capacity?: number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Date | string | null
+  default_shift_end_time?: Date | string | null
+  enabled_modules?: string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -11748,6 +12822,7 @@ export type organizationsUncheckedCreateWithoutPerformance_assessmentsInput = {
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutOrganizationsInput
+  client_field_config?: Prisma.client_field_configUncheckedCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsUncheckedCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutOrganizationsInput
   cliententitlements?: Prisma.cliententitlementsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -11830,7 +12905,11 @@ export type organizationsUpdateWithoutPerformance_assessmentsInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_slot_capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  default_shift_end_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  enabled_modules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutOrganizationsNestedInput
@@ -11839,6 +12918,7 @@ export type organizationsUpdateWithoutPerformance_assessmentsInput = {
   bills?: Prisma.billsUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutOrganizationsNestedInput
+  client_field_config?: Prisma.client_field_configUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutOrganizationsNestedInput
   cliententitlements?: Prisma.cliententitlementsUpdateManyWithoutOrganizationsNestedInput
@@ -11905,7 +12985,11 @@ export type organizationsUncheckedUpdateWithoutPerformance_assessmentsInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_slot_capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  default_shift_end_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  enabled_modules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -11914,6 +12998,7 @@ export type organizationsUncheckedUpdateWithoutPerformance_assessmentsInput = {
   bills?: Prisma.billsUncheckedUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  client_field_config?: Prisma.client_field_configUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUncheckedUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   cliententitlements?: Prisma.cliententitlementsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -11980,7 +13065,11 @@ export type organizationsCreateWithoutProfilesInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_slot_capacity?: number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Date | string | null
+  default_shift_end_time?: Date | string | null
+  enabled_modules?: string | null
   athlete_item_logs?: Prisma.athlete_item_logsCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutOrganizationsInput
@@ -11989,6 +13078,7 @@ export type organizationsCreateWithoutProfilesInput = {
   bills?: Prisma.billsCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutOrganizationsInput
+  client_field_config?: Prisma.client_field_configCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutOrganizationsInput
   cliententitlements?: Prisma.cliententitlementsCreateNestedManyWithoutOrganizationsInput
@@ -12055,7 +13145,11 @@ export type organizationsUncheckedCreateWithoutProfilesInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_slot_capacity?: number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Date | string | null
+  default_shift_end_time?: Date | string | null
+  enabled_modules?: string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -12064,6 +13158,7 @@ export type organizationsUncheckedCreateWithoutProfilesInput = {
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutOrganizationsInput
+  client_field_config?: Prisma.client_field_configUncheckedCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsUncheckedCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutOrganizationsInput
   cliententitlements?: Prisma.cliententitlementsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -12146,7 +13241,11 @@ export type organizationsUpdateWithoutProfilesInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_slot_capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  default_shift_end_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  enabled_modules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutOrganizationsNestedInput
@@ -12155,6 +13254,7 @@ export type organizationsUpdateWithoutProfilesInput = {
   bills?: Prisma.billsUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutOrganizationsNestedInput
+  client_field_config?: Prisma.client_field_configUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutOrganizationsNestedInput
   cliententitlements?: Prisma.cliententitlementsUpdateManyWithoutOrganizationsNestedInput
@@ -12221,7 +13321,11 @@ export type organizationsUncheckedUpdateWithoutProfilesInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_slot_capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  default_shift_end_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  enabled_modules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -12230,6 +13334,7 @@ export type organizationsUncheckedUpdateWithoutProfilesInput = {
   bills?: Prisma.billsUncheckedUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  client_field_config?: Prisma.client_field_configUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUncheckedUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   cliententitlements?: Prisma.cliententitlementsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -12296,7 +13401,11 @@ export type organizationsCreateWithoutProgram_assignmentsInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_slot_capacity?: number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Date | string | null
+  default_shift_end_time?: Date | string | null
+  enabled_modules?: string | null
   athlete_item_logs?: Prisma.athlete_item_logsCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutOrganizationsInput
@@ -12305,6 +13414,7 @@ export type organizationsCreateWithoutProgram_assignmentsInput = {
   bills?: Prisma.billsCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutOrganizationsInput
+  client_field_config?: Prisma.client_field_configCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutOrganizationsInput
   cliententitlements?: Prisma.cliententitlementsCreateNestedManyWithoutOrganizationsInput
@@ -12371,7 +13481,11 @@ export type organizationsUncheckedCreateWithoutProgram_assignmentsInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_slot_capacity?: number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Date | string | null
+  default_shift_end_time?: Date | string | null
+  enabled_modules?: string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -12380,6 +13494,7 @@ export type organizationsUncheckedCreateWithoutProgram_assignmentsInput = {
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutOrganizationsInput
+  client_field_config?: Prisma.client_field_configUncheckedCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsUncheckedCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutOrganizationsInput
   cliententitlements?: Prisma.cliententitlementsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -12462,7 +13577,11 @@ export type organizationsUpdateWithoutProgram_assignmentsInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_slot_capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  default_shift_end_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  enabled_modules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutOrganizationsNestedInput
@@ -12471,6 +13590,7 @@ export type organizationsUpdateWithoutProgram_assignmentsInput = {
   bills?: Prisma.billsUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutOrganizationsNestedInput
+  client_field_config?: Prisma.client_field_configUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutOrganizationsNestedInput
   cliententitlements?: Prisma.cliententitlementsUpdateManyWithoutOrganizationsNestedInput
@@ -12537,7 +13657,11 @@ export type organizationsUncheckedUpdateWithoutProgram_assignmentsInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_slot_capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  default_shift_end_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  enabled_modules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -12546,6 +13670,7 @@ export type organizationsUncheckedUpdateWithoutProgram_assignmentsInput = {
   bills?: Prisma.billsUncheckedUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  client_field_config?: Prisma.client_field_configUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUncheckedUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   cliententitlements?: Prisma.cliententitlementsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -12612,7 +13737,11 @@ export type organizationsCreateWithoutQuestionnairesInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_slot_capacity?: number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Date | string | null
+  default_shift_end_time?: Date | string | null
+  enabled_modules?: string | null
   athlete_item_logs?: Prisma.athlete_item_logsCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutOrganizationsInput
@@ -12621,6 +13750,7 @@ export type organizationsCreateWithoutQuestionnairesInput = {
   bills?: Prisma.billsCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutOrganizationsInput
+  client_field_config?: Prisma.client_field_configCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutOrganizationsInput
   cliententitlements?: Prisma.cliententitlementsCreateNestedManyWithoutOrganizationsInput
@@ -12687,7 +13817,11 @@ export type organizationsUncheckedCreateWithoutQuestionnairesInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_slot_capacity?: number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Date | string | null
+  default_shift_end_time?: Date | string | null
+  enabled_modules?: string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -12696,6 +13830,7 @@ export type organizationsUncheckedCreateWithoutQuestionnairesInput = {
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutOrganizationsInput
+  client_field_config?: Prisma.client_field_configUncheckedCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsUncheckedCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutOrganizationsInput
   cliententitlements?: Prisma.cliententitlementsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -12778,7 +13913,11 @@ export type organizationsUpdateWithoutQuestionnairesInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_slot_capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  default_shift_end_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  enabled_modules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutOrganizationsNestedInput
@@ -12787,6 +13926,7 @@ export type organizationsUpdateWithoutQuestionnairesInput = {
   bills?: Prisma.billsUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutOrganizationsNestedInput
+  client_field_config?: Prisma.client_field_configUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutOrganizationsNestedInput
   cliententitlements?: Prisma.cliententitlementsUpdateManyWithoutOrganizationsNestedInput
@@ -12853,7 +13993,11 @@ export type organizationsUncheckedUpdateWithoutQuestionnairesInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_slot_capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  default_shift_end_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  enabled_modules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -12862,6 +14006,7 @@ export type organizationsUncheckedUpdateWithoutQuestionnairesInput = {
   bills?: Prisma.billsUncheckedUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  client_field_config?: Prisma.client_field_configUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUncheckedUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   cliententitlements?: Prisma.cliententitlementsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -12928,7 +14073,11 @@ export type organizationsCreateWithoutReferralsourcesInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_slot_capacity?: number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Date | string | null
+  default_shift_end_time?: Date | string | null
+  enabled_modules?: string | null
   athlete_item_logs?: Prisma.athlete_item_logsCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutOrganizationsInput
@@ -12937,6 +14086,7 @@ export type organizationsCreateWithoutReferralsourcesInput = {
   bills?: Prisma.billsCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutOrganizationsInput
+  client_field_config?: Prisma.client_field_configCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutOrganizationsInput
   cliententitlements?: Prisma.cliententitlementsCreateNestedManyWithoutOrganizationsInput
@@ -13003,7 +14153,11 @@ export type organizationsUncheckedCreateWithoutReferralsourcesInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_slot_capacity?: number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Date | string | null
+  default_shift_end_time?: Date | string | null
+  enabled_modules?: string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -13012,6 +14166,7 @@ export type organizationsUncheckedCreateWithoutReferralsourcesInput = {
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutOrganizationsInput
+  client_field_config?: Prisma.client_field_configUncheckedCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsUncheckedCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutOrganizationsInput
   cliententitlements?: Prisma.cliententitlementsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -13094,7 +14249,11 @@ export type organizationsUpdateWithoutReferralsourcesInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_slot_capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  default_shift_end_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  enabled_modules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutOrganizationsNestedInput
@@ -13103,6 +14262,7 @@ export type organizationsUpdateWithoutReferralsourcesInput = {
   bills?: Prisma.billsUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutOrganizationsNestedInput
+  client_field_config?: Prisma.client_field_configUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutOrganizationsNestedInput
   cliententitlements?: Prisma.cliententitlementsUpdateManyWithoutOrganizationsNestedInput
@@ -13169,7 +14329,11 @@ export type organizationsUncheckedUpdateWithoutReferralsourcesInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_slot_capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  default_shift_end_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  enabled_modules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -13178,6 +14342,7 @@ export type organizationsUncheckedUpdateWithoutReferralsourcesInput = {
   bills?: Prisma.billsUncheckedUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  client_field_config?: Prisma.client_field_configUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUncheckedUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   cliententitlements?: Prisma.cliententitlementsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -13244,7 +14409,11 @@ export type organizationsCreateWithoutRefundsInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_slot_capacity?: number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Date | string | null
+  default_shift_end_time?: Date | string | null
+  enabled_modules?: string | null
   athlete_item_logs?: Prisma.athlete_item_logsCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutOrganizationsInput
@@ -13253,6 +14422,7 @@ export type organizationsCreateWithoutRefundsInput = {
   bills?: Prisma.billsCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutOrganizationsInput
+  client_field_config?: Prisma.client_field_configCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutOrganizationsInput
   cliententitlements?: Prisma.cliententitlementsCreateNestedManyWithoutOrganizationsInput
@@ -13319,7 +14489,11 @@ export type organizationsUncheckedCreateWithoutRefundsInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_slot_capacity?: number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Date | string | null
+  default_shift_end_time?: Date | string | null
+  enabled_modules?: string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -13328,6 +14502,7 @@ export type organizationsUncheckedCreateWithoutRefundsInput = {
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutOrganizationsInput
+  client_field_config?: Prisma.client_field_configUncheckedCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsUncheckedCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutOrganizationsInput
   cliententitlements?: Prisma.cliententitlementsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -13410,7 +14585,11 @@ export type organizationsUpdateWithoutRefundsInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_slot_capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  default_shift_end_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  enabled_modules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutOrganizationsNestedInput
@@ -13419,6 +14598,7 @@ export type organizationsUpdateWithoutRefundsInput = {
   bills?: Prisma.billsUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutOrganizationsNestedInput
+  client_field_config?: Prisma.client_field_configUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutOrganizationsNestedInput
   cliententitlements?: Prisma.cliententitlementsUpdateManyWithoutOrganizationsNestedInput
@@ -13485,7 +14665,11 @@ export type organizationsUncheckedUpdateWithoutRefundsInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_slot_capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  default_shift_end_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  enabled_modules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -13494,6 +14678,7 @@ export type organizationsUncheckedUpdateWithoutRefundsInput = {
   bills?: Prisma.billsUncheckedUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  client_field_config?: Prisma.client_field_configUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUncheckedUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   cliententitlements?: Prisma.cliententitlementsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -13560,7 +14745,11 @@ export type organizationsCreateWithoutReport_templatesInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_slot_capacity?: number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Date | string | null
+  default_shift_end_time?: Date | string | null
+  enabled_modules?: string | null
   athlete_item_logs?: Prisma.athlete_item_logsCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutOrganizationsInput
@@ -13569,6 +14758,7 @@ export type organizationsCreateWithoutReport_templatesInput = {
   bills?: Prisma.billsCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutOrganizationsInput
+  client_field_config?: Prisma.client_field_configCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutOrganizationsInput
   cliententitlements?: Prisma.cliententitlementsCreateNestedManyWithoutOrganizationsInput
@@ -13635,7 +14825,11 @@ export type organizationsUncheckedCreateWithoutReport_templatesInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_slot_capacity?: number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Date | string | null
+  default_shift_end_time?: Date | string | null
+  enabled_modules?: string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -13644,6 +14838,7 @@ export type organizationsUncheckedCreateWithoutReport_templatesInput = {
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutOrganizationsInput
+  client_field_config?: Prisma.client_field_configUncheckedCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsUncheckedCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutOrganizationsInput
   cliententitlements?: Prisma.cliententitlementsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -13726,7 +14921,11 @@ export type organizationsUpdateWithoutReport_templatesInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_slot_capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  default_shift_end_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  enabled_modules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutOrganizationsNestedInput
@@ -13735,6 +14934,7 @@ export type organizationsUpdateWithoutReport_templatesInput = {
   bills?: Prisma.billsUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutOrganizationsNestedInput
+  client_field_config?: Prisma.client_field_configUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutOrganizationsNestedInput
   cliententitlements?: Prisma.cliententitlementsUpdateManyWithoutOrganizationsNestedInput
@@ -13801,7 +15001,11 @@ export type organizationsUncheckedUpdateWithoutReport_templatesInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_slot_capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  default_shift_end_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  enabled_modules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -13810,6 +15014,7 @@ export type organizationsUncheckedUpdateWithoutReport_templatesInput = {
   bills?: Prisma.billsUncheckedUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  client_field_config?: Prisma.client_field_configUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUncheckedUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   cliententitlements?: Prisma.cliententitlementsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -13876,7 +15081,11 @@ export type organizationsCreateWithoutScientific_resourcesInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_slot_capacity?: number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Date | string | null
+  default_shift_end_time?: Date | string | null
+  enabled_modules?: string | null
   athlete_item_logs?: Prisma.athlete_item_logsCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutOrganizationsInput
@@ -13885,6 +15094,7 @@ export type organizationsCreateWithoutScientific_resourcesInput = {
   bills?: Prisma.billsCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutOrganizationsInput
+  client_field_config?: Prisma.client_field_configCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutOrganizationsInput
   cliententitlements?: Prisma.cliententitlementsCreateNestedManyWithoutOrganizationsInput
@@ -13951,7 +15161,11 @@ export type organizationsUncheckedCreateWithoutScientific_resourcesInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_slot_capacity?: number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Date | string | null
+  default_shift_end_time?: Date | string | null
+  enabled_modules?: string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -13960,6 +15174,7 @@ export type organizationsUncheckedCreateWithoutScientific_resourcesInput = {
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutOrganizationsInput
+  client_field_config?: Prisma.client_field_configUncheckedCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsUncheckedCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutOrganizationsInput
   cliententitlements?: Prisma.cliententitlementsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -14042,7 +15257,11 @@ export type organizationsUpdateWithoutScientific_resourcesInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_slot_capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  default_shift_end_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  enabled_modules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutOrganizationsNestedInput
@@ -14051,6 +15270,7 @@ export type organizationsUpdateWithoutScientific_resourcesInput = {
   bills?: Prisma.billsUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutOrganizationsNestedInput
+  client_field_config?: Prisma.client_field_configUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutOrganizationsNestedInput
   cliententitlements?: Prisma.cliententitlementsUpdateManyWithoutOrganizationsNestedInput
@@ -14117,7 +15337,11 @@ export type organizationsUncheckedUpdateWithoutScientific_resourcesInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_slot_capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  default_shift_end_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  enabled_modules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -14126,6 +15350,7 @@ export type organizationsUncheckedUpdateWithoutScientific_resourcesInput = {
   bills?: Prisma.billsUncheckedUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  client_field_config?: Prisma.client_field_configUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUncheckedUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   cliententitlements?: Prisma.cliententitlementsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -14192,7 +15417,11 @@ export type organizationsCreateWithoutServicesInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_slot_capacity?: number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Date | string | null
+  default_shift_end_time?: Date | string | null
+  enabled_modules?: string | null
   athlete_item_logs?: Prisma.athlete_item_logsCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutOrganizationsInput
@@ -14201,6 +15430,7 @@ export type organizationsCreateWithoutServicesInput = {
   bills?: Prisma.billsCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutOrganizationsInput
+  client_field_config?: Prisma.client_field_configCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutOrganizationsInput
   cliententitlements?: Prisma.cliententitlementsCreateNestedManyWithoutOrganizationsInput
@@ -14267,7 +15497,11 @@ export type organizationsUncheckedCreateWithoutServicesInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_slot_capacity?: number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Date | string | null
+  default_shift_end_time?: Date | string | null
+  enabled_modules?: string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -14276,6 +15510,7 @@ export type organizationsUncheckedCreateWithoutServicesInput = {
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutOrganizationsInput
+  client_field_config?: Prisma.client_field_configUncheckedCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsUncheckedCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutOrganizationsInput
   cliententitlements?: Prisma.cliententitlementsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -14358,7 +15593,11 @@ export type organizationsUpdateWithoutServicesInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_slot_capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  default_shift_end_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  enabled_modules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutOrganizationsNestedInput
@@ -14367,6 +15606,7 @@ export type organizationsUpdateWithoutServicesInput = {
   bills?: Prisma.billsUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutOrganizationsNestedInput
+  client_field_config?: Prisma.client_field_configUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutOrganizationsNestedInput
   cliententitlements?: Prisma.cliententitlementsUpdateManyWithoutOrganizationsNestedInput
@@ -14433,7 +15673,11 @@ export type organizationsUncheckedUpdateWithoutServicesInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_slot_capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  default_shift_end_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  enabled_modules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -14442,6 +15686,7 @@ export type organizationsUncheckedUpdateWithoutServicesInput = {
   bills?: Prisma.billsUncheckedUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  client_field_config?: Prisma.client_field_configUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUncheckedUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   cliententitlements?: Prisma.cliententitlementsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -14508,7 +15753,11 @@ export type organizationsCreateWithoutSessionsInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_slot_capacity?: number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Date | string | null
+  default_shift_end_time?: Date | string | null
+  enabled_modules?: string | null
   athlete_item_logs?: Prisma.athlete_item_logsCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutOrganizationsInput
@@ -14517,6 +15766,7 @@ export type organizationsCreateWithoutSessionsInput = {
   bills?: Prisma.billsCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutOrganizationsInput
+  client_field_config?: Prisma.client_field_configCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutOrganizationsInput
   cliententitlements?: Prisma.cliententitlementsCreateNestedManyWithoutOrganizationsInput
@@ -14583,7 +15833,11 @@ export type organizationsUncheckedCreateWithoutSessionsInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_slot_capacity?: number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Date | string | null
+  default_shift_end_time?: Date | string | null
+  enabled_modules?: string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -14592,6 +15846,7 @@ export type organizationsUncheckedCreateWithoutSessionsInput = {
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutOrganizationsInput
+  client_field_config?: Prisma.client_field_configUncheckedCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsUncheckedCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutOrganizationsInput
   cliententitlements?: Prisma.cliententitlementsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -14674,7 +15929,11 @@ export type organizationsUpdateWithoutSessionsInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_slot_capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  default_shift_end_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  enabled_modules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutOrganizationsNestedInput
@@ -14683,6 +15942,7 @@ export type organizationsUpdateWithoutSessionsInput = {
   bills?: Prisma.billsUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutOrganizationsNestedInput
+  client_field_config?: Prisma.client_field_configUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutOrganizationsNestedInput
   cliententitlements?: Prisma.cliententitlementsUpdateManyWithoutOrganizationsNestedInput
@@ -14749,7 +16009,11 @@ export type organizationsUncheckedUpdateWithoutSessionsInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_slot_capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  default_shift_end_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  enabled_modules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -14758,6 +16022,7 @@ export type organizationsUncheckedUpdateWithoutSessionsInput = {
   bills?: Prisma.billsUncheckedUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  client_field_config?: Prisma.client_field_configUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUncheckedUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   cliententitlements?: Prisma.cliententitlementsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -14824,7 +16089,11 @@ export type organizationsCreateWithoutStaff_schedulesInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_slot_capacity?: number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Date | string | null
+  default_shift_end_time?: Date | string | null
+  enabled_modules?: string | null
   athlete_item_logs?: Prisma.athlete_item_logsCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutOrganizationsInput
@@ -14833,6 +16102,7 @@ export type organizationsCreateWithoutStaff_schedulesInput = {
   bills?: Prisma.billsCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutOrganizationsInput
+  client_field_config?: Prisma.client_field_configCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutOrganizationsInput
   cliententitlements?: Prisma.cliententitlementsCreateNestedManyWithoutOrganizationsInput
@@ -14899,7 +16169,11 @@ export type organizationsUncheckedCreateWithoutStaff_schedulesInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_slot_capacity?: number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Date | string | null
+  default_shift_end_time?: Date | string | null
+  enabled_modules?: string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -14908,6 +16182,7 @@ export type organizationsUncheckedCreateWithoutStaff_schedulesInput = {
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutOrganizationsInput
+  client_field_config?: Prisma.client_field_configUncheckedCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsUncheckedCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutOrganizationsInput
   cliententitlements?: Prisma.cliententitlementsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -14990,7 +16265,11 @@ export type organizationsUpdateWithoutStaff_schedulesInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_slot_capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  default_shift_end_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  enabled_modules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutOrganizationsNestedInput
@@ -14999,6 +16278,7 @@ export type organizationsUpdateWithoutStaff_schedulesInput = {
   bills?: Prisma.billsUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutOrganizationsNestedInput
+  client_field_config?: Prisma.client_field_configUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutOrganizationsNestedInput
   cliententitlements?: Prisma.cliententitlementsUpdateManyWithoutOrganizationsNestedInput
@@ -15065,7 +16345,11 @@ export type organizationsUncheckedUpdateWithoutStaff_schedulesInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_slot_capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  default_shift_end_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  enabled_modules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -15074,6 +16358,7 @@ export type organizationsUncheckedUpdateWithoutStaff_schedulesInput = {
   bills?: Prisma.billsUncheckedUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  client_field_config?: Prisma.client_field_configUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUncheckedUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   cliententitlements?: Prisma.cliententitlementsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -15140,7 +16425,11 @@ export type organizationsCreateWithoutSubscription_logsInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_slot_capacity?: number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Date | string | null
+  default_shift_end_time?: Date | string | null
+  enabled_modules?: string | null
   athlete_item_logs?: Prisma.athlete_item_logsCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutOrganizationsInput
@@ -15149,6 +16438,7 @@ export type organizationsCreateWithoutSubscription_logsInput = {
   bills?: Prisma.billsCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutOrganizationsInput
+  client_field_config?: Prisma.client_field_configCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutOrganizationsInput
   cliententitlements?: Prisma.cliententitlementsCreateNestedManyWithoutOrganizationsInput
@@ -15215,7 +16505,11 @@ export type organizationsUncheckedCreateWithoutSubscription_logsInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_slot_capacity?: number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Date | string | null
+  default_shift_end_time?: Date | string | null
+  enabled_modules?: string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -15224,6 +16518,7 @@ export type organizationsUncheckedCreateWithoutSubscription_logsInput = {
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutOrganizationsInput
+  client_field_config?: Prisma.client_field_configUncheckedCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsUncheckedCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutOrganizationsInput
   cliententitlements?: Prisma.cliententitlementsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -15306,7 +16601,11 @@ export type organizationsUpdateWithoutSubscription_logsInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_slot_capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  default_shift_end_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  enabled_modules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutOrganizationsNestedInput
@@ -15315,6 +16614,7 @@ export type organizationsUpdateWithoutSubscription_logsInput = {
   bills?: Prisma.billsUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutOrganizationsNestedInput
+  client_field_config?: Prisma.client_field_configUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutOrganizationsNestedInput
   cliententitlements?: Prisma.cliententitlementsUpdateManyWithoutOrganizationsNestedInput
@@ -15381,7 +16681,11 @@ export type organizationsUncheckedUpdateWithoutSubscription_logsInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_slot_capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  default_shift_end_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  enabled_modules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -15390,6 +16694,7 @@ export type organizationsUncheckedUpdateWithoutSubscription_logsInput = {
   bills?: Prisma.billsUncheckedUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  client_field_config?: Prisma.client_field_configUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUncheckedUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   cliententitlements?: Prisma.cliententitlementsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -15456,7 +16761,11 @@ export type organizationsCreateWithoutSubscriptionsInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_slot_capacity?: number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Date | string | null
+  default_shift_end_time?: Date | string | null
+  enabled_modules?: string | null
   athlete_item_logs?: Prisma.athlete_item_logsCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutOrganizationsInput
@@ -15465,6 +16774,7 @@ export type organizationsCreateWithoutSubscriptionsInput = {
   bills?: Prisma.billsCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutOrganizationsInput
+  client_field_config?: Prisma.client_field_configCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutOrganizationsInput
   cliententitlements?: Prisma.cliententitlementsCreateNestedManyWithoutOrganizationsInput
@@ -15531,7 +16841,11 @@ export type organizationsUncheckedCreateWithoutSubscriptionsInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_slot_capacity?: number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Date | string | null
+  default_shift_end_time?: Date | string | null
+  enabled_modules?: string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -15540,6 +16854,7 @@ export type organizationsUncheckedCreateWithoutSubscriptionsInput = {
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutOrganizationsInput
+  client_field_config?: Prisma.client_field_configUncheckedCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsUncheckedCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutOrganizationsInput
   cliententitlements?: Prisma.cliententitlementsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -15622,7 +16937,11 @@ export type organizationsUpdateWithoutSubscriptionsInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_slot_capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  default_shift_end_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  enabled_modules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutOrganizationsNestedInput
@@ -15631,6 +16950,7 @@ export type organizationsUpdateWithoutSubscriptionsInput = {
   bills?: Prisma.billsUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutOrganizationsNestedInput
+  client_field_config?: Prisma.client_field_configUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutOrganizationsNestedInput
   cliententitlements?: Prisma.cliententitlementsUpdateManyWithoutOrganizationsNestedInput
@@ -15697,7 +17017,11 @@ export type organizationsUncheckedUpdateWithoutSubscriptionsInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_slot_capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  default_shift_end_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  enabled_modules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -15706,6 +17030,7 @@ export type organizationsUncheckedUpdateWithoutSubscriptionsInput = {
   bills?: Prisma.billsUncheckedUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  client_field_config?: Prisma.client_field_configUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUncheckedUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   cliententitlements?: Prisma.cliententitlementsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -15772,7 +17097,11 @@ export type organizationsCreateWithoutTrainingprogramsInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_slot_capacity?: number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Date | string | null
+  default_shift_end_time?: Date | string | null
+  enabled_modules?: string | null
   athlete_item_logs?: Prisma.athlete_item_logsCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutOrganizationsInput
@@ -15781,6 +17110,7 @@ export type organizationsCreateWithoutTrainingprogramsInput = {
   bills?: Prisma.billsCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutOrganizationsInput
+  client_field_config?: Prisma.client_field_configCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutOrganizationsInput
   cliententitlements?: Prisma.cliententitlementsCreateNestedManyWithoutOrganizationsInput
@@ -15847,7 +17177,11 @@ export type organizationsUncheckedCreateWithoutTrainingprogramsInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_slot_capacity?: number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Date | string | null
+  default_shift_end_time?: Date | string | null
+  enabled_modules?: string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -15856,6 +17190,7 @@ export type organizationsUncheckedCreateWithoutTrainingprogramsInput = {
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutOrganizationsInput
+  client_field_config?: Prisma.client_field_configUncheckedCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsUncheckedCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutOrganizationsInput
   cliententitlements?: Prisma.cliententitlementsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -15938,7 +17273,11 @@ export type organizationsUpdateWithoutTrainingprogramsInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_slot_capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  default_shift_end_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  enabled_modules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutOrganizationsNestedInput
@@ -15947,6 +17286,7 @@ export type organizationsUpdateWithoutTrainingprogramsInput = {
   bills?: Prisma.billsUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutOrganizationsNestedInput
+  client_field_config?: Prisma.client_field_configUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutOrganizationsNestedInput
   cliententitlements?: Prisma.cliententitlementsUpdateManyWithoutOrganizationsNestedInput
@@ -16013,7 +17353,11 @@ export type organizationsUncheckedUpdateWithoutTrainingprogramsInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_slot_capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  default_shift_end_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  enabled_modules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -16022,6 +17366,7 @@ export type organizationsUncheckedUpdateWithoutTrainingprogramsInput = {
   bills?: Prisma.billsUncheckedUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  client_field_config?: Prisma.client_field_configUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUncheckedUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   cliententitlements?: Prisma.cliententitlementsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -16088,7 +17433,11 @@ export type organizationsCreateWithoutUhidsequencesInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_slot_capacity?: number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Date | string | null
+  default_shift_end_time?: Date | string | null
+  enabled_modules?: string | null
   athlete_item_logs?: Prisma.athlete_item_logsCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutOrganizationsInput
@@ -16097,6 +17446,7 @@ export type organizationsCreateWithoutUhidsequencesInput = {
   bills?: Prisma.billsCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutOrganizationsInput
+  client_field_config?: Prisma.client_field_configCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutOrganizationsInput
   cliententitlements?: Prisma.cliententitlementsCreateNestedManyWithoutOrganizationsInput
@@ -16163,7 +17513,11 @@ export type organizationsUncheckedCreateWithoutUhidsequencesInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_slot_capacity?: number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Date | string | null
+  default_shift_end_time?: Date | string | null
+  enabled_modules?: string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -16172,6 +17526,7 @@ export type organizationsUncheckedCreateWithoutUhidsequencesInput = {
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutOrganizationsInput
+  client_field_config?: Prisma.client_field_configUncheckedCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsUncheckedCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutOrganizationsInput
   cliententitlements?: Prisma.cliententitlementsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -16254,7 +17609,11 @@ export type organizationsUpdateWithoutUhidsequencesInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_slot_capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  default_shift_end_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  enabled_modules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutOrganizationsNestedInput
@@ -16263,6 +17622,7 @@ export type organizationsUpdateWithoutUhidsequencesInput = {
   bills?: Prisma.billsUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutOrganizationsNestedInput
+  client_field_config?: Prisma.client_field_configUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutOrganizationsNestedInput
   cliententitlements?: Prisma.cliententitlementsUpdateManyWithoutOrganizationsNestedInput
@@ -16329,7 +17689,11 @@ export type organizationsUncheckedUpdateWithoutUhidsequencesInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_slot_capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  default_shift_end_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  enabled_modules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -16338,6 +17702,7 @@ export type organizationsUncheckedUpdateWithoutUhidsequencesInput = {
   bills?: Prisma.billsUncheckedUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  client_field_config?: Prisma.client_field_configUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUncheckedUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   cliententitlements?: Prisma.cliententitlementsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -16404,7 +17769,11 @@ export type organizationsCreateWithoutWaitlistInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_slot_capacity?: number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Date | string | null
+  default_shift_end_time?: Date | string | null
+  enabled_modules?: string | null
   athlete_item_logs?: Prisma.athlete_item_logsCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutOrganizationsInput
@@ -16413,6 +17782,7 @@ export type organizationsCreateWithoutWaitlistInput = {
   bills?: Prisma.billsCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutOrganizationsInput
+  client_field_config?: Prisma.client_field_configCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutOrganizationsInput
   cliententitlements?: Prisma.cliententitlementsCreateNestedManyWithoutOrganizationsInput
@@ -16479,7 +17849,11 @@ export type organizationsUncheckedCreateWithoutWaitlistInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_slot_capacity?: number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Date | string | null
+  default_shift_end_time?: Date | string | null
+  enabled_modules?: string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -16488,6 +17862,7 @@ export type organizationsUncheckedCreateWithoutWaitlistInput = {
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutOrganizationsInput
+  client_field_config?: Prisma.client_field_configUncheckedCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsUncheckedCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutOrganizationsInput
   cliententitlements?: Prisma.cliententitlementsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -16570,7 +17945,11 @@ export type organizationsUpdateWithoutWaitlistInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_slot_capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  default_shift_end_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  enabled_modules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutOrganizationsNestedInput
@@ -16579,6 +17958,7 @@ export type organizationsUpdateWithoutWaitlistInput = {
   bills?: Prisma.billsUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutOrganizationsNestedInput
+  client_field_config?: Prisma.client_field_configUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutOrganizationsNestedInput
   cliententitlements?: Prisma.cliententitlementsUpdateManyWithoutOrganizationsNestedInput
@@ -16645,7 +18025,11 @@ export type organizationsUncheckedUpdateWithoutWaitlistInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_slot_capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  default_shift_end_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  enabled_modules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -16654,6 +18038,7 @@ export type organizationsUncheckedUpdateWithoutWaitlistInput = {
   bills?: Prisma.billsUncheckedUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  client_field_config?: Prisma.client_field_configUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUncheckedUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   cliententitlements?: Prisma.cliententitlementsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -16720,7 +18105,11 @@ export type organizationsCreateWithoutWellness_logsInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_slot_capacity?: number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Date | string | null
+  default_shift_end_time?: Date | string | null
+  enabled_modules?: string | null
   athlete_item_logs?: Prisma.athlete_item_logsCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutOrganizationsInput
@@ -16729,6 +18118,7 @@ export type organizationsCreateWithoutWellness_logsInput = {
   bills?: Prisma.billsCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutOrganizationsInput
+  client_field_config?: Prisma.client_field_configCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutOrganizationsInput
   cliententitlements?: Prisma.cliententitlementsCreateNestedManyWithoutOrganizationsInput
@@ -16795,7 +18185,11 @@ export type organizationsUncheckedCreateWithoutWellness_logsInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_slot_capacity?: number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Date | string | null
+  default_shift_end_time?: Date | string | null
+  enabled_modules?: string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -16804,6 +18198,7 @@ export type organizationsUncheckedCreateWithoutWellness_logsInput = {
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutOrganizationsInput
+  client_field_config?: Prisma.client_field_configUncheckedCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsUncheckedCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutOrganizationsInput
   cliententitlements?: Prisma.cliententitlementsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -16886,7 +18281,11 @@ export type organizationsUpdateWithoutWellness_logsInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_slot_capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  default_shift_end_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  enabled_modules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutOrganizationsNestedInput
@@ -16895,6 +18294,7 @@ export type organizationsUpdateWithoutWellness_logsInput = {
   bills?: Prisma.billsUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutOrganizationsNestedInput
+  client_field_config?: Prisma.client_field_configUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutOrganizationsNestedInput
   cliententitlements?: Prisma.cliententitlementsUpdateManyWithoutOrganizationsNestedInput
@@ -16961,7 +18361,11 @@ export type organizationsUncheckedUpdateWithoutWellness_logsInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_slot_capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  default_shift_end_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  enabled_modules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -16970,6 +18374,7 @@ export type organizationsUncheckedUpdateWithoutWellness_logsInput = {
   bills?: Prisma.billsUncheckedUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  client_field_config?: Prisma.client_field_configUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUncheckedUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   cliententitlements?: Prisma.cliententitlementsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -17036,7 +18441,11 @@ export type organizationsCreateWithoutWorkoutdaysInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_slot_capacity?: number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Date | string | null
+  default_shift_end_time?: Date | string | null
+  enabled_modules?: string | null
   athlete_item_logs?: Prisma.athlete_item_logsCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutOrganizationsInput
@@ -17045,6 +18454,7 @@ export type organizationsCreateWithoutWorkoutdaysInput = {
   bills?: Prisma.billsCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutOrganizationsInput
+  client_field_config?: Prisma.client_field_configCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutOrganizationsInput
   cliententitlements?: Prisma.cliententitlementsCreateNestedManyWithoutOrganizationsInput
@@ -17111,7 +18521,11 @@ export type organizationsUncheckedCreateWithoutWorkoutdaysInput = {
   allowed_ips?: string | null
   allow_custom_duration?: boolean | null
   default_slot_duration?: number | null
+  default_slot_capacity?: number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Date | string | null
+  default_shift_end_time?: Date | string | null
+  enabled_modules?: string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedCreateNestedManyWithoutOrganizationsInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedCreateNestedManyWithoutOrganizationsInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -17120,6 +18534,7 @@ export type organizationsUncheckedCreateWithoutWorkoutdaysInput = {
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutOrganizationsInput
+  client_field_config?: Prisma.client_field_configUncheckedCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsUncheckedCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutOrganizationsInput
   cliententitlements?: Prisma.cliententitlementsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -17202,7 +18617,11 @@ export type organizationsUpdateWithoutWorkoutdaysInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_slot_capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  default_shift_end_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  enabled_modules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutOrganizationsNestedInput
@@ -17211,6 +18630,7 @@ export type organizationsUpdateWithoutWorkoutdaysInput = {
   bills?: Prisma.billsUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutOrganizationsNestedInput
+  client_field_config?: Prisma.client_field_configUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutOrganizationsNestedInput
   cliententitlements?: Prisma.cliententitlementsUpdateManyWithoutOrganizationsNestedInput
@@ -17277,7 +18697,11 @@ export type organizationsUncheckedUpdateWithoutWorkoutdaysInput = {
   allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_slot_capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  default_shift_end_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  enabled_modules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   athlete_item_logs?: Prisma.athlete_item_logsUncheckedUpdateManyWithoutOrganizationsNestedInput
   athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedUpdateManyWithoutOrganizationsNestedInput
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -17286,6 +18710,7 @@ export type organizationsUncheckedUpdateWithoutWorkoutdaysInput = {
   bills?: Prisma.billsUncheckedUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  client_field_config?: Prisma.client_field_configUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUncheckedUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   cliententitlements?: Prisma.cliententitlementsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -17342,6 +18767,7 @@ export type OrganizationsCountOutputType = {
   bills: number
   bulk_assignments: number
   client_assessment_reports: number
+  client_field_config: number
   client_groups: number
   clientdocuments: number
   cliententitlements: number
@@ -17393,6 +18819,7 @@ export type OrganizationsCountOutputTypeSelect<ExtArgs extends runtime.Types.Ext
   bills?: boolean | OrganizationsCountOutputTypeCountBillsArgs
   bulk_assignments?: boolean | OrganizationsCountOutputTypeCountBulk_assignmentsArgs
   client_assessment_reports?: boolean | OrganizationsCountOutputTypeCountClient_assessment_reportsArgs
+  client_field_config?: boolean | OrganizationsCountOutputTypeCountClient_field_configArgs
   client_groups?: boolean | OrganizationsCountOutputTypeCountClient_groupsArgs
   clientdocuments?: boolean | OrganizationsCountOutputTypeCountClientdocumentsArgs
   cliententitlements?: boolean | OrganizationsCountOutputTypeCountCliententitlementsArgs
@@ -17499,6 +18926,13 @@ export type OrganizationsCountOutputTypeCountBulk_assignmentsArgs<ExtArgs extend
  */
 export type OrganizationsCountOutputTypeCountClient_assessment_reportsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   where?: Prisma.client_assessment_reportsWhereInput
+}
+
+/**
+ * OrganizationsCountOutputType without action
+ */
+export type OrganizationsCountOutputTypeCountClient_field_configArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.client_field_configWhereInput
 }
 
 /**
@@ -17806,7 +19240,11 @@ export type organizationsSelect<ExtArgs extends runtime.Types.Extensions.Interna
   allowed_ips?: boolean
   allow_custom_duration?: boolean
   default_slot_duration?: boolean
+  default_slot_capacity?: boolean
+  custom_specialist_settings?: boolean
   default_checkout_time?: boolean
+  default_shift_end_time?: boolean
+  enabled_modules?: boolean
   athlete_item_logs?: boolean | Prisma.organizations$athlete_item_logsArgs<ExtArgs>
   athlete_workout_completions?: boolean | Prisma.organizations$athlete_workout_completionsArgs<ExtArgs>
   availabilityexceptions?: boolean | Prisma.organizations$availabilityexceptionsArgs<ExtArgs>
@@ -17815,6 +19253,7 @@ export type organizationsSelect<ExtArgs extends runtime.Types.Extensions.Interna
   bills?: boolean | Prisma.organizations$billsArgs<ExtArgs>
   bulk_assignments?: boolean | Prisma.organizations$bulk_assignmentsArgs<ExtArgs>
   client_assessment_reports?: boolean | Prisma.organizations$client_assessment_reportsArgs<ExtArgs>
+  client_field_config?: boolean | Prisma.organizations$client_field_configArgs<ExtArgs>
   client_groups?: boolean | Prisma.organizations$client_groupsArgs<ExtArgs>
   clientdocuments?: boolean | Prisma.organizations$clientdocumentsArgs<ExtArgs>
   cliententitlements?: boolean | Prisma.organizations$cliententitlementsArgs<ExtArgs>
@@ -17883,7 +19322,11 @@ export type organizationsSelectCreateManyAndReturn<ExtArgs extends runtime.Types
   allowed_ips?: boolean
   allow_custom_duration?: boolean
   default_slot_duration?: boolean
+  default_slot_capacity?: boolean
+  custom_specialist_settings?: boolean
   default_checkout_time?: boolean
+  default_shift_end_time?: boolean
+  enabled_modules?: boolean
 }, ExtArgs["result"]["organizations"]>
 
 export type organizationsSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -17910,7 +19353,11 @@ export type organizationsSelectUpdateManyAndReturn<ExtArgs extends runtime.Types
   allowed_ips?: boolean
   allow_custom_duration?: boolean
   default_slot_duration?: boolean
+  default_slot_capacity?: boolean
+  custom_specialist_settings?: boolean
   default_checkout_time?: boolean
+  default_shift_end_time?: boolean
+  enabled_modules?: boolean
 }, ExtArgs["result"]["organizations"]>
 
 export type organizationsSelectScalar = {
@@ -17937,10 +19384,14 @@ export type organizationsSelectScalar = {
   allowed_ips?: boolean
   allow_custom_duration?: boolean
   default_slot_duration?: boolean
+  default_slot_capacity?: boolean
+  custom_specialist_settings?: boolean
   default_checkout_time?: boolean
+  default_shift_end_time?: boolean
+  enabled_modules?: boolean
 }
 
-export type organizationsOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "created_at" | "updated_at" | "deleted_at" | "org_code" | "slug" | "subscription_plan" | "status" | "uhid_prefix" | "logo_url" | "official_name" | "official_address" | "contact_email" | "contact_phone" | "clinic_latitude" | "clinic_longitude" | "geofence_radius" | "enable_geofencing" | "enable_ip_locking" | "allowed_ips" | "allow_custom_duration" | "default_slot_duration" | "default_checkout_time", ExtArgs["result"]["organizations"]>
+export type organizationsOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "created_at" | "updated_at" | "deleted_at" | "org_code" | "slug" | "subscription_plan" | "status" | "uhid_prefix" | "logo_url" | "official_name" | "official_address" | "contact_email" | "contact_phone" | "clinic_latitude" | "clinic_longitude" | "geofence_radius" | "enable_geofencing" | "enable_ip_locking" | "allowed_ips" | "allow_custom_duration" | "default_slot_duration" | "default_slot_capacity" | "custom_specialist_settings" | "default_checkout_time" | "default_shift_end_time" | "enabled_modules", ExtArgs["result"]["organizations"]>
 export type organizationsInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   athlete_item_logs?: boolean | Prisma.organizations$athlete_item_logsArgs<ExtArgs>
   athlete_workout_completions?: boolean | Prisma.organizations$athlete_workout_completionsArgs<ExtArgs>
@@ -17950,6 +19401,7 @@ export type organizationsInclude<ExtArgs extends runtime.Types.Extensions.Intern
   bills?: boolean | Prisma.organizations$billsArgs<ExtArgs>
   bulk_assignments?: boolean | Prisma.organizations$bulk_assignmentsArgs<ExtArgs>
   client_assessment_reports?: boolean | Prisma.organizations$client_assessment_reportsArgs<ExtArgs>
+  client_field_config?: boolean | Prisma.organizations$client_field_configArgs<ExtArgs>
   client_groups?: boolean | Prisma.organizations$client_groupsArgs<ExtArgs>
   clientdocuments?: boolean | Prisma.organizations$clientdocumentsArgs<ExtArgs>
   cliententitlements?: boolean | Prisma.organizations$cliententitlementsArgs<ExtArgs>
@@ -18007,6 +19459,7 @@ export type $organizationsPayload<ExtArgs extends runtime.Types.Extensions.Inter
     bills: Prisma.$billsPayload<ExtArgs>[]
     bulk_assignments: Prisma.$bulk_assignmentsPayload<ExtArgs>[]
     client_assessment_reports: Prisma.$client_assessment_reportsPayload<ExtArgs>[]
+    client_field_config: Prisma.$client_field_configPayload<ExtArgs>[]
     client_groups: Prisma.$client_groupsPayload<ExtArgs>[]
     clientdocuments: Prisma.$clientdocumentsPayload<ExtArgs>[]
     cliententitlements: Prisma.$cliententitlementsPayload<ExtArgs>[]
@@ -18073,7 +19526,11 @@ export type $organizationsPayload<ExtArgs extends runtime.Types.Extensions.Inter
     allowed_ips: string | null
     allow_custom_duration: boolean | null
     default_slot_duration: number | null
+    default_slot_capacity: number | null
+    custom_specialist_settings: runtime.JsonValue | null
     default_checkout_time: Date | null
+    default_shift_end_time: Date | null
+    enabled_modules: string | null
   }, ExtArgs["result"]["organizations"]>
   composites: {}
 }
@@ -18476,6 +19933,7 @@ export interface Prisma__organizationsClient<T, Null = never, ExtArgs extends ru
   bills<T extends Prisma.organizations$billsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.organizations$billsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$billsPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   bulk_assignments<T extends Prisma.organizations$bulk_assignmentsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.organizations$bulk_assignmentsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$bulk_assignmentsPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   client_assessment_reports<T extends Prisma.organizations$client_assessment_reportsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.organizations$client_assessment_reportsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$client_assessment_reportsPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  client_field_config<T extends Prisma.organizations$client_field_configArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.organizations$client_field_configArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$client_field_configPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   client_groups<T extends Prisma.organizations$client_groupsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.organizations$client_groupsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$client_groupsPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   clientdocuments<T extends Prisma.organizations$clientdocumentsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.organizations$clientdocumentsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$clientdocumentsPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   cliententitlements<T extends Prisma.organizations$cliententitlementsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.organizations$cliententitlementsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$cliententitlementsPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
@@ -18569,7 +20027,11 @@ export interface organizationsFieldRefs {
   readonly allowed_ips: Prisma.FieldRef<"organizations", 'String'>
   readonly allow_custom_duration: Prisma.FieldRef<"organizations", 'Boolean'>
   readonly default_slot_duration: Prisma.FieldRef<"organizations", 'Int'>
+  readonly default_slot_capacity: Prisma.FieldRef<"organizations", 'Int'>
+  readonly custom_specialist_settings: Prisma.FieldRef<"organizations", 'Json'>
   readonly default_checkout_time: Prisma.FieldRef<"organizations", 'DateTime'>
+  readonly default_shift_end_time: Prisma.FieldRef<"organizations", 'DateTime'>
+  readonly enabled_modules: Prisma.FieldRef<"organizations", 'String'>
 }
     
 
@@ -19152,6 +20614,30 @@ export type organizations$client_assessment_reportsArgs<ExtArgs extends runtime.
   take?: number
   skip?: number
   distinct?: Prisma.Client_assessment_reportsScalarFieldEnum | Prisma.Client_assessment_reportsScalarFieldEnum[]
+}
+
+/**
+ * organizations.client_field_config
+ */
+export type organizations$client_field_configArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the client_field_config
+   */
+  select?: Prisma.client_field_configSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the client_field_config
+   */
+  omit?: Prisma.client_field_configOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.client_field_configInclude<ExtArgs> | null
+  where?: Prisma.client_field_configWhereInput
+  orderBy?: Prisma.client_field_configOrderByWithRelationInput | Prisma.client_field_configOrderByWithRelationInput[]
+  cursor?: Prisma.client_field_configWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.Client_field_configScalarFieldEnum | Prisma.Client_field_configScalarFieldEnum[]
 }
 
 /**

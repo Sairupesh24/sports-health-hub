@@ -34,6 +34,7 @@ export type Form_responsesMinAggregateOutputType = {
   status: string | null
   clinical_interpretation: string | null
   submitted_at: Date | null
+  public_token: string | null
   created_at: Date | null
 }
 
@@ -47,6 +48,7 @@ export type Form_responsesMaxAggregateOutputType = {
   status: string | null
   clinical_interpretation: string | null
   submitted_at: Date | null
+  public_token: string | null
   created_at: Date | null
 }
 
@@ -61,6 +63,7 @@ export type Form_responsesCountAggregateOutputType = {
   response_data: number
   clinical_interpretation: number
   submitted_at: number
+  public_token: number
   created_at: number
   _all: number
 }
@@ -76,6 +79,7 @@ export type Form_responsesMinAggregateInputType = {
   status?: true
   clinical_interpretation?: true
   submitted_at?: true
+  public_token?: true
   created_at?: true
 }
 
@@ -89,6 +93,7 @@ export type Form_responsesMaxAggregateInputType = {
   status?: true
   clinical_interpretation?: true
   submitted_at?: true
+  public_token?: true
   created_at?: true
 }
 
@@ -103,6 +108,7 @@ export type Form_responsesCountAggregateInputType = {
   response_data?: true
   clinical_interpretation?: true
   submitted_at?: true
+  public_token?: true
   created_at?: true
   _all?: true
 }
@@ -190,6 +196,7 @@ export type Form_responsesGroupByOutputType = {
   response_data: runtime.JsonValue | null
   clinical_interpretation: string | null
   submitted_at: Date | null
+  public_token: string | null
   created_at: Date | null
   _count: Form_responsesCountAggregateOutputType | null
   _min: Form_responsesMinAggregateOutputType | null
@@ -225,6 +232,7 @@ export type form_responsesWhereInput = {
   response_data?: Prisma.JsonNullableFilter<"form_responses">
   clinical_interpretation?: Prisma.StringNullableFilter<"form_responses"> | string | null
   submitted_at?: Prisma.DateTimeNullableFilter<"form_responses"> | Date | string | null
+  public_token?: Prisma.StringNullableFilter<"form_responses"> | string | null
   created_at?: Prisma.DateTimeNullableFilter<"form_responses"> | Date | string | null
   bulk_assignments?: Prisma.XOR<Prisma.Bulk_assignmentsNullableScalarRelationFilter, Prisma.bulk_assignmentsWhereInput> | null
   clients?: Prisma.XOR<Prisma.ClientsScalarRelationFilter, Prisma.clientsWhereInput>
@@ -243,6 +251,7 @@ export type form_responsesOrderByWithRelationInput = {
   response_data?: Prisma.SortOrderInput | Prisma.SortOrder
   clinical_interpretation?: Prisma.SortOrderInput | Prisma.SortOrder
   submitted_at?: Prisma.SortOrderInput | Prisma.SortOrder
+  public_token?: Prisma.SortOrderInput | Prisma.SortOrder
   created_at?: Prisma.SortOrderInput | Prisma.SortOrder
   bulk_assignments?: Prisma.bulk_assignmentsOrderByWithRelationInput
   clients?: Prisma.clientsOrderByWithRelationInput
@@ -264,6 +273,7 @@ export type form_responsesWhereUniqueInput = Prisma.AtLeast<{
   response_data?: Prisma.JsonNullableFilter<"form_responses">
   clinical_interpretation?: Prisma.StringNullableFilter<"form_responses"> | string | null
   submitted_at?: Prisma.DateTimeNullableFilter<"form_responses"> | Date | string | null
+  public_token?: Prisma.StringNullableFilter<"form_responses"> | string | null
   created_at?: Prisma.DateTimeNullableFilter<"form_responses"> | Date | string | null
   bulk_assignments?: Prisma.XOR<Prisma.Bulk_assignmentsNullableScalarRelationFilter, Prisma.bulk_assignmentsWhereInput> | null
   clients?: Prisma.XOR<Prisma.ClientsScalarRelationFilter, Prisma.clientsWhereInput>
@@ -282,6 +292,7 @@ export type form_responsesOrderByWithAggregationInput = {
   response_data?: Prisma.SortOrderInput | Prisma.SortOrder
   clinical_interpretation?: Prisma.SortOrderInput | Prisma.SortOrder
   submitted_at?: Prisma.SortOrderInput | Prisma.SortOrder
+  public_token?: Prisma.SortOrderInput | Prisma.SortOrder
   created_at?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.form_responsesCountOrderByAggregateInput
   _max?: Prisma.form_responsesMaxOrderByAggregateInput
@@ -302,6 +313,7 @@ export type form_responsesScalarWhereWithAggregatesInput = {
   response_data?: Prisma.JsonNullableWithAggregatesFilter<"form_responses">
   clinical_interpretation?: Prisma.StringNullableWithAggregatesFilter<"form_responses"> | string | null
   submitted_at?: Prisma.DateTimeNullableWithAggregatesFilter<"form_responses"> | Date | string | null
+  public_token?: Prisma.StringNullableWithAggregatesFilter<"form_responses"> | string | null
   created_at?: Prisma.DateTimeNullableWithAggregatesFilter<"form_responses"> | Date | string | null
 }
 
@@ -312,6 +324,7 @@ export type form_responsesCreateInput = {
   response_data?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   clinical_interpretation?: string | null
   submitted_at?: Date | string | null
+  public_token?: string | null
   created_at?: Date | string | null
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedOneWithoutForm_responsesInput
   clients: Prisma.clientsCreateNestedOneWithoutForm_responsesInput
@@ -330,6 +343,7 @@ export type form_responsesUncheckedCreateInput = {
   response_data?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   clinical_interpretation?: string | null
   submitted_at?: Date | string | null
+  public_token?: string | null
   created_at?: Date | string | null
 }
 
@@ -340,6 +354,7 @@ export type form_responsesUpdateInput = {
   response_data?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   clinical_interpretation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   submitted_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  public_token?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   created_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   bulk_assignments?: Prisma.bulk_assignmentsUpdateOneWithoutForm_responsesNestedInput
   clients?: Prisma.clientsUpdateOneRequiredWithoutForm_responsesNestedInput
@@ -358,6 +373,7 @@ export type form_responsesUncheckedUpdateInput = {
   response_data?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   clinical_interpretation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   submitted_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  public_token?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   created_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
@@ -372,6 +388,7 @@ export type form_responsesCreateManyInput = {
   response_data?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   clinical_interpretation?: string | null
   submitted_at?: Date | string | null
+  public_token?: string | null
   created_at?: Date | string | null
 }
 
@@ -382,6 +399,7 @@ export type form_responsesUpdateManyMutationInput = {
   response_data?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   clinical_interpretation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   submitted_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  public_token?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   created_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
@@ -396,6 +414,7 @@ export type form_responsesUncheckedUpdateManyInput = {
   response_data?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   clinical_interpretation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   submitted_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  public_token?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   created_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
@@ -420,6 +439,7 @@ export type form_responsesCountOrderByAggregateInput = {
   response_data?: Prisma.SortOrder
   clinical_interpretation?: Prisma.SortOrder
   submitted_at?: Prisma.SortOrder
+  public_token?: Prisma.SortOrder
   created_at?: Prisma.SortOrder
 }
 
@@ -433,6 +453,7 @@ export type form_responsesMaxOrderByAggregateInput = {
   status?: Prisma.SortOrder
   clinical_interpretation?: Prisma.SortOrder
   submitted_at?: Prisma.SortOrder
+  public_token?: Prisma.SortOrder
   created_at?: Prisma.SortOrder
 }
 
@@ -446,6 +467,7 @@ export type form_responsesMinOrderByAggregateInput = {
   status?: Prisma.SortOrder
   clinical_interpretation?: Prisma.SortOrder
   submitted_at?: Prisma.SortOrder
+  public_token?: Prisma.SortOrder
   created_at?: Prisma.SortOrder
 }
 
@@ -624,6 +646,7 @@ export type form_responsesCreateWithoutBulk_assignmentsInput = {
   response_data?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   clinical_interpretation?: string | null
   submitted_at?: Date | string | null
+  public_token?: string | null
   created_at?: Date | string | null
   clients: Prisma.clientsCreateNestedOneWithoutForm_responsesInput
   organizations: Prisma.organizationsCreateNestedOneWithoutForm_responsesInput
@@ -640,6 +663,7 @@ export type form_responsesUncheckedCreateWithoutBulk_assignmentsInput = {
   response_data?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   clinical_interpretation?: string | null
   submitted_at?: Date | string | null
+  public_token?: string | null
   created_at?: Date | string | null
 }
 
@@ -683,6 +707,7 @@ export type form_responsesScalarWhereInput = {
   response_data?: Prisma.JsonNullableFilter<"form_responses">
   clinical_interpretation?: Prisma.StringNullableFilter<"form_responses"> | string | null
   submitted_at?: Prisma.DateTimeNullableFilter<"form_responses"> | Date | string | null
+  public_token?: Prisma.StringNullableFilter<"form_responses"> | string | null
   created_at?: Prisma.DateTimeNullableFilter<"form_responses"> | Date | string | null
 }
 
@@ -693,6 +718,7 @@ export type form_responsesCreateWithoutClientsInput = {
   response_data?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   clinical_interpretation?: string | null
   submitted_at?: Date | string | null
+  public_token?: string | null
   created_at?: Date | string | null
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedOneWithoutForm_responsesInput
   organizations: Prisma.organizationsCreateNestedOneWithoutForm_responsesInput
@@ -709,6 +735,7 @@ export type form_responsesUncheckedCreateWithoutClientsInput = {
   response_data?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   clinical_interpretation?: string | null
   submitted_at?: Date | string | null
+  public_token?: string | null
   created_at?: Date | string | null
 }
 
@@ -745,6 +772,7 @@ export type form_responsesCreateWithoutOrganizationsInput = {
   response_data?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   clinical_interpretation?: string | null
   submitted_at?: Date | string | null
+  public_token?: string | null
   created_at?: Date | string | null
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedOneWithoutForm_responsesInput
   clients: Prisma.clientsCreateNestedOneWithoutForm_responsesInput
@@ -761,6 +789,7 @@ export type form_responsesUncheckedCreateWithoutOrganizationsInput = {
   response_data?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   clinical_interpretation?: string | null
   submitted_at?: Date | string | null
+  public_token?: string | null
   created_at?: Date | string | null
 }
 
@@ -797,6 +826,7 @@ export type form_responsesCreateWithoutProfilesInput = {
   response_data?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   clinical_interpretation?: string | null
   submitted_at?: Date | string | null
+  public_token?: string | null
   created_at?: Date | string | null
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedOneWithoutForm_responsesInput
   clients: Prisma.clientsCreateNestedOneWithoutForm_responsesInput
@@ -813,6 +843,7 @@ export type form_responsesUncheckedCreateWithoutProfilesInput = {
   response_data?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   clinical_interpretation?: string | null
   submitted_at?: Date | string | null
+  public_token?: string | null
   created_at?: Date | string | null
 }
 
@@ -852,6 +883,7 @@ export type form_responsesCreateManyBulk_assignmentsInput = {
   response_data?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   clinical_interpretation?: string | null
   submitted_at?: Date | string | null
+  public_token?: string | null
   created_at?: Date | string | null
 }
 
@@ -862,6 +894,7 @@ export type form_responsesUpdateWithoutBulk_assignmentsInput = {
   response_data?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   clinical_interpretation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   submitted_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  public_token?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   created_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   clients?: Prisma.clientsUpdateOneRequiredWithoutForm_responsesNestedInput
   organizations?: Prisma.organizationsUpdateOneRequiredWithoutForm_responsesNestedInput
@@ -878,6 +911,7 @@ export type form_responsesUncheckedUpdateWithoutBulk_assignmentsInput = {
   response_data?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   clinical_interpretation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   submitted_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  public_token?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   created_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
@@ -891,6 +925,7 @@ export type form_responsesUncheckedUpdateManyWithoutBulk_assignmentsInput = {
   response_data?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   clinical_interpretation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   submitted_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  public_token?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   created_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
@@ -904,6 +939,7 @@ export type form_responsesCreateManyClientsInput = {
   response_data?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   clinical_interpretation?: string | null
   submitted_at?: Date | string | null
+  public_token?: string | null
   created_at?: Date | string | null
 }
 
@@ -914,6 +950,7 @@ export type form_responsesUpdateWithoutClientsInput = {
   response_data?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   clinical_interpretation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   submitted_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  public_token?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   created_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   bulk_assignments?: Prisma.bulk_assignmentsUpdateOneWithoutForm_responsesNestedInput
   organizations?: Prisma.organizationsUpdateOneRequiredWithoutForm_responsesNestedInput
@@ -930,6 +967,7 @@ export type form_responsesUncheckedUpdateWithoutClientsInput = {
   response_data?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   clinical_interpretation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   submitted_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  public_token?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   created_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
@@ -943,6 +981,7 @@ export type form_responsesUncheckedUpdateManyWithoutClientsInput = {
   response_data?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   clinical_interpretation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   submitted_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  public_token?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   created_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
@@ -956,6 +995,7 @@ export type form_responsesCreateManyOrganizationsInput = {
   response_data?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   clinical_interpretation?: string | null
   submitted_at?: Date | string | null
+  public_token?: string | null
   created_at?: Date | string | null
 }
 
@@ -966,6 +1006,7 @@ export type form_responsesUpdateWithoutOrganizationsInput = {
   response_data?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   clinical_interpretation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   submitted_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  public_token?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   created_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   bulk_assignments?: Prisma.bulk_assignmentsUpdateOneWithoutForm_responsesNestedInput
   clients?: Prisma.clientsUpdateOneRequiredWithoutForm_responsesNestedInput
@@ -982,6 +1023,7 @@ export type form_responsesUncheckedUpdateWithoutOrganizationsInput = {
   response_data?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   clinical_interpretation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   submitted_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  public_token?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   created_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
@@ -995,6 +1037,7 @@ export type form_responsesUncheckedUpdateManyWithoutOrganizationsInput = {
   response_data?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   clinical_interpretation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   submitted_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  public_token?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   created_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
@@ -1008,6 +1051,7 @@ export type form_responsesCreateManyProfilesInput = {
   response_data?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   clinical_interpretation?: string | null
   submitted_at?: Date | string | null
+  public_token?: string | null
   created_at?: Date | string | null
 }
 
@@ -1018,6 +1062,7 @@ export type form_responsesUpdateWithoutProfilesInput = {
   response_data?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   clinical_interpretation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   submitted_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  public_token?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   created_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   bulk_assignments?: Prisma.bulk_assignmentsUpdateOneWithoutForm_responsesNestedInput
   clients?: Prisma.clientsUpdateOneRequiredWithoutForm_responsesNestedInput
@@ -1034,6 +1079,7 @@ export type form_responsesUncheckedUpdateWithoutProfilesInput = {
   response_data?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   clinical_interpretation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   submitted_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  public_token?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   created_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
@@ -1047,6 +1093,7 @@ export type form_responsesUncheckedUpdateManyWithoutProfilesInput = {
   response_data?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   clinical_interpretation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   submitted_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  public_token?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   created_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
@@ -1063,6 +1110,7 @@ export type form_responsesSelect<ExtArgs extends runtime.Types.Extensions.Intern
   response_data?: boolean
   clinical_interpretation?: boolean
   submitted_at?: boolean
+  public_token?: boolean
   created_at?: boolean
   bulk_assignments?: boolean | Prisma.form_responses$bulk_assignmentsArgs<ExtArgs>
   clients?: boolean | Prisma.clientsDefaultArgs<ExtArgs>
@@ -1081,6 +1129,7 @@ export type form_responsesSelectCreateManyAndReturn<ExtArgs extends runtime.Type
   response_data?: boolean
   clinical_interpretation?: boolean
   submitted_at?: boolean
+  public_token?: boolean
   created_at?: boolean
   bulk_assignments?: boolean | Prisma.form_responses$bulk_assignmentsArgs<ExtArgs>
   clients?: boolean | Prisma.clientsDefaultArgs<ExtArgs>
@@ -1099,6 +1148,7 @@ export type form_responsesSelectUpdateManyAndReturn<ExtArgs extends runtime.Type
   response_data?: boolean
   clinical_interpretation?: boolean
   submitted_at?: boolean
+  public_token?: boolean
   created_at?: boolean
   bulk_assignments?: boolean | Prisma.form_responses$bulk_assignmentsArgs<ExtArgs>
   clients?: boolean | Prisma.clientsDefaultArgs<ExtArgs>
@@ -1117,10 +1167,11 @@ export type form_responsesSelectScalar = {
   response_data?: boolean
   clinical_interpretation?: boolean
   submitted_at?: boolean
+  public_token?: boolean
   created_at?: boolean
 }
 
-export type form_responsesOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "organization_id" | "form_id" | "client_id" | "specialist_id" | "bulk_assignment_id" | "status" | "response_data" | "clinical_interpretation" | "submitted_at" | "created_at", ExtArgs["result"]["form_responses"]>
+export type form_responsesOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "organization_id" | "form_id" | "client_id" | "specialist_id" | "bulk_assignment_id" | "status" | "response_data" | "clinical_interpretation" | "submitted_at" | "public_token" | "created_at", ExtArgs["result"]["form_responses"]>
 export type form_responsesInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   bulk_assignments?: boolean | Prisma.form_responses$bulk_assignmentsArgs<ExtArgs>
   clients?: boolean | Prisma.clientsDefaultArgs<ExtArgs>
@@ -1159,6 +1210,7 @@ export type $form_responsesPayload<ExtArgs extends runtime.Types.Extensions.Inte
     response_data: runtime.JsonValue | null
     clinical_interpretation: string | null
     submitted_at: Date | null
+    public_token: string | null
     created_at: Date | null
   }, ExtArgs["result"]["form_responses"]>
   composites: {}
@@ -1597,6 +1649,7 @@ export interface form_responsesFieldRefs {
   readonly response_data: Prisma.FieldRef<"form_responses", 'Json'>
   readonly clinical_interpretation: Prisma.FieldRef<"form_responses", 'String'>
   readonly submitted_at: Prisma.FieldRef<"form_responses", 'DateTime'>
+  readonly public_token: Prisma.FieldRef<"form_responses", 'String'>
   readonly created_at: Prisma.FieldRef<"form_responses", 'DateTime'>
 }
     

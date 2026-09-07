@@ -64,6 +64,7 @@ export const ModelName = {
   client_groups: 'client_groups',
   clientadminnotes: 'clientadminnotes',
   clientdocuments: 'clientdocuments',
+  client_field_config: 'client_field_config',
   cliententitlements: 'cliententitlements',
   clientorganizations: 'clientorganizations',
   clients: 'clients',
@@ -114,7 +115,26 @@ export const ModelName = {
   waitlist: 'waitlist',
   wellness_logs: 'wellness_logs',
   workoutdays: 'workoutdays',
-  workoutitems: 'workoutitems'
+  workoutitems: 'workoutitems',
+  planner_projects: 'planner_projects',
+  planner_workstreams: 'planner_workstreams',
+  planner_work_items: 'planner_work_items',
+  planner_dependencies: 'planner_dependencies',
+  user_organizations: 'user_organizations',
+  chat_bots: 'chat_bots',
+  chat_channels: 'chat_channels',
+  channel_members: 'channel_members',
+  direct_message_threads: 'direct_message_threads',
+  chat_messages: 'chat_messages',
+  message_attachments: 'message_attachments',
+  message_reactions: 'message_reactions',
+  message_reads: 'message_reads',
+  teamcomms_settings: 'teamcomms_settings',
+  teamcomms_scheduled_reports: 'teamcomms_scheduled_reports',
+  planner_daily_tasks: 'planner_daily_tasks',
+  planner_teams: 'planner_teams',
+  planner_settings: 'planner_settings',
+  user_push_subscriptions: 'user_push_subscriptions'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -324,6 +344,17 @@ export const ClientdocumentsScalarFieldEnum = {
 } as const
 
 export type ClientdocumentsScalarFieldEnum = (typeof ClientdocumentsScalarFieldEnum)[keyof typeof ClientdocumentsScalarFieldEnum]
+
+
+export const Client_field_configScalarFieldEnum = {
+  id: 'id',
+  organization_id: 'organization_id',
+  field_name: 'field_name',
+  is_mandatory: 'is_mandatory',
+  updated_at: 'updated_at'
+} as const
+
+export type Client_field_configScalarFieldEnum = (typeof Client_field_configScalarFieldEnum)[keyof typeof Client_field_configScalarFieldEnum]
 
 
 export const CliententitlementsScalarFieldEnum = {
@@ -547,6 +578,7 @@ export const Form_responsesScalarFieldEnum = {
   response_data: 'response_data',
   clinical_interpretation: 'clinical_interpretation',
   submitted_at: 'submitted_at',
+  public_token: 'public_token',
   created_at: 'created_at'
 } as const
 
@@ -772,7 +804,11 @@ export const OrganizationsScalarFieldEnum = {
   allowed_ips: 'allowed_ips',
   allow_custom_duration: 'allow_custom_duration',
   default_slot_duration: 'default_slot_duration',
-  default_checkout_time: 'default_checkout_time'
+  default_slot_capacity: 'default_slot_capacity',
+  custom_specialist_settings: 'custom_specialist_settings',
+  default_checkout_time: 'default_checkout_time',
+  default_shift_end_time: 'default_shift_end_time',
+  enabled_modules: 'enabled_modules'
 } as const
 
 export type OrganizationsScalarFieldEnum = (typeof OrganizationsScalarFieldEnum)[keyof typeof OrganizationsScalarFieldEnum]
@@ -851,7 +887,10 @@ export const ProfilesScalarFieldEnum = {
   created_at: 'created_at',
   avatar_url: 'avatar_url',
   mobile_no: 'mobile_no',
-  has_calendar_access: 'has_calendar_access'
+  has_calendar_access: 'has_calendar_access',
+  has_analytics_access: 'has_analytics_access',
+  has_assign_work_access: 'has_assign_work_access',
+  allowed_consoles: 'allowed_consoles'
 } as const
 
 export type ProfilesScalarFieldEnum = (typeof ProfilesScalarFieldEnum)[keyof typeof ProfilesScalarFieldEnum]
@@ -1161,6 +1200,325 @@ export const WorkoutitemsScalarFieldEnum = {
 } as const
 
 export type WorkoutitemsScalarFieldEnum = (typeof WorkoutitemsScalarFieldEnum)[keyof typeof WorkoutitemsScalarFieldEnum]
+
+
+export const Planner_projectsScalarFieldEnum = {
+  id: 'id',
+  organization_id: 'organization_id',
+  name: 'name',
+  code: 'code',
+  description: 'description',
+  department: 'department',
+  priority: 'priority',
+  health: 'health',
+  status: 'status',
+  progress: 'progress',
+  start_date: 'start_date',
+  target_date: 'target_date',
+  budget: 'budget',
+  currency: 'currency',
+  owner_id: 'owner_id',
+  manager_id: 'manager_id',
+  portfolio_id: 'portfolio_id',
+  created_at: 'created_at',
+  updated_at: 'updated_at',
+  deleted_at: 'deleted_at'
+} as const
+
+export type Planner_projectsScalarFieldEnum = (typeof Planner_projectsScalarFieldEnum)[keyof typeof Planner_projectsScalarFieldEnum]
+
+
+export const Planner_workstreamsScalarFieldEnum = {
+  id: 'id',
+  project_id: 'project_id',
+  name: 'name',
+  color: 'color',
+  sort_order: 'sort_order',
+  created_at: 'created_at'
+} as const
+
+export type Planner_workstreamsScalarFieldEnum = (typeof Planner_workstreamsScalarFieldEnum)[keyof typeof Planner_workstreamsScalarFieldEnum]
+
+
+export const Planner_work_itemsScalarFieldEnum = {
+  id: 'id',
+  project_id: 'project_id',
+  workstream_id: 'workstream_id',
+  parent_id: 'parent_id',
+  title: 'title',
+  description: 'description',
+  status: 'status',
+  priority: 'priority',
+  assignee_id: 'assignee_id',
+  creator_id: 'creator_id',
+  sprint_id: 'sprint_id',
+  start_date: 'start_date',
+  due_date: 'due_date',
+  estimated_hours: 'estimated_hours',
+  actual_hours: 'actual_hours',
+  is_milestone: 'is_milestone',
+  is_critical: 'is_critical',
+  sort_order: 'sort_order',
+  created_at: 'created_at',
+  updated_at: 'updated_at',
+  deleted_at: 'deleted_at'
+} as const
+
+export type Planner_work_itemsScalarFieldEnum = (typeof Planner_work_itemsScalarFieldEnum)[keyof typeof Planner_work_itemsScalarFieldEnum]
+
+
+export const Planner_dependenciesScalarFieldEnum = {
+  id: 'id',
+  predecessor_id: 'predecessor_id',
+  successor_id: 'successor_id',
+  type: 'type',
+  lag_days: 'lag_days',
+  created_at: 'created_at'
+} as const
+
+export type Planner_dependenciesScalarFieldEnum = (typeof Planner_dependenciesScalarFieldEnum)[keyof typeof Planner_dependenciesScalarFieldEnum]
+
+
+export const User_organizationsScalarFieldEnum = {
+  id: 'id',
+  user_id: 'user_id',
+  organization_id: 'organization_id',
+  role: 'role',
+  joined_at: 'joined_at',
+  invited_by: 'invited_by'
+} as const
+
+export type User_organizationsScalarFieldEnum = (typeof User_organizationsScalarFieldEnum)[keyof typeof User_organizationsScalarFieldEnum]
+
+
+export const Chat_botsScalarFieldEnum = {
+  id: 'id',
+  organization_id: 'organization_id',
+  name: 'name',
+  avatar_url: 'avatar_url',
+  description: 'description',
+  created_at: 'created_at'
+} as const
+
+export type Chat_botsScalarFieldEnum = (typeof Chat_botsScalarFieldEnum)[keyof typeof Chat_botsScalarFieldEnum]
+
+
+export const Chat_channelsScalarFieldEnum = {
+  id: 'id',
+  organization_id: 'organization_id',
+  name: 'name',
+  description: 'description',
+  channel_type: 'channel_type',
+  created_by: 'created_by',
+  is_archived: 'is_archived',
+  is_default: 'is_default',
+  last_message_at: 'last_message_at',
+  created_at: 'created_at',
+  updated_at: 'updated_at',
+  deleted_at: 'deleted_at'
+} as const
+
+export type Chat_channelsScalarFieldEnum = (typeof Chat_channelsScalarFieldEnum)[keyof typeof Chat_channelsScalarFieldEnum]
+
+
+export const Channel_membersScalarFieldEnum = {
+  id: 'id',
+  channel_id: 'channel_id',
+  user_id: 'user_id',
+  role: 'role',
+  muted: 'muted',
+  joined_at: 'joined_at',
+  last_read_at: 'last_read_at'
+} as const
+
+export type Channel_membersScalarFieldEnum = (typeof Channel_membersScalarFieldEnum)[keyof typeof Channel_membersScalarFieldEnum]
+
+
+export const Direct_message_threadsScalarFieldEnum = {
+  id: 'id',
+  organization_id: 'organization_id',
+  user_a: 'user_a',
+  user_b: 'user_b',
+  last_message_at: 'last_message_at',
+  created_at: 'created_at'
+} as const
+
+export type Direct_message_threadsScalarFieldEnum = (typeof Direct_message_threadsScalarFieldEnum)[keyof typeof Direct_message_threadsScalarFieldEnum]
+
+
+export const Chat_messagesScalarFieldEnum = {
+  id: 'id',
+  organization_id: 'organization_id',
+  channel_id: 'channel_id',
+  dm_thread_id: 'dm_thread_id',
+  user_id: 'user_id',
+  bot_id: 'bot_id',
+  parent_message_id: 'parent_message_id',
+  message_type: 'message_type',
+  content: 'content',
+  content_html: 'content_html',
+  metadata: 'metadata',
+  is_edited: 'is_edited',
+  edited_at: 'edited_at',
+  created_at: 'created_at',
+  updated_at: 'updated_at',
+  deleted_at: 'deleted_at'
+} as const
+
+export type Chat_messagesScalarFieldEnum = (typeof Chat_messagesScalarFieldEnum)[keyof typeof Chat_messagesScalarFieldEnum]
+
+
+export const Message_attachmentsScalarFieldEnum = {
+  id: 'id',
+  message_id: 'message_id',
+  file_name: 'file_name',
+  file_url: 'file_url',
+  file_size: 'file_size',
+  mime_type: 'mime_type',
+  uploaded_by: 'uploaded_by',
+  uploaded_at: 'uploaded_at'
+} as const
+
+export type Message_attachmentsScalarFieldEnum = (typeof Message_attachmentsScalarFieldEnum)[keyof typeof Message_attachmentsScalarFieldEnum]
+
+
+export const Message_reactionsScalarFieldEnum = {
+  id: 'id',
+  message_id: 'message_id',
+  user_id: 'user_id',
+  emoji: 'emoji',
+  created_at: 'created_at'
+} as const
+
+export type Message_reactionsScalarFieldEnum = (typeof Message_reactionsScalarFieldEnum)[keyof typeof Message_reactionsScalarFieldEnum]
+
+
+export const Message_readsScalarFieldEnum = {
+  id: 'id',
+  message_id: 'message_id',
+  user_id: 'user_id',
+  read_at: 'read_at'
+} as const
+
+export type Message_readsScalarFieldEnum = (typeof Message_readsScalarFieldEnum)[keyof typeof Message_readsScalarFieldEnum]
+
+
+export const Teamcomms_settingsScalarFieldEnum = {
+  id: 'id',
+  organization_id: 'organization_id',
+  is_enabled: 'is_enabled',
+  notify_task_assigned: 'notify_task_assigned',
+  notify_task_overdue: 'notify_task_overdue',
+  notify_appointment: 'notify_appointment',
+  notify_leave: 'notify_leave',
+  notify_clinical_report: 'notify_clinical_report',
+  notify_meal_plan: 'notify_meal_plan',
+  notify_membership_expiry: 'notify_membership_expiry',
+  report_channel_id: 'report_channel_id',
+  created_at: 'created_at',
+  updated_at: 'updated_at'
+} as const
+
+export type Teamcomms_settingsScalarFieldEnum = (typeof Teamcomms_settingsScalarFieldEnum)[keyof typeof Teamcomms_settingsScalarFieldEnum]
+
+
+export const Teamcomms_scheduled_reportsScalarFieldEnum = {
+  id: 'id',
+  organization_id: 'organization_id',
+  channel_id: 'channel_id',
+  report_type: 'report_type',
+  cron_expression: 'cron_expression',
+  is_active: 'is_active',
+  last_run_at: 'last_run_at',
+  created_by: 'created_by',
+  created_at: 'created_at'
+} as const
+
+export type Teamcomms_scheduled_reportsScalarFieldEnum = (typeof Teamcomms_scheduled_reportsScalarFieldEnum)[keyof typeof Teamcomms_scheduled_reportsScalarFieldEnum]
+
+
+export const Planner_daily_tasksScalarFieldEnum = {
+  id: 'id',
+  organization_id: 'organization_id',
+  title: 'title',
+  description: 'description',
+  date: 'date',
+  time_mode: 'time_mode',
+  start_time: 'start_time',
+  end_time: 'end_time',
+  has_time_slot: 'has_time_slot',
+  is_set_time: 'is_set_time',
+  deadline: 'deadline',
+  deadline_time: 'deadline_time',
+  category: 'category',
+  priority: 'priority',
+  status: 'status',
+  task_type: 'task_type',
+  assigner_id: 'assigner_id',
+  assigner_name: 'assigner_name',
+  assignee_id: 'assignee_id',
+  assignee_name: 'assignee_name',
+  team_id: 'team_id',
+  team_name: 'team_name',
+  creator_id: 'creator_id',
+  creator_name: 'creator_name',
+  requires_approval: 'requires_approval',
+  approver_id: 'approver_id',
+  approver_name: 'approver_name',
+  approval_status: 'approval_status',
+  approval_note: 'approval_note',
+  rejection_reason: 'rejection_reason',
+  reviewed_at: 'reviewed_at',
+  completed_at: 'completed_at',
+  created_at: 'created_at',
+  updated_at: 'updated_at',
+  deleted_at: 'deleted_at'
+} as const
+
+export type Planner_daily_tasksScalarFieldEnum = (typeof Planner_daily_tasksScalarFieldEnum)[keyof typeof Planner_daily_tasksScalarFieldEnum]
+
+
+export const Planner_teamsScalarFieldEnum = {
+  id: 'id',
+  organization_id: 'organization_id',
+  name: 'name',
+  code: 'code',
+  department: 'department',
+  description: 'description',
+  color: 'color',
+  lead_id: 'lead_id',
+  lead_name: 'lead_name',
+  member_ids: 'member_ids',
+  created_at: 'created_at',
+  updated_at: 'updated_at',
+  deleted_at: 'deleted_at'
+} as const
+
+export type Planner_teamsScalarFieldEnum = (typeof Planner_teamsScalarFieldEnum)[keyof typeof Planner_teamsScalarFieldEnum]
+
+
+export const Planner_settingsScalarFieldEnum = {
+  id: 'id',
+  organization_id: 'organization_id',
+  settings: 'settings',
+  updated_at: 'updated_at'
+} as const
+
+export type Planner_settingsScalarFieldEnum = (typeof Planner_settingsScalarFieldEnum)[keyof typeof Planner_settingsScalarFieldEnum]
+
+
+export const User_push_subscriptionsScalarFieldEnum = {
+  id: 'id',
+  user_id: 'user_id',
+  endpoint: 'endpoint',
+  p256dh: 'p256dh',
+  auth: 'auth',
+  user_agent: 'user_agent',
+  created_at: 'created_at',
+  updated_at: 'updated_at'
+} as const
+
+export type User_push_subscriptionsScalarFieldEnum = (typeof User_push_subscriptionsScalarFieldEnum)[keyof typeof User_push_subscriptionsScalarFieldEnum]
 
 
 export const SortOrder = {

@@ -107,6 +107,11 @@ export type clientadminnotes = Prisma.clientadminnotesModel
  */
 export type clientdocuments = Prisma.clientdocumentsModel
 /**
+ * Model client_field_config
+ * 
+ */
+export type client_field_config = Prisma.client_field_configModel
+/**
  * Model cliententitlements
  * 
  */
@@ -361,3 +366,98 @@ export type workoutdays = Prisma.workoutdaysModel
  * 
  */
 export type workoutitems = Prisma.workoutitemsModel
+/**
+ * Model planner_projects
+ * 
+ */
+export type planner_projects = Prisma.planner_projectsModel
+/**
+ * Model planner_workstreams
+ * 
+ */
+export type planner_workstreams = Prisma.planner_workstreamsModel
+/**
+ * Model planner_work_items
+ * 
+ */
+export type planner_work_items = Prisma.planner_work_itemsModel
+/**
+ * Model planner_dependencies
+ * 
+ */
+export type planner_dependencies = Prisma.planner_dependenciesModel
+/**
+ * Model user_organizations
+ * 
+ */
+export type user_organizations = Prisma.user_organizationsModel
+/**
+ * Model chat_bots
+ * 
+ */
+export type chat_bots = Prisma.chat_botsModel
+/**
+ * Model chat_channels
+ * 
+ */
+export type chat_channels = Prisma.chat_channelsModel
+/**
+ * Model channel_members
+ * 
+ */
+export type channel_members = Prisma.channel_membersModel
+/**
+ * Model direct_message_threads
+ * 
+ */
+export type direct_message_threads = Prisma.direct_message_threadsModel
+/**
+ * Model chat_messages
+ * 
+ */
+export type chat_messages = Prisma.chat_messagesModel
+/**
+ * Model message_attachments
+ * 
+ */
+export type message_attachments = Prisma.message_attachmentsModel
+/**
+ * Model message_reactions
+ * 
+ */
+export type message_reactions = Prisma.message_reactionsModel
+/**
+ * Model message_reads
+ * 
+ */
+export type message_reads = Prisma.message_readsModel
+/**
+ * Model teamcomms_settings
+ * 
+ */
+export type teamcomms_settings = Prisma.teamcomms_settingsModel
+/**
+ * Model teamcomms_scheduled_reports
+ * 
+ */
+export type teamcomms_scheduled_reports = Prisma.teamcomms_scheduled_reportsModel
+/**
+ * Model planner_daily_tasks
+ * 
+ */
+export type planner_daily_tasks = Prisma.planner_daily_tasksModel
+/**
+ * Model planner_teams
+ * 
+ */
+export type planner_teams = Prisma.planner_teamsModel
+/**
+ * Model planner_settings
+ * 
+ */
+export type planner_settings = Prisma.planner_settingsModel
+/**
+ * Model user_push_subscriptions
+ * 
+ */
+export type user_push_subscriptions = Prisma.user_push_subscriptionsModel
