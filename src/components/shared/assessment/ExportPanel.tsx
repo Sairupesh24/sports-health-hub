@@ -9,6 +9,7 @@ import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import { apiFetch } from "@/utils/api";
 import { toast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface ExportPanelProps {
   data: ParsedAssessmentData;
@@ -21,6 +22,8 @@ interface ExportPanelProps {
   clientId?: string;
   clients?: any[];
   readOnly?: boolean;
+  practitionerName?: string;
+  practitionerRole?: string;
 }
 
 interface MarkedRegion {
@@ -41,9 +44,55 @@ export default function ExportPanel({
   clientId,
   clients,
   readOnly = false,
+  practitionerName: propPractitionerName,
+  practitionerRole: propPractitionerRole,
 }: ExportPanelProps) {
+  const { profile, user, roles } = useAuth();
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "success" | "error">("idle");
+
+  // Dynamically resolve practitioner name from logged-in user session or saved report metadata
+  const loggedInName = (() => {
+    const fullName = [profile?.first_name, profile?.last_name].filter(Boolean).join(" ").trim();
+    if (fullName) return fullName;
+    if ((user as any)?.user_metadata?.full_name) return (user as any).user_metadata.full_name;
+    if ((user as any)?.name) return (user as any).name;
+    if (profile?.email) {
+      const emailUser = profile.email.split("@")[0];
+      return emailUser.charAt(0).toUpperCase() + emailUser.slice(1);
+    }
+    if ((user as any)?.email) {
+      const emailUser = (user as any).email.split("@")[0];
+      return emailUser.charAt(0).toUpperCase() + emailUser.slice(1);
+    }
+    return "Practitioner";
+  })();
+
+  const loggedInRole = (() => {
+    if (profile?.profession) return profile.profession;
+    if (roles?.includes("consultant")) return "Sports Physician";
+    if (roles?.includes("sports_scientist")) return "Sports Scientist";
+    if (roles?.includes("admin")) return "Administrator";
+    if (roles?.includes("super_admin")) return "Super Administrator";
+    if (profile?.role) {
+      return profile.role
+        .replace(/_/g, " ")
+        .replace(/\b\w/g, (c) => c.toUpperCase());
+    }
+    return "Sports Physician";
+  })();
+
+  const effectivePractitionerName =
+    propPractitionerName?.trim() ||
+    reportTexts?.practitionerName?.trim() ||
+    loggedInName;
+
+  const effectivePractitionerRole =
+    propPractitionerRole?.trim() ||
+    reportTexts?.practitionerRole?.trim() ||
+    loggedInRole;
+
+  const organizationName = profile?.organization_name || profile?.organization?.name || "Center for Spine & Sports Health";
 
   const handleSaveToProfile = async () => {
     if (!clientId) {
@@ -63,7 +112,11 @@ export default function ExportPanel({
           title: reportTitle,
           test_index: activeTestIndex,
           assessment_data: data,
-          report_texts: reportTexts,
+          report_texts: {
+            ...reportTexts,
+            practitionerName: effectivePractitionerName,
+            practitionerRole: effectivePractitionerRole,
+          },
           pain_data: painData,
           reassessment_date: reassessmentDate || null,
         },
@@ -572,10 +625,10 @@ export default function ExportPanel({
                       Practitioner Sign-Off
                     </div>
                     <div style={{ fontSize: "10px", fontWeight: 900, color: "#0f172a", lineHeight: 1.4, paddingTop: "1px" }}>
-                      Sandeep S
+                      {effectivePractitionerName}
                     </div>
                     <div style={{ fontSize: "7px", color: "#94a3b8", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", lineHeight: 1.4 }}>
-                      Sports Physician
+                      {effectivePractitionerRole}
                     </div>
                   </div>
                   <div style={{ textAlign: "right" }}>
@@ -771,10 +824,10 @@ export default function ExportPanel({
                     Practitioner Sign-Off & Verification
                   </div>
                   <div style={{ fontSize: "10.5px", fontWeight: 900, color: "#0f172a", lineHeight: 1.4, paddingTop: "1px" }}>
-                    Sandeep S
+                    {effectivePractitionerName}
                   </div>
                   <div style={{ fontSize: "7px", color: "#94a3b8", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", lineHeight: 1.4 }}>
-                    Sports Physician • Center for Spine & Sports Health
+                    {effectivePractitionerRole} • {organizationName}
                   </div>
                 </div>
                 <div style={{ textAlign: "right" }}>

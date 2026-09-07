@@ -34,6 +34,8 @@ interface AssessmentReportProps {
   initialReassessmentDate?: string;
   initialReportTexts?: Record<string, string>;
   initialReportTitle?: string;
+  initialPractitionerName?: string;
+  initialPractitionerRole?: string;
   readOnly?: boolean;
 }
 
@@ -85,6 +87,8 @@ export default function AssessmentReport({
   initialReassessmentDate,
   initialReportTexts,
   initialReportTitle,
+  initialPractitionerName,
+  initialPractitionerRole,
   readOnly = false,
 }: AssessmentReportProps) {
   const [state, dispatch] = useReducer(reportReducer, {
@@ -359,6 +363,8 @@ export default function AssessmentReport({
                 clientId={state.selectedClientId}
                 clients={clients}
                 readOnly={readOnly}
+                practitionerName={initialPractitionerName}
+                practitionerRole={initialPractitionerRole}
               />
             </div>
           </div>

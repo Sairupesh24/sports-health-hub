@@ -52,6 +52,10 @@ interface SavedReport {
   reassessment_date: string | null;
   created_at: string;
   created_by: string;
+  created_by_name?: string;
+  created_by_profession?: string;
+  created_by_role?: string;
+  client_id?: string;
 }
 
 export function AssessmentReportsList({ clientId, showDelete }: AssessmentReportsListProps) {
@@ -140,6 +144,7 @@ export function AssessmentReportsList({ clientId, showDelete }: AssessmentReport
                     <TableHead className="text-[10px] font-bold uppercase tracking-wider">Date Created</TableHead>
                     <TableHead className="text-[10px] font-bold uppercase tracking-wider">Report Title</TableHead>
                     <TableHead className="text-[10px] font-bold uppercase tracking-wider text-center">Test Index</TableHead>
+                    <TableHead className="text-[10px] font-bold uppercase tracking-wider">Practitioner</TableHead>
                     <TableHead className="text-[10px] font-bold uppercase tracking-wider">Reassessment Due</TableHead>
                     <TableHead className="text-right text-[10px] font-bold uppercase tracking-wider">Actions</TableHead>
                   </TableRow>
@@ -159,6 +164,9 @@ export function AssessmentReportsList({ clientId, showDelete }: AssessmentReport
                       </TableCell>
                       <TableCell className="text-sm text-center font-bold text-slate-600">
                         Test {report.test_index}
+                      </TableCell>
+                      <TableCell className="text-sm font-semibold text-slate-700">
+                        {report.created_by_name || report.report_texts?.practitionerName || "Practitioner"}
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">
                         {report.reassessment_date
@@ -216,6 +224,8 @@ export function AssessmentReportsList({ clientId, showDelete }: AssessmentReport
                 initialReassessmentDate={selectedReport.reassessment_date || ""}
                 initialReportTexts={selectedReport.report_texts}
                 initialReportTitle={selectedReport.title}
+                initialPractitionerName={selectedReport.created_by_name || selectedReport.report_texts?.practitionerName}
+                initialPractitionerRole={selectedReport.created_by_profession || selectedReport.report_texts?.practitionerRole}
                 readOnly={true}
               />
             </div>

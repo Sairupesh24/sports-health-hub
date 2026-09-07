@@ -676,10 +676,17 @@ router.get('/assessment-reports/client/:clientId', requireAuth, async (req, res)
         const { clientId } = req.params;
         const orgId = req.user.organization_id;
         
-        const result = await db.query(
-            'SELECT * FROM client_assessment_reports WHERE client_id = $1 AND organization_id = $2 ORDER BY created_at DESC',
-            [clientId, orgId]
-        );
+        const result = await db.query(`
+            SELECT 
+                car.*,
+                NULLIF(TRIM(CONCAT(COALESCE(p.first_name, ''), ' ', COALESCE(p.last_name, ''))), '') AS created_by_name,
+                p.profession AS created_by_profession,
+                p.role AS created_by_role
+            FROM client_assessment_reports car
+            LEFT JOIN profiles p ON car.created_by = p.id
+            WHERE car.client_id = $1 AND (car.organization_id = $2 OR $2 IS NULL)
+            ORDER BY car.created_at DESC
+        `, [clientId, orgId]);
         res.json(result.rows);
     } catch (error) {
         res.status(500).json({ error: error.message });
