@@ -11,7 +11,7 @@ interface FetchOptions extends Omit<RequestInit, 'body'> {
   params?: Record<string, any>;
 }
 
-export async function apiFetch<T>(endpoint: string, options: FetchOptions = {}): Promise<T> {
+export async function apiFetch<T = any>(endpoint: string, options: FetchOptions = {}): Promise<T> {
   const { data, headers: customHeaders, ...customConfig } = options;
 
   const payload = data || customConfig.body;

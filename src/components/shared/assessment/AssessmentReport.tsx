@@ -1,4 +1,4 @@
-import React, { useReducer, useState } from "react";
+import React, { useReducer, useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { apiFetch } from "@/utils/api";
 import { ParsedAssessmentData } from "./XlsParser";
@@ -8,8 +8,12 @@ import StrengthOverview from "./StrengthOverview";
 import EditableReport from "./EditableReport";
 import ExportPanel from "./ExportPanel";
 import PainMap, { MapData } from "@/components/consultant/PainMap";
+import AssessmentPathologyMap, { AssessmentPathologyData } from "./AssessmentPathologyMap";
 import { Card, CardContent } from "@/components/ui/card";
-import { Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Loader2, Flame, Layers, AlertCircle, Calendar, UserCheck } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface Client {
   id: string;
@@ -26,6 +30,7 @@ interface AssessmentReportProps {
   initialData?: ParsedAssessmentData;
   initialActiveTestIndex?: number;
   initialPainData?: MapData;
+  initialClientId?: string;
   initialReassessmentDate?: string;
   initialReportTexts?: Record<string, string>;
   initialReportTitle?: string;
@@ -71,93 +76,12 @@ function reportReducer(state: ReportState, action: ReportAction): ReportState {
   }
 }
 
-// Map poor performing metrics (percentRef < -10%) to default region data
-function computeDefaultPainData(data: ParsedAssessmentData, activeTestIndex: number): MapData {
-  const painData: MapData = {};
-  const testIndex = activeTestIndex - 1;
-  if (testIndex < 0) return painData;
-
-  const allMetrics = [
-    ...data.metrics.mobility,
-    ...data.metrics.strength,
-    ...data.metrics.balance,
-  ];
-
-  allMetrics.forEach((metric) => {
-    const test = metric.tests[testIndex];
-    if (test && test.percentRef !== null && test.percentRef < -10) {
-      const keyLower = metric.key.toLowerCase();
-      const targetRegions: string[] = [];
-
-      if (keyLower.includes("cervical")) {
-        targetRegions.push("neck", "neck_back");
-      }
-      if (keyLower.includes("lumbar") || keyLower.includes("thoracic")) {
-        targetRegions.push("lumbar_spine");
-        if (keyLower.includes("extension") || keyLower.includes("rotation")) {
-          targetRegions.push("trapezius");
-        }
-      }
-      if (keyLower.includes("shoulder") || keyLower.includes("lateralpulldown")) {
-        if (keyLower.includes("left")) {
-          targetRegions.push("deltoid_left", "shoulder_left_back");
-        } else if (keyLower.includes("right")) {
-          targetRegions.push("deltoid_right", "shoulder_right_back");
-        } else {
-          targetRegions.push("deltoid_left", "shoulder_left_back", "deltoid_right", "shoulder_right_back");
-        }
-      }
-      if (keyLower.includes("knee") || keyLower.includes("quadriceps")) {
-        if (keyLower.includes("left")) {
-          targetRegions.push("quadriceps_left", "tibialis_left");
-        } else if (keyLower.includes("right")) {
-          targetRegions.push("quadriceps_right", "tibialis_right");
-        } else {
-          targetRegions.push("quadriceps_left", "tibialis_left", "quadriceps_right", "tibialis_right");
-        }
-      }
-      if (keyLower.includes("hip")) {
-        if (keyLower.includes("extension")) {
-          if (keyLower.includes("left")) {
-            targetRegions.push("gluteus_left", "hamstrings_left");
-          } else if (keyLower.includes("right")) {
-            targetRegions.push("gluteus_right", "hamstrings_right");
-          } else {
-            targetRegions.push("gluteus_left", "hamstrings_left", "gluteus_right", "hamstrings_right");
-          }
-        } else {
-          if (keyLower.includes("left")) {
-            targetRegions.push("gluteus_left");
-          } else if (keyLower.includes("right")) {
-            targetRegions.push("gluteus_right");
-          } else {
-            targetRegions.push("gluteus_left", "gluteus_right");
-          }
-        }
-      }
-
-      targetRegions.forEach((regionId) => {
-        if (!painData[regionId]) {
-          painData[regionId] = {
-            painLevel: 5,
-            notes: `Auto-populated from poor performing metric: ${metric.label} (${test.percentRef!.toFixed(1)}%)`,
-            qualities: [],
-          };
-        } else {
-          painData[regionId].notes += `, ${metric.label} (${test.percentRef!.toFixed(1)}%)`;
-        }
-      });
-    }
-  });
-
-  return painData;
-}
-
 export default function AssessmentReport({
   role,
   initialData,
   initialActiveTestIndex,
   initialPainData,
+  initialClientId,
   initialReassessmentDate,
   initialReportTexts,
   initialReportTitle,
@@ -166,17 +90,20 @@ export default function AssessmentReport({
   const [state, dispatch] = useReducer(reportReducer, {
     phase: initialData ? "loaded" : "idle",
     data: initialData ?? null,
-    selectedClientId: undefined,
+    selectedClientId: initialClientId,
     selectedClientGender: initialData?.client.gender,
     clientName: initialData?.client.name ?? "",
   });
   
   // Shared state components
   const [activeTestIndex, setActiveTestIndex] = useState<number>(initialActiveTestIndex ?? 1);
-  const [painData, setPainData] = useState<MapData>(initialPainData ?? {});
+  const [painData, setPainData] = useState<AssessmentPathologyData>(initialPainData ?? {});
   const [reassessmentDate, setReassessmentDate] = useState<string>(initialReassessmentDate ?? "");
   const [reportTexts, setReportTexts] = useState<Record<string, string>>(initialReportTexts ?? {});
   const [reportTitle, setReportTitle] = useState<string>(initialReportTitle ?? "MUSCLE HEATMAP ASSESSMENT");
+  
+  // Top view mode toggle: 'subjective' | 'assessment'
+  const [viewMode, setViewMode] = useState<"subjective" | "assessment">("subjective");
 
   // Query to fetch all active clients
   const { data: clients, isLoading: isClientsLoading } = useQuery<Client[]>({
@@ -184,6 +111,27 @@ export default function AssessmentReport({
     queryFn: async () => {
       return apiFetch<Client[]>("/clients");
     },
+  });
+
+  const activeClientId = state.selectedClientId || initialClientId;
+
+  // Query to fetch the latest saved subjective pain consultation report for the active client
+  const { data: subjectivePainResult, isLoading: isSubjectivePainLoading } = useQuery({
+    queryKey: ["client-latest-subjective-pain", activeClientId],
+    queryFn: async () => {
+      if (!activeClientId) return { found: false };
+      return apiFetch<{
+        found: boolean;
+        sessionId?: string;
+        scheduledStart?: string;
+        serviceType?: string;
+        therapistName?: string;
+        painScore?: number;
+        sorenessData?: any;
+        clinicalNotes?: string;
+      }>(`/clinical/clients/${activeClientId}/latest-subjective-pain`);
+    },
+    enabled: !!activeClientId,
   });
 
   const handleParseSuccess = (
@@ -195,7 +143,7 @@ export default function AssessmentReport({
     // Default active test to latest test index
     const latestIdx = parsedData.client.latestTest?.index || 1;
     setActiveTestIndex(latestIdx);
-    setPainData(computeDefaultPainData(parsedData, latestIdx));
+    setPainData({});
     
     dispatch({
       type: "PARSE_SUCCESS",
@@ -210,128 +158,15 @@ export default function AssessmentReport({
     setReassessmentDate("");
     setReportTexts({});
     setReportTitle("MUSCLE HEATMAP ASSESSMENT");
+    setViewMode("subjective");
   };
 
   const handleActiveTestIndexChange = (index: number) => {
     setActiveTestIndex(index);
-    if (state.data) {
-      setPainData(computeDefaultPainData(state.data, index));
-    }
   };
 
-  // Group poor performing regions and number them 1 to N
-  const getPoorPerformingRegionsList = () => {
-    if (!state.data) return [];
-    const testIndex = activeTestIndex - 1;
-    if (testIndex < 0) return [];
-
-    const allMetrics = [
-      ...state.data.metrics.mobility,
-      ...state.data.metrics.strength,
-      ...state.data.metrics.balance,
-    ];
-
-    const regionsList: { id: string; label: string; percentRef: number; metricLabel: string; notes: string }[] = [];
-    const added = new Set<string>();
-
-    allMetrics.forEach((metric) => {
-      const test = metric.tests[testIndex];
-      if (test && test.percentRef !== null && test.percentRef < -10) {
-        const keyLower = metric.key.toLowerCase();
-        const targetRegions: { id: string; label: string }[] = [];
-
-        if (keyLower.includes("cervical")) {
-          targetRegions.push({ id: "neck", label: "Neck" });
-        }
-        if (keyLower.includes("lumbar") || keyLower.includes("thoracic")) {
-          targetRegions.push({ id: "lumbar_spine", label: "Lower Back" });
-        }
-        if (keyLower.includes("shoulder") || keyLower.includes("lateralpulldown")) {
-          if (keyLower.includes("left")) {
-            targetRegions.push({ id: "deltoid_left", label: "Shoulder (L)" });
-          } else if (keyLower.includes("right")) {
-            targetRegions.push({ id: "deltoid_right", label: "Shoulder (R)" });
-          } else {
-            targetRegions.push(
-              { id: "deltoid_left", label: "Shoulder (L)" },
-              { id: "deltoid_right", label: "Shoulder (R)" }
-            );
-          }
-        }
-        if (keyLower.includes("knee") || keyLower.includes("quadriceps")) {
-          if (keyLower.includes("left")) {
-            targetRegions.push({ id: "quadriceps_left", label: "Quadriceps (L)" });
-          } else if (keyLower.includes("right")) {
-            targetRegions.push({ id: "quadriceps_right", label: "Quadriceps (R)" });
-          } else {
-            targetRegions.push(
-              { id: "quadriceps_left", label: "Quadriceps (L)" },
-              { id: "quadriceps_right", label: "Quadriceps (R)" }
-            );
-          }
-        }
-        if (keyLower.includes("hip")) {
-          if (keyLower.includes("extension")) {
-            if (keyLower.includes("left")) {
-              targetRegions.push({ id: "gluteus_left", label: "Gluteus (L)" });
-            } else if (keyLower.includes("right")) {
-              targetRegions.push({ id: "gluteus_right", label: "Gluteus (R)" });
-            } else {
-              targetRegions.push(
-                { id: "gluteus_left", label: "Gluteus (L)" },
-                { id: "gluteus_right", label: "Gluteus (R)" }
-              );
-            }
-          } else {
-            if (keyLower.includes("left")) {
-              targetRegions.push({ id: "gluteus_left", label: "Gluteus (L)" });
-            } else if (keyLower.includes("right")) {
-              targetRegions.push({ id: "gluteus_right", label: "Gluteus (R)" });
-            } else {
-              targetRegions.push(
-                { id: "gluteus_left", label: "Gluteus (L)" },
-                { id: "gluteus_right", label: "Gluteus (R)" }
-              );
-            }
-          }
-        }
-
-        targetRegions.forEach((reg) => {
-          const uniqueKey = `${reg.id}-${metric.label}`;
-          if (!added.has(uniqueKey)) {
-            added.add(uniqueKey);
-            regionsList.push({
-              id: reg.id,
-              label: reg.label,
-              percentRef: test.percentRef!,
-              metricLabel: metric.label,
-              notes: `Deficit detected: ${test.percentRef!.toFixed(1)}% relative to reference value in ${metric.label}.`,
-            });
-          }
-        });
-      }
-    });
-
-    // Group by region ID so each region appears only once in the list
-    const grouped: Record<string, typeof regionsList[0]> = {};
-    regionsList.forEach((item) => {
-      if (!grouped[item.id]) {
-        grouped[item.id] = { ...item };
-      } else {
-        grouped[item.id].notes += ` Deficit detected: ${item.percentRef.toFixed(1)}% relative to reference value in ${item.metricLabel}.`;
-      }
-    });
-
-    return Object.values(grouped);
-  };
-
-  const groupedPoorRegions = getPoorPerformingRegionsList();
-
-  // Create numberedBadges mapping
-  const numberedBadges: Record<string, number> = {};
-  groupedPoorRegions.forEach((reg, idx) => {
-    numberedBadges[reg.id] = idx + 1;
-  });
+  const markedCount = Object.values(painData).filter(r => r && r.marked !== false).length;
+  const clientGender = ((state.selectedClientGender || state.data?.client.gender)?.toLowerCase() === "female" ? "female" : "male") as "male" | "female";
 
   if (isClientsLoading) {
     return (
@@ -363,27 +198,129 @@ export default function AssessmentReport({
               readOnly={readOnly}
             />
 
-            {/* Split Grid Layout: Left heatmap, Right textareas */}
+            {/* Split Grid Layout: Left heatmap/SVG, Right textareas */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-              {/* Left Column: Heatmap (stacked vertically) */}
-              <div className="lg:col-span-5 space-y-6">
-                <div className="bg-white/70 dark:bg-slate-900/50 backdrop-blur-md border border-slate-200/60 dark:border-slate-800/60 rounded-3xl p-5 shadow-xl flex flex-col space-y-3">
-                  <div>
-                    <h3 className="text-sm font-black tracking-tight text-slate-900 dark:text-white uppercase italic">
-                      Target Pathology Heatmap
-                    </h3>
-                    <p className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mt-0.5">
-                      Pre-populated based on poor performing indices
-                    </p>
+              {/* Left Column: Subjective Pain / Assessment Values toggle & view */}
+              <div className="lg:col-span-5 space-y-4">
+                <div className="bg-white/80 dark:bg-slate-900/60 backdrop-blur-md border border-slate-200/80 dark:border-slate-800/80 rounded-3xl p-5 shadow-xl flex flex-col space-y-4">
+                  
+                  {/* Mode Segmented Toggle */}
+                  <div className="flex items-center p-1.5 bg-slate-100 dark:bg-slate-800/80 rounded-2xl border border-slate-200/80 dark:border-slate-700/60 w-full shadow-inner">
+                    <button
+                      type="button"
+                      onClick={() => setViewMode("subjective")}
+                      className={cn(
+                        "flex-1 py-2 px-3 text-xs font-black uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-1.5 select-none",
+                        viewMode === "subjective"
+                          ? "bg-white dark:bg-slate-900 text-primary shadow-xs"
+                          : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
+                      )}
+                    >
+                      <Flame className="w-3.5 h-3.5 text-red-500" />
+                      <span>Subjective Pain</span>
+                      {subjectivePainResult?.found ? (
+                        <span className="w-2 h-2 rounded-full bg-emerald-500 ml-1 shrink-0 shadow-xs" title="Consultation report present" />
+                      ) : (
+                        <span className="text-[9px] px-1.5 py-0.2 rounded bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400 font-black ml-1 shrink-0">
+                          Missing
+                        </span>
+                      )}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setViewMode("assessment")}
+                      className={cn(
+                        "flex-1 py-2 px-3 text-xs font-black uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-1.5 select-none",
+                        viewMode === "assessment"
+                          ? "bg-white dark:bg-slate-900 text-primary shadow-xs"
+                          : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
+                      )}
+                    >
+                      <Layers className="w-3.5 h-3.5 text-indigo-500" />
+                      <span>Assessment Values</span>
+                      {markedCount > 0 && (
+                        <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-red-100 dark:bg-red-950/60 text-red-700 dark:text-red-400 font-black ml-1 shrink-0">
+                          {markedCount}
+                        </span>
+                      )}
+                    </button>
                   </div>
-                  <PainMap
-                    value={painData}
-                    onChange={setPainData}
-                    readOnly={readOnly}
-                    gender={(state.selectedClientGender || state.data.client.gender)?.toLowerCase() === "female" ? "female" : "male"}
-                    layout="stacked"
-                    numberedBadges={numberedBadges}
-                  />
+
+                  {/* View 1: Subjective Pain (Saved consultation report) */}
+                  {viewMode === "subjective" && (
+                    <div className="space-y-3 animate-fade-in">
+                      {isSubjectivePainLoading ? (
+                        <div className="flex flex-col items-center justify-center py-12 space-y-2">
+                          <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                          <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                            Checking consultation subjective pain report...
+                          </p>
+                        </div>
+                      ) : subjectivePainResult?.found && subjectivePainResult?.sorenessData ? (
+                        <div className="space-y-3">
+                          {/* Consultation metadata tag */}
+                          <div className="flex items-center justify-between px-3 py-2 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800 text-[11px]">
+                            <div className="flex items-center gap-1.5 text-slate-600 dark:text-slate-300 font-bold">
+                              <Calendar className="w-3.5 h-3.5 text-primary" />
+                              <span>{new Date(subjectivePainResult.scheduledStart || "").toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}</span>
+                            </div>
+                            <div className="flex items-center gap-1.5 text-slate-600 dark:text-slate-300 font-bold">
+                              <UserCheck className="w-3.5 h-3.5 text-emerald-500" />
+                              <span>{subjectivePainResult.therapistName || "Consultant"}</span>
+                            </div>
+                          </div>
+
+                          <PainMap
+                            value={subjectivePainResult.sorenessData}
+                            readOnly={true}
+                            gender={clientGender}
+                            layout="stacked"
+                          />
+                        </div>
+                      ) : (
+                        /* Missing Report State */
+                        <div className="py-10 px-6 rounded-3xl bg-amber-500/5 dark:bg-amber-500/10 border border-dashed border-amber-500/30 text-center space-y-3">
+                          <div className="w-12 h-12 rounded-2xl bg-amber-500/10 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center mx-auto shadow-xs">
+                            <AlertCircle className="w-6 h-6" />
+                          </div>
+                          <div className="space-y-1">
+                            <h4 className="text-sm font-black uppercase tracking-tight text-amber-900 dark:text-amber-200">
+                              Subjective Pain Report Missing
+                            </h4>
+                            <p className="text-xs text-amber-700/80 dark:text-amber-400/80 leading-relaxed max-w-xs mx-auto">
+                              No patient-reported subjective pain sensation map or NRS scores were recorded in SOAP notes during consultation.
+                            </p>
+                          </div>
+                          <div className="pt-2">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setViewMode("assessment")}
+                              className="rounded-xl border-amber-300 dark:border-amber-700/60 text-amber-800 dark:text-amber-300 font-bold text-xs hover:bg-amber-100 dark:hover:bg-amber-950/50"
+                            >
+                              <Layers className="w-3.5 h-3.5 mr-1.5" />
+                              Switch to Assessment Values
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* View 2: Assessment Values (Clinician SVG Map) */}
+                  {viewMode === "assessment" && (
+                    <div className="space-y-3 animate-fade-in">
+                      <AssessmentPathologyMap
+                        gender={clientGender}
+                        value={painData}
+                        onChange={setPainData}
+                        readOnly={readOnly}
+                        layout="stacked"
+                      />
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -404,7 +341,7 @@ export default function AssessmentReport({
               </div>
             </div>
 
-            {/* Bottom Footer: Circular Strength Charts & Export Panel */}
+            {/* Bottom Footer: Strength Summary Tabs & Export Panel */}
             <div className="space-y-6">
               <StrengthOverview
                 strengthSummary={state.data.strengthSummary}
@@ -416,6 +353,7 @@ export default function AssessmentReport({
                 activeTestIndex={activeTestIndex}
                 reportTexts={reportTexts}
                 painData={painData}
+                subjectivePainData={subjectivePainResult?.found ? subjectivePainResult.sorenessData : undefined}
                 reassessmentDate={reassessmentDate}
                 reportTitle={reportTitle}
                 clientId={state.selectedClientId}

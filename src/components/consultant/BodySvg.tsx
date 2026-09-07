@@ -14,10 +14,11 @@ interface BodySvgProps {
   layout?: "side-by-side" | "stacked";
   view?: "front" | "back" | "both";
   numberedBadges?: Record<string, number>;
+  hideTitle?: boolean;
 }
 
 // Map slugs from body-highlighter data to our clinical region IDs
-const mapSlugToRegion = (
+export const mapSlugToRegion = (
   slug: string,
   side: "left" | "right" | "common",
   view: "front" | "back",
@@ -25,7 +26,16 @@ const mapSlugToRegion = (
 ): { id: string; name: string } | null => {
   if (view === "front") {
     if (slug === "head" || slug === "hair") return { id: "head", name: "Head" };
-    if (slug === "neck") return { id: "neck", name: "Neck" };
+    if (slug === "neck") {
+      if (side === "left") return { id: "neck_left", name: "Left Neck" };
+      if (side === "right") return { id: "neck_right", name: "Right Neck" };
+      return { id: "neck", name: "Neck" };
+    }
+    if (slug === "trapezius") {
+      return side === "left"
+        ? { id: "trapezius_left", name: "Left Trapezius" }
+        : { id: "trapezius_right", name: "Right Trapezius" };
+    }
     if (slug === "chest") {
       return side === "left"
         ? { id: "pectoral_left", name: "Left Pectoral" }
@@ -41,29 +51,59 @@ const mapSlugToRegion = (
         ? { id: "biceps_left", name: "Left Bicep" }
         : { id: "biceps_right", name: "Right Bicep" };
     }
+    if (slug === "triceps") {
+      return side === "left"
+        ? { id: "triceps_front_left", name: "Left Tricep" }
+        : { id: "triceps_front_right", name: "Right Tricep" };
+    }
     if (slug === "abs") {
-      return pathIdx < 2
-        ? { id: "abdominal_upper", name: "Upper Abdominals" }
-        : { id: "abdominal_lower", name: "Lower Abdominals" };
+      return side === "left"
+        ? { id: "abdominal_left", name: "Left Abdominals" }
+        : { id: "abdominal_right", name: "Right Abdominals" };
     }
     if (slug === "obliques") {
-      return { id: "abdominal_upper", name: "Obliques" };
+      return side === "left"
+        ? { id: "obliques_left", name: "Left Obliques" }
+        : { id: "obliques_right", name: "Right Obliques" };
+    }
+    if (slug === "adductors") {
+      return side === "left"
+        ? { id: "adductors_left", name: "Left Adductor" }
+        : { id: "adductors_right", name: "Right Adductor" };
     }
     if (slug === "quadriceps") {
       return side === "left"
         ? { id: "quadriceps_left", name: "Left Quadriceps" }
         : { id: "quadriceps_right", name: "Right Quadriceps" };
     }
-    if (slug === "tibialis" || slug === "knees") {
+    if (slug === "knees") {
+      return side === "left"
+        ? { id: "knee_left", name: "Left Knee" }
+        : { id: "knee_right", name: "Right Knee" };
+    }
+    if (slug === "tibialis") {
       return side === "left"
         ? { id: "tibialis_left", name: "Left Tibialis" }
         : { id: "tibialis_right", name: "Right Tibialis" };
     }
+    if (slug === "calves") {
+      return side === "left"
+        ? { id: "calves_front_left", name: "Left Calf (Anterior)" }
+        : { id: "calves_front_right", name: "Right Calf (Anterior)" };
+    }
   } else {
     // view === 'back'
     if (slug === "head" || slug === "hair") return { id: "head_back", name: "Head (Back)" };
-    if (slug === "neck") return { id: "neck_back", name: "Neck (Back)" };
-    if (slug === "trapezius") return { id: "trapezius", name: "Trapezius" };
+    if (slug === "neck") {
+      if (side === "left") return { id: "neck_left_back", name: "Left Neck (Back)" };
+      if (side === "right") return { id: "neck_right_back", name: "Right Neck (Back)" };
+      return { id: "neck_back", name: "Neck (Back)" };
+    }
+    if (slug === "trapezius") {
+      if (side === "left") return { id: "trapezius_left_back", name: "Left Trapezius (Back)" };
+      if (side === "right") return { id: "trapezius_right_back", name: "Right Trapezius (Back)" };
+      return { id: "trapezius", name: "Trapezius" };
+    }
     if (slug === "deltoids") {
       return side === "left"
         ? { id: "shoulder_left_back", name: "Left Shoulder (Back)" }
@@ -75,12 +115,19 @@ const mapSlugToRegion = (
         : { id: "latissimus_dorsi_right", name: "Right Latissimus Dorsi" };
     }
     if (slug === "lower-back") {
+      if (side === "left") return { id: "lumbar_left", name: "Left Lumbar Spine" };
+      if (side === "right") return { id: "lumbar_right", name: "Right Lumbar Spine" };
       return { id: "lumbar_spine", name: "Lumbar Spine" };
     }
     if (slug === "gluteal") {
       return side === "left"
         ? { id: "gluteus_left", name: "Left Gluteus" }
         : { id: "gluteus_right", name: "Right Gluteus" };
+    }
+    if (slug === "adductors") {
+      return side === "left"
+        ? { id: "adductors_left_back", name: "Left Adductor (Back)" }
+        : { id: "adductors_right_back", name: "Right Adductor (Back)" };
     }
     if (slug === "hamstring") {
       return side === "left"
@@ -89,31 +136,60 @@ const mapSlugToRegion = (
     }
     if (slug === "calves") {
       return side === "left"
-        ? { id: "calves_left", name: "Left Calves" }
-        : { id: "calves_right", name: "Right Calves" };
+        ? { id: "calves_left", name: "Left Calf (Back)" }
+        : { id: "calves_right", name: "Right Calf (Back)" };
     }
     if (slug === "triceps") {
       return side === "left"
-        ? { id: "arm_left_back", name: "Left Arm (Back)" }
-        : { id: "arm_right_back", name: "Right Arm (Back)" };
+        ? { id: "arm_left_back", name: "Left Tricep (Back)" }
+        : { id: "arm_right_back", name: "Right Tricep (Back)" };
     }
   }
 
   // Fallbacks
   if (slug === "hands") {
-    return side === "left"
-      ? { id: "left_hand", name: "Left Hand" }
-      : { id: "right_hand", name: "Right Hand" };
+    if (view === "front") {
+      return side === "left"
+        ? { id: "left_hand", name: "Left Hand" }
+        : { id: "right_hand", name: "Right Hand" };
+    } else {
+      return side === "left"
+        ? { id: "hand_left_back", name: "Left Hand (Back)" }
+        : { id: "hand_right_back", name: "Right Hand (Back)" };
+    }
   }
   if (slug === "feet") {
-    return side === "left"
-      ? { id: "left_foot", name: "Left Foot" }
-      : { id: "right_foot", name: "Right Foot" };
+    if (view === "front") {
+      return side === "left"
+        ? { id: "left_foot", name: "Left Foot" }
+        : { id: "right_foot", name: "Right Foot" };
+    } else {
+      return side === "left"
+        ? { id: "foot_left_back", name: "Left Foot (Back)" }
+        : { id: "foot_right_back", name: "Right Foot (Back)" };
+    }
+  }
+  if (slug === "ankles") {
+    if (view === "front") {
+      return side === "left"
+        ? { id: "ankle_left", name: "Left Ankle" }
+        : { id: "ankle_right", name: "Right Ankle" };
+    } else {
+      return side === "left"
+        ? { id: "ankle_left_back", name: "Left Ankle (Back)" }
+        : { id: "ankle_right_back", name: "Right Ankle (Back)" };
+    }
   }
   if (slug === "forearm") {
-    return side === "left"
-      ? { id: "forearm_left", name: "Left Forearm" }
-      : { id: "forearm_right", name: "Right Forearm" };
+    if (view === "front") {
+      return side === "left"
+        ? { id: "forearm_left", name: "Left Forearm" }
+        : { id: "forearm_right", name: "Right Forearm" };
+    } else {
+      return side === "left"
+        ? { id: "forearm_left_back", name: "Left Forearm (Back)" }
+        : { id: "forearm_right_back", name: "Right Forearm (Back)" };
+    }
   }
 
   return null;
@@ -133,109 +209,166 @@ const OUTLINES = {
 
 const REGION_CENTERS: Record<"male" | "female", Record<string, { x: number; y: number }>> = {
   male: {
+    head: { x: 392, y: 182 },
+    neck: { x: 365, y: 280 },
+    neck_left: { x: 340, y: 280 },
+    neck_right: { x: 390, y: 280 },
+    trapezius_left: { x: 310, y: 305 },
+    trapezius_right: { x: 420, y: 305 },
     pectoral_left: { x: 309, y: 376 },
     pectoral_right: { x: 422, y: 376 },
-    abdominal_upper: { x: 362, y: 499 },
-    abdominal_lower: { x: 356, y: 577 },
-    biceps_left: { x: 203, y: 449 },
-    biceps_right: { x: 526, y: 447 },
-    neck: { x: 365, y: 280 },
     deltoid_left: { x: 237, y: 353 },
     deltoid_right: { x: 486, y: 352 },
+    biceps_left: { x: 203, y: 449 },
+    biceps_right: { x: 526, y: 447 },
+    triceps_front_left: { x: 190, y: 470 },
+    triceps_front_right: { x: 540, y: 470 },
+    abdominal_left: { x: 340, y: 530 },
+    abdominal_right: { x: 390, y: 530 },
+    abdominal_upper: { x: 362, y: 499 },
+    abdominal_lower: { x: 356, y: 577 },
+    obliques_left: { x: 290, y: 530 },
+    obliques_right: { x: 440, y: 530 },
+    adductors_left: { x: 310, y: 730 },
+    adductors_right: { x: 415, y: 730 },
     quadriceps_left: { x: 284, y: 854 },
     quadriceps_right: { x: 444, y: 850 },
-    tibialis_left: { x: 285, y: 992 },
-    tibialis_right: { x: 442, y: 997 },
+    knee_left: { x: 285, y: 990 },
+    knee_right: { x: 440, y: 990 },
+    tibialis_left: { x: 275, y: 1090 },
+    tibialis_right: { x: 450, y: 1090 },
+    calves_front_left: { x: 295, y: 1140 },
+    calves_front_right: { x: 430, y: 1140 },
     forearm_left: { x: 187, y: 583 },
     forearm_right: { x: 559, y: 603 },
     left_hand: { x: 98, y: 763 },
     right_hand: { x: 626, y: 767 },
+    ankle_left: { x: 280, y: 1260 },
+    ankle_right: { x: 440, y: 1260 },
     left_foot: { x: 275, y: 1316 },
     right_foot: { x: 432, y: 1318 },
-    head: { x: 392, y: 182 },
+    head_back: { x: 1065, y: 172 },
     neck_back: { x: 1074, y: 273 },
-    trapezius: { x: 1100, y: 345 },
-    shoulder_left_back: { x: 1007, y: 320 },
-    shoulder_right_back: { x: 1240, y: 357 },
-    latissimus_dorsi_left: { x: 994, y: 412 },
-    latissimus_dorsi_right: { x: 1159, y: 380 },
-    arm_left_back: { x: 938, y: 468 },
-    arm_right_back: { x: 1240, y: 459 },
+    neck_left_back: { x: 1045, y: 273 },
+    neck_right_back: { x: 1105, y: 273 },
+    trapezius: { x: 1074, y: 345 },
+    trapezius_left_back: { x: 1040, y: 345 },
+    trapezius_right_back: { x: 1110, y: 345 },
+    shoulder_left_back: { x: 955, y: 345 },
+    shoulder_right_back: { x: 1220, y: 345 },
+    latissimus_dorsi_left: { x: 994, y: 440 },
+    latissimus_dorsi_right: { x: 1159, y: 440 },
     lumbar_spine: { x: 1077, y: 588 },
-    gluteus_left: { x: 1010, y: 677 },
-    gluteus_right: { x: 1145, y: 675 },
+    lumbar_left: { x: 1030, y: 588 },
+    lumbar_right: { x: 1120, y: 588 },
+    arm_left_back: { x: 930, y: 468 },
+    arm_right_back: { x: 1245, y: 459 },
+    forearm_left_back: { x: 880, y: 583 },
+    forearm_right_back: { x: 1290, y: 583 },
+    hand_left_back: { x: 820, y: 763 },
+    hand_right_back: { x: 1350, y: 763 },
+    gluteus_left: { x: 1010, y: 690 },
+    gluteus_right: { x: 1145, y: 690 },
+    adductors_left_back: { x: 1060, y: 800 },
+    adductors_right_back: { x: 1095, y: 800 },
     hamstrings_left: { x: 1011, y: 871 },
     hamstrings_right: { x: 1146, y: 873 },
     calves_left: { x: 1004, y: 1144 },
     calves_right: { x: 1155, y: 1132 },
-    head_back: { x: 1065, y: 172 }
+    ankle_left_back: { x: 1000, y: 1290 },
+    ankle_right_back: { x: 1155, y: 1290 },
+    foot_left_back: { x: 990, y: 1335 },
+    foot_right_back: { x: 1165, y: 1335 }
   },
   female: {
-    neck: { x: 320, y: 290 },
     head: { x: 335, y: 100 },
+    neck: { x: 320, y: 290 },
+    neck_left: { x: 295, y: 290 },
+    neck_right: { x: 345, y: 290 },
+    trapezius_left: { x: 260, y: 290 },
+    trapezius_right: { x: 380, y: 290 },
     deltoid_left: { x: 200, y: 327 },
     deltoid_right: { x: 441, y: 327 },
     pectoral_left: { x: 266, y: 376 },
     pectoral_right: { x: 375, y: 376 },
     biceps_left: { x: 181, y: 430 },
     biceps_right: { x: 460, y: 430 },
+    triceps_front_left: { x: 175, y: 460 },
+    triceps_front_right: { x: 465, y: 460 },
+    obliques_left: { x: 245, y: 530 },
+    obliques_right: { x: 395, y: 530 },
+    abdominal_left: { x: 295, y: 500 },
+    abdominal_right: { x: 345, y: 500 },
     abdominal_upper: { x: 320, y: 486 },
     abdominal_lower: { x: 320, y: 528 },
     forearm_left: { x: 130, y: 574 },
     forearm_right: { x: 511, y: 574 },
     left_hand: { x: 41, y: 719 },
     right_hand: { x: 600, y: 719 },
+    adductors_left: { x: 280, y: 730 },
+    adductors_right: { x: 360, y: 730 },
     quadriceps_left: { x: 249, y: 841 },
     quadriceps_right: { x: 392, y: 841 },
-    tibialis_left: { x: 264, y: 1056 },
-    tibialis_right: { x: 377, y: 1056 },
+    knee_left: { x: 265, y: 1010 },
+    knee_right: { x: 375, y: 1010 },
+    tibialis_left: { x: 264, y: 1150 },
+    tibialis_right: { x: 377, y: 1150 },
+    calves_front_left: { x: 280, y: 1180 },
+    calves_front_right: { x: 360, y: 1180 },
+    ankle_left: { x: 275, y: 1340 },
+    ankle_right: { x: 365, y: 1340 },
     left_foot: { x: 269, y: 1410 },
     right_foot: { x: 372, y: 1410 },
     head_back: { x: 1124, y: 101 },
     neck_back: { x: 1143, y: 252 },
+    neck_left_back: { x: 1115, y: 252 },
+    neck_right_back: { x: 1175, y: 252 },
     trapezius: { x: 1143, y: 343 },
+    trapezius_left_back: { x: 1105, y: 343 },
+    trapezius_right_back: { x: 1185, y: 343 },
     shoulder_left_back: { x: 1024, y: 331 },
     shoulder_right_back: { x: 1262, y: 330 },
-    latissimus_dorsi_left: { x: 1074, y: 401 },
-    latissimus_dorsi_right: { x: 1212, y: 401 },
+    latissimus_dorsi_left: { x: 1074, y: 430 },
+    latissimus_dorsi_right: { x: 1212, y: 430 },
     lumbar_spine: { x: 1143, y: 566 },
+    lumbar_left: { x: 1105, y: 566 },
+    lumbar_right: { x: 1180, y: 566 },
     arm_left_back: { x: 997, y: 434 },
     arm_right_back: { x: 1288, y: 434 },
-    gluteus_left: { x: 1069, y: 676 },
-    gluteus_right: { x: 1215, y: 676 },
+    forearm_left_back: { x: 955, y: 574 },
+    forearm_right_back: { x: 1335, y: 574 },
+    hand_left_back: { x: 870, y: 719 },
+    hand_right_back: { x: 1415, y: 719 },
+    gluteus_left: { x: 1069, y: 690 },
+    gluteus_right: { x: 1215, y: 690 },
+    adductors_left_back: { x: 1115, y: 800 },
+    adductors_right_back: { x: 1170, y: 800 },
     hamstrings_left: { x: 1054, y: 862 },
     hamstrings_right: { x: 1232, y: 862 },
-    calves_left: { x: 1091, y: 1191 },
-    calves_right: { x: 1195, y: 1191 }
+    calves_left: { x: 1091, y: 1140 },
+    calves_right: { x: 1195, y: 1140 },
+    ankle_left_back: { x: 1095, y: 1290 },
+    ankle_right_back: { x: 1190, y: 1290 },
+    foot_left_back: { x: 1090, y: 1390 },
+    foot_right_back: { x: 1195, y: 1390 }
   }
 };
 
 export default function BodySvg({
   gender = "male",
-  painData,
+  painData = {},
   onRegionClick,
   hoveredRegion,
   setHoveredRegion,
   layout,
   view,
   numberedBadges,
+  hideTitle = false,
 }: BodySvgProps) {
-  // Helper to determine path style using the specified clinical color contract:
-  // - Level 0: rgba(226, 232, 240, 0.4) (Slate base)
-  // - Level 1-2: rgba(250, 204, 21, 0.6) (Translucent Yellow)
-  // - Level 3-4: rgba(249, 115, 22, 0.7) (Translucent Orange)
-  // - Level 5-7: rgba(239, 68, 68, 0.85) (Vibrant Deep Red)
-  const getPainStyle = (painLevel?: number) => {
-    if (painLevel === undefined || painLevel === null || painLevel === 0) {
-      return { fill: "rgba(226, 232, 240, 0.45)", stroke: "rgba(203, 213, 225, 0.8)" };
-    }
-    if (painLevel <= 2) {
-      return { fill: "rgba(250, 204, 21, 0.6)", stroke: "rgba(234, 179, 8, 1)" };
-    }
-    if (painLevel <= 4) {
-      return { fill: "rgba(249, 115, 22, 0.7)", stroke: "rgba(234, 88, 12, 1)" };
-    }
-    return { fill: "rgba(239, 68, 68, 0.85)", stroke: "rgba(220, 38, 38, 1)" };
+  const isRegionMarked = (regionId: string) => {
+    const entry = painData[regionId] as any;
+    if (!entry) return false;
+    return entry.marked === true || (entry.marked !== false && (entry.painLevel > 0 || !!entry.notes));
   };
 
   const activeFrontData = gender === "female" ? bodyFemaleFront : bodyFront;
@@ -307,14 +440,16 @@ export default function BodySvg({
           
           <rect x="200" y="0" width="1700" height="1920" fill="url(#mapGlowFront)" rx="40" />
 
-          <text
-            x="1050"
-            y="110"
-            textAnchor="middle"
-            className="fill-slate-400/80 dark:fill-slate-500/80 font-display font-black text-4xl uppercase tracking-[0.25em]"
-          >
-            Anterior View
-          </text>
+          {!hideTitle && (
+            <text
+              x="1050"
+              y="110"
+              textAnchor="middle"
+              className="fill-slate-400/80 dark:fill-slate-500/80 font-display font-black text-4xl uppercase tracking-[0.25em]"
+            >
+              Anterior View
+            </text>
+          )}
 
           <g transform={frontTransform} className="transition-all duration-300">
             <path
@@ -332,20 +467,18 @@ export default function BodySvg({
                   const reg = mapSlugToRegion(slug, side, "front", idx);
                   if (!reg) return null;
 
-                  const assessment = painData[reg.id];
+                  const isMarked = isRegionMarked(reg.id);
                   const isHovered = hoveredRegion === reg.id;
-                  const hasPain = assessment && assessment.painLevel > 0;
-                  const styles = getPainStyle(assessment?.painLevel);
 
                   return (
                     <path
                       key={`front-${slug}-${side}-${idx}`}
                       d={pathD}
-                      style={hasPain ? { fill: styles.fill, stroke: styles.stroke } : undefined}
+                      style={isMarked ? { fill: "rgba(239, 68, 68, 0.88)", stroke: "#dc2626" } : undefined}
                       className={cn(
                         "transition-all duration-200 cursor-pointer",
-                        hasPain
-                          ? "stroke-[1.5] hover:stroke-[2.5] hover:stroke-indigo-500/90"
+                        isMarked
+                          ? "stroke-[2] hover:stroke-[3] hover:stroke-red-600"
                           : "fill-slate-200/80 dark:fill-slate-900/60 stroke-slate-300 dark:stroke-slate-800 stroke-[1.5] hover:fill-slate-300/80 dark:hover:fill-slate-800/80 hover:stroke-indigo-500 hover:stroke-[2.5]",
                         isHovered && "brightness-105 contrast-110 drop-shadow-[0_4px_16px_rgba(99,102,241,0.4)] stroke-indigo-500 stroke-[2.5]"
                       )}
@@ -363,10 +496,15 @@ export default function BodySvg({
               const center = REGION_CENTERS[gender]?.[regId];
               if (!center) return null;
               const isFront = [
-                "head", "neck", "pectoral_left", "pectoral_right", 
+                "head", "neck", "trapezius_left", "trapezius_right",
+                "pectoral_left", "pectoral_right", 
                 "deltoid_left", "deltoid_right", "biceps_left", "biceps_right", 
-                "abdominal_upper", "abdominal_lower", "quadriceps_left", "quadriceps_right", 
-                "tibialis_left", "tibialis_right", "left_hand", "right_hand"
+                "triceps_front_left", "triceps_front_right",
+                "abdominal_upper", "abdominal_lower", "obliques_left", "obliques_right",
+                "quadriceps_left", "quadriceps_right", "knee_left", "knee_right",
+                "adductors_left", "adductors_right",
+                "tibialis_left", "tibialis_right", "calves_front_left", "calves_front_right",
+                "left_hand", "right_hand", "ankle_left", "ankle_right", "left_foot", "right_foot"
               ].includes(regId);
               if (!isFront) return null;
 
@@ -416,14 +554,16 @@ export default function BodySvg({
           
           <rect x="1700" y="0" width="1700" height="1920" fill="url(#mapGlowBack)" rx="40" />
 
-          <text
-            x="2550"
-            y="110"
-            textAnchor="middle"
-            className="fill-slate-400/80 dark:fill-slate-500/80 font-display font-black text-4xl uppercase tracking-[0.25em]"
-          >
-            Posterior View
-          </text>
+          {!hideTitle && (
+            <text
+              x="2550"
+              y="110"
+              textAnchor="middle"
+              className="fill-slate-400/80 dark:fill-slate-500/80 font-display font-black text-4xl uppercase tracking-[0.25em]"
+            >
+              Posterior View
+            </text>
+          )}
 
           <g transform={backTransform} className="transition-all duration-300">
             <path
@@ -441,20 +581,18 @@ export default function BodySvg({
                   const reg = mapSlugToRegion(slug, side, "back", idx);
                   if (!reg) return null;
 
-                  const assessment = painData[reg.id];
+                  const isMarked = isRegionMarked(reg.id);
                   const isHovered = hoveredRegion === reg.id;
-                  const hasPain = assessment && assessment.painLevel > 0;
-                  const styles = getPainStyle(assessment?.painLevel);
 
                   return (
                     <path
                       key={`back-${slug}-${side}-${idx}`}
                       d={pathD}
-                      style={hasPain ? { fill: styles.fill, stroke: styles.stroke } : undefined}
+                      style={isMarked ? { fill: "rgba(239, 68, 68, 0.88)", stroke: "#dc2626" } : undefined}
                       className={cn(
                         "transition-all duration-200 cursor-pointer",
-                        hasPain
-                          ? "stroke-[1.5] hover:stroke-[2.5] hover:stroke-indigo-500/90"
+                        isMarked
+                          ? "stroke-[2] hover:stroke-[3] hover:stroke-red-600"
                           : "fill-slate-200/80 dark:fill-slate-900/60 stroke-slate-300 dark:stroke-slate-800 stroke-[1.5] hover:fill-slate-300/80 dark:hover:fill-slate-800/80 hover:stroke-indigo-500 hover:stroke-[2.5]",
                         isHovered && "brightness-105 contrast-110 drop-shadow-[0_4px_16px_rgba(99,102,241,0.4)] stroke-indigo-500 stroke-[2.5]"
                       )}
@@ -474,8 +612,8 @@ export default function BodySvg({
               const isBack = [
                 "head_back", "neck_back", "trapezius", "shoulder_left_back", "shoulder_right_back",
                 "latissimus_dorsi_left", "latissimus_dorsi_right", "arm_left_back", "arm_right_back",
-                "lumbar_spine", "gluteus_left", "gluteus_right", "hamstrings_left", "hamstrings_right",
-                "calves_left", "calves_right"
+                "lumbar_spine", "gluteus_left", "gluteus_right", "adductors_left_back", "adductors_right_back",
+                "hamstrings_left", "hamstrings_right", "calves_left", "calves_right"
               ].includes(regId);
               if (!isBack) return null;
 

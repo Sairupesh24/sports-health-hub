@@ -518,11 +518,13 @@ export interface Database {
           injury_date: string
           region: string
           injury_type: string
+          injury_side: string | null
           diagnosis: string
           mechanism_of_injury: string | null
           severity: string | null
           status: string
           expected_return_date: string | null
+          resolved_date: string | null
           clinical_notes: string | null
           created_at: string
           updated_at: string
@@ -534,11 +536,13 @@ export interface Database {
           injury_date: string
           region: string
           injury_type: string
+          injury_side?: string | null
           diagnosis: string
           mechanism_of_injury?: string | null
           severity?: string | null
           status: string
           expected_return_date?: string | null
+          resolved_date?: string | null
           clinical_notes?: string | null
           created_at?: string
           updated_at?: string
@@ -550,11 +554,13 @@ export interface Database {
           injury_date?: string
           region?: string
           injury_type?: string
+          injury_side?: string | null
           diagnosis?: string
           mechanism_of_injury?: string | null
           severity?: string | null
           status?: string
           expected_return_date?: string | null
+          resolved_date?: string | null
           clinical_notes?: string | null
           created_at?: string
           updated_at?: string

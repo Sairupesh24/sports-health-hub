@@ -212,6 +212,7 @@ export function AssessmentReportsList({ clientId, showDelete }: AssessmentReport
                 initialData={selectedReport.assessment_data}
                 initialActiveTestIndex={selectedReport.test_index}
                 initialPainData={selectedReport.pain_data}
+                initialClientId={selectedReport.client_id || clientId}
                 initialReassessmentDate={selectedReport.reassessment_date || ""}
                 initialReportTexts={selectedReport.report_texts}
                 initialReportTitle={selectedReport.title}

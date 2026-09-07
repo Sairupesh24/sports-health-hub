@@ -183,6 +183,41 @@ router.get('/dashboard/stats', requireAuth, async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 });
+// GET SOAP note for a session
+router.get('/sessions/:id/soap', requireAuth, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const result = await db.query(`
+            SELECT psd.*, 
+                   s.status as session_status, s.client_id, s.service_id, s.service_type, s.entitlement_id, s.is_unentitled,
+                   s.scheduled_start, s.created_at, s.actual_start,
+                   p.first_name as therapist_first_name, p.last_name as therapist_last_name
+            FROM physiosessiondetails psd
+            JOIN sessions s ON psd.session_id = s.id
+            LEFT JOIN profiles p ON COALESCE(s.therapist_id, s.scientist_id, s.created_by) = p.id
+            WHERE psd.session_id = $1
+        `, [id]);
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'SOAP note not found' });
+        }
+
+        const row = result.rows[0];
+        let sorenessData = row.soreness_data;
+        if (typeof sorenessData === 'string') {
+            try {
+                sorenessData = JSON.parse(sorenessData);
+            } catch (e) {}
+        }
+        res.json({
+            ...row,
+            soreness_data: sorenessData || {}
+        });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
 router.post('/sessions/:id/soap', requireAuth, async (req, res) => {
     const client = await db.connect();
     try {
@@ -197,72 +232,120 @@ router.post('/sessions/:id/soap', requireAuth, async (req, res) => {
 
         await client.query('BEGIN');
 
-        // 1. Check if session details already exist
-        const detailCheck = await client.query('SELECT id FROM PhysioSessionDetails WHERE session_id = $1', [id]);
+        // 1. Fetch Session first to ensure it exists and get details
+        const sessionRes = await client.query('SELECT * FROM sessions WHERE id = $1', [id]);
+        if (sessionRes.rows.length === 0) {
+            await client.query('ROLLBACK');
+            return res.status(404).json({ error: 'Session not found' });
+        }
+        const session = sessionRes.rows[0];
+
+        // Audit check: If session is already completed, lock if the session is from a past date
+        if (session.status === 'Completed') {
+            const sessionDate = new Date(session.scheduled_start || session.created_at);
+            const now = new Date();
+            const isSameDay = sessionDate.getFullYear() === now.getFullYear() &&
+                              sessionDate.getMonth() === now.getMonth() &&
+                              sessionDate.getDate() === now.getDate();
+            const isPastDate = sessionDate < now && !isSameDay;
+
+            const userRoles = req.user.roles || (req.user.role ? [req.user.role] : []);
+            const isAdminOrFoe = userRoles.some(r => ['admin', 'super_admin', 'clinic_admin', 'foe'].includes(r));
+
+            if (isPastDate && !isAdminOrFoe) {
+                await client.query('ROLLBACK');
+                return res.status(403).json({ error: 'This session is locked because the session date has passed. Edits are only permitted on the same date.' });
+            }
+        }
+
+        const effectiveOrgId = session.organization_id || orgId;
+        const effectiveServiceId = service_id || session.service_id || null;
+        const effectiveServiceType = service_type || session.service_type || 'Physiotherapy';
+
+        // 2. Safe stringification of soreness_data
+        let serializedSoreness = '{}';
+        if (typeof soreness_data === 'string') {
+            serializedSoreness = soreness_data;
+        } else if (soreness_data && typeof soreness_data === 'object') {
+            serializedSoreness = JSON.stringify(soreness_data);
+        }
+
+        // 3. Upsert physiosessiondetails
+        const detailCheck = await client.query('SELECT id FROM physiosessiondetails WHERE session_id = $1', [id]);
         
         if (detailCheck.rows.length > 0) {
-            // Update
             await client.query(`
-                UPDATE PhysioSessionDetails SET
+                UPDATE physiosessiondetails SET
                     pain_score = $1, modality_used = $2, treatment_type = $3, manual_therapy = $4,
                     exercise_given = $5, range_of_motion = $6, strength_progress = $7, clinical_notes = $8,
                     next_plan = $9, soreness_data = $10, injury_id = $11, updated_at = NOW()
                 WHERE session_id = $12
             `, [
-                pain_score, modality_used, treatment_type, manual_therapy,
-                exercise_given, range_of_motion, strength_progress, clinical_notes,
-                next_plan, JSON.stringify(soreness_data), injury_id || null, id
+                pain_score ?? 0, modality_used || null, treatment_type || null, manual_therapy || null,
+                exercise_given || null, range_of_motion || null, strength_progress || null, clinical_notes || null,
+                next_plan || null, serializedSoreness, injury_id || null, id
             ]);
         } else {
-            // Insert
             await client.query(`
-                INSERT INTO PhysioSessionDetails (
+                INSERT INTO physiosessiondetails (
                     session_id, pain_score, modality_used, treatment_type, manual_therapy,
                     exercise_given, range_of_motion, strength_progress, clinical_notes,
                     next_plan, soreness_data, injury_id
                 ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
             `, [
-                id, pain_score, modality_used, treatment_type, manual_therapy,
-                exercise_given, range_of_motion, strength_progress, clinical_notes,
-                next_plan, JSON.stringify(soreness_data), injury_id || null
+                id, pain_score ?? 0, modality_used || null, treatment_type || null, manual_therapy || null,
+                exercise_given || null, range_of_motion || null, strength_progress || null, clinical_notes || null,
+                next_plan || null, serializedSoreness, injury_id || null
             ]);
         }
 
-        // 2. Update Session status
+        // 4. Deduct Entitlement if not already completed and not already linked
+        let entitlementId = session.entitlement_id;
+        let isUnentitled = session.is_unentitled;
+
+        if (session.status !== 'Completed') {
+            if (!entitlementId && !isUnentitled) {
+                const entRes = await client.query(`
+                    SELECT id FROM cliententitlements 
+                    WHERE client_id = $1 AND (organization_id = $2 OR $2 IS NULL)
+                    AND (
+                        service_id = $3 
+                        OR service_type = $4 
+                        OR LOWER(service_type) = LOWER($4)
+                        OR ($3 IS NULL AND $4 IS NULL)
+                    )
+                    AND status = 'active' AND (granted_sessions - sessions_used) > 0
+                    ORDER BY created_at ASC
+                    LIMIT 1
+                `, [session.client_id, effectiveOrgId, effectiveServiceId, effectiveServiceType]);
+
+                if (entRes.rows.length > 0) {
+                    entitlementId = entRes.rows[0].id;
+                    await client.query(`
+                        UPDATE cliententitlements 
+                        SET sessions_used = sessions_used + 1, updated_at = NOW()
+                        WHERE id = $1
+                    `, [entitlementId]);
+                    isUnentitled = false;
+                } else {
+                    isUnentitled = true;
+                }
+            }
+        }
+
+        // 5. Update Session status to Completed
         await client.query(`
-            UPDATE Sessions SET
+            UPDATE sessions SET
                 status = 'Completed',
                 actual_start = COALESCE(actual_start, NOW()),
                 actual_end = NOW(),
                 service_id = $1,
                 service_type = $2,
+                entitlement_id = $3,
+                is_unentitled = $4,
                 updated_at = NOW()
-            WHERE id = $3 AND organization_id = $4
-        `, [service_id || null, service_type || 'Physiotherapy', id, orgId]);
-
-        // 3. Deduct Entitlement (equivalent to complete_session RPC)
-        const sessionResult = await client.query('SELECT * FROM Sessions WHERE id = $1', [id]);
-        const session = sessionResult.rows[0];
-        
-        if (session && service_id) {
-            // Logic to find active entitlement for this service and decrement
-            const entRes = await client.query(`
-                UPDATE ClientEntitlements 
-                SET sessions_used = sessions_used + 1
-                WHERE id = (
-                    SELECT id FROM ClientEntitlements
-                    WHERE client_id = $1 AND service_id = $2 AND status = 'active' AND sessions_used < granted_sessions
-                    ORDER BY created_at ASC
-                    LIMIT 1
-                )
-                RETURNING id
-            `, [session.client_id, service_id]);
-            
-            if (entRes.rows.length === 0) {
-                // Mark session as unentitled if no balance found
-                await client.query('UPDATE Sessions SET is_unentitled = TRUE WHERE id = $1', [id]);
-            }
-        }
+            WHERE id = $5
+        `, [effectiveServiceId, effectiveServiceType, entitlementId || null, isUnentitled || false, id]);
 
         await client.query('COMMIT');
         res.json({ message: 'SOAP note saved and session completed' });
@@ -283,25 +366,35 @@ router.post('/sessions/:id/reconcile', requireAuth, async (req, res) => {
 
         await client.query('BEGIN');
 
-        const sessionRes = await client.query('SELECT * FROM Sessions WHERE id = $1 AND organization_id = $2', [id, orgId]);
+        const sessionRes = await client.query('SELECT * FROM Sessions WHERE id = $1 AND ($2::uuid IS NULL OR organization_id = $2)', [id, orgId]);
         const session = sessionRes.rows[0];
         if (!session) throw new Error('Session not found');
+
+        const effectiveOrgId = session.organization_id || orgId;
 
         // Logic to find new active entitlement and decrement
         const entRes = await client.query(`
             UPDATE ClientEntitlements 
-            SET sessions_used = sessions_used + 1
+            SET sessions_used = sessions_used + 1, updated_at = NOW()
             WHERE id = (
                 SELECT id FROM ClientEntitlements
-                WHERE client_id = $1 AND service_id = $2 AND status = 'active' AND sessions_used < granted_sessions
+                WHERE client_id = $1 
+                  AND (organization_id = $2 OR $2 IS NULL)
+                  AND (
+                      service_id = $3 
+                      OR service_type = $4 
+                      OR LOWER(service_type) = LOWER($4)
+                      OR ($3 IS NULL AND $4 IS NULL)
+                  )
+                  AND status = 'active' AND sessions_used < granted_sessions
                 ORDER BY created_at ASC
                 LIMIT 1
             )
             RETURNING id
-        `, [session.client_id, session.service_id]);
+        `, [session.client_id, effectiveOrgId, session.service_id, session.service_type]);
 
         if (entRes.rows.length > 0) {
-            await client.query('UPDATE Sessions SET is_unentitled = FALSE WHERE id = $1', [id]);
+            await client.query('UPDATE Sessions SET is_unentitled = FALSE, entitlement_id = $1, updated_at = NOW() WHERE id = $2', [entRes.rows[0].id, id]);
             await client.query('COMMIT');
             res.json({ message: 'Session reconciled successfully' });
         } else {
@@ -496,9 +589,9 @@ router.get('/physio-session-details', requireAuth, async (req, res) => {
         
         let query = `
             SELECT d.pain_score, s.scheduled_start
-            FROM physio_session_details d
+            FROM physiosessiondetails d
             JOIN sessions s ON d.session_id = s.id
-            WHERE s.client_id = $1 AND s.organization_id = $2
+            WHERE s.client_id = $1 AND ($2::uuid IS NULL OR s.organization_id = $2)
         `;
         const params = [athlete_id, orgId];
         
@@ -512,6 +605,66 @@ router.get('/physio-session-details', requireAuth, async (req, res) => {
             pain_score: r.pain_score,
             sessions: { scheduled_start: r.scheduled_start }
         })));
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// GET latest subjective pain consultation report for a client
+router.get('/clients/:clientId/latest-subjective-pain', requireAuth, async (req, res) => {
+    try {
+        const { clientId } = req.params;
+        const orgId = req.user.organization_id;
+
+        const result = await db.query(`
+            SELECT s.id as session_id, s.scheduled_start, s.service_type, 
+                   psd.pain_score, psd.soreness_data, psd.clinical_notes,
+                   p.first_name as therapist_first_name, p.last_name as therapist_last_name
+            FROM Sessions s
+            JOIN PhysioSessionDetails psd ON s.id = psd.session_id
+            LEFT JOIN Profiles p ON COALESCE(s.therapist_id, s.scientist_id, s.created_by) = p.id
+            WHERE s.client_id = $1 AND ($2::uuid IS NULL OR s.organization_id = $2)
+              AND (
+                  (psd.soreness_data IS NOT NULL AND psd.soreness_data::text != '{}' AND psd.soreness_data::text != 'null')
+                  OR psd.pain_score IS NOT NULL
+                  OR psd.clinical_notes IS NOT NULL
+              )
+            ORDER BY s.actual_end DESC NULLS LAST, s.scheduled_start DESC, s.created_at DESC
+            LIMIT 1
+        `, [clientId, orgId]);
+
+        if (result.rows.length === 0) {
+            return res.json({ found: false });
+        }
+
+        const row = result.rows[0];
+        let sorenessData = row.soreness_data;
+        if (typeof sorenessData === 'string') {
+            try {
+                sorenessData = JSON.parse(sorenessData);
+            } catch (e) {
+                // leave as is
+            }
+        }
+        if (!sorenessData || typeof sorenessData !== 'object') {
+            sorenessData = {};
+        }
+        if (row.pain_score !== null && row.pain_score !== undefined && sorenessData.maxPainScore === undefined) {
+            sorenessData.maxPainScore = row.pain_score;
+        }
+
+        const therapistName = [row.therapist_first_name, row.therapist_last_name].filter(Boolean).join(' ') || 'Consultant';
+
+        return res.json({
+            found: true,
+            sessionId: row.session_id,
+            scheduledStart: row.scheduled_start,
+            serviceType: row.service_type,
+            therapistName,
+            painScore: row.pain_score,
+            sorenessData,
+            clinicalNotes: row.clinical_notes,
+        });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }

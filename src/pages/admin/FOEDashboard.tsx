@@ -63,40 +63,40 @@ export default function FOEDashboard() {
   const todayEnd = endOfDay(today);
 
   // 1. Today's Sessions & Appointments Query
-  const { data: todaysSessions, isLoading: sessionsLoading } = useQuery({
+  const { data: todaysSessions, isLoading: sessionsLoading } = useQuery<any[]>({
     queryKey: ['foe-todays-sessions', organizationId],
     queryFn: async () => {
-      const data = await apiFetch(`/api/appointments?start=${todayStart.toISOString()}&end=${todayEnd.toISOString()}`);
+      const data = await apiFetch<any[]>(`/api/appointments?start=${todayStart.toISOString()}&end=${todayEnd.toISOString()}`);
       return data || [];
     },
     enabled: !!organizationId
   });
 
   // 2. Waitlist Query
-  const { data: waitlistItems, isLoading: waitlistLoading } = useQuery({
+  const { data: waitlistItems, isLoading: waitlistLoading } = useQuery<any[]>({
     queryKey: ['foe-waitlist', organizationId],
     queryFn: async () => {
-        const data = await apiFetch(`/api/appointments/waitlist?status=Waiting`);
+        const data = await apiFetch<any[]>(`/api/appointments/waitlist?status=Waiting`);
         return data || [];
     },
     enabled: !!organizationId
   });
 
   // 3. Unentitled Sessions Query
-  const { data: unentitledSessions, isLoading: unentitledLoading } = useQuery({
+  const { data: unentitledSessions, isLoading: unentitledLoading } = useQuery<any[]>({
     queryKey: ['foe-unentitled-sessions', organizationId],
     queryFn: async () => {
-        const data = await apiFetch(`/api/appointments?is_unentitled=true`);
+        const data = await apiFetch<any[]>(`/api/appointments?is_unentitled=true`);
         return data || [];
     },
     enabled: !!organizationId
   });
 
   // 4. Consultant Availability Query
-  const { data: consultants, isLoading: consultantsLoading, error: consultantsError } = useQuery({
+  const { data: consultants, isLoading: consultantsLoading, error: consultantsError } = useQuery<any[]>({
     queryKey: ['foe-consultant-availability', organizationId],
     queryFn: async () => {
-        const data = await apiFetch(`/hr/employees?role_type=clinical`);
+        const data = await apiFetch<any[]>(`/hr/employees?role_type=clinical`);
         return data || [];
     },
     enabled: !!organizationId,
@@ -104,10 +104,10 @@ export default function FOEDashboard() {
   });
 
   // 5. Dunning Alerts Query
-  const { data: dunningSubscriptions } = useQuery({
+  const { data: dunningSubscriptions } = useQuery<any[]>({
     queryKey: ['foe-dunning-alerts', organizationId],
     queryFn: async () => {
-        const data = await apiFetch(`/api/billing/dunning-alerts`);
+        const data = await apiFetch<any[]>(`/api/billing/dunning-alerts`);
         return data || [];
     },
     enabled: !!organizationId
@@ -116,7 +116,7 @@ export default function FOEDashboard() {
   // Derived Values
   const availableToday = useMemo(() => {
     const dayOfToday = getDay(new Date());
-    return consultants?.filter(c => 
+    return consultants?.filter((c: any) => 
         c.consultant_availability?.some((a: any) => a.day_of_week === dayOfToday)
     ) || [];
   }, [consultants]);
@@ -124,7 +124,7 @@ export default function FOEDashboard() {
   const availabilityForSelectedDate = useMemo(() => {
     if (!selectedDate) return [];
     const dayOfSelected = getDay(parseISO(selectedDate));
-    return consultants?.map(c => {
+    return consultants?.map((c: any) => {
         const schedule = c.consultant_availability?.find((a: any) => a.day_of_week === dayOfSelected);
         const hasEmergency = c.emergency_alerts?.some((a: any) => a.status === 'unresolved');
         return {

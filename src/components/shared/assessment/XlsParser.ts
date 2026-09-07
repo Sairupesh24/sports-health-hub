@@ -211,8 +211,8 @@ export async function parseAssessmentXLS(file: File): Promise<ParsedAssessmentDa
         const STRENGTH_CATEGORIES = [
           { key: "Cervical spine", label: "Cervical Spine" },
           { key: "Lumbar / Thoracic Spine", label: "Lumbar / Thoracic Spine" },
-          { key: "Shoulder and arm", label: "Shoulder Strength" },
-          { key: "Hip and knee", label: "Hip & Knee Strength" },
+          { key: "Hip and knee", label: "Hip and Knee" },
+          { key: "Shoulder and arm", label: "Shoulder" },
         ];
 
         const strengthSummary: Record<string, StrengthCategorySummary> = {};

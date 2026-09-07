@@ -383,11 +383,10 @@ router.get('/:id/sessions', requireAuth, async (req, res) => {
         let query = `
             SELECT s.*, 
                    p.first_name as therapist_first_name, p.last_name as therapist_last_name,
-                   psd.pain_score, psd.clinical_notes
+                   (SELECT row_to_json(psd_sub.*) FROM physiosessiondetails psd_sub WHERE psd_sub.session_id = s.id LIMIT 1) as psd_full
             FROM sessions s
             LEFT JOIN profiles p ON COALESCE(s.therapist_id, s.scientist_id) = p.id
-            LEFT JOIN physiosessiondetails psd ON s.id = psd.session_id
-            WHERE s.client_id = $1 AND s.organization_id = $2
+            WHERE s.client_id = $1 AND ($2::uuid IS NULL OR s.organization_id = $2)
         `;
         const params = [id, orgId];
 
@@ -412,7 +411,7 @@ router.get('/:id/sessions', requireAuth, async (req, res) => {
         const mapped = result.rows.map(r => ({
             ...r,
             therapist: { first_name: r.therapist_first_name, last_name: r.therapist_last_name },
-            physio_session_details: r.pain_score !== null ? [{ pain_score: r.pain_score, clinical_notes: r.clinical_notes }] : []
+            physio_session_details: r.psd_full ? [r.psd_full] : []
         }));
 
         res.json(mapped);

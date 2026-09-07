@@ -1,10 +1,10 @@
 import React, { useState } from "react";
-import { ParsedAssessmentData, getStatusFromPercent, StatusGrade } from "./XlsParser";
+import { ParsedAssessmentData } from "./XlsParser";
 import BodySvg from "@/components/consultant/BodySvg";
 import { MapData } from "@/components/consultant/PainMap";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { FileText, Loader2, Check, AlertCircle, Save } from "lucide-react";
+import { Printer, Loader2, Check, AlertCircle, Save } from "lucide-react";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import { apiFetch } from "@/utils/api";
@@ -15,6 +15,7 @@ interface ExportPanelProps {
   activeTestIndex: number;
   reportTexts: Record<string, string>;
   painData: MapData;
+  subjectivePainData?: any;
   reassessmentDate: string;
   reportTitle: string;
   clientId?: string;
@@ -22,116 +23,11 @@ interface ExportPanelProps {
   readOnly?: boolean;
 }
 
-interface PoorRegion {
+interface MarkedRegion {
   id: string;
   label: string;
-  percentRef: number;
-  metricLabel: string;
   notes: string;
-}
-
-function getGroupedPoorRegions(data: ParsedAssessmentData, activeTestIndex: number): PoorRegion[] {
-  const testIndex = activeTestIndex - 1;
-  if (testIndex < 0) return [];
-
-  const allMetrics = [
-    ...data.metrics.mobility,
-    ...data.metrics.strength,
-    ...data.metrics.balance,
-  ];
-
-  const regionsList: PoorRegion[] = [];
-  const added = new Set<string>();
-
-  allMetrics.forEach((metric) => {
-    const test = metric.tests[testIndex];
-    if (test && test.percentRef !== null && test.percentRef < -10) {
-      const keyLower = metric.key.toLowerCase();
-      const targetRegions: { id: string; label: string }[] = [];
-
-      if (keyLower.includes("cervical")) {
-        targetRegions.push({ id: "neck", label: "Neck" });
-      }
-      if (keyLower.includes("lumbar") || keyLower.includes("thoracic")) {
-        targetRegions.push({ id: "lumbar_spine", label: "Lower Back" });
-      }
-      if (keyLower.includes("shoulder") || keyLower.includes("lateralpulldown")) {
-        if (keyLower.includes("left")) {
-          targetRegions.push({ id: "deltoid_left", label: "Shoulder (L)" });
-        } else if (keyLower.includes("right")) {
-          targetRegions.push({ id: "deltoid_right", label: "Shoulder (R)" });
-        } else {
-          targetRegions.push(
-            { id: "deltoid_left", label: "Shoulder (L)" },
-            { id: "deltoid_right", label: "Shoulder (R)" }
-          );
-        }
-      }
-      if (keyLower.includes("knee") || keyLower.includes("quadriceps")) {
-        if (keyLower.includes("left")) {
-          targetRegions.push({ id: "quadriceps_left", label: "Quadriceps (L)" });
-        } else if (keyLower.includes("right")) {
-          targetRegions.push({ id: "quadriceps_right", label: "Quadriceps (R)" });
-        } else {
-          targetRegions.push(
-            { id: "quadriceps_left", label: "Quadriceps (L)" },
-            { id: "quadriceps_right", label: "Quadriceps (R)" }
-          );
-        }
-      }
-      if (keyLower.includes("hip")) {
-        if (keyLower.includes("extension")) {
-          if (keyLower.includes("left")) {
-            targetRegions.push({ id: "gluteus_left", label: "Gluteus (L)" });
-          } else if (keyLower.includes("right")) {
-            targetRegions.push({ id: "gluteus_right", label: "Gluteus (R)" });
-          } else {
-            targetRegions.push(
-              { id: "gluteus_left", label: "Gluteus (L)" },
-              { id: "gluteus_right", label: "Gluteus (R)" }
-            );
-          }
-        } else {
-          if (keyLower.includes("left")) {
-            targetRegions.push({ id: "gluteus_left", label: "Gluteus (L)" });
-          } else if (keyLower.includes("right")) {
-            targetRegions.push({ id: "gluteus_right", label: "Gluteus (R)" });
-          } else {
-            targetRegions.push(
-              { id: "gluteus_left", label: "Gluteus (L)" },
-              { id: "gluteus_right", label: "Gluteus (R)" }
-            );
-          }
-        }
-      }
-
-      targetRegions.forEach((reg) => {
-        const uniqueKey = `${reg.id}-${metric.label}`;
-        if (!added.has(uniqueKey)) {
-          added.add(uniqueKey);
-          regionsList.push({
-            id: reg.id,
-            label: reg.label,
-            percentRef: test.percentRef!,
-            metricLabel: metric.label,
-            notes: `Deficit detected: ${test.percentRef!.toFixed(1)}% relative to reference value in ${metric.label}.`,
-          });
-        }
-      });
-    }
-  });
-
-  // Group by region ID so each region appears only once in the list
-  const grouped: Record<string, PoorRegion> = {};
-  regionsList.forEach((item) => {
-    if (!grouped[item.id]) {
-      grouped[item.id] = { ...item };
-    } else {
-      grouped[item.id].notes += ` Deficit detected: ${item.percentRef.toFixed(1)}% relative to reference value in ${item.metricLabel}.`;
-    }
-  });
-
-  return Object.values(grouped);
+  num: number;
 }
 
 export default function ExportPanel({
@@ -139,6 +35,7 @@ export default function ExportPanel({
   activeTestIndex,
   reportTexts,
   painData,
+  subjectivePainData,
   reassessmentDate,
   reportTitle,
   clientId,
@@ -190,35 +87,66 @@ export default function ExportPanel({
   };
 
   const currentTest = data.client.tests.find((t) => t.index === activeTestIndex) || data.client.latestTest;
-  const testIndex = activeTestIndex - 1;
 
   const selectedClient = clients?.find((c) => c.id === clientId);
   const clientUhid = selectedClient?.uhid || "—";
 
-  const groupedPoorRegions = getGroupedPoorRegions(data, activeTestIndex);
-  const totalDeficits = groupedPoorRegions.length;
-  const recommendationsLength = (reportTexts.recommendations || "").length;
-  const isOnePage = totalDeficits <= 3 && recommendationsLength < 300;
+  // Build clinician-marked regions list (limited to 200 chars)
+  const markedRegionsList: MarkedRegion[] = Object.entries(painData || {})
+    .filter(([_, r]) => r && (r as any).marked !== false)
+    .map(([id, r], idx) => ({
+      id,
+      label: (r as any).name || id.replace(/_/g, " "),
+      notes: ((r as any).notes || "").slice(0, 200),
+      num: idx + 1,
+    }));
 
-  const page1Deficits = isOnePage ? groupedPoorRegions : groupedPoorRegions.slice(0, 4);
-  const page2Deficits = isOnePage ? [] : groupedPoorRegions.slice(4);
+  // Marked regions that actually have clinician notes written
+  const markedRegionsWithNotes = markedRegionsList.filter(
+    (reg) => reg.notes && reg.notes.trim().length > 0 && reg.notes !== "Marked on body map"
+  );
+  const hasPage2 = markedRegionsWithNotes.length > 0;
+
+  const numberedBadges: Record<string, number> = {};
+  markedRegionsList.forEach((reg) => {
+    numberedBadges[reg.id] = reg.num;
+  });
+
+  const gender = data.client.gender?.toLowerCase() === "female" ? "female" : "male";
+
+  const frontRegionIds = [
+    "head", "neck", "neck_left", "neck_right", "trapezius_left", "trapezius_right",
+    "pectoral_left", "pectoral_right", "deltoid_left", "deltoid_right",
+    "biceps_left", "biceps_right", "triceps_front_left", "triceps_front_right",
+    "abdominal_left", "abdominal_right", "abdominal_upper", "abdominal_lower",
+    "obliques_left", "obliques_right", "adductors_left", "adductors_right",
+    "quadriceps_left", "quadriceps_right", "knee_left", "knee_right",
+    "tibialis_left", "tibialis_right", "calves_front_left", "calves_front_right",
+    "forearm_left", "forearm_right", "left_hand", "right_hand",
+    "ankle_left", "ankle_right", "left_foot", "right_foot"
+  ];
 
   const handleExportPDF = async () => {
     if (!currentTest) return;
+
+    // Validation: Clinical Impression & Recommendations are mandatory
+    if (!reportTexts.clinicalImpression?.trim() || !reportTexts.recommendations?.trim()) {
+      toast({
+        title: "Mandatory Fields Required",
+        description: "Please complete both 'Clinical Impression / Diagnosis' and 'Recommendations' before exporting the report.",
+        variant: "destructive",
+      });
+      return;
+    }
     
     setStatus("loading");
     try {
-      const safeName = data.client.name.replace(/\s+/g, "_");
-      const safeTitle = reportTitle.replace(/\s+/g, "_");
-      const filename = `CSSH_${safeTitle}_${safeName}.pdf`;
-
       const page1 = document.getElementById("report-print-page-1");
-      const page2 = document.getElementById("report-print-page-2");
       if (!page1) {
-        throw new Error("Page 1 print container not found.");
+        throw new Error("Print container not found.");
       }
 
-      await new Promise((resolve) => setTimeout(resolve, 200));
+      await new Promise((resolve) => setTimeout(resolve, 250));
 
       const canvas1 = await html2canvas(page1, {
         scale: 2,
@@ -234,22 +162,40 @@ export default function ExportPanel({
 
       pdf.addImage(imgData1, "PNG", 0, 0, imgWidth, imgHeight);
 
-      if (!isOnePage) {
-        if (!page2) {
-          throw new Error("Page 2 print container not found.");
+      if (hasPage2) {
+        const page2 = document.getElementById("report-print-page-2");
+        if (page2) {
+          const canvas2 = await html2canvas(page2, {
+            scale: 2,
+            useCORS: true,
+            backgroundColor: "#ffffff",
+            logging: false,
+          });
+          const imgData2 = canvas2.toDataURL("image/png");
+          pdf.addPage();
+          pdf.addImage(imgData2, "PNG", 0, 0, imgWidth, imgHeight);
         }
-        const canvas2 = await html2canvas(page2, {
-          scale: 2,
-          useCORS: true,
-          backgroundColor: "#ffffff",
-          logging: false,
-        });
-        const imgData2 = canvas2.toDataURL("image/png");
-        pdf.addPage();
-        pdf.addImage(imgData2, "PNG", 0, 0, imgWidth, imgHeight);
       }
 
-      pdf.save(filename);
+      // Open print window directly to avoid unwanted direct downloads
+      pdf.autoPrint();
+      const blobUrl = (pdf.output("bloburl") as any)?.toString() || String(pdf.output("bloburl"));
+      const printWin = window.open(blobUrl, "_blank");
+      if (!printWin) {
+        const iframe = document.createElement("iframe");
+        iframe.style.position = "fixed";
+        iframe.style.bottom = "0";
+        iframe.style.right = "0";
+        iframe.style.width = "0";
+        iframe.style.height = "0";
+        iframe.style.border = "0";
+        iframe.src = blobUrl;
+        document.body.appendChild(iframe);
+        iframe.onload = () => {
+          iframe.contentWindow?.print();
+        };
+      }
+
       setStatus("success");
       setTimeout(() => setStatus("idle"), 3000);
     } catch (err) {
@@ -259,62 +205,9 @@ export default function ExportPanel({
     }
   };
 
-  const getStatusColor = (status: StatusGrade): string => {
-    const colors: Record<StatusGrade, string> = {
-      good: "#22C55E",
-      moderate: "#F59E0B",
-      "needs-work": "#F97316",
-      priority: "#EF4444",
-    };
-    return colors[status] || "#F59E0B";
-  };
-
-  const drawMiniCircle = (val: number | null, color: string) => {
-    const size = 36;
-    const strokeWidth = 4;
-    const r = (size - strokeWidth) / 2;
-    const circ = 2 * Math.PI * r;
-    const absVal = Math.abs(val ?? 0);
-    const fill = Math.min(Math.max(absVal / 100, 0), 1);
-    const offset = circ * (1 - fill);
-    const sign = val && val > 0 ? "+" : "";
-
-    return (
-      <div className="relative flex items-center justify-center shrink-0" style={{ width: size, height: size }}>
-        <svg width={size} height={size} className="transform -rotate-90">
-          <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="#e2e8f0" strokeWidth={strokeWidth} />
-          <circle
-            cx={size/2}
-            cy={size/2}
-            r={r}
-            fill="none"
-            stroke={color}
-            strokeWidth={strokeWidth}
-            strokeDasharray={circ}
-            strokeDashoffset={offset}
-            strokeLinecap="round"
-          />
-        </svg>
-        <div className="absolute inset-0 flex items-center justify-center text-[8px] font-black text-slate-800">
-          {val !== null ? `${sign}${val.toFixed(0)}%` : "—"}
-        </div>
-      </div>
-    );
-  };
-
-  const numberedBadges: Record<string, number> = {};
-  groupedPoorRegions.forEach((reg, idx) => {
-    numberedBadges[reg.id] = idx + 1;
-  });
-
-  const gender = data.client.gender?.toLowerCase() === "female" ? "female" : "male";
-
-  const strengthProfiles = [
-    { key: "Lumbar / Thoracic Spine", label: "CORE STABILITY" },
-    { key: "Shoulder and arm", label: "SHOULDER STABILITY" },
-    { key: "Cervical spine", label: "NECK FUNCTION" },
-    { key: "Hip and knee", label: "LOWER LIMB STRENGTH" },
-  ];
+  const isImpressionEmpty = !reportTexts.clinicalImpression?.trim();
+  const isRecommendationsEmpty = !reportTexts.recommendations?.trim();
+  const hasValidationBlock = isImpressionEmpty || isRecommendationsEmpty;
 
   return (
     <div>
@@ -325,7 +218,11 @@ export default function ExportPanel({
               {readOnly ? "Assessment Report Options" : "Finalize Assessment Report"}
             </h4>
             <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">
-              {readOnly ? "Download a PDF copy of this saved interactive report" : "Save this interactive report to the client's profile or export to PDF"}
+              {hasValidationBlock
+                ? "Complete mandatory fields (Clinical Impression & Recommendations) to print/export"
+                : readOnly
+                ? "Open printable assessment report in print window"
+                : "Save this interactive report to client profile or print directly"}
             </p>
           </div>
           <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
@@ -333,7 +230,7 @@ export default function ExportPanel({
               <Button
                 onClick={handleSaveToProfile}
                 disabled={saveStatus === "saving"}
-                className={`w-full sm:w-auto min-w-[180px] font-black uppercase text-xs tracking-wider rounded-xl shadow-lg transition-all h-11 ${
+                className={`w-full sm:w-auto min-w-[170px] font-black uppercase text-xs tracking-wider rounded-xl shadow-lg transition-all h-11 ${
                   saveStatus === "success"
                     ? "bg-green-600 hover:bg-green-700 text-white shadow-green-600/10"
                     : saveStatus === "error"
@@ -367,8 +264,10 @@ export default function ExportPanel({
             <Button
               onClick={handleExportPDF}
               disabled={status === "loading"}
-              className={`w-full sm:w-auto min-w-[180px] font-black uppercase text-xs tracking-wider rounded-xl shadow-lg transition-all h-11 ${
-                status === "success"
+              className={`w-full sm:w-auto min-w-[170px] font-black uppercase text-xs tracking-wider rounded-xl shadow-lg transition-all h-11 ${
+                hasValidationBlock
+                  ? "bg-amber-600 hover:bg-amber-700 text-white shadow-amber-600/20"
+                  : status === "success"
                   ? "bg-green-600 hover:bg-green-700 text-white shadow-green-600/10"
                   : status === "error"
                   ? "bg-red-600 hover:bg-red-700 text-white shadow-red-600/10"
@@ -378,12 +277,12 @@ export default function ExportPanel({
               {status === "loading" ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                  Preparing...
+                  Generating...
                 </>
               ) : status === "success" ? (
                 <>
                   <Check className="w-4 h-4 mr-2" />
-                  Exported
+                  Print Opened
                 </>
               ) : status === "error" ? (
                 <>
@@ -392,8 +291,8 @@ export default function ExportPanel({
                 </>
               ) : (
                 <>
-                  <FileText className="w-4 h-4 mr-2" />
-                  Export to PDF
+                  <Printer className="w-4 h-4 mr-2" />
+                  Print / Export Report
                 </>
               )}
             </Button>
@@ -411,378 +310,487 @@ export default function ExportPanel({
             pointerEvents: "none",
           }}
         >
+          {/* ==================== PAGE 1 (CORE ASSESSMENT & BODY MAPS) ==================== */}
           <div
             id="report-print-page-1"
             style={{
               width: "800px",
               height: "1130px",
-              padding: "45px",
+              padding: "26px 32px",
               boxSizing: "border-box",
               backgroundColor: "#ffffff",
               color: "#0f172a",
               position: "relative",
-              fontFamily: "system-ui, sans-serif"
+              fontFamily: "Arial, Helvetica, -apple-system, sans-serif"
             }}
           >
-            <div className="flex justify-between items-center border-b-2 border-slate-900 pb-4 mb-4">
-              <div className="flex flex-col">
-                <img src="/cssh_logo.jpg" alt="CSSH Logo" className="h-10 w-auto object-contain self-start" />
-                <span className="text-[8px] text-slate-400 font-bold uppercase tracking-wider mt-1">
+            {/* Header */}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "2px solid #0f172a", paddingBottom: "8px", marginBottom: "8px" }}>
+              <div style={{ display: "flex", flexDirection: "column" }}>
+                <img src="/cssh_logo.jpg" alt="CSSH Logo" style={{ height: "32px", width: "auto", objectFit: "contain", alignSelf: "flex-start" }} />
+                <span style={{ fontSize: "7px", color: "#94a3b8", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", marginTop: "2px", lineHeight: 1.4 }}>
                   Empowering Movement, Every Day!
                 </span>
               </div>
-              <div className="text-center shrink-0">
-                <h1 className="text-xl font-extrabold uppercase tracking-tight text-slate-900 font-display italic">
+              <div style={{ textAlign: "center" }}>
+                <h1 style={{ fontSize: "16px", fontWeight: 900, textTransform: "uppercase", letterSpacing: "-0.02em", color: "#0f172a", fontStyle: "italic", margin: 0, lineHeight: 1.4 }}>
                   {reportTitle}
                 </h1>
               </div>
-              <div className="text-right text-slate-500 font-sans">
-                <div className="text-[9px] font-black uppercase tracking-wider text-slate-700">
+              <div style={{ textAlign: "right", color: "#64748b" }}>
+                <div style={{ fontSize: "8px", fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.05em", color: "#334155", lineHeight: 1.4 }}>
                   Integrated Sports Health Facility
                 </div>
-                <div className="text-[8px] text-slate-400 mt-0.5">
-                  Phone: — | Email: —
+                <div style={{ fontSize: "7px", color: "#94a3b8", marginTop: "2px", lineHeight: 1.4 }}>
+                  Center for Spine & Sports Health
                 </div>
               </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200 mb-5">
-              <div>
-                <div className="text-[9px] text-slate-400 font-black uppercase tracking-wider">Client Name</div>
-                <div className="text-xs font-black text-slate-800 uppercase mt-0.5">{data.client.name}</div>
+            {/* Client Metadata Bar (6 Columns with explicit anti-clipping padding and line-height) */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: "8px", backgroundColor: "#f8fafc", padding: "6px 12px", borderRadius: "10px", border: "1px solid #e2e8f0", marginBottom: "10px", textAlign: "left", alignItems: "center" }}>
+              <div style={{ padding: "2px 0", overflow: "visible" }}>
+                <div style={{ fontSize: "7.5px", color: "#64748b", fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.05em", lineHeight: 1.4 }}>
+                  Client Name
+                </div>
+                <div style={{ fontSize: "11px", fontWeight: 900, color: "#0f172a", textTransform: "uppercase", lineHeight: 1.4, paddingTop: "2px" }}>
+                  {data.client.name}
+                </div>
               </div>
-              <div>
-                <div className="text-[9px] text-slate-400 font-black uppercase tracking-wider">Universal Health ID (UHID)</div>
-                <div className="text-xs font-mono font-black text-slate-800 mt-0.5">{clientUhid}</div>
+              <div style={{ padding: "2px 0", overflow: "visible" }}>
+                <div style={{ fontSize: "7.5px", color: "#64748b", fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.05em", lineHeight: 1.4 }}>
+                  Universal Health ID
+                </div>
+                <div style={{ fontSize: "10.5px", fontFamily: "monospace", fontWeight: 900, color: "#0f172a", lineHeight: 1.4, paddingTop: "2px" }}>
+                  {clientUhid}
+                </div>
               </div>
-              <div>
-                <div className="text-[9px] text-slate-400 font-black uppercase tracking-wider">Report Date</div>
-                <div className="text-xs font-black text-slate-800 mt-0.5">{currentTest.date}</div>
+              <div style={{ padding: "2px 0", overflow: "visible" }}>
+                <div style={{ fontSize: "7.5px", color: "#64748b", fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.05em", lineHeight: 1.4 }}>
+                  Assessment Date
+                </div>
+                <div style={{ fontSize: "10.5px", fontWeight: 900, color: "#0f172a", lineHeight: 1.4, paddingTop: "2px" }}>
+                  {currentTest.date}
+                </div>
+              </div>
+              <div style={{ padding: "2px 0", overflow: "visible" }}>
+                <div style={{ fontSize: "7.5px", color: "#64748b", fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.05em", lineHeight: 1.4 }}>
+                  Test Series
+                </div>
+                <div style={{ fontSize: "10.5px", fontWeight: 900, color: "#0f172a", lineHeight: 1.4, paddingTop: "2px" }}>
+                  Test {currentTest.index} of {data.client.tests.length}
+                </div>
+              </div>
+              <div style={{ padding: "2px 0", overflow: "visible" }}>
+                <div style={{ fontSize: "7.5px", color: "#64748b", fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.05em", lineHeight: 1.4 }}>
+                  Biometrics
+                </div>
+                <div style={{ fontSize: "10px", fontWeight: 900, color: "#0f172a", lineHeight: 1.4, paddingTop: "2px" }}>
+                  {currentTest.height || "—"}cm / {currentTest.weight || "—"}kg (BMI {currentTest.bmi || "—"})
+                </div>
+              </div>
+              <div style={{ padding: "2px 0", overflow: "visible" }}>
+                <div style={{ fontSize: "7.5px", color: "#64748b", fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.05em", lineHeight: 1.4 }}>
+                  Follow-Up
+                </div>
+                <div style={{ fontSize: "10px", fontWeight: 900, color: "#0f172a", lineHeight: 1.4, paddingTop: "2px" }}>
+                  {reassessmentDate || "Routine Series"}
+                </div>
               </div>
             </div>
 
-            <div className="grid grid-cols-12 gap-6 items-start">
-              <div className="col-span-6 flex flex-col items-center gap-4">
-                <div className="flex flex-col items-center w-full">
-                  <div className="text-[9px] font-black tracking-[0.2em] text-slate-400 uppercase mb-1">
+            {/* Main Page Grid: Left 46% (Full-Height Body Maps) | Right 54% (All 6 Clinical Sections) */}
+            <div style={{ display: "grid", gridTemplateColumns: "5.5fr 6.5fr", gap: "12px", height: "930px", alignItems: "stretch" }}>
+              
+              {/* Left Column: Anterior & Posterior Body SVGs (Equal Halves, Large, Centered) */}
+              <div style={{ display: "flex", flexDirection: "column", justifyContent: "space-between", height: "100%", gap: "8px" }}>
+                
+                {/* 1. Anterior View Container */}
+                <div style={{ flex: 1, backgroundColor: "#f8fafc", borderRadius: "12px", border: "1px solid #e2e8f0", padding: "8px 10px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "space-between", minHeight: 0 }}>
+                  <div style={{ fontSize: "8.5px", fontWeight: 900, letterSpacing: "0.15em", color: "#64748b", textTransform: "uppercase", lineHeight: 1.4 }}>
                     ANTERIOR VIEW
                   </div>
-                  <div className="border border-slate-100 bg-slate-50/20 p-2 rounded-2xl w-[320px] flex justify-center">
-                    <BodySvg
-                      gender={gender}
-                      painData={painData}
-                      view="front"
-                      numberedBadges={numberedBadges}
-                      layout="stacked"
-                      onRegionClick={() => {}}
-                      hoveredRegion={null}
-                      setHoveredRegion={() => {}}
-                    />
+                  
+                  <div style={{ flex: 1, width: "100%", display: "flex", justifyContent: "center", alignItems: "center", minHeight: 0, padding: "2px 0" }}>
+                    <div style={{ height: "100%", width: "100%", maxHeight: "390px", display: "flex", justifyContent: "center", alignItems: "center" }}>
+                      <BodySvg
+                        gender={gender}
+                        painData={painData}
+                        view="front"
+                        numberedBadges={numberedBadges}
+                        layout="stacked"
+                        hideTitle={true}
+                        onRegionClick={() => {}}
+                        hoveredRegion={null}
+                        setHoveredRegion={() => {}}
+                      />
+                    </div>
                   </div>
                 </div>
-                
-                <div className="flex flex-col items-center w-full">
-                  <div className="text-[9px] font-black tracking-[0.2em] text-slate-400 uppercase mb-1">
+
+                {/* 2. Posterior View Container */}
+                <div style={{ flex: 1, backgroundColor: "#f8fafc", borderRadius: "12px", border: "1px solid #e2e8f0", padding: "8px 10px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "space-between", minHeight: 0 }}>
+                  <div style={{ fontSize: "8.5px", fontWeight: 900, letterSpacing: "0.15em", color: "#64748b", textTransform: "uppercase", lineHeight: 1.4 }}>
                     POSTERIOR VIEW
                   </div>
-                  <div className="border border-slate-100 bg-slate-50/20 p-2 rounded-2xl w-[320px] flex justify-center">
-                    <BodySvg
-                      gender={gender}
-                      painData={painData}
-                      view="back"
-                      numberedBadges={numberedBadges}
-                      layout="stacked"
-                      onRegionClick={() => {}}
-                      hoveredRegion={null}
-                      setHoveredRegion={() => {}}
-                    />
+                  
+                  <div style={{ flex: 1, width: "100%", display: "flex", justifyContent: "center", alignItems: "center", minHeight: 0, padding: "2px 0" }}>
+                    <div style={{ height: "100%", width: "100%", maxHeight: "390px", display: "flex", justifyContent: "center", alignItems: "center" }}>
+                      <BodySvg
+                        gender={gender}
+                        painData={painData}
+                        view="back"
+                        numberedBadges={numberedBadges}
+                        layout="stacked"
+                        hideTitle={true}
+                        onRegionClick={() => {}}
+                        hoveredRegion={null}
+                        setHoveredRegion={() => {}}
+                      />
+                    </div>
                   </div>
                 </div>
+
               </div>
 
-              <div className="col-span-6 space-y-4">
-                <div className="space-y-2">
-                  <div className="text-[9px] font-black tracking-widest text-slate-400 uppercase border-b pb-1">
-                    REGION-LEVEL REMARKS & OBSERVATIONS
+              {/* Right Column: All 6 Clinical Sections + Consultation + Sign-Off (Dynamically Sized) */}
+              <div style={{ display: "flex", flexDirection: "column", gap: "8px", height: "100%", justifyContent: "flex-start", textAlign: "left", minHeight: 0 }}>
+                
+                {/* 0. Subjective Pain Consultation Card */}
+                <div style={{ padding: "6px 8px", backgroundColor: "#f8fafc", borderRadius: "8px", border: "1px solid #e2e8f0", display: "flex", flexDirection: "column", gap: "4px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <div style={{ fontSize: "7.5px", fontWeight: 900, letterSpacing: "0.05em", color: "#475569", textTransform: "uppercase", lineHeight: 1.4 }}>
+                      Subjective Pain Assessment (Consultation)
+                    </div>
+                    {subjectivePainData?.scores ? (
+                      <span style={{ fontSize: "6.5px", fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.05em", color: "#047857", backgroundColor: "#d1fae5", padding: "1.5px 5px", borderRadius: "3px" }}>
+                        Recorded in SOAP
+                      </span>
+                    ) : (
+                      <span style={{ fontSize: "6.5px", fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.05em", color: "#b45309", backgroundColor: "#fef3c7", padding: "1.5px 5px", borderRadius: "3px" }}>
+                        Missing / Not Recorded
+                      </span>
+                    )}
                   </div>
-                  {page1Deficits.length === 0 ? (
-                    <div className="text-xs text-slate-400 italic py-2">
-                      No significant region-level deficits identified.
+
+                  {subjectivePainData?.scores ? (
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "4px" }}>
+                      <div style={{ backgroundColor: "#ffffff", padding: "2px 4px", borderRadius: "4px", border: "1px solid #f1f5f9", textAlign: "center" }}>
+                        <div style={{ fontSize: "6px", color: "#94a3b8", fontWeight: 700, textTransform: "uppercase" }}>Shoulder/Arm</div>
+                        <div style={{ fontSize: "9px", fontWeight: 900, color: "#0f172a" }}>{(subjectivePainData.scores.shoulderAndArm ?? subjectivePainData.scores.shoulder_and_arm) ?? 0}/10</div>
+                      </div>
+                      <div style={{ backgroundColor: "#ffffff", padding: "2px 4px", borderRadius: "4px", border: "1px solid #f1f5f9", textAlign: "center" }}>
+                        <div style={{ fontSize: "6px", color: "#94a3b8", fontWeight: 700, textTransform: "uppercase" }}>Neck</div>
+                        <div style={{ fontSize: "9px", fontWeight: 900, color: "#0f172a" }}>{subjectivePainData.scores.neck ?? 0}/10</div>
+                      </div>
+                      <div style={{ backgroundColor: "#ffffff", padding: "2px 4px", borderRadius: "4px", border: "1px solid #f1f5f9", textAlign: "center" }}>
+                        <div style={{ fontSize: "6px", color: "#94a3b8", fontWeight: 700, textTransform: "uppercase" }}>Back</div>
+                        <div style={{ fontSize: "9px", fontWeight: 900, color: "#0f172a" }}>{subjectivePainData.scores.back ?? 0}/10</div>
+                      </div>
+                      <div style={{ backgroundColor: "#ffffff", padding: "2px 4px", borderRadius: "4px", border: "1px solid #f1f5f9", textAlign: "center" }}>
+                        <div style={{ fontSize: "6px", color: "#94a3b8", fontWeight: 700, textTransform: "uppercase" }}>Hip/Leg</div>
+                        <div style={{ fontSize: "9px", fontWeight: 900, color: "#0f172a" }}>{(subjectivePainData.scores.hipAndLeg ?? subjectivePainData.scores.hip_and_leg) ?? 0}/10</div>
+                      </div>
                     </div>
                   ) : (
-                    <table className="w-full text-left text-xs border-collapse">
-                      <thead>
-                        <tr className="border-b border-slate-200">
-                          <th className="py-2 text-[8px] font-black uppercase text-slate-500 w-8">No.</th>
-                          <th className="py-2 text-[8px] font-black uppercase text-slate-500 w-28">Anatomical Region</th>
-                          <th className="py-2 text-[8px] font-black uppercase text-slate-500">Clinician Tissue Remarks</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {page1Deficits.map((reg, idx) => (
-                          <tr key={reg.id} className="border-b border-slate-100">
-                            <td className="py-2 font-extrabold text-slate-700">{idx + 1}</td>
-                            <td className="py-2 font-black text-slate-800 uppercase tracking-tight text-[10px]">{reg.label}</td>
-                            <td className="py-2 text-slate-600 leading-relaxed font-medium text-[10px]">{reg.notes}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                    <div style={{ fontSize: "7px", color: "#94a3b8", fontStyle: "italic", lineHeight: 1.4 }}>
+                      No subjective pain sensation map or NRS scores recorded during consultation.
+                    </div>
                   )}
                 </div>
 
-                {isOnePage && reportTexts.recommendations && (
-                  <div className="space-y-1.5">
-                    <div className="text-[9px] font-black tracking-widest text-slate-400 uppercase border-b pb-1">
-                      Recommendations
+                {/* 1. Clinical Summary (Dynamic Height & 8.5px Readable Font) */}
+                <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+                  <div style={{ fontSize: "8.5px", fontWeight: 900, letterSpacing: "0.05em", color: "#334155", textTransform: "uppercase", display: "flex", alignItems: "center", gap: "5px", lineHeight: 1.4, paddingBottom: "1px" }}>
+                    <span style={{ width: "3.5px", height: "10px", backgroundColor: "#2563eb", borderRadius: "2px", display: "inline-block" }} />
+                    <span>Clinical Summary</span>
+                  </div>
+                  <div style={{ padding: "6px 8px", backgroundColor: "#f8fafc", borderRadius: "6px", border: "1px solid #e2e8f0", fontSize: "8.5px", lineHeight: 1.45, color: "#1e293b", fontWeight: 500, whiteSpace: "pre-line" }}>
+                    {reportTexts.clinicalSummary || "Client baseline test assessment recorded."}
+                  </div>
+                </div>
+
+                {/* 2. Strength Findings (Dynamic Height & 8.5px Readable Font) */}
+                <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+                  <div style={{ fontSize: "8.5px", fontWeight: 900, letterSpacing: "0.05em", color: "#334155", textTransform: "uppercase", display: "flex", alignItems: "center", gap: "5px", lineHeight: 1.4, paddingBottom: "1px" }}>
+                    <span style={{ width: "3.5px", height: "10px", backgroundColor: "#0d9488", borderRadius: "2px", display: "inline-block" }} />
+                    <span>Strength Assessment Findings</span>
+                  </div>
+                  <div style={{ padding: "6px 8px", backgroundColor: "#f8fafc", borderRadius: "6px", border: "1px solid #e2e8f0", fontSize: "8.5px", lineHeight: 1.45, color: "#1e293b", fontWeight: 500, whiteSpace: "pre-line" }}>
+                    {reportTexts.strengthFindings || "Assessment strength metrics recorded across muscle groups."}
+                  </div>
+                </div>
+
+                {/* 3. Mobility Findings (Dynamic Height & 8.5px Readable Font) */}
+                <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+                  <div style={{ fontSize: "8.5px", fontWeight: 900, letterSpacing: "0.05em", color: "#334155", textTransform: "uppercase", display: "flex", alignItems: "center", gap: "5px", lineHeight: 1.4, paddingBottom: "1px" }}>
+                    <span style={{ width: "3.5px", height: "10px", backgroundColor: "#6366f1", borderRadius: "2px", display: "inline-block" }} />
+                    <span>Mobility & Range of Motion Findings</span>
+                  </div>
+                  <div style={{ padding: "6px 8px", backgroundColor: "#f8fafc", borderRadius: "6px", border: "1px solid #e2e8f0", fontSize: "8.5px", lineHeight: 1.45, color: "#1e293b", fontWeight: 500, whiteSpace: "pre-line" }}>
+                    {reportTexts.mobilityFindings || "Mobility tests recorded with active range of motion metrics."}
+                  </div>
+                </div>
+
+                {/* 4. Strength Balance Findings (Dynamic Height & 8.5px Readable Font) */}
+                <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+                  <div style={{ fontSize: "8.5px", fontWeight: 900, letterSpacing: "0.05em", color: "#334155", textTransform: "uppercase", display: "flex", alignItems: "center", gap: "5px", lineHeight: 1.4, paddingBottom: "1px" }}>
+                    <span style={{ width: "3.5px", height: "10px", backgroundColor: "#14b8a6", borderRadius: "2px", display: "inline-block" }} />
+                    <span>Strength Balance & Symmetry Findings</span>
+                  </div>
+                  <div style={{ padding: "6px 8px", backgroundColor: "#f8fafc", borderRadius: "6px", border: "1px solid #e2e8f0", fontSize: "8.5px", lineHeight: 1.45, color: "#1e293b", fontWeight: 500, whiteSpace: "pre-line" }}>
+                    {reportTexts.balanceFindings || "Bilateral symmetry and agonist/antagonist balance recorded."}
+                  </div>
+                </div>
+
+                {/* 5. Clinical Impression / Diagnosis (Dynamic Height & 8.5px Readable Font) */}
+                <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+                  <div style={{ fontSize: "8.5px", fontWeight: 900, letterSpacing: "0.05em", color: "#334155", textTransform: "uppercase", display: "flex", alignItems: "center", gap: "5px", lineHeight: 1.4, paddingBottom: "1px" }}>
+                    <span style={{ width: "3.5px", height: "10px", backgroundColor: "#d97706", borderRadius: "2px", display: "inline-block" }} />
+                    <span>Clinical Impression / Diagnosis</span>
+                  </div>
+                  <div style={{ padding: "6px 8px", backgroundColor: "#f8fafc", borderRadius: "6px", border: "1px solid #e2e8f0", fontSize: "8.5px", lineHeight: 1.45, color: "#1e293b", fontWeight: 500, whiteSpace: "pre-line" }}>
+                    {reportTexts.clinicalImpression || "Clinical impression established based on movement and isometric testing."}
+                  </div>
+                </div>
+
+                {/* 6. Recommendations & Rehabilitation Plan (Dynamic Height & 8.5px Readable Font) */}
+                <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+                  <div style={{ fontSize: "8.5px", fontWeight: 900, letterSpacing: "0.05em", color: "#334155", textTransform: "uppercase", display: "flex", alignItems: "center", gap: "5px", lineHeight: 1.4, paddingBottom: "1px" }}>
+                    <span style={{ width: "3.5px", height: "10px", backgroundColor: "#059669", borderRadius: "2px", display: "inline-block" }} />
+                    <span>Recommendations & Rehabilitation Plan</span>
+                  </div>
+                  <div style={{ padding: "6px 8px", backgroundColor: "#f8fafc", borderRadius: "6px", border: "1px solid #e2e8f0", fontSize: "8.5px", lineHeight: 1.45, color: "#1e293b", fontWeight: 500, whiteSpace: "pre-line" }}>
+                    {reportTexts.recommendations || "Tailored rehabilitation and progressive loading protocol advised."}
+                  </div>
+                </div>
+
+                {/* Practitioner Sign-Off Bar (Anchored Cleanly at the Bottom) */}
+                <div style={{ marginTop: "auto", paddingTop: "8px", borderTop: "1px dashed #e2e8f0", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div>
+                    <div style={{ fontSize: "6.5px", color: "#94a3b8", fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.05em", lineHeight: 1.4 }}>
+                      Practitioner Sign-Off
                     </div>
-                    <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-[10px] leading-relaxed text-slate-700 font-medium whitespace-pre-line">
-                      {reportTexts.recommendations}
+                    <div style={{ fontSize: "10px", fontWeight: 900, color: "#0f172a", lineHeight: 1.4, paddingTop: "1px" }}>
+                      Sandeep S
+                    </div>
+                    <div style={{ fontSize: "7px", color: "#94a3b8", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", lineHeight: 1.4 }}>
+                      Sports Physician
                     </div>
                   </div>
-                )}
-
-                {isOnePage && (
-                  <>
-                    <div className="space-y-2">
-                      <div className="text-[9px] font-black tracking-widest text-slate-400 uppercase border-b pb-1">
-                        PERFORMANCE PROFILE (KEY IMPROVEMENTS / REDUCTIONS)
-                      </div>
-                      <div className="grid grid-cols-2 gap-3">
-                        {strengthProfiles.map((profile) => {
-                          const cat = data.strengthSummary[profile.key];
-                          const val = cat ? (cat.testAverages[testIndex] ?? cat.latestAverage) : null;
-                          const status = val && val >= 0 ? "IMPROVED" : "REDUCED";
-                          const color = val && val >= 0 ? "#22c55e" : "#ef4444";
-
-                          return (
-                            <div key={profile.key} className="p-2.5 border border-slate-100 rounded-xl bg-slate-50/50 flex items-center gap-3 h-14">
-                              {drawMiniCircle(val, color)}
-                              <div className="flex flex-col justify-center min-w-0">
-                                <div className="text-[9px] font-black text-slate-700 tracking-tight leading-tight uppercase mb-0.5">
-                                  {profile.label}
-                                </div>
-                                <div className="h-4 flex items-center">
-                                  <span
-                                    className="text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded border inline-block leading-none"
-                                    style={{
-                                      borderColor: `${color}30`,
-                                      backgroundColor: `${color}08`,
-                                      color: color
-                                    }}
-                                  >
-                                    {status}
-                                  </span>
-                                </div>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
+                  <div style={{ textAlign: "right" }}>
+                    <div style={{ display: "inline-flex", alignItems: "center", gap: "3px", fontSize: "7.5px", fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.05em", color: "#0d9488", backgroundColor: "#f0fdfa", border: "1px solid #ccfbf1", padding: "2px 8px", borderRadius: "12px", lineHeight: 1.4 }}>
+                      ✓ Clinically Signed via CSSH
                     </div>
-
-                    <div className="grid grid-cols-4 gap-2 bg-slate-50 p-3 rounded-xl border border-slate-200">
-                      <div>
-                        <div className="text-[7px] text-slate-400 font-black uppercase tracking-wider">Height</div>
-                        <div className="text-[10px] font-extrabold text-slate-800 mt-0.5">{currentTest.height || "—"} cm</div>
-                      </div>
-                      <div>
-                        <div className="text-[7px] text-slate-400 font-black uppercase tracking-wider">Weight</div>
-                        <div className="text-[10px] font-extrabold text-slate-800 mt-0.5">{currentTest.weight || "—"} kg</div>
-                      </div>
-                      <div>
-                        <div className="text-[7px] text-slate-400 font-black uppercase tracking-wider">BMI</div>
-                        <div className="text-[10px] font-extrabold text-slate-800 mt-0.5">{currentTest.bmi || "—"}</div>
-                      </div>
-                      <div>
-                        <div className="text-[7px] text-slate-400 font-black uppercase tracking-wider">Age Bracket</div>
-                        <div className="text-[10px] font-extrabold text-slate-800 mt-0.5">Midterm test</div>
-                      </div>
+                    <div style={{ fontSize: "7.5px", fontWeight: 700, color: "#64748b", marginTop: "2px", lineHeight: 1.4 }}>
+                      Log Date: {currentTest.date}
                     </div>
+                  </div>
+                </div>
 
-                    <div className="pt-3 border-t border-dashed border-slate-200 flex justify-between items-end">
-                      <div className="space-y-0.5">
-                        <div className="text-[8px] text-slate-400 font-black uppercase tracking-wider">Practitioner Sign-Off</div>
-                        <div className="text-xs font-black text-slate-800 font-display">Sandeep S</div>
-                        <div className="text-[8px] text-slate-400 font-bold uppercase tracking-wider">Sports Physician</div>
-                      </div>
-                      <div className="text-right space-y-0.5">
-                        <div className="text-[8px] text-slate-400 font-black uppercase tracking-wider">Log Date</div>
-                        <div className="text-[10px] font-bold text-slate-700">{currentTest.date}</div>
-                        <div className="inline-flex items-center gap-1 text-[8px] font-black uppercase tracking-wider text-teal-600 bg-teal-50 border border-teal-200/40 px-1.5 py-0.5 rounded-full mt-1">
-                          ✓ Clinically Signed
-                        </div>
-                      </div>
-                    </div>
-                  </>
-                )}
               </div>
             </div>
 
-            <div className="absolute bottom-6 left-12 right-12 border-t border-slate-100 pt-3 flex justify-between text-[8px] font-black text-slate-400 uppercase tracking-widest">
+            {/* Page 1 Footer */}
+            <div style={{ position: "absolute", bottom: "10px", left: "32px", right: "32px", borderTop: "1px solid #f1f5f9", paddingTop: "4px", display: "flex", justifyContent: "space-between", fontSize: "6.5px", fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em", lineHeight: 1.4 }}>
               <span>Center for Spine and Sports Health, Hyderabad</span>
-              <span>Page 1 of {isOnePage ? "1" : "2"}</span>
+              <span>Validated Clinical Assessment Report • {hasPage2 ? "Page 1 of 2" : "Page 1 of 1"}</span>
             </div>
           </div>
 
-          {!isOnePage && (
+          {/* ==================== PAGE 2 (MARKED REGION NOTES & OBSERVATIONS) ==================== */}
+          {hasPage2 && (
             <div
               id="report-print-page-2"
               style={{
                 width: "800px",
                 height: "1130px",
-                padding: "45px",
+                padding: "26px 32px",
                 boxSizing: "border-box",
                 backgroundColor: "#ffffff",
                 color: "#0f172a",
                 position: "relative",
-                fontFamily: "system-ui, sans-serif"
+                fontFamily: "Arial, Helvetica, -apple-system, sans-serif"
               }}
             >
-              <div className="flex justify-between items-center border-b-2 border-slate-900 pb-4 mb-4">
-                <div className="flex flex-col">
-                  <img src="/cssh_logo.jpg" alt="CSSH Logo" className="h-10 w-auto object-contain self-start" />
-                  <span className="text-[8px] text-slate-400 font-bold uppercase tracking-wider mt-1">
+              {/* Header */}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "2px solid #0f172a", paddingBottom: "8px", marginBottom: "8px" }}>
+                <div style={{ display: "flex", flexDirection: "column" }}>
+                  <img src="/cssh_logo.jpg" alt="CSSH Logo" style={{ height: "32px", width: "auto", objectFit: "contain", alignSelf: "flex-start" }} />
+                  <span style={{ fontSize: "7px", color: "#94a3b8", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", marginTop: "2px", lineHeight: 1.4 }}>
                     Empowering Movement, Every Day!
                   </span>
                 </div>
-                <div className="text-center shrink-0">
-                  <h1 className="text-xl font-extrabold uppercase tracking-tight text-slate-900 font-display italic">
-                    {reportTitle}
+                <div style={{ textAlign: "center" }}>
+                  <h1 style={{ fontSize: "15px", fontWeight: 900, textTransform: "uppercase", letterSpacing: "-0.02em", color: "#0f172a", fontStyle: "italic", margin: 0, lineHeight: 1.4 }}>
+                    REGION-LEVEL CLINICAL REMARKS & TISSUE OBSERVATIONS
                   </h1>
                 </div>
-                <div className="text-right text-slate-500 font-sans">
-                  <div className="text-[9px] font-black uppercase tracking-wider text-slate-700">
+                <div style={{ textAlign: "right", color: "#64748b" }}>
+                  <div style={{ fontSize: "8px", fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.05em", color: "#334155", lineHeight: 1.4 }}>
                     Integrated Sports Health Facility
                   </div>
-                  <div className="text-[8px] text-slate-400 mt-0.5">
-                    Phone: — | Email: —
+                  <div style={{ fontSize: "7px", color: "#94a3b8", marginTop: "2px", lineHeight: 1.4 }}>
+                    Center for Spine & Sports Health
                   </div>
                 </div>
               </div>
 
-              <div className="space-y-6 mt-6">
-                {page2Deficits.length > 0 && (
-                  <div className="space-y-2">
-                    <div className="text-[9px] font-black tracking-widest text-slate-400 uppercase border-b pb-1">
-                      REGION-LEVEL REMARKS & OBSERVATIONS (CONTINUED)
-                    </div>
-                    <table className="w-full text-left text-xs border-collapse">
-                      <thead>
-                        <tr className="border-b border-slate-200">
-                          <th className="py-2 text-[8px] font-black uppercase text-slate-500 w-8">No.</th>
-                          <th className="py-2 text-[8px] font-black uppercase text-slate-500 w-28">Anatomical Region</th>
-                          <th className="py-2 text-[8px] font-black uppercase text-slate-500">Clinician Tissue Remarks</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {page2Deficits.map((reg, idx) => (
-                          <tr key={reg.id} className="border-b border-slate-100">
-                            <td className="py-2 font-extrabold text-slate-700">{idx + 5}</td>
-                            <td className="py-2 font-black text-slate-800 uppercase tracking-tight text-[10px]">{reg.label}</td>
-                            <td className="py-2 text-slate-600 leading-relaxed font-medium text-[10px]">{reg.notes}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+              {/* Client Metadata Bar */}
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: "8px", backgroundColor: "#f8fafc", padding: "6px 12px", borderRadius: "10px", border: "1px solid #e2e8f0", marginBottom: "12px", textAlign: "left", alignItems: "center" }}>
+                <div style={{ padding: "2px 0", overflow: "visible" }}>
+                  <div style={{ fontSize: "7.5px", color: "#64748b", fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.05em", lineHeight: 1.4 }}>
+                    Client Name
                   </div>
-                )}
-
-                {reportTexts.recommendations && (
-                  <div className="space-y-1.5">
-                    <div className="text-[9px] font-black tracking-widest text-slate-400 uppercase border-b pb-1">
-                      Recommendations
-                    </div>
-                    <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-[10px] leading-relaxed text-slate-700 font-medium whitespace-pre-line">
-                      {reportTexts.recommendations}
-                    </div>
+                  <div style={{ fontSize: "11px", fontWeight: 900, color: "#0f172a", textTransform: "uppercase", lineHeight: 1.4, paddingTop: "2px" }}>
+                    {data.client.name}
                   </div>
-                )}
-
-                <div className="space-y-3">
-                  <div className="text-[10px] font-black tracking-widest text-slate-400 uppercase border-b pb-1">
-                    PERFORMANCE PROFILE (KEY IMPROVEMENTS / REDUCTIONS)
+                </div>
+                <div style={{ padding: "2px 0", overflow: "visible" }}>
+                  <div style={{ fontSize: "7.5px", color: "#64748b", fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.05em", lineHeight: 1.4 }}>
+                    Universal Health ID
                   </div>
-                  <div className="grid grid-cols-4 gap-4">
-                    {strengthProfiles.map((profile) => {
-                      const cat = data.strengthSummary[profile.key];
-                      const val = cat ? (cat.testAverages[testIndex] ?? cat.latestAverage) : null;
-                      const status = val && val >= 0 ? "IMPROVED" : "REDUCED";
-                      const color = val && val >= 0 ? "#22c55e" : "#ef4444";
+                  <div style={{ fontSize: "10.5px", fontFamily: "monospace", fontWeight: 900, color: "#0f172a", lineHeight: 1.4, paddingTop: "2px" }}>
+                    {clientUhid}
+                  </div>
+                </div>
+                <div style={{ padding: "2px 0", overflow: "visible" }}>
+                  <div style={{ fontSize: "7.5px", color: "#64748b", fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.05em", lineHeight: 1.4 }}>
+                    Assessment Date
+                  </div>
+                  <div style={{ fontSize: "10.5px", fontWeight: 900, color: "#0f172a", lineHeight: 1.4, paddingTop: "2px" }}>
+                    {currentTest.date}
+                  </div>
+                </div>
+                <div style={{ padding: "2px 0", overflow: "visible" }}>
+                  <div style={{ fontSize: "7.5px", color: "#64748b", fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.05em", lineHeight: 1.4 }}>
+                    Test Series
+                  </div>
+                  <div style={{ fontSize: "10.5px", fontWeight: 900, color: "#0f172a", lineHeight: 1.4, paddingTop: "2px" }}>
+                    Test {currentTest.index} of {data.client.tests.length}
+                  </div>
+                </div>
+                <div style={{ padding: "2px 0", overflow: "visible" }}>
+                  <div style={{ fontSize: "7.5px", color: "#64748b", fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.05em", lineHeight: 1.4 }}>
+                    Biometrics
+                  </div>
+                  <div style={{ fontSize: "10px", fontWeight: 900, color: "#0f172a", lineHeight: 1.4, paddingTop: "2px" }}>
+                    {currentTest.height || "—"}cm / {currentTest.weight || "—"}kg (BMI {currentTest.bmi || "—"})
+                  </div>
+                </div>
+                <div style={{ padding: "2px 0", overflow: "visible" }}>
+                  <div style={{ fontSize: "7.5px", color: "#64748b", fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.05em", lineHeight: 1.4 }}>
+                    Remarks Count
+                  </div>
+                  <div style={{ fontSize: "10px", fontWeight: 900, color: "#0f172a", lineHeight: 1.4, paddingTop: "2px" }}>
+                    {markedRegionsWithNotes.length} Regions Noted
+                  </div>
+                </div>
+              </div>
 
-                      return (
-                        <div key={profile.key} className="p-3 border border-slate-100 rounded-xl bg-slate-50/50 flex items-center gap-3 h-16">
-                          {drawMiniCircle(val, color)}
-                          <div className="flex flex-col justify-center min-w-0">
-                            <div className="text-[9px] font-black text-slate-700 tracking-tight leading-tight uppercase mb-1">
-                              {profile.label}
-                            </div>
-                            <div className="h-4 flex items-center">
-                              <span
-                                className="text-[8px] font-black uppercase tracking-wider px-2 py-0.5 rounded border inline-block leading-none"
-                                style={{
-                                  borderColor: `${color}30`,
-                                  backgroundColor: `${color}08`,
-                                  color: color
-                                }}
-                              >
-                                {status}
-                              </span>
-                            </div>
-                          </div>
+              {/* Title Header for Notes Section */}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid #e2e8f0", paddingBottom: "4px", marginBottom: "12px", textAlign: "left" }}>
+                <div style={{ fontSize: "8.5px", fontWeight: 900, letterSpacing: "0.08em", color: "#1e293b", textTransform: "uppercase", display: "flex", alignItems: "center", gap: "6px" }}>
+                  <span style={{ width: "4px", height: "11px", backgroundColor: "#dc2626", borderRadius: "2px", display: "inline-block" }} />
+                  <span>Marked Anatomical Region Remarks & Tissue Notes (Max 200 Chars)</span>
+                </div>
+                <span style={{ fontSize: "7.5px", fontWeight: 800, color: "#dc2626", backgroundColor: "#fee2e2", padding: "2px 6px", borderRadius: "4px" }}>
+                  {markedRegionsWithNotes.length} {markedRegionsWithNotes.length === 1 ? "Region" : "Regions"} with Notes
+                </span>
+              </div>
+
+              {/* Cards Grid for Marked Region Notes */}
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "10px", textAlign: "left", marginBottom: "16px" }}>
+                {markedRegionsWithNotes.map((reg) => {
+                  const isFront = frontRegionIds.includes(reg.id);
+                  return (
+                    <div
+                      key={reg.id}
+                      style={{
+                        padding: "10px 12px",
+                        backgroundColor: "#f8fafc",
+                        borderRadius: "10px",
+                        border: "1px solid #e2e8f0",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: "6px",
+                        boxShadow: "0 1px 2px rgba(0,0,0,0.03)"
+                      }}
+                    >
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                          <span style={{ width: "18px", height: "18px", borderRadius: "50%", backgroundColor: "#dc2626", color: "#ffffff", fontSize: "9px", fontWeight: 900, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                            {reg.num}
+                          </span>
+                          <span style={{ fontSize: "9px", fontWeight: 900, textTransform: "uppercase", color: "#0f172a", letterSpacing: "0.02em" }}>
+                            {reg.label}
+                          </span>
                         </div>
-                      );
-                    })}
-                  </div>
-                </div>
+                        <span style={{ fontSize: "7px", fontWeight: 800, color: "#64748b", textTransform: "uppercase", backgroundColor: "#ffffff", border: "1px solid #cbd5e1", padding: "1px 5px", borderRadius: "4px" }}>
+                          {isFront ? "Anterior View" : "Posterior View"}
+                        </span>
+                      </div>
 
-                <div className="grid grid-cols-4 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
-                  <div>
-                    <div className="text-[9px] text-slate-400 font-black uppercase tracking-wider">Height</div>
-                    <div className="text-sm font-extrabold text-slate-800 mt-0.5">{currentTest.height || "—"} cm</div>
-                  </div>
-                  <div>
-                    <div className="text-[9px] text-slate-400 font-black uppercase tracking-wider">Weight</div>
-                    <div className="text-sm font-extrabold text-slate-800 mt-0.5">{currentTest.weight || "—"} kg</div>
-                  </div>
-                  <div>
-                    <div className="text-[9px] text-slate-400 font-black uppercase tracking-wider">BMI</div>
-                    <div className="text-sm font-extrabold text-slate-800 mt-0.5">{currentTest.bmi || "—"}</div>
-                  </div>
-                  <div>
-                    <div className="text-[9px] text-slate-400 font-black uppercase tracking-wider">Age Bracket</div>
-                    <div className="text-sm font-extrabold text-slate-800 mt-0.5">Midterm test</div>
-                  </div>
-                </div>
-
-                {reassessmentDate && (
-                  <div className="p-4 bg-amber-500/5 border border-amber-500/20 rounded-xl flex justify-between items-center">
-                    <span className="text-xs text-amber-600 font-black uppercase tracking-wider">
-                      Reassessment Due Date
-                    </span>
-                    <span className="text-sm font-black text-amber-700">{reassessmentDate}</span>
-                  </div>
-                )}
-
-                <div className="pt-8 border-t border-dashed border-slate-200 mt-12 flex justify-between items-end">
-                  <div className="space-y-1">
-                    <div className="text-[10px] text-slate-400 font-black uppercase tracking-wider">Practitioner Sign-Off</div>
-                    <div className="text-base font-black text-slate-800 font-display">Sandeep S</div>
-                    <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Sports Physician</div>
-                  </div>
-                  <div className="text-right space-y-1">
-                    <div className="text-[10px] text-slate-400 font-black uppercase tracking-wider">Log Date</div>
-                    <div className="text-sm font-bold text-slate-700 mb-1">{currentTest.date}</div>
-                    <div className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-teal-600 bg-teal-50 border border-teal-200/40 px-3 py-1 rounded-full">
-                      ✓ Clinically Signed via ISHPO
+                      <div style={{ padding: "8px 10px", backgroundColor: "#ffffff", borderRadius: "6px", border: "1px solid #f1f5f9", fontSize: "8px", lineHeight: 1.5, color: "#334155", fontWeight: 500 }}>
+                        {reg.notes}
+                      </div>
                     </div>
+                  );
+                })}
+              </div>
+
+              {/* Physical Profile Summary Card on Page 2 */}
+              <div style={{ backgroundColor: "#f8fafc", borderRadius: "10px", border: "1px solid #e2e8f0", padding: "10px 14px", marginBottom: "20px", textAlign: "left" }}>
+                <div style={{ fontSize: "8px", fontWeight: 900, textTransform: "uppercase", color: "#475569", letterSpacing: "0.05em", marginBottom: "6px" }}>
+                  Client Physical Profile & Test Overview
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "10px" }}>
+                  <div>
+                    <div style={{ fontSize: "7px", color: "#94a3b8", fontWeight: 800, textTransform: "uppercase" }}>Standing Height</div>
+                    <div style={{ fontSize: "10px", fontWeight: 900, color: "#0f172a", marginTop: "1px" }}>{currentTest.height || "—"} cm</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: "7px", color: "#94a3b8", fontWeight: 800, textTransform: "uppercase" }}>Body Mass</div>
+                    <div style={{ fontSize: "10px", fontWeight: 900, color: "#0f172a", marginTop: "1px" }}>{currentTest.weight || "—"} kg</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: "7px", color: "#94a3b8", fontWeight: 800, textTransform: "uppercase" }}>Body Mass Index</div>
+                    <div style={{ fontSize: "10px", fontWeight: 900, color: "#0f172a", marginTop: "1px" }}>{currentTest.bmi || "—"}</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: "7px", color: "#94a3b8", fontWeight: 800, textTransform: "uppercase" }}>Clinical Assessment Date</div>
+                    <div style={{ fontSize: "10px", fontWeight: 900, color: "#0f172a", marginTop: "1px" }}>{currentTest.date}</div>
                   </div>
                 </div>
               </div>
 
-              <div className="absolute bottom-6 left-12 right-12 border-t border-slate-100 pt-3 flex justify-between text-[8px] font-black text-slate-400 uppercase tracking-widest">
+              {/* Practitioner Sign-Off on Page 2 */}
+              <div style={{ position: "absolute", bottom: "34px", left: "32px", right: "32px", borderTop: "1px dashed #e2e8f0", paddingTop: "8px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div style={{ textAlign: "left" }}>
+                  <div style={{ fontSize: "7px", color: "#94a3b8", fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.05em", lineHeight: 1.4 }}>
+                    Practitioner Sign-Off & Verification
+                  </div>
+                  <div style={{ fontSize: "10.5px", fontWeight: 900, color: "#0f172a", lineHeight: 1.4, paddingTop: "1px" }}>
+                    Sandeep S
+                  </div>
+                  <div style={{ fontSize: "7px", color: "#94a3b8", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", lineHeight: 1.4 }}>
+                    Sports Physician • Center for Spine & Sports Health
+                  </div>
+                </div>
+                <div style={{ textAlign: "right" }}>
+                  <div style={{ display: "inline-flex", alignItems: "center", gap: "3px", fontSize: "7.5px", fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.05em", color: "#0d9488", backgroundColor: "#f0fdfa", border: "1px solid #ccfbf1", padding: "2px 8px", borderRadius: "12px", lineHeight: 1.4 }}>
+                    ✓ Clinically Signed via CSSH
+                  </div>
+                  <div style={{ fontSize: "7.5px", fontWeight: 700, color: "#64748b", marginTop: "3px", lineHeight: 1.4 }}>
+                    Log Date: {currentTest.date}
+                  </div>
+                </div>
+              </div>
+
+              {/* Page 2 Footer */}
+              <div style={{ position: "absolute", bottom: "10px", left: "32px", right: "32px", borderTop: "1px solid #f1f5f9", paddingTop: "4px", display: "flex", justifyContent: "space-between", fontSize: "6.5px", fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em", lineHeight: 1.4 }}>
                 <span>Center for Spine and Sports Health, Hyderabad</span>
-                <span>Page 2 of 2</span>
+                <span>Validated Clinical Assessment Report • Page 2 of 2</span>
               </div>
             </div>
           )}
