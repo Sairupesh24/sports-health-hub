@@ -511,11 +511,13 @@ model FormResponse {
   clinicalInterpretation String?         @map("clinical_interpretation")
   submittedAt            DateTime?       @map("submitted_at") @db.Timestamptz(6)
   createdAt              DateTime?       @default(now()) @map("created_at") @db.Timestamptz(6)
+  public_token           String?
   bulkAssignments        BulkAssignment? @relation(fields: [bulkAssignmentId], references: [id], onUpdate: NoAction)
   clients                Client          @relation(fields: [clientId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   organizations          Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   profiles               Profile?        @relation(fields: [specialistId], references: [id], onUpdate: NoAction)
 
+  @@index([public_token], map: "idx_form_responses_public_token")
   @@map("form_responses")
 }
 

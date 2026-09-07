@@ -1,0 +1,9 @@
+-- AlterTable
+ALTER TABLE "packages" ADD COLUMN IF NOT EXISTS "category" TEXT;
+ALTER TABLE "packages" ADD COLUMN IF NOT EXISTS "tax_amount" DECIMAL DEFAULT 0;
+
+-- AlterTable
+ALTER TABLE "bills" ADD COLUMN IF NOT EXISTS "tax_amount" DECIMAL DEFAULT 0;
+
+-- AlterTable
+ALTER TABLE "billitems" ADD COLUMN IF NOT EXISTS "tax_amount" DECIMAL DEFAULT 0;
