@@ -179,6 +179,127 @@ export default function ExportPanel({
     "ankle_left", "ankle_right", "left_foot", "right_foot"
   ];
 
+  // Dynamic typography and height calculations for the right-side clinical boxes
+  const clinicalTexts = {
+    summary: reportTexts.clinicalSummary || "Client baseline test assessment recorded.",
+    strength: reportTexts.strengthFindings || "Assessment strength metrics recorded across muscle groups.",
+    mobility: reportTexts.mobilityFindings || "Mobility tests recorded with active range of motion metrics.",
+    balance: reportTexts.balanceFindings || "Bilateral symmetry and agonist/antagonist balance recorded.",
+    impression: reportTexts.clinicalImpression || "Clinical impression established based on movement and isometric testing.",
+    recommendations: reportTexts.recommendations || "Tailored rehabilitation and progressive loading protocol advised.",
+  };
+
+  const totalChars = Object.values(clinicalTexts).reduce((sum, text) => sum + text.trim().length, 0);
+
+  // Format follow-up date strictly as DD-MM-YYYY (e.g. 30-09-2026)
+  const formatFollowUpDate = (dateStr?: string | null) => {
+    if (!dateStr || !dateStr.trim()) return "Routine Series";
+    const str = dateStr.trim();
+    // Match YYYY-MM-DD or YYYY/MM/DD
+    const ymd = str.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+    if (ymd) {
+      const [, yyyy, mm, dd] = ymd;
+      return `${dd.padStart(2, "0")}-${mm.padStart(2, "0")}-${yyyy}`;
+    }
+    // Match DD-MM-YYYY or DD/MM/YYYY
+    const dmy = str.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})/);
+    if (dmy) {
+      const [, dd, mm, yyyy] = dmy;
+      return `${dd.padStart(2, "0")}-${mm.padStart(2, "0")}-${yyyy}`;
+    }
+    // Fallback to Date parser
+    const d = new Date(str);
+    if (!isNaN(d.getTime())) {
+      const dd = String(d.getDate()).padStart(2, "0");
+      const mm = String(d.getMonth() + 1).padStart(2, "0");
+      const yyyy = d.getFullYear();
+      return `${dd}-${mm}-${yyyy}`;
+    }
+    return str;
+  };
+
+  // Determine dynamic font size, line-height, padding, and gaps based on overall text volume
+  const dynamicTypography = (() => {
+    if (totalChars < 400) {
+      return {
+        fontSize: "12px",
+        headerSize: "10.5px",
+        lineHeight: 1.55,
+        padding: "8px 12px",
+        sectionGap: "8px",
+        titleContentGap: "3px",
+      };
+    }
+    if (totalChars < 800) {
+      return {
+        fontSize: "11px",
+        headerSize: "10px",
+        lineHeight: 1.5,
+        padding: "8px 11px",
+        sectionGap: "7px",
+        titleContentGap: "2.5px",
+      };
+    }
+    if (totalChars < 1200) {
+      return {
+        fontSize: "10.4px",
+        headerSize: "9.5px",
+        lineHeight: 1.48,
+        padding: "7px 10px",
+        sectionGap: "6px",
+        titleContentGap: "2px",
+      };
+    }
+    if (totalChars < 1600) {
+      return {
+        fontSize: "9.6px",
+        headerSize: "9px",
+        lineHeight: 1.42,
+        padding: "6px 9px",
+        sectionGap: "5px",
+        titleContentGap: "2px",
+      };
+    }
+    return {
+      fontSize: "8.8px",
+      headerSize: "8.5px",
+      lineHeight: 1.38,
+      padding: "5px 8px",
+      sectionGap: "4px",
+      titleContentGap: "1.5px",
+    };
+  })();
+
+  const getSectionFlexWeight = (text: string) => {
+    const len = text.trim().length;
+    if (len < 40) return 0.75;
+    if (len < 120) return 1.0;
+    if (len < 220) return 1.35;
+    if (len < 350) return 1.75;
+    return 2.2;
+  };
+
+  const getBoxTypography = (text: string) => {
+    const len = text.trim().length;
+    let fontSizeNum = parseFloat(dynamicTypography.fontSize);
+    let lineHeight = dynamicTypography.lineHeight;
+
+    // Per-box micro-adjustment only for exceptionally dense single boxes
+    if (len > 550 && fontSizeNum > 9.5) {
+      fontSizeNum = 9.5;
+      lineHeight = 1.44;
+    } else if (len > 800 && fontSizeNum > 8.8) {
+      fontSizeNum = 8.8;
+      lineHeight = 1.38;
+    }
+
+    return {
+      fontSize: `${fontSizeNum}px`,
+      lineHeight,
+      padding: dynamicTypography.padding,
+    };
+  };
+
   const handleExportPDF = async () => {
     if (!currentTest) return;
 
@@ -400,8 +521,8 @@ export default function ExportPanel({
               </div>
             </div>
 
-            {/* Client Metadata Bar (6 Columns with explicit anti-clipping padding and line-height) */}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: "8px", backgroundColor: "#f8fafc", padding: "6px 12px", borderRadius: "10px", border: "1px solid #e2e8f0", marginBottom: "10px", textAlign: "left", alignItems: "center" }}>
+            {/* Client Metadata Bar (5 Columns with explicit anti-clipping padding and line-height) */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: "10px", backgroundColor: "#f8fafc", padding: "6px 14px", borderRadius: "10px", border: "1px solid #e2e8f0", marginBottom: "10px", textAlign: "left", alignItems: "center" }}>
               <div style={{ padding: "2px 0", overflow: "visible" }}>
                 <div style={{ fontSize: "7.5px", color: "#64748b", fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.05em", lineHeight: 1.4 }}>
                   Client Name
@@ -428,14 +549,6 @@ export default function ExportPanel({
               </div>
               <div style={{ padding: "2px 0", overflow: "visible" }}>
                 <div style={{ fontSize: "7.5px", color: "#64748b", fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.05em", lineHeight: 1.4 }}>
-                  Test Series
-                </div>
-                <div style={{ fontSize: "10.5px", fontWeight: 900, color: "#0f172a", lineHeight: 1.4, paddingTop: "2px" }}>
-                  Test {currentTest.index} of {data.client.tests.length}
-                </div>
-              </div>
-              <div style={{ padding: "2px 0", overflow: "visible" }}>
-                <div style={{ fontSize: "7.5px", color: "#64748b", fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.05em", lineHeight: 1.4 }}>
                   Biometrics
                 </div>
                 <div style={{ fontSize: "10px", fontWeight: 900, color: "#0f172a", lineHeight: 1.4, paddingTop: "2px" }}>
@@ -447,7 +560,7 @@ export default function ExportPanel({
                   Follow-Up
                 </div>
                 <div style={{ fontSize: "10px", fontWeight: 900, color: "#0f172a", lineHeight: 1.4, paddingTop: "2px" }}>
-                  {reassessmentDate || "Routine Series"}
+                  {formatFollowUpDate(reassessmentDate)}
                 </div>
               </div>
             </div>
@@ -506,11 +619,11 @@ export default function ExportPanel({
 
               </div>
 
-              {/* Right Column: All 6 Clinical Sections + Consultation + Sign-Off (Dynamically Sized) */}
-              <div style={{ display: "flex", flexDirection: "column", gap: "8px", height: "100%", justifyContent: "flex-start", textAlign: "left", minHeight: 0 }}>
+              {/* Right Column: All 6 Clinical Sections + Consultation + Sign-Off (Dynamically Sized & Balanced) */}
+              <div style={{ display: "flex", flexDirection: "column", gap: dynamicTypography.sectionGap, height: "100%", justifyContent: "space-between", textAlign: "left", minHeight: 0 }}>
                 
                 {/* 0. Subjective Pain Consultation Card */}
-                <div style={{ padding: "6px 8px", backgroundColor: "#f8fafc", borderRadius: "8px", border: "1px solid #e2e8f0", display: "flex", flexDirection: "column", gap: "4px" }}>
+                <div style={{ flexShrink: 0, padding: "6px 8px", backgroundColor: "#f8fafc", borderRadius: "8px", border: "1px solid #e2e8f0", display: "flex", flexDirection: "column", gap: "4px" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                     <div style={{ fontSize: "7.5px", fontWeight: 900, letterSpacing: "0.05em", color: "#475569", textTransform: "uppercase", lineHeight: 1.4 }}>
                       Subjective Pain Assessment (Consultation)
@@ -552,74 +665,74 @@ export default function ExportPanel({
                   )}
                 </div>
 
-                {/* 1. Clinical Summary (Dynamic Height & 8.5px Readable Font) */}
-                <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
-                  <div style={{ fontSize: "8.5px", fontWeight: 900, letterSpacing: "0.05em", color: "#334155", textTransform: "uppercase", display: "flex", alignItems: "center", gap: "5px", lineHeight: 1.4, paddingBottom: "1px" }}>
+                {/* 1. Clinical Summary */}
+                <div style={{ display: "flex", flexDirection: "column", gap: dynamicTypography.titleContentGap, flex: `${getSectionFlexWeight(clinicalTexts.summary)} 1 0%`, minHeight: 0 }}>
+                  <div style={{ flexShrink: 0, fontSize: dynamicTypography.headerSize, fontWeight: 900, letterSpacing: "0.05em", color: "#334155", textTransform: "uppercase", display: "flex", alignItems: "center", gap: "5px", lineHeight: 1.35, paddingBottom: "1px" }}>
                     <span style={{ width: "3.5px", height: "10px", backgroundColor: "#2563eb", borderRadius: "2px", display: "inline-block" }} />
                     <span>Clinical Summary</span>
                   </div>
-                  <div style={{ padding: "6px 8px", backgroundColor: "#f8fafc", borderRadius: "6px", border: "1px solid #e2e8f0", fontSize: "8.5px", lineHeight: 1.45, color: "#1e293b", fontWeight: 500, whiteSpace: "pre-line" }}>
-                    {reportTexts.clinicalSummary || "Client baseline test assessment recorded."}
+                  <div style={{ flex: 1, padding: getBoxTypography(clinicalTexts.summary).padding, backgroundColor: "#f8fafc", borderRadius: "6px", border: "1px solid #e2e8f0", fontSize: getBoxTypography(clinicalTexts.summary).fontSize, lineHeight: getBoxTypography(clinicalTexts.summary).lineHeight, color: "#1e293b", fontWeight: 500, whiteSpace: "pre-line", wordBreak: "break-word", overflow: "hidden", minHeight: 0 }}>
+                    {clinicalTexts.summary}
                   </div>
                 </div>
 
-                {/* 2. Strength Findings (Dynamic Height & 8.5px Readable Font) */}
-                <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
-                  <div style={{ fontSize: "8.5px", fontWeight: 900, letterSpacing: "0.05em", color: "#334155", textTransform: "uppercase", display: "flex", alignItems: "center", gap: "5px", lineHeight: 1.4, paddingBottom: "1px" }}>
+                {/* 2. Strength Findings */}
+                <div style={{ display: "flex", flexDirection: "column", gap: dynamicTypography.titleContentGap, flex: `${getSectionFlexWeight(clinicalTexts.strength)} 1 0%`, minHeight: 0 }}>
+                  <div style={{ flexShrink: 0, fontSize: dynamicTypography.headerSize, fontWeight: 900, letterSpacing: "0.05em", color: "#334155", textTransform: "uppercase", display: "flex", alignItems: "center", gap: "5px", lineHeight: 1.35, paddingBottom: "1px" }}>
                     <span style={{ width: "3.5px", height: "10px", backgroundColor: "#0d9488", borderRadius: "2px", display: "inline-block" }} />
                     <span>Strength Assessment Findings</span>
                   </div>
-                  <div style={{ padding: "6px 8px", backgroundColor: "#f8fafc", borderRadius: "6px", border: "1px solid #e2e8f0", fontSize: "8.5px", lineHeight: 1.45, color: "#1e293b", fontWeight: 500, whiteSpace: "pre-line" }}>
-                    {reportTexts.strengthFindings || "Assessment strength metrics recorded across muscle groups."}
+                  <div style={{ flex: 1, padding: getBoxTypography(clinicalTexts.strength).padding, backgroundColor: "#f8fafc", borderRadius: "6px", border: "1px solid #e2e8f0", fontSize: getBoxTypography(clinicalTexts.strength).fontSize, lineHeight: getBoxTypography(clinicalTexts.strength).lineHeight, color: "#1e293b", fontWeight: 500, whiteSpace: "pre-line", wordBreak: "break-word", overflow: "hidden", minHeight: 0 }}>
+                    {clinicalTexts.strength}
                   </div>
                 </div>
 
-                {/* 3. Mobility Findings (Dynamic Height & 8.5px Readable Font) */}
-                <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
-                  <div style={{ fontSize: "8.5px", fontWeight: 900, letterSpacing: "0.05em", color: "#334155", textTransform: "uppercase", display: "flex", alignItems: "center", gap: "5px", lineHeight: 1.4, paddingBottom: "1px" }}>
+                {/* 3. Mobility Findings */}
+                <div style={{ display: "flex", flexDirection: "column", gap: dynamicTypography.titleContentGap, flex: `${getSectionFlexWeight(clinicalTexts.mobility)} 1 0%`, minHeight: 0 }}>
+                  <div style={{ flexShrink: 0, fontSize: dynamicTypography.headerSize, fontWeight: 900, letterSpacing: "0.05em", color: "#334155", textTransform: "uppercase", display: "flex", alignItems: "center", gap: "5px", lineHeight: 1.35, paddingBottom: "1px" }}>
                     <span style={{ width: "3.5px", height: "10px", backgroundColor: "#6366f1", borderRadius: "2px", display: "inline-block" }} />
                     <span>Mobility & Range of Motion Findings</span>
                   </div>
-                  <div style={{ padding: "6px 8px", backgroundColor: "#f8fafc", borderRadius: "6px", border: "1px solid #e2e8f0", fontSize: "8.5px", lineHeight: 1.45, color: "#1e293b", fontWeight: 500, whiteSpace: "pre-line" }}>
-                    {reportTexts.mobilityFindings || "Mobility tests recorded with active range of motion metrics."}
+                  <div style={{ flex: 1, padding: getBoxTypography(clinicalTexts.mobility).padding, backgroundColor: "#f8fafc", borderRadius: "6px", border: "1px solid #e2e8f0", fontSize: getBoxTypography(clinicalTexts.mobility).fontSize, lineHeight: getBoxTypography(clinicalTexts.mobility).lineHeight, color: "#1e293b", fontWeight: 500, whiteSpace: "pre-line", wordBreak: "break-word", overflow: "hidden", minHeight: 0 }}>
+                    {clinicalTexts.mobility}
                   </div>
                 </div>
 
-                {/* 4. Strength Balance Findings (Dynamic Height & 8.5px Readable Font) */}
-                <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
-                  <div style={{ fontSize: "8.5px", fontWeight: 900, letterSpacing: "0.05em", color: "#334155", textTransform: "uppercase", display: "flex", alignItems: "center", gap: "5px", lineHeight: 1.4, paddingBottom: "1px" }}>
+                {/* 4. Strength Balance Findings */}
+                <div style={{ display: "flex", flexDirection: "column", gap: dynamicTypography.titleContentGap, flex: `${getSectionFlexWeight(clinicalTexts.balance)} 1 0%`, minHeight: 0 }}>
+                  <div style={{ flexShrink: 0, fontSize: dynamicTypography.headerSize, fontWeight: 900, letterSpacing: "0.05em", color: "#334155", textTransform: "uppercase", display: "flex", alignItems: "center", gap: "5px", lineHeight: 1.35, paddingBottom: "1px" }}>
                     <span style={{ width: "3.5px", height: "10px", backgroundColor: "#14b8a6", borderRadius: "2px", display: "inline-block" }} />
                     <span>Strength Balance & Symmetry Findings</span>
                   </div>
-                  <div style={{ padding: "6px 8px", backgroundColor: "#f8fafc", borderRadius: "6px", border: "1px solid #e2e8f0", fontSize: "8.5px", lineHeight: 1.45, color: "#1e293b", fontWeight: 500, whiteSpace: "pre-line" }}>
-                    {reportTexts.balanceFindings || "Bilateral symmetry and agonist/antagonist balance recorded."}
+                  <div style={{ flex: 1, padding: getBoxTypography(clinicalTexts.balance).padding, backgroundColor: "#f8fafc", borderRadius: "6px", border: "1px solid #e2e8f0", fontSize: getBoxTypography(clinicalTexts.balance).fontSize, lineHeight: getBoxTypography(clinicalTexts.balance).lineHeight, color: "#1e293b", fontWeight: 500, whiteSpace: "pre-line", wordBreak: "break-word", overflow: "hidden", minHeight: 0 }}>
+                    {clinicalTexts.balance}
                   </div>
                 </div>
 
-                {/* 5. Clinical Impression / Diagnosis (Dynamic Height & 8.5px Readable Font) */}
-                <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
-                  <div style={{ fontSize: "8.5px", fontWeight: 900, letterSpacing: "0.05em", color: "#334155", textTransform: "uppercase", display: "flex", alignItems: "center", gap: "5px", lineHeight: 1.4, paddingBottom: "1px" }}>
+                {/* 5. Clinical Impression / Diagnosis */}
+                <div style={{ display: "flex", flexDirection: "column", gap: dynamicTypography.titleContentGap, flex: `${getSectionFlexWeight(clinicalTexts.impression)} 1 0%`, minHeight: 0 }}>
+                  <div style={{ flexShrink: 0, fontSize: dynamicTypography.headerSize, fontWeight: 900, letterSpacing: "0.05em", color: "#334155", textTransform: "uppercase", display: "flex", alignItems: "center", gap: "5px", lineHeight: 1.35, paddingBottom: "1px" }}>
                     <span style={{ width: "3.5px", height: "10px", backgroundColor: "#d97706", borderRadius: "2px", display: "inline-block" }} />
                     <span>Clinical Impression / Diagnosis</span>
                   </div>
-                  <div style={{ padding: "6px 8px", backgroundColor: "#f8fafc", borderRadius: "6px", border: "1px solid #e2e8f0", fontSize: "8.5px", lineHeight: 1.45, color: "#1e293b", fontWeight: 500, whiteSpace: "pre-line" }}>
-                    {reportTexts.clinicalImpression || "Clinical impression established based on movement and isometric testing."}
+                  <div style={{ flex: 1, padding: getBoxTypography(clinicalTexts.impression).padding, backgroundColor: "#f8fafc", borderRadius: "6px", border: "1px solid #e2e8f0", fontSize: getBoxTypography(clinicalTexts.impression).fontSize, lineHeight: getBoxTypography(clinicalTexts.impression).lineHeight, color: "#1e293b", fontWeight: 500, whiteSpace: "pre-line", wordBreak: "break-word", overflow: "hidden", minHeight: 0 }}>
+                    {clinicalTexts.impression}
                   </div>
                 </div>
 
-                {/* 6. Recommendations & Rehabilitation Plan (Dynamic Height & 8.5px Readable Font) */}
-                <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
-                  <div style={{ fontSize: "8.5px", fontWeight: 900, letterSpacing: "0.05em", color: "#334155", textTransform: "uppercase", display: "flex", alignItems: "center", gap: "5px", lineHeight: 1.4, paddingBottom: "1px" }}>
+                {/* 6. Recommendations & Rehabilitation Plan */}
+                <div style={{ display: "flex", flexDirection: "column", gap: dynamicTypography.titleContentGap, flex: `${getSectionFlexWeight(clinicalTexts.recommendations)} 1 0%`, minHeight: 0 }}>
+                  <div style={{ flexShrink: 0, fontSize: dynamicTypography.headerSize, fontWeight: 900, letterSpacing: "0.05em", color: "#334155", textTransform: "uppercase", display: "flex", alignItems: "center", gap: "5px", lineHeight: 1.35, paddingBottom: "1px" }}>
                     <span style={{ width: "3.5px", height: "10px", backgroundColor: "#059669", borderRadius: "2px", display: "inline-block" }} />
                     <span>Recommendations & Rehabilitation Plan</span>
                   </div>
-                  <div style={{ padding: "6px 8px", backgroundColor: "#f8fafc", borderRadius: "6px", border: "1px solid #e2e8f0", fontSize: "8.5px", lineHeight: 1.45, color: "#1e293b", fontWeight: 500, whiteSpace: "pre-line" }}>
-                    {reportTexts.recommendations || "Tailored rehabilitation and progressive loading protocol advised."}
+                  <div style={{ flex: 1, padding: getBoxTypography(clinicalTexts.recommendations).padding, backgroundColor: "#f8fafc", borderRadius: "6px", border: "1px solid #e2e8f0", fontSize: getBoxTypography(clinicalTexts.recommendations).fontSize, lineHeight: getBoxTypography(clinicalTexts.recommendations).lineHeight, color: "#1e293b", fontWeight: 500, whiteSpace: "pre-line", wordBreak: "break-word", overflow: "hidden", minHeight: 0 }}>
+                    {clinicalTexts.recommendations}
                   </div>
                 </div>
 
                 {/* Practitioner Sign-Off Bar (Anchored Cleanly at the Bottom) */}
-                <div style={{ marginTop: "auto", paddingTop: "8px", borderTop: "1px dashed #e2e8f0", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div style={{ flexShrink: 0, marginTop: "auto", paddingTop: "8px", borderTop: "1px dashed #e2e8f0", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <div>
                     <div style={{ fontSize: "6.5px", color: "#94a3b8", fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.05em", lineHeight: 1.4 }}>
                       Practitioner Sign-Off
@@ -689,8 +802,8 @@ export default function ExportPanel({
                 </div>
               </div>
 
-              {/* Client Metadata Bar */}
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: "8px", backgroundColor: "#f8fafc", padding: "6px 12px", borderRadius: "10px", border: "1px solid #e2e8f0", marginBottom: "12px", textAlign: "left", alignItems: "center" }}>
+              {/* Client Metadata Bar (5 Columns with explicit anti-clipping padding and line-height) */}
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: "10px", backgroundColor: "#f8fafc", padding: "6px 14px", borderRadius: "10px", border: "1px solid #e2e8f0", marginBottom: "10px", textAlign: "left", alignItems: "center" }}>
                 <div style={{ padding: "2px 0", overflow: "visible" }}>
                   <div style={{ fontSize: "7.5px", color: "#64748b", fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.05em", lineHeight: 1.4 }}>
                     Client Name
@@ -713,14 +826,6 @@ export default function ExportPanel({
                   </div>
                   <div style={{ fontSize: "10.5px", fontWeight: 900, color: "#0f172a", lineHeight: 1.4, paddingTop: "2px" }}>
                     {currentTest.date}
-                  </div>
-                </div>
-                <div style={{ padding: "2px 0", overflow: "visible" }}>
-                  <div style={{ fontSize: "7.5px", color: "#64748b", fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.05em", lineHeight: 1.4 }}>
-                    Test Series
-                  </div>
-                  <div style={{ fontSize: "10.5px", fontWeight: 900, color: "#0f172a", lineHeight: 1.4, paddingTop: "2px" }}>
-                    Test {currentTest.index} of {data.client.tests.length}
                   </div>
                 </div>
                 <div style={{ padding: "2px 0", overflow: "visible" }}>

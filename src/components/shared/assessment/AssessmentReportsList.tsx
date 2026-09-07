@@ -170,7 +170,7 @@ export function AssessmentReportsList({ clientId, showDelete }: AssessmentReport
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">
                         {report.reassessment_date
-                          ? format(new Date(report.reassessment_date), "dd MMM yyyy")
+                          ? format(new Date(report.reassessment_date), "dd-MM-yyyy")
                           : "—"}
                       </TableCell>
                       <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
