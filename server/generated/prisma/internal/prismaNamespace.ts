@@ -7479,7 +7479,9 @@ export const ProfilesScalarFieldEnum = {
   has_calendar_access: 'has_calendar_access',
   has_analytics_access: 'has_analytics_access',
   has_assign_work_access: 'has_assign_work_access',
-  allowed_consoles: 'allowed_consoles'
+  allowed_consoles: 'allowed_consoles',
+  approved_by: 'approved_by',
+  approved_at: 'approved_at'
 } as const
 
 export type ProfilesScalarFieldEnum = (typeof ProfilesScalarFieldEnum)[keyof typeof ProfilesScalarFieldEnum]

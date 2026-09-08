@@ -40,6 +40,8 @@ export type ProfilesMinAggregateOutputType = {
   has_analytics_access: boolean | null
   has_assign_work_access: boolean | null
   allowed_consoles: string | null
+  approved_by: string | null
+  approved_at: Date | null
 }
 
 export type ProfilesMaxAggregateOutputType = {
@@ -58,6 +60,8 @@ export type ProfilesMaxAggregateOutputType = {
   has_analytics_access: boolean | null
   has_assign_work_access: boolean | null
   allowed_consoles: string | null
+  approved_by: string | null
+  approved_at: Date | null
 }
 
 export type ProfilesCountAggregateOutputType = {
@@ -76,6 +80,8 @@ export type ProfilesCountAggregateOutputType = {
   has_analytics_access: number
   has_assign_work_access: number
   allowed_consoles: number
+  approved_by: number
+  approved_at: number
   _all: number
 }
 
@@ -96,6 +102,8 @@ export type ProfilesMinAggregateInputType = {
   has_analytics_access?: true
   has_assign_work_access?: true
   allowed_consoles?: true
+  approved_by?: true
+  approved_at?: true
 }
 
 export type ProfilesMaxAggregateInputType = {
@@ -114,6 +122,8 @@ export type ProfilesMaxAggregateInputType = {
   has_analytics_access?: true
   has_assign_work_access?: true
   allowed_consoles?: true
+  approved_by?: true
+  approved_at?: true
 }
 
 export type ProfilesCountAggregateInputType = {
@@ -132,6 +142,8 @@ export type ProfilesCountAggregateInputType = {
   has_analytics_access?: true
   has_assign_work_access?: true
   allowed_consoles?: true
+  approved_by?: true
+  approved_at?: true
   _all?: true
 }
 
@@ -223,6 +235,8 @@ export type ProfilesGroupByOutputType = {
   has_analytics_access: boolean | null
   has_assign_work_access: boolean | null
   allowed_consoles: string | null
+  approved_by: string | null
+  approved_at: Date | null
   _count: ProfilesCountAggregateOutputType | null
   _min: ProfilesMinAggregateOutputType | null
   _max: ProfilesMaxAggregateOutputType | null
@@ -262,6 +276,8 @@ export type profilesWhereInput = {
   has_analytics_access?: Prisma.BoolNullableFilter<"profiles"> | boolean | null
   has_assign_work_access?: Prisma.BoolNullableFilter<"profiles"> | boolean | null
   allowed_consoles?: Prisma.StringNullableFilter<"profiles"> | string | null
+  approved_by?: Prisma.UuidNullableFilter<"profiles"> | string | null
+  approved_at?: Prisma.DateTimeNullableFilter<"profiles"> | Date | string | null
   availabilityexceptions?: Prisma.AvailabilityexceptionsListRelationFilter
   bulk_assignments?: Prisma.Bulk_assignmentsListRelationFilter
   clients_clients_primary_scientist_idToprofiles?: Prisma.ClientsListRelationFilter
@@ -304,6 +320,8 @@ export type profilesOrderByWithRelationInput = {
   has_analytics_access?: Prisma.SortOrderInput | Prisma.SortOrder
   has_assign_work_access?: Prisma.SortOrderInput | Prisma.SortOrder
   allowed_consoles?: Prisma.SortOrderInput | Prisma.SortOrder
+  approved_by?: Prisma.SortOrderInput | Prisma.SortOrder
+  approved_at?: Prisma.SortOrderInput | Prisma.SortOrder
   availabilityexceptions?: Prisma.availabilityexceptionsOrderByRelationAggregateInput
   bulk_assignments?: Prisma.bulk_assignmentsOrderByRelationAggregateInput
   clients_clients_primary_scientist_idToprofiles?: Prisma.clientsOrderByRelationAggregateInput
@@ -349,6 +367,8 @@ export type profilesWhereUniqueInput = Prisma.AtLeast<{
   has_analytics_access?: Prisma.BoolNullableFilter<"profiles"> | boolean | null
   has_assign_work_access?: Prisma.BoolNullableFilter<"profiles"> | boolean | null
   allowed_consoles?: Prisma.StringNullableFilter<"profiles"> | string | null
+  approved_by?: Prisma.UuidNullableFilter<"profiles"> | string | null
+  approved_at?: Prisma.DateTimeNullableFilter<"profiles"> | Date | string | null
   availabilityexceptions?: Prisma.AvailabilityexceptionsListRelationFilter
   bulk_assignments?: Prisma.Bulk_assignmentsListRelationFilter
   clients_clients_primary_scientist_idToprofiles?: Prisma.ClientsListRelationFilter
@@ -391,6 +411,8 @@ export type profilesOrderByWithAggregationInput = {
   has_analytics_access?: Prisma.SortOrderInput | Prisma.SortOrder
   has_assign_work_access?: Prisma.SortOrderInput | Prisma.SortOrder
   allowed_consoles?: Prisma.SortOrderInput | Prisma.SortOrder
+  approved_by?: Prisma.SortOrderInput | Prisma.SortOrder
+  approved_at?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.profilesCountOrderByAggregateInput
   _max?: Prisma.profilesMaxOrderByAggregateInput
   _min?: Prisma.profilesMinOrderByAggregateInput
@@ -415,6 +437,8 @@ export type profilesScalarWhereWithAggregatesInput = {
   has_analytics_access?: Prisma.BoolNullableWithAggregatesFilter<"profiles"> | boolean | null
   has_assign_work_access?: Prisma.BoolNullableWithAggregatesFilter<"profiles"> | boolean | null
   allowed_consoles?: Prisma.StringNullableWithAggregatesFilter<"profiles"> | string | null
+  approved_by?: Prisma.UuidNullableWithAggregatesFilter<"profiles"> | string | null
+  approved_at?: Prisma.DateTimeNullableWithAggregatesFilter<"profiles"> | Date | string | null
 }
 
 export type profilesCreateInput = {
@@ -431,6 +455,8 @@ export type profilesCreateInput = {
   has_analytics_access?: boolean | null
   has_assign_work_access?: boolean | null
   allowed_consoles?: string | null
+  approved_by?: string | null
+  approved_at?: Date | string | null
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutProfilesInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutProfilesInput
   clients_clients_primary_scientist_idToprofiles?: Prisma.clientsCreateNestedManyWithoutProfiles_clients_primary_scientist_idToprofilesInput
@@ -473,6 +499,8 @@ export type profilesUncheckedCreateInput = {
   has_analytics_access?: boolean | null
   has_assign_work_access?: boolean | null
   allowed_consoles?: string | null
+  approved_by?: string | null
+  approved_at?: Date | string | null
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutProfilesInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutProfilesInput
   clients_clients_primary_scientist_idToprofiles?: Prisma.clientsUncheckedCreateNestedManyWithoutProfiles_clients_primary_scientist_idToprofilesInput
@@ -511,6 +539,8 @@ export type profilesUpdateInput = {
   has_analytics_access?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   has_assign_work_access?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   allowed_consoles?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approved_by?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approved_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutProfilesNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutProfilesNestedInput
   clients_clients_primary_scientist_idToprofiles?: Prisma.clientsUpdateManyWithoutProfiles_clients_primary_scientist_idToprofilesNestedInput
@@ -553,6 +583,8 @@ export type profilesUncheckedUpdateInput = {
   has_analytics_access?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   has_assign_work_access?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   allowed_consoles?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approved_by?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approved_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutProfilesNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutProfilesNestedInput
   clients_clients_primary_scientist_idToprofiles?: Prisma.clientsUncheckedUpdateManyWithoutProfiles_clients_primary_scientist_idToprofilesNestedInput
@@ -593,6 +625,8 @@ export type profilesCreateManyInput = {
   has_analytics_access?: boolean | null
   has_assign_work_access?: boolean | null
   allowed_consoles?: string | null
+  approved_by?: string | null
+  approved_at?: Date | string | null
 }
 
 export type profilesUpdateManyMutationInput = {
@@ -609,6 +643,8 @@ export type profilesUpdateManyMutationInput = {
   has_analytics_access?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   has_assign_work_access?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   allowed_consoles?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approved_by?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approved_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
 export type profilesUncheckedUpdateManyInput = {
@@ -627,6 +663,8 @@ export type profilesUncheckedUpdateManyInput = {
   has_analytics_access?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   has_assign_work_access?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   allowed_consoles?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approved_by?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approved_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
 export type ProfilesScalarRelationFilter = {
@@ -665,6 +703,8 @@ export type profilesCountOrderByAggregateInput = {
   has_analytics_access?: Prisma.SortOrder
   has_assign_work_access?: Prisma.SortOrder
   allowed_consoles?: Prisma.SortOrder
+  approved_by?: Prisma.SortOrder
+  approved_at?: Prisma.SortOrder
 }
 
 export type profilesMaxOrderByAggregateInput = {
@@ -683,6 +723,8 @@ export type profilesMaxOrderByAggregateInput = {
   has_analytics_access?: Prisma.SortOrder
   has_assign_work_access?: Prisma.SortOrder
   allowed_consoles?: Prisma.SortOrder
+  approved_by?: Prisma.SortOrder
+  approved_at?: Prisma.SortOrder
 }
 
 export type profilesMinOrderByAggregateInput = {
@@ -701,6 +743,8 @@ export type profilesMinOrderByAggregateInput = {
   has_analytics_access?: Prisma.SortOrder
   has_assign_work_access?: Prisma.SortOrder
   allowed_consoles?: Prisma.SortOrder
+  approved_by?: Prisma.SortOrder
+  approved_at?: Prisma.SortOrder
 }
 
 export type profilesCreateNestedOneWithoutAvailabilityexceptionsInput = {
@@ -1121,6 +1165,8 @@ export type profilesCreateWithoutAvailabilityexceptionsInput = {
   has_analytics_access?: boolean | null
   has_assign_work_access?: boolean | null
   allowed_consoles?: string | null
+  approved_by?: string | null
+  approved_at?: Date | string | null
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutProfilesInput
   clients_clients_primary_scientist_idToprofiles?: Prisma.clientsCreateNestedManyWithoutProfiles_clients_primary_scientist_idToprofilesInput
   clients_clients_profile_idToprofiles?: Prisma.clientsCreateNestedManyWithoutProfiles_clients_profile_idToprofilesInput
@@ -1162,6 +1208,8 @@ export type profilesUncheckedCreateWithoutAvailabilityexceptionsInput = {
   has_analytics_access?: boolean | null
   has_assign_work_access?: boolean | null
   allowed_consoles?: string | null
+  approved_by?: string | null
+  approved_at?: Date | string | null
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutProfilesInput
   clients_clients_primary_scientist_idToprofiles?: Prisma.clientsUncheckedCreateNestedManyWithoutProfiles_clients_primary_scientist_idToprofilesInput
   clients_clients_profile_idToprofiles?: Prisma.clientsUncheckedCreateNestedManyWithoutProfiles_clients_profile_idToprofilesInput
@@ -1215,6 +1263,8 @@ export type profilesUpdateWithoutAvailabilityexceptionsInput = {
   has_analytics_access?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   has_assign_work_access?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   allowed_consoles?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approved_by?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approved_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutProfilesNestedInput
   clients_clients_primary_scientist_idToprofiles?: Prisma.clientsUpdateManyWithoutProfiles_clients_primary_scientist_idToprofilesNestedInput
   clients_clients_profile_idToprofiles?: Prisma.clientsUpdateManyWithoutProfiles_clients_profile_idToprofilesNestedInput
@@ -1256,6 +1306,8 @@ export type profilesUncheckedUpdateWithoutAvailabilityexceptionsInput = {
   has_analytics_access?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   has_assign_work_access?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   allowed_consoles?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approved_by?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approved_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutProfilesNestedInput
   clients_clients_primary_scientist_idToprofiles?: Prisma.clientsUncheckedUpdateManyWithoutProfiles_clients_primary_scientist_idToprofilesNestedInput
   clients_clients_profile_idToprofiles?: Prisma.clientsUncheckedUpdateManyWithoutProfiles_clients_profile_idToprofilesNestedInput
@@ -1293,6 +1345,8 @@ export type profilesCreateWithoutBulk_assignmentsInput = {
   has_analytics_access?: boolean | null
   has_assign_work_access?: boolean | null
   allowed_consoles?: string | null
+  approved_by?: string | null
+  approved_at?: Date | string | null
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutProfilesInput
   clients_clients_primary_scientist_idToprofiles?: Prisma.clientsCreateNestedManyWithoutProfiles_clients_primary_scientist_idToprofilesInput
   clients_clients_profile_idToprofiles?: Prisma.clientsCreateNestedManyWithoutProfiles_clients_profile_idToprofilesInput
@@ -1334,6 +1388,8 @@ export type profilesUncheckedCreateWithoutBulk_assignmentsInput = {
   has_analytics_access?: boolean | null
   has_assign_work_access?: boolean | null
   allowed_consoles?: string | null
+  approved_by?: string | null
+  approved_at?: Date | string | null
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutProfilesInput
   clients_clients_primary_scientist_idToprofiles?: Prisma.clientsUncheckedCreateNestedManyWithoutProfiles_clients_primary_scientist_idToprofilesInput
   clients_clients_profile_idToprofiles?: Prisma.clientsUncheckedCreateNestedManyWithoutProfiles_clients_profile_idToprofilesInput
@@ -1387,6 +1443,8 @@ export type profilesUpdateWithoutBulk_assignmentsInput = {
   has_analytics_access?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   has_assign_work_access?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   allowed_consoles?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approved_by?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approved_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutProfilesNestedInput
   clients_clients_primary_scientist_idToprofiles?: Prisma.clientsUpdateManyWithoutProfiles_clients_primary_scientist_idToprofilesNestedInput
   clients_clients_profile_idToprofiles?: Prisma.clientsUpdateManyWithoutProfiles_clients_profile_idToprofilesNestedInput
@@ -1428,6 +1486,8 @@ export type profilesUncheckedUpdateWithoutBulk_assignmentsInput = {
   has_analytics_access?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   has_assign_work_access?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   allowed_consoles?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approved_by?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approved_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutProfilesNestedInput
   clients_clients_primary_scientist_idToprofiles?: Prisma.clientsUncheckedUpdateManyWithoutProfiles_clients_primary_scientist_idToprofilesNestedInput
   clients_clients_profile_idToprofiles?: Prisma.clientsUncheckedUpdateManyWithoutProfiles_clients_profile_idToprofilesNestedInput
@@ -1465,6 +1525,8 @@ export type profilesCreateWithoutClients_clients_primary_scientist_idToprofilesI
   has_analytics_access?: boolean | null
   has_assign_work_access?: boolean | null
   allowed_consoles?: string | null
+  approved_by?: string | null
+  approved_at?: Date | string | null
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutProfilesInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutProfilesInput
   clients_clients_profile_idToprofiles?: Prisma.clientsCreateNestedManyWithoutProfiles_clients_profile_idToprofilesInput
@@ -1506,6 +1568,8 @@ export type profilesUncheckedCreateWithoutClients_clients_primary_scientist_idTo
   has_analytics_access?: boolean | null
   has_assign_work_access?: boolean | null
   allowed_consoles?: string | null
+  approved_by?: string | null
+  approved_at?: Date | string | null
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutProfilesInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutProfilesInput
   clients_clients_profile_idToprofiles?: Prisma.clientsUncheckedCreateNestedManyWithoutProfiles_clients_profile_idToprofilesInput
@@ -1548,6 +1612,8 @@ export type profilesCreateWithoutClients_clients_profile_idToprofilesInput = {
   has_analytics_access?: boolean | null
   has_assign_work_access?: boolean | null
   allowed_consoles?: string | null
+  approved_by?: string | null
+  approved_at?: Date | string | null
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutProfilesInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutProfilesInput
   clients_clients_primary_scientist_idToprofiles?: Prisma.clientsCreateNestedManyWithoutProfiles_clients_primary_scientist_idToprofilesInput
@@ -1589,6 +1655,8 @@ export type profilesUncheckedCreateWithoutClients_clients_profile_idToprofilesIn
   has_analytics_access?: boolean | null
   has_assign_work_access?: boolean | null
   allowed_consoles?: string | null
+  approved_by?: string | null
+  approved_at?: Date | string | null
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutProfilesInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutProfilesInput
   clients_clients_primary_scientist_idToprofiles?: Prisma.clientsUncheckedCreateNestedManyWithoutProfiles_clients_primary_scientist_idToprofilesInput
@@ -1642,6 +1710,8 @@ export type profilesUpdateWithoutClients_clients_primary_scientist_idToprofilesI
   has_analytics_access?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   has_assign_work_access?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   allowed_consoles?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approved_by?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approved_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutProfilesNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutProfilesNestedInput
   clients_clients_profile_idToprofiles?: Prisma.clientsUpdateManyWithoutProfiles_clients_profile_idToprofilesNestedInput
@@ -1683,6 +1753,8 @@ export type profilesUncheckedUpdateWithoutClients_clients_primary_scientist_idTo
   has_analytics_access?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   has_assign_work_access?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   allowed_consoles?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approved_by?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approved_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutProfilesNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutProfilesNestedInput
   clients_clients_profile_idToprofiles?: Prisma.clientsUncheckedUpdateManyWithoutProfiles_clients_profile_idToprofilesNestedInput
@@ -1731,6 +1803,8 @@ export type profilesUpdateWithoutClients_clients_profile_idToprofilesInput = {
   has_analytics_access?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   has_assign_work_access?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   allowed_consoles?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approved_by?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approved_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutProfilesNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutProfilesNestedInput
   clients_clients_primary_scientist_idToprofiles?: Prisma.clientsUpdateManyWithoutProfiles_clients_primary_scientist_idToprofilesNestedInput
@@ -1772,6 +1846,8 @@ export type profilesUncheckedUpdateWithoutClients_clients_profile_idToprofilesIn
   has_analytics_access?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   has_assign_work_access?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   allowed_consoles?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approved_by?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approved_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutProfilesNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutProfilesNestedInput
   clients_clients_primary_scientist_idToprofiles?: Prisma.clientsUncheckedUpdateManyWithoutProfiles_clients_primary_scientist_idToprofilesNestedInput
@@ -1809,6 +1885,8 @@ export type profilesCreateWithoutConsultant_servicesInput = {
   has_analytics_access?: boolean | null
   has_assign_work_access?: boolean | null
   allowed_consoles?: string | null
+  approved_by?: string | null
+  approved_at?: Date | string | null
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutProfilesInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutProfilesInput
   clients_clients_primary_scientist_idToprofiles?: Prisma.clientsCreateNestedManyWithoutProfiles_clients_primary_scientist_idToprofilesInput
@@ -1850,6 +1928,8 @@ export type profilesUncheckedCreateWithoutConsultant_servicesInput = {
   has_analytics_access?: boolean | null
   has_assign_work_access?: boolean | null
   allowed_consoles?: string | null
+  approved_by?: string | null
+  approved_at?: Date | string | null
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutProfilesInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutProfilesInput
   clients_clients_primary_scientist_idToprofiles?: Prisma.clientsUncheckedCreateNestedManyWithoutProfiles_clients_primary_scientist_idToprofilesInput
@@ -1903,6 +1983,8 @@ export type profilesUpdateWithoutConsultant_servicesInput = {
   has_analytics_access?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   has_assign_work_access?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   allowed_consoles?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approved_by?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approved_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutProfilesNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutProfilesNestedInput
   clients_clients_primary_scientist_idToprofiles?: Prisma.clientsUpdateManyWithoutProfiles_clients_primary_scientist_idToprofilesNestedInput
@@ -1944,6 +2026,8 @@ export type profilesUncheckedUpdateWithoutConsultant_servicesInput = {
   has_analytics_access?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   has_assign_work_access?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   allowed_consoles?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approved_by?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approved_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutProfilesNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutProfilesNestedInput
   clients_clients_primary_scientist_idToprofiles?: Prisma.clientsUncheckedUpdateManyWithoutProfiles_clients_primary_scientist_idToprofilesNestedInput
@@ -1981,6 +2065,8 @@ export type profilesCreateWithoutConsultantavailabilityInput = {
   has_analytics_access?: boolean | null
   has_assign_work_access?: boolean | null
   allowed_consoles?: string | null
+  approved_by?: string | null
+  approved_at?: Date | string | null
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutProfilesInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutProfilesInput
   clients_clients_primary_scientist_idToprofiles?: Prisma.clientsCreateNestedManyWithoutProfiles_clients_primary_scientist_idToprofilesInput
@@ -2022,6 +2108,8 @@ export type profilesUncheckedCreateWithoutConsultantavailabilityInput = {
   has_analytics_access?: boolean | null
   has_assign_work_access?: boolean | null
   allowed_consoles?: string | null
+  approved_by?: string | null
+  approved_at?: Date | string | null
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutProfilesInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutProfilesInput
   clients_clients_primary_scientist_idToprofiles?: Prisma.clientsUncheckedCreateNestedManyWithoutProfiles_clients_primary_scientist_idToprofilesInput
@@ -2075,6 +2163,8 @@ export type profilesUpdateWithoutConsultantavailabilityInput = {
   has_analytics_access?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   has_assign_work_access?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   allowed_consoles?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approved_by?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approved_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutProfilesNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutProfilesNestedInput
   clients_clients_primary_scientist_idToprofiles?: Prisma.clientsUpdateManyWithoutProfiles_clients_primary_scientist_idToprofilesNestedInput
@@ -2116,6 +2206,8 @@ export type profilesUncheckedUpdateWithoutConsultantavailabilityInput = {
   has_analytics_access?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   has_assign_work_access?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   allowed_consoles?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approved_by?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approved_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutProfilesNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutProfilesNestedInput
   clients_clients_primary_scientist_idToprofiles?: Prisma.clientsUncheckedUpdateManyWithoutProfiles_clients_primary_scientist_idToprofilesNestedInput
@@ -2153,6 +2245,8 @@ export type profilesCreateWithoutEmergency_alertsInput = {
   has_analytics_access?: boolean | null
   has_assign_work_access?: boolean | null
   allowed_consoles?: string | null
+  approved_by?: string | null
+  approved_at?: Date | string | null
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutProfilesInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutProfilesInput
   clients_clients_primary_scientist_idToprofiles?: Prisma.clientsCreateNestedManyWithoutProfiles_clients_primary_scientist_idToprofilesInput
@@ -2194,6 +2288,8 @@ export type profilesUncheckedCreateWithoutEmergency_alertsInput = {
   has_analytics_access?: boolean | null
   has_assign_work_access?: boolean | null
   allowed_consoles?: string | null
+  approved_by?: string | null
+  approved_at?: Date | string | null
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutProfilesInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutProfilesInput
   clients_clients_primary_scientist_idToprofiles?: Prisma.clientsUncheckedCreateNestedManyWithoutProfiles_clients_primary_scientist_idToprofilesInput
@@ -2247,6 +2343,8 @@ export type profilesUpdateWithoutEmergency_alertsInput = {
   has_analytics_access?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   has_assign_work_access?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   allowed_consoles?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approved_by?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approved_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutProfilesNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutProfilesNestedInput
   clients_clients_primary_scientist_idToprofiles?: Prisma.clientsUpdateManyWithoutProfiles_clients_primary_scientist_idToprofilesNestedInput
@@ -2288,6 +2386,8 @@ export type profilesUncheckedUpdateWithoutEmergency_alertsInput = {
   has_analytics_access?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   has_assign_work_access?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   allowed_consoles?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approved_by?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approved_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutProfilesNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutProfilesNestedInput
   clients_clients_primary_scientist_idToprofiles?: Prisma.clientsUncheckedUpdateManyWithoutProfiles_clients_primary_scientist_idToprofilesNestedInput
@@ -2325,6 +2425,8 @@ export type profilesCreateWithoutForm_responsesInput = {
   has_analytics_access?: boolean | null
   has_assign_work_access?: boolean | null
   allowed_consoles?: string | null
+  approved_by?: string | null
+  approved_at?: Date | string | null
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutProfilesInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutProfilesInput
   clients_clients_primary_scientist_idToprofiles?: Prisma.clientsCreateNestedManyWithoutProfiles_clients_primary_scientist_idToprofilesInput
@@ -2366,6 +2468,8 @@ export type profilesUncheckedCreateWithoutForm_responsesInput = {
   has_analytics_access?: boolean | null
   has_assign_work_access?: boolean | null
   allowed_consoles?: string | null
+  approved_by?: string | null
+  approved_at?: Date | string | null
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutProfilesInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutProfilesInput
   clients_clients_primary_scientist_idToprofiles?: Prisma.clientsUncheckedCreateNestedManyWithoutProfiles_clients_primary_scientist_idToprofilesInput
@@ -2419,6 +2523,8 @@ export type profilesUpdateWithoutForm_responsesInput = {
   has_analytics_access?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   has_assign_work_access?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   allowed_consoles?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approved_by?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approved_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutProfilesNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutProfilesNestedInput
   clients_clients_primary_scientist_idToprofiles?: Prisma.clientsUpdateManyWithoutProfiles_clients_primary_scientist_idToprofilesNestedInput
@@ -2460,6 +2566,8 @@ export type profilesUncheckedUpdateWithoutForm_responsesInput = {
   has_analytics_access?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   has_assign_work_access?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   allowed_consoles?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approved_by?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approved_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutProfilesNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutProfilesNestedInput
   clients_clients_primary_scientist_idToprofiles?: Prisma.clientsUncheckedUpdateManyWithoutProfiles_clients_primary_scientist_idToprofilesNestedInput
@@ -2497,6 +2605,8 @@ export type profilesCreateWithoutHr_employeesInput = {
   has_analytics_access?: boolean | null
   has_assign_work_access?: boolean | null
   allowed_consoles?: string | null
+  approved_by?: string | null
+  approved_at?: Date | string | null
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutProfilesInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutProfilesInput
   clients_clients_primary_scientist_idToprofiles?: Prisma.clientsCreateNestedManyWithoutProfiles_clients_primary_scientist_idToprofilesInput
@@ -2538,6 +2648,8 @@ export type profilesUncheckedCreateWithoutHr_employeesInput = {
   has_analytics_access?: boolean | null
   has_assign_work_access?: boolean | null
   allowed_consoles?: string | null
+  approved_by?: string | null
+  approved_at?: Date | string | null
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutProfilesInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutProfilesInput
   clients_clients_primary_scientist_idToprofiles?: Prisma.clientsUncheckedCreateNestedManyWithoutProfiles_clients_primary_scientist_idToprofilesInput
@@ -2591,6 +2703,8 @@ export type profilesUpdateWithoutHr_employeesInput = {
   has_analytics_access?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   has_assign_work_access?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   allowed_consoles?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approved_by?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approved_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutProfilesNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutProfilesNestedInput
   clients_clients_primary_scientist_idToprofiles?: Prisma.clientsUpdateManyWithoutProfiles_clients_primary_scientist_idToprofilesNestedInput
@@ -2632,6 +2746,8 @@ export type profilesUncheckedUpdateWithoutHr_employeesInput = {
   has_analytics_access?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   has_assign_work_access?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   allowed_consoles?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approved_by?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approved_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutProfilesNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutProfilesNestedInput
   clients_clients_primary_scientist_idToprofiles?: Prisma.clientsUncheckedUpdateManyWithoutProfiles_clients_primary_scientist_idToprofilesNestedInput
@@ -2669,6 +2785,8 @@ export type profilesCreateWithoutHrattendancelogsInput = {
   has_analytics_access?: boolean | null
   has_assign_work_access?: boolean | null
   allowed_consoles?: string | null
+  approved_by?: string | null
+  approved_at?: Date | string | null
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutProfilesInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutProfilesInput
   clients_clients_primary_scientist_idToprofiles?: Prisma.clientsCreateNestedManyWithoutProfiles_clients_primary_scientist_idToprofilesInput
@@ -2710,6 +2828,8 @@ export type profilesUncheckedCreateWithoutHrattendancelogsInput = {
   has_analytics_access?: boolean | null
   has_assign_work_access?: boolean | null
   allowed_consoles?: string | null
+  approved_by?: string | null
+  approved_at?: Date | string | null
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutProfilesInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutProfilesInput
   clients_clients_primary_scientist_idToprofiles?: Prisma.clientsUncheckedCreateNestedManyWithoutProfiles_clients_primary_scientist_idToprofilesInput
@@ -2763,6 +2883,8 @@ export type profilesUpdateWithoutHrattendancelogsInput = {
   has_analytics_access?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   has_assign_work_access?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   allowed_consoles?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approved_by?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approved_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutProfilesNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutProfilesNestedInput
   clients_clients_primary_scientist_idToprofiles?: Prisma.clientsUpdateManyWithoutProfiles_clients_primary_scientist_idToprofilesNestedInput
@@ -2804,6 +2926,8 @@ export type profilesUncheckedUpdateWithoutHrattendancelogsInput = {
   has_analytics_access?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   has_assign_work_access?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   allowed_consoles?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approved_by?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approved_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutProfilesNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutProfilesNestedInput
   clients_clients_primary_scientist_idToprofiles?: Prisma.clientsUncheckedUpdateManyWithoutProfiles_clients_primary_scientist_idToprofilesNestedInput
@@ -2841,6 +2965,8 @@ export type profilesCreateWithoutHrleaves_hrleaves_approved_byToprofilesInput = 
   has_analytics_access?: boolean | null
   has_assign_work_access?: boolean | null
   allowed_consoles?: string | null
+  approved_by?: string | null
+  approved_at?: Date | string | null
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutProfilesInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutProfilesInput
   clients_clients_primary_scientist_idToprofiles?: Prisma.clientsCreateNestedManyWithoutProfiles_clients_primary_scientist_idToprofilesInput
@@ -2882,6 +3008,8 @@ export type profilesUncheckedCreateWithoutHrleaves_hrleaves_approved_byToprofile
   has_analytics_access?: boolean | null
   has_assign_work_access?: boolean | null
   allowed_consoles?: string | null
+  approved_by?: string | null
+  approved_at?: Date | string | null
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutProfilesInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutProfilesInput
   clients_clients_primary_scientist_idToprofiles?: Prisma.clientsUncheckedCreateNestedManyWithoutProfiles_clients_primary_scientist_idToprofilesInput
@@ -2924,6 +3052,8 @@ export type profilesCreateWithoutHrleaves_hrleaves_employee_idToprofilesInput = 
   has_analytics_access?: boolean | null
   has_assign_work_access?: boolean | null
   allowed_consoles?: string | null
+  approved_by?: string | null
+  approved_at?: Date | string | null
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutProfilesInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutProfilesInput
   clients_clients_primary_scientist_idToprofiles?: Prisma.clientsCreateNestedManyWithoutProfiles_clients_primary_scientist_idToprofilesInput
@@ -2965,6 +3095,8 @@ export type profilesUncheckedCreateWithoutHrleaves_hrleaves_employee_idToprofile
   has_analytics_access?: boolean | null
   has_assign_work_access?: boolean | null
   allowed_consoles?: string | null
+  approved_by?: string | null
+  approved_at?: Date | string | null
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutProfilesInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutProfilesInput
   clients_clients_primary_scientist_idToprofiles?: Prisma.clientsUncheckedCreateNestedManyWithoutProfiles_clients_primary_scientist_idToprofilesInput
@@ -3018,6 +3150,8 @@ export type profilesUpdateWithoutHrleaves_hrleaves_approved_byToprofilesInput = 
   has_analytics_access?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   has_assign_work_access?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   allowed_consoles?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approved_by?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approved_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutProfilesNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutProfilesNestedInput
   clients_clients_primary_scientist_idToprofiles?: Prisma.clientsUpdateManyWithoutProfiles_clients_primary_scientist_idToprofilesNestedInput
@@ -3059,6 +3193,8 @@ export type profilesUncheckedUpdateWithoutHrleaves_hrleaves_approved_byToprofile
   has_analytics_access?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   has_assign_work_access?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   allowed_consoles?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approved_by?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approved_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutProfilesNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutProfilesNestedInput
   clients_clients_primary_scientist_idToprofiles?: Prisma.clientsUncheckedUpdateManyWithoutProfiles_clients_primary_scientist_idToprofilesNestedInput
@@ -3107,6 +3243,8 @@ export type profilesUpdateWithoutHrleaves_hrleaves_employee_idToprofilesInput = 
   has_analytics_access?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   has_assign_work_access?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   allowed_consoles?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approved_by?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approved_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutProfilesNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutProfilesNestedInput
   clients_clients_primary_scientist_idToprofiles?: Prisma.clientsUpdateManyWithoutProfiles_clients_primary_scientist_idToprofilesNestedInput
@@ -3148,6 +3286,8 @@ export type profilesUncheckedUpdateWithoutHrleaves_hrleaves_employee_idToprofile
   has_analytics_access?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   has_assign_work_access?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   allowed_consoles?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approved_by?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approved_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutProfilesNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutProfilesNestedInput
   clients_clients_primary_scientist_idToprofiles?: Prisma.clientsUncheckedUpdateManyWithoutProfiles_clients_primary_scientist_idToprofilesNestedInput
@@ -3185,6 +3325,8 @@ export type profilesCreateWithoutNotificationsInput = {
   has_analytics_access?: boolean | null
   has_assign_work_access?: boolean | null
   allowed_consoles?: string | null
+  approved_by?: string | null
+  approved_at?: Date | string | null
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutProfilesInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutProfilesInput
   clients_clients_primary_scientist_idToprofiles?: Prisma.clientsCreateNestedManyWithoutProfiles_clients_primary_scientist_idToprofilesInput
@@ -3226,6 +3368,8 @@ export type profilesUncheckedCreateWithoutNotificationsInput = {
   has_analytics_access?: boolean | null
   has_assign_work_access?: boolean | null
   allowed_consoles?: string | null
+  approved_by?: string | null
+  approved_at?: Date | string | null
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutProfilesInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutProfilesInput
   clients_clients_primary_scientist_idToprofiles?: Prisma.clientsUncheckedCreateNestedManyWithoutProfiles_clients_primary_scientist_idToprofilesInput
@@ -3279,6 +3423,8 @@ export type profilesUpdateWithoutNotificationsInput = {
   has_analytics_access?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   has_assign_work_access?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   allowed_consoles?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approved_by?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approved_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutProfilesNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutProfilesNestedInput
   clients_clients_primary_scientist_idToprofiles?: Prisma.clientsUpdateManyWithoutProfiles_clients_primary_scientist_idToprofilesNestedInput
@@ -3320,6 +3466,8 @@ export type profilesUncheckedUpdateWithoutNotificationsInput = {
   has_analytics_access?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   has_assign_work_access?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   allowed_consoles?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approved_by?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approved_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutProfilesNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutProfilesNestedInput
   clients_clients_primary_scientist_idToprofiles?: Prisma.clientsUncheckedUpdateManyWithoutProfiles_clients_primary_scientist_idToprofilesNestedInput
@@ -3357,6 +3505,8 @@ export type profilesCreateWithoutOrganizationsInput = {
   has_analytics_access?: boolean | null
   has_assign_work_access?: boolean | null
   allowed_consoles?: string | null
+  approved_by?: string | null
+  approved_at?: Date | string | null
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutProfilesInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutProfilesInput
   clients_clients_primary_scientist_idToprofiles?: Prisma.clientsCreateNestedManyWithoutProfiles_clients_primary_scientist_idToprofilesInput
@@ -3397,6 +3547,8 @@ export type profilesUncheckedCreateWithoutOrganizationsInput = {
   has_analytics_access?: boolean | null
   has_assign_work_access?: boolean | null
   allowed_consoles?: string | null
+  approved_by?: string | null
+  approved_at?: Date | string | null
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutProfilesInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutProfilesInput
   clients_clients_primary_scientist_idToprofiles?: Prisma.clientsUncheckedCreateNestedManyWithoutProfiles_clients_primary_scientist_idToprofilesInput
@@ -3466,6 +3618,8 @@ export type profilesScalarWhereInput = {
   has_analytics_access?: Prisma.BoolNullableFilter<"profiles"> | boolean | null
   has_assign_work_access?: Prisma.BoolNullableFilter<"profiles"> | boolean | null
   allowed_consoles?: Prisma.StringNullableFilter<"profiles"> | string | null
+  approved_by?: Prisma.UuidNullableFilter<"profiles"> | string | null
+  approved_at?: Prisma.DateTimeNullableFilter<"profiles"> | Date | string | null
 }
 
 export type profilesCreateWithoutPerformance_assessmentsInput = {
@@ -3482,6 +3636,8 @@ export type profilesCreateWithoutPerformance_assessmentsInput = {
   has_analytics_access?: boolean | null
   has_assign_work_access?: boolean | null
   allowed_consoles?: string | null
+  approved_by?: string | null
+  approved_at?: Date | string | null
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutProfilesInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutProfilesInput
   clients_clients_primary_scientist_idToprofiles?: Prisma.clientsCreateNestedManyWithoutProfiles_clients_primary_scientist_idToprofilesInput
@@ -3523,6 +3679,8 @@ export type profilesUncheckedCreateWithoutPerformance_assessmentsInput = {
   has_analytics_access?: boolean | null
   has_assign_work_access?: boolean | null
   allowed_consoles?: string | null
+  approved_by?: string | null
+  approved_at?: Date | string | null
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutProfilesInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutProfilesInput
   clients_clients_primary_scientist_idToprofiles?: Prisma.clientsUncheckedCreateNestedManyWithoutProfiles_clients_primary_scientist_idToprofilesInput
@@ -3576,6 +3734,8 @@ export type profilesUpdateWithoutPerformance_assessmentsInput = {
   has_analytics_access?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   has_assign_work_access?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   allowed_consoles?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approved_by?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approved_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutProfilesNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutProfilesNestedInput
   clients_clients_primary_scientist_idToprofiles?: Prisma.clientsUpdateManyWithoutProfiles_clients_primary_scientist_idToprofilesNestedInput
@@ -3617,6 +3777,8 @@ export type profilesUncheckedUpdateWithoutPerformance_assessmentsInput = {
   has_analytics_access?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   has_assign_work_access?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   allowed_consoles?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approved_by?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approved_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutProfilesNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutProfilesNestedInput
   clients_clients_primary_scientist_idToprofiles?: Prisma.clientsUncheckedUpdateManyWithoutProfiles_clients_primary_scientist_idToprofilesNestedInput
@@ -3654,6 +3816,8 @@ export type profilesCreateWithoutRehab_progressInput = {
   has_analytics_access?: boolean | null
   has_assign_work_access?: boolean | null
   allowed_consoles?: string | null
+  approved_by?: string | null
+  approved_at?: Date | string | null
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutProfilesInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutProfilesInput
   clients_clients_primary_scientist_idToprofiles?: Prisma.clientsCreateNestedManyWithoutProfiles_clients_primary_scientist_idToprofilesInput
@@ -3695,6 +3859,8 @@ export type profilesUncheckedCreateWithoutRehab_progressInput = {
   has_analytics_access?: boolean | null
   has_assign_work_access?: boolean | null
   allowed_consoles?: string | null
+  approved_by?: string | null
+  approved_at?: Date | string | null
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutProfilesInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutProfilesInput
   clients_clients_primary_scientist_idToprofiles?: Prisma.clientsUncheckedCreateNestedManyWithoutProfiles_clients_primary_scientist_idToprofilesInput
@@ -3748,6 +3914,8 @@ export type profilesUpdateWithoutRehab_progressInput = {
   has_analytics_access?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   has_assign_work_access?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   allowed_consoles?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approved_by?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approved_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutProfilesNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutProfilesNestedInput
   clients_clients_primary_scientist_idToprofiles?: Prisma.clientsUpdateManyWithoutProfiles_clients_primary_scientist_idToprofilesNestedInput
@@ -3789,6 +3957,8 @@ export type profilesUncheckedUpdateWithoutRehab_progressInput = {
   has_analytics_access?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   has_assign_work_access?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   allowed_consoles?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approved_by?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approved_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutProfilesNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutProfilesNestedInput
   clients_clients_primary_scientist_idToprofiles?: Prisma.clientsUncheckedUpdateManyWithoutProfiles_clients_primary_scientist_idToprofilesNestedInput
@@ -3826,6 +3996,8 @@ export type profilesCreateWithoutSession_templatesInput = {
   has_analytics_access?: boolean | null
   has_assign_work_access?: boolean | null
   allowed_consoles?: string | null
+  approved_by?: string | null
+  approved_at?: Date | string | null
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutProfilesInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutProfilesInput
   clients_clients_primary_scientist_idToprofiles?: Prisma.clientsCreateNestedManyWithoutProfiles_clients_primary_scientist_idToprofilesInput
@@ -3867,6 +4039,8 @@ export type profilesUncheckedCreateWithoutSession_templatesInput = {
   has_analytics_access?: boolean | null
   has_assign_work_access?: boolean | null
   allowed_consoles?: string | null
+  approved_by?: string | null
+  approved_at?: Date | string | null
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutProfilesInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutProfilesInput
   clients_clients_primary_scientist_idToprofiles?: Prisma.clientsUncheckedCreateNestedManyWithoutProfiles_clients_primary_scientist_idToprofilesInput
@@ -3920,6 +4094,8 @@ export type profilesUpdateWithoutSession_templatesInput = {
   has_analytics_access?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   has_assign_work_access?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   allowed_consoles?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approved_by?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approved_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutProfilesNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutProfilesNestedInput
   clients_clients_primary_scientist_idToprofiles?: Prisma.clientsUpdateManyWithoutProfiles_clients_primary_scientist_idToprofilesNestedInput
@@ -3961,6 +4137,8 @@ export type profilesUncheckedUpdateWithoutSession_templatesInput = {
   has_analytics_access?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   has_assign_work_access?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   allowed_consoles?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approved_by?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approved_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutProfilesNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutProfilesNestedInput
   clients_clients_primary_scientist_idToprofiles?: Prisma.clientsUncheckedUpdateManyWithoutProfiles_clients_primary_scientist_idToprofilesNestedInput
@@ -3998,6 +4176,8 @@ export type profilesCreateWithoutSessions_sessions_scientist_idToprofilesInput =
   has_analytics_access?: boolean | null
   has_assign_work_access?: boolean | null
   allowed_consoles?: string | null
+  approved_by?: string | null
+  approved_at?: Date | string | null
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutProfilesInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutProfilesInput
   clients_clients_primary_scientist_idToprofiles?: Prisma.clientsCreateNestedManyWithoutProfiles_clients_primary_scientist_idToprofilesInput
@@ -4039,6 +4219,8 @@ export type profilesUncheckedCreateWithoutSessions_sessions_scientist_idToprofil
   has_analytics_access?: boolean | null
   has_assign_work_access?: boolean | null
   allowed_consoles?: string | null
+  approved_by?: string | null
+  approved_at?: Date | string | null
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutProfilesInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutProfilesInput
   clients_clients_primary_scientist_idToprofiles?: Prisma.clientsUncheckedCreateNestedManyWithoutProfiles_clients_primary_scientist_idToprofilesInput
@@ -4081,6 +4263,8 @@ export type profilesCreateWithoutSessions_sessions_therapist_idToprofilesInput =
   has_analytics_access?: boolean | null
   has_assign_work_access?: boolean | null
   allowed_consoles?: string | null
+  approved_by?: string | null
+  approved_at?: Date | string | null
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutProfilesInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutProfilesInput
   clients_clients_primary_scientist_idToprofiles?: Prisma.clientsCreateNestedManyWithoutProfiles_clients_primary_scientist_idToprofilesInput
@@ -4122,6 +4306,8 @@ export type profilesUncheckedCreateWithoutSessions_sessions_therapist_idToprofil
   has_analytics_access?: boolean | null
   has_assign_work_access?: boolean | null
   allowed_consoles?: string | null
+  approved_by?: string | null
+  approved_at?: Date | string | null
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutProfilesInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutProfilesInput
   clients_clients_primary_scientist_idToprofiles?: Prisma.clientsUncheckedCreateNestedManyWithoutProfiles_clients_primary_scientist_idToprofilesInput
@@ -4175,6 +4361,8 @@ export type profilesUpdateWithoutSessions_sessions_scientist_idToprofilesInput =
   has_analytics_access?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   has_assign_work_access?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   allowed_consoles?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approved_by?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approved_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutProfilesNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutProfilesNestedInput
   clients_clients_primary_scientist_idToprofiles?: Prisma.clientsUpdateManyWithoutProfiles_clients_primary_scientist_idToprofilesNestedInput
@@ -4216,6 +4404,8 @@ export type profilesUncheckedUpdateWithoutSessions_sessions_scientist_idToprofil
   has_analytics_access?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   has_assign_work_access?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   allowed_consoles?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approved_by?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approved_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutProfilesNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutProfilesNestedInput
   clients_clients_primary_scientist_idToprofiles?: Prisma.clientsUncheckedUpdateManyWithoutProfiles_clients_primary_scientist_idToprofilesNestedInput
@@ -4264,6 +4454,8 @@ export type profilesUpdateWithoutSessions_sessions_therapist_idToprofilesInput =
   has_analytics_access?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   has_assign_work_access?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   allowed_consoles?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approved_by?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approved_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutProfilesNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutProfilesNestedInput
   clients_clients_primary_scientist_idToprofiles?: Prisma.clientsUpdateManyWithoutProfiles_clients_primary_scientist_idToprofilesNestedInput
@@ -4305,6 +4497,8 @@ export type profilesUncheckedUpdateWithoutSessions_sessions_therapist_idToprofil
   has_analytics_access?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   has_assign_work_access?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   allowed_consoles?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approved_by?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approved_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutProfilesNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutProfilesNestedInput
   clients_clients_primary_scientist_idToprofiles?: Prisma.clientsUncheckedUpdateManyWithoutProfiles_clients_primary_scientist_idToprofilesNestedInput
@@ -4342,6 +4536,8 @@ export type profilesCreateWithoutStaff_schedulesInput = {
   has_analytics_access?: boolean | null
   has_assign_work_access?: boolean | null
   allowed_consoles?: string | null
+  approved_by?: string | null
+  approved_at?: Date | string | null
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutProfilesInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutProfilesInput
   clients_clients_primary_scientist_idToprofiles?: Prisma.clientsCreateNestedManyWithoutProfiles_clients_primary_scientist_idToprofilesInput
@@ -4383,6 +4579,8 @@ export type profilesUncheckedCreateWithoutStaff_schedulesInput = {
   has_analytics_access?: boolean | null
   has_assign_work_access?: boolean | null
   allowed_consoles?: string | null
+  approved_by?: string | null
+  approved_at?: Date | string | null
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutProfilesInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutProfilesInput
   clients_clients_primary_scientist_idToprofiles?: Prisma.clientsUncheckedCreateNestedManyWithoutProfiles_clients_primary_scientist_idToprofilesInput
@@ -4436,6 +4634,8 @@ export type profilesUpdateWithoutStaff_schedulesInput = {
   has_analytics_access?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   has_assign_work_access?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   allowed_consoles?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approved_by?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approved_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutProfilesNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutProfilesNestedInput
   clients_clients_primary_scientist_idToprofiles?: Prisma.clientsUpdateManyWithoutProfiles_clients_primary_scientist_idToprofilesNestedInput
@@ -4477,6 +4677,8 @@ export type profilesUncheckedUpdateWithoutStaff_schedulesInput = {
   has_analytics_access?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   has_assign_work_access?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   allowed_consoles?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approved_by?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approved_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutProfilesNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutProfilesNestedInput
   clients_clients_primary_scientist_idToprofiles?: Prisma.clientsUncheckedUpdateManyWithoutProfiles_clients_primary_scientist_idToprofilesNestedInput
@@ -4514,6 +4716,8 @@ export type profilesCreateWithoutTrainingprogramsInput = {
   has_analytics_access?: boolean | null
   has_assign_work_access?: boolean | null
   allowed_consoles?: string | null
+  approved_by?: string | null
+  approved_at?: Date | string | null
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutProfilesInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutProfilesInput
   clients_clients_primary_scientist_idToprofiles?: Prisma.clientsCreateNestedManyWithoutProfiles_clients_primary_scientist_idToprofilesInput
@@ -4555,6 +4759,8 @@ export type profilesUncheckedCreateWithoutTrainingprogramsInput = {
   has_analytics_access?: boolean | null
   has_assign_work_access?: boolean | null
   allowed_consoles?: string | null
+  approved_by?: string | null
+  approved_at?: Date | string | null
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutProfilesInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutProfilesInput
   clients_clients_primary_scientist_idToprofiles?: Prisma.clientsUncheckedCreateNestedManyWithoutProfiles_clients_primary_scientist_idToprofilesInput
@@ -4608,6 +4814,8 @@ export type profilesUpdateWithoutTrainingprogramsInput = {
   has_analytics_access?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   has_assign_work_access?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   allowed_consoles?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approved_by?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approved_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutProfilesNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutProfilesNestedInput
   clients_clients_primary_scientist_idToprofiles?: Prisma.clientsUpdateManyWithoutProfiles_clients_primary_scientist_idToprofilesNestedInput
@@ -4649,6 +4857,8 @@ export type profilesUncheckedUpdateWithoutTrainingprogramsInput = {
   has_analytics_access?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   has_assign_work_access?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   allowed_consoles?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approved_by?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approved_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutProfilesNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutProfilesNestedInput
   clients_clients_primary_scientist_idToprofiles?: Prisma.clientsUncheckedUpdateManyWithoutProfiles_clients_primary_scientist_idToprofilesNestedInput
@@ -4686,6 +4896,8 @@ export type profilesCreateWithoutUsersInput = {
   has_analytics_access?: boolean | null
   has_assign_work_access?: boolean | null
   allowed_consoles?: string | null
+  approved_by?: string | null
+  approved_at?: Date | string | null
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutProfilesInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutProfilesInput
   clients_clients_primary_scientist_idToprofiles?: Prisma.clientsCreateNestedManyWithoutProfiles_clients_primary_scientist_idToprofilesInput
@@ -4726,6 +4938,8 @@ export type profilesUncheckedCreateWithoutUsersInput = {
   has_analytics_access?: boolean | null
   has_assign_work_access?: boolean | null
   allowed_consoles?: string | null
+  approved_by?: string | null
+  approved_at?: Date | string | null
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutProfilesInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutProfilesInput
   clients_clients_primary_scientist_idToprofiles?: Prisma.clientsUncheckedCreateNestedManyWithoutProfiles_clients_primary_scientist_idToprofilesInput
@@ -4780,6 +4994,8 @@ export type profilesUpdateWithoutUsersInput = {
   has_analytics_access?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   has_assign_work_access?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   allowed_consoles?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approved_by?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approved_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutProfilesNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutProfilesNestedInput
   clients_clients_primary_scientist_idToprofiles?: Prisma.clientsUpdateManyWithoutProfiles_clients_primary_scientist_idToprofilesNestedInput
@@ -4820,6 +5036,8 @@ export type profilesUncheckedUpdateWithoutUsersInput = {
   has_analytics_access?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   has_assign_work_access?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   allowed_consoles?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approved_by?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approved_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutProfilesNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutProfilesNestedInput
   clients_clients_primary_scientist_idToprofiles?: Prisma.clientsUncheckedUpdateManyWithoutProfiles_clients_primary_scientist_idToprofilesNestedInput
@@ -4858,6 +5076,8 @@ export type profilesCreateWithoutWaitlistInput = {
   has_analytics_access?: boolean | null
   has_assign_work_access?: boolean | null
   allowed_consoles?: string | null
+  approved_by?: string | null
+  approved_at?: Date | string | null
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutProfilesInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutProfilesInput
   clients_clients_primary_scientist_idToprofiles?: Prisma.clientsCreateNestedManyWithoutProfiles_clients_primary_scientist_idToprofilesInput
@@ -4899,6 +5119,8 @@ export type profilesUncheckedCreateWithoutWaitlistInput = {
   has_analytics_access?: boolean | null
   has_assign_work_access?: boolean | null
   allowed_consoles?: string | null
+  approved_by?: string | null
+  approved_at?: Date | string | null
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutProfilesInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutProfilesInput
   clients_clients_primary_scientist_idToprofiles?: Prisma.clientsUncheckedCreateNestedManyWithoutProfiles_clients_primary_scientist_idToprofilesInput
@@ -4952,6 +5174,8 @@ export type profilesUpdateWithoutWaitlistInput = {
   has_analytics_access?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   has_assign_work_access?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   allowed_consoles?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approved_by?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approved_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutProfilesNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutProfilesNestedInput
   clients_clients_primary_scientist_idToprofiles?: Prisma.clientsUpdateManyWithoutProfiles_clients_primary_scientist_idToprofilesNestedInput
@@ -4993,6 +5217,8 @@ export type profilesUncheckedUpdateWithoutWaitlistInput = {
   has_analytics_access?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   has_assign_work_access?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   allowed_consoles?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approved_by?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approved_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutProfilesNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutProfilesNestedInput
   clients_clients_primary_scientist_idToprofiles?: Prisma.clientsUncheckedUpdateManyWithoutProfiles_clients_primary_scientist_idToprofilesNestedInput
@@ -5030,6 +5256,8 @@ export type profilesCreateWithoutUser_push_subscriptionsInput = {
   has_analytics_access?: boolean | null
   has_assign_work_access?: boolean | null
   allowed_consoles?: string | null
+  approved_by?: string | null
+  approved_at?: Date | string | null
   availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutProfilesInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutProfilesInput
   clients_clients_primary_scientist_idToprofiles?: Prisma.clientsCreateNestedManyWithoutProfiles_clients_primary_scientist_idToprofilesInput
@@ -5071,6 +5299,8 @@ export type profilesUncheckedCreateWithoutUser_push_subscriptionsInput = {
   has_analytics_access?: boolean | null
   has_assign_work_access?: boolean | null
   allowed_consoles?: string | null
+  approved_by?: string | null
+  approved_at?: Date | string | null
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutProfilesInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutProfilesInput
   clients_clients_primary_scientist_idToprofiles?: Prisma.clientsUncheckedCreateNestedManyWithoutProfiles_clients_primary_scientist_idToprofilesInput
@@ -5124,6 +5354,8 @@ export type profilesUpdateWithoutUser_push_subscriptionsInput = {
   has_analytics_access?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   has_assign_work_access?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   allowed_consoles?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approved_by?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approved_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutProfilesNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutProfilesNestedInput
   clients_clients_primary_scientist_idToprofiles?: Prisma.clientsUpdateManyWithoutProfiles_clients_primary_scientist_idToprofilesNestedInput
@@ -5165,6 +5397,8 @@ export type profilesUncheckedUpdateWithoutUser_push_subscriptionsInput = {
   has_analytics_access?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   has_assign_work_access?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   allowed_consoles?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approved_by?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approved_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutProfilesNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutProfilesNestedInput
   clients_clients_primary_scientist_idToprofiles?: Prisma.clientsUncheckedUpdateManyWithoutProfiles_clients_primary_scientist_idToprofilesNestedInput
@@ -5203,6 +5437,8 @@ export type profilesCreateManyOrganizationsInput = {
   has_analytics_access?: boolean | null
   has_assign_work_access?: boolean | null
   allowed_consoles?: string | null
+  approved_by?: string | null
+  approved_at?: Date | string | null
 }
 
 export type profilesUpdateWithoutOrganizationsInput = {
@@ -5219,6 +5455,8 @@ export type profilesUpdateWithoutOrganizationsInput = {
   has_analytics_access?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   has_assign_work_access?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   allowed_consoles?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approved_by?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approved_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutProfilesNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutProfilesNestedInput
   clients_clients_primary_scientist_idToprofiles?: Prisma.clientsUpdateManyWithoutProfiles_clients_primary_scientist_idToprofilesNestedInput
@@ -5259,6 +5497,8 @@ export type profilesUncheckedUpdateWithoutOrganizationsInput = {
   has_analytics_access?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   has_assign_work_access?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   allowed_consoles?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approved_by?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approved_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutProfilesNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutProfilesNestedInput
   clients_clients_primary_scientist_idToprofiles?: Prisma.clientsUncheckedUpdateManyWithoutProfiles_clients_primary_scientist_idToprofilesNestedInput
@@ -5298,6 +5538,8 @@ export type profilesUncheckedUpdateManyWithoutOrganizationsInput = {
   has_analytics_access?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   has_assign_work_access?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   allowed_consoles?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approved_by?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approved_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
 
@@ -5518,6 +5760,8 @@ export type profilesSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs
   has_analytics_access?: boolean
   has_assign_work_access?: boolean
   allowed_consoles?: boolean
+  approved_by?: boolean
+  approved_at?: boolean
   availabilityexceptions?: boolean | Prisma.profiles$availabilityexceptionsArgs<ExtArgs>
   bulk_assignments?: boolean | Prisma.profiles$bulk_assignmentsArgs<ExtArgs>
   clients_clients_primary_scientist_idToprofiles?: boolean | Prisma.profiles$clients_clients_primary_scientist_idToprofilesArgs<ExtArgs>
@@ -5561,6 +5805,8 @@ export type profilesSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Exte
   has_analytics_access?: boolean
   has_assign_work_access?: boolean
   allowed_consoles?: boolean
+  approved_by?: boolean
+  approved_at?: boolean
   users?: boolean | Prisma.usersDefaultArgs<ExtArgs>
   organizations?: boolean | Prisma.profiles$organizationsArgs<ExtArgs>
 }, ExtArgs["result"]["profiles"]>
@@ -5581,6 +5827,8 @@ export type profilesSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Exte
   has_analytics_access?: boolean
   has_assign_work_access?: boolean
   allowed_consoles?: boolean
+  approved_by?: boolean
+  approved_at?: boolean
   users?: boolean | Prisma.usersDefaultArgs<ExtArgs>
   organizations?: boolean | Prisma.profiles$organizationsArgs<ExtArgs>
 }, ExtArgs["result"]["profiles"]>
@@ -5601,9 +5849,11 @@ export type profilesSelectScalar = {
   has_analytics_access?: boolean
   has_assign_work_access?: boolean
   allowed_consoles?: boolean
+  approved_by?: boolean
+  approved_at?: boolean
 }
 
-export type profilesOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "first_name" | "last_name" | "organization_id" | "is_approved" | "uhid" | "ams_role" | "profession" | "created_at" | "avatar_url" | "mobile_no" | "has_calendar_access" | "has_analytics_access" | "has_assign_work_access" | "allowed_consoles", ExtArgs["result"]["profiles"]>
+export type profilesOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "first_name" | "last_name" | "organization_id" | "is_approved" | "uhid" | "ams_role" | "profession" | "created_at" | "avatar_url" | "mobile_no" | "has_calendar_access" | "has_analytics_access" | "has_assign_work_access" | "allowed_consoles" | "approved_by" | "approved_at", ExtArgs["result"]["profiles"]>
 export type profilesInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   availabilityexceptions?: boolean | Prisma.profiles$availabilityexceptionsArgs<ExtArgs>
   bulk_assignments?: boolean | Prisma.profiles$bulk_assignmentsArgs<ExtArgs>
@@ -5684,6 +5934,8 @@ export type $profilesPayload<ExtArgs extends runtime.Types.Extensions.InternalAr
     has_analytics_access: boolean | null
     has_assign_work_access: boolean | null
     allowed_consoles: string | null
+    approved_by: string | null
+    approved_at: Date | null
   }, ExtArgs["result"]["profiles"]>
   composites: {}
 }
@@ -6146,6 +6398,8 @@ export interface profilesFieldRefs {
   readonly has_analytics_access: Prisma.FieldRef<"profiles", 'Boolean'>
   readonly has_assign_work_access: Prisma.FieldRef<"profiles", 'Boolean'>
   readonly allowed_consoles: Prisma.FieldRef<"profiles", 'String'>
+  readonly approved_by: Prisma.FieldRef<"profiles", 'String'>
+  readonly approved_at: Prisma.FieldRef<"profiles", 'DateTime'>
 }
     
 
