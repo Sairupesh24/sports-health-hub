@@ -522,9 +522,19 @@ router.get('/users', requireAuth, async (req, res) => {
         const orgId = req.user.organization_id;
         
         const result = await db.query(`
-            SELECT p.*, u.email, u.role as current_role
+            SELECT 
+                p.*, 
+                u.email, 
+                u.role as current_role,
+                CASE 
+                    WHEN approver.id IS NOT NULL THEN TRIM(CONCAT(approver.first_name, ' ', approver.last_name))
+                    ELSE NULL 
+                END as approver_name,
+                approver_user.email as approver_email
             FROM profiles p
             JOIN users u ON p.id = u.id
+            LEFT JOIN profiles approver ON p.approved_by = approver.id
+            LEFT JOIN users approver_user ON p.approved_by = approver_user.id
             WHERE p.organization_id = $1
             AND u.role != 'super_admin'
             ORDER BY u.created_at DESC
@@ -544,9 +554,20 @@ router.get('/users/:id/profile-activity', requireAuth, async (req, res) => {
 
         // 1. User & Profile Details
         const userRes = await db.query(`
-            SELECT p.*, u.email, u.role as current_role, u.created_at as user_created_at
+            SELECT 
+                p.*, 
+                u.email, 
+                u.role as current_role, 
+                u.created_at as user_created_at,
+                CASE 
+                    WHEN approver.id IS NOT NULL THEN TRIM(CONCAT(approver.first_name, ' ', approver.last_name))
+                    ELSE NULL 
+                END as approver_name,
+                approver_user.email as approver_email
             FROM profiles p
             JOIN users u ON p.id = u.id
+            LEFT JOIN profiles approver ON p.approved_by = approver.id
+            LEFT JOIN users approver_user ON p.approved_by = approver_user.id
             WHERE p.id = $1 AND (p.id = $4 OR p.organization_id = $2 OR $2 IS NULL OR $3 = 'super_admin')
         `, [id, orgId, req.user.role, req.user.id]).catch(() => ({ rows: [] }));
 
@@ -674,9 +695,11 @@ router.post('/users/:id/approve', requireAuth, async (req, res) => {
                 is_approved = true,
                 profession = $1,
                 ams_role = $2,
-                uhid = $3
-            WHERE id = $4 AND organization_id = $5
-        `, [profession || null, ams_role || null, finalUhid, id, orgId]);
+                uhid = $3,
+                approved_by = $4,
+                approved_at = CURRENT_TIMESTAMP
+            WHERE id = $5 AND organization_id = $6
+        `, [profession || null, ams_role || null, finalUhid, req.user.id, id, orgId]);
 
         // 2. Update User Role
         await client.query('UPDATE users SET role = $1 WHERE id = $2', [role, id]);
@@ -687,6 +710,16 @@ router.post('/users/:id/approve', requireAuth, async (req, res) => {
         }
 
         await client.query('COMMIT');
+
+        // Record audit log for user approval
+        try {
+            await db.query(`
+                INSERT INTO audit_logs (organization_id, entity_type, entity_id, action, performed_by, details)
+                VALUES ($1, 'user', $2, 'approved', $3, $4::jsonb)
+            `, [orgId, id, req.user.id, JSON.stringify({ role, profession, ams_role, uhid: finalUhid })]);
+        } catch (auditErr) {
+            console.warn('Could not record user approval in audit_logs:', auditErr.message);
+        }
 
         // Notify the approved user directly
         const approvedUserName = `${profession ? profession.replace(/_/g, ' ') : (role || 'user')}`;
@@ -854,8 +887,8 @@ router.post('/users', requireAuth, async (req, res) => {
 
         // 2. Insert Profile
         await client.query(
-            'INSERT INTO profiles (id, first_name, last_name, organization_id, is_approved, profession, uhid, ams_role) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
-            [userId, firstName, lastName, orgId, true, profession || null, uhid || null, ams_role || null]
+            'INSERT INTO profiles (id, first_name, last_name, organization_id, is_approved, profession, uhid, ams_role, approved_by, approved_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, CURRENT_TIMESTAMP)',
+            [userId, firstName, lastName, orgId, true, profession || null, uhid || null, ams_role || null, req.user.id]
         );
 
         // --- Auto-allocation trigger ---
@@ -864,6 +897,17 @@ router.post('/users', requireAuth, async (req, res) => {
         }
 
         await client.query('COMMIT');
+
+        // Record audit log for direct user creation & approval
+        try {
+            await db.query(`
+                INSERT INTO audit_logs (organization_id, entity_type, entity_id, action, performed_by, details)
+                VALUES ($1, 'user', $2, 'created_and_approved', $3, $4::jsonb)
+            `, [orgId, userId, req.user.id, JSON.stringify({ email, firstName, lastName, role, profession, uhid, ams_role })]);
+        } catch (auditErr) {
+            console.warn('Could not record user creation in audit_logs:', auditErr.message);
+        }
+
         res.json({ success: true, user: { email, password } });
     } catch (error) {
         await client.query('ROLLBACK');

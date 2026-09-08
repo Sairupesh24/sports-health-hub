@@ -45,6 +45,10 @@ interface ProfileActivityResponse {
     mobile_no?: string;
     uhid?: string;
     is_approved?: boolean;
+    approved_by?: string;
+    approved_at?: string;
+    approver_name?: string;
+    approver_email?: string;
     user_created_at?: string;
     organization_id?: string;
     gender?: string;
@@ -138,8 +142,12 @@ export function UserProfileModal({ userId, open, onOpenChange }: UserProfileModa
                   <div className="flex flex-wrap items-center gap-2">
                     <h2 className="text-xl sm:text-2xl font-black tracking-tight">{fullName}</h2>
                     {profile.is_approved ? (
-                      <Badge className="bg-emerald-500/20 text-emerald-300 border-emerald-500/30 text-[10px] uppercase font-bold gap-1">
-                        <CheckCircle className="w-3 h-3 text-emerald-400" /> Approved
+                      <Badge 
+                        className="bg-emerald-500/20 text-emerald-300 border-emerald-500/30 text-[10px] uppercase font-bold gap-1"
+                        title={profile.approver_name ? `Approved by ${profile.approver_name}` : "Account Approved"}
+                      >
+                        <CheckCircle className="w-3 h-3 text-emerald-400" />
+                        {profile.approver_name ? `Approved by ${profile.approver_name}` : 'Approved'}
                       </Badge>
                     ) : (
                       <Badge variant="outline" className="bg-amber-500/20 text-amber-300 border-amber-500/30 text-[10px] uppercase font-bold">

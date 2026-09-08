@@ -307,6 +307,12 @@ async function runMigrations() {
     try {
       await pool.query(`ALTER TABLE profiles ADD COLUMN allowed_consoles TEXT;`);
     } catch (e) {}
+    try {
+      await pool.query(`ALTER TABLE profiles ADD COLUMN approved_by UUID REFERENCES profiles(id) ON DELETE SET NULL;`);
+    } catch (e) {}
+    try {
+      await pool.query(`ALTER TABLE profiles ADD COLUMN approved_at TIMESTAMPTZ;`);
+    } catch (e) {}
 
 
     // Create authsessions table for OTP

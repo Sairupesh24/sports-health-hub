@@ -9,11 +9,12 @@ import { apiFetch } from "@/utils/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { CheckCircle, Users, UserX, Plus, Copy, ExternalLink, Search, Trash2, Clock, UserCheck, Shield, Filter, RotateCcw, Maximize2, Minimize2, User } from "lucide-react";
+import { CheckCircle, Users, UserX, Plus, Copy, ExternalLink, Search, Trash2, Clock, UserCheck, Shield, Filter, RotateCcw, Maximize2, Minimize2, User, ShieldCheck } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { useNavigate } from "react-router-dom";
 import { UserProfileModal } from "@/components/hr/UserProfileModal";
 import { formatClientName } from "@/lib/utils";
+import { format } from "date-fns";
 
 interface PendingUser {
   id: string;
@@ -26,7 +27,22 @@ interface PendingUser {
   uhid?: string;
   ams_role?: string | null;
   profession?: string | null;
+  approved_by?: string | null;
+  approved_at?: string | null;
+  approver_name?: string | null;
+  approver_email?: string | null;
 }
+
+const formatApprovalDate = (dateStr?: string | null) => {
+  if (!dateStr) return null;
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return null;
+    return format(d, "dd MMM yyyy, hh:mm a");
+  } catch {
+    return null;
+  }
+};
 
 export default function UserApproval() {
   const { profile } = useAuth();
@@ -51,7 +67,8 @@ export default function UserApproval() {
         fullName.includes(query) ||
         (u.email && u.email.toLowerCase().includes(query)) ||
         (u.current_role && u.current_role.toLowerCase().includes(query)) ||
-        (u.uhid && u.uhid.toLowerCase().includes(query))
+        (u.uhid && u.uhid.toLowerCase().includes(query)) ||
+        (u.approver_name && u.approver_name.toLowerCase().includes(query))
       );
       if (!matchesSearch) return false;
     }
@@ -877,6 +894,19 @@ export default function UserApproval() {
                         )}
                       </div>
                       <p className="text-xs text-muted-foreground break-all">{u.email}</p>
+                      
+                      {/* Approver log information */}
+                      {u.is_approved && (
+                        <div className="flex items-center gap-1.5 mt-1.5 text-[11px] text-muted-foreground">
+                          <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                          <span>
+                            Approved by <strong className="text-foreground font-semibold">{u.approver_name || "Admin"}</strong>
+                            {u.approved_at && (
+                              <span className="text-muted-foreground/80 font-normal"> on {formatApprovalDate(u.approved_at)}</span>
+                            )}
+                          </span>
+                        </div>
+                      )}
                     </div>
 
                     <div className="flex flex-row flex-wrap items-center gap-2 w-full md:w-auto mt-1 md:mt-0">
@@ -894,7 +924,11 @@ export default function UserApproval() {
                       {u.is_approved ? (
                         <>
                           <div className="flex items-center gap-2 flex-1 md:flex-none">
-                            <Badge variant="secondary" className="bg-success/10 text-success border-success/20 h-9 hidden xl:flex">
+                            <Badge 
+                              variant="secondary" 
+                              className="bg-success/10 text-success border-success/20 h-9 hidden xl:flex cursor-help"
+                              title={u.approver_name ? `Approved by ${u.approver_name}${u.approved_at ? ` on ${formatApprovalDate(u.approved_at)}` : ''}` : "Account Approved"}
+                            >
                               <CheckCircle className="w-3 h-3 mr-1" /> Approved
                             </Badge>
                             <Select value={selectedRoles[u.id] || ""} onValueChange={(v) => handleRoleSelect(u.id, v)}>

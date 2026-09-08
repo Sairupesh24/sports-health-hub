@@ -909,6 +909,8 @@ model Profile {
   hasAnalyticsAccess                         Boolean?                   @default(false) @map("has_analytics_access")
   hasAssignWorkAccess                        Boolean?                   @default(false) @map("has_assign_work_access")
   allowedConsoles                            String?                    @map("allowed_consoles")
+  approvedBy                                 String?                    @map("approved_by") @db.Uuid
+  approvedAt                                 DateTime?                  @map("approved_at") @db.Timestamptz(6)
   availabilityexceptions                     AvailabilityException[]
   bulkAssignments                            BulkAssignment[]
   clientsClientsPrimaryScientistIdToprofiles Client[]                   @relation("clients_primary_scientist_idToprofiles")
