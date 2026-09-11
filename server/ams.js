@@ -3,6 +3,7 @@ import crypto from 'crypto';
 import { db } from './db.js';
 import { requireAuth } from './middleware.js';
 import { autoCompleteStartedSessions } from './appointments.js';
+import { classifySessionCategory, findMatchingEntitlement, deductEntitlementForSession, isEntitlementExempt } from './entitlementHelper.js';
 import path from 'path';
 import fs from 'fs/promises';
 import { fileURLToPath } from 'url';
@@ -548,40 +549,16 @@ router.post('/sessions/bulk', requireAuth, async (req, res) => {
 
                 // Entitlement deduction when transitioning to Completed
                 if (session.status === 'Completed' && targetSession.status !== 'Completed') {
-                    let entitlementId = targetSession.entitlement_id;
-                    let isUnentitled = targetSession.is_unentitled;
+                    const deductRes = await deductEntitlementForSession(client, {
+                        ...targetSession,
+                        ...session,
+                        source_console: targetSession.source_console || session.source_console || 'sports_science'
+                    }, { sourceConsole: 'sports_science', user: req.user });
 
-                    if (!entitlementId && !isUnentitled && session.client_id) {
-                        const svcType = session.service_type || targetSession.service_type;
-                        const entRes = await client.query(`
-                            SELECT id FROM cliententitlements 
-                            WHERE client_id = $1 AND organization_id = $2 
-                            AND service_type = $3 AND status = 'active' AND (granted_sessions - sessions_used) > 0
-                            LIMIT 1
-                        `, [session.client_id, orgId, svcType]);
-
-                        if (entRes.rows.length > 0) {
-                            entitlementId = entRes.rows[0].id;
-                            await client.query(
-                                'UPDATE cliententitlements SET sessions_used = sessions_used + 1 WHERE id = $1',
-                                [entitlementId]
-                            );
-                            await client.query(
-                                'UPDATE sessions SET entitlement_id = $1, is_unentitled = false WHERE id = $2',
-                                [entitlementId, targetSessionId]
-                            );
-                        } else {
-                            await client.query(
-                                'UPDATE sessions SET is_unentitled = true WHERE id = $1',
-                                [targetSessionId]
-                            );
-                        }
-                    } else if (entitlementId && !isUnentitled) {
-                        await client.query(
-                            'UPDATE cliententitlements SET sessions_used = sessions_used + 1 WHERE id = $1',
-                            [entitlementId]
-                        );
-                    }
+                    await client.query(
+                        'UPDATE sessions SET entitlement_id = $1, is_unentitled = $2 WHERE id = $3',
+                        [deductRes.entitlementId, deductRes.isUnentitled, targetSessionId]
+                    );
                 }
 
                 // If marked Completed, cancel any other lingering duplicate Planned session at this exact slot
@@ -600,6 +577,21 @@ router.post('/sessions/bulk', requireAuth, async (req, res) => {
                 insertedSessions.push({ id: targetSessionId });
             } else {
                 // No existing session found, insert new session
+                if (!session.source_console) {
+                    session.source_console = 'sports_science';
+                }
+
+                const sCat = classifySessionCategory(session, { sourceConsole: 'sports_science', user: req.user });
+                if (isEntitlementExempt(sCat)) {
+                    session.is_unentitled = false;
+                }
+
+                if (session.status === 'Completed') {
+                    const deductRes = await deductEntitlementForSession(client, session, { sourceConsole: 'sports_science', user: req.user });
+                    session.entitlement_id = deductRes.entitlementId;
+                    session.is_unentitled = deductRes.isUnentitled;
+                }
+
                 const keys = ['organization_id', 'created_by'];
                 const values = [orgId, userId];
                 let placeholders = ['$1', '$2'];

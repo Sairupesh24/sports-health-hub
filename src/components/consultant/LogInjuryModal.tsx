@@ -15,9 +15,10 @@ interface LogInjuryModalProps {
     clientId?: string;
     organizationId: string;
     onSuccess: () => void;
+    trigger?: React.ReactNode;
 }
 
-export default function LogInjuryModal({ clientId, organizationId, onSuccess }: LogInjuryModalProps) {
+export default function LogInjuryModal({ clientId, organizationId, onSuccess, trigger }: LogInjuryModalProps) {
     const { user } = useAuth();
     const [open, setOpen] = useState(false);
     const [loading, setLoading] = useState(false);
@@ -136,10 +137,14 @@ export default function LogInjuryModal({ clientId, organizationId, onSuccess }: 
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-                <Button className="w-full sm:w-auto">
-                    <PlusCircle className="w-4 h-4 mr-2" />
-                    Log New Injury
-                </Button>
+                {trigger ? (
+                    trigger
+                ) : (
+                    <Button className="w-full sm:w-auto">
+                        <PlusCircle className="w-4 h-4 mr-2" />
+                        Log New Injury
+                    </Button>
+                )}
             </DialogTrigger>
             <DialogContent className="sm:max-w-[500px] max-h-[90dvh] flex flex-col p-0 gap-0">
                 <DialogHeader className="px-6 pt-6 pb-4 border-b shrink-0">

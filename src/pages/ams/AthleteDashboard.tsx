@@ -169,22 +169,24 @@ export default function AthleteDashboard() {
 
             {/* FEED MODULES (Tabs approach upgraded) */}
             <Tabs defaultValue="training" className="w-full space-y-6">
-              <TabsList className="bg-white/50 backdrop-blur-md p-1.5 border border-slate-200 rounded-[20px] shadow-sm flex justify-start gap-1 w-fit">
-                <TabsTrigger value="training" className="gap-2 px-6 rounded-2xl data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-lg shadow-primary/20 font-black text-[11px] uppercase tracking-widest">
-                  Train
-                </TabsTrigger>
-                <TabsTrigger value="wellness" className="gap-2 px-6 rounded-2xl data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-lg shadow-primary/20 font-black text-[11px] uppercase tracking-widest">
-                  Wellness
-                </TabsTrigger>
-                <TabsTrigger value="analytics" className="gap-2 px-6 rounded-2xl data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-lg shadow-primary/20 font-black text-[11px] uppercase tracking-widest">
-                  Performance
-                </TabsTrigger>
-                {isSportsScientist && (
-                  <TabsTrigger value="documents" className="gap-2 px-6 rounded-2xl data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-lg shadow-slate-900/20 font-black text-[11px] uppercase tracking-widest">
-                    Documents
+              <div className="w-full overflow-x-auto no-scrollbar touch-pan-x overscroll-x-contain pb-1 -mx-2 px-2 sm:mx-0 sm:px-0">
+                <TabsList className="bg-white/50 backdrop-blur-md p-1.5 border border-slate-200 rounded-[20px] shadow-sm inline-flex justify-start gap-1 w-max min-w-fit shrink-0">
+                  <TabsTrigger value="training" className="shrink-0 whitespace-nowrap gap-2 px-6 rounded-2xl data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-lg shadow-primary/20 font-black text-[11px] uppercase tracking-widest">
+                    Train
                   </TabsTrigger>
-                )}
-              </TabsList>
+                  <TabsTrigger value="wellness" className="shrink-0 whitespace-nowrap gap-2 px-6 rounded-2xl data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-lg shadow-primary/20 font-black text-[11px] uppercase tracking-widest">
+                    Wellness
+                  </TabsTrigger>
+                  <TabsTrigger value="analytics" className="shrink-0 whitespace-nowrap gap-2 px-6 rounded-2xl data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-lg shadow-primary/20 font-black text-[11px] uppercase tracking-widest">
+                    Performance
+                  </TabsTrigger>
+                  {isSportsScientist && (
+                    <TabsTrigger value="documents" className="shrink-0 whitespace-nowrap gap-2 px-6 rounded-2xl data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-lg shadow-slate-900/20 font-black text-[11px] uppercase tracking-widest">
+                      Documents
+                    </TabsTrigger>
+                  )}
+                </TabsList>
+              </div>
 
               <TabsContent value="training" className="mt-0 animate-in slide-in-from-left-4 duration-500">
                 <div className="glass-card rounded-[32px] border-none shadow-sm overflow-hidden bg-white/40 p-1">

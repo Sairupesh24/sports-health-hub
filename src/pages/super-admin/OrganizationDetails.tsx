@@ -434,32 +434,34 @@ export default function OrganizationDetails() {
                 </div>
 
                 <Tabs defaultValue="overview" className="w-full">
-                    <TabsList className="mb-8 p-1 bg-muted/50 border border-border rounded-xl">
-                        <TabsTrigger value="overview" className="flex gap-2 items-center px-5 py-2.5 rounded-lg data-[state=active]:shadow-sm">
-                            <Activity className="w-4 h-4" /> Overview
-                        </TabsTrigger>
-                        <TabsTrigger value="modules" className="flex gap-2 items-center px-5 py-2.5 rounded-lg data-[state=active]:shadow-sm">
-                            <Building2 className="w-4 h-4 text-purple-600" /> Module Access
-                        </TabsTrigger>
-                        <TabsTrigger value="branding" className="flex gap-2 items-center px-5 py-2.5 rounded-lg data-[state=active]:shadow-sm">
-                            <Palette className="w-4 h-4" /> Branding
-                        </TabsTrigger>
-                        <TabsTrigger value="settings" className="flex gap-2 items-center px-5 py-2.5 rounded-lg data-[state=active]:shadow-sm">
-                            <Building className="w-4 h-4" /> Org Details
-                        </TabsTrigger>
-                        <TabsTrigger value="packages" className="flex gap-2 items-center px-5 py-2.5 rounded-lg data-[state=active]:shadow-sm">
-                            <Package className="w-4 h-4" /> Services
-                        </TabsTrigger>
-                        <TabsTrigger value="users" className="flex gap-2 items-center px-5 py-2.5 rounded-lg data-[state=active]:shadow-sm">
-                            <Users className="w-4 h-4" /> Users
-                        </TabsTrigger>
-                        <TabsTrigger value="security" className="flex gap-2 items-center px-5 py-2.5 rounded-lg data-[state=active]:shadow-sm">
-                            <ShieldCheck className="w-4 h-4" /> Security
-                        </TabsTrigger>
-                        <TabsTrigger value="enquiry" className="flex gap-2 items-center px-5 py-2.5 rounded-lg data-[state=active]:shadow-sm">
-                            <MessageSquare className="w-4 h-4" /> Enquiry Form
-                        </TabsTrigger>
-                    </TabsList>
+                    <div className="w-full overflow-x-auto no-scrollbar touch-pan-x overscroll-x-contain pb-2 mb-6 -mx-2 px-2 sm:mx-0 sm:px-0">
+                        <TabsList className="p-1 bg-muted/50 border border-border rounded-xl inline-flex w-max min-w-full gap-1 shrink-0">
+                            <TabsTrigger value="overview" className="shrink-0 whitespace-nowrap flex gap-2 items-center px-5 py-2.5 rounded-lg data-[state=active]:shadow-sm">
+                                <Activity className="w-4 h-4" /> Overview
+                            </TabsTrigger>
+                            <TabsTrigger value="modules" className="shrink-0 whitespace-nowrap flex gap-2 items-center px-5 py-2.5 rounded-lg data-[state=active]:shadow-sm">
+                                <Building2 className="w-4 h-4 text-purple-600" /> Module Access
+                            </TabsTrigger>
+                            <TabsTrigger value="branding" className="shrink-0 whitespace-nowrap flex gap-2 items-center px-5 py-2.5 rounded-lg data-[state=active]:shadow-sm">
+                                <Palette className="w-4 h-4" /> Branding
+                            </TabsTrigger>
+                            <TabsTrigger value="settings" className="shrink-0 whitespace-nowrap flex gap-2 items-center px-5 py-2.5 rounded-lg data-[state=active]:shadow-sm">
+                                <Building className="w-4 h-4" /> Org Details
+                            </TabsTrigger>
+                            <TabsTrigger value="packages" className="shrink-0 whitespace-nowrap flex gap-2 items-center px-5 py-2.5 rounded-lg data-[state=active]:shadow-sm">
+                                <Package className="w-4 h-4" /> Services
+                            </TabsTrigger>
+                            <TabsTrigger value="users" className="shrink-0 whitespace-nowrap flex gap-2 items-center px-5 py-2.5 rounded-lg data-[state=active]:shadow-sm">
+                                <Users className="w-4 h-4" /> Users
+                            </TabsTrigger>
+                            <TabsTrigger value="security" className="shrink-0 whitespace-nowrap flex gap-2 items-center px-5 py-2.5 rounded-lg data-[state=active]:shadow-sm">
+                                <ShieldCheck className="w-4 h-4" /> Security
+                            </TabsTrigger>
+                            <TabsTrigger value="enquiry" className="shrink-0 whitespace-nowrap flex gap-2 items-center px-5 py-2.5 rounded-lg data-[state=active]:shadow-sm">
+                                <MessageSquare className="w-4 h-4" /> Enquiry Form
+                            </TabsTrigger>
+                        </TabsList>
+                    </div>
 
 
                     <TabsContent value="modules">

@@ -493,24 +493,24 @@ export default function NutritionAssessmentForm({
 
       {/* Navigation Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="flex overflow-x-auto md:grid md:grid-cols-6 h-auto p-1 bg-muted/60 rounded-xl gap-1 scrollbar-none">
-          <TabsTrigger value="section-a" className="text-xs py-2 gap-1.5 font-medium shrink-0">
-            <User className="w-3.5 h-3.5" /> Personal Details
+        <TabsList className="flex overflow-x-auto md:grid md:grid-cols-6 h-auto p-1 bg-muted/60 rounded-xl gap-1 no-scrollbar touch-pan-x overscroll-x-contain pb-1">
+          <TabsTrigger value="section-a" className="text-xs py-2 gap-1.5 font-medium shrink-0 whitespace-nowrap">
+            <User className="w-3.5 h-3.5 shrink-0" /> Personal Details
           </TabsTrigger>
-          <TabsTrigger value="section-b" className="text-xs py-2 gap-1.5 font-medium">
-            <Activity className="w-3.5 h-3.5" /> Anthropometrics
+          <TabsTrigger value="section-b" className="text-xs py-2 gap-1.5 font-medium shrink-0 whitespace-nowrap">
+            <Activity className="w-3.5 h-3.5 shrink-0" /> Anthropometrics
           </TabsTrigger>
-          <TabsTrigger value="section-c" className="text-xs py-2 gap-1.5 font-medium">
-            <Apple className="w-3.5 h-3.5" /> Dietary Habits
+          <TabsTrigger value="section-c" className="text-xs py-2 gap-1.5 font-medium shrink-0 whitespace-nowrap">
+            <Apple className="w-3.5 h-3.5 shrink-0" /> Dietary Habits
           </TabsTrigger>
-          <TabsTrigger value="section-d" className="text-xs py-2 gap-1.5 font-medium">
-            <Zap className="w-3.5 h-3.5" /> Training Nutrition
+          <TabsTrigger value="section-d" className="text-xs py-2 gap-1.5 font-medium shrink-0 whitespace-nowrap">
+            <Zap className="w-3.5 h-3.5 shrink-0" /> Training Nutrition
           </TabsTrigger>
-          <TabsTrigger value="section-e" className="text-xs py-2 gap-1.5 font-medium">
-            <Pill className="w-3.5 h-3.5" /> Supplements
+          <TabsTrigger value="section-e" className="text-xs py-2 gap-1.5 font-medium shrink-0 whitespace-nowrap">
+            <Pill className="w-3.5 h-3.5 shrink-0" /> Supplements
           </TabsTrigger>
-          <TabsTrigger value="section-f" className="text-xs py-2 gap-1.5 font-medium">
-            <ClipboardCheck className="w-3.5 h-3.5" /> Summary & Advice
+          <TabsTrigger value="section-f" className="text-xs py-2 gap-1.5 font-medium shrink-0 whitespace-nowrap">
+            <ClipboardCheck className="w-3.5 h-3.5 shrink-0" /> Summary & Advice
           </TabsTrigger>
         </TabsList>
 

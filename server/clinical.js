@@ -1,6 +1,7 @@
 import express from 'express';
 import { db } from './db.js';
 import { requireAuth } from './middleware.js';
+import { classifySessionCategory, findMatchingEntitlement, deductEntitlementForSession, isEntitlementExempt } from './entitlementHelper.js';
 
 const router = express.Router();
 
@@ -304,33 +305,15 @@ router.post('/sessions/:id/soap', requireAuth, async (req, res) => {
         let isUnentitled = session.is_unentitled;
 
         if (session.status !== 'Completed') {
-            if (!entitlementId && !isUnentitled) {
-                const entRes = await client.query(`
-                    SELECT id FROM cliententitlements 
-                    WHERE client_id = $1 AND (organization_id = $2 OR $2 IS NULL)
-                    AND (
-                        service_id = $3 
-                        OR service_type = $4 
-                        OR LOWER(service_type) = LOWER($4)
-                        OR ($3 IS NULL AND $4 IS NULL)
-                    )
-                    AND status = 'active' AND (granted_sessions - sessions_used) > 0
-                    ORDER BY created_at ASC
-                    LIMIT 1
-                `, [session.client_id, effectiveOrgId, effectiveServiceId, effectiveServiceType]);
+            const deductRes = await deductEntitlementForSession(client, {
+                ...session,
+                service_id: effectiveServiceId,
+                service_type: effectiveServiceType,
+                source_console: session.source_console || 'clinical'
+            }, { sourceConsole: 'clinical', user: req.user });
 
-                if (entRes.rows.length > 0) {
-                    entitlementId = entRes.rows[0].id;
-                    await client.query(`
-                        UPDATE cliententitlements 
-                        SET sessions_used = sessions_used + 1, updated_at = NOW()
-                        WHERE id = $1
-                    `, [entitlementId]);
-                    isUnentitled = false;
-                } else {
-                    isUnentitled = true;
-                }
-            }
+            entitlementId = deductRes.entitlementId;
+            isUnentitled = deductRes.isUnentitled;
         }
 
         // 5. Update Session status to Completed
@@ -343,6 +326,7 @@ router.post('/sessions/:id/soap', requireAuth, async (req, res) => {
                 service_type = $2,
                 entitlement_id = $3,
                 is_unentitled = $4,
+                source_console = COALESCE(source_console, 'clinical'),
                 updated_at = NOW()
             WHERE id = $5
         `, [effectiveServiceId, effectiveServiceType, entitlementId || null, isUnentitled || false, id]);
@@ -370,37 +354,26 @@ router.post('/sessions/:id/reconcile', requireAuth, async (req, res) => {
         const session = sessionRes.rows[0];
         if (!session) throw new Error('Session not found');
 
-        const effectiveOrgId = session.organization_id || orgId;
+        const matchedEnt = await findMatchingEntitlement(client, {
+            ...session,
+            source_console: session.source_console || 'clinical'
+        }, { sourceConsole: 'clinical', user: req.user });
 
-        // Logic to find new active entitlement and decrement
-        const entRes = await client.query(`
-            UPDATE ClientEntitlements 
-            SET sessions_used = sessions_used + 1, updated_at = NOW()
-            WHERE id = (
-                SELECT id FROM ClientEntitlements
-                WHERE client_id = $1 
-                  AND (organization_id = $2 OR $2 IS NULL)
-                  AND (
-                      service_id = $3 
-                      OR service_type = $4 
-                      OR LOWER(service_type) = LOWER($4)
-                      OR ($3 IS NULL AND $4 IS NULL)
-                  )
-                  AND status = 'active' AND sessions_used < granted_sessions
-                ORDER BY created_at ASC
-                LIMIT 1
-            )
-            RETURNING id
-        `, [session.client_id, effectiveOrgId, session.service_id, session.service_type]);
-
-        if (entRes.rows.length > 0) {
-            await client.query('UPDATE Sessions SET is_unentitled = FALSE, entitlement_id = $1, updated_at = NOW() WHERE id = $2', [entRes.rows[0].id, id]);
-            await client.query('COMMIT');
-            res.json({ message: 'Session reconciled successfully' });
-        } else {
+        if (!matchedEnt) {
             throw new Error('No active entitlements found for reconciliation');
         }
+
+        await client.query(`
+            UPDATE cliententitlements 
+            SET sessions_used = sessions_used + 1, updated_at = NOW()
+            WHERE id = $1
+        `, [matchedEnt.id]);
+
+        await client.query('UPDATE Sessions SET is_unentitled = FALSE, entitlement_id = $1, updated_at = NOW() WHERE id = $2', [matchedEnt.id, id]);
+        await client.query('COMMIT');
+        res.json({ message: 'Session reconciled successfully' });
     } catch (error) {
+
         await client.query('ROLLBACK');
         res.status(500).json({ error: error.message });
     } finally {
@@ -681,9 +654,10 @@ router.get('/assessment-reports/client/:clientId', requireAuth, async (req, res)
                 car.*,
                 NULLIF(TRIM(CONCAT(COALESCE(p.first_name, ''), ' ', COALESCE(p.last_name, ''))), '') AS created_by_name,
                 p.profession AS created_by_profession,
-                p.role AS created_by_role
+                COALESCE(u.role, p.ams_role) AS created_by_role
             FROM client_assessment_reports car
             LEFT JOIN profiles p ON car.created_by = p.id
+            LEFT JOIN users u ON car.created_by = u.id
             WHERE car.client_id = $1 AND (car.organization_id = $2 OR $2 IS NULL)
             ORDER BY car.created_at DESC
         `, [clientId, orgId]);

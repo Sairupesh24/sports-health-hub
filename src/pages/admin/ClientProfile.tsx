@@ -1,11 +1,12 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import DashboardLayout from "@/components/layout/DashboardLayout";
+import SessionCategoryFilterBar from "@/components/shared/SessionCategoryFilterBar";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, User, Phone, MapPin, Shield, Activity, CalendarDays, FileText, Download, Users, Banknote, Smartphone, Landmark, CreditCard, Plus, X, ClipboardList } from "lucide-react";
+import { ArrowLeft, User, Phone, MapPin, Shield, Activity, CalendarDays, FileText, Download, Users, Banknote, Smartphone, Landmark, CreditCard, Plus, X, ClipboardList, Clock } from "lucide-react";
 import { apiFetch } from "@/utils/api";
 import { formatStaffName } from "@/utils/serviceMapping";
 import { format, parse } from "date-fns";
@@ -37,6 +38,33 @@ import { AssessmentReportsList } from "@/components/shared/assessment/Assessment
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { UpcomingPlanManager } from "@/components/sports-scientist/UpcomingPlanManager";
 import ClientQuestionnairesTab from "@/components/client/ClientQuestionnairesTab";
+
+const SESSION_CATEGORY_CONFIG: Record<string, { label: string; badgeClass: string }> = {
+    physiotherapy: {
+        label: "Physiotherapy",
+        badgeClass: "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/60 dark:text-blue-300 dark:border-blue-800"
+    },
+    sports_science: {
+        label: "Sports Science",
+        badgeClass: "bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/60 dark:text-indigo-300 dark:border-indigo-800"
+    },
+    device_assessment: {
+        label: "Device Assessments",
+        badgeClass: "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800"
+    },
+    nutrition: {
+        label: "Nutrition",
+        badgeClass: "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800"
+    },
+    active_recovery: {
+        label: "Active Recovery",
+        badgeClass: "bg-teal-50 text-teal-700 border-teal-200 dark:bg-teal-950/60 dark:text-teal-300 dark:border-teal-800"
+    },
+    other: {
+        label: "Other",
+        badgeClass: "bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700"
+    }
+};
 
 
 
@@ -94,6 +122,7 @@ export default function ClientProfile() {
     const [startDateInput, setStartDateInput] = useState("");
     const [endDateInput, setEndDateInput] = useState("");
     const [sessionTypeFilter, setSessionTypeFilter] = useState("all");
+    const [mobileViewMode, setMobileViewMode] = useState<'table' | 'cards'>('table');
 
     // Refund State
     const [isRefundModalOpen, setIsRefundModalOpen] = useState(false);
@@ -204,16 +233,47 @@ export default function ClientProfile() {
         }
     };
 
-    const { data: sessions, isLoading: sessionsLoading } = useQuery({
-        queryKey: ['client-sessions', id, startDate, endDate, sessionTypeFilter],
+    const { data: rawSessions = [], isLoading: sessionsLoading } = useQuery({
+        queryKey: ['client-sessions', id, startDate, endDate],
         queryFn: async () => {
             if (!id) return [];
             return apiFetch<any[]>(`/clients/${id}/sessions`, {
-                params: { startDate, endDate, sessionType: sessionTypeFilter }
+                params: { startDate, endDate }
             });
         },
         enabled: !!id
     });
+
+    const categoryCounts = useMemo(() => {
+        const counts = {
+            all: rawSessions.length,
+            completed: 0,
+            physiotherapy: 0,
+            sports_science: 0,
+            device_assessment: 0,
+            nutrition: 0,
+            active_recovery: 0,
+            other: 0,
+        };
+        rawSessions.forEach((s: any) => {
+            if (s.status === 'Completed') counts.completed++;
+            const cat = (s.session_category || 'other') as keyof typeof counts;
+            if (counts[cat] !== undefined) {
+                counts[cat]++;
+            } else {
+                counts.other++;
+            }
+        });
+        return counts;
+    }, [rawSessions]);
+
+    const filteredSessions = useMemo(() => {
+        if (!sessionTypeFilter || sessionTypeFilter === 'all') return rawSessions;
+        return rawSessions.filter((s: any) => {
+            return s.session_category === sessionTypeFilter || 
+                   (s.service_type || '').toLowerCase() === sessionTypeFilter.toLowerCase();
+        });
+    }, [rawSessions, sessionTypeFilter]);
 
     const { data: bills, isLoading: billsLoading } = useQuery({
         queryKey: ['client-bills', id],
@@ -477,31 +537,99 @@ export default function ClientProfile() {
     } = client;
 
     const handleExportExcel = () => {
-        if (!sessions || sessions.length === 0) {
-            toast({ title: "No data to export", variant: "destructive" });
+        if (!filteredSessions || filteredSessions.length === 0) {
+            toast({ title: "No data to export", description: "No sessions match the selected duration or filter.", variant: "destructive" });
             return;
         }
 
-        const exportData = sessions.map(s => ({
-            'Date & Time': s.scheduled_start ? format(new Date(s.scheduled_start), "dd MMM yyyy, hh:mm a") : "-",
-            'Type': s.service_type || "-",
-            'Provider': s.therapist
+        const clientFullName = fullName || formatClientName(client, { includeHonorific: true });
+        const clientUHID = uhid || client?.uhid || "-";
+
+        const exportData = filteredSessions.map((s: any) => {
+            const psd = s.physio_session_details?.[0] || {};
+            const startTime = s.scheduled_start ? new Date(s.scheduled_start) : null;
+            const endTime = s.scheduled_end ? new Date(s.scheduled_end) : null;
+
+            let durationStr = "-";
+            if (s.duration_minutes !== undefined && s.duration_minutes !== null) {
+                durationStr = `${s.duration_minutes} mins`;
+            } else if (startTime && endTime) {
+                const diffMins = Math.max(0, Math.round((endTime.getTime() - startTime.getTime()) / (1000 * 60)));
+                durationStr = `${diffMins} mins`;
+            }
+
+            const specialistName = s.therapist
                 ? formatStaffName({ ...s.therapist, service_type: s.service_type }, { useFirstName: true })
-                : (s.therapist_id || "-"),
-            'Status': s.status,
-            'Pain Score': s.physio_session_details?.[0]?.pain_score ?? "-",
-            'Clinical Notes': s.physio_session_details?.[0]?.clinical_notes || "-"
-        }));
+                : (s.therapist_id || "-");
+
+            const loggedByName = s.logged_by?.first_name || s.logged_by?.last_name
+                ? `${s.logged_by.first_name || ""} ${s.logged_by.last_name || ""}`.trim()
+                : (specialistName !== "-" ? specialistName : "System Staff");
+
+            const catDisplay = SESSION_CATEGORY_CONFIG[s.session_category]?.label || s.session_category || s.service_type || "General";
+
+            let entitlementDisplay = "Entitled";
+            if (s.session_category === 'sports_science') {
+                entitlementDisplay = "Exempt (Sports Science)";
+            } else if (s.is_unentitled) {
+                entitlementDisplay = "UN-ENTITLED";
+            }
+
+            const notes = psd.clinical_notes || s.session_notes || "-";
+            const recommendations = psd.next_plan || "-";
+            const modalities = psd.modality_used || psd.treatment_type || "-";
+
+            return {
+                'Client Name': clientFullName,
+                'UHID': clientUHID,
+                'Category': catDisplay,
+                'Session Type': s.service_type || "-",
+                'Session Mode': s.session_mode || "Individual",
+                'Date': startTime ? format(startTime, "dd MMM yyyy") : "-",
+                'From Time': startTime ? format(startTime, "hh:mm a") : "-",
+                'To Time': endTime ? format(endTime, "hh:mm a") : "-",
+                'Duration': durationStr,
+                'Specialist / Consultant': specialistName,
+                'Logged By': loggedByName,
+                'Status': s.status || "-",
+                'Pain Score': psd.pain_score !== undefined && psd.pain_score !== null ? `${psd.pain_score}/10` : "-",
+                'Treatment / Modality': modalities,
+                'Clinical Notes / Remarks': notes,
+                'Recommendations / Next Plan': recommendations,
+                'Entitlement Status': entitlementDisplay
+            };
+        });
 
         const worksheet = XLSX.utils.json_to_sheet(exportData);
+        worksheet['!cols'] = [
+            { wch: 22 }, // Client Name
+            { wch: 14 }, // UHID
+            { wch: 20 }, // Category
+            { wch: 22 }, // Session Type
+            { wch: 14 }, // Session Mode
+            { wch: 14 }, // Date
+            { wch: 12 }, // From Time
+            { wch: 12 }, // To Time
+            { wch: 12 }, // Duration
+            { wch: 22 }, // Specialist
+            { wch: 22 }, // Logged By
+            { wch: 12 }, // Status
+            { wch: 12 }, // Pain Score
+            { wch: 22 }, // Modality
+            { wch: 36 }, // Clinical Notes
+            { wch: 32 }, // Recommendations
+            { wch: 24 }, // Entitlement Status
+        ];
+
         const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, "Sessions");
-        XLSX.writeFile(workbook, `Sessions_${uhid || id}.xlsx`);
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Session Records");
+        const categorySlug = sessionTypeFilter === 'all' ? 'All_Sessions' : (SESSION_CATEGORY_CONFIG[sessionTypeFilter]?.label || sessionTypeFilter).replace(/\s+/g, '_');
+        XLSX.writeFile(workbook, `Sessions_${uhid || id}_${categorySlug}.xlsx`);
     };
 
     return (
         <DashboardLayout role="admin">
-            <div className="max-w-6xl mx-auto space-y-6 pb-28 md:pb-12 px-2 sm:px-4">
+            <div className="w-full space-y-6 pb-28 md:pb-12">
                 
                 {/* Top Back Bar & Action Buttons */}
                 <div className="flex items-center justify-between gap-3">
@@ -598,37 +726,37 @@ export default function ClientProfile() {
 
                 {/* Content Tabs - Full-width evenly distributed */}
                 <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-                    <div className="w-full mb-4 border-b border-border/40 pb-px">
-                        <TabsList className="flex w-full h-10 items-center rounded-xl bg-muted/60 p-0.5 text-muted-foreground gap-0">
-                            <TabsTrigger value="upcoming" className="flex-1 rounded-lg py-1.5 text-[10px] font-bold tracking-tight transition-all data-[state=active]:bg-primary data-[state=active]:text-white gap-1 justify-center whitespace-nowrap overflow-hidden">
-                                <CalendarDays className="w-3 h-3 shrink-0" /> <span className="truncate">Upcoming Events & Plan</span>
+                    <div className="w-full overflow-x-auto no-scrollbar touch-pan-x overscroll-x-contain mb-4 border-b border-border/40 pb-1 -mx-2 px-2 sm:mx-0 sm:px-0">
+                        <TabsList className="inline-flex w-max min-w-full h-10 items-center rounded-xl bg-muted/60 p-0.5 text-muted-foreground gap-1 shrink-0">
+                            <TabsTrigger value="upcoming" className="shrink-0 whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-bold tracking-tight transition-all data-[state=active]:bg-primary data-[state=active]:text-white gap-1.5 justify-center">
+                                <CalendarDays className="w-3.5 h-3.5 shrink-0" /> <span>Upcoming Events & Plan</span>
                             </TabsTrigger>
-                            <TabsTrigger value="profile" className="flex-1 rounded-lg py-1.5 text-[10px] font-bold tracking-tight transition-all data-[state=active]:bg-primary data-[state=active]:text-white gap-1 justify-center whitespace-nowrap overflow-hidden">
-                                <User className="w-3 h-3 shrink-0" /> <span className="truncate">Profile Details</span>
+                            <TabsTrigger value="profile" className="shrink-0 whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-bold tracking-tight transition-all data-[state=active]:bg-primary data-[state=active]:text-white gap-1.5 justify-center">
+                                <User className="w-3.5 h-3.5 shrink-0" /> <span>Profile Details</span>
                             </TabsTrigger>
-                            <TabsTrigger value="sessions" className="flex-1 rounded-lg py-1.5 text-[10px] font-bold tracking-tight transition-all data-[state=active]:bg-primary data-[state=active]:text-white gap-1 justify-center whitespace-nowrap overflow-hidden">
-                                <History className="w-3 h-3 shrink-0" /> <span className="truncate">Physio Sessions History</span>
+                            <TabsTrigger value="sessions" className="shrink-0 whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-bold tracking-tight transition-all data-[state=active]:bg-primary data-[state=active]:text-white gap-1.5 justify-center">
+                                <History className="w-3.5 h-3.5 shrink-0" /> <span>Physio Sessions History</span>
                             </TabsTrigger>
                             {isAdminOrFoe && (
-                                <TabsTrigger value="entitlements" className="flex-1 rounded-lg py-1.5 text-[10px] font-bold tracking-tight transition-all data-[state=active]:bg-primary data-[state=active]:text-white gap-1 justify-center whitespace-nowrap overflow-hidden">
-                                    <ShieldCheck className="w-3 h-3 shrink-0" /> <span className="truncate">Entitlements</span>
+                                <TabsTrigger value="entitlements" className="shrink-0 whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-bold tracking-tight transition-all data-[state=active]:bg-primary data-[state=active]:text-white gap-1.5 justify-center">
+                                    <ShieldCheck className="w-3.5 h-3.5 shrink-0" /> <span>Entitlements</span>
                                 </TabsTrigger>
                             )}
                             {isAdminOrFoe && (
-                                <TabsTrigger value="billing" className="flex-1 rounded-lg py-1.5 text-[10px] font-bold tracking-tight transition-all data-[state=active]:bg-primary data-[state=active]:text-white gap-1 justify-center whitespace-nowrap overflow-hidden">
-                                    <Banknote className="w-3 h-3 shrink-0" /> <span className="truncate">Billing History</span>
+                                <TabsTrigger value="billing" className="shrink-0 whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-bold tracking-tight transition-all data-[state=active]:bg-primary data-[state=active]:text-white gap-1.5 justify-center">
+                                    <Banknote className="w-3.5 h-3.5 shrink-0" /> <span>Billing History</span>
                                 </TabsTrigger>
                             )}
                             {canAccessDocuments && (
-                                <TabsTrigger value="documents" className="flex-1 rounded-lg py-1.5 text-[10px] font-bold tracking-tight transition-all data-[state=active]:bg-primary data-[state=active]:text-white gap-1 justify-center whitespace-nowrap overflow-hidden">
-                                    <FileText className="w-3 h-3 shrink-0" /> <span className="truncate">Documents</span>
+                                <TabsTrigger value="documents" className="shrink-0 whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-bold tracking-tight transition-all data-[state=active]:bg-primary data-[state=active]:text-white gap-1.5 justify-center">
+                                    <FileText className="w-3.5 h-3.5 shrink-0" /> <span>Documents</span>
                                 </TabsTrigger>
                             )}
-                            <TabsTrigger value="assessment-reports" className="flex-1 rounded-lg py-1.5 text-[10px] font-bold tracking-tight transition-all data-[state=active]:bg-primary data-[state=active]:text-white gap-1 justify-center whitespace-nowrap overflow-hidden">
-                                <Activity className="w-3 h-3 shrink-0" /> <span className="truncate">Assessment Reports</span>
+                            <TabsTrigger value="assessment-reports" className="shrink-0 whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-bold tracking-tight transition-all data-[state=active]:bg-primary data-[state=active]:text-white gap-1.5 justify-center">
+                                <Activity className="w-3.5 h-3.5 shrink-0" /> <span>Assessment Reports</span>
                             </TabsTrigger>
-                            <TabsTrigger value="questionnaires" className="flex-1 rounded-lg py-1.5 text-[10px] font-bold tracking-tight transition-all data-[state=active]:bg-primary data-[state=active]:text-white gap-1 justify-center whitespace-nowrap overflow-hidden">
-                                <ClipboardList className="w-3 h-3 shrink-0" /> <span className="truncate">Questionnaires</span>
+                            <TabsTrigger value="questionnaires" className="shrink-0 whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-bold tracking-tight transition-all data-[state=active]:bg-primary data-[state=active]:text-white gap-1.5 justify-center">
+                                <ClipboardList className="w-3.5 h-3.5 shrink-0" /> <span>Questionnaires</span>
                             </TabsTrigger>
                         </TabsList>
                     </div>
@@ -837,22 +965,73 @@ export default function ClientProfile() {
                     </TabsContent>
 
                     {/* SESSION HISTORY TAB */}
-                    <TabsContent value="sessions">
-                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                            <Card className="gradient-card border-border lg:col-span-2">
-                                <CardHeader>
-                                    <div className="flex items-center justify-between">
+                    <TabsContent value="sessions" className="w-full space-y-6">
+                        <Card className="gradient-card border-border w-full shadow-xs -mx-4 sm:mx-0 rounded-none sm:rounded-2xl border-x-0 sm:border-x">
+                            <CardHeader>
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                    <div>
                                         <CardTitle className="text-lg flex items-center gap-2">
                                             <CalendarDays className="w-5 h-5 text-primary" />
-                                            Physio Sessions History
+                                            Sessions History & Clinical Records
                                         </CardTitle>
+                                        <CardDescription>
+                                            Unified record of all client sessions, clinical SOAP notes, provider logs, and entitlement tracking.
+                                        </CardDescription>
+                                    </div>
+                                    <div className="flex items-center gap-2 self-start sm:self-auto">
+                                        <div className="flex items-center gap-1 p-0.5 bg-muted/60 rounded-xl border border-border/40 md:hidden">
+                                            <button
+                                                type="button"
+                                                onClick={() => setMobileViewMode('table')}
+                                                className={cn(
+                                                    "px-2.5 py-1 text-xs font-bold rounded-lg transition-all",
+                                                    mobileViewMode === 'table' ? "bg-background text-foreground shadow-2xs" : "text-muted-foreground hover:text-foreground"
+                                                )}
+                                            >
+                                                Table View
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => setMobileViewMode('cards')}
+                                                className={cn(
+                                                    "px-2.5 py-1 text-xs font-bold rounded-lg transition-all",
+                                                    mobileViewMode === 'cards' ? "bg-background text-foreground shadow-2xs" : "text-muted-foreground hover:text-foreground"
+                                                )}
+                                            >
+                                                Card View
+                                            </button>
+                                        </div>
                                         <Button variant="outline" size="sm" className="h-9 gap-2 text-xs font-bold" onClick={handleExportExcel}>
                                             <Download className="w-4 h-4" /> Export to Excel
                                         </Button>
                                     </div>
-                                    <CardDescription>
-                                        All past and upcoming appointments for this client.
-                                    </CardDescription>
+                                </div>
+
+                                    {/* Quick Summary Counts */}
+                                    <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
+                                        <div className="px-3 py-1 bg-muted/60 rounded-xl font-medium text-slate-700 dark:text-slate-200 flex items-center gap-1.5 border border-border/40">
+                                            <span className="font-bold text-[11px] uppercase tracking-wider text-muted-foreground">Total:</span>
+                                            <Badge variant="secondary" className="px-1.5 py-0 text-[11px] font-mono font-bold bg-background">
+                                                {categoryCounts.all}
+                                            </Badge>
+                                        </div>
+                                        <div className="px-3 py-1 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 rounded-xl font-medium flex items-center gap-1.5 border border-emerald-200 dark:border-emerald-800/40">
+                                            <span className="font-bold text-[11px] uppercase tracking-wider text-emerald-600 dark:text-emerald-400">Completed:</span>
+                                            <Badge variant="secondary" className="px-1.5 py-0 text-[11px] font-mono font-bold bg-white dark:bg-emerald-900 text-emerald-700 dark:text-emerald-300">
+                                                {categoryCounts.completed}
+                                            </Badge>
+                                        </div>
+                                        {sessionTypeFilter !== 'all' && (
+                                            <div className="px-3 py-1 bg-primary/10 text-primary rounded-xl font-medium flex items-center gap-1.5 border border-primary/20">
+                                                <span className="font-bold text-[11px] uppercase tracking-wider">Filtered ({SESSION_CATEGORY_CONFIG[sessionTypeFilter]?.label || sessionTypeFilter}):</span>
+                                                <Badge variant="secondary" className="px-1.5 py-0 text-[11px] font-mono font-bold bg-white dark:bg-slate-900 text-primary">
+                                                    {filteredSessions.length}
+                                                </Badge>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Filters Bar */}
                                     <div className="mt-4 grid grid-cols-2 sm:flex sm:flex-wrap gap-2.5 items-end">
                                         <div className="flex flex-col gap-1 col-span-1">
                                             <span className="text-[9px] text-muted-foreground uppercase font-black tracking-wider">Start Date</span>
@@ -987,156 +1166,245 @@ export default function ClientProfile() {
                                         </div>
 
                                         <div className="flex flex-col gap-1 col-span-2 sm:col-span-1">
-                                            <span className="text-[9px] text-muted-foreground uppercase font-black tracking-wider">Session Type</span>
+                                            <span className="text-[9px] text-muted-foreground uppercase font-black tracking-wider">Session Category</span>
                                             <Select value={sessionTypeFilter} onValueChange={setSessionTypeFilter}>
-                                                <SelectTrigger className="h-8.5 w-full sm:w-[150px] text-[11px] bg-muted/50 rounded-xl">
-                                                    <SelectValue placeholder="All Types" />
+                                                <SelectTrigger className="h-8.5 w-full sm:w-[190px] text-[11px] bg-muted/50 rounded-xl font-medium">
+                                                    <SelectValue placeholder="All Categories" />
                                                 </SelectTrigger>
                                                 <SelectContent>
-                                                    <SelectItem value="all">All Types</SelectItem>
-                                                    <SelectItem value="Physiotherapy">Physiotherapy</SelectItem>
-                                                    <SelectItem value="Sports Science">Sports Science</SelectItem>
-                                                    <SelectItem value="Nutrition">Nutrition</SelectItem>
-                                                    <SelectItem value="Active Recovery Training">Active Recovery</SelectItem>
+                                                    <SelectItem value="all">All Categories ({categoryCounts.all})</SelectItem>
+                                                    <SelectItem value="physiotherapy">Physiotherapy ({categoryCounts.physiotherapy})</SelectItem>
+                                                    <SelectItem value="sports_science">Sports Science ({categoryCounts.sports_science})</SelectItem>
+                                                    <SelectItem value="device_assessment">Device Assessments ({categoryCounts.device_assessment})</SelectItem>
+                                                    <SelectItem value="nutrition">Nutrition ({categoryCounts.nutrition})</SelectItem>
+                                                    <SelectItem value="active_recovery">Active Recovery Training ({categoryCounts.active_recovery})</SelectItem>
+                                                    <SelectItem value="other">Other ({categoryCounts.other})</SelectItem>
                                                 </SelectContent>
                                             </Select>
                                         </div>
+
+                                        {(startDate || endDate || sessionTypeFilter !== 'all') && (
+                                            <Button 
+                                                variant="ghost" 
+                                                size="sm" 
+                                                onClick={() => {
+                                                    setStartDate("");
+                                                    setStartDateInput("");
+                                                    setEndDate("");
+                                                    setEndDateInput("");
+                                                    setSessionTypeFilter("all");
+                                                }}
+                                                className="h-8.5 px-2.5 text-[11px] text-muted-foreground hover:text-foreground col-span-2 sm:col-span-1"
+                                            >
+                                                Reset Filters
+                                            </Button>
+                                        )}
                                     </div>
+
+                                    {/* Quick Category Filter Pills with Sideways Scroller & Controls */}
+                                    <SessionCategoryFilterBar 
+                                        selectedCategory={sessionTypeFilter} 
+                                        onSelectCategory={setSessionTypeFilter} 
+                                        categoryCounts={categoryCounts} 
+                                        className="mt-3"
+                                    />
                                 </CardHeader>
-                                <CardContent>
+                                <CardContent className="p-0 sm:p-6 pt-0 sm:pt-0">
                                     {sessionsLoading ? (
                                         <p className="text-xs text-muted-foreground p-4 text-center">Loading session history...</p>
-                                    ) : !sessions || sessions.length === 0 ? (
+                                    ) : !filteredSessions || filteredSessions.length === 0 ? (
                                         <p className="text-xs text-muted-foreground p-4 text-center py-10">No sessions found matching filters.</p>
                                     ) : (
                                         <>
-                                            {/* Mobile Session Cards (Visible on Mobile Viewports) */}
-                                            <div className="block md:hidden space-y-2.5">
-                                                {sessions.map((session: any) => {
-                                                    const providerName = session.therapist
-                                                        ? formatStaffName({ ...session.therapist, service_type: session.service_type }, { useFirstName: true })
-                                                        : (session.therapist_id || "-");
+                                            {/* Mobile Session Cards (Visible on Mobile Viewports when Card View is selected) */}
+                                            {mobileViewMode === 'cards' && (
+                                                <div className="block md:hidden space-y-2.5 p-3 sm:p-0">
+                                                    {filteredSessions.map((session: any) => {
+                                                        const providerName = session.therapist
+                                                            ? formatStaffName({ ...session.therapist, service_type: session.service_type }, { useFirstName: true })
+                                                            : (session.therapist_id || "-");
+                                                        const loggedByName = session.logged_by?.first_name || session.logged_by?.last_name
+                                                            ? `${session.logged_by.first_name || ""} ${session.logged_by.last_name || ""}`.trim()
+                                                            : providerName;
+                                                        const catConfig = SESSION_CATEGORY_CONFIG[session.session_category] || SESSION_CATEGORY_CONFIG.other;
 
-                                                    return (
-                                                        <div 
-                                                            key={session.id}
-                                                            className="p-3.5 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl shadow-2xs space-y-2.5"
-                                                        >
-                                                            {/* Top Row: Date/Time + Status Badge */}
-                                                            <div className="flex items-center justify-between gap-2 border-b border-border/40 pb-2">
-                                                                <div className="flex items-center gap-1.5 text-xs font-black text-slate-900 dark:text-white font-mono">
-                                                                    <CalendarDays className="w-3.5 h-3.5 text-primary shrink-0" />
-                                                                    <span>{session.scheduled_start ? format(new Date(session.scheduled_start), "dd MMM yyyy, hh:mm a") : "-"}</span>
-                                                                </div>
-                                                                <div className="flex items-center gap-1">
-                                                                    <Badge className={cn(
-                                                                        "text-[9px] font-black uppercase px-2 py-0.5 border-none",
-                                                                        session.status === 'Completed' ? 'bg-emerald-500 text-white' :
-                                                                        session.status === 'Planned' ? 'bg-blue-600 text-white' :
-                                                                        session.status === 'Checked In' ? 'bg-purple-600 text-white' :
-                                                                        'bg-slate-500 text-white'
-                                                                    )}>
-                                                                        {session.status}
-                                                                    </Badge>
-                                                                    {session.is_unentitled && isAdminOrFoe && (
-                                                                        <Badge variant="destructive" className="text-[8px] h-4 px-1 font-black animate-pulse">
-                                                                            UN-ENTITLED
+                                                        return (
+                                                            <div 
+                                                                key={session.id}
+                                                                className="p-3.5 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl shadow-2xs space-y-2.5"
+                                                            >
+                                                                {/* Top Row: Date/Time + Status Badge */}
+                                                                <div className="flex items-center justify-between gap-2 border-b border-border/40 pb-2">
+                                                                    <div className="flex items-center gap-1.5 text-xs font-black text-slate-900 dark:text-white font-mono">
+                                                                        <CalendarDays className="w-3.5 h-3.5 text-primary shrink-0" />
+                                                                        <span>{session.scheduled_start ? format(new Date(session.scheduled_start), "dd MMM yyyy, hh:mm a") : "-"}</span>
+                                                                    </div>
+                                                                    <div className="flex items-center gap-1 flex-wrap justify-end">
+                                                                        <Badge className={cn(
+                                                                            "text-[9px] font-black uppercase px-2 py-0.5 border-none",
+                                                                            session.status === 'Completed' ? 'bg-emerald-500 text-white' :
+                                                                            session.status === 'Planned' ? 'bg-blue-600 text-white' :
+                                                                            session.status === 'Checked In' ? 'bg-purple-600 text-white' :
+                                                                            'bg-slate-500 text-white'
+                                                                        )}>
+                                                                            {session.status}
                                                                         </Badge>
-                                                                    )}
-                                                                </div>
-                                                            </div>
-
-                                                            {/* Service & Specialist Grid */}
-                                                            <div className="grid grid-cols-2 gap-2 text-[11px]">
-                                                                <div className="bg-slate-50 dark:bg-slate-800/60 p-2.5 rounded-xl border border-slate-200/60 dark:border-slate-700/60">
-                                                                    <span className="text-[9px] font-black uppercase text-slate-400 block mb-0.5">Session / Service</span>
-                                                                    <Badge variant="outline" className="text-[10px] font-bold px-1.5 py-0 bg-white dark:bg-slate-900 border-slate-200">
-                                                                        {session.service_type || 'Performance'}
-                                                                    </Badge>
-                                                                </div>
-
-                                                                <div className="bg-slate-50 dark:bg-slate-800/60 p-2.5 rounded-xl border border-slate-200/60 dark:border-slate-700/60">
-                                                                    <span className="text-[9px] font-black uppercase text-slate-400 block mb-0.5">Specialist Provider</span>
-                                                                    <div className="flex items-center gap-1 text-[11px] font-bold text-slate-800 dark:text-slate-200 truncate">
-                                                                        <User className="w-3 h-3 text-slate-400 shrink-0" />
-                                                                        <span className="truncate">{providerName}</span>
+                                                                        {session.session_category === 'sports_science' ? (
+                                                                            <Badge variant="outline" className="text-[8px] h-4 px-1 font-bold text-indigo-600 border-indigo-200 dark:text-indigo-400">
+                                                                                Exempt (SS)
+                                                                            </Badge>
+                                                                        ) : session.is_unentitled && isAdminOrFoe ? (
+                                                                            <Badge className="text-[9px] font-black px-1.5 py-0.5 bg-rose-600 hover:bg-rose-700 text-white border-none whitespace-nowrap leading-none tracking-wider shadow-2xs">
+                                                                                UN-ENTITLED
+                                                                            </Badge>
+                                                                        ) : null}
                                                                     </div>
                                                                 </div>
-                                                            </div>
 
-                                                            {/* Notes / SOAP Footer */}
-                                                            {(session.physio_session_details && session.physio_session_details.length > 0) || session.session_mode === 'Group' ? (
-                                                                <div className="pt-1.5 border-t border-border/40 text-[10px] flex items-center justify-between">
-                                                                    {session.physio_session_details && session.physio_session_details.length > 0 ? (
-                                                                        <span className="text-emerald-600 font-bold flex items-center gap-1">
-                                                                            <FileText className="w-3 h-3" /> SOAP Note Available
-                                                                        </span>
-                                                                    ) : null}
-                                                                    {session.session_mode === 'Group' && (
-                                                                        <span className="italic text-slate-500">Group: {session.group_name}</span>
-                                                                    )}
+                                                                {/* Category, Service & Specialist Grid */}
+                                                                <div className="grid grid-cols-2 gap-2 text-[11px]">
+                                                                    <div className="bg-slate-50 dark:bg-slate-800/60 p-2.5 rounded-xl border border-slate-200/60 dark:border-slate-700/60">
+                                                                        <span className="text-[9px] font-black uppercase text-slate-400 block mb-1">Category & Type</span>
+                                                                        <Badge variant="outline" className={cn("text-[9px] font-bold px-1.5 py-0 mb-1 inline-block", catConfig.badgeClass)}>
+                                                                            {catConfig.label}
+                                                                        </Badge>
+                                                                        <p className="font-semibold text-foreground truncate">{session.service_type || 'Performance'}</p>
+                                                                    </div>
+
+                                                                    <div className="bg-slate-50 dark:bg-slate-800/60 p-2.5 rounded-xl border border-slate-200/60 dark:border-slate-700/60">
+                                                                        <span className="text-[9px] font-black uppercase text-slate-400 block mb-1">Specialist / Logged By</span>
+                                                                        <div className="flex items-center gap-1 text-[11px] font-bold text-slate-800 dark:text-slate-200 truncate">
+                                                                            <User className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                                                                            <span className="truncate">{providerName}</span>
+                                                                        </div>
+                                                                        <span className="text-[9px] text-muted-foreground block truncate mt-0.5">By: {loggedByName}</span>
+                                                                    </div>
                                                                 </div>
-                                                            ) : null}
-                                                        </div>
-                                                    );
-                                                })}
-                                            </div>
 
-                                            {/* Desktop Table View (Visible on Medium & Desktop Screens) */}
-                                            <div className="hidden md:block rounded-xl border overflow-x-auto">
-                                                <table className="w-full text-sm">
+                                                                {/* Notes / SOAP Footer */}
+                                                                {(session.physio_session_details && session.physio_session_details.length > 0) || session.session_notes || session.session_mode === 'Group' ? (
+                                                                    <div className="pt-1.5 border-t border-border/40 text-[10px] flex items-center justify-between">
+                                                                        {session.physio_session_details && session.physio_session_details.length > 0 ? (
+                                                                            <span className="text-emerald-600 font-bold flex items-center gap-1">
+                                                                                <FileText className="w-3.5 h-3.5" /> SOAP Note Available {session.physio_session_details[0]?.pain_score !== undefined ? `(Pain: ${session.physio_session_details[0].pain_score}/10)` : ''}
+                                                                            </span>
+                                                                        ) : session.session_notes ? (
+                                                                            <span className="text-slate-600 dark:text-slate-300 truncate max-w-[200px]">{session.session_notes}</span>
+                                                                        ) : null}
+                                                                        {session.session_mode === 'Group' && (
+                                                                            <span className="italic text-slate-500">Group: {session.group_name}</span>
+                                                                        )}
+                                                                    </div>
+                                                                ) : null}
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            )}
+
+                                            {/* Full-Width Table View (Spans 100% width on Desktop, and adjusted to entire screen width on Mobile with smooth horizontal scroll) */}
+                                            <div 
+                                                className={cn(
+                                                    "w-full overflow-x-auto rounded-none sm:rounded-xl border-y sm:border border-border/60 touch-pan-x touch-pan-y overscroll-x-contain",
+                                                    mobileViewMode === 'cards' ? "hidden md:block" : "block"
+                                                )}
+                                                style={{ WebkitOverflowScrolling: "touch" }}
+                                            >
+                                                <table className="w-full text-xs min-w-[760px]">
                                                     <thead>
-                                                        <tr className="border-b bg-muted/50 text-left">
-                                                            <th className="p-3 font-medium text-muted-foreground">Date & Time</th>
-                                                            <th className="p-3 font-medium text-muted-foreground">Type</th>
-                                                            <th className="p-3 font-medium text-muted-foreground">Provider</th>
-                                                            <th className="p-3 font-medium text-muted-foreground">Status</th>
-                                                            <th className="p-3 font-medium text-muted-foreground">Notes/SOAP</th>
+                                                        <tr className="border-b bg-muted/40 text-left">
+                                                            <th className="p-3 font-bold uppercase tracking-wider text-[10px] text-muted-foreground whitespace-nowrap">Date & Time</th>
+                                                            <th className="p-3 font-bold uppercase tracking-wider text-[10px] text-muted-foreground whitespace-nowrap">Category & Service</th>
+                                                            <th className="p-3 font-bold uppercase tracking-wider text-[10px] text-muted-foreground whitespace-nowrap">Specialist</th>
+                                                            <th className="p-3 font-bold uppercase tracking-wider text-[10px] text-muted-foreground whitespace-nowrap">Logged By</th>
+                                                            <th className="p-3 font-bold uppercase tracking-wider text-[10px] text-muted-foreground whitespace-nowrap">Duration</th>
+                                                            <th className="p-3 font-bold uppercase tracking-wider text-[10px] text-muted-foreground whitespace-nowrap min-w-[130px]">Status & Entitlement</th>
+                                                            <th className="p-3 font-bold uppercase tracking-wider text-[10px] text-muted-foreground min-w-[200px]">Notes / SOAP</th>
                                                         </tr>
                                                     </thead>
                                                     <tbody>
-                                                        {sessions.map((session: any) => (
-                                                            <tr key={session.id} className="border-b last:border-0 hover:bg-muted/20 transition-colors text-xs">
-                                                                <td className="p-3 font-medium text-foreground">
-                                                                    {session.scheduled_start ? format(new Date(session.scheduled_start), "dd MMM, hh:mm a") : "-"}
-                                                                </td>
-                                                                <td className="p-3">
-                                                                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${session.service_type === 'Physiotherapy' ? 'bg-blue-50 text-blue-700' : 'bg-emerald-50 text-emerald-700'
-                                                                        }`}>
-                                                                        {session.service_type || 'Performance'}
-                                                                    </span>
-                                                                </td>
-                                                                <td className="p-3 text-muted-foreground flex items-center gap-1.5 min-w-[150px]">
-                                                                    <User className="w-3.5 h-3.5 text-muted-foreground/50" />
-                                                                    {session.therapist
-                                                                        ? formatStaffName({ ...session.therapist, service_type: session.service_type }, { useFirstName: true })
-                                                                        : (session.therapist_id || "-")}
-                                                                </td>
-                                                                <td className="p-3">
-                                                                    <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold uppercase
-                                                                        ${session.status === 'Completed' ? 'bg-emerald-500/10 text-emerald-600' :
-                                                                            session.status === 'Planned' ? 'bg-blue-500/10 text-blue-600' :
-                                                                                session.status === 'Checked In' ? 'bg-purple-500/10 text-purple-600' :
-                                                                                    'bg-gray-500/10 text-gray-500'}`}>
-                                                                        {session.status}
-                                                                    </span>
-                                                                    {session.is_unentitled && isAdminOrFoe && (
-                                                                        <Badge variant="destructive" className="ml-2 text-[8px] h-4 px-1 font-black animate-pulse">
-                                                                            UN-ENTITLED
-                                                                        </Badge>
-                                                                    )}
-                                                                </td>
-                                                                <td className="p-3 text-muted-foreground">
-                                                                    {session.physio_session_details && session.physio_session_details.length > 0 ? (
-                                                                        <span className="text-emerald-600 flex items-center gap-1 font-bold">
-                                                                            <FileText className="w-3 h-3" /> SOAP
-                                                                        </span>
-                                                                    ) : session.session_mode === 'Group' ? (
-                                                                        <span className="italic text-[10px]">Group: {session.group_name}</span>
-                                                                    ) : "-"}
-                                                                </td>
-                                                            </tr>
-                                                        ))}
+                                                        {filteredSessions.map((session: any) => {
+                                                            const catConfig = SESSION_CATEGORY_CONFIG[session.session_category] || SESSION_CATEGORY_CONFIG.other;
+                                                            const providerName = session.therapist
+                                                                ? formatStaffName({ ...session.therapist, service_type: session.service_type }, { useFirstName: true })
+                                                                : (session.therapist_id || "-");
+                                                            const loggedByName = session.logged_by?.first_name || session.logged_by?.last_name
+                                                                ? `${session.logged_by.first_name || ""} ${session.logged_by.last_name || ""}`.trim()
+                                                                : providerName;
+
+                                                            const startTime = session.scheduled_start ? new Date(session.scheduled_start) : null;
+                                                            const endTime = session.scheduled_end ? new Date(session.scheduled_end) : null;
+                                                            const durationMins = session.duration_minutes !== undefined && session.duration_minutes !== null
+                                                                ? session.duration_minutes
+                                                                : (startTime && endTime ? Math.max(0, Math.round((endTime.getTime() - startTime.getTime()) / (1000 * 60))) : 0);
+
+                                                            return (
+                                                                <tr key={session.id} className="border-b last:border-0 hover:bg-muted/15 transition-colors text-xs">
+                                                                    <td className="p-3 font-medium text-foreground whitespace-nowrap">
+                                                                        <div className="font-semibold text-xs text-foreground">{session.scheduled_start ? format(new Date(session.scheduled_start), "dd MMM yyyy") : "-"}</div>
+                                                                        <div className="text-[11px] text-muted-foreground font-mono flex items-center gap-1 leading-normal mt-0.5">
+                                                                            <Clock className="w-3 h-3 shrink-0 text-muted-foreground/70" />
+                                                                            {session.scheduled_start ? format(new Date(session.scheduled_start), "hh:mm a") : ""}
+                                                                        </div>
+                                                                    </td>
+                                                                    <td className="p-3">
+                                                                        <div className="space-y-1">
+                                                                            <Badge variant="outline" className={cn("text-[9px] font-bold px-1.5 py-0", catConfig.badgeClass)}>
+                                                                                {catConfig.label}
+                                                                            </Badge>
+                                                                            <div className="font-medium text-foreground text-xs">{session.service_type || 'Performance'}</div>
+                                                                        </div>
+                                                                    </td>
+                                                                    <td className="p-3 text-muted-foreground">
+                                                                        <div className="flex items-center gap-1.5 min-w-[130px]">
+                                                                            <User className="w-3.5 h-3.5 text-muted-foreground/50 shrink-0" />
+                                                                            <span>{providerName}</span>
+                                                                        </div>
+                                                                    </td>
+                                                                    <td className="p-3 text-muted-foreground">
+                                                                        <span className="text-[11px] font-medium">{loggedByName}</span>
+                                                                    </td>
+                                                                    <td className="p-3 font-mono text-muted-foreground">
+                                                                        {durationMins > 0 ? `${durationMins}m` : "-"}
+                                                                    </td>
+                                                                    <td className="p-3">
+                                                                        <div className="flex flex-col gap-1 items-start whitespace-nowrap">
+                                                                            <Badge className={cn(
+                                                                                "text-[9px] font-black uppercase px-2 py-0.5 border-none shadow-2xs leading-none whitespace-nowrap",
+                                                                                session.status === 'Completed' ? 'bg-emerald-600 text-white' :
+                                                                                session.status === 'Planned' ? 'bg-sky-600 text-white' :
+                                                                                session.status === 'Checked In' ? 'bg-purple-600 text-white' :
+                                                                                'bg-slate-600 text-white'
+                                                                            )}>
+                                                                                {session.status}
+                                                                            </Badge>
+                                                                            {session.session_category === 'sports_science' ? (
+                                                                                <Badge variant="outline" className="text-[8px] px-1.5 py-0.5 font-bold text-indigo-600 border-indigo-200 bg-indigo-50/60 dark:text-indigo-300 dark:border-indigo-800 dark:bg-indigo-950/40 whitespace-nowrap leading-none">
+                                                                                    Exempt (SS)
+                                                                                </Badge>
+                                                                            ) : session.is_unentitled && isAdminOrFoe ? (
+                                                                                <Badge className="text-[9px] font-black px-1.5 py-0.5 bg-rose-600 hover:bg-rose-700 text-white border-none whitespace-nowrap leading-none tracking-wider shadow-2xs">
+                                                                                    UN-ENTITLED
+                                                                                </Badge>
+                                                                            ) : null}
+                                                                        </div>
+                                                                    </td>
+                                                                    <td className="p-3 text-muted-foreground min-w-[200px]">
+                                                                        {session.physio_session_details && session.physio_session_details.length > 0 ? (
+                                                                            <span className="text-emerald-600 flex items-center gap-1 font-bold">
+                                                                                <FileText className="w-3 h-3 shrink-0" /> Pain: {session.physio_session_details[0].pain_score ?? "-"}/10
+                                                                            </span>
+                                                                        ) : session.session_notes ? (
+                                                                            <span className="text-xs text-muted-foreground block" title={session.session_notes}>
+                                                                                {session.session_notes}
+                                                                            </span>
+                                                                        ) : session.session_mode === 'Group' ? (
+                                                                            <span className="italic text-[10px]">Group: {session.group_name}</span>
+                                                                        ) : "-"}
+                                                                    </td>
+                                                                </tr>
+                                                            );
+                                                        })}
                                                     </tbody>
                                                 </table>
                                             </div>
@@ -1144,10 +1412,6 @@ export default function ClientProfile() {
                                     )}
                                 </CardContent>
                             </Card>
-
-                            <div className="space-y-6">
-                            </div>
-                        </div>
                     </TabsContent>
 
 

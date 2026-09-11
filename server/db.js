@@ -742,7 +742,8 @@ async function runMigrations() {
         ['rescheduled_to_session_id', 'UUID REFERENCES Sessions(id) ON DELETE SET NULL'],
         ['is_guest', 'BOOLEAN DEFAULT false'],
         ['guest_name', 'TEXT'],
-        ['guest_contact', 'TEXT']
+        ['guest_contact', 'TEXT'],
+        ['source_console', 'TEXT']
     ];
     for (const [col, type] of sessionCols) {
         try {

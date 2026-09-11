@@ -330,6 +330,7 @@ export function ConsultantBookSlotModal({ open, onOpenChange, defaultDate, onSuc
                 session_mode: sessionMode,
                 session_notes: notes || undefined,
                 status: "Planned",
+                source_console: "clinical",
             };
 
             await apiFetch("/api/appointments", {

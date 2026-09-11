@@ -198,6 +198,7 @@ export function SportsScientistAssignWorkModal({ open, onOpenChange, onSuccess }
                     status: status,
                     session_notes: notes,
                     cancellation_reason: (status === "Missed" || status === "Cancelled") ? cancellationReason : null,
+                    source_console: 'sports_science',
                 };
 
                 if (status === "Completed") {
@@ -244,6 +245,7 @@ export function SportsScientistAssignWorkModal({ open, onOpenChange, onSuccess }
                             status: status,
                             session_notes: notes,
                             cancellation_reason: (status === "Missed" || status === "Cancelled") ? cancellationReason : null,
+                            source_console: 'sports_science',
                         };
 
                         if (sessionMode === "Individual") {

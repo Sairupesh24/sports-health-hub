@@ -44,15 +44,18 @@ export default function DashboardLayout({ role, children }: DashboardLayoutProps
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background w-full">
+    <div className="flex h-[100dvh] min-h-[100dvh] overflow-hidden bg-background w-full">
       {/* Desktop Sidebar */}
       <div className="hidden md:block">
         <AppSidebar role={effectiveRole} />
       </div>
 
-      <main className="flex-1 overflow-y-auto flex flex-col w-full">
+      <main 
+        id="main-scroll-container"
+        className="flex-1 overflow-y-auto flex flex-col w-full overscroll-y-contain [touch-action:pan-y] [-webkit-overflow-scrolling:touch]"
+      >
         {/* Mobile Header */}
-        <div className="md:hidden flex items-center justify-between p-4 border-b border-border bg-background">
+        <div className="md:hidden flex items-center justify-between p-4 border-b border-border bg-background/95 backdrop-blur-xs shrink-0 sticky top-0 z-30">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg gradient-primary flex items-center justify-center">
               <Activity className="w-4 h-4 text-primary-foreground" />
@@ -81,7 +84,7 @@ export default function DashboardLayout({ role, children }: DashboardLayoutProps
         </div>
 
         {/* Content Area */}
-        <div className="p-4 sm:p-6 lg:p-8 max-w-[1600px] w-full mx-auto pb-24 md:pb-12">
+        <div className="p-3 sm:p-6 lg:p-8 max-w-[1600px] w-full mx-auto pb-36 md:pb-12">
           {children}
         </div>
       </main>

@@ -52,6 +52,7 @@ export function UpcomingPlanManager({ clientId, clientName }: Props) {
     // Bulk edit fields
     const [bulkStatus, setBulkStatus] = useState<string>("Cancelled");
     const [bulkReason, setBulkReason] = useState<string>("");
+    const [mobileViewMode, setMobileViewMode] = useState<'table' | 'cards'>('table');
 
     const { data: rawUpcomingSessions = [], isLoading, refetch } = useQuery({
         queryKey: ["client-upcoming-sessions", clientId],
@@ -204,7 +205,30 @@ export function UpcomingPlanManager({ clientId, clientName }: Props) {
                             </CardDescription>
                         </div>
 
-                        <div className="flex items-center gap-2 flex-wrap">
+                        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+                            <div className="flex items-center gap-1 p-0.5 bg-muted/60 rounded-xl border border-border/40 md:hidden">
+                                <button
+                                    type="button"
+                                    onClick={() => setMobileViewMode('table')}
+                                    className={cn(
+                                        "px-2.5 py-1 text-xs font-bold rounded-lg transition-all",
+                                        mobileViewMode === 'table' ? "bg-background text-foreground shadow-2xs" : "text-muted-foreground hover:text-foreground"
+                                    )}
+                                >
+                                    Table View
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setMobileViewMode('cards')}
+                                    className={cn(
+                                        "px-2.5 py-1 text-xs font-bold rounded-lg transition-all",
+                                        mobileViewMode === 'cards' ? "bg-background text-foreground shadow-2xs" : "text-muted-foreground hover:text-foreground"
+                                    )}
+                                >
+                                    Card View
+                                </button>
+                            </div>
+
                             <Button 
                                 variant="outline" 
                                 size="sm"
@@ -237,7 +261,7 @@ export function UpcomingPlanManager({ clientId, clientName }: Props) {
                         </div>
                     </div>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="p-0 sm:p-6">
                     {isLoading ? (
                         <div className="text-center py-12 text-muted-foreground flex flex-col items-center gap-2">
                             <Loader2 className="w-6 h-6 animate-spin text-primary" />
@@ -250,8 +274,9 @@ export function UpcomingPlanManager({ clientId, clientName }: Props) {
                         </div>
                     ) : (
                         <>
-                            {/* Mobile Card List View (Visible on Mobile Viewports) */}
-                            <div className="block md:hidden space-y-3.5">
+                            {/* Mobile Card List View (Visible on Mobile Viewports when Card View is selected) */}
+                            {mobileViewMode === 'cards' && (
+                                <div className="block md:hidden space-y-3.5 p-3 sm:p-0">
                                 {/* Select All Control Bar on Mobile */}
                                 <div className="flex items-center justify-between p-3 bg-muted/40 rounded-xl border border-border/50 text-xs font-bold text-slate-700 dark:text-slate-300">
                                     <label className="flex items-center gap-2 cursor-pointer">
@@ -380,10 +405,14 @@ export function UpcomingPlanManager({ clientId, clientName }: Props) {
                                     );
                                 })}
                             </div>
+                            )}
 
-                            {/* Desktop Table View (Visible on Medium & Desktop Screens) */}
-                            <div className="hidden md:block rounded-xl border border-border overflow-x-auto">
-                                <Table>
+                            {/* Full-Width Table View (Spans 100% on Desktop and edge-to-edge on Mobile with horizontal scroll) */}
+                            <div className={cn(
+                                "-mx-4 sm:mx-0 w-[calc(100%+2rem)] sm:w-full overflow-x-auto rounded-none sm:rounded-xl border-y sm:border border-border/60",
+                                mobileViewMode === 'cards' ? "hidden md:block" : "block"
+                            )}>
+                                <Table className="w-full text-xs min-w-[720px]">
                                     <TableHeader>
                                         <TableRow className="bg-muted/30">
                                             <TableHead className="w-12 text-center">

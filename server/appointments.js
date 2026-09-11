@@ -1,6 +1,7 @@
 import express from 'express';
 import { db } from './db.js';
 import { requireAuth } from './middleware.js';
+import { classifySessionCategory, findMatchingEntitlement, deductEntitlementForSession, isEntitlementExempt } from './entitlementHelper.js';
 
 const router = express.Router();
 
@@ -147,8 +148,27 @@ router.post('/', requireAuth, async (req, res) => {
         const orgId = req.user.organization_id;
         const {
             client_id, therapist_id, service_id, service_type, scheduled_start, scheduled_end,
-            entitlement_id, session_mode, is_unentitled, preference_type, is_flexible_routing, waitlist_id
+            entitlement_id, session_mode, is_unentitled, preference_type, is_flexible_routing, waitlist_id,
+            source_console
         } = req.body;
+
+        const effectiveSourceConsole = source_console || (
+            req.user?.profession === 'Sports Scientist' || (req.user?.roles || []).includes('sports_scientist')
+                ? 'sports_science'
+                : (req.user?.profession === 'Physiotherapist' || req.user?.profession === 'Sports Physician' || (req.user?.roles || []).some(r => ['sports_physician', 'physiotherapist', 'consultant'].includes(r))
+                    ? 'clinical'
+                    : null)
+        );
+
+        const category = classifySessionCategory({
+            service_type,
+            source_console: effectiveSourceConsole,
+            therapist_id,
+            organization_id: orgId,
+            client_id
+        }, { user: req.user, sourceConsole: effectiveSourceConsole });
+
+        const isExempt = isEntitlementExempt(category);
 
         await client.query('BEGIN');
 
@@ -243,30 +263,34 @@ router.post('/', requireAuth, async (req, res) => {
         }
 
         // 2. Insert Session
+        const effectiveIsUnentitled = isExempt ? false : (is_unentitled || false);
+        const effectiveEntitlementId = isExempt ? null : (entitlement_id || null);
+
         const insertQuery = `
             INSERT INTO sessions (
                 organization_id, client_id, therapist_id, service_id, service_type, 
                 scheduled_start, scheduled_end, entitlement_id, 
-                session_mode, is_unentitled, preference_type, is_flexible_routing, created_by, status
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+                session_mode, is_unentitled, preference_type, is_flexible_routing, created_by, status,
+                source_console
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
             RETURNING *
         `;
         const values = [
             orgId, client_id, therapist_id, service_id || null, service_type,
-            scheduled_start, scheduled_end, entitlement_id || null,
-            session_mode || 'Individual', is_unentitled || false, 
+            scheduled_start, scheduled_end, effectiveEntitlementId,
+            session_mode || 'Individual', effectiveIsUnentitled, 
             preference_type || 'Strict', is_flexible_routing || false, req.user.id,
-            appointmentStatus
+            appointmentStatus, effectiveSourceConsole
         ];
 
         const sessionRes = await client.query(insertQuery, values);
         const session = sessionRes.rows[0];
 
         // 3. Update Entitlement if linked or sync to waitlist table if capacity reached
-        if (entitlement_id && !is_unentitled && appointmentStatus !== 'Waitlisted') {
+        if (!isExempt && effectiveEntitlementId && !effectiveIsUnentitled && appointmentStatus !== 'Waitlisted') {
             await client.query(
                 'UPDATE cliententitlements SET sessions_used = sessions_used + 1 WHERE id = $1',
-                [entitlement_id]
+                [effectiveEntitlementId]
             );
         } else if (appointmentStatus === 'Waitlisted' && client_id) {
             const timeSlotStr = new Date(scheduled_start).toTimeString().substring(0, 5);
@@ -329,24 +353,10 @@ router.post('/:id/complete', requireAuth, async (req, res) => {
             throw new Error(`Future sessions cannot be completed.`);
         }
 
-        // 2. Try to find an entitlement if not already linked
-        let entitlementId = session.entitlement_id;
-        let isUnentitled = session.is_unentitled;
-
-        if (!entitlementId && !isUnentitled) {
-            const entRes = await client.query(`
-                SELECT id FROM cliententitlements 
-                WHERE client_id = $1 AND organization_id = $2 
-                AND service_type = $3 AND status = 'active' AND (granted_sessions - sessions_used) > 0
-                LIMIT 1
-            `, [session.client_id, orgId, session.service_type]);
-            
-            if (entRes.rows.length > 0) {
-                entitlementId = entRes.rows[0].id;
-            } else {
-                isUnentitled = true;
-            }
-        }
+        // 2. Handle entitlement deduction via centralized helper
+        const deductRes = await deductEntitlementForSession(client, session, { user: req.user });
+        const entitlementId = deductRes.entitlementId;
+        const isUnentitled = deductRes.isUnentitled;
 
         // 3. Update session
         await client.query(`
@@ -355,14 +365,6 @@ router.post('/:id/complete', requireAuth, async (req, res) => {
                 entitlement_id = $3, is_unentitled = $4, updated_at = CURRENT_TIMESTAMP
             WHERE id = $5
         `, [actual_start, actual_end, entitlementId, isUnentitled, id]);
-
-        // 4. Update entitlement usage
-        if (entitlementId && !isUnentitled) {
-            await client.query(
-                'UPDATE cliententitlements SET sessions_used = sessions_used + 1 WHERE id = $1',
-                [entitlementId]
-            );
-        }
 
         // 4.5 Clean up any lingering duplicate Planned sessions for this client & provider at this exact slot
         const providerId = session.therapist_id || session.scientist_id;
@@ -823,16 +825,11 @@ router.post('/:id/reconcile', requireAuth, async (req, res) => {
 
         if (!session.is_unentitled) throw new Error('Session is not marked as un-entitled');
 
-        const entRes = await client.query(`
-            SELECT id FROM cliententitlements 
-            WHERE client_id = $1 AND organization_id = $2 
-            AND service_type = $3 AND status = 'active' AND (granted_sessions - sessions_used) > 0
-            LIMIT 1
-        `, [session.client_id, orgId, session.service_type]);
+        const matchedEnt = await findMatchingEntitlement(client, session, { user: req.user });
 
-        if (entRes.rows.length === 0) throw new Error('No active entitlement found for this service. Please purchase a package first.');
+        if (!matchedEnt) throw new Error('No active entitlement found for this service category. Please purchase a package first.');
 
-        const entitlementId = entRes.rows[0].id;
+        const entitlementId = matchedEnt.id;
 
         await client.query(`
             UPDATE sessions 
@@ -841,7 +838,7 @@ router.post('/:id/reconcile', requireAuth, async (req, res) => {
         `, [entitlementId, id]);
 
         await client.query(
-            'UPDATE cliententitlements SET sessions_used = sessions_used + 1 WHERE id = $1',
+            'UPDATE cliententitlements SET sessions_used = sessions_used + 1, updated_at = NOW() WHERE id = $1',
             [entitlementId]
         );
 
@@ -1455,7 +1452,16 @@ router.get('/client/:clientId/upcoming', requireAuth, async (req, res) => {
             ORDER BY s.scheduled_start ASC
         `;
         const result = await db.query(query, [orgId, clientId, todayStart.toISOString()]);
-        res.json(result.rows);
+        
+        // Filter to only Sports Science sessions for Upcoming Events & Training Plan
+        const sportsScienceSessions = result.rows.filter(s => {
+            return classifySessionCategory({
+                ...s,
+                service_name: s.session_type_name
+            }) === 'sports_science';
+        });
+
+        res.json(sportsScienceSessions);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
@@ -1739,23 +1745,9 @@ export async function autoCompleteStartedSessions(targetOrgId = null) {
             const actualEndIso = autoEndDate.toISOString();
             const actualStartIso = startDate.toISOString();
 
-            let entitlementId = session.entitlement_id;
-            let isUnentitled = session.is_unentitled;
-
-            if (!entitlementId && !isUnentitled && session.client_id && session.service_type && session.organization_id) {
-                const entRes = await db.query(`
-                    SELECT id FROM cliententitlements 
-                    WHERE client_id = $1 AND organization_id = $2 
-                    AND service_type = $3 AND status = 'active' AND (granted_sessions - sessions_used) > 0
-                    LIMIT 1
-                `, [session.client_id, session.organization_id, session.service_type]);
-
-                if (entRes.rows.length > 0) {
-                    entitlementId = entRes.rows[0].id;
-                } else {
-                    isUnentitled = true;
-                }
-            }
+            const deductRes = await deductEntitlementForSession(db, session);
+            const entitlementId = deductRes.entitlementId;
+            const isUnentitled = deductRes.isUnentitled;
 
             await db.query(`
                 UPDATE sessions 
@@ -1767,15 +1759,6 @@ export async function autoCompleteStartedSessions(targetOrgId = null) {
                     updated_at = CURRENT_TIMESTAMP
                 WHERE id = $5
             `, [actualStartIso, actualEndIso, entitlementId, isUnentitled, session.id]);
-
-            if (entitlementId) {
-                await db.query(`
-                    UPDATE cliententitlements 
-                    SET sessions_used = sessions_used + 1,
-                        updated_at = CURRENT_TIMESTAMP
-                    WHERE id = $1
-                `, [entitlementId]);
-            }
 
             completedCount++;
             console.log(`[AUTO-COMPLETE-SESSION] Session ${session.id} (Org: ${session.organization_id}) auto-completed after 60 mins elapsed.`);

@@ -189,7 +189,8 @@ export default function AdHocSessionModal({ open, onOpenChange, onSuccess, prese
                     service_type: selectedService?.name || 'Physiotherapy',
                     scheduled_start: localStart.toISOString(),
                     scheduled_end: localEnd.toISOString(),
-                    is_adhoc: true
+                    is_adhoc: true,
+                    source_console: 'clinical'
                 }
             });
 

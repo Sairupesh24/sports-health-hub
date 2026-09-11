@@ -27,6 +27,7 @@ import {
   Bell,
   ShieldCheck,
   Building2,
+  Microscope,
 } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 import { cn } from "@/lib/utils";
@@ -82,6 +83,7 @@ const sportsScientistNav: NavItem[] = [
   { label: "Dashboard", icon: LayoutDashboard, href: "/sports-scientist" },
   { label: "Schedule", icon: Calendar, href: "/sports-scientist/schedule" },
   { label: "Clients", icon: Users, href: "/sports-scientist/clients" },
+  { label: "Scientific Hub", icon: Microscope, href: "/sports-scientist/resources" },
   { label: "Reports", icon: ClipboardList, href: "/sports-scientist/reports" },
   { label: "Manage Memberships", icon: CreditCard, href: "/sports-scientist/billing" },
   { label: "My Attendance", icon: Clock, href: "/my-attendance" },
@@ -351,6 +353,7 @@ export default function AppSidebar({ role, isMobile, className, onNavigate }: Ap
       }
       nav.push(
         { label: "Clients", icon: Users, href: "/sports-scientist/clients" },
+        { label: "Scientific Hub", icon: Microscope, href: "/sports-scientist/resources" },
         { label: "Reports", icon: ClipboardList, href: "/sports-scientist/reports" },
         { label: "Manage Memberships", icon: CreditCard, href: "/sports-scientist/billing" },
         { label: "My Attendance", icon: Clock, href: "/my-attendance" }

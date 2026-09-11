@@ -1,6 +1,7 @@
 import express from 'express';
 import { db } from './db.js';
 import { requireAuth } from './middleware.js';
+import { classifySessionCategory } from './entitlementHelper.js';
 
 const router = express.Router();
 
@@ -378,43 +379,67 @@ router.get('/:id/sessions', requireAuth, async (req, res) => {
     try {
         const { id } = req.params;
         const orgId = req.user.organization_id;
-        const { startDate, endDate, sessionType } = req.query;
+        const { startDate, endDate, sessionType, category } = req.query;
 
         let query = `
             SELECT s.*, 
                    p.first_name as therapist_first_name, p.last_name as therapist_last_name,
+                   p.profession as therapist_profession,
+                   cp.first_name as creator_first_name, cp.last_name as creator_last_name,
                    (SELECT row_to_json(psd_sub.*) FROM physiosessiondetails psd_sub WHERE psd_sub.session_id = s.id LIMIT 1) as psd_full
             FROM sessions s
             LEFT JOIN profiles p ON COALESCE(s.therapist_id, s.scientist_id) = p.id
+            LEFT JOIN profiles cp ON s.created_by = cp.id
             WHERE s.client_id = $1 AND ($2::uuid IS NULL OR s.organization_id = $2)
+            AND LOWER(COALESCE(s.status, '')) != 'deleted'
         `;
         const params = [id, orgId];
 
         if (startDate) {
-            query += ` AND s.scheduled_start >= $${params.length + 1}`;
+            query += ` AND s.scheduled_start::date >= $${params.length + 1}::date`;
             params.push(startDate);
         }
         if (endDate) {
-            query += ` AND s.scheduled_start <= $${params.length + 1}`;
+            query += ` AND s.scheduled_start::date <= $${params.length + 1}::date`;
             params.push(endDate);
-        }
-        if (sessionType && sessionType !== 'all') {
-            query += ` AND s.service_type = $${params.length + 1}`;
-            params.push(sessionType);
         }
 
         query += ' ORDER BY s.scheduled_start DESC';
 
         const result = await db.query(query, params);
         
-        // Map to match frontend expectations
-        const mapped = result.rows.map(r => ({
-            ...r,
-            therapist: { first_name: r.therapist_first_name, last_name: r.therapist_last_name },
-            physio_session_details: r.psd_full ? [r.psd_full] : []
-        }));
+        // Map and classify each session
+        const mapped = result.rows.map(r => {
+            const sCat = classifySessionCategory(r, { providerProfession: r.therapist_profession });
+            const startTime = new Date(r.actual_start || r.scheduled_start);
+            const endTime = new Date(r.actual_end || r.scheduled_end);
+            const durationMinutes = Math.max(0, Math.round((endTime.getTime() - startTime.getTime()) / (1000 * 60)));
 
-        res.json(mapped);
+            return {
+                ...r,
+                session_category: sCat,
+                duration_minutes: durationMinutes,
+                therapist: { first_name: r.therapist_first_name, last_name: r.therapist_last_name },
+                logged_by: { first_name: r.creator_first_name, last_name: r.creator_last_name },
+                physio_session_details: r.psd_full ? [r.psd_full] : []
+            };
+        });
+
+        // Filter by category or specific session type if requested
+        let filtered = mapped;
+        const validCategories = ['physiotherapy', 'sports_science', 'nutrition', 'active_recovery', 'device_assessment', 'other'];
+        const targetCategory = category || (validCategories.includes(sessionType) ? sessionType : null);
+
+        if (targetCategory && targetCategory !== 'all') {
+            filtered = filtered.filter(s => s.session_category === targetCategory);
+        } else if (sessionType && sessionType !== 'all') {
+            filtered = filtered.filter(s => 
+                (s.service_type || '').toLowerCase() === sessionType.toLowerCase() || 
+                s.session_category === sessionType
+            );
+        }
+
+        res.json(filtered);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }

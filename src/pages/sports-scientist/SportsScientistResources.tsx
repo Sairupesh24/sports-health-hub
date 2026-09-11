@@ -1,7 +1,7 @@
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { ScientificResourcesManager } from "@/components/sports-scientist/resources/ScientificResourcesManager";
 import { format } from "date-fns";
-import { FileStack, Activity } from "lucide-react";
+import { Microscope, FileStack, Activity } from "lucide-react";
 
 export default function SportsScientistResources() {
   return (
@@ -16,9 +16,9 @@ export default function SportsScientistResources() {
               </p>
               <div className="flex items-center gap-3">
                 <div className="p-3 bg-slate-900 rounded-2xl shadow-lg shadow-slate-900/10 shrink-0">
-                  <FileStack className="w-6 h-6 text-white" />
+                  <Microscope className="w-6 h-6 text-white" />
                 </div>
-                <h1 className="text-3xl font-black tracking-tight text-slate-900">Documents & Links</h1>
+                <h1 className="text-3xl font-black tracking-tight text-slate-900">Scientific Hub</h1>
               </div>
               <p className="text-sm font-bold text-slate-400 mt-2 uppercase tracking-widest flex items-center gap-2">
                 <Activity className="w-4 h-4 text-primary" /> Scientific Knowledge Base & Athlete Records

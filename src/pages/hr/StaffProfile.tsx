@@ -301,17 +301,19 @@ export default function StaffProfile() {
 
             {/* Navigation Tabs */}
             <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-              <TabsList className="bg-muted/40 p-1 rounded-2xl border border-border flex flex-wrap gap-1">
-                <TabsTrigger value="overview" className="rounded-xl text-xs font-bold gap-2 data-[state=active]:bg-primary data-[state=active]:text-white transition-all">
-                  <User className="w-4 h-4" /> Profile & Active App Time
-                </TabsTrigger>
-                <TabsTrigger value="provider-schedule" className="rounded-xl text-xs font-bold gap-2 data-[state=active]:bg-primary data-[state=active]:text-white transition-all">
-                  <CalendarDays className="w-4 h-4" /> Provided Sessions ({providerSessions.length})
-                </TabsTrigger>
-                <TabsTrigger value="received-treatments" className="rounded-xl text-xs font-bold gap-2 data-[state=active]:bg-primary data-[state=active]:text-white transition-all">
-                  <CalendarCheck className="w-4 h-4" /> Received Treatments ({treatmentSessions.length})
-                </TabsTrigger>
-              </TabsList>
+              <div className="w-full overflow-x-auto no-scrollbar touch-pan-x overscroll-x-contain pb-1 -mx-2 px-2 sm:mx-0 sm:px-0">
+                <TabsList className="bg-muted/40 p-1 rounded-2xl border border-border inline-flex w-max min-w-full gap-1 shrink-0">
+                  <TabsTrigger value="overview" className="shrink-0 whitespace-nowrap rounded-xl text-xs font-bold gap-2 data-[state=active]:bg-primary data-[state=active]:text-white transition-all">
+                    <User className="w-4 h-4" /> Profile & Active App Time
+                  </TabsTrigger>
+                  <TabsTrigger value="provider-schedule" className="shrink-0 whitespace-nowrap rounded-xl text-xs font-bold gap-2 data-[state=active]:bg-primary data-[state=active]:text-white transition-all">
+                    <CalendarDays className="w-4 h-4" /> Provided Sessions ({providerSessions.length})
+                  </TabsTrigger>
+                  <TabsTrigger value="received-treatments" className="shrink-0 whitespace-nowrap rounded-xl text-xs font-bold gap-2 data-[state=active]:bg-primary data-[state=active]:text-white transition-all">
+                    <CalendarCheck className="w-4 h-4" /> Received Treatments ({treatmentSessions.length})
+                  </TabsTrigger>
+                </TabsList>
+              </div>
 
               {/* TAB 1: Profile Details & Active App Time Analytics */}
               <TabsContent value="overview" className="space-y-6">
