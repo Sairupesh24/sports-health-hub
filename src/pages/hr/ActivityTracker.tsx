@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { Activity, ChevronLeft, ChevronRight, Search, Download, Mail, Send, Clock, Sparkles } from "lucide-react";
+import { Activity, ChevronLeft, ChevronRight, Search, Download, Mail, Send, Clock, Sparkles, RefreshCw } from "lucide-react";
 import { format, addDays, subDays, isToday } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
@@ -53,12 +53,14 @@ export default function ActivityTracker() {
 
   const dateStr = format(selectedDate, "yyyy-MM-dd");
 
-  // Fetch Activity Metrics
-  const { data: response, isLoading } = useQuery<{ date: string; data: StaffActivity[] }>({
+  // Fetch Activity Metrics with live polling when viewing today
+  const { data: response, isLoading, refetch: refetchMetrics, isFetching } = useQuery<{ date: string; data: StaffActivity[] }>({
     queryKey: ["activity-tracker-metrics", dateStr, profile?.organization_id],
     queryFn: async () => {
       return await apiFetch<{ date: string; data: StaffActivity[] }>(`/hr/activity-tracker?date=${dateStr}`);
     },
+    refetchInterval: isToday(selectedDate) ? 4000 : false,
+    refetchOnWindowFocus: true,
   });
 
   // Fetch Automation Settings
@@ -266,9 +268,16 @@ export default function ActivityTracker() {
               <span className="text-xs sm:text-sm font-black text-slate-900 block uppercase tracking-tight">
                 {format(selectedDate, "EEEE, dd MMMM yyyy")}
               </span>
-              {isToday(selectedDate) && (
-                <Badge className="bg-emerald-500/10 text-emerald-600 border-none text-[9px] font-black uppercase tracking-widest mt-0.5">
-                  Today's Live Activity
+              {isToday(selectedDate) ? (
+                <div className="flex items-center justify-center gap-1.5 mt-0.5">
+                  <Badge className="bg-emerald-500/10 text-emerald-600 border-none text-[9px] font-black uppercase tracking-widest flex items-center gap-1.5 py-0.5 px-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    Today's Live Activity
+                  </Badge>
+                </div>
+              ) : (
+                <Badge variant="outline" className="text-slate-400 border-slate-200 text-[9px] font-bold uppercase tracking-widest mt-0.5">
+                  Past Activity
                 </Badge>
               )}
             </div>
@@ -282,14 +291,28 @@ export default function ActivityTracker() {
               <ChevronRight className="w-4 h-4" />
             </Button>
 
-            <Button
-              size="sm"
-              variant="secondary"
-              onClick={() => setSelectedDate(new Date())}
-              className="text-xs font-black rounded-xl h-9 px-3 hidden xs:flex flex-shrink-0"
-            >
-              Today
-            </Button>
+            <div className="flex items-center gap-1.5">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => refetchMetrics()}
+                disabled={isFetching}
+                className="text-xs font-bold rounded-xl h-9 px-2.5 sm:px-3 gap-1.5 border-slate-200 text-slate-700 hover:bg-slate-50 flex-shrink-0"
+                title="Refresh live activity"
+              >
+                <RefreshCw className={cn("w-3.5 h-3.5 text-primary", isFetching && "animate-spin")} />
+                <span className="hidden sm:inline">Refresh</span>
+              </Button>
+
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => setSelectedDate(new Date())}
+                className="text-xs font-black rounded-xl h-9 px-3 hidden xs:flex flex-shrink-0"
+              >
+                Today
+              </Button>
+            </div>
           </div>
 
           {/* Search & Role Filter Grid */}

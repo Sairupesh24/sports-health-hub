@@ -110,7 +110,7 @@ export const exportQuestionnairePDF = async (data: ExportData) => {
 
     return [
       idx + 1,
-      q.question,
+      q.subtitle ? `${q.subtitle.toUpperCase()}\n${q.question}` : q.question,
       responseText,
       q.score !== undefined ? q.score : "-"
     ];

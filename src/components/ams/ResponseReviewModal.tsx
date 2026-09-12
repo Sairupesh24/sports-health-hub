@@ -172,9 +172,19 @@ export default function ResponseReviewModal({ isOpen, onClose, response, assignm
                           {idx + 1}
                         </div>
                         <div className="flex-1">
-                          <h6 className="text-[13px] font-black text-slate-900 uppercase tracking-tight mb-4 leading-relaxed">
+                          {q.subtitle && (
+                            <span className="inline-block text-[9px] font-black uppercase tracking-wider text-primary bg-primary/10 px-2 py-0.5 rounded mb-1">
+                              {q.subtitle}
+                            </span>
+                          )}
+                          <h6 className="text-[13px] font-black text-slate-900 uppercase tracking-tight mb-2 leading-relaxed">
                             {q.question}
                           </h6>
+                          {q.description && (
+                            <p className="text-[11px] text-slate-500 font-medium mb-3 italic">
+                              {q.description}
+                            </p>
+                          )}
                           <div className="bg-slate-50 rounded-2xl p-5 border border-slate-100">
                              <p className="text-[12px] font-bold text-slate-600 leading-relaxed italic">
                                {Array.isArray(q.answer) ? q.answer.join(", ") : q.answer || "No response recorded."}

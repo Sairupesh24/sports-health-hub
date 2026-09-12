@@ -21,11 +21,16 @@ interface FormQuestion {
   id: string;
   type: "text" | "mcq" | "checkbox" | "range";
   label: string;
+  subtitle?: string;
+  description?: string;
+  subtitlePosition?: "before" | "after";
+  descriptionPosition?: "before" | "after";
   required: boolean;
   options?: { text: string; score: number }[];
   minLabel?: string;
   maxLabel?: string;
   scaleLimit?: 5 | 10;
+  rangeScoringMode?: "direct" | "custom";
 }
 
 interface PublicFormData {
@@ -130,15 +135,45 @@ export default function PublicQuestionnaireForm() {
       setSubmitting(true);
       const payload = formData.questions.map((q) => {
         const rawAnswer = answers[q.id];
-        const option = q.options?.find(
-          (o) =>
-            o.text === rawAnswer ||
-            (Array.isArray(rawAnswer) && rawAnswer.includes(o.text))
-        );
+        let score: number | undefined = undefined;
+
+        if (q.type === 'range') {
+          if (rawAnswer !== undefined && rawAnswer !== null && rawAnswer !== "") {
+            const numVal = Number(rawAnswer);
+            if (!isNaN(numVal)) {
+              const option = q.options?.find(
+                (o) => String(o.text) === String(rawAnswer) || Number(o.text) === numVal
+              );
+              if (option && option.score !== undefined) {
+                score = option.score;
+              } else if (q.rangeScoringMode === 'direct') {
+                score = numVal;
+              } else if (formData.questions?.some((otherQ) => otherQ.options?.some((o) => o.score > 0))) {
+                // If the questionnaire has scoring enabled, default to rated number
+                score = numVal;
+              }
+            }
+          }
+        } else {
+          const option = q.options?.find(
+            (o) =>
+              o.text === rawAnswer ||
+              String(o.text) === String(rawAnswer) ||
+              (Array.isArray(rawAnswer) && rawAnswer.includes(o.text))
+          );
+          score = option?.score;
+        }
+
         return {
           question: q.label,
+          subtitle: q.subtitle,
+          description: q.description,
           answer: rawAnswer ?? "",
-          score: option?.score,
+          score: score,
+          type: q.type,
+          scaleLimit: q.scaleLimit,
+          minLabel: q.minLabel,
+          maxLabel: q.maxLabel,
         };
       });
       await apiFetch(`/ams/public/form/${token}/submit`, {
@@ -364,6 +399,22 @@ export default function PublicQuestionnaireForm() {
               id={`q-${q.id}`}
               className="bg-white rounded-2xl sm:rounded-3xl p-5 sm:p-6 md:p-7 border border-slate-200 shadow-xs hover:border-primary/30 transition-all"
             >
+              {/* Sub-Title when positioned BEFORE */}
+              {q.subtitle && (q.subtitlePosition || 'before') === 'before' && (
+                <div className="mb-2">
+                  <span className="inline-block text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-primary bg-primary/10 px-2.5 py-1 rounded-md">
+                    {q.subtitle}
+                  </span>
+                </div>
+              )}
+
+              {/* Description when positioned BEFORE */}
+              {q.description && q.descriptionPosition === 'before' && (
+                <p className="text-xs sm:text-sm text-slate-500 font-medium mb-3 italic leading-relaxed">
+                  {q.description}
+                </p>
+              )}
+
               <div className="flex items-start gap-3 sm:gap-3.5 mb-4">
                 <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-slate-900 text-white flex items-center justify-center text-[10px] sm:text-[11px] font-black shrink-0 mt-0.5">
                   {idx + 1}
@@ -375,6 +426,20 @@ export default function PublicQuestionnaireForm() {
                       <span className="text-rose-500 ml-1 text-base leading-none">*</span>
                     )}
                   </p>
+
+                  {/* Sub-Title when positioned AFTER */}
+                  {q.subtitle && q.subtitlePosition === 'after' && (
+                    <p className="text-xs sm:text-sm font-bold text-primary/80 mt-1">
+                      {q.subtitle}
+                    </p>
+                  )}
+
+                  {/* Description when positioned AFTER */}
+                  {q.description && (q.descriptionPosition || 'after') === 'after' && (
+                    <p className="text-xs sm:text-sm text-slate-500 font-medium mt-1 leading-relaxed">
+                      {q.description}
+                    </p>
+                  )}
                 </div>
               </div>
 

@@ -67,96 +67,134 @@ router.get('/profile', requireAuth, async (req, res) => {
     }
 });
 
+// Helper function to accurately calculate live staff activity metrics for a given date
+export async function calculateStaffActivityMetrics(targetDate) {
+    // 1. Fetch all staff members (excluding pure client/athlete accounts)
+    const staffQuery = `
+        SELECT p.id, p.first_name, p.last_name, p.profession, u.role, u.email
+        FROM profiles p
+        JOIN users u ON p.id = u.id
+        WHERE u.role NOT IN ('client', 'athlete')
+        ORDER BY p.first_name ASC
+    `;
+    const staffRes = await db.query(staffQuery);
+    const staffList = staffRes.rows;
+
+    // 2. Fetch actual application usage activity (active seconds spent on console)
+    const appActivityRes = await db.query(
+        `SELECT user_id, active_seconds FROM user_app_activity WHERE date = $1`,
+        [targetDate]
+    ).catch(() => ({ rows: [] }));
+    const activityMap = {};
+    appActivityRes.rows.forEach(r => {
+        activityMap[r.user_id] = parseInt(r.active_seconds, 10);
+    });
+
+    // 3. Fetch session entries for each user on targetDate
+    // Pull distinct sessions where either:
+    // a) The user recorded/entered the session on targetDate (created_by = user.id and DATE(created_at) = targetDate)
+    // b) OR the user is assigned/conducted the session on targetDate (therapist_id/scientist_id = user.id and DATE(scheduled_start/actual_start) = targetDate)
+    const sessionsRes = await db.query(`
+        SELECT u.id as user_id, COUNT(DISTINCT s.id) as count
+        FROM users u
+        JOIN sessions s ON (
+            (s.created_by = u.id AND (
+                DATE(s.created_at AT TIME ZONE 'Asia/Kolkata') = $1 OR DATE(s.created_at) = $1
+            ))
+            OR
+            ((s.therapist_id = u.id OR s.scientist_id = u.id) AND (
+                DATE(s.scheduled_start AT TIME ZONE 'Asia/Kolkata') = $1 OR DATE(s.scheduled_start) = $1
+                OR DATE(s.actual_start AT TIME ZONE 'Asia/Kolkata') = $1 OR DATE(s.actual_start) = $1
+                OR (s.status = 'Completed' AND (
+                    DATE(s.updated_at AT TIME ZONE 'Asia/Kolkata') = $1 OR DATE(s.updated_at) = $1
+                ))
+            ))
+        )
+        WHERE s.status NOT IN ('Deleted')
+        GROUP BY u.id
+    `, [targetDate]).catch(err => {
+        console.error('Error fetching sessions metrics:', err);
+        return { rows: [] };
+    });
+    const sessionsMap = {};
+    sessionsRes.rows.forEach(r => {
+        if (r.user_id) sessionsMap[r.user_id] = parseInt(r.count, 10);
+    });
+
+    // 4. Fetch performance assessments recorded on target date
+    const paRes = await db.query(`
+        SELECT recorded_by as user_id, COUNT(*) as count
+        FROM performance_assessments
+        WHERE (DATE(created_at AT TIME ZONE 'Asia/Kolkata') = $1 OR DATE(created_at) = $1)
+          AND recorded_by IS NOT NULL
+        GROUP BY recorded_by
+    `, [targetDate]).catch(() => ({ rows: [] }));
+    const assessmentsMap = {};
+    paRes.rows.forEach(r => {
+        if (r.user_id) assessmentsMap[r.user_id] = (assessmentsMap[r.user_id] || 0) + parseInt(r.count, 10);
+    });
+
+    // 5. Fetch nutrition assessments recorded on target date
+    const naRes = await db.query(`
+        SELECT COALESCE(nutritionist_id, taken_by) as user_id, COUNT(*) as count
+        FROM nutrition_assessments
+        WHERE (
+            DATE(created_at AT TIME ZONE 'Asia/Kolkata') = $1 OR DATE(created_at) = $1
+            OR DATE(assessment_date) = $1
+        )
+        AND COALESCE(nutritionist_id, taken_by) IS NOT NULL
+        GROUP BY COALESCE(nutritionist_id, taken_by)
+    `, [targetDate]).catch(() => ({ rows: [] }));
+    naRes.rows.forEach(r => {
+        if (r.user_id) assessmentsMap[r.user_id] = (assessmentsMap[r.user_id] || 0) + parseInt(r.count, 10);
+    });
+
+    // 6. Fetch client registrations created on target date
+    const regRes = await db.query(`
+        SELECT created_by as user_id, COUNT(*) as count
+        FROM clients
+        WHERE (DATE(created_at AT TIME ZONE 'Asia/Kolkata') = $1 OR DATE(created_at) = $1)
+          AND created_by IS NOT NULL
+        GROUP BY created_by
+    `, [targetDate]).catch(() => ({ rows: [] }));
+    const regMap = {};
+    regRes.rows.forEach(r => {
+        if (r.user_id) regMap[r.user_id] = parseInt(r.count, 10);
+    });
+
+    // 7. Build consolidated staff activity metrics
+    const results = staffList.map(staff => {
+        const activeSeconds = activityMap[staff.id] || 0;
+        const activeMinutes = Math.round(activeSeconds / 60);
+
+        const sessionsCount = (sessionsMap[staff.id] || 0) + (assessmentsMap[staff.id] || 0);
+        const registrationsCount = regMap[staff.id] || 0;
+
+        return {
+            id: staff.id,
+            name: `${staff.first_name || ''} ${staff.last_name || ''}`.trim() || staff.email,
+            email: staff.email,
+            role: staff.role,
+            profession: staff.profession || staff.role,
+            activeMinutes,
+            sessionsCount,
+            registrationsCount
+        };
+    });
+
+    return results;
+}
+
 // GET Staff Activity Tracker & Console Activity Metrics
 const getActivityMetricsHandler = async (req, res) => {
     try {
         const { date } = req.query;
         const targetDate = date || new Date().toISOString().split('T')[0];
 
-        // Fetch all staff members (excluding pure client/athlete accounts)
-        let staffQuery = `
-            SELECT p.id, p.first_name, p.last_name, p.profession, u.role, u.email
-            FROM profiles p
-            JOIN users u ON p.id = u.id
-            WHERE u.role NOT IN ('client', 'athlete')
-            ORDER BY p.first_name ASC
-        `;
-
-        const staffRes = await db.query(staffQuery);
-        const staffList = staffRes.rows;
-
-        // Fetch actual application usage activity (active seconds spent on console)
-        const appActivityRes = await db.query(
-            `SELECT user_id, active_seconds FROM user_app_activity WHERE date = $1`,
-            [targetDate]
-        ).catch(() => ({ rows: [] }));
-        const activityMap = {};
-        appActivityRes.rows.forEach(r => {
-            activityMap[r.user_id] = parseInt(r.active_seconds, 10);
-        });
-
-        // Fetch sessions conducted on target date from 'sessions' table
-        const sessionsRes = await db.query(
-            `SELECT practitioner_id, COUNT(*) as count 
-             FROM sessions 
-             WHERE DATE(start_time) = $1
-             GROUP BY practitioner_id`,
-            [targetDate]
-        ).catch(() => ({ rows: [] }));
-        const sessionsMap = {};
-        sessionsRes.rows.forEach(r => { 
-            if (r.practitioner_id) sessionsMap[r.practitioner_id] = parseInt(r.count, 10); 
-        });
-
-        // Fetch performance assessments created on target date
-        const assessmentsRes = await db.query(
-            `SELECT created_by, COUNT(*) as count
-             FROM performance_assessments
-             WHERE DATE(created_at) = $1 AND created_by IS NOT NULL
-             GROUP BY created_by`,
-            [targetDate]
-        ).catch(() => ({ rows: [] }));
-        const assessmentsMap = {};
-        assessmentsRes.rows.forEach(r => { 
-            if (r.created_by) assessmentsMap[r.created_by] = parseInt(r.count, 10); 
-        });
-
-        // Fetch user registrations created on target date
-        const regRes = await db.query(
-            `SELECT created_by, COUNT(*) as count
-             FROM profiles
-             WHERE DATE(created_at) = $1 AND created_by IS NOT NULL
-             GROUP BY created_by`,
-            [targetDate]
-        ).catch(() => ({ rows: [] }));
-        const regMap = {};
-        regRes.rows.forEach(r => { 
-            if (r.created_by) regMap[r.created_by] = parseInt(r.count, 10); 
-        });
-
-        // Build staff activity metrics
-        const results = staffList.map(staff => {
-            const activeSeconds = activityMap[staff.id] || 0;
-            const activeMinutes = Math.round(activeSeconds / 60);
-
-            const sessionsCount = (sessionsMap[staff.id] || 0) + (assessmentsMap[staff.id] || 0);
-            const registrationsCount = regMap[staff.id] || 0;
-
-            return {
-                id: staff.id,
-                name: `${staff.first_name || ''} ${staff.last_name || ''}`.trim() || staff.email,
-                email: staff.email,
-                role: staff.role,
-                profession: staff.profession || staff.role,
-                activeMinutes,
-                sessionsCount,
-                registrationsCount
-            };
-        });
-
+        const results = await calculateStaffActivityMetrics(targetDate);
         res.json({ date: targetDate, data: results });
     } catch (error) {
-        console.error('Error in GET /staff-efficiency:', error);
+        console.error('Error in GET /activity-tracker:', error);
         res.status(500).json({ error: error.message });
     }
 };
@@ -245,36 +283,7 @@ router.post('/activity-tracker/send-now', requireAuth, async (req, res) => {
       return res.status(400).json({ error: 'Recipient emails are required.' });
     }
 
-    const staffQuery = `
-      SELECT p.id, p.first_name, p.last_name, p.profession, u.role, u.email
-      FROM profiles p
-      JOIN users u ON p.id = u.id
-      WHERE u.role NOT IN ('client', 'athlete')
-      ORDER BY p.first_name ASC
-    `;
-    const staffRes = await db.query(staffQuery);
-    const staffList = staffRes.rows;
-
-    const appActivityRes = await db.query(`SELECT user_id, active_seconds FROM user_app_activity WHERE date = $1`, [targetDate]).catch(() => ({ rows: [] }));
-    const activityMap = {};
-    appActivityRes.rows.forEach(r => { activityMap[r.user_id] = parseInt(r.active_seconds, 10); });
-
-    const sessionsRes = await db.query(`SELECT practitioner_id, COUNT(*) as count FROM sessions WHERE DATE(start_time) = $1 GROUP BY practitioner_id`, [targetDate]).catch(() => ({ rows: [] }));
-    const sessionsMap = {};
-    sessionsRes.rows.forEach(r => { if (r.practitioner_id) sessionsMap[r.practitioner_id] = parseInt(r.count, 10); });
-
-    const regRes = await db.query(`SELECT created_by, COUNT(*) as count FROM profiles WHERE DATE(created_at) = $1 AND created_by IS NOT NULL GROUP BY created_by`, [targetDate]).catch(() => ({ rows: [] }));
-    const regMap = {};
-    regRes.rows.forEach(r => { if (r.created_by) regMap[r.created_by] = parseInt(r.count, 10); });
-
-    const staffData = staffList.map(staff => ({
-      name: `${staff.first_name || ''} ${staff.last_name || ''}`.trim() || staff.email,
-      profession: staff.profession || staff.role,
-      activeMinutes: Math.round((activityMap[staff.id] || 0) / 60),
-      sessionsCount: sessionsMap[staff.id] || 0,
-      registrationsCount: regMap[staff.id] || 0
-    }));
-
+    const staffData = await calculateStaffActivityMetrics(targetDate);
     const htmlContent = generateActivityTrackerHTML(targetDate, staffData);
     const emailList = recipient_emails.split(',').map(e => e.trim()).filter(Boolean);
 
@@ -310,27 +319,7 @@ setInterval(async () => {
       const emailList = auto.recipient_emails.split(',').map(e => e.trim()).filter(Boolean);
       if (emailList.length === 0) continue;
 
-      const staffRes = await db.query(`SELECT p.id, p.first_name, p.last_name, p.profession, u.role, u.email FROM profiles p JOIN users u ON p.id = u.id WHERE u.role NOT IN ('client', 'athlete') ORDER BY p.first_name ASC`);
-      const appActivityRes = await db.query(`SELECT user_id, active_seconds FROM user_app_activity WHERE date = $1`, [todayStr]).catch(() => ({ rows: [] }));
-      const activityMap = {};
-      appActivityRes.rows.forEach(r => { activityMap[r.user_id] = parseInt(r.active_seconds, 10); });
-
-      const sessionsRes = await db.query(`SELECT practitioner_id, COUNT(*) as count FROM sessions WHERE DATE(start_time) = $1 GROUP BY practitioner_id`, [todayStr]).catch(() => ({ rows: [] }));
-      const sessionsMap = {};
-      sessionsRes.rows.forEach(r => { if (r.practitioner_id) sessionsMap[r.practitioner_id] = parseInt(r.count, 10); });
-
-      const regRes = await db.query(`SELECT created_by, COUNT(*) as count FROM profiles WHERE DATE(created_at) = $1 AND created_by IS NOT NULL GROUP BY created_by`, [todayStr]).catch(() => ({ rows: [] }));
-      const regMap = {};
-      regRes.rows.forEach(r => { if (r.created_by) regMap[r.created_by] = parseInt(r.count, 10); });
-
-      const staffData = staffRes.rows.map(staff => ({
-        name: `${staff.first_name || ''} ${staff.last_name || ''}`.trim() || staff.email,
-        profession: staff.profession || staff.role,
-        activeMinutes: Math.round((activityMap[staff.id] || 0) / 60),
-        sessionsCount: sessionsMap[staff.id] || 0,
-        registrationsCount: regMap[staff.id] || 0
-      }));
-
+      const staffData = await calculateStaffActivityMetrics(todayStr);
       const htmlContent = generateActivityTrackerHTML(todayStr, staffData);
 
       await sendEmailHelper({
@@ -639,8 +628,20 @@ router.get('/users/:id/profile-activity', requireAuth, async (req, res) => {
         let assessmentsCount = 0;
         let registrationsCount = 0;
         try {
-            const sessionsRes = await db.query(`SELECT COUNT(*) as count FROM sessions WHERE practitioner_id = $1`, [id]).catch(() => ({ rows: [{ count: 0 }] }));
+            const sessionsRes = await db.query(`
+                SELECT COUNT(DISTINCT id) as count 
+                FROM sessions 
+                WHERE (therapist_id = $1 OR scientist_id = $1 OR created_by = $1)
+                  AND status NOT IN ('Deleted')
+            `, [id]).catch(() => ({ rows: [{ count: 0 }] }));
             sessionsCount = parseInt(sessionsRes.rows[0]?.count || 0, 10);
+
+            const paRes = await db.query(`SELECT COUNT(*) as count FROM performance_assessments WHERE recorded_by = $1`, [id]).catch(() => ({ rows: [{ count: 0 }] }));
+            const naRes = await db.query(`SELECT COUNT(*) as count FROM nutrition_assessments WHERE nutritionist_id = $1 OR taken_by = $1`, [id]).catch(() => ({ rows: [{ count: 0 }] }));
+            assessmentsCount = parseInt(paRes.rows[0]?.count || 0, 10) + parseInt(naRes.rows[0]?.count || 0, 10);
+
+            const regRes = await db.query(`SELECT COUNT(*) as count FROM clients WHERE created_by = $1`, [id]).catch(() => ({ rows: [{ count: 0 }] }));
+            registrationsCount = parseInt(regRes.rows[0]?.count || 0, 10);
         } catch (e) {}
 
         const todayMinutes = Math.round(todaySeconds / 60);
