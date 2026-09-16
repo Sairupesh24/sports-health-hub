@@ -22,6 +22,8 @@ interface PendingUser {
   first_name: string;
   last_name: string;
   is_approved: boolean;
+  is_active?: boolean;
+  deleted_at?: string | null;
   created_at: string;
   current_role?: string;
   uhid?: string;
@@ -73,9 +75,13 @@ export default function UserApproval() {
       if (!matchesSearch) return false;
     }
 
+    const isUserActive = !u.deleted_at && u.is_active !== false;
+
     // Status filter
-    if (statusFilter === "pending" && u.is_approved) return false;
-    if (statusFilter === "approved" && !u.is_approved) return false;
+    if (statusFilter === "pending" && (u.is_approved || !isUserActive)) return false;
+    if (statusFilter === "approved" && (!u.is_approved || !isUserActive)) return false;
+    if (statusFilter === "revoked" && isUserActive) return false;
+    if (statusFilter === "all" && !isUserActive) return false;
 
     // Role filter
     if (roleFilter !== "all" && u.current_role !== roleFilter) return false;
@@ -83,11 +89,13 @@ export default function UserApproval() {
     return true;
   });
 
-  const totalCount = users.length;
-  const pendingCount = users.filter(u => !u.is_approved).length;
-  const approvedCount = users.filter(u => u.is_approved).length;
-  const staffCount = users.filter(u => u.current_role && u.current_role !== 'client' && u.current_role !== 'athlete').length;
-  const clientCount = users.filter(u => u.current_role === 'client' || u.current_role === 'athlete').length;
+  const activeUsers = users.filter(u => !u.deleted_at && u.is_active !== false);
+  const totalCount = activeUsers.length;
+  const pendingCount = activeUsers.filter(u => !u.is_approved).length;
+  const approvedCount = activeUsers.filter(u => u.is_approved).length;
+  const revokedCount = users.filter(u => u.deleted_at || u.is_active === false).length;
+  const staffCount = activeUsers.filter(u => u.current_role && u.current_role !== 'client' && u.current_role !== 'athlete').length;
+  const clientCount = activeUsers.filter(u => u.current_role === 'client' || u.current_role === 'athlete').length;
 
   const ROLE_LABELS: Record<string, string> = {
     admin: "Admin",
@@ -106,7 +114,7 @@ export default function UserApproval() {
     return roleKey.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
   };
 
-  const roleBreakdown = users.reduce((acc, u) => {
+  const roleBreakdown = activeUsers.reduce((acc, u) => {
     const r = u.current_role || 'unassigned';
     acc[r] = (acc[r] || 0) + 1;
     return acc;
@@ -139,7 +147,7 @@ export default function UserApproval() {
     if (!profile?.organization_id) return;
 
     try {
-      const response = await apiFetch<any>(`/hr/users`);
+      const response = await apiFetch<any>(`/hr/users?include_revoked=true`);
       const profiles = response.data;
 
       if (profiles) {
@@ -305,14 +313,19 @@ export default function UserApproval() {
   };
 
   const revokeAccess = async (userId: string) => {
-    if (!confirm("Are you sure you want to revoke this user's access to the organization?")) return;
+    const target = users.find(u => u.id === userId);
+    const name = target ? `${target.first_name || ''} ${target.last_name || ''}`.trim() || target.email : "this user";
+    if (!confirm(`Are you sure you want to revoke access for ${name}? Their login will be disabled, but all associated records and clinical sessions will be preserved.`)) return;
 
     try {
-      await apiFetch(`/hr/users/${userId}`, {
-        method: 'DELETE'
+      const res = await apiFetch<any>(`/hr/users/${userId}/revoke`, {
+        method: 'POST'
       });
 
-      toast({ title: "Access Revoked", description: "User has been removed from active members." });
+      toast({ 
+        title: "Access Revoked", 
+        description: res.message || "User has been removed from active members. All records preserved." 
+      });
 
       setSelectedRoles(prev => {
         const next = { ...prev };
@@ -327,29 +340,41 @@ export default function UserApproval() {
   };
 
   const deleteUserAtAuth = async (userId: string) => {
-    if (!confirm("Are you sure you want to PERMANENTLY delete this user account? This cannot be undone.")) return;
+    const target = users.find(u => u.id === userId);
+    const name = target ? `${target.first_name || ''} ${target.last_name || ''}`.trim() || target.email : "this user";
+    if (!confirm(`Are you sure you want to remove access for ${name}? Access to the platform will be removed, while all associated clinical notes, sessions, and records will remain safely preserved in the database.`)) return;
 
     setDeletingUserId(userId);
     try {
-      await apiFetch(`/hr/users/${userId}`, { method: 'DELETE' });
-      toast({ title: "Access Revoked", description: "User has been removed from active members." });
+      const res = await apiFetch<any>(`/hr/users/${userId}`, { method: 'DELETE' });
+      toast({ 
+        title: res.hard_deleted ? "User Deleted" : "User Access Removed", 
+        description: res.message || "User has been removed from active members. All associated records have been preserved." 
+      });
       fetchUsers();
     } catch (err: any) {
       console.error("Error deleting user:", err);
-      let errMsg = err.message || "An unexpected error occurred while contacting the server.";
-      
-      if (errMsg.toLowerCase().includes("failed to fetch") || errMsg.toLowerCase().includes("failed to send")) {
-        errMsg = "Could not contact the User Management service. This usually means the Edge Function is not deployed or is unreachable.";
-      } else if (errMsg.toLowerCase().includes("foreign key constraint")) {
-        errMsg = "This user cannot be deleted because they are referenced by other records (e.g. sessions, clients, or audits). Consider revoking access instead.";
-      } else if (errMsg.toLowerCase().includes("user not found")) {
-        errMsg = "This user account could not be found in the authentication system (it may have been already deleted). Refreshing list...";
-        fetchUsers();
-      }
-      
-      toast({ title: "Error deleting user", description: errMsg, variant: "destructive" });
+      toast({ 
+        title: "Error removing user", 
+        description: err.message || "An unexpected error occurred while contacting the server.", 
+        variant: "destructive" 
+      });
     } finally {
       setDeletingUserId(null);
+    }
+  };
+
+  const restoreAccess = async (userId: string) => {
+    const target = users.find(u => u.id === userId);
+    const name = target ? `${target.first_name || ''} ${target.last_name || ''}`.trim() || target.email : "this user";
+    if (!confirm(`Restore access for ${name}?`)) return;
+
+    try {
+      const res = await apiFetch<any>(`/hr/users/${userId}/restore`, { method: 'POST' });
+      toast({ title: "Access Restored", description: res.message || "User account access has been restored." });
+      fetchUsers();
+    } catch (err: any) {
+      toast({ title: "Error restoring access", description: err.message, variant: "destructive" });
     }
   };
 
@@ -660,13 +685,14 @@ export default function UserApproval() {
 
               {/* Status Filter Dropdown */}
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-full sm:w-36 bg-muted/30 border-border">
+                <SelectTrigger className="w-full sm:w-44 bg-muted/30 border-border">
                   <SelectValue placeholder="All Status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="approved">Approved</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="all">Active Members ({totalCount})</SelectItem>
+                  <SelectItem value="approved">Approved ({approvedCount})</SelectItem>
+                  <SelectItem value="pending">Pending ({pendingCount})</SelectItem>
+                  <SelectItem value="revoked">Access Removed ({revokedCount})</SelectItem>
                 </SelectContent>
               </Select>
 
@@ -895,8 +921,15 @@ export default function UserApproval() {
                       </div>
                       <p className="text-xs text-muted-foreground break-all">{u.email}</p>
                       
-                      {/* Approver log information */}
-                      {u.is_approved && (
+                      {/* Approver log information or Revoked status note */}
+                      {(!u.is_active || u.deleted_at) ? (
+                        <div className="flex items-center gap-1.5 mt-1.5 text-[11px] text-destructive">
+                          <UserX className="w-3.5 h-3.5 shrink-0" />
+                          <span>
+                            Access removed{u.deleted_at ? ` on ${formatApprovalDate(u.deleted_at)}` : ''} · All clinical records preserved
+                          </span>
+                        </div>
+                      ) : u.is_approved ? (
                         <div className="flex items-center gap-1.5 mt-1.5 text-[11px] text-muted-foreground">
                           <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
                           <span>
@@ -906,7 +939,7 @@ export default function UserApproval() {
                             )}
                           </span>
                         </div>
-                      )}
+                      ) : null}
                     </div>
 
                     <div className="flex flex-row flex-wrap items-center gap-2 w-full md:w-auto mt-1 md:mt-0">
@@ -921,7 +954,26 @@ export default function UserApproval() {
                           <ExternalLink className="w-4 h-4" />
                         </Button>
                       )}
-                      {u.is_approved ? (
+
+                      {(!u.is_active || u.deleted_at) ? (
+                        <div className="flex items-center gap-2">
+                          <Badge 
+                            variant="destructive" 
+                            className="bg-destructive/10 text-destructive border-destructive/30 h-9 flex items-center px-3 font-medium"
+                          >
+                            <UserX className="w-3.5 h-3.5 mr-1.5" /> Access Removed
+                          </Badge>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => restoreAccess(u.id)}
+                            className="gap-1.5 h-9 px-3 hover:bg-primary/10 hover:text-primary border-border"
+                            title="Restore access for this user"
+                          >
+                            <RotateCcw className="w-3.5 h-3.5" /> Restore Access
+                          </Button>
+                        </div>
+                      ) : u.is_approved ? (
                         <>
                           <div className="flex items-center gap-2 flex-1 md:flex-none">
                             <Badge 
@@ -964,7 +1016,7 @@ export default function UserApproval() {
                               onClick={() => deleteUserAtAuth(u.id)}
                               disabled={deletingUserId === u.id}
                               className="h-9 w-9 shrink-0 opacity-80 hover:opacity-100 bg-red-600 hover:bg-red-700"
-                              title="Delete Permanently"
+                              title="Delete / Remove User Access"
                             >
                               <Trash2 className={`w-4 h-4 ${deletingUserId === u.id ? 'animate-pulse' : ''}`} />
                             </Button>
@@ -999,7 +1051,7 @@ export default function UserApproval() {
                             onClick={() => deleteUserAtAuth(u.id)}
                             disabled={deletingUserId === u.id}
                             className="h-9 w-9 shrink-0 bg-red-600 hover:bg-red-700"
-                            title="Delete Permanently"
+                            title="Delete / Remove User Access"
                           >
                             <Trash2 className={`w-4 h-4 ${deletingUserId === u.id ? 'animate-pulse' : ''}`} />
                           </Button>

@@ -127,13 +127,17 @@ router.post('/login', async (req, res) => {
     const { email, password } = req.body;
     if (!email || !password) return res.status(400).json({ error: 'Email and password required' });
 
-    const userRes = await db.query('SELECT id, password_hash, role FROM users WHERE email = $1', [email.toLowerCase()]);
+    const userRes = await db.query('SELECT id, password_hash, role, is_active, deleted_at FROM users WHERE email = $1', [email.toLowerCase()]);
     const user = userRes.rows[0];
     
     // If user doesn't exist or doesn't have a password set, fail auth
     // Note: Admin might not have a password hash yet in dev, we can fallback or fail
     if (!user) {
       return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    if (user.is_active === false || user.deleted_at) {
+      return res.status(403).json({ error: 'Access to this account has been removed. Please contact your organization administrator.' });
     }
 
     if (user.password_hash) {
@@ -147,8 +151,11 @@ router.post('/login', async (req, res) => {
     }
 
     // Fetch profile for additional token claims
-    const profileRes = await db.query('SELECT organization_id, is_approved FROM profiles WHERE id = $1', [user.id]);
+    const profileRes = await db.query('SELECT organization_id, is_approved, is_active, deleted_at FROM profiles WHERE id = $1', [user.id]);
     const profile = profileRes.rows[0] || {};
+    if (profile.is_active === false || profile.deleted_at) {
+      return res.status(403).json({ error: 'Access to this account has been removed. Please contact your organization administrator.' });
+    }
     const isApproved = profile.is_approved || false;
     const orgId = profile.organization_id || null;
     const finalApproved = user.role === 'super_admin' ? true : isApproved;
@@ -178,9 +185,13 @@ router.post('/verify', async (req, res) => {
     const { email, otp } = req.body;
     if (!email || !otp) return res.status(400).json({ error: 'Email and OTP required' });
 
-    const userRes = await db.query('SELECT id, role FROM users WHERE email = $1', [email.toLowerCase()]);
+    const userRes = await db.query('SELECT id, role, is_active, deleted_at FROM users WHERE email = $1', [email.toLowerCase()]);
     const user = userRes.rows[0];
     if (!user) return res.status(404).json({ error: 'User not found' });
+
+    if (user.is_active === false || user.deleted_at) {
+      return res.status(403).json({ error: 'Access to this account has been removed. Please contact your organization administrator.' });
+    }
 
     const isMasterOTP = otp === '000000';
     console.log(`[DEBUG] Verify attempt: email=${email}, otp=${otp}, isMaster=${isMasterOTP}`);
@@ -199,8 +210,11 @@ router.post('/verify', async (req, res) => {
 
     await db.query('DELETE FROM authsessions WHERE user_id = $1', [user.id]);
 
-    const profileRes = await db.query('SELECT organization_id, is_approved FROM profiles WHERE id = $1', [user.id]);
+    const profileRes = await db.query('SELECT organization_id, is_approved, is_active, deleted_at FROM profiles WHERE id = $1', [user.id]);
     const profile = profileRes.rows[0] || {};
+    if (profile.is_active === false || profile.deleted_at) {
+      return res.status(403).json({ error: 'Access to this account has been removed. Please contact your organization administrator.' });
+    }
     const isApproved = profile.is_approved || false;
     const orgId = profile.organization_id || null;
 
@@ -303,6 +317,11 @@ router.get('/me', async (req, res) => {
     const token = authHeader.split(' ')[1];
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret_do_not_use_in_prod');
 
+    const userRes = await db.query('SELECT is_active, deleted_at FROM users WHERE id = $1', [decoded.id]);
+    if (userRes.rows.length > 0 && (userRes.rows[0].is_active === false || userRes.rows[0].deleted_at)) {
+      return res.status(401).json({ error: 'Account access has been removed' });
+    }
+
     const profileRes = await db.query(`
       SELECT p.*, o.name as organization_name, o.logo_url as organization_logo, o.enabled_modules as organization_enabled_modules 
       FROM profiles p 
@@ -311,6 +330,9 @@ router.get('/me', async (req, res) => {
     `, [decoded.id]);
     
     let profile = profileRes.rows[0];
+    if (profile && (profile.is_active === false || profile.deleted_at)) {
+      return res.status(401).json({ error: 'Account access has been removed' });
+    }
     
     // If no profile exists (e.g. seeded admin), provide defaults
     if (!profile) {

@@ -263,12 +263,16 @@ async function runMigrations() {
       )
     `);
 
-    // Safely add password_hash to existing users table if it doesn't exist
+    // Safely add password_hash, is_active, and deleted_at to existing users table if they don't exist
     try {
-      await pool.query(`ALTER TABLE users ADD COLUMN password_hash TEXT;`);
-    } catch (e) {
-      // Ignore error if column already exists
-    }
+      await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS password_hash TEXT;`);
+    } catch (e) {}
+    try {
+      await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE;`);
+    } catch (e) {}
+    try {
+      await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ DEFAULT NULL;`);
+    } catch (e) {}
 
     // Create profiles table
     await pool.query(`
@@ -312,6 +316,12 @@ async function runMigrations() {
     } catch (e) {}
     try {
       await pool.query(`ALTER TABLE profiles ADD COLUMN approved_at TIMESTAMPTZ;`);
+    } catch (e) {}
+    try {
+      await pool.query(`ALTER TABLE profiles ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE;`);
+    } catch (e) {}
+    try {
+      await pool.query(`ALTER TABLE profiles ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ DEFAULT NULL;`);
     } catch (e) {}
 
 

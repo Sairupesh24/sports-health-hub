@@ -509,12 +509,20 @@ router.get('/stats', requireAuth, async (req, res) => {
 router.get('/users', requireAuth, async (req, res) => {
     try {
         const orgId = req.user.organization_id;
+        const includeRevoked = req.query.include_revoked === 'true' || req.query.status === 'all';
         
+        let filterClause = "WHERE p.organization_id = $1 AND u.role != 'super_admin'";
+        if (!includeRevoked) {
+            filterClause += " AND (p.deleted_at IS NULL AND (p.is_active IS NULL OR p.is_active = true))";
+        }
+
         const result = await db.query(`
             SELECT 
                 p.*, 
                 u.email, 
                 u.role as current_role,
+                COALESCE(p.is_active, u.is_active, true) as is_active,
+                COALESCE(p.deleted_at, u.deleted_at) as deleted_at,
                 CASE 
                     WHEN approver.id IS NOT NULL THEN TRIM(CONCAT(approver.first_name, ' ', approver.last_name))
                     ELSE NULL 
@@ -524,8 +532,7 @@ router.get('/users', requireAuth, async (req, res) => {
             JOIN users u ON p.id = u.id
             LEFT JOIN profiles approver ON p.approved_by = approver.id
             LEFT JOIN users approver_user ON p.approved_by = approver_user.id
-            WHERE p.organization_id = $1
-            AND u.role != 'super_admin'
+            ${filterClause}
             ORDER BY u.created_at DESC
         `, [orgId]);
         
@@ -844,24 +851,186 @@ router.patch('/users/:id/role', requireAuth, async (req, res) => {
     }
 });
 
-// DELETE permanently delete user
+// DELETE user or remove user access (preserves all records associated to that user)
 router.delete('/users/:id', requireAuth, async (req, res) => {
+    const client = await db.connect();
     try {
         const { id } = req.params;
         const orgId = req.user.organization_id;
 
         // Verify organization match before deleting
-        const profileRes = await db.query('SELECT organization_id FROM profiles WHERE id = $1', [id]);
-        if (profileRes.rows.length === 0 || profileRes.rows[0].organization_id !== orgId) {
+        const profileRes = await client.query('SELECT organization_id, is_approved FROM profiles WHERE id = $1', [id]);
+        if (profileRes.rows.length === 0 || (profileRes.rows[0].organization_id !== orgId && req.user.role !== 'super_admin')) {
             return res.status(403).json({ error: 'Unauthorized user deletion' });
         }
 
-        // Permanently delete user (cascades to profiles)
-        await db.query('DELETE FROM users WHERE id = $1', [id]);
+        // Prevent self-deletion
+        if (id === req.user.id) {
+            return res.status(400).json({ error: 'Cannot delete your own account' });
+        }
 
-        res.json({ success: true });
+        // Verify not super_admin
+        const userRes = await client.query('SELECT role, email FROM users WHERE id = $1', [id]);
+        if (userRes.rows.length > 0 && userRes.rows[0].role === 'super_admin') {
+            return res.status(403).json({ error: 'Cannot delete super admin account' });
+        }
+
+        await client.query('BEGIN');
+
+        // Safely remove access for the user while preserving all records associated with them
+        await client.query(`
+            UPDATE profiles SET 
+                is_approved = false,
+                is_active = false,
+                deleted_at = CURRENT_TIMESTAMP,
+                has_calendar_access = false,
+                has_analytics_access = false,
+                has_assign_work_access = false,
+                allowed_consoles = '[]'
+            WHERE id = $1
+        `, [id]);
+
+        await client.query(`
+            UPDATE users SET 
+                is_active = false,
+                deleted_at = CURRENT_TIMESTAMP,
+                password_hash = NULL
+            WHERE id = $1
+        `, [id]);
+
+        await client.query('DELETE FROM authsessions WHERE user_id = $1', [id]);
+
+        // Record in audit_logs
+        try {
+            await client.query(`
+                INSERT INTO audit_logs (organization_id, entity_type, entity_id, action, performed_by, details)
+                VALUES ($1, 'user', $2, 'access_removed', $3, $4::jsonb)
+            `, [orgId, id, req.user.id, JSON.stringify({ reason: 'User access removed; all associated records preserved' })]);
+        } catch (auditErr) {
+            console.warn('Could not record access revocation in audit_logs:', auditErr.message);
+        }
+
+        await client.query('COMMIT');
+
+        res.json({ 
+            success: true, 
+            access_revoked: true,
+            message: 'User access has been removed and all associated records have been preserved.' 
+        });
     } catch (error) {
+        await client.query('ROLLBACK');
+        console.error('Error in DELETE /users/:id:', error);
         res.status(500).json({ error: error.message });
+    } finally {
+        client.release();
+    }
+});
+
+// POST explicitly revoke access to user (without attempting hard delete)
+router.post('/users/:id/revoke', requireAuth, async (req, res) => {
+    const client = await db.connect();
+    try {
+        const { id } = req.params;
+        const orgId = req.user.organization_id;
+
+        const profileRes = await client.query('SELECT organization_id FROM profiles WHERE id = $1', [id]);
+        if (profileRes.rows.length === 0 || (profileRes.rows[0].organization_id !== orgId && req.user.role !== 'super_admin')) {
+            return res.status(403).json({ error: 'Unauthorized' });
+        }
+
+        if (id === req.user.id) {
+            return res.status(400).json({ error: 'Cannot revoke your own access' });
+        }
+
+        const userRes = await client.query('SELECT role FROM users WHERE id = $1', [id]);
+        if (userRes.rows.length > 0 && userRes.rows[0].role === 'super_admin') {
+            return res.status(403).json({ error: 'Cannot revoke super admin access' });
+        }
+
+        await client.query('BEGIN');
+
+        await client.query(`
+            UPDATE profiles SET 
+                is_approved = false,
+                is_active = false,
+                deleted_at = CURRENT_TIMESTAMP,
+                has_calendar_access = false,
+                has_analytics_access = false,
+                has_assign_work_access = false,
+                allowed_consoles = '[]'
+            WHERE id = $1
+        `, [id]);
+
+        await client.query(`
+            UPDATE users SET 
+                is_active = false,
+                deleted_at = CURRENT_TIMESTAMP,
+                password_hash = NULL
+            WHERE id = $1
+        `, [id]);
+
+        await client.query('DELETE FROM authsessions WHERE user_id = $1', [id]);
+
+        try {
+            await client.query(`
+                INSERT INTO audit_logs (organization_id, entity_type, entity_id, action, performed_by, details)
+                VALUES ($1, 'user', $2, 'access_revoked', $3, $4::jsonb)
+            `, [orgId, id, req.user.id, JSON.stringify({ reason: 'Admin revoked user access' })]);
+        } catch (auditErr) {}
+
+        await client.query('COMMIT');
+        res.json({ success: true, message: 'User access has been revoked. All associated records are preserved.' });
+    } catch (error) {
+        await client.query('ROLLBACK');
+        res.status(500).json({ error: error.message });
+    } finally {
+        client.release();
+    }
+});
+
+// POST restore user access
+router.post('/users/:id/restore', requireAuth, async (req, res) => {
+    const client = await db.connect();
+    try {
+        const { id } = req.params;
+        const orgId = req.user.organization_id;
+
+        const profileRes = await client.query('SELECT organization_id FROM profiles WHERE id = $1', [id]);
+        if (profileRes.rows.length === 0 || (profileRes.rows[0].organization_id !== orgId && req.user.role !== 'super_admin')) {
+            return res.status(403).json({ error: 'Unauthorized' });
+        }
+
+        await client.query('BEGIN');
+
+        await client.query(`
+            UPDATE profiles SET 
+                is_active = true,
+                deleted_at = NULL,
+                is_approved = true
+            WHERE id = $1
+        `, [id]);
+
+        await client.query(`
+            UPDATE users SET 
+                is_active = true,
+                deleted_at = NULL
+            WHERE id = $1
+        `, [id]);
+
+        try {
+            await client.query(`
+                INSERT INTO audit_logs (organization_id, entity_type, entity_id, action, performed_by, details)
+                VALUES ($1, 'user', $2, 'access_restored', $3, $4::jsonb)
+            `, [orgId, id, req.user.id, JSON.stringify({ reason: 'Admin restored user access' })]);
+        } catch (auditErr) {}
+
+        await client.query('COMMIT');
+        res.json({ success: true, message: 'User access restored successfully.' });
+    } catch (error) {
+        await client.query('ROLLBACK');
+        res.status(500).json({ error: error.message });
+    } finally {
+        client.release();
     }
 });
 

@@ -129,7 +129,7 @@ export function AnnouncementsManager({ open, onOpenChange }: AnnouncementsManage
                 await apiFetch(`/hr/users/${payload.userId}`, {
                     method: 'DELETE'
                 });
-                toast({ title: "User Signup Rejected & Deleted Permanently" });
+                toast({ title: "User Signup Rejected & Access Removed" });
             }
 
             // Update status on notification

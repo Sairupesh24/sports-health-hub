@@ -29,7 +29,8 @@ import {
   Activity, 
   Filter, 
   Search,
-  CalendarCheck
+  CalendarCheck,
+  UserX
 } from "lucide-react";
 import { 
   ResponsiveContainer, 
@@ -43,6 +44,7 @@ import {
 } from "recharts";
 import { format, parseISO } from "date-fns";
 import { cn, formatClientName } from "@/lib/utils";
+import { Appointment } from "@/types/appointment";
 
 interface ProfileActivityResponse {
   profile: {
@@ -56,6 +58,8 @@ interface ProfileActivityResponse {
     mobile_no?: string;
     uhid?: string;
     is_approved?: boolean;
+    is_active?: boolean;
+    deleted_at?: string;
     approved_by?: string;
     approved_at?: string;
     approver_name?: string;
@@ -252,7 +256,12 @@ export default function StaffProfile() {
                 <div className="space-y-2 flex-1">
                   <div className="flex flex-wrap items-center gap-3">
                     <h1 className="text-2xl sm:text-3xl font-black tracking-tight">{fullName}</h1>
-                    {profile.is_approved ? (
+                    {profile.deleted_at || profile.is_active === false ? (
+                      <Badge className="bg-destructive/20 text-red-300 border-destructive/30 text-xs font-bold gap-1">
+                        <UserX className="w-3.5 h-3.5 text-red-400" />
+                        Access Removed
+                      </Badge>
+                    ) : profile.is_approved ? (
                       <Badge 
                         className="bg-emerald-500/20 text-emerald-300 border-emerald-500/30 text-xs font-bold gap-1"
                         title={profile.approver_name ? `Approved by ${profile.approver_name}` : "Account Approved"}
