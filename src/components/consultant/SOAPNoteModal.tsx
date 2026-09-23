@@ -9,13 +9,13 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Slider } from "@/components/ui/slider";
 import { toast } from "@/hooks/use-toast";
 import { apiFetch } from "@/utils/api";
-import { Copy, Save, AlertTriangle, RefreshCw, Loader2, Lock } from "lucide-react";
+import { Copy, Save, AlertTriangle, RefreshCw, Loader2, Lock, PlusCircle, FileText } from "lucide-react";
 import { format } from "date-fns";
 import { filterServicesByRole, Service } from "@/utils/serviceMapping";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/contexts/AuthContext";
 import { formatClientName } from "@/lib/utils";
-import LogInjuryModal from "./LogInjuryModal";
+import CaseSheetModal from "./CaseSheetModal";
 import PainMap from "./PainMap";
 
 interface SOAPNoteModalProps {
@@ -52,8 +52,10 @@ export default function SOAPNoteModal({ open, onOpenChange, session, clientId, o
     const [strengthProgress, setStrengthProgress] = useState("");
         const [clinicalNotes, setClinicalNotes] = useState("");
     const [nextPlan, setNextPlan] = useState("");
-    const [clientInjuries, setClientInjuries] = useState<any[]>([]);
+    const [caseModalOpen, setCaseModalOpen] = useState(false);
     const [selectedInjuryId, setSelectedInjuryId] = useState<string>("");
+    const [selectedCaseId, setSelectedCaseId] = useState<string>("");
+    const [clientCases, setClientCases] = useState<any[]>([]);
 
     const isCompleted = (session?.physio_session_details && (
         Array.isArray(session.physio_session_details)
@@ -102,6 +104,7 @@ export default function SOAPNoteModal({ open, onOpenChange, session, clientId, o
                 setClinicalNotes(data?.clinical_notes || "");
                 setNextPlan(data?.next_plan || "");
                 setSelectedInjuryId(data?.injury_id || "");
+                setSelectedCaseId(data?.case_id || "");
                 let sd = data?.soreness_data || {};
                 if (typeof sd === 'string') {
                     try {
@@ -160,15 +163,18 @@ export default function SOAPNoteModal({ open, onOpenChange, session, clientId, o
         }
     }, [open, session]);
 
-    const fetchInjuries = async () => {
-        if (!clientId) return;
+    const fetchCases = async () => {
+        if (!clientId) return [];
         try {
-            const data = await apiFetch<any[]>('/clinical/injuries', {
+            const data = await apiFetch<any[]>('/clinical/cases', {
                 params: { client_id: clientId }
             });
-            setClientInjuries(data);
+            setClientCases(data || []);
+            return data || [];
         } catch (err) {
-            console.error("Error fetching injuries:", err);
+            console.error("Error fetching cases:", err);
+            setClientCases([]);
+            return [];
         }
     };
 
@@ -255,10 +261,12 @@ export default function SOAPNoteModal({ open, onOpenChange, session, clientId, o
 
     useEffect(() => {
         if (open && clientId) {
-            fetchInjuries();
             fetchClientDetails();
+            fetchCases();
         } else if (!open) {
             setClient(null);
+            setClientCases([]);
+            setSelectedCaseId("");
         }
     }, [open, clientId]);
 
@@ -353,6 +361,16 @@ const handleSubmit = async (e: React.FormEvent) => {
             method: 'POST',
             data: payload
         });
+
+        // Link session to a case if one is selected
+        if (selectedCaseId && selectedCaseId !== "none") {
+            try {
+                await apiFetch(`/clinical/sessions/${session.id}/link-case`, {
+                    method: 'PATCH',
+                    data: { case_id: selectedCaseId }
+                });
+            } catch (e) { /* non-fatal */ }
+        }
 
         toast({ 
             title: "Success", 
@@ -532,11 +550,15 @@ const handleSubmit = async (e: React.FormEvent) => {
                                         <h3 className="font-black text-sm uppercase tracking-wider text-primary">Session Configuration</h3>
                                     </div>
                                     {!isLocked && (
-                                        <LogInjuryModal 
-                                            clientId={clientId} 
-                                            organizationId={session.organization_id || profile?.organization_id} 
-                                            onSuccess={() => { fetchInjuries(); }} 
-                                        />
+                                        <Button
+                                            type="button"
+                                            size="sm"
+                                            onClick={() => setCaseModalOpen(true)}
+                                            className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-xs h-8 px-3 rounded-xl flex items-center gap-1.5 shadow-sm shadow-primary/20 transition-all cursor-pointer"
+                                        >
+                                            <PlusCircle className="w-3.5 h-3.5" />
+                                            Open New Case
+                                        </Button>
                                     )}
                                 </div>
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-start">
@@ -570,21 +592,22 @@ const handleSubmit = async (e: React.FormEvent) => {
                                             </p>
                                         )}
                                     </div>
+
                                     <div className="space-y-1.5">
-                                        <Label className="text-xs font-bold text-foreground">Linked Injury / Diagnosis</Label>
-                                        <Select 
-                                            value={selectedInjuryId || "none"} 
-                                            onValueChange={v => setSelectedInjuryId(v === "none" ? "" : v)}
+                                        <Label className="text-xs font-bold text-foreground">Linked Clinical Case</Label>
+                                        <Select
+                                            value={selectedCaseId || "none"}
+                                            onValueChange={v => setSelectedCaseId(v === "none" ? "" : v)}
                                             disabled={isLocked}
                                         >
                                             <SelectTrigger className="bg-background border-border">
-                                                <SelectValue placeholder="Select target injury..." />
+                                                <SelectValue placeholder="Link to a consultation case..." />
                                             </SelectTrigger>
                                             <SelectContent>
-                                                <SelectItem value="none">No specific injury / General session</SelectItem>
-                                                {clientInjuries.map(inj => (
-                                                    <SelectItem key={inj.id} value={inj.id}>
-                                                        {inj.diagnosis || inj.injury_type} ({inj.region}) - {inj.status}
+                                                <SelectItem value="none">No linked case</SelectItem>
+                                                {clientCases.map(c => (
+                                                    <SelectItem key={c.id} value={c.id}>
+                                                        {c.case_number} - {(c.final_diagnosis || c.provisional_diagnosis || c.chief_complaint || 'No complaint')} ({c.status})
                                                     </SelectItem>
                                                 ))}
                                             </SelectContent>
@@ -843,6 +866,21 @@ const handleSubmit = async (e: React.FormEvent) => {
                     </div>
                 </div>
             </DialogContent>
+
+            {clientId && (
+                <CaseSheetModal
+                    open={caseModalOpen}
+                    onOpenChange={setCaseModalOpen}
+                    clientId={clientId}
+                    client={client || { id: clientId, first_name: formatClientName(session?.client) }}
+                    onSuccess={async (newCase) => {
+                        await fetchCases();
+                        if (newCase?.id) {
+                            setSelectedCaseId(newCase.id);
+                        }
+                    }}
+                />
+            )}
         </Dialog>
     );
 }

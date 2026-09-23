@@ -489,9 +489,9 @@ router.get('/stats', requireAuth, async (req, res) => {
         const orgId = req.user.organization_id;
         
         const [empCount, pendingLeaves, approvalCount] = await Promise.all([
-            db.query('SELECT COUNT(*) FROM profiles WHERE organization_id = $1', [orgId]),
+            db.query('SELECT COUNT(*) FROM profiles WHERE organization_id = $1 AND deleted_at IS NULL AND (is_active IS NULL OR is_active = true)', [orgId]),
             db.query('SELECT COUNT(*) FROM hrleaves WHERE organization_id = $1 AND status = \'Requested\'', [orgId]),
-            db.query('SELECT COUNT(*) FROM profiles WHERE organization_id = $1 AND is_approved = false', [orgId])
+            db.query('SELECT COUNT(*) FROM profiles WHERE organization_id = $1 AND is_approved = false AND deleted_at IS NULL AND (is_active IS NULL OR is_active = true)', [orgId])
         ]);
 
         res.json({
@@ -717,6 +717,23 @@ router.post('/users/:id/approve', requireAuth, async (req, res) => {
             await autoAllocateStaffServices(id, profession, orgId, client);
         }
 
+        // Clean up pending direct_action notifications for this user
+        try {
+            await client.query(`
+                UPDATE notifications 
+                SET action_status = 'approved'
+                WHERE organization_id = $1 
+                  AND category = 'direct_action' 
+                  AND action_status = 'pending' 
+                  AND (
+                    (action_payload->>'userId' IS NOT NULL AND action_payload->>'userId' = $2)
+                    OR (action_payload->>'staffId' IS NOT NULL AND action_payload->>'staffId' = $2)
+                  )
+            `, [orgId, id]);
+        } catch (notifErr) {
+            console.warn('Could not update pending notifications on user approval:', notifErr.message);
+        }
+
         await client.query('COMMIT');
 
         // Record audit log for user approval
@@ -900,6 +917,23 @@ router.delete('/users/:id', requireAuth, async (req, res) => {
 
         await client.query('DELETE FROM authsessions WHERE user_id = $1', [id]);
 
+        // Clean up any pending direct_action notifications for this user
+        try {
+            await client.query(`
+                UPDATE notifications 
+                SET action_status = 'rejected'
+                WHERE organization_id = $1 
+                  AND category = 'direct_action' 
+                  AND action_status = 'pending' 
+                  AND (
+                    (action_payload->>'userId' IS NOT NULL AND action_payload->>'userId' = $2)
+                    OR (action_payload->>'staffId' IS NOT NULL AND action_payload->>'staffId' = $2)
+                  )
+            `, [orgId, id]);
+        } catch (notifErr) {
+            console.warn('Could not update pending notifications on user deletion:', notifErr.message);
+        }
+
         // Record in audit_logs
         try {
             await client.query(`
@@ -970,6 +1004,23 @@ router.post('/users/:id/revoke', requireAuth, async (req, res) => {
         `, [id]);
 
         await client.query('DELETE FROM authsessions WHERE user_id = $1', [id]);
+
+        // Clean up any pending direct_action notifications for this user
+        try {
+            await client.query(`
+                UPDATE notifications 
+                SET action_status = 'rejected'
+                WHERE organization_id = $1 
+                  AND category = 'direct_action' 
+                  AND action_status = 'pending' 
+                  AND (
+                    (action_payload->>'userId' IS NOT NULL AND action_payload->>'userId' = $2)
+                    OR (action_payload->>'staffId' IS NOT NULL AND action_payload->>'staffId' = $2)
+                  )
+            `, [orgId, id]);
+        } catch (notifErr) {
+            console.warn('Could not update pending notifications on user revocation:', notifErr.message);
+        }
 
         try {
             await client.query(`

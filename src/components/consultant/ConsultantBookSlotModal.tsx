@@ -11,7 +11,7 @@ import { cn, formatClientName } from "@/lib/utils";
 import { apiFetch } from "@/utils/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { Calendar as CalendarIcon, Clock, User, Plus, Loader2, Check, ChevronsUpDown, Lock, Search, AlertCircle, Ban } from "lucide-react";
+import { Calendar as CalendarIcon, Clock, User, Plus, Loader2, Check, ChevronsUpDown, Lock, Search, AlertCircle, Ban, FileText } from "lucide-react";
 import { format } from "date-fns";
 import { VIPName } from "@/components/ui/VIPBadge";
 import { filterServicesByRole, Service } from "@/utils/serviceMapping";
@@ -54,6 +54,8 @@ export function ConsultantBookSlotModal({ open, onOpenChange, defaultDate, onSuc
     const [durationMinutes, setDurationMinutes] = useState("60");
     const [sessionMode, setSessionMode] = useState("In-Person");
     const [notes, setNotes] = useState("");
+    const [clientCases, setClientCases] = useState<any[]>([]);
+    const [selectedCaseId, setSelectedCaseId] = useState<string>("");
 
     // Availability, Org Settings & Booked Sessions state
     const [orgSettings, setOrgSettings] = useState<any>(null);
@@ -83,6 +85,20 @@ export function ConsultantBookSlotModal({ open, onOpenChange, defaultDate, onSuc
             setStartTime("");
         }
     }, [open, sessionDate, profile?.id]);
+
+    useEffect(() => {
+        if (selectedClientId) {
+            apiFetch<any[]>(`/clinical/clients/${selectedClientId}/cases`)
+                .then(cases => {
+                    const openCases = (cases || []).filter((c: any) => c.status === 'open');
+                    setClientCases(openCases);
+                })
+                .catch(() => setClientCases([]));
+        } else {
+            setClientCases([]);
+            setSelectedCaseId("");
+        }
+    }, [selectedClientId]);
 
     const fetchOrgSettings = async () => {
         try {
@@ -331,6 +347,7 @@ export function ConsultantBookSlotModal({ open, onOpenChange, defaultDate, onSuc
                 session_notes: notes || undefined,
                 status: "Planned",
                 source_console: "clinical",
+                case_id: selectedCaseId && selectedCaseId !== "none" ? selectedCaseId : undefined,
             };
 
             await apiFetch("/api/appointments", {
@@ -478,6 +495,34 @@ export function ConsultantBookSlotModal({ open, onOpenChange, defaultDate, onSuc
                             </SelectContent>
                         </Select>
                     </div>
+
+                    {/* Linked Clinical Case (if client has open cases) */}
+                    {clientCases.length > 0 && (
+                        <div className="space-y-1.5 animate-in fade-in slide-in-from-top-1">
+                            <div className="flex items-center justify-between">
+                                <Label className="font-medium text-xs flex items-center gap-1.5">
+                                    <FileText className="w-3.5 h-3.5 text-primary" />
+                                    Link to Clinical Case (Optional)
+                                </Label>
+                                <span className="text-[11px] text-muted-foreground">
+                                    {clientCases.length} open case{clientCases.length > 1 ? "s" : ""}
+                                </span>
+                            </div>
+                            <Select value={selectedCaseId} onValueChange={setSelectedCaseId}>
+                                <SelectTrigger className="h-10 text-xs">
+                                    <SelectValue placeholder="Select an open clinical case..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="none">-- Do Not Link --</SelectItem>
+                                    {clientCases.map((c: any) => (
+                                        <SelectItem key={c.id} value={c.id}>
+                                            {c.case_number ? `${c.case_number}: ` : ""}{c.final_diagnosis || c.provisional_diagnosis || c.chief_complaint || "Consultation Case"}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    )}
 
                     {/* Date & Mode Row */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

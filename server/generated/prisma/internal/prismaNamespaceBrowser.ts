@@ -66,6 +66,7 @@ export const ModelName = {
   clientdocuments: 'clientdocuments',
   client_field_config: 'client_field_config',
   cliententitlements: 'cliententitlements',
+  client_cases: 'client_cases',
   clientorganizations: 'clientorganizations',
   clients: 'clients',
   consultant_services: 'consultant_services',
@@ -259,6 +260,8 @@ export const BillsScalarFieldEnum = {
   created_at: 'created_at',
   subscription_id: 'subscription_id',
   due_date: 'due_date',
+  package_id: 'package_id',
+  date: 'date',
   tax_amount: 'tax_amount'
 } as const
 
@@ -375,6 +378,102 @@ export const CliententitlementsScalarFieldEnum = {
 } as const
 
 export type CliententitlementsScalarFieldEnum = (typeof CliententitlementsScalarFieldEnum)[keyof typeof CliententitlementsScalarFieldEnum]
+
+
+export const Client_casesScalarFieldEnum = {
+  id: 'id',
+  organization_id: 'organization_id',
+  client_id: 'client_id',
+  case_number: 'case_number',
+  status: 'status',
+  chief_complaint: 'chief_complaint',
+  created_by: 'created_by',
+  closed_by: 'closed_by',
+  closed_at: 'closed_at',
+  referral_source: 'referral_source',
+  referred_by: 'referred_by',
+  hopi: 'hopi',
+  duration: 'duration',
+  radiation: 'radiation',
+  onset: 'onset',
+  migration: 'migration',
+  character: 'character',
+  progression: 'progression',
+  aggravation: 'aggravation',
+  alleviation: 'alleviation',
+  associated_features: 'associated_features',
+  diurnal_variation: 'diurnal_variation',
+  mechanism: 'mechanism',
+  aggravating_factors: 'aggravating_factors',
+  relieving_factors: 'relieving_factors',
+  previous_treatment: 'previous_treatment',
+  previous_treatment_details: 'previous_treatment_details',
+  past_medical_history: 'past_medical_history',
+  past_surgical_history: 'past_surgical_history',
+  drug_history: 'drug_history',
+  family_history: 'family_history',
+  history_dm: 'history_dm',
+  history_htn: 'history_htn',
+  history_cad: 'history_cad',
+  history_cva: 'history_cva',
+  history_ba: 'history_ba',
+  history_tb: 'history_tb',
+  allergies: 'allergies',
+  trauma: 'trauma',
+  hospitalisation: 'hospitalisation',
+  years_of_training: 'years_of_training',
+  training_volume: 'training_volume',
+  training_type: 'training_type',
+  training_notes: 'training_notes',
+  lmp: 'lmp',
+  cycle_regularity: 'cycle_regularity',
+  menstrual_notes: 'menstrual_notes',
+  built: 'built',
+  nourishment: 'nourishment',
+  pallor: 'pallor',
+  icterus: 'icterus',
+  cyanosis: 'cyanosis',
+  clubbing: 'clubbing',
+  lymphadenopathy: 'lymphadenopathy',
+  edema: 'edema',
+  beighton_score: 'beighton_score',
+  temperature: 'temperature',
+  pulse_rate: 'pulse_rate',
+  bp: 'bp',
+  spo2: 'spo2',
+  respiratory_rate: 'respiratory_rate',
+  height: 'height',
+  weight: 'weight',
+  bmi: 'bmi',
+  inspection_notes: 'inspection_notes',
+  palpation_notes: 'palpation_notes',
+  range_of_motion_notes: 'range_of_motion_notes',
+  special_tests: 'special_tests',
+  neurovascular_notes: 'neurovascular_notes',
+  dermatome_notes: 'dermatome_notes',
+  myotome_notes: 'myotome_notes',
+  reflexes_notes: 'reflexes_notes',
+  pain_map: 'pain_map',
+  pain_score: 'pain_score',
+  body_region: 'body_region',
+  injury_type: 'injury_type',
+  severity: 'severity',
+  diagnosis_notes: 'diagnosis_notes',
+  provisional_diagnosis: 'provisional_diagnosis',
+  icd_code: 'icd_code',
+  investigations: 'investigations',
+  final_diagnosis: 'final_diagnosis',
+  short_term_goals: 'short_term_goals',
+  long_term_goals: 'long_term_goals',
+  treatment_plan: 'treatment_plan',
+  home_exercise_program: 'home_exercise_program',
+  advice: 'advice',
+  additional_notes: 'additional_notes',
+  created_at: 'created_at',
+  updated_at: 'updated_at'
+} as const
+
+export type Client_casesScalarFieldEnum = (typeof Client_casesScalarFieldEnum)[keyof typeof Client_casesScalarFieldEnum]
 
 
 export const ClientorganizationsScalarFieldEnum = {
@@ -891,6 +990,7 @@ export const ProfilesScalarFieldEnum = {
   has_analytics_access: 'has_analytics_access',
   has_assign_work_access: 'has_assign_work_access',
   allowed_consoles: 'allowed_consoles',
+  custom_specialist_settings: 'custom_specialist_settings',
   approved_by: 'approved_by',
   approved_at: 'approved_at'
 } as const
@@ -1061,7 +1161,13 @@ export const SessionsScalarFieldEnum = {
   is_guest: 'is_guest',
   guest_name: 'guest_name',
   guest_contact: 'guest_contact',
-  enquiry_id: 'enquiry_id'
+  enquiry_id: 'enquiry_id',
+  rescheduled_from_session_id: 'rescheduled_from_session_id',
+  rescheduled_to_session_id: 'rescheduled_to_session_id',
+  rescheduled_from_id: 'rescheduled_from_id',
+  reassigned_from_therapist_id: 'reassigned_from_therapist_id',
+  source_console: 'source_console',
+  case_id: 'case_id'
 } as const
 
 export type SessionsScalarFieldEnum = (typeof SessionsScalarFieldEnum)[keyof typeof SessionsScalarFieldEnum]

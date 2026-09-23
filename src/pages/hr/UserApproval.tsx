@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "@/hooks/use-toast";
 import { apiFetch } from "@/utils/api";
 import { useAuth } from "@/contexts/AuthContext";
+import { useQueryClient } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { CheckCircle, Users, UserX, Plus, Copy, ExternalLink, Search, Trash2, Clock, UserCheck, Shield, Filter, RotateCcw, Maximize2, Minimize2, User, ShieldCheck } from "lucide-react";
@@ -48,6 +49,7 @@ const formatApprovalDate = (dateStr?: string | null) => {
 
 export default function UserApproval() {
   const { profile } = useAuth();
+  const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [users, setUsers] = useState<PendingUser[]>([]);
   const [selectedRoles, setSelectedRoles] = useState<Record<string, string>>({});
@@ -169,6 +171,8 @@ export default function UserApproval() {
         });
         setSelectedRoles(initialRoles);
       }
+      queryClient.invalidateQueries({ queryKey: ["pending-approvals-count"] });
+      queryClient.invalidateQueries({ queryKey: ["hr-dashboard-stats"] });
     } catch (err: any) {
       console.error("Error fetching users:", err);
       toast({ title: "Failed to load users", description: err.message, variant: "destructive" });

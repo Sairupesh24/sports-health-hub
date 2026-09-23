@@ -117,6 +117,11 @@ export type client_field_config = Prisma.client_field_configModel
  */
 export type cliententitlements = Prisma.cliententitlementsModel
 /**
+ * Model client_cases
+ * 
+ */
+export type client_cases = Prisma.client_casesModel
+/**
  * Model clientorganizations
  * 
  */

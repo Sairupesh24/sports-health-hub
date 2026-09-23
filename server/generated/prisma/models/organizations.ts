@@ -420,6 +420,7 @@ export type organizationsWhereInput = {
   bills?: Prisma.BillsListRelationFilter
   bulk_assignments?: Prisma.Bulk_assignmentsListRelationFilter
   client_assessment_reports?: Prisma.Client_assessment_reportsListRelationFilter
+  client_cases?: Prisma.Client_casesListRelationFilter
   client_field_config?: Prisma.Client_field_configListRelationFilter
   client_groups?: Prisma.Client_groupsListRelationFilter
   clientdocuments?: Prisma.ClientdocumentsListRelationFilter
@@ -501,6 +502,7 @@ export type organizationsOrderByWithRelationInput = {
   bills?: Prisma.billsOrderByRelationAggregateInput
   bulk_assignments?: Prisma.bulk_assignmentsOrderByRelationAggregateInput
   client_assessment_reports?: Prisma.client_assessment_reportsOrderByRelationAggregateInput
+  client_cases?: Prisma.client_casesOrderByRelationAggregateInput
   client_field_config?: Prisma.client_field_configOrderByRelationAggregateInput
   client_groups?: Prisma.client_groupsOrderByRelationAggregateInput
   clientdocuments?: Prisma.clientdocumentsOrderByRelationAggregateInput
@@ -585,6 +587,7 @@ export type organizationsWhereUniqueInput = Prisma.AtLeast<{
   bills?: Prisma.BillsListRelationFilter
   bulk_assignments?: Prisma.Bulk_assignmentsListRelationFilter
   client_assessment_reports?: Prisma.Client_assessment_reportsListRelationFilter
+  client_cases?: Prisma.Client_casesListRelationFilter
   client_field_config?: Prisma.Client_field_configListRelationFilter
   client_groups?: Prisma.Client_groupsListRelationFilter
   clientdocuments?: Prisma.ClientdocumentsListRelationFilter
@@ -736,6 +739,7 @@ export type organizationsCreateInput = {
   bills?: Prisma.billsCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutOrganizationsInput
+  client_cases?: Prisma.client_casesCreateNestedManyWithoutOrganizationsInput
   client_field_config?: Prisma.client_field_configCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutOrganizationsInput
@@ -817,6 +821,7 @@ export type organizationsUncheckedCreateInput = {
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutOrganizationsInput
+  client_cases?: Prisma.client_casesUncheckedCreateNestedManyWithoutOrganizationsInput
   client_field_config?: Prisma.client_field_configUncheckedCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsUncheckedCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -898,6 +903,7 @@ export type organizationsUpdateInput = {
   bills?: Prisma.billsUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutOrganizationsNestedInput
+  client_cases?: Prisma.client_casesUpdateManyWithoutOrganizationsNestedInput
   client_field_config?: Prisma.client_field_configUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutOrganizationsNestedInput
@@ -979,6 +985,7 @@ export type organizationsUncheckedUpdateInput = {
   bills?: Prisma.billsUncheckedUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  client_cases?: Prisma.client_casesUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_field_config?: Prisma.client_field_configUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUncheckedUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -1405,6 +1412,20 @@ export type organizationsUpdateOneRequiredWithoutCliententitlementsNestedInput =
   upsert?: Prisma.organizationsUpsertWithoutCliententitlementsInput
   connect?: Prisma.organizationsWhereUniqueInput
   update?: Prisma.XOR<Prisma.XOR<Prisma.organizationsUpdateToOneWithWhereWithoutCliententitlementsInput, Prisma.organizationsUpdateWithoutCliententitlementsInput>, Prisma.organizationsUncheckedUpdateWithoutCliententitlementsInput>
+}
+
+export type organizationsCreateNestedOneWithoutClient_casesInput = {
+  create?: Prisma.XOR<Prisma.organizationsCreateWithoutClient_casesInput, Prisma.organizationsUncheckedCreateWithoutClient_casesInput>
+  connectOrCreate?: Prisma.organizationsCreateOrConnectWithoutClient_casesInput
+  connect?: Prisma.organizationsWhereUniqueInput
+}
+
+export type organizationsUpdateOneRequiredWithoutClient_casesNestedInput = {
+  create?: Prisma.XOR<Prisma.organizationsCreateWithoutClient_casesInput, Prisma.organizationsUncheckedCreateWithoutClient_casesInput>
+  connectOrCreate?: Prisma.organizationsCreateOrConnectWithoutClient_casesInput
+  upsert?: Prisma.organizationsUpsertWithoutClient_casesInput
+  connect?: Prisma.organizationsWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.organizationsUpdateToOneWithWhereWithoutClient_casesInput, Prisma.organizationsUpdateWithoutClient_casesInput>, Prisma.organizationsUncheckedUpdateWithoutClient_casesInput>
 }
 
 export type organizationsCreateNestedOneWithoutClientorganizationsInput = {
@@ -1989,6 +2010,7 @@ export type organizationsCreateWithoutAthlete_item_logsInput = {
   bills?: Prisma.billsCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutOrganizationsInput
+  client_cases?: Prisma.client_casesCreateNestedManyWithoutOrganizationsInput
   client_field_config?: Prisma.client_field_configCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutOrganizationsInput
@@ -2069,6 +2091,7 @@ export type organizationsUncheckedCreateWithoutAthlete_item_logsInput = {
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutOrganizationsInput
+  client_cases?: Prisma.client_casesUncheckedCreateNestedManyWithoutOrganizationsInput
   client_field_config?: Prisma.client_field_configUncheckedCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsUncheckedCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -2165,6 +2188,7 @@ export type organizationsUpdateWithoutAthlete_item_logsInput = {
   bills?: Prisma.billsUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutOrganizationsNestedInput
+  client_cases?: Prisma.client_casesUpdateManyWithoutOrganizationsNestedInput
   client_field_config?: Prisma.client_field_configUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutOrganizationsNestedInput
@@ -2245,6 +2269,7 @@ export type organizationsUncheckedUpdateWithoutAthlete_item_logsInput = {
   bills?: Prisma.billsUncheckedUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  client_cases?: Prisma.client_casesUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_field_config?: Prisma.client_field_configUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUncheckedUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -2325,6 +2350,7 @@ export type organizationsCreateWithoutAthlete_workout_completionsInput = {
   bills?: Prisma.billsCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutOrganizationsInput
+  client_cases?: Prisma.client_casesCreateNestedManyWithoutOrganizationsInput
   client_field_config?: Prisma.client_field_configCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutOrganizationsInput
@@ -2405,6 +2431,7 @@ export type organizationsUncheckedCreateWithoutAthlete_workout_completionsInput 
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutOrganizationsInput
+  client_cases?: Prisma.client_casesUncheckedCreateNestedManyWithoutOrganizationsInput
   client_field_config?: Prisma.client_field_configUncheckedCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsUncheckedCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -2501,6 +2528,7 @@ export type organizationsUpdateWithoutAthlete_workout_completionsInput = {
   bills?: Prisma.billsUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutOrganizationsNestedInput
+  client_cases?: Prisma.client_casesUpdateManyWithoutOrganizationsNestedInput
   client_field_config?: Prisma.client_field_configUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutOrganizationsNestedInput
@@ -2581,6 +2609,7 @@ export type organizationsUncheckedUpdateWithoutAthlete_workout_completionsInput 
   bills?: Prisma.billsUncheckedUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  client_cases?: Prisma.client_casesUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_field_config?: Prisma.client_field_configUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUncheckedUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -2661,6 +2690,7 @@ export type organizationsCreateWithoutAvailabilityexceptionsInput = {
   bills?: Prisma.billsCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutOrganizationsInput
+  client_cases?: Prisma.client_casesCreateNestedManyWithoutOrganizationsInput
   client_field_config?: Prisma.client_field_configCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutOrganizationsInput
@@ -2741,6 +2771,7 @@ export type organizationsUncheckedCreateWithoutAvailabilityexceptionsInput = {
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutOrganizationsInput
+  client_cases?: Prisma.client_casesUncheckedCreateNestedManyWithoutOrganizationsInput
   client_field_config?: Prisma.client_field_configUncheckedCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsUncheckedCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -2837,6 +2868,7 @@ export type organizationsUpdateWithoutAvailabilityexceptionsInput = {
   bills?: Prisma.billsUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutOrganizationsNestedInput
+  client_cases?: Prisma.client_casesUpdateManyWithoutOrganizationsNestedInput
   client_field_config?: Prisma.client_field_configUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutOrganizationsNestedInput
@@ -2917,6 +2949,7 @@ export type organizationsUncheckedUpdateWithoutAvailabilityexceptionsInput = {
   bills?: Prisma.billsUncheckedUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  client_cases?: Prisma.client_casesUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_field_config?: Prisma.client_field_configUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUncheckedUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -2997,6 +3030,7 @@ export type organizationsCreateWithoutBillitemsInput = {
   bills?: Prisma.billsCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutOrganizationsInput
+  client_cases?: Prisma.client_casesCreateNestedManyWithoutOrganizationsInput
   client_field_config?: Prisma.client_field_configCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutOrganizationsInput
@@ -3077,6 +3111,7 @@ export type organizationsUncheckedCreateWithoutBillitemsInput = {
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutOrganizationsInput
+  client_cases?: Prisma.client_casesUncheckedCreateNestedManyWithoutOrganizationsInput
   client_field_config?: Prisma.client_field_configUncheckedCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsUncheckedCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -3173,6 +3208,7 @@ export type organizationsUpdateWithoutBillitemsInput = {
   bills?: Prisma.billsUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutOrganizationsNestedInput
+  client_cases?: Prisma.client_casesUpdateManyWithoutOrganizationsNestedInput
   client_field_config?: Prisma.client_field_configUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutOrganizationsNestedInput
@@ -3253,6 +3289,7 @@ export type organizationsUncheckedUpdateWithoutBillitemsInput = {
   bills?: Prisma.billsUncheckedUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  client_cases?: Prisma.client_casesUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_field_config?: Prisma.client_field_configUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUncheckedUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -3333,6 +3370,7 @@ export type organizationsCreateWithoutBillpaymentsInput = {
   bills?: Prisma.billsCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutOrganizationsInput
+  client_cases?: Prisma.client_casesCreateNestedManyWithoutOrganizationsInput
   client_field_config?: Prisma.client_field_configCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutOrganizationsInput
@@ -3413,6 +3451,7 @@ export type organizationsUncheckedCreateWithoutBillpaymentsInput = {
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutOrganizationsInput
+  client_cases?: Prisma.client_casesUncheckedCreateNestedManyWithoutOrganizationsInput
   client_field_config?: Prisma.client_field_configUncheckedCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsUncheckedCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -3509,6 +3548,7 @@ export type organizationsUpdateWithoutBillpaymentsInput = {
   bills?: Prisma.billsUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutOrganizationsNestedInput
+  client_cases?: Prisma.client_casesUpdateManyWithoutOrganizationsNestedInput
   client_field_config?: Prisma.client_field_configUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutOrganizationsNestedInput
@@ -3589,6 +3629,7 @@ export type organizationsUncheckedUpdateWithoutBillpaymentsInput = {
   bills?: Prisma.billsUncheckedUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  client_cases?: Prisma.client_casesUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_field_config?: Prisma.client_field_configUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUncheckedUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -3669,6 +3710,7 @@ export type organizationsCreateWithoutBillsInput = {
   billpayments?: Prisma.billpaymentsCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutOrganizationsInput
+  client_cases?: Prisma.client_casesCreateNestedManyWithoutOrganizationsInput
   client_field_config?: Prisma.client_field_configCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutOrganizationsInput
@@ -3749,6 +3791,7 @@ export type organizationsUncheckedCreateWithoutBillsInput = {
   billpayments?: Prisma.billpaymentsUncheckedCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutOrganizationsInput
+  client_cases?: Prisma.client_casesUncheckedCreateNestedManyWithoutOrganizationsInput
   client_field_config?: Prisma.client_field_configUncheckedCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsUncheckedCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -3845,6 +3888,7 @@ export type organizationsUpdateWithoutBillsInput = {
   billpayments?: Prisma.billpaymentsUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutOrganizationsNestedInput
+  client_cases?: Prisma.client_casesUpdateManyWithoutOrganizationsNestedInput
   client_field_config?: Prisma.client_field_configUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutOrganizationsNestedInput
@@ -3925,6 +3969,7 @@ export type organizationsUncheckedUpdateWithoutBillsInput = {
   billpayments?: Prisma.billpaymentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  client_cases?: Prisma.client_casesUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_field_config?: Prisma.client_field_configUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUncheckedUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -4005,6 +4050,7 @@ export type organizationsCreateWithoutBulk_assignmentsInput = {
   billpayments?: Prisma.billpaymentsCreateNestedManyWithoutOrganizationsInput
   bills?: Prisma.billsCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutOrganizationsInput
+  client_cases?: Prisma.client_casesCreateNestedManyWithoutOrganizationsInput
   client_field_config?: Prisma.client_field_configCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutOrganizationsInput
@@ -4085,6 +4131,7 @@ export type organizationsUncheckedCreateWithoutBulk_assignmentsInput = {
   billpayments?: Prisma.billpaymentsUncheckedCreateNestedManyWithoutOrganizationsInput
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutOrganizationsInput
+  client_cases?: Prisma.client_casesUncheckedCreateNestedManyWithoutOrganizationsInput
   client_field_config?: Prisma.client_field_configUncheckedCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsUncheckedCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -4181,6 +4228,7 @@ export type organizationsUpdateWithoutBulk_assignmentsInput = {
   billpayments?: Prisma.billpaymentsUpdateManyWithoutOrganizationsNestedInput
   bills?: Prisma.billsUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutOrganizationsNestedInput
+  client_cases?: Prisma.client_casesUpdateManyWithoutOrganizationsNestedInput
   client_field_config?: Prisma.client_field_configUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutOrganizationsNestedInput
@@ -4261,6 +4309,7 @@ export type organizationsUncheckedUpdateWithoutBulk_assignmentsInput = {
   billpayments?: Prisma.billpaymentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   bills?: Prisma.billsUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  client_cases?: Prisma.client_casesUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_field_config?: Prisma.client_field_configUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUncheckedUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -4341,6 +4390,7 @@ export type organizationsCreateWithoutClient_assessment_reportsInput = {
   billpayments?: Prisma.billpaymentsCreateNestedManyWithoutOrganizationsInput
   bills?: Prisma.billsCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutOrganizationsInput
+  client_cases?: Prisma.client_casesCreateNestedManyWithoutOrganizationsInput
   client_field_config?: Prisma.client_field_configCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutOrganizationsInput
@@ -4421,6 +4471,7 @@ export type organizationsUncheckedCreateWithoutClient_assessment_reportsInput = 
   billpayments?: Prisma.billpaymentsUncheckedCreateNestedManyWithoutOrganizationsInput
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutOrganizationsInput
+  client_cases?: Prisma.client_casesUncheckedCreateNestedManyWithoutOrganizationsInput
   client_field_config?: Prisma.client_field_configUncheckedCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsUncheckedCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -4517,6 +4568,7 @@ export type organizationsUpdateWithoutClient_assessment_reportsInput = {
   billpayments?: Prisma.billpaymentsUpdateManyWithoutOrganizationsNestedInput
   bills?: Prisma.billsUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutOrganizationsNestedInput
+  client_cases?: Prisma.client_casesUpdateManyWithoutOrganizationsNestedInput
   client_field_config?: Prisma.client_field_configUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutOrganizationsNestedInput
@@ -4597,6 +4649,7 @@ export type organizationsUncheckedUpdateWithoutClient_assessment_reportsInput = 
   billpayments?: Prisma.billpaymentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   bills?: Prisma.billsUncheckedUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  client_cases?: Prisma.client_casesUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_field_config?: Prisma.client_field_configUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUncheckedUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -4678,6 +4731,7 @@ export type organizationsCreateWithoutClient_groupsInput = {
   bills?: Prisma.billsCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutOrganizationsInput
+  client_cases?: Prisma.client_casesCreateNestedManyWithoutOrganizationsInput
   client_field_config?: Prisma.client_field_configCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutOrganizationsInput
   cliententitlements?: Prisma.cliententitlementsCreateNestedManyWithoutOrganizationsInput
@@ -4758,6 +4812,7 @@ export type organizationsUncheckedCreateWithoutClient_groupsInput = {
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutOrganizationsInput
+  client_cases?: Prisma.client_casesUncheckedCreateNestedManyWithoutOrganizationsInput
   client_field_config?: Prisma.client_field_configUncheckedCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutOrganizationsInput
   cliententitlements?: Prisma.cliententitlementsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -4854,6 +4909,7 @@ export type organizationsUpdateWithoutClient_groupsInput = {
   bills?: Prisma.billsUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutOrganizationsNestedInput
+  client_cases?: Prisma.client_casesUpdateManyWithoutOrganizationsNestedInput
   client_field_config?: Prisma.client_field_configUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutOrganizationsNestedInput
   cliententitlements?: Prisma.cliententitlementsUpdateManyWithoutOrganizationsNestedInput
@@ -4934,6 +4990,7 @@ export type organizationsUncheckedUpdateWithoutClient_groupsInput = {
   bills?: Prisma.billsUncheckedUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  client_cases?: Prisma.client_casesUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_field_config?: Prisma.client_field_configUncheckedUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   cliententitlements?: Prisma.cliententitlementsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -5014,6 +5071,7 @@ export type organizationsCreateWithoutClientdocumentsInput = {
   bills?: Prisma.billsCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutOrganizationsInput
+  client_cases?: Prisma.client_casesCreateNestedManyWithoutOrganizationsInput
   client_field_config?: Prisma.client_field_configCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsCreateNestedManyWithoutOrganizationsInput
   cliententitlements?: Prisma.cliententitlementsCreateNestedManyWithoutOrganizationsInput
@@ -5094,6 +5152,7 @@ export type organizationsUncheckedCreateWithoutClientdocumentsInput = {
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutOrganizationsInput
+  client_cases?: Prisma.client_casesUncheckedCreateNestedManyWithoutOrganizationsInput
   client_field_config?: Prisma.client_field_configUncheckedCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsUncheckedCreateNestedManyWithoutOrganizationsInput
   cliententitlements?: Prisma.cliententitlementsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -5190,6 +5249,7 @@ export type organizationsUpdateWithoutClientdocumentsInput = {
   bills?: Prisma.billsUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutOrganizationsNestedInput
+  client_cases?: Prisma.client_casesUpdateManyWithoutOrganizationsNestedInput
   client_field_config?: Prisma.client_field_configUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUpdateManyWithoutOrganizationsNestedInput
   cliententitlements?: Prisma.cliententitlementsUpdateManyWithoutOrganizationsNestedInput
@@ -5270,6 +5330,7 @@ export type organizationsUncheckedUpdateWithoutClientdocumentsInput = {
   bills?: Prisma.billsUncheckedUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  client_cases?: Prisma.client_casesUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_field_config?: Prisma.client_field_configUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUncheckedUpdateManyWithoutOrganizationsNestedInput
   cliententitlements?: Prisma.cliententitlementsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -5350,6 +5411,7 @@ export type organizationsCreateWithoutClient_field_configInput = {
   bills?: Prisma.billsCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutOrganizationsInput
+  client_cases?: Prisma.client_casesCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutOrganizationsInput
   cliententitlements?: Prisma.cliententitlementsCreateNestedManyWithoutOrganizationsInput
@@ -5430,6 +5492,7 @@ export type organizationsUncheckedCreateWithoutClient_field_configInput = {
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutOrganizationsInput
+  client_cases?: Prisma.client_casesUncheckedCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsUncheckedCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutOrganizationsInput
   cliententitlements?: Prisma.cliententitlementsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -5526,6 +5589,7 @@ export type organizationsUpdateWithoutClient_field_configInput = {
   bills?: Prisma.billsUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutOrganizationsNestedInput
+  client_cases?: Prisma.client_casesUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutOrganizationsNestedInput
   cliententitlements?: Prisma.cliententitlementsUpdateManyWithoutOrganizationsNestedInput
@@ -5606,6 +5670,7 @@ export type organizationsUncheckedUpdateWithoutClient_field_configInput = {
   bills?: Prisma.billsUncheckedUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  client_cases?: Prisma.client_casesUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUncheckedUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   cliententitlements?: Prisma.cliententitlementsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -5686,6 +5751,7 @@ export type organizationsCreateWithoutCliententitlementsInput = {
   bills?: Prisma.billsCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutOrganizationsInput
+  client_cases?: Prisma.client_casesCreateNestedManyWithoutOrganizationsInput
   client_field_config?: Prisma.client_field_configCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutOrganizationsInput
@@ -5766,6 +5832,7 @@ export type organizationsUncheckedCreateWithoutCliententitlementsInput = {
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutOrganizationsInput
+  client_cases?: Prisma.client_casesUncheckedCreateNestedManyWithoutOrganizationsInput
   client_field_config?: Prisma.client_field_configUncheckedCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsUncheckedCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -5862,6 +5929,7 @@ export type organizationsUpdateWithoutCliententitlementsInput = {
   bills?: Prisma.billsUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutOrganizationsNestedInput
+  client_cases?: Prisma.client_casesUpdateManyWithoutOrganizationsNestedInput
   client_field_config?: Prisma.client_field_configUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutOrganizationsNestedInput
@@ -5942,9 +6010,350 @@ export type organizationsUncheckedUpdateWithoutCliententitlementsInput = {
   bills?: Prisma.billsUncheckedUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  client_cases?: Prisma.client_casesUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_field_config?: Prisma.client_field_configUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUncheckedUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  clientorganizations?: Prisma.clientorganizationsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  clients?: Prisma.clientsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  consultant_services?: Prisma.consultant_servicesUncheckedUpdateManyWithoutOrganizationsNestedInput
+  consultantavailability?: Prisma.consultantavailabilityUncheckedUpdateManyWithoutOrganizationsNestedInput
+  emergency_alerts?: Prisma.emergency_alertsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  enquiries?: Prisma.enquiriesUncheckedUpdateManyWithoutOrganizationsNestedInput
+  excel_diagnostic_reports?: Prisma.excel_diagnostic_reportsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  exercises?: Prisma.exercisesUncheckedUpdateManyWithoutOrganizationsNestedInput
+  external_training_summary?: Prisma.external_training_summaryUncheckedUpdateManyWithoutOrganizationsNestedInput
+  form_responses?: Prisma.form_responsesUncheckedUpdateManyWithoutOrganizationsNestedInput
+  hr_employees?: Prisma.hr_employeesUncheckedUpdateManyWithoutOrganizationsNestedInput
+  hr_jobs?: Prisma.hr_jobsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  hrattendancelogs?: Prisma.hrattendancelogsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  hrleaves?: Prisma.hrleavesUncheckedUpdateManyWithoutOrganizationsNestedInput
+  injuries?: Prisma.injuriesUncheckedUpdateManyWithoutOrganizationsNestedInput
+  injury_master_data?: Prisma.injury_master_dataUncheckedUpdateManyWithoutOrganizationsNestedInput
+  locations?: Prisma.locationsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  notifications?: Prisma.notificationsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  organization_notification_settings?: Prisma.organization_notification_settingsUncheckedUpdateOneWithoutOrganizationsNestedInput
+  packages?: Prisma.packagesUncheckedUpdateManyWithoutOrganizationsNestedInput
+  performance_assessments?: Prisma.performance_assessmentsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  profiles?: Prisma.profilesUncheckedUpdateManyWithoutOrganizationsNestedInput
+  program_assignments?: Prisma.program_assignmentsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  questionnaires?: Prisma.questionnairesUncheckedUpdateManyWithoutOrganizationsNestedInput
+  referralsources?: Prisma.referralsourcesUncheckedUpdateManyWithoutOrganizationsNestedInput
+  refunds?: Prisma.refundsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  report_templates?: Prisma.report_templatesUncheckedUpdateManyWithoutOrganizationsNestedInput
+  scientific_resources?: Prisma.scientific_resourcesUncheckedUpdateManyWithoutOrganizationsNestedInput
+  services?: Prisma.servicesUncheckedUpdateManyWithoutOrganizationsNestedInput
+  sessions?: Prisma.sessionsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  staff_schedules?: Prisma.staff_schedulesUncheckedUpdateManyWithoutOrganizationsNestedInput
+  subscription_logs?: Prisma.subscription_logsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  subscriptions?: Prisma.subscriptionsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  trainingprograms?: Prisma.trainingprogramsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  uhidsequences?: Prisma.uhidsequencesUncheckedUpdateManyWithoutOrganizationsNestedInput
+  waitlist?: Prisma.waitlistUncheckedUpdateManyWithoutOrganizationsNestedInput
+  wellness_logs?: Prisma.wellness_logsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  workoutdays?: Prisma.workoutdaysUncheckedUpdateManyWithoutOrganizationsNestedInput
+}
+
+export type organizationsCreateWithoutClient_casesInput = {
+  id?: string
+  name: string
+  created_at?: Date | string | null
+  updated_at?: Date | string | null
+  deleted_at?: Date | string | null
+  org_code?: string | null
+  slug?: string | null
+  subscription_plan?: string | null
+  status?: string | null
+  uhid_prefix?: string | null
+  logo_url?: string | null
+  official_name?: string | null
+  official_address?: string | null
+  contact_email?: string | null
+  contact_phone?: string | null
+  clinic_latitude?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  clinic_longitude?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  geofence_radius?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  enable_geofencing?: boolean | null
+  enable_ip_locking?: boolean | null
+  allowed_ips?: string | null
+  allow_custom_duration?: boolean | null
+  default_slot_duration?: number | null
+  default_slot_capacity?: number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  default_checkout_time?: Date | string | null
+  default_shift_end_time?: Date | string | null
+  enabled_modules?: string | null
+  athlete_item_logs?: Prisma.athlete_item_logsCreateNestedManyWithoutOrganizationsInput
+  athlete_workout_completions?: Prisma.athlete_workout_completionsCreateNestedManyWithoutOrganizationsInput
+  availabilityexceptions?: Prisma.availabilityexceptionsCreateNestedManyWithoutOrganizationsInput
+  billitems?: Prisma.billitemsCreateNestedManyWithoutOrganizationsInput
+  billpayments?: Prisma.billpaymentsCreateNestedManyWithoutOrganizationsInput
+  bills?: Prisma.billsCreateNestedManyWithoutOrganizationsInput
+  bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutOrganizationsInput
+  client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutOrganizationsInput
+  client_field_config?: Prisma.client_field_configCreateNestedManyWithoutOrganizationsInput
+  client_groups?: Prisma.client_groupsCreateNestedManyWithoutOrganizationsInput
+  clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutOrganizationsInput
+  cliententitlements?: Prisma.cliententitlementsCreateNestedManyWithoutOrganizationsInput
+  clientorganizations?: Prisma.clientorganizationsCreateNestedManyWithoutOrganizationsInput
+  clients?: Prisma.clientsCreateNestedManyWithoutOrganizationsInput
+  consultant_services?: Prisma.consultant_servicesCreateNestedManyWithoutOrganizationsInput
+  consultantavailability?: Prisma.consultantavailabilityCreateNestedManyWithoutOrganizationsInput
+  emergency_alerts?: Prisma.emergency_alertsCreateNestedManyWithoutOrganizationsInput
+  enquiries?: Prisma.enquiriesCreateNestedManyWithoutOrganizationsInput
+  excel_diagnostic_reports?: Prisma.excel_diagnostic_reportsCreateNestedManyWithoutOrganizationsInput
+  exercises?: Prisma.exercisesCreateNestedManyWithoutOrganizationsInput
+  external_training_summary?: Prisma.external_training_summaryCreateNestedManyWithoutOrganizationsInput
+  form_responses?: Prisma.form_responsesCreateNestedManyWithoutOrganizationsInput
+  hr_employees?: Prisma.hr_employeesCreateNestedManyWithoutOrganizationsInput
+  hr_jobs?: Prisma.hr_jobsCreateNestedManyWithoutOrganizationsInput
+  hrattendancelogs?: Prisma.hrattendancelogsCreateNestedManyWithoutOrganizationsInput
+  hrleaves?: Prisma.hrleavesCreateNestedManyWithoutOrganizationsInput
+  injuries?: Prisma.injuriesCreateNestedManyWithoutOrganizationsInput
+  injury_master_data?: Prisma.injury_master_dataCreateNestedManyWithoutOrganizationsInput
+  locations?: Prisma.locationsCreateNestedManyWithoutOrganizationsInput
+  notifications?: Prisma.notificationsCreateNestedManyWithoutOrganizationsInput
+  organization_notification_settings?: Prisma.organization_notification_settingsCreateNestedOneWithoutOrganizationsInput
+  packages?: Prisma.packagesCreateNestedManyWithoutOrganizationsInput
+  performance_assessments?: Prisma.performance_assessmentsCreateNestedManyWithoutOrganizationsInput
+  profiles?: Prisma.profilesCreateNestedManyWithoutOrganizationsInput
+  program_assignments?: Prisma.program_assignmentsCreateNestedManyWithoutOrganizationsInput
+  questionnaires?: Prisma.questionnairesCreateNestedManyWithoutOrganizationsInput
+  referralsources?: Prisma.referralsourcesCreateNestedManyWithoutOrganizationsInput
+  refunds?: Prisma.refundsCreateNestedManyWithoutOrganizationsInput
+  report_templates?: Prisma.report_templatesCreateNestedManyWithoutOrganizationsInput
+  scientific_resources?: Prisma.scientific_resourcesCreateNestedManyWithoutOrganizationsInput
+  services?: Prisma.servicesCreateNestedManyWithoutOrganizationsInput
+  sessions?: Prisma.sessionsCreateNestedManyWithoutOrganizationsInput
+  staff_schedules?: Prisma.staff_schedulesCreateNestedManyWithoutOrganizationsInput
+  subscription_logs?: Prisma.subscription_logsCreateNestedManyWithoutOrganizationsInput
+  subscriptions?: Prisma.subscriptionsCreateNestedManyWithoutOrganizationsInput
+  trainingprograms?: Prisma.trainingprogramsCreateNestedManyWithoutOrganizationsInput
+  uhidsequences?: Prisma.uhidsequencesCreateNestedManyWithoutOrganizationsInput
+  waitlist?: Prisma.waitlistCreateNestedManyWithoutOrganizationsInput
+  wellness_logs?: Prisma.wellness_logsCreateNestedManyWithoutOrganizationsInput
+  workoutdays?: Prisma.workoutdaysCreateNestedManyWithoutOrganizationsInput
+}
+
+export type organizationsUncheckedCreateWithoutClient_casesInput = {
+  id?: string
+  name: string
+  created_at?: Date | string | null
+  updated_at?: Date | string | null
+  deleted_at?: Date | string | null
+  org_code?: string | null
+  slug?: string | null
+  subscription_plan?: string | null
+  status?: string | null
+  uhid_prefix?: string | null
+  logo_url?: string | null
+  official_name?: string | null
+  official_address?: string | null
+  contact_email?: string | null
+  contact_phone?: string | null
+  clinic_latitude?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  clinic_longitude?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  geofence_radius?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  enable_geofencing?: boolean | null
+  enable_ip_locking?: boolean | null
+  allowed_ips?: string | null
+  allow_custom_duration?: boolean | null
+  default_slot_duration?: number | null
+  default_slot_capacity?: number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  default_checkout_time?: Date | string | null
+  default_shift_end_time?: Date | string | null
+  enabled_modules?: string | null
+  athlete_item_logs?: Prisma.athlete_item_logsUncheckedCreateNestedManyWithoutOrganizationsInput
+  athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedCreateNestedManyWithoutOrganizationsInput
+  availabilityexceptions?: Prisma.availabilityexceptionsUncheckedCreateNestedManyWithoutOrganizationsInput
+  billitems?: Prisma.billitemsUncheckedCreateNestedManyWithoutOrganizationsInput
+  billpayments?: Prisma.billpaymentsUncheckedCreateNestedManyWithoutOrganizationsInput
+  bills?: Prisma.billsUncheckedCreateNestedManyWithoutOrganizationsInput
+  bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutOrganizationsInput
+  client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutOrganizationsInput
+  client_field_config?: Prisma.client_field_configUncheckedCreateNestedManyWithoutOrganizationsInput
+  client_groups?: Prisma.client_groupsUncheckedCreateNestedManyWithoutOrganizationsInput
+  clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutOrganizationsInput
+  cliententitlements?: Prisma.cliententitlementsUncheckedCreateNestedManyWithoutOrganizationsInput
+  clientorganizations?: Prisma.clientorganizationsUncheckedCreateNestedManyWithoutOrganizationsInput
+  clients?: Prisma.clientsUncheckedCreateNestedManyWithoutOrganizationsInput
+  consultant_services?: Prisma.consultant_servicesUncheckedCreateNestedManyWithoutOrganizationsInput
+  consultantavailability?: Prisma.consultantavailabilityUncheckedCreateNestedManyWithoutOrganizationsInput
+  emergency_alerts?: Prisma.emergency_alertsUncheckedCreateNestedManyWithoutOrganizationsInput
+  enquiries?: Prisma.enquiriesUncheckedCreateNestedManyWithoutOrganizationsInput
+  excel_diagnostic_reports?: Prisma.excel_diagnostic_reportsUncheckedCreateNestedManyWithoutOrganizationsInput
+  exercises?: Prisma.exercisesUncheckedCreateNestedManyWithoutOrganizationsInput
+  external_training_summary?: Prisma.external_training_summaryUncheckedCreateNestedManyWithoutOrganizationsInput
+  form_responses?: Prisma.form_responsesUncheckedCreateNestedManyWithoutOrganizationsInput
+  hr_employees?: Prisma.hr_employeesUncheckedCreateNestedManyWithoutOrganizationsInput
+  hr_jobs?: Prisma.hr_jobsUncheckedCreateNestedManyWithoutOrganizationsInput
+  hrattendancelogs?: Prisma.hrattendancelogsUncheckedCreateNestedManyWithoutOrganizationsInput
+  hrleaves?: Prisma.hrleavesUncheckedCreateNestedManyWithoutOrganizationsInput
+  injuries?: Prisma.injuriesUncheckedCreateNestedManyWithoutOrganizationsInput
+  injury_master_data?: Prisma.injury_master_dataUncheckedCreateNestedManyWithoutOrganizationsInput
+  locations?: Prisma.locationsUncheckedCreateNestedManyWithoutOrganizationsInput
+  notifications?: Prisma.notificationsUncheckedCreateNestedManyWithoutOrganizationsInput
+  organization_notification_settings?: Prisma.organization_notification_settingsUncheckedCreateNestedOneWithoutOrganizationsInput
+  packages?: Prisma.packagesUncheckedCreateNestedManyWithoutOrganizationsInput
+  performance_assessments?: Prisma.performance_assessmentsUncheckedCreateNestedManyWithoutOrganizationsInput
+  profiles?: Prisma.profilesUncheckedCreateNestedManyWithoutOrganizationsInput
+  program_assignments?: Prisma.program_assignmentsUncheckedCreateNestedManyWithoutOrganizationsInput
+  questionnaires?: Prisma.questionnairesUncheckedCreateNestedManyWithoutOrganizationsInput
+  referralsources?: Prisma.referralsourcesUncheckedCreateNestedManyWithoutOrganizationsInput
+  refunds?: Prisma.refundsUncheckedCreateNestedManyWithoutOrganizationsInput
+  report_templates?: Prisma.report_templatesUncheckedCreateNestedManyWithoutOrganizationsInput
+  scientific_resources?: Prisma.scientific_resourcesUncheckedCreateNestedManyWithoutOrganizationsInput
+  services?: Prisma.servicesUncheckedCreateNestedManyWithoutOrganizationsInput
+  sessions?: Prisma.sessionsUncheckedCreateNestedManyWithoutOrganizationsInput
+  staff_schedules?: Prisma.staff_schedulesUncheckedCreateNestedManyWithoutOrganizationsInput
+  subscription_logs?: Prisma.subscription_logsUncheckedCreateNestedManyWithoutOrganizationsInput
+  subscriptions?: Prisma.subscriptionsUncheckedCreateNestedManyWithoutOrganizationsInput
+  trainingprograms?: Prisma.trainingprogramsUncheckedCreateNestedManyWithoutOrganizationsInput
+  uhidsequences?: Prisma.uhidsequencesUncheckedCreateNestedManyWithoutOrganizationsInput
+  waitlist?: Prisma.waitlistUncheckedCreateNestedManyWithoutOrganizationsInput
+  wellness_logs?: Prisma.wellness_logsUncheckedCreateNestedManyWithoutOrganizationsInput
+  workoutdays?: Prisma.workoutdaysUncheckedCreateNestedManyWithoutOrganizationsInput
+}
+
+export type organizationsCreateOrConnectWithoutClient_casesInput = {
+  where: Prisma.organizationsWhereUniqueInput
+  create: Prisma.XOR<Prisma.organizationsCreateWithoutClient_casesInput, Prisma.organizationsUncheckedCreateWithoutClient_casesInput>
+}
+
+export type organizationsUpsertWithoutClient_casesInput = {
+  update: Prisma.XOR<Prisma.organizationsUpdateWithoutClient_casesInput, Prisma.organizationsUncheckedUpdateWithoutClient_casesInput>
+  create: Prisma.XOR<Prisma.organizationsCreateWithoutClient_casesInput, Prisma.organizationsUncheckedCreateWithoutClient_casesInput>
+  where?: Prisma.organizationsWhereInput
+}
+
+export type organizationsUpdateToOneWithWhereWithoutClient_casesInput = {
+  where?: Prisma.organizationsWhereInput
+  data: Prisma.XOR<Prisma.organizationsUpdateWithoutClient_casesInput, Prisma.organizationsUncheckedUpdateWithoutClient_casesInput>
+}
+
+export type organizationsUpdateWithoutClient_casesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  created_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  updated_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deleted_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  org_code?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  slug?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  subscription_plan?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  uhid_prefix?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  logo_url?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  official_name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  official_address?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contact_email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contact_phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  clinic_latitude?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  clinic_longitude?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  geofence_radius?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  enable_geofencing?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  enable_ip_locking?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_slot_capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  default_shift_end_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  enabled_modules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  athlete_item_logs?: Prisma.athlete_item_logsUpdateManyWithoutOrganizationsNestedInput
+  athlete_workout_completions?: Prisma.athlete_workout_completionsUpdateManyWithoutOrganizationsNestedInput
+  availabilityexceptions?: Prisma.availabilityexceptionsUpdateManyWithoutOrganizationsNestedInput
+  billitems?: Prisma.billitemsUpdateManyWithoutOrganizationsNestedInput
+  billpayments?: Prisma.billpaymentsUpdateManyWithoutOrganizationsNestedInput
+  bills?: Prisma.billsUpdateManyWithoutOrganizationsNestedInput
+  bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutOrganizationsNestedInput
+  client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutOrganizationsNestedInput
+  client_field_config?: Prisma.client_field_configUpdateManyWithoutOrganizationsNestedInput
+  client_groups?: Prisma.client_groupsUpdateManyWithoutOrganizationsNestedInput
+  clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutOrganizationsNestedInput
+  cliententitlements?: Prisma.cliententitlementsUpdateManyWithoutOrganizationsNestedInput
+  clientorganizations?: Prisma.clientorganizationsUpdateManyWithoutOrganizationsNestedInput
+  clients?: Prisma.clientsUpdateManyWithoutOrganizationsNestedInput
+  consultant_services?: Prisma.consultant_servicesUpdateManyWithoutOrganizationsNestedInput
+  consultantavailability?: Prisma.consultantavailabilityUpdateManyWithoutOrganizationsNestedInput
+  emergency_alerts?: Prisma.emergency_alertsUpdateManyWithoutOrganizationsNestedInput
+  enquiries?: Prisma.enquiriesUpdateManyWithoutOrganizationsNestedInput
+  excel_diagnostic_reports?: Prisma.excel_diagnostic_reportsUpdateManyWithoutOrganizationsNestedInput
+  exercises?: Prisma.exercisesUpdateManyWithoutOrganizationsNestedInput
+  external_training_summary?: Prisma.external_training_summaryUpdateManyWithoutOrganizationsNestedInput
+  form_responses?: Prisma.form_responsesUpdateManyWithoutOrganizationsNestedInput
+  hr_employees?: Prisma.hr_employeesUpdateManyWithoutOrganizationsNestedInput
+  hr_jobs?: Prisma.hr_jobsUpdateManyWithoutOrganizationsNestedInput
+  hrattendancelogs?: Prisma.hrattendancelogsUpdateManyWithoutOrganizationsNestedInput
+  hrleaves?: Prisma.hrleavesUpdateManyWithoutOrganizationsNestedInput
+  injuries?: Prisma.injuriesUpdateManyWithoutOrganizationsNestedInput
+  injury_master_data?: Prisma.injury_master_dataUpdateManyWithoutOrganizationsNestedInput
+  locations?: Prisma.locationsUpdateManyWithoutOrganizationsNestedInput
+  notifications?: Prisma.notificationsUpdateManyWithoutOrganizationsNestedInput
+  organization_notification_settings?: Prisma.organization_notification_settingsUpdateOneWithoutOrganizationsNestedInput
+  packages?: Prisma.packagesUpdateManyWithoutOrganizationsNestedInput
+  performance_assessments?: Prisma.performance_assessmentsUpdateManyWithoutOrganizationsNestedInput
+  profiles?: Prisma.profilesUpdateManyWithoutOrganizationsNestedInput
+  program_assignments?: Prisma.program_assignmentsUpdateManyWithoutOrganizationsNestedInput
+  questionnaires?: Prisma.questionnairesUpdateManyWithoutOrganizationsNestedInput
+  referralsources?: Prisma.referralsourcesUpdateManyWithoutOrganizationsNestedInput
+  refunds?: Prisma.refundsUpdateManyWithoutOrganizationsNestedInput
+  report_templates?: Prisma.report_templatesUpdateManyWithoutOrganizationsNestedInput
+  scientific_resources?: Prisma.scientific_resourcesUpdateManyWithoutOrganizationsNestedInput
+  services?: Prisma.servicesUpdateManyWithoutOrganizationsNestedInput
+  sessions?: Prisma.sessionsUpdateManyWithoutOrganizationsNestedInput
+  staff_schedules?: Prisma.staff_schedulesUpdateManyWithoutOrganizationsNestedInput
+  subscription_logs?: Prisma.subscription_logsUpdateManyWithoutOrganizationsNestedInput
+  subscriptions?: Prisma.subscriptionsUpdateManyWithoutOrganizationsNestedInput
+  trainingprograms?: Prisma.trainingprogramsUpdateManyWithoutOrganizationsNestedInput
+  uhidsequences?: Prisma.uhidsequencesUpdateManyWithoutOrganizationsNestedInput
+  waitlist?: Prisma.waitlistUpdateManyWithoutOrganizationsNestedInput
+  wellness_logs?: Prisma.wellness_logsUpdateManyWithoutOrganizationsNestedInput
+  workoutdays?: Prisma.workoutdaysUpdateManyWithoutOrganizationsNestedInput
+}
+
+export type organizationsUncheckedUpdateWithoutClient_casesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  created_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  updated_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deleted_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  org_code?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  slug?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  subscription_plan?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  uhid_prefix?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  logo_url?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  official_name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  official_address?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contact_email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contact_phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  clinic_latitude?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  clinic_longitude?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  geofence_radius?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  enable_geofencing?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  enable_ip_locking?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  allowed_ips?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  allow_custom_duration?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  default_slot_duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  default_slot_capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  custom_specialist_settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  default_checkout_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  default_shift_end_time?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  enabled_modules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  athlete_item_logs?: Prisma.athlete_item_logsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  athlete_workout_completions?: Prisma.athlete_workout_completionsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  availabilityexceptions?: Prisma.availabilityexceptionsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  billitems?: Prisma.billitemsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  billpayments?: Prisma.billpaymentsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  bills?: Prisma.billsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  client_field_config?: Prisma.client_field_configUncheckedUpdateManyWithoutOrganizationsNestedInput
+  client_groups?: Prisma.client_groupsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  cliententitlements?: Prisma.cliententitlementsUncheckedUpdateManyWithoutOrganizationsNestedInput
   clientorganizations?: Prisma.clientorganizationsUncheckedUpdateManyWithoutOrganizationsNestedInput
   clients?: Prisma.clientsUncheckedUpdateManyWithoutOrganizationsNestedInput
   consultant_services?: Prisma.consultant_servicesUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -6022,6 +6431,7 @@ export type organizationsCreateWithoutClientorganizationsInput = {
   bills?: Prisma.billsCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutOrganizationsInput
+  client_cases?: Prisma.client_casesCreateNestedManyWithoutOrganizationsInput
   client_field_config?: Prisma.client_field_configCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutOrganizationsInput
@@ -6102,6 +6512,7 @@ export type organizationsUncheckedCreateWithoutClientorganizationsInput = {
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutOrganizationsInput
+  client_cases?: Prisma.client_casesUncheckedCreateNestedManyWithoutOrganizationsInput
   client_field_config?: Prisma.client_field_configUncheckedCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsUncheckedCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -6198,6 +6609,7 @@ export type organizationsUpdateWithoutClientorganizationsInput = {
   bills?: Prisma.billsUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutOrganizationsNestedInput
+  client_cases?: Prisma.client_casesUpdateManyWithoutOrganizationsNestedInput
   client_field_config?: Prisma.client_field_configUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutOrganizationsNestedInput
@@ -6278,6 +6690,7 @@ export type organizationsUncheckedUpdateWithoutClientorganizationsInput = {
   bills?: Prisma.billsUncheckedUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  client_cases?: Prisma.client_casesUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_field_config?: Prisma.client_field_configUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUncheckedUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -6358,6 +6771,7 @@ export type organizationsCreateWithoutClientsInput = {
   bills?: Prisma.billsCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutOrganizationsInput
+  client_cases?: Prisma.client_casesCreateNestedManyWithoutOrganizationsInput
   client_field_config?: Prisma.client_field_configCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutOrganizationsInput
@@ -6438,6 +6852,7 @@ export type organizationsUncheckedCreateWithoutClientsInput = {
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutOrganizationsInput
+  client_cases?: Prisma.client_casesUncheckedCreateNestedManyWithoutOrganizationsInput
   client_field_config?: Prisma.client_field_configUncheckedCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsUncheckedCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -6534,6 +6949,7 @@ export type organizationsUpdateWithoutClientsInput = {
   bills?: Prisma.billsUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutOrganizationsNestedInput
+  client_cases?: Prisma.client_casesUpdateManyWithoutOrganizationsNestedInput
   client_field_config?: Prisma.client_field_configUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutOrganizationsNestedInput
@@ -6614,6 +7030,7 @@ export type organizationsUncheckedUpdateWithoutClientsInput = {
   bills?: Prisma.billsUncheckedUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  client_cases?: Prisma.client_casesUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_field_config?: Prisma.client_field_configUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUncheckedUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -6694,6 +7111,7 @@ export type organizationsCreateWithoutConsultant_servicesInput = {
   bills?: Prisma.billsCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutOrganizationsInput
+  client_cases?: Prisma.client_casesCreateNestedManyWithoutOrganizationsInput
   client_field_config?: Prisma.client_field_configCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutOrganizationsInput
@@ -6774,6 +7192,7 @@ export type organizationsUncheckedCreateWithoutConsultant_servicesInput = {
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutOrganizationsInput
+  client_cases?: Prisma.client_casesUncheckedCreateNestedManyWithoutOrganizationsInput
   client_field_config?: Prisma.client_field_configUncheckedCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsUncheckedCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -6870,6 +7289,7 @@ export type organizationsUpdateWithoutConsultant_servicesInput = {
   bills?: Prisma.billsUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutOrganizationsNestedInput
+  client_cases?: Prisma.client_casesUpdateManyWithoutOrganizationsNestedInput
   client_field_config?: Prisma.client_field_configUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutOrganizationsNestedInput
@@ -6950,6 +7370,7 @@ export type organizationsUncheckedUpdateWithoutConsultant_servicesInput = {
   bills?: Prisma.billsUncheckedUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  client_cases?: Prisma.client_casesUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_field_config?: Prisma.client_field_configUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUncheckedUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -7030,6 +7451,7 @@ export type organizationsCreateWithoutConsultantavailabilityInput = {
   bills?: Prisma.billsCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutOrganizationsInput
+  client_cases?: Prisma.client_casesCreateNestedManyWithoutOrganizationsInput
   client_field_config?: Prisma.client_field_configCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutOrganizationsInput
@@ -7110,6 +7532,7 @@ export type organizationsUncheckedCreateWithoutConsultantavailabilityInput = {
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutOrganizationsInput
+  client_cases?: Prisma.client_casesUncheckedCreateNestedManyWithoutOrganizationsInput
   client_field_config?: Prisma.client_field_configUncheckedCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsUncheckedCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -7206,6 +7629,7 @@ export type organizationsUpdateWithoutConsultantavailabilityInput = {
   bills?: Prisma.billsUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutOrganizationsNestedInput
+  client_cases?: Prisma.client_casesUpdateManyWithoutOrganizationsNestedInput
   client_field_config?: Prisma.client_field_configUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutOrganizationsNestedInput
@@ -7286,6 +7710,7 @@ export type organizationsUncheckedUpdateWithoutConsultantavailabilityInput = {
   bills?: Prisma.billsUncheckedUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  client_cases?: Prisma.client_casesUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_field_config?: Prisma.client_field_configUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUncheckedUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -7366,6 +7791,7 @@ export type organizationsCreateWithoutEmergency_alertsInput = {
   bills?: Prisma.billsCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutOrganizationsInput
+  client_cases?: Prisma.client_casesCreateNestedManyWithoutOrganizationsInput
   client_field_config?: Prisma.client_field_configCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutOrganizationsInput
@@ -7446,6 +7872,7 @@ export type organizationsUncheckedCreateWithoutEmergency_alertsInput = {
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutOrganizationsInput
+  client_cases?: Prisma.client_casesUncheckedCreateNestedManyWithoutOrganizationsInput
   client_field_config?: Prisma.client_field_configUncheckedCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsUncheckedCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -7542,6 +7969,7 @@ export type organizationsUpdateWithoutEmergency_alertsInput = {
   bills?: Prisma.billsUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutOrganizationsNestedInput
+  client_cases?: Prisma.client_casesUpdateManyWithoutOrganizationsNestedInput
   client_field_config?: Prisma.client_field_configUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutOrganizationsNestedInput
@@ -7622,6 +8050,7 @@ export type organizationsUncheckedUpdateWithoutEmergency_alertsInput = {
   bills?: Prisma.billsUncheckedUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  client_cases?: Prisma.client_casesUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_field_config?: Prisma.client_field_configUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUncheckedUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -7702,6 +8131,7 @@ export type organizationsCreateWithoutEnquiriesInput = {
   bills?: Prisma.billsCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutOrganizationsInput
+  client_cases?: Prisma.client_casesCreateNestedManyWithoutOrganizationsInput
   client_field_config?: Prisma.client_field_configCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutOrganizationsInput
@@ -7782,6 +8212,7 @@ export type organizationsUncheckedCreateWithoutEnquiriesInput = {
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutOrganizationsInput
+  client_cases?: Prisma.client_casesUncheckedCreateNestedManyWithoutOrganizationsInput
   client_field_config?: Prisma.client_field_configUncheckedCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsUncheckedCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -7878,6 +8309,7 @@ export type organizationsUpdateWithoutEnquiriesInput = {
   bills?: Prisma.billsUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutOrganizationsNestedInput
+  client_cases?: Prisma.client_casesUpdateManyWithoutOrganizationsNestedInput
   client_field_config?: Prisma.client_field_configUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutOrganizationsNestedInput
@@ -7958,6 +8390,7 @@ export type organizationsUncheckedUpdateWithoutEnquiriesInput = {
   bills?: Prisma.billsUncheckedUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  client_cases?: Prisma.client_casesUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_field_config?: Prisma.client_field_configUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUncheckedUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -8038,6 +8471,7 @@ export type organizationsCreateWithoutExcel_diagnostic_reportsInput = {
   bills?: Prisma.billsCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutOrganizationsInput
+  client_cases?: Prisma.client_casesCreateNestedManyWithoutOrganizationsInput
   client_field_config?: Prisma.client_field_configCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutOrganizationsInput
@@ -8118,6 +8552,7 @@ export type organizationsUncheckedCreateWithoutExcel_diagnostic_reportsInput = {
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutOrganizationsInput
+  client_cases?: Prisma.client_casesUncheckedCreateNestedManyWithoutOrganizationsInput
   client_field_config?: Prisma.client_field_configUncheckedCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsUncheckedCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -8214,6 +8649,7 @@ export type organizationsUpdateWithoutExcel_diagnostic_reportsInput = {
   bills?: Prisma.billsUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutOrganizationsNestedInput
+  client_cases?: Prisma.client_casesUpdateManyWithoutOrganizationsNestedInput
   client_field_config?: Prisma.client_field_configUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutOrganizationsNestedInput
@@ -8294,6 +8730,7 @@ export type organizationsUncheckedUpdateWithoutExcel_diagnostic_reportsInput = {
   bills?: Prisma.billsUncheckedUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  client_cases?: Prisma.client_casesUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_field_config?: Prisma.client_field_configUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUncheckedUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -8374,6 +8811,7 @@ export type organizationsCreateWithoutExercisesInput = {
   bills?: Prisma.billsCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutOrganizationsInput
+  client_cases?: Prisma.client_casesCreateNestedManyWithoutOrganizationsInput
   client_field_config?: Prisma.client_field_configCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutOrganizationsInput
@@ -8454,6 +8892,7 @@ export type organizationsUncheckedCreateWithoutExercisesInput = {
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutOrganizationsInput
+  client_cases?: Prisma.client_casesUncheckedCreateNestedManyWithoutOrganizationsInput
   client_field_config?: Prisma.client_field_configUncheckedCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsUncheckedCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -8550,6 +8989,7 @@ export type organizationsUpdateWithoutExercisesInput = {
   bills?: Prisma.billsUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutOrganizationsNestedInput
+  client_cases?: Prisma.client_casesUpdateManyWithoutOrganizationsNestedInput
   client_field_config?: Prisma.client_field_configUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutOrganizationsNestedInput
@@ -8630,6 +9070,7 @@ export type organizationsUncheckedUpdateWithoutExercisesInput = {
   bills?: Prisma.billsUncheckedUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  client_cases?: Prisma.client_casesUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_field_config?: Prisma.client_field_configUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUncheckedUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -8710,6 +9151,7 @@ export type organizationsCreateWithoutExternal_training_summaryInput = {
   bills?: Prisma.billsCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutOrganizationsInput
+  client_cases?: Prisma.client_casesCreateNestedManyWithoutOrganizationsInput
   client_field_config?: Prisma.client_field_configCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutOrganizationsInput
@@ -8790,6 +9232,7 @@ export type organizationsUncheckedCreateWithoutExternal_training_summaryInput = 
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutOrganizationsInput
+  client_cases?: Prisma.client_casesUncheckedCreateNestedManyWithoutOrganizationsInput
   client_field_config?: Prisma.client_field_configUncheckedCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsUncheckedCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -8886,6 +9329,7 @@ export type organizationsUpdateWithoutExternal_training_summaryInput = {
   bills?: Prisma.billsUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutOrganizationsNestedInput
+  client_cases?: Prisma.client_casesUpdateManyWithoutOrganizationsNestedInput
   client_field_config?: Prisma.client_field_configUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutOrganizationsNestedInput
@@ -8966,6 +9410,7 @@ export type organizationsUncheckedUpdateWithoutExternal_training_summaryInput = 
   bills?: Prisma.billsUncheckedUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  client_cases?: Prisma.client_casesUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_field_config?: Prisma.client_field_configUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUncheckedUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -9046,6 +9491,7 @@ export type organizationsCreateWithoutForm_responsesInput = {
   bills?: Prisma.billsCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutOrganizationsInput
+  client_cases?: Prisma.client_casesCreateNestedManyWithoutOrganizationsInput
   client_field_config?: Prisma.client_field_configCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutOrganizationsInput
@@ -9126,6 +9572,7 @@ export type organizationsUncheckedCreateWithoutForm_responsesInput = {
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutOrganizationsInput
+  client_cases?: Prisma.client_casesUncheckedCreateNestedManyWithoutOrganizationsInput
   client_field_config?: Prisma.client_field_configUncheckedCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsUncheckedCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -9222,6 +9669,7 @@ export type organizationsUpdateWithoutForm_responsesInput = {
   bills?: Prisma.billsUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutOrganizationsNestedInput
+  client_cases?: Prisma.client_casesUpdateManyWithoutOrganizationsNestedInput
   client_field_config?: Prisma.client_field_configUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutOrganizationsNestedInput
@@ -9302,6 +9750,7 @@ export type organizationsUncheckedUpdateWithoutForm_responsesInput = {
   bills?: Prisma.billsUncheckedUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  client_cases?: Prisma.client_casesUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_field_config?: Prisma.client_field_configUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUncheckedUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -9382,6 +9831,7 @@ export type organizationsCreateWithoutHr_employeesInput = {
   bills?: Prisma.billsCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutOrganizationsInput
+  client_cases?: Prisma.client_casesCreateNestedManyWithoutOrganizationsInput
   client_field_config?: Prisma.client_field_configCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutOrganizationsInput
@@ -9462,6 +9912,7 @@ export type organizationsUncheckedCreateWithoutHr_employeesInput = {
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutOrganizationsInput
+  client_cases?: Prisma.client_casesUncheckedCreateNestedManyWithoutOrganizationsInput
   client_field_config?: Prisma.client_field_configUncheckedCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsUncheckedCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -9558,6 +10009,7 @@ export type organizationsUpdateWithoutHr_employeesInput = {
   bills?: Prisma.billsUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutOrganizationsNestedInput
+  client_cases?: Prisma.client_casesUpdateManyWithoutOrganizationsNestedInput
   client_field_config?: Prisma.client_field_configUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutOrganizationsNestedInput
@@ -9638,6 +10090,7 @@ export type organizationsUncheckedUpdateWithoutHr_employeesInput = {
   bills?: Prisma.billsUncheckedUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  client_cases?: Prisma.client_casesUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_field_config?: Prisma.client_field_configUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUncheckedUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -9718,6 +10171,7 @@ export type organizationsCreateWithoutHr_jobsInput = {
   bills?: Prisma.billsCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutOrganizationsInput
+  client_cases?: Prisma.client_casesCreateNestedManyWithoutOrganizationsInput
   client_field_config?: Prisma.client_field_configCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutOrganizationsInput
@@ -9798,6 +10252,7 @@ export type organizationsUncheckedCreateWithoutHr_jobsInput = {
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutOrganizationsInput
+  client_cases?: Prisma.client_casesUncheckedCreateNestedManyWithoutOrganizationsInput
   client_field_config?: Prisma.client_field_configUncheckedCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsUncheckedCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -9894,6 +10349,7 @@ export type organizationsUpdateWithoutHr_jobsInput = {
   bills?: Prisma.billsUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutOrganizationsNestedInput
+  client_cases?: Prisma.client_casesUpdateManyWithoutOrganizationsNestedInput
   client_field_config?: Prisma.client_field_configUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutOrganizationsNestedInput
@@ -9974,6 +10430,7 @@ export type organizationsUncheckedUpdateWithoutHr_jobsInput = {
   bills?: Prisma.billsUncheckedUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  client_cases?: Prisma.client_casesUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_field_config?: Prisma.client_field_configUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUncheckedUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -10054,6 +10511,7 @@ export type organizationsCreateWithoutHrattendancelogsInput = {
   bills?: Prisma.billsCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutOrganizationsInput
+  client_cases?: Prisma.client_casesCreateNestedManyWithoutOrganizationsInput
   client_field_config?: Prisma.client_field_configCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutOrganizationsInput
@@ -10134,6 +10592,7 @@ export type organizationsUncheckedCreateWithoutHrattendancelogsInput = {
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutOrganizationsInput
+  client_cases?: Prisma.client_casesUncheckedCreateNestedManyWithoutOrganizationsInput
   client_field_config?: Prisma.client_field_configUncheckedCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsUncheckedCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -10230,6 +10689,7 @@ export type organizationsUpdateWithoutHrattendancelogsInput = {
   bills?: Prisma.billsUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutOrganizationsNestedInput
+  client_cases?: Prisma.client_casesUpdateManyWithoutOrganizationsNestedInput
   client_field_config?: Prisma.client_field_configUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutOrganizationsNestedInput
@@ -10310,6 +10770,7 @@ export type organizationsUncheckedUpdateWithoutHrattendancelogsInput = {
   bills?: Prisma.billsUncheckedUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  client_cases?: Prisma.client_casesUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_field_config?: Prisma.client_field_configUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUncheckedUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -10390,6 +10851,7 @@ export type organizationsCreateWithoutHrleavesInput = {
   bills?: Prisma.billsCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutOrganizationsInput
+  client_cases?: Prisma.client_casesCreateNestedManyWithoutOrganizationsInput
   client_field_config?: Prisma.client_field_configCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutOrganizationsInput
@@ -10470,6 +10932,7 @@ export type organizationsUncheckedCreateWithoutHrleavesInput = {
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutOrganizationsInput
+  client_cases?: Prisma.client_casesUncheckedCreateNestedManyWithoutOrganizationsInput
   client_field_config?: Prisma.client_field_configUncheckedCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsUncheckedCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -10566,6 +11029,7 @@ export type organizationsUpdateWithoutHrleavesInput = {
   bills?: Prisma.billsUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutOrganizationsNestedInput
+  client_cases?: Prisma.client_casesUpdateManyWithoutOrganizationsNestedInput
   client_field_config?: Prisma.client_field_configUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutOrganizationsNestedInput
@@ -10646,6 +11110,7 @@ export type organizationsUncheckedUpdateWithoutHrleavesInput = {
   bills?: Prisma.billsUncheckedUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  client_cases?: Prisma.client_casesUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_field_config?: Prisma.client_field_configUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUncheckedUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -10726,6 +11191,7 @@ export type organizationsCreateWithoutInjuriesInput = {
   bills?: Prisma.billsCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutOrganizationsInput
+  client_cases?: Prisma.client_casesCreateNestedManyWithoutOrganizationsInput
   client_field_config?: Prisma.client_field_configCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutOrganizationsInput
@@ -10806,6 +11272,7 @@ export type organizationsUncheckedCreateWithoutInjuriesInput = {
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutOrganizationsInput
+  client_cases?: Prisma.client_casesUncheckedCreateNestedManyWithoutOrganizationsInput
   client_field_config?: Prisma.client_field_configUncheckedCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsUncheckedCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -10902,6 +11369,7 @@ export type organizationsUpdateWithoutInjuriesInput = {
   bills?: Prisma.billsUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutOrganizationsNestedInput
+  client_cases?: Prisma.client_casesUpdateManyWithoutOrganizationsNestedInput
   client_field_config?: Prisma.client_field_configUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutOrganizationsNestedInput
@@ -10982,6 +11450,7 @@ export type organizationsUncheckedUpdateWithoutInjuriesInput = {
   bills?: Prisma.billsUncheckedUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  client_cases?: Prisma.client_casesUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_field_config?: Prisma.client_field_configUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUncheckedUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -11062,6 +11531,7 @@ export type organizationsCreateWithoutInjury_master_dataInput = {
   bills?: Prisma.billsCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutOrganizationsInput
+  client_cases?: Prisma.client_casesCreateNestedManyWithoutOrganizationsInput
   client_field_config?: Prisma.client_field_configCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutOrganizationsInput
@@ -11142,6 +11612,7 @@ export type organizationsUncheckedCreateWithoutInjury_master_dataInput = {
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutOrganizationsInput
+  client_cases?: Prisma.client_casesUncheckedCreateNestedManyWithoutOrganizationsInput
   client_field_config?: Prisma.client_field_configUncheckedCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsUncheckedCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -11238,6 +11709,7 @@ export type organizationsUpdateWithoutInjury_master_dataInput = {
   bills?: Prisma.billsUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutOrganizationsNestedInput
+  client_cases?: Prisma.client_casesUpdateManyWithoutOrganizationsNestedInput
   client_field_config?: Prisma.client_field_configUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutOrganizationsNestedInput
@@ -11318,6 +11790,7 @@ export type organizationsUncheckedUpdateWithoutInjury_master_dataInput = {
   bills?: Prisma.billsUncheckedUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  client_cases?: Prisma.client_casesUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_field_config?: Prisma.client_field_configUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUncheckedUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -11398,6 +11871,7 @@ export type organizationsCreateWithoutLocationsInput = {
   bills?: Prisma.billsCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutOrganizationsInput
+  client_cases?: Prisma.client_casesCreateNestedManyWithoutOrganizationsInput
   client_field_config?: Prisma.client_field_configCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutOrganizationsInput
@@ -11478,6 +11952,7 @@ export type organizationsUncheckedCreateWithoutLocationsInput = {
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutOrganizationsInput
+  client_cases?: Prisma.client_casesUncheckedCreateNestedManyWithoutOrganizationsInput
   client_field_config?: Prisma.client_field_configUncheckedCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsUncheckedCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -11574,6 +12049,7 @@ export type organizationsUpdateWithoutLocationsInput = {
   bills?: Prisma.billsUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutOrganizationsNestedInput
+  client_cases?: Prisma.client_casesUpdateManyWithoutOrganizationsNestedInput
   client_field_config?: Prisma.client_field_configUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutOrganizationsNestedInput
@@ -11654,6 +12130,7 @@ export type organizationsUncheckedUpdateWithoutLocationsInput = {
   bills?: Prisma.billsUncheckedUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  client_cases?: Prisma.client_casesUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_field_config?: Prisma.client_field_configUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUncheckedUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -11734,6 +12211,7 @@ export type organizationsCreateWithoutNotificationsInput = {
   bills?: Prisma.billsCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutOrganizationsInput
+  client_cases?: Prisma.client_casesCreateNestedManyWithoutOrganizationsInput
   client_field_config?: Prisma.client_field_configCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutOrganizationsInput
@@ -11814,6 +12292,7 @@ export type organizationsUncheckedCreateWithoutNotificationsInput = {
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutOrganizationsInput
+  client_cases?: Prisma.client_casesUncheckedCreateNestedManyWithoutOrganizationsInput
   client_field_config?: Prisma.client_field_configUncheckedCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsUncheckedCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -11910,6 +12389,7 @@ export type organizationsUpdateWithoutNotificationsInput = {
   bills?: Prisma.billsUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutOrganizationsNestedInput
+  client_cases?: Prisma.client_casesUpdateManyWithoutOrganizationsNestedInput
   client_field_config?: Prisma.client_field_configUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutOrganizationsNestedInput
@@ -11990,6 +12470,7 @@ export type organizationsUncheckedUpdateWithoutNotificationsInput = {
   bills?: Prisma.billsUncheckedUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  client_cases?: Prisma.client_casesUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_field_config?: Prisma.client_field_configUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUncheckedUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -12070,6 +12551,7 @@ export type organizationsCreateWithoutOrganization_notification_settingsInput = 
   bills?: Prisma.billsCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutOrganizationsInput
+  client_cases?: Prisma.client_casesCreateNestedManyWithoutOrganizationsInput
   client_field_config?: Prisma.client_field_configCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutOrganizationsInput
@@ -12150,6 +12632,7 @@ export type organizationsUncheckedCreateWithoutOrganization_notification_setting
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutOrganizationsInput
+  client_cases?: Prisma.client_casesUncheckedCreateNestedManyWithoutOrganizationsInput
   client_field_config?: Prisma.client_field_configUncheckedCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsUncheckedCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -12246,6 +12729,7 @@ export type organizationsUpdateWithoutOrganization_notification_settingsInput = 
   bills?: Prisma.billsUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutOrganizationsNestedInput
+  client_cases?: Prisma.client_casesUpdateManyWithoutOrganizationsNestedInput
   client_field_config?: Prisma.client_field_configUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutOrganizationsNestedInput
@@ -12326,6 +12810,7 @@ export type organizationsUncheckedUpdateWithoutOrganization_notification_setting
   bills?: Prisma.billsUncheckedUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  client_cases?: Prisma.client_casesUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_field_config?: Prisma.client_field_configUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUncheckedUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -12406,6 +12891,7 @@ export type organizationsCreateWithoutPackagesInput = {
   bills?: Prisma.billsCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutOrganizationsInput
+  client_cases?: Prisma.client_casesCreateNestedManyWithoutOrganizationsInput
   client_field_config?: Prisma.client_field_configCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutOrganizationsInput
@@ -12486,6 +12972,7 @@ export type organizationsUncheckedCreateWithoutPackagesInput = {
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutOrganizationsInput
+  client_cases?: Prisma.client_casesUncheckedCreateNestedManyWithoutOrganizationsInput
   client_field_config?: Prisma.client_field_configUncheckedCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsUncheckedCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -12582,6 +13069,7 @@ export type organizationsUpdateWithoutPackagesInput = {
   bills?: Prisma.billsUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutOrganizationsNestedInput
+  client_cases?: Prisma.client_casesUpdateManyWithoutOrganizationsNestedInput
   client_field_config?: Prisma.client_field_configUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutOrganizationsNestedInput
@@ -12662,6 +13150,7 @@ export type organizationsUncheckedUpdateWithoutPackagesInput = {
   bills?: Prisma.billsUncheckedUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  client_cases?: Prisma.client_casesUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_field_config?: Prisma.client_field_configUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUncheckedUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -12742,6 +13231,7 @@ export type organizationsCreateWithoutPerformance_assessmentsInput = {
   bills?: Prisma.billsCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutOrganizationsInput
+  client_cases?: Prisma.client_casesCreateNestedManyWithoutOrganizationsInput
   client_field_config?: Prisma.client_field_configCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutOrganizationsInput
@@ -12822,6 +13312,7 @@ export type organizationsUncheckedCreateWithoutPerformance_assessmentsInput = {
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutOrganizationsInput
+  client_cases?: Prisma.client_casesUncheckedCreateNestedManyWithoutOrganizationsInput
   client_field_config?: Prisma.client_field_configUncheckedCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsUncheckedCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -12918,6 +13409,7 @@ export type organizationsUpdateWithoutPerformance_assessmentsInput = {
   bills?: Prisma.billsUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutOrganizationsNestedInput
+  client_cases?: Prisma.client_casesUpdateManyWithoutOrganizationsNestedInput
   client_field_config?: Prisma.client_field_configUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutOrganizationsNestedInput
@@ -12998,6 +13490,7 @@ export type organizationsUncheckedUpdateWithoutPerformance_assessmentsInput = {
   bills?: Prisma.billsUncheckedUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  client_cases?: Prisma.client_casesUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_field_config?: Prisma.client_field_configUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUncheckedUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -13078,6 +13571,7 @@ export type organizationsCreateWithoutProfilesInput = {
   bills?: Prisma.billsCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutOrganizationsInput
+  client_cases?: Prisma.client_casesCreateNestedManyWithoutOrganizationsInput
   client_field_config?: Prisma.client_field_configCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutOrganizationsInput
@@ -13158,6 +13652,7 @@ export type organizationsUncheckedCreateWithoutProfilesInput = {
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutOrganizationsInput
+  client_cases?: Prisma.client_casesUncheckedCreateNestedManyWithoutOrganizationsInput
   client_field_config?: Prisma.client_field_configUncheckedCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsUncheckedCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -13254,6 +13749,7 @@ export type organizationsUpdateWithoutProfilesInput = {
   bills?: Prisma.billsUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutOrganizationsNestedInput
+  client_cases?: Prisma.client_casesUpdateManyWithoutOrganizationsNestedInput
   client_field_config?: Prisma.client_field_configUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutOrganizationsNestedInput
@@ -13334,6 +13830,7 @@ export type organizationsUncheckedUpdateWithoutProfilesInput = {
   bills?: Prisma.billsUncheckedUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  client_cases?: Prisma.client_casesUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_field_config?: Prisma.client_field_configUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUncheckedUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -13414,6 +13911,7 @@ export type organizationsCreateWithoutProgram_assignmentsInput = {
   bills?: Prisma.billsCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutOrganizationsInput
+  client_cases?: Prisma.client_casesCreateNestedManyWithoutOrganizationsInput
   client_field_config?: Prisma.client_field_configCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutOrganizationsInput
@@ -13494,6 +13992,7 @@ export type organizationsUncheckedCreateWithoutProgram_assignmentsInput = {
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutOrganizationsInput
+  client_cases?: Prisma.client_casesUncheckedCreateNestedManyWithoutOrganizationsInput
   client_field_config?: Prisma.client_field_configUncheckedCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsUncheckedCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -13590,6 +14089,7 @@ export type organizationsUpdateWithoutProgram_assignmentsInput = {
   bills?: Prisma.billsUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutOrganizationsNestedInput
+  client_cases?: Prisma.client_casesUpdateManyWithoutOrganizationsNestedInput
   client_field_config?: Prisma.client_field_configUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutOrganizationsNestedInput
@@ -13670,6 +14170,7 @@ export type organizationsUncheckedUpdateWithoutProgram_assignmentsInput = {
   bills?: Prisma.billsUncheckedUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  client_cases?: Prisma.client_casesUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_field_config?: Prisma.client_field_configUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUncheckedUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -13750,6 +14251,7 @@ export type organizationsCreateWithoutQuestionnairesInput = {
   bills?: Prisma.billsCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutOrganizationsInput
+  client_cases?: Prisma.client_casesCreateNestedManyWithoutOrganizationsInput
   client_field_config?: Prisma.client_field_configCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutOrganizationsInput
@@ -13830,6 +14332,7 @@ export type organizationsUncheckedCreateWithoutQuestionnairesInput = {
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutOrganizationsInput
+  client_cases?: Prisma.client_casesUncheckedCreateNestedManyWithoutOrganizationsInput
   client_field_config?: Prisma.client_field_configUncheckedCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsUncheckedCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -13926,6 +14429,7 @@ export type organizationsUpdateWithoutQuestionnairesInput = {
   bills?: Prisma.billsUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutOrganizationsNestedInput
+  client_cases?: Prisma.client_casesUpdateManyWithoutOrganizationsNestedInput
   client_field_config?: Prisma.client_field_configUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutOrganizationsNestedInput
@@ -14006,6 +14510,7 @@ export type organizationsUncheckedUpdateWithoutQuestionnairesInput = {
   bills?: Prisma.billsUncheckedUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  client_cases?: Prisma.client_casesUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_field_config?: Prisma.client_field_configUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUncheckedUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -14086,6 +14591,7 @@ export type organizationsCreateWithoutReferralsourcesInput = {
   bills?: Prisma.billsCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutOrganizationsInput
+  client_cases?: Prisma.client_casesCreateNestedManyWithoutOrganizationsInput
   client_field_config?: Prisma.client_field_configCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutOrganizationsInput
@@ -14166,6 +14672,7 @@ export type organizationsUncheckedCreateWithoutReferralsourcesInput = {
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutOrganizationsInput
+  client_cases?: Prisma.client_casesUncheckedCreateNestedManyWithoutOrganizationsInput
   client_field_config?: Prisma.client_field_configUncheckedCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsUncheckedCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -14262,6 +14769,7 @@ export type organizationsUpdateWithoutReferralsourcesInput = {
   bills?: Prisma.billsUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutOrganizationsNestedInput
+  client_cases?: Prisma.client_casesUpdateManyWithoutOrganizationsNestedInput
   client_field_config?: Prisma.client_field_configUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutOrganizationsNestedInput
@@ -14342,6 +14850,7 @@ export type organizationsUncheckedUpdateWithoutReferralsourcesInput = {
   bills?: Prisma.billsUncheckedUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  client_cases?: Prisma.client_casesUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_field_config?: Prisma.client_field_configUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUncheckedUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -14422,6 +14931,7 @@ export type organizationsCreateWithoutRefundsInput = {
   bills?: Prisma.billsCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutOrganizationsInput
+  client_cases?: Prisma.client_casesCreateNestedManyWithoutOrganizationsInput
   client_field_config?: Prisma.client_field_configCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutOrganizationsInput
@@ -14502,6 +15012,7 @@ export type organizationsUncheckedCreateWithoutRefundsInput = {
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutOrganizationsInput
+  client_cases?: Prisma.client_casesUncheckedCreateNestedManyWithoutOrganizationsInput
   client_field_config?: Prisma.client_field_configUncheckedCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsUncheckedCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -14598,6 +15109,7 @@ export type organizationsUpdateWithoutRefundsInput = {
   bills?: Prisma.billsUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutOrganizationsNestedInput
+  client_cases?: Prisma.client_casesUpdateManyWithoutOrganizationsNestedInput
   client_field_config?: Prisma.client_field_configUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutOrganizationsNestedInput
@@ -14678,6 +15190,7 @@ export type organizationsUncheckedUpdateWithoutRefundsInput = {
   bills?: Prisma.billsUncheckedUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  client_cases?: Prisma.client_casesUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_field_config?: Prisma.client_field_configUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUncheckedUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -14758,6 +15271,7 @@ export type organizationsCreateWithoutReport_templatesInput = {
   bills?: Prisma.billsCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutOrganizationsInput
+  client_cases?: Prisma.client_casesCreateNestedManyWithoutOrganizationsInput
   client_field_config?: Prisma.client_field_configCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutOrganizationsInput
@@ -14838,6 +15352,7 @@ export type organizationsUncheckedCreateWithoutReport_templatesInput = {
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutOrganizationsInput
+  client_cases?: Prisma.client_casesUncheckedCreateNestedManyWithoutOrganizationsInput
   client_field_config?: Prisma.client_field_configUncheckedCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsUncheckedCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -14934,6 +15449,7 @@ export type organizationsUpdateWithoutReport_templatesInput = {
   bills?: Prisma.billsUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutOrganizationsNestedInput
+  client_cases?: Prisma.client_casesUpdateManyWithoutOrganizationsNestedInput
   client_field_config?: Prisma.client_field_configUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutOrganizationsNestedInput
@@ -15014,6 +15530,7 @@ export type organizationsUncheckedUpdateWithoutReport_templatesInput = {
   bills?: Prisma.billsUncheckedUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  client_cases?: Prisma.client_casesUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_field_config?: Prisma.client_field_configUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUncheckedUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -15094,6 +15611,7 @@ export type organizationsCreateWithoutScientific_resourcesInput = {
   bills?: Prisma.billsCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutOrganizationsInput
+  client_cases?: Prisma.client_casesCreateNestedManyWithoutOrganizationsInput
   client_field_config?: Prisma.client_field_configCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutOrganizationsInput
@@ -15174,6 +15692,7 @@ export type organizationsUncheckedCreateWithoutScientific_resourcesInput = {
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutOrganizationsInput
+  client_cases?: Prisma.client_casesUncheckedCreateNestedManyWithoutOrganizationsInput
   client_field_config?: Prisma.client_field_configUncheckedCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsUncheckedCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -15270,6 +15789,7 @@ export type organizationsUpdateWithoutScientific_resourcesInput = {
   bills?: Prisma.billsUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutOrganizationsNestedInput
+  client_cases?: Prisma.client_casesUpdateManyWithoutOrganizationsNestedInput
   client_field_config?: Prisma.client_field_configUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutOrganizationsNestedInput
@@ -15350,6 +15870,7 @@ export type organizationsUncheckedUpdateWithoutScientific_resourcesInput = {
   bills?: Prisma.billsUncheckedUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  client_cases?: Prisma.client_casesUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_field_config?: Prisma.client_field_configUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUncheckedUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -15430,6 +15951,7 @@ export type organizationsCreateWithoutServicesInput = {
   bills?: Prisma.billsCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutOrganizationsInput
+  client_cases?: Prisma.client_casesCreateNestedManyWithoutOrganizationsInput
   client_field_config?: Prisma.client_field_configCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutOrganizationsInput
@@ -15510,6 +16032,7 @@ export type organizationsUncheckedCreateWithoutServicesInput = {
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutOrganizationsInput
+  client_cases?: Prisma.client_casesUncheckedCreateNestedManyWithoutOrganizationsInput
   client_field_config?: Prisma.client_field_configUncheckedCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsUncheckedCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -15606,6 +16129,7 @@ export type organizationsUpdateWithoutServicesInput = {
   bills?: Prisma.billsUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutOrganizationsNestedInput
+  client_cases?: Prisma.client_casesUpdateManyWithoutOrganizationsNestedInput
   client_field_config?: Prisma.client_field_configUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutOrganizationsNestedInput
@@ -15686,6 +16210,7 @@ export type organizationsUncheckedUpdateWithoutServicesInput = {
   bills?: Prisma.billsUncheckedUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  client_cases?: Prisma.client_casesUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_field_config?: Prisma.client_field_configUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUncheckedUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -15766,6 +16291,7 @@ export type organizationsCreateWithoutSessionsInput = {
   bills?: Prisma.billsCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutOrganizationsInput
+  client_cases?: Prisma.client_casesCreateNestedManyWithoutOrganizationsInput
   client_field_config?: Prisma.client_field_configCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutOrganizationsInput
@@ -15846,6 +16372,7 @@ export type organizationsUncheckedCreateWithoutSessionsInput = {
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutOrganizationsInput
+  client_cases?: Prisma.client_casesUncheckedCreateNestedManyWithoutOrganizationsInput
   client_field_config?: Prisma.client_field_configUncheckedCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsUncheckedCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -15942,6 +16469,7 @@ export type organizationsUpdateWithoutSessionsInput = {
   bills?: Prisma.billsUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutOrganizationsNestedInput
+  client_cases?: Prisma.client_casesUpdateManyWithoutOrganizationsNestedInput
   client_field_config?: Prisma.client_field_configUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutOrganizationsNestedInput
@@ -16022,6 +16550,7 @@ export type organizationsUncheckedUpdateWithoutSessionsInput = {
   bills?: Prisma.billsUncheckedUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  client_cases?: Prisma.client_casesUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_field_config?: Prisma.client_field_configUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUncheckedUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -16102,6 +16631,7 @@ export type organizationsCreateWithoutStaff_schedulesInput = {
   bills?: Prisma.billsCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutOrganizationsInput
+  client_cases?: Prisma.client_casesCreateNestedManyWithoutOrganizationsInput
   client_field_config?: Prisma.client_field_configCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutOrganizationsInput
@@ -16182,6 +16712,7 @@ export type organizationsUncheckedCreateWithoutStaff_schedulesInput = {
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutOrganizationsInput
+  client_cases?: Prisma.client_casesUncheckedCreateNestedManyWithoutOrganizationsInput
   client_field_config?: Prisma.client_field_configUncheckedCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsUncheckedCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -16278,6 +16809,7 @@ export type organizationsUpdateWithoutStaff_schedulesInput = {
   bills?: Prisma.billsUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutOrganizationsNestedInput
+  client_cases?: Prisma.client_casesUpdateManyWithoutOrganizationsNestedInput
   client_field_config?: Prisma.client_field_configUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutOrganizationsNestedInput
@@ -16358,6 +16890,7 @@ export type organizationsUncheckedUpdateWithoutStaff_schedulesInput = {
   bills?: Prisma.billsUncheckedUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  client_cases?: Prisma.client_casesUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_field_config?: Prisma.client_field_configUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUncheckedUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -16438,6 +16971,7 @@ export type organizationsCreateWithoutSubscription_logsInput = {
   bills?: Prisma.billsCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutOrganizationsInput
+  client_cases?: Prisma.client_casesCreateNestedManyWithoutOrganizationsInput
   client_field_config?: Prisma.client_field_configCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutOrganizationsInput
@@ -16518,6 +17052,7 @@ export type organizationsUncheckedCreateWithoutSubscription_logsInput = {
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutOrganizationsInput
+  client_cases?: Prisma.client_casesUncheckedCreateNestedManyWithoutOrganizationsInput
   client_field_config?: Prisma.client_field_configUncheckedCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsUncheckedCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -16614,6 +17149,7 @@ export type organizationsUpdateWithoutSubscription_logsInput = {
   bills?: Prisma.billsUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutOrganizationsNestedInput
+  client_cases?: Prisma.client_casesUpdateManyWithoutOrganizationsNestedInput
   client_field_config?: Prisma.client_field_configUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutOrganizationsNestedInput
@@ -16694,6 +17230,7 @@ export type organizationsUncheckedUpdateWithoutSubscription_logsInput = {
   bills?: Prisma.billsUncheckedUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  client_cases?: Prisma.client_casesUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_field_config?: Prisma.client_field_configUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUncheckedUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -16774,6 +17311,7 @@ export type organizationsCreateWithoutSubscriptionsInput = {
   bills?: Prisma.billsCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutOrganizationsInput
+  client_cases?: Prisma.client_casesCreateNestedManyWithoutOrganizationsInput
   client_field_config?: Prisma.client_field_configCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutOrganizationsInput
@@ -16854,6 +17392,7 @@ export type organizationsUncheckedCreateWithoutSubscriptionsInput = {
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutOrganizationsInput
+  client_cases?: Prisma.client_casesUncheckedCreateNestedManyWithoutOrganizationsInput
   client_field_config?: Prisma.client_field_configUncheckedCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsUncheckedCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -16950,6 +17489,7 @@ export type organizationsUpdateWithoutSubscriptionsInput = {
   bills?: Prisma.billsUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutOrganizationsNestedInput
+  client_cases?: Prisma.client_casesUpdateManyWithoutOrganizationsNestedInput
   client_field_config?: Prisma.client_field_configUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutOrganizationsNestedInput
@@ -17030,6 +17570,7 @@ export type organizationsUncheckedUpdateWithoutSubscriptionsInput = {
   bills?: Prisma.billsUncheckedUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  client_cases?: Prisma.client_casesUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_field_config?: Prisma.client_field_configUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUncheckedUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -17110,6 +17651,7 @@ export type organizationsCreateWithoutTrainingprogramsInput = {
   bills?: Prisma.billsCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutOrganizationsInput
+  client_cases?: Prisma.client_casesCreateNestedManyWithoutOrganizationsInput
   client_field_config?: Prisma.client_field_configCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutOrganizationsInput
@@ -17190,6 +17732,7 @@ export type organizationsUncheckedCreateWithoutTrainingprogramsInput = {
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutOrganizationsInput
+  client_cases?: Prisma.client_casesUncheckedCreateNestedManyWithoutOrganizationsInput
   client_field_config?: Prisma.client_field_configUncheckedCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsUncheckedCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -17286,6 +17829,7 @@ export type organizationsUpdateWithoutTrainingprogramsInput = {
   bills?: Prisma.billsUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutOrganizationsNestedInput
+  client_cases?: Prisma.client_casesUpdateManyWithoutOrganizationsNestedInput
   client_field_config?: Prisma.client_field_configUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutOrganizationsNestedInput
@@ -17366,6 +17910,7 @@ export type organizationsUncheckedUpdateWithoutTrainingprogramsInput = {
   bills?: Prisma.billsUncheckedUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  client_cases?: Prisma.client_casesUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_field_config?: Prisma.client_field_configUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUncheckedUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -17446,6 +17991,7 @@ export type organizationsCreateWithoutUhidsequencesInput = {
   bills?: Prisma.billsCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutOrganizationsInput
+  client_cases?: Prisma.client_casesCreateNestedManyWithoutOrganizationsInput
   client_field_config?: Prisma.client_field_configCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutOrganizationsInput
@@ -17526,6 +18072,7 @@ export type organizationsUncheckedCreateWithoutUhidsequencesInput = {
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutOrganizationsInput
+  client_cases?: Prisma.client_casesUncheckedCreateNestedManyWithoutOrganizationsInput
   client_field_config?: Prisma.client_field_configUncheckedCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsUncheckedCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -17622,6 +18169,7 @@ export type organizationsUpdateWithoutUhidsequencesInput = {
   bills?: Prisma.billsUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutOrganizationsNestedInput
+  client_cases?: Prisma.client_casesUpdateManyWithoutOrganizationsNestedInput
   client_field_config?: Prisma.client_field_configUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutOrganizationsNestedInput
@@ -17702,6 +18250,7 @@ export type organizationsUncheckedUpdateWithoutUhidsequencesInput = {
   bills?: Prisma.billsUncheckedUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  client_cases?: Prisma.client_casesUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_field_config?: Prisma.client_field_configUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUncheckedUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -17782,6 +18331,7 @@ export type organizationsCreateWithoutWaitlistInput = {
   bills?: Prisma.billsCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutOrganizationsInput
+  client_cases?: Prisma.client_casesCreateNestedManyWithoutOrganizationsInput
   client_field_config?: Prisma.client_field_configCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutOrganizationsInput
@@ -17862,6 +18412,7 @@ export type organizationsUncheckedCreateWithoutWaitlistInput = {
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutOrganizationsInput
+  client_cases?: Prisma.client_casesUncheckedCreateNestedManyWithoutOrganizationsInput
   client_field_config?: Prisma.client_field_configUncheckedCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsUncheckedCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -17958,6 +18509,7 @@ export type organizationsUpdateWithoutWaitlistInput = {
   bills?: Prisma.billsUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutOrganizationsNestedInput
+  client_cases?: Prisma.client_casesUpdateManyWithoutOrganizationsNestedInput
   client_field_config?: Prisma.client_field_configUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutOrganizationsNestedInput
@@ -18038,6 +18590,7 @@ export type organizationsUncheckedUpdateWithoutWaitlistInput = {
   bills?: Prisma.billsUncheckedUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  client_cases?: Prisma.client_casesUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_field_config?: Prisma.client_field_configUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUncheckedUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -18118,6 +18671,7 @@ export type organizationsCreateWithoutWellness_logsInput = {
   bills?: Prisma.billsCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutOrganizationsInput
+  client_cases?: Prisma.client_casesCreateNestedManyWithoutOrganizationsInput
   client_field_config?: Prisma.client_field_configCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutOrganizationsInput
@@ -18198,6 +18752,7 @@ export type organizationsUncheckedCreateWithoutWellness_logsInput = {
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutOrganizationsInput
+  client_cases?: Prisma.client_casesUncheckedCreateNestedManyWithoutOrganizationsInput
   client_field_config?: Prisma.client_field_configUncheckedCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsUncheckedCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -18294,6 +18849,7 @@ export type organizationsUpdateWithoutWellness_logsInput = {
   bills?: Prisma.billsUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutOrganizationsNestedInput
+  client_cases?: Prisma.client_casesUpdateManyWithoutOrganizationsNestedInput
   client_field_config?: Prisma.client_field_configUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutOrganizationsNestedInput
@@ -18374,6 +18930,7 @@ export type organizationsUncheckedUpdateWithoutWellness_logsInput = {
   bills?: Prisma.billsUncheckedUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  client_cases?: Prisma.client_casesUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_field_config?: Prisma.client_field_configUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUncheckedUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -18454,6 +19011,7 @@ export type organizationsCreateWithoutWorkoutdaysInput = {
   bills?: Prisma.billsCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutOrganizationsInput
+  client_cases?: Prisma.client_casesCreateNestedManyWithoutOrganizationsInput
   client_field_config?: Prisma.client_field_configCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutOrganizationsInput
@@ -18534,6 +19092,7 @@ export type organizationsUncheckedCreateWithoutWorkoutdaysInput = {
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutOrganizationsInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedCreateNestedManyWithoutOrganizationsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutOrganizationsInput
+  client_cases?: Prisma.client_casesUncheckedCreateNestedManyWithoutOrganizationsInput
   client_field_config?: Prisma.client_field_configUncheckedCreateNestedManyWithoutOrganizationsInput
   client_groups?: Prisma.client_groupsUncheckedCreateNestedManyWithoutOrganizationsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutOrganizationsInput
@@ -18630,6 +19189,7 @@ export type organizationsUpdateWithoutWorkoutdaysInput = {
   bills?: Prisma.billsUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutOrganizationsNestedInput
+  client_cases?: Prisma.client_casesUpdateManyWithoutOrganizationsNestedInput
   client_field_config?: Prisma.client_field_configUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutOrganizationsNestedInput
@@ -18710,6 +19270,7 @@ export type organizationsUncheckedUpdateWithoutWorkoutdaysInput = {
   bills?: Prisma.billsUncheckedUpdateManyWithoutOrganizationsNestedInput
   bulk_assignments?: Prisma.bulk_assignmentsUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutOrganizationsNestedInput
+  client_cases?: Prisma.client_casesUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_field_config?: Prisma.client_field_configUncheckedUpdateManyWithoutOrganizationsNestedInput
   client_groups?: Prisma.client_groupsUncheckedUpdateManyWithoutOrganizationsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutOrganizationsNestedInput
@@ -18767,6 +19328,7 @@ export type OrganizationsCountOutputType = {
   bills: number
   bulk_assignments: number
   client_assessment_reports: number
+  client_cases: number
   client_field_config: number
   client_groups: number
   clientdocuments: number
@@ -18819,6 +19381,7 @@ export type OrganizationsCountOutputTypeSelect<ExtArgs extends runtime.Types.Ext
   bills?: boolean | OrganizationsCountOutputTypeCountBillsArgs
   bulk_assignments?: boolean | OrganizationsCountOutputTypeCountBulk_assignmentsArgs
   client_assessment_reports?: boolean | OrganizationsCountOutputTypeCountClient_assessment_reportsArgs
+  client_cases?: boolean | OrganizationsCountOutputTypeCountClient_casesArgs
   client_field_config?: boolean | OrganizationsCountOutputTypeCountClient_field_configArgs
   client_groups?: boolean | OrganizationsCountOutputTypeCountClient_groupsArgs
   clientdocuments?: boolean | OrganizationsCountOutputTypeCountClientdocumentsArgs
@@ -18926,6 +19489,13 @@ export type OrganizationsCountOutputTypeCountBulk_assignmentsArgs<ExtArgs extend
  */
 export type OrganizationsCountOutputTypeCountClient_assessment_reportsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   where?: Prisma.client_assessment_reportsWhereInput
+}
+
+/**
+ * OrganizationsCountOutputType without action
+ */
+export type OrganizationsCountOutputTypeCountClient_casesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.client_casesWhereInput
 }
 
 /**
@@ -19253,6 +19823,7 @@ export type organizationsSelect<ExtArgs extends runtime.Types.Extensions.Interna
   bills?: boolean | Prisma.organizations$billsArgs<ExtArgs>
   bulk_assignments?: boolean | Prisma.organizations$bulk_assignmentsArgs<ExtArgs>
   client_assessment_reports?: boolean | Prisma.organizations$client_assessment_reportsArgs<ExtArgs>
+  client_cases?: boolean | Prisma.organizations$client_casesArgs<ExtArgs>
   client_field_config?: boolean | Prisma.organizations$client_field_configArgs<ExtArgs>
   client_groups?: boolean | Prisma.organizations$client_groupsArgs<ExtArgs>
   clientdocuments?: boolean | Prisma.organizations$clientdocumentsArgs<ExtArgs>
@@ -19401,6 +19972,7 @@ export type organizationsInclude<ExtArgs extends runtime.Types.Extensions.Intern
   bills?: boolean | Prisma.organizations$billsArgs<ExtArgs>
   bulk_assignments?: boolean | Prisma.organizations$bulk_assignmentsArgs<ExtArgs>
   client_assessment_reports?: boolean | Prisma.organizations$client_assessment_reportsArgs<ExtArgs>
+  client_cases?: boolean | Prisma.organizations$client_casesArgs<ExtArgs>
   client_field_config?: boolean | Prisma.organizations$client_field_configArgs<ExtArgs>
   client_groups?: boolean | Prisma.organizations$client_groupsArgs<ExtArgs>
   clientdocuments?: boolean | Prisma.organizations$clientdocumentsArgs<ExtArgs>
@@ -19459,6 +20031,7 @@ export type $organizationsPayload<ExtArgs extends runtime.Types.Extensions.Inter
     bills: Prisma.$billsPayload<ExtArgs>[]
     bulk_assignments: Prisma.$bulk_assignmentsPayload<ExtArgs>[]
     client_assessment_reports: Prisma.$client_assessment_reportsPayload<ExtArgs>[]
+    client_cases: Prisma.$client_casesPayload<ExtArgs>[]
     client_field_config: Prisma.$client_field_configPayload<ExtArgs>[]
     client_groups: Prisma.$client_groupsPayload<ExtArgs>[]
     clientdocuments: Prisma.$clientdocumentsPayload<ExtArgs>[]
@@ -19933,6 +20506,7 @@ export interface Prisma__organizationsClient<T, Null = never, ExtArgs extends ru
   bills<T extends Prisma.organizations$billsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.organizations$billsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$billsPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   bulk_assignments<T extends Prisma.organizations$bulk_assignmentsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.organizations$bulk_assignmentsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$bulk_assignmentsPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   client_assessment_reports<T extends Prisma.organizations$client_assessment_reportsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.organizations$client_assessment_reportsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$client_assessment_reportsPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  client_cases<T extends Prisma.organizations$client_casesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.organizations$client_casesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$client_casesPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   client_field_config<T extends Prisma.organizations$client_field_configArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.organizations$client_field_configArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$client_field_configPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   client_groups<T extends Prisma.organizations$client_groupsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.organizations$client_groupsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$client_groupsPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   clientdocuments<T extends Prisma.organizations$clientdocumentsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.organizations$clientdocumentsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$clientdocumentsPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
@@ -20614,6 +21188,30 @@ export type organizations$client_assessment_reportsArgs<ExtArgs extends runtime.
   take?: number
   skip?: number
   distinct?: Prisma.Client_assessment_reportsScalarFieldEnum | Prisma.Client_assessment_reportsScalarFieldEnum[]
+}
+
+/**
+ * organizations.client_cases
+ */
+export type organizations$client_casesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the client_cases
+   */
+  select?: Prisma.client_casesSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the client_cases
+   */
+  omit?: Prisma.client_casesOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.client_casesInclude<ExtArgs> | null
+  where?: Prisma.client_casesWhereInput
+  orderBy?: Prisma.client_casesOrderByWithRelationInput | Prisma.client_casesOrderByWithRelationInput[]
+  cursor?: Prisma.client_casesWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.Client_casesScalarFieldEnum | Prisma.Client_casesScalarFieldEnum[]
 }
 
 /**

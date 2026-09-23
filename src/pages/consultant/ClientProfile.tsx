@@ -8,13 +8,15 @@ import { Badge } from "@/components/ui/badge";
 import { 
     ArrowLeft, User, Phone, CalendarDays, Activity, ClipboardList, History, X,
     Download, FileText, Trophy, FileStack, CheckSquare, Trash2,
-    AlertTriangle, Loader2, Clock, CheckCircle2, Edit3, Calendar, PlusCircle
+    AlertTriangle, Loader2, Clock, CheckCircle2, Edit3, Calendar, PlusCircle,
+    FolderOpen, FolderClosed, Plus, Stethoscope, FolderPlus
 } from "lucide-react";
 import { apiFetch } from "@/utils/api";
 import { useToast } from "@/hooks/use-toast";
 import AMSTrainingLoadWidget from "@/components/dashboard/AMSTrainingLoadWidget";
 import LogInjuryModal from "@/components/consultant/LogInjuryModal";
 import SOAPNoteModal from "@/components/consultant/SOAPNoteModal";
+import CaseSheetModal from "@/components/consultant/CaseSheetModal";
 import ResolveInjuryModal from "@/components/consultant/ResolveInjuryModal";
 import AdHocSessionModal from "@/components/consultant/AdHocSessionModal";
 import { SportsScientistSessionStatusModal } from "@/components/sports-scientist/SportsScientistSessionStatusModal";
@@ -124,7 +126,7 @@ export default function ConsultantClientProfile() {
     };
 
     // Tab state & synchronization with URL search param
-    const validTabs = ['sessions', 'diagnoses', 'assessments', 'performance'];
+    const validTabs = ['sessions', 'diagnoses', 'assessments', 'performance', 'cases'];
     const resolveTab = (tab: string | null) => {
         if (tab && validTabs.includes(tab)) return tab;
         return 'sessions';
@@ -146,6 +148,13 @@ export default function ConsultantClientProfile() {
     const [adHocModalOpen, setAdHocModalOpen] = useState(false);
     const [isDocumentModalOpen, setIsDocumentModalOpen] = useState(false);
     const [isEnquiryOpen, setIsEnquiryOpen] = useState(false);
+
+    // Clinical Cases
+    const [cases, setCases] = useState<any[]>([]);
+    const [casesLoading, setCasesLoading] = useState(false);
+    const [caseSheetOpen, setCaseSheetOpen] = useState(false);
+    const [editingCaseId, setEditingCaseId] = useState<string | null>(null);
+    const [expandedCaseId, setExpandedCaseId] = useState<string | null>(null);
 
     // Session selection & upcoming plan management state
     const [selectedSessionIds, setSelectedSessionIds] = useState<string[]>([]);
@@ -228,6 +237,21 @@ export default function ConsultantClientProfile() {
             setLoading(false);
         }
     };
+
+    const fetchCases = async () => {
+        if (!id) return;
+        setCasesLoading(true);
+        try {
+            const data = await apiFetch<any[]>('/clinical/cases', { params: { client_id: id } });
+            setCases(data || []);
+        } catch (err) {
+            // non-fatal
+        } finally {
+            setCasesLoading(false);
+        }
+    };
+
+    useEffect(() => { if (activeTab === 'cases' && id) fetchCases(); }, [activeTab, id]);
 
     // Category Counts
     const categoryCounts = useMemo(() => {
@@ -600,6 +624,15 @@ export default function ConsultantClientProfile() {
                                     }
                                 />
 
+                                <Button 
+                                    variant="outline" 
+                                    size="sm" 
+                                    className="flex-1 sm:flex-initial h-9 px-3.5 gap-2 text-xs font-bold rounded-xl border-border/80 bg-card hover:bg-muted/70 text-foreground shadow-2xs whitespace-nowrap transition-all"
+                                    onClick={() => { setEditingCaseId(null); setCaseSheetOpen(true); }}
+                                >
+                                    <FolderPlus className="w-4 h-4 text-rose-500" /> New Case Sheet
+                                </Button>
+
                                 {canAccessDocuments && (
                                     <Button 
                                         variant="outline" 
@@ -701,6 +734,19 @@ export default function ConsultantClientProfile() {
                             >
                                 <Trophy className="w-4 h-4 text-indigo-500 shrink-0" />
                                 <span>Performance & AMS</span>
+                            </TabsTrigger>
+
+                            <TabsTrigger 
+                                value="cases" 
+                                className="gap-2 rounded-xl text-xs font-bold data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-xs px-3.5 py-2 shrink-0 whitespace-nowrap"
+                            >
+                                <FolderOpen className="w-4 h-4 text-rose-500 shrink-0" />
+                                <span>Clinical Cases</span>
+                                {cases.length > 0 && (
+                                    <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-[10px] font-mono font-bold shrink-0">
+                                        {cases.length}
+                                    </Badge>
+                                )}
                             </TabsTrigger>
                         </TabsList>
                     </div>
@@ -1588,6 +1634,150 @@ export default function ConsultantClientProfile() {
                         )}
                     </TabsContent>
 
+                    {/* ==================== TAB 5: CLINICAL CASES ==================== */}
+                    <TabsContent value="cases" className="space-y-4 focus-visible:outline-none focus-visible:ring-0">
+                        <Card className="border-border shadow-xs -mx-4 sm:mx-0 rounded-none sm:rounded-2xl border-x-0 sm:border-x">
+                            <CardHeader className="pb-3 border-b border-border/40 p-4 sm:p-6">
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                    <div>
+                                        <CardTitle className="text-lg flex items-center gap-2">
+                                            <FolderOpen className="w-5 h-5 text-rose-500" /> Clinical Cases
+                                        </CardTitle>
+                                        <CardDescription className="text-xs mt-0.5">
+                                            Consultation episodes of care. Each case holds the clinical case sheet and all linked physiotherapy sessions.
+                                        </CardDescription>
+                                    </div>
+                                    <Button
+                                        size="sm"
+                                        id="new-case-sheet-btn"
+                                        onClick={() => { setEditingCaseId(null); setCaseSheetOpen(true); }}
+                                        className="h-9 px-3.5 gap-2 text-xs font-bold rounded-xl shadow-xs bg-primary text-primary-foreground hover:bg-primary/90 whitespace-nowrap"
+                                    >
+                                        <Plus className="w-4 h-4" /> New Case Sheet
+                                    </Button>
+                                </div>
+                            </CardHeader>
+                            <CardContent className="p-4 sm:p-6">
+                                {casesLoading ? (
+                                    <div className="flex items-center gap-2 text-xs text-muted-foreground py-8 justify-center">
+                                        <Loader2 className="w-4 h-4 animate-spin" /> Loading cases...
+                                    </div>
+                                ) : cases.length === 0 ? (
+                                    <div className="text-center py-12 space-y-3">
+                                        <FolderClosed className="w-12 h-12 mx-auto text-muted-foreground/30" />
+                                        <p className="text-sm font-semibold text-muted-foreground">No clinical cases yet</p>
+                                        <p className="text-xs text-muted-foreground/70">Open a new case sheet after a consultation to begin tracking this client&apos;s episode of care.</p>
+                                        <Button size="sm" variant="outline" onClick={() => { setEditingCaseId(null); setCaseSheetOpen(true); }} className="mt-2 gap-2 text-xs font-bold rounded-xl">
+                                            <Plus className="w-3.5 h-3.5" /> Open First Case Sheet
+                                        </Button>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-3">
+                                        {cases.map((c: any) => {
+                                            const isExpanded = expandedCaseId === c.id;
+                                            const isCaseClosed = c.status === 'closed';
+                                            return (
+                                                <div key={c.id} className="rounded-2xl border border-border bg-card shadow-xs overflow-hidden">
+                                                    {/* Case Header Row */}
+                                                    <div className="flex flex-col sm:flex-row sm:items-center gap-3 p-4">
+                                                        <div
+                                                            className="flex items-center gap-2.5 flex-1 min-w-0 cursor-pointer group"
+                                                            onClick={() => setExpandedCaseId(isExpanded ? null : c.id)}
+                                                        >
+                                                            <div className={cn("p-2 rounded-xl shrink-0", isCaseClosed ? "bg-slate-100 dark:bg-slate-800" : "bg-rose-50 dark:bg-rose-950/30")}>
+                                                                {isCaseClosed ? <FolderClosed className="w-4 h-4 text-slate-500" /> : <FolderOpen className="w-4 h-4 text-rose-500" />}
+                                                            </div>
+                                                            <div className="min-w-0 flex-1">
+                                                                <div className="flex flex-wrap items-center gap-2">
+                                                                    <span className="font-bold text-sm text-foreground font-mono">{c.case_number}</span>
+                                                                    <Badge className={cn("text-[9px] font-black uppercase px-2 py-0.5 tracking-wider", isCaseClosed ? "bg-slate-600 text-white" : "bg-emerald-500 text-white")}>
+                                                                        {isCaseClosed ? "CLOSED" : "OPEN"}
+                                                                    </Badge>
+                                                                    <span className="text-[10px] px-2 py-0.5 rounded-full border border-border bg-muted/40 text-muted-foreground font-semibold">
+                                                                        {c.session_count} session{c.session_count !== 1 ? 's' : ''}
+                                                                    </span>
+                                                                </div>
+                                                                <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                                                                    {c.chief_complaint || 'No chief complaint recorded'}
+                                                                </p>
+                                                                <p className="text-[10px] text-muted-foreground/60 mt-0.5">
+                                                                    Opened: {c.created_at ? format(new Date(c.created_at), 'dd MMM yyyy') : 'Unknown'}
+                                                                    {c.created_by_first ? ` by ${c.created_by_first} ${c.created_by_last}` : ''}
+                                                                    {isCaseClosed && c.closed_at ? ` • Closed: ${format(new Date(c.closed_at), 'dd MMM yyyy')}` : ''}
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex items-center gap-2 shrink-0">
+                                                            {(c.final_diagnosis || c.provisional_diagnosis) && (
+                                                                <span className="hidden sm:inline text-[10px] px-2 py-1 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 text-amber-700 dark:text-amber-300 font-medium max-w-[180px] truncate">
+                                                                    Dx: {c.final_diagnosis || c.provisional_diagnosis}
+                                                                </span>
+                                                            )}
+                                                            <Button
+                                                                variant="outline"
+                                                                size="sm"
+                                                                className="h-8 px-3 text-xs font-bold rounded-xl gap-1.5 border-border/80"
+                                                                onClick={() => { setEditingCaseId(c.id); setCaseSheetOpen(true); }}
+                                                            >
+                                                                <Stethoscope className="w-3.5 h-3.5" />
+                                                                {isCaseClosed ? 'View Sheet' : 'Open Sheet'}
+                                                            </Button>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Expanded: Linked Sessions */}
+                                                    {isExpanded && (
+                                                        <div className="border-t border-border/40 bg-muted/20 px-4 pb-4 pt-3">
+                                                            <p className="text-[10px] font-black uppercase tracking-wider text-muted-foreground mb-2">Linked Physiotherapy Sessions</p>
+                                                            {!c.sessions ? (
+                                                                <p className="text-xs text-muted-foreground">Click &apos;Open Sheet&apos; to load sessions.</p>
+                                                            ) : c.sessions?.length === 0 ? (
+                                                                <p className="text-xs text-muted-foreground italic">No sessions linked to this case yet. Link sessions from the SOAP Note modal.</p>
+                                                            ) : (
+                                                                <div className="space-y-1.5">
+                                                                    {c.sessions?.map((s: any) => (
+                                                                        <div key={s.id} className="flex items-center gap-3 px-3 py-2 rounded-xl bg-background border border-border/50 text-xs">
+                                                                            <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                                                                                <CalendarDays className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                                                                                <span className="font-semibold text-foreground">{s.scheduled_start ? format(new Date(s.scheduled_start), 'dd MMM yyyy') : '—'}</span>
+                                                                                <span className="text-muted-foreground">•</span>
+                                                                                <span className="text-muted-foreground truncate">{s.service_type}</span>
+                                                                            </div>
+                                                                            <Badge className={cn("text-[9px] font-black uppercase px-1.5 py-0.5 shrink-0",
+                                                                                s.status === 'Completed' ? 'bg-emerald-600 text-white' :
+                                                                                s.status === 'Cancelled' ? 'bg-rose-500 text-white' : 'bg-sky-600 text-white'
+                                                                            )}>{s.status}</Badge>
+                                                                            {s.pain_score != null && (
+                                                                                <span className="text-[10px] text-muted-foreground font-mono shrink-0">Pain: {s.pain_score}/10</span>
+                                                                            )}
+                                                                            <Button
+                                                                                size="sm"
+                                                                                variant="ghost"
+                                                                                className="h-6 px-2 text-[10px] font-bold text-muted-foreground hover:text-foreground shrink-0"
+                                                                                onClick={(e) => {
+                                                                                    e.stopPropagation();
+                                                                                    const fullSession = sessions.find((fs: any) => fs.id === s.id) || s;
+                                                                                    setSelectedSession(fullSession);
+                                                                                    setSoapModalOpen(true);
+                                                                                }}
+                                                                            >
+                                                                                View SOAP
+                                                                            </Button>
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+                    </TabsContent>
+
                 </Tabs>
 
                 {/* Modals & Dialogs */}
@@ -1599,6 +1789,18 @@ export default function ConsultantClientProfile() {
                             session={selectedSession}
                             clientId={client.id}
                             onSuccess={fetchData}
+                        />
+
+                        <CaseSheetModal
+                            open={caseSheetOpen}
+                            onOpenChange={setCaseSheetOpen}
+                            clientId={client.id}
+                            client={client}
+                            caseId={editingCaseId}
+                            onSuccess={(updatedCase) => {
+                                fetchCases();
+                                if (!editingCaseId && updatedCase?.id) setEditingCaseId(updatedCase.id);
+                            }}
                         />
 
                         <ResolveInjuryModal

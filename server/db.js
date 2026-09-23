@@ -851,6 +851,175 @@ async function runMigrations() {
         } catch (e) {}
     }
 
+    // ─── Clinical Case Sheets (Consultation Episodes of Care) ───────────────
+    // One case per consultation episode. Sessions can be linked to a case.
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS client_cases (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+        client_id UUID NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+        case_number TEXT,             -- auto-generated human-readable ID, e.g. CSSH-2026-0001
+        status TEXT NOT NULL DEFAULT 'open',   -- 'open' | 'closed'
+        chief_complaint TEXT,
+        created_by UUID REFERENCES profiles(id) ON DELETE SET NULL,
+        closed_by UUID REFERENCES profiles(id) ON DELETE SET NULL,
+        closed_at TIMESTAMPTZ,
+
+        -- Section 1 (pre-filled from client profile where possible)
+        referral_source TEXT,
+        referred_by TEXT,
+
+        -- Section 2: History of Present Illness
+        hopi TEXT,
+        duration TEXT,
+        radiation TEXT,
+        onset TEXT,
+        migration TEXT,
+        character TEXT,
+        progression TEXT,
+        aggravation TEXT,
+        alleviation TEXT,
+        associated_features TEXT,
+        diurnal_variation TEXT,
+        mechanism TEXT,
+        aggravating_factors TEXT,
+        relieving_factors TEXT,
+        previous_treatment TEXT,
+        previous_treatment_details TEXT,
+
+        -- Section 3: Past History
+        past_medical_history TEXT,
+        past_surgical_history TEXT,
+        drug_history TEXT,
+        family_history TEXT,
+        history_dm BOOLEAN DEFAULT false,
+        history_htn BOOLEAN DEFAULT false,
+        history_cad BOOLEAN DEFAULT false,
+        history_cva BOOLEAN DEFAULT false,
+        history_ba BOOLEAN DEFAULT false,
+        history_tb BOOLEAN DEFAULT false,
+        allergies TEXT,
+        trauma TEXT,
+        hospitalisation TEXT,
+
+        -- Section 4: Training History
+        years_of_training INTEGER,
+        training_volume TEXT,
+        training_type TEXT,
+        training_notes TEXT,
+
+        -- Section 5: Menstrual History (female only)
+        lmp DATE,
+        cycle_regularity TEXT,
+        menstrual_notes TEXT,
+
+        -- Section 6: General Examination
+        built TEXT,
+        nourishment TEXT,
+        pallor BOOLEAN DEFAULT false,
+        icterus BOOLEAN DEFAULT false,
+        cyanosis BOOLEAN DEFAULT false,
+        clubbing BOOLEAN DEFAULT false,
+        lymphadenopathy BOOLEAN DEFAULT false,
+        edema BOOLEAN DEFAULT false,
+        beighton_score INTEGER,
+        temperature TEXT,
+        pulse_rate INTEGER,
+        bp TEXT,
+        spo2 DECIMAL(5,2),
+        respiratory_rate INTEGER,
+        height DECIMAL(6,2),
+        weight DECIMAL(6,2),
+        bmi DECIMAL(5,2),
+
+        -- Section 7: Regional / Local Examination
+        inspection_notes TEXT,
+        palpation_notes TEXT,
+        range_of_motion_notes TEXT,
+        special_tests JSONB DEFAULT '[]',
+
+        -- Section 8: Neurovascular Status
+        neurovascular_notes TEXT,
+        dermatome_notes TEXT,
+        myotome_notes TEXT,
+        reflexes_notes TEXT,
+
+        -- Section 9: Pain Map
+        pain_map JSONB DEFAULT '{}',
+        pain_score INTEGER,
+
+        -- Section 10: Provisional Diagnosis
+        body_region TEXT,
+        injury_type TEXT,
+        severity TEXT DEFAULT 'Moderate',
+        provisional_diagnosis TEXT,
+        icd_code TEXT,
+
+        -- Section 11: Investigations
+        investigations JSONB DEFAULT '[]',
+
+        -- Section 12: Final Diagnosis
+        final_diagnosis TEXT,
+
+        -- Section 13: Management Plan
+        short_term_goals TEXT,
+        long_term_goals TEXT,
+        treatment_plan TEXT,
+        home_exercise_program TEXT,
+        advice TEXT,
+
+        -- Section 14: Additional Notes / Remarks
+        additional_notes TEXT,
+
+        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // Add case_id to sessions table (links a session to a case episode)
+    try {
+        await pool.query(`ALTER TABLE sessions ADD COLUMN case_id UUID REFERENCES client_cases(id) ON DELETE SET NULL;`);
+    } catch (e) {}
+
+    // Add cascading diagnosis columns to client_cases if not exists
+    try {
+        await pool.query(`ALTER TABLE client_cases ADD COLUMN IF NOT EXISTS body_region TEXT;`);
+        await pool.query(`ALTER TABLE client_cases ADD COLUMN IF NOT EXISTS injury_type TEXT;`);
+        await pool.query(`ALTER TABLE client_cases ADD COLUMN IF NOT EXISTS severity TEXT DEFAULT 'Moderate';`);
+        await pool.query(`ALTER TABLE client_cases ADD COLUMN IF NOT EXISTS diagnosis_notes TEXT;`);
+    } catch (e) {}
+ 
+    // Add HOPI detailed columns to client_cases if not exists
+    try {
+        await pool.query(`ALTER TABLE client_cases ADD COLUMN IF NOT EXISTS duration TEXT;`);
+        await pool.query(`ALTER TABLE client_cases ADD COLUMN IF NOT EXISTS radiation TEXT;`);
+        await pool.query(`ALTER TABLE client_cases ADD COLUMN IF NOT EXISTS migration TEXT;`);
+        await pool.query(`ALTER TABLE client_cases ADD COLUMN IF NOT EXISTS character TEXT;`);
+        await pool.query(`ALTER TABLE client_cases ADD COLUMN IF NOT EXISTS progression TEXT;`);
+        await pool.query(`ALTER TABLE client_cases ADD COLUMN IF NOT EXISTS aggravation TEXT;`);
+        await pool.query(`ALTER TABLE client_cases ADD COLUMN IF NOT EXISTS alleviation TEXT;`);
+        await pool.query(`ALTER TABLE client_cases ADD COLUMN IF NOT EXISTS associated_features TEXT;`);
+        await pool.query(`ALTER TABLE client_cases ADD COLUMN IF NOT EXISTS diurnal_variation TEXT;`);
+    } catch (e) {}
+
+    // Add Past History columns to client_cases if not exists
+    try {
+        await pool.query(`ALTER TABLE client_cases ADD COLUMN IF NOT EXISTS history_dm BOOLEAN DEFAULT false;`);
+        await pool.query(`ALTER TABLE client_cases ADD COLUMN IF NOT EXISTS history_htn BOOLEAN DEFAULT false;`);
+        await pool.query(`ALTER TABLE client_cases ADD COLUMN IF NOT EXISTS history_cad BOOLEAN DEFAULT false;`);
+        await pool.query(`ALTER TABLE client_cases ADD COLUMN IF NOT EXISTS history_cva BOOLEAN DEFAULT false;`);
+        await pool.query(`ALTER TABLE client_cases ADD COLUMN IF NOT EXISTS history_ba BOOLEAN DEFAULT false;`);
+        await pool.query(`ALTER TABLE client_cases ADD COLUMN IF NOT EXISTS history_tb BOOLEAN DEFAULT false;`);
+        await pool.query(`ALTER TABLE client_cases ADD COLUMN IF NOT EXISTS allergies TEXT;`);
+        await pool.query(`ALTER TABLE client_cases ADD COLUMN IF NOT EXISTS trauma TEXT;`);
+        await pool.query(`ALTER TABLE client_cases ADD COLUMN IF NOT EXISTS hospitalisation TEXT;`);
+    } catch (e) {}
+
+    // Create case_number sequence if not exists
+    try {
+        await pool.query(`CREATE SEQUENCE IF NOT EXISTS client_cases_seq START 1;`);
+    } catch (e) {}
+
     // Consultant Availability
     await pool.query(`
       CREATE TABLE IF NOT EXISTS consultantavailability (
@@ -1675,10 +1844,26 @@ async function runMigrations() {
     `);
     await pool.query(`
       CREATE TRIGGER trigger_system_notification
-      AFTER INSERT ON notifications
+      AFTER INSERT OR UPDATE ON notifications
       FOR EACH ROW
       EXECUTE FUNCTION notify_system_notification();
     `);
+
+    // Clean up any historical pending signup approval notifications for deleted or inactive users
+    try {
+      await pool.query(`
+        UPDATE notifications 
+        SET action_status = 'rejected'
+        WHERE category = 'direct_action' 
+          AND action_status = 'pending' 
+          AND (
+            action_payload->>'userId' IN (SELECT id::text FROM profiles WHERE deleted_at IS NOT NULL OR is_active = false)
+            OR action_payload->>'staffId' IN (SELECT id::text FROM profiles WHERE deleted_at IS NOT NULL OR is_active = false)
+          )
+      `);
+    } catch (e) {
+      console.warn('Could not clean up pending notifications for inactive users:', e.message);
+    }
 
     // Scientific Resources
     await pool.query(`

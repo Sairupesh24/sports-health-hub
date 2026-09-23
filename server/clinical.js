@@ -1052,4 +1052,434 @@ router.post('/nutrition/assessments', requireAuth, async (req, res) => {
     }
 });
 
+// ══════════════════════════════════════════════════════════════════════════════
+// CLIENT CASES — Consultation Case Sheets
+// ══════════════════════════════════════════════════════════════════════════════
+
+// GET /clinical/cases?client_id=xxx  — list all cases for a client
+// Handler for fetching client cases
+async function handleGetClientCases(req, res) {
+    try {
+        const client_id = req.query.client_id || req.params.clientId;
+        const orgId = req.user.organization_id;
+        if (!client_id) return res.status(400).json({ error: 'client_id required' });
+
+        const result = await db.query(`
+            SELECT cc.*,
+                   p_created.first_name AS created_by_first, p_created.last_name AS created_by_last,
+                   p_closed.first_name  AS closed_by_first,  p_closed.last_name  AS closed_by_last,
+                   (SELECT COUNT(*) FROM sessions s WHERE s.case_id = cc.id AND s.organization_id = $1)::int AS session_count,
+                   COALESCE((
+                       SELECT json_agg(json_build_object(
+                           'id', s.id,
+                           'scheduled_start', s.scheduled_start,
+                           'scheduled_end', s.scheduled_end,
+                           'status', s.status,
+                           'service_type', s.service_type,
+                           'pain_score', psd.pain_score,
+                           'therapist_first', p.first_name,
+                           'therapist_last', p.last_name
+                       ) ORDER BY s.scheduled_start DESC)
+                       FROM sessions s
+                       LEFT JOIN profiles p ON p.id = s.therapist_id
+                       LEFT JOIN physiosessiondetails psd ON psd.session_id = s.id
+                       WHERE s.case_id = cc.id AND s.organization_id = $1
+                   ), '[]'::json) AS sessions
+            FROM client_cases cc
+            LEFT JOIN profiles p_created ON p_created.id = cc.created_by
+            LEFT JOIN profiles p_closed  ON p_closed.id  = cc.closed_by
+            WHERE cc.client_id = $2 AND cc.organization_id = $1
+            ORDER BY cc.created_at DESC
+        `, [orgId, client_id]);
+
+        res.json(result.rows);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+}
+
+router.get('/cases', requireAuth, handleGetClientCases);
+router.get('/clients/:clientId/cases', requireAuth, handleGetClientCases);
+
+// GET /clinical/cases/:id  — full case detail
+router.get('/cases/:id', requireAuth, async (req, res) => {
+    try {
+        const orgId = req.user.organization_id;
+        const { id } = req.params;
+
+        const result = await db.query(`
+            SELECT cc.*,
+                   p_created.first_name AS created_by_first, p_created.last_name AS created_by_last,
+                   p_closed.first_name  AS closed_by_first,  p_closed.last_name  AS closed_by_last
+            FROM client_cases cc
+            LEFT JOIN profiles p_created ON p_created.id = cc.created_by
+            LEFT JOIN profiles p_closed  ON p_closed.id  = cc.closed_by
+            WHERE cc.id = $1 AND cc.organization_id = $2
+        `, [id, orgId]);
+
+        if (result.rows.length === 0) return res.status(404).json({ error: 'Case not found' });
+
+        // Fetch linked sessions
+        const sessions = await db.query(`
+            SELECT s.id, s.scheduled_start, s.scheduled_end, s.status, s.service_type,
+                   p.first_name AS therapist_first, p.last_name AS therapist_last,
+                   psd.pain_score, psd.clinical_notes
+            FROM sessions s
+            LEFT JOIN profiles p ON p.id = s.therapist_id
+            LEFT JOIN physiosessiondetails psd ON psd.session_id = s.id
+            WHERE s.case_id = $1 AND s.organization_id = $2
+            ORDER BY s.scheduled_start DESC
+        `, [id, orgId]);
+
+        res.json({ ...result.rows[0], sessions: sessions.rows });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// POST /clinical/cases  — create a new case
+router.post('/cases', requireAuth, async (req, res) => {
+    try {
+        const orgId = req.user.organization_id;
+        const profileId = req.user.profile_id || req.user.id;
+        const {
+            client_id, chief_complaint, referral_source, referred_by,
+            hopi, duration, radiation, onset, migration, character, progression,
+            aggravation, alleviation, associated_features, diurnal_variation,
+            mechanism, aggravating_factors, relieving_factors, previous_treatment, previous_treatment_details,
+            past_medical_history, past_surgical_history, drug_history, family_history,
+            history_dm, history_htn, history_cad, history_cva, history_ba, history_tb,
+            dm, htn, cad, cva, ba, tb,
+            allergies, trauma, hospitalisation, hospitalization,
+            years_of_training, training_volume, training_type, training_notes,
+            lmp, cycle_regularity, menstrual_notes,
+            built, nourishment, pallor, icterus, cyanosis, clubbing, lymphadenopathy, edema,
+            beighton_score, temperature, pulse_rate, bp, spo2, respiratory_rate, height, weight, bmi,
+            inspection_notes, palpation_notes, range_of_motion_notes, special_tests,
+            neurovascular_notes, dermatome_notes, myotome_notes, reflexes_notes,
+            pain_map, pain_score,
+            body_region, injury_type, severity, diagnosis_notes,
+            provisional_diagnosis, icd_code,
+            investigations,
+            final_diagnosis,
+            short_term_goals, long_term_goals, treatment_plan, home_exercise_program, advice,
+            additional_notes
+        } = req.body;
+
+        if (!client_id) return res.status(400).json({ error: 'client_id required' });
+
+        // Generate a padded case number: CSSH-YYYY-NNNN
+        const year = new Date().getFullYear();
+        const seqResult = await db.query(`SELECT nextval('client_cases_seq') AS seq`);
+        const seq = String(seqResult.rows[0].seq).padStart(4, '0');
+        const case_number = `CSSH-${year}-${seq}`;
+
+        const dmVal = history_dm !== undefined ? history_dm : (dm !== undefined ? dm : false);
+        const htnVal = history_htn !== undefined ? history_htn : (htn !== undefined ? htn : false);
+        const cadVal = history_cad !== undefined ? history_cad : (cad !== undefined ? cad : false);
+        const cvaVal = history_cva !== undefined ? history_cva : (cva !== undefined ? cva : false);
+        const baVal = history_ba !== undefined ? history_ba : (ba !== undefined ? ba : false);
+        const tbVal = history_tb !== undefined ? history_tb : (tb !== undefined ? tb : false);
+
+        const result = await db.query(`
+            INSERT INTO client_cases (
+                organization_id, client_id, case_number, status, chief_complaint, created_by,
+                referral_source, referred_by,
+                hopi, duration, radiation, onset, migration, character, progression,
+                aggravation, alleviation, associated_features, diurnal_variation,
+                mechanism, aggravating_factors, relieving_factors, previous_treatment, previous_treatment_details,
+                past_medical_history, past_surgical_history, drug_history, family_history,
+                years_of_training, training_volume, training_type, training_notes,
+                lmp, cycle_regularity, menstrual_notes,
+                built, nourishment, pallor, icterus, cyanosis, clubbing, lymphadenopathy, edema,
+                beighton_score, temperature, pulse_rate, bp, spo2, respiratory_rate, height, weight, bmi,
+                inspection_notes, palpation_notes, range_of_motion_notes, special_tests,
+                neurovascular_notes, dermatome_notes, myotome_notes, reflexes_notes,
+                pain_map, pain_score,
+                body_region, injury_type, severity, diagnosis_notes,
+                provisional_diagnosis, icd_code,
+                investigations,
+                final_diagnosis,
+                short_term_goals, long_term_goals, treatment_plan, home_exercise_program, advice,
+                additional_notes,
+                history_dm, history_htn, history_cad, history_cva, history_ba, history_tb,
+                allergies, trauma, hospitalisation
+            ) VALUES (
+                $1,$2,$3,'open',$4,$5,
+                $6,$7,
+                $8,$9,$10,$11,$12,$13,$14,
+                $15,$16,$17,$18,
+                $19,$20,$21,$22,$23,
+                $24,$25,$26,$27,
+                $28,$29,$30,$31,
+                $32,$33,$34,
+                $35,$36,$37,$38,$39,$40,$41,$42,
+                $43,$44,$45,$46,$47,$48,$49,$50,$51,
+                $52,$53,$54,$55,
+                $56,$57,$58,$59,
+                $60,$61,
+                $62,$63,$64,$65,
+                $66,$67,
+                $68,
+                $69,
+                $70,$71,$72,$73,$74,
+                $75,
+                $76,$77,$78,$79,$80,$81,
+                $82,$83,$84
+            ) RETURNING *
+        `, [
+            orgId, client_id, case_number, chief_complaint || null, profileId,
+            referral_source || null, referred_by || null,
+            hopi || null, duration || null, radiation || null, onset || null, migration || null, character || null, progression || null,
+            aggravation || aggravating_factors || null, alleviation || relieving_factors || null, associated_features || null, diurnal_variation || null,
+            mechanism || null, aggravating_factors || aggravation || null, relieving_factors || alleviation || null, previous_treatment || null, previous_treatment_details || null,
+            past_medical_history || null, past_surgical_history || null, drug_history || null, family_history || null,
+            years_of_training || null, training_volume || null, training_type || null, training_notes || null,
+            lmp || null, cycle_regularity || null, menstrual_notes || null,
+            built || null, nourishment || null, pallor || false, icterus || false, cyanosis || false, clubbing || false, lymphadenopathy || false, edema || false,
+            beighton_score || null, temperature || null, pulse_rate || null, bp || null, spo2 || null, respiratory_rate || null, height || null, weight || null, bmi || null,
+            inspection_notes || null, palpation_notes || null, range_of_motion_notes || null, JSON.stringify(special_tests || []),
+            neurovascular_notes || null, dermatome_notes || null, myotome_notes || null, reflexes_notes || null,
+            JSON.stringify(pain_map || {}), pain_score || null,
+            body_region || null, injury_type || null, severity || 'Moderate', diagnosis_notes || null,
+            provisional_diagnosis || null, icd_code || null,
+            JSON.stringify(investigations || []),
+            final_diagnosis || null,
+            short_term_goals || null, long_term_goals || null, treatment_plan || null, home_exercise_program || null, advice || null,
+            additional_notes || null,
+            dmVal, htnVal, cadVal, cvaVal, baVal, tbVal,
+            allergies || null, trauma || null, hospitalisation || hospitalization || null
+        ]);
+
+        res.status(201).json(result.rows[0]);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// PUT /clinical/cases/:id  — update case fields (only allowed if case is open)
+router.put('/cases/:id', requireAuth, async (req, res) => {
+    try {
+        const orgId = req.user.organization_id;
+        const { id } = req.params;
+
+        // Verify ownership and get current status
+        const existing = await db.query(
+            `SELECT id, status FROM client_cases WHERE id = $1 AND organization_id = $2`,
+            [id, orgId]
+        );
+        if (existing.rows.length === 0) return res.status(404).json({ error: 'Case not found' });
+        if (existing.rows[0].status === 'closed') return res.status(403).json({ error: 'Cannot edit a closed case' });
+
+        const {
+            chief_complaint, referral_source, referred_by,
+            hopi, duration, radiation, onset, migration, character, progression,
+            aggravation, alleviation, associated_features, diurnal_variation,
+            mechanism, aggravating_factors, relieving_factors, previous_treatment, previous_treatment_details,
+            past_medical_history, past_surgical_history, drug_history, family_history,
+            history_dm, history_htn, history_cad, history_cva, history_ba, history_tb,
+            dm, htn, cad, cva, ba, tb,
+            allergies, trauma, hospitalisation, hospitalization,
+            years_of_training, training_volume, training_type, training_notes,
+            lmp, cycle_regularity, menstrual_notes,
+            built, nourishment, pallor, icterus, cyanosis, clubbing, lymphadenopathy, edema,
+            beighton_score, temperature, pulse_rate, bp, spo2, respiratory_rate, height, weight, bmi,
+            inspection_notes, palpation_notes, range_of_motion_notes, special_tests,
+            neurovascular_notes, dermatome_notes, myotome_notes, reflexes_notes,
+            pain_map, pain_score,
+            body_region, injury_type, severity, diagnosis_notes,
+            provisional_diagnosis, icd_code,
+            investigations,
+            final_diagnosis,
+            short_term_goals, long_term_goals, treatment_plan, home_exercise_program, advice,
+            additional_notes
+        } = req.body;
+
+        const result = await db.query(`
+            UPDATE client_cases SET
+                chief_complaint = COALESCE($1, chief_complaint),
+                referral_source = COALESCE($2, referral_source),
+                referred_by = COALESCE($3, referred_by),
+                hopi = COALESCE($4, hopi),
+                duration = COALESCE($5, duration),
+                radiation = COALESCE($6, radiation),
+                onset = COALESCE($7, onset),
+                migration = COALESCE($8, migration),
+                character = COALESCE($9, character),
+                progression = COALESCE($10, progression),
+                aggravation = COALESCE($11, aggravation),
+                alleviation = COALESCE($12, alleviation),
+                associated_features = COALESCE($13, associated_features),
+                diurnal_variation = COALESCE($14, diurnal_variation),
+                mechanism = COALESCE($15, mechanism),
+                aggravating_factors = COALESCE($16, aggravating_factors),
+                relieving_factors = COALESCE($17, relieving_factors),
+                previous_treatment = COALESCE($18, previous_treatment),
+                previous_treatment_details = COALESCE($19, previous_treatment_details),
+                past_medical_history = COALESCE($20, past_medical_history),
+                past_surgical_history = COALESCE($21, past_surgical_history),
+                drug_history = COALESCE($22, drug_history),
+                family_history = COALESCE($23, family_history),
+                years_of_training = COALESCE($24, years_of_training),
+                training_volume = COALESCE($25, training_volume),
+                training_type = COALESCE($26, training_type),
+                training_notes = COALESCE($27, training_notes),
+                lmp = COALESCE($28::date, lmp),
+                cycle_regularity = COALESCE($29, cycle_regularity),
+                menstrual_notes = COALESCE($30, menstrual_notes),
+                built = COALESCE($31, built),
+                nourishment = COALESCE($32, nourishment),
+                pallor = COALESCE($33, pallor),
+                icterus = COALESCE($34, icterus),
+                cyanosis = COALESCE($35, cyanosis),
+                clubbing = COALESCE($36, clubbing),
+                lymphadenopathy = COALESCE($37, lymphadenopathy),
+                edema = COALESCE($38, edema),
+                beighton_score = COALESCE($39, beighton_score),
+                temperature = COALESCE($40, temperature),
+                pulse_rate = COALESCE($41, pulse_rate),
+                bp = COALESCE($42, bp),
+                spo2 = COALESCE($43, spo2),
+                respiratory_rate = COALESCE($44, respiratory_rate),
+                height = COALESCE($45, height),
+                weight = COALESCE($46, weight),
+                bmi = COALESCE($47, bmi),
+                inspection_notes = COALESCE($48, inspection_notes),
+                palpation_notes = COALESCE($49, palpation_notes),
+                range_of_motion_notes = COALESCE($50, range_of_motion_notes),
+                special_tests = COALESCE($51::jsonb, special_tests),
+                neurovascular_notes = COALESCE($52, neurovascular_notes),
+                dermatome_notes = COALESCE($53, dermatome_notes),
+                myotome_notes = COALESCE($54, myotome_notes),
+                reflexes_notes = COALESCE($55, reflexes_notes),
+                pain_map = COALESCE($56::jsonb, pain_map),
+                pain_score = COALESCE($57, pain_score),
+                provisional_diagnosis = COALESCE($58, provisional_diagnosis),
+                icd_code = COALESCE($59, icd_code),
+                investigations = COALESCE($60::jsonb, investigations),
+                final_diagnosis = COALESCE($61, final_diagnosis),
+                short_term_goals = COALESCE($62, short_term_goals),
+                long_term_goals = COALESCE($63, long_term_goals),
+                treatment_plan = COALESCE($64, treatment_plan),
+                home_exercise_program = COALESCE($65, home_exercise_program),
+                advice = COALESCE($66, advice),
+                additional_notes = COALESCE($67, additional_notes),
+                body_region = COALESCE($68, body_region),
+                injury_type = COALESCE($69, injury_type),
+                severity = COALESCE($70, severity),
+                diagnosis_notes = COALESCE($71, diagnosis_notes),
+                history_dm = COALESCE($72, history_dm),
+                history_htn = COALESCE($73, history_htn),
+                history_cad = COALESCE($74, history_cad),
+                history_cva = COALESCE($75, history_cva),
+                history_ba = COALESCE($76, history_ba),
+                history_tb = COALESCE($77, history_tb),
+                allergies = COALESCE($78, allergies),
+                trauma = COALESCE($79, trauma),
+                hospitalisation = COALESCE($80, hospitalisation),
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = $81 AND organization_id = $82
+            RETURNING *
+        `, [
+            chief_complaint || null, referral_source || null, referred_by || null,
+            hopi || null, duration || null, radiation || null, onset || null, migration || null, character || null, progression || null,
+            aggravation || aggravating_factors || null, alleviation || relieving_factors || null, associated_features || null, diurnal_variation || null,
+            mechanism || null, aggravating_factors || aggravation || null, relieving_factors || alleviation || null, previous_treatment || null, previous_treatment_details || null,
+            past_medical_history || null, past_surgical_history || null, drug_history || null, family_history || null,
+            years_of_training || null, training_volume || null, training_type || null, training_notes || null,
+            lmp || null, cycle_regularity || null, menstrual_notes || null,
+            built || null, nourishment || null,
+            pallor !== undefined ? pallor : null, icterus !== undefined ? icterus : null, cyanosis !== undefined ? cyanosis : null, clubbing !== undefined ? clubbing : null, lymphadenopathy !== undefined ? lymphadenopathy : null, edema !== undefined ? edema : null,
+            beighton_score || null, temperature || null, pulse_rate || null, bp || null, spo2 || null, respiratory_rate || null, height || null, weight || null, bmi || null,
+            inspection_notes || null, palpation_notes || null, range_of_motion_notes || null,
+            special_tests !== undefined ? JSON.stringify(special_tests) : null,
+            neurovascular_notes || null, dermatome_notes || null, myotome_notes || null, reflexes_notes || null,
+            pain_map !== undefined ? JSON.stringify(pain_map) : null, pain_score || null,
+            provisional_diagnosis || null, icd_code || null,
+            investigations !== undefined ? JSON.stringify(investigations) : null,
+            final_diagnosis || null,
+            short_term_goals || null, long_term_goals || null, treatment_plan || null, home_exercise_program || null, advice || null,
+            additional_notes || null,
+            body_region || null, injury_type || null, severity || null, diagnosis_notes !== undefined ? diagnosis_notes : null,
+            history_dm !== undefined ? history_dm : (dm !== undefined ? dm : null),
+            history_htn !== undefined ? history_htn : (htn !== undefined ? htn : null),
+            history_cad !== undefined ? history_cad : (cad !== undefined ? cad : null),
+            history_cva !== undefined ? history_cva : (cva !== undefined ? cva : null),
+            history_ba !== undefined ? history_ba : (ba !== undefined ? ba : null),
+            history_tb !== undefined ? history_tb : (tb !== undefined ? tb : null),
+            allergies || null,
+            trauma || null,
+            hospitalisation || hospitalization || null,
+            id, orgId
+        ]);
+
+        res.json(result.rows[0]);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// POST /clinical/cases/:id/close  — close a case
+router.post('/cases/:id/close', requireAuth, async (req, res) => {
+    try {
+        const orgId = req.user.organization_id;
+        const profileId = req.user.profile_id || req.user.id;
+        const { id } = req.params;
+
+        const result = await db.query(`
+            UPDATE client_cases
+            SET status = 'closed', closed_by = $1, closed_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+            WHERE id = $2 AND organization_id = $3
+            RETURNING *
+        `, [profileId, id, orgId]);
+
+        if (result.rows.length === 0) return res.status(404).json({ error: 'Case not found' });
+        res.json(result.rows[0]);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// POST /clinical/cases/:id/reopen  — re-open a closed case
+router.post('/cases/:id/reopen', requireAuth, async (req, res) => {
+    try {
+        const orgId = req.user.organization_id;
+        const { id } = req.params;
+
+        const result = await db.query(`
+            UPDATE client_cases
+            SET status = 'open', closed_by = NULL, closed_at = NULL, updated_at = CURRENT_TIMESTAMP
+            WHERE id = $1 AND organization_id = $2
+            RETURNING *
+        `, [id, orgId]);
+
+        if (result.rows.length === 0) return res.status(404).json({ error: 'Case not found' });
+        res.json(result.rows[0]);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// PATCH /clinical/sessions/:sessionId/link-case  — link/unlink a session to a case
+router.patch('/sessions/:sessionId/link-case', requireAuth, async (req, res) => {
+    try {
+        const orgId = req.user.organization_id;
+        const { sessionId } = req.params;
+        const { case_id } = req.body;
+
+        const result = await db.query(`
+            UPDATE sessions
+            SET case_id = $1, updated_at = CURRENT_TIMESTAMP
+            WHERE id = $2 AND organization_id = $3
+            RETURNING id, case_id
+        `, [case_id || null, sessionId, orgId]);
+
+        if (result.rows.length === 0) return res.status(404).json({ error: 'Session not found' });
+        res.json(result.rows[0]);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
 export default router;
+

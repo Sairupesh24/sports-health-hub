@@ -62,6 +62,8 @@ export type BillsMinAggregateOutputType = {
   created_at: Date | null
   subscription_id: string | null
   due_date: Date | null
+  package_id: string | null
+  date: Date | null
   tax_amount: runtime.Decimal | null
 }
 
@@ -87,6 +89,8 @@ export type BillsMaxAggregateOutputType = {
   created_at: Date | null
   subscription_id: string | null
   due_date: Date | null
+  package_id: string | null
+  date: Date | null
   tax_amount: runtime.Decimal | null
 }
 
@@ -112,6 +116,8 @@ export type BillsCountAggregateOutputType = {
   created_at: number
   subscription_id: number
   due_date: number
+  package_id: number
+  date: number
   tax_amount: number
   _all: number
 }
@@ -153,6 +159,8 @@ export type BillsMinAggregateInputType = {
   created_at?: true
   subscription_id?: true
   due_date?: true
+  package_id?: true
+  date?: true
   tax_amount?: true
 }
 
@@ -178,6 +186,8 @@ export type BillsMaxAggregateInputType = {
   created_at?: true
   subscription_id?: true
   due_date?: true
+  package_id?: true
+  date?: true
   tax_amount?: true
 }
 
@@ -203,6 +213,8 @@ export type BillsCountAggregateInputType = {
   created_at?: true
   subscription_id?: true
   due_date?: true
+  package_id?: true
+  date?: true
   tax_amount?: true
   _all?: true
 }
@@ -315,6 +327,8 @@ export type BillsGroupByOutputType = {
   created_at: Date | null
   subscription_id: string | null
   due_date: Date | null
+  package_id: string | null
+  date: Date | null
   tax_amount: runtime.Decimal | null
   _count: BillsCountAggregateOutputType | null
   _avg: BillsAvgAggregateOutputType | null
@@ -363,6 +377,8 @@ export type billsWhereInput = {
   created_at?: Prisma.DateTimeNullableFilter<"bills"> | Date | string | null
   subscription_id?: Prisma.UuidNullableFilter<"bills"> | string | null
   due_date?: Prisma.DateTimeNullableFilter<"bills"> | Date | string | null
+  package_id?: Prisma.UuidNullableFilter<"bills"> | string | null
+  date?: Prisma.DateTimeNullableFilter<"bills"> | Date | string | null
   tax_amount?: Prisma.DecimalNullableFilter<"bills"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   billitems?: Prisma.BillitemsListRelationFilter
   billpayments?: Prisma.BillpaymentsListRelationFilter
@@ -395,6 +411,8 @@ export type billsOrderByWithRelationInput = {
   created_at?: Prisma.SortOrderInput | Prisma.SortOrder
   subscription_id?: Prisma.SortOrderInput | Prisma.SortOrder
   due_date?: Prisma.SortOrderInput | Prisma.SortOrder
+  package_id?: Prisma.SortOrderInput | Prisma.SortOrder
+  date?: Prisma.SortOrderInput | Prisma.SortOrder
   tax_amount?: Prisma.SortOrderInput | Prisma.SortOrder
   billitems?: Prisma.billitemsOrderByRelationAggregateInput
   billpayments?: Prisma.billpaymentsOrderByRelationAggregateInput
@@ -430,6 +448,8 @@ export type billsWhereUniqueInput = Prisma.AtLeast<{
   created_at?: Prisma.DateTimeNullableFilter<"bills"> | Date | string | null
   subscription_id?: Prisma.UuidNullableFilter<"bills"> | string | null
   due_date?: Prisma.DateTimeNullableFilter<"bills"> | Date | string | null
+  package_id?: Prisma.UuidNullableFilter<"bills"> | string | null
+  date?: Prisma.DateTimeNullableFilter<"bills"> | Date | string | null
   tax_amount?: Prisma.DecimalNullableFilter<"bills"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   billitems?: Prisma.BillitemsListRelationFilter
   billpayments?: Prisma.BillpaymentsListRelationFilter
@@ -462,6 +482,8 @@ export type billsOrderByWithAggregationInput = {
   created_at?: Prisma.SortOrderInput | Prisma.SortOrder
   subscription_id?: Prisma.SortOrderInput | Prisma.SortOrder
   due_date?: Prisma.SortOrderInput | Prisma.SortOrder
+  package_id?: Prisma.SortOrderInput | Prisma.SortOrder
+  date?: Prisma.SortOrderInput | Prisma.SortOrder
   tax_amount?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.billsCountOrderByAggregateInput
   _avg?: Prisma.billsAvgOrderByAggregateInput
@@ -495,6 +517,8 @@ export type billsScalarWhereWithAggregatesInput = {
   created_at?: Prisma.DateTimeNullableWithAggregatesFilter<"bills"> | Date | string | null
   subscription_id?: Prisma.UuidNullableWithAggregatesFilter<"bills"> | string | null
   due_date?: Prisma.DateTimeNullableWithAggregatesFilter<"bills"> | Date | string | null
+  package_id?: Prisma.UuidNullableWithAggregatesFilter<"bills"> | string | null
+  date?: Prisma.DateTimeNullableWithAggregatesFilter<"bills"> | Date | string | null
   tax_amount?: Prisma.DecimalNullableWithAggregatesFilter<"bills"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
 }
 
@@ -516,6 +540,8 @@ export type billsCreateInput = {
   deleted_at?: Date | string | null
   created_at?: Date | string | null
   due_date?: Date | string | null
+  package_id?: string | null
+  date?: Date | string | null
   tax_amount?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   billitems?: Prisma.billitemsCreateNestedManyWithoutBillsInput
   billpayments?: Prisma.billpaymentsCreateNestedManyWithoutBillsInput
@@ -548,6 +574,8 @@ export type billsUncheckedCreateInput = {
   created_at?: Date | string | null
   subscription_id?: string | null
   due_date?: Date | string | null
+  package_id?: string | null
+  date?: Date | string | null
   tax_amount?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   billitems?: Prisma.billitemsUncheckedCreateNestedManyWithoutBillsInput
   billpayments?: Prisma.billpaymentsUncheckedCreateNestedManyWithoutBillsInput
@@ -572,6 +600,8 @@ export type billsUpdateInput = {
   deleted_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   created_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   due_date?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  package_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  date?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   tax_amount?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   billitems?: Prisma.billitemsUpdateManyWithoutBillsNestedInput
   billpayments?: Prisma.billpaymentsUpdateManyWithoutBillsNestedInput
@@ -604,6 +634,8 @@ export type billsUncheckedUpdateInput = {
   created_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   subscription_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   due_date?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  package_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  date?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   tax_amount?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   billitems?: Prisma.billitemsUncheckedUpdateManyWithoutBillsNestedInput
   billpayments?: Prisma.billpaymentsUncheckedUpdateManyWithoutBillsNestedInput
@@ -632,6 +664,8 @@ export type billsCreateManyInput = {
   created_at?: Date | string | null
   subscription_id?: string | null
   due_date?: Date | string | null
+  package_id?: string | null
+  date?: Date | string | null
   tax_amount?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
 }
 
@@ -653,6 +687,8 @@ export type billsUpdateManyMutationInput = {
   deleted_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   created_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   due_date?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  package_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  date?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   tax_amount?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
 }
 
@@ -678,6 +714,8 @@ export type billsUncheckedUpdateManyInput = {
   created_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   subscription_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   due_date?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  package_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  date?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   tax_amount?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
 }
 
@@ -708,6 +746,8 @@ export type billsCountOrderByAggregateInput = {
   created_at?: Prisma.SortOrder
   subscription_id?: Prisma.SortOrder
   due_date?: Prisma.SortOrder
+  package_id?: Prisma.SortOrder
+  date?: Prisma.SortOrder
   tax_amount?: Prisma.SortOrder
 }
 
@@ -740,6 +780,8 @@ export type billsMaxOrderByAggregateInput = {
   created_at?: Prisma.SortOrder
   subscription_id?: Prisma.SortOrder
   due_date?: Prisma.SortOrder
+  package_id?: Prisma.SortOrder
+  date?: Prisma.SortOrder
   tax_amount?: Prisma.SortOrder
 }
 
@@ -765,6 +807,8 @@ export type billsMinOrderByAggregateInput = {
   created_at?: Prisma.SortOrder
   subscription_id?: Prisma.SortOrder
   due_date?: Prisma.SortOrder
+  package_id?: Prisma.SortOrder
+  date?: Prisma.SortOrder
   tax_amount?: Prisma.SortOrder
 }
 
@@ -1020,6 +1064,8 @@ export type billsCreateWithoutBillitemsInput = {
   deleted_at?: Date | string | null
   created_at?: Date | string | null
   due_date?: Date | string | null
+  package_id?: string | null
+  date?: Date | string | null
   tax_amount?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   billpayments?: Prisma.billpaymentsCreateNestedManyWithoutBillsInput
   users?: Prisma.usersCreateNestedOneWithoutBillsInput
@@ -1051,6 +1097,8 @@ export type billsUncheckedCreateWithoutBillitemsInput = {
   created_at?: Date | string | null
   subscription_id?: string | null
   due_date?: Date | string | null
+  package_id?: string | null
+  date?: Date | string | null
   tax_amount?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   billpayments?: Prisma.billpaymentsUncheckedCreateNestedManyWithoutBillsInput
   refunds?: Prisma.refundsUncheckedCreateNestedManyWithoutBillsInput
@@ -1090,6 +1138,8 @@ export type billsUpdateWithoutBillitemsInput = {
   deleted_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   created_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   due_date?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  package_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  date?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   tax_amount?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   billpayments?: Prisma.billpaymentsUpdateManyWithoutBillsNestedInput
   users?: Prisma.usersUpdateOneWithoutBillsNestedInput
@@ -1121,6 +1171,8 @@ export type billsUncheckedUpdateWithoutBillitemsInput = {
   created_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   subscription_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   due_date?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  package_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  date?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   tax_amount?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   billpayments?: Prisma.billpaymentsUncheckedUpdateManyWithoutBillsNestedInput
   refunds?: Prisma.refundsUncheckedUpdateManyWithoutBillsNestedInput
@@ -1144,6 +1196,8 @@ export type billsCreateWithoutBillpaymentsInput = {
   deleted_at?: Date | string | null
   created_at?: Date | string | null
   due_date?: Date | string | null
+  package_id?: string | null
+  date?: Date | string | null
   tax_amount?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   billitems?: Prisma.billitemsCreateNestedManyWithoutBillsInput
   users?: Prisma.usersCreateNestedOneWithoutBillsInput
@@ -1175,6 +1229,8 @@ export type billsUncheckedCreateWithoutBillpaymentsInput = {
   created_at?: Date | string | null
   subscription_id?: string | null
   due_date?: Date | string | null
+  package_id?: string | null
+  date?: Date | string | null
   tax_amount?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   billitems?: Prisma.billitemsUncheckedCreateNestedManyWithoutBillsInput
   refunds?: Prisma.refundsUncheckedCreateNestedManyWithoutBillsInput
@@ -1214,6 +1270,8 @@ export type billsUpdateWithoutBillpaymentsInput = {
   deleted_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   created_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   due_date?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  package_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  date?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   tax_amount?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   billitems?: Prisma.billitemsUpdateManyWithoutBillsNestedInput
   users?: Prisma.usersUpdateOneWithoutBillsNestedInput
@@ -1245,6 +1303,8 @@ export type billsUncheckedUpdateWithoutBillpaymentsInput = {
   created_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   subscription_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   due_date?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  package_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  date?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   tax_amount?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   billitems?: Prisma.billitemsUncheckedUpdateManyWithoutBillsNestedInput
   refunds?: Prisma.refundsUncheckedUpdateManyWithoutBillsNestedInput
@@ -1268,6 +1328,8 @@ export type billsCreateWithoutClientsInput = {
   deleted_at?: Date | string | null
   created_at?: Date | string | null
   due_date?: Date | string | null
+  package_id?: string | null
+  date?: Date | string | null
   tax_amount?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   billitems?: Prisma.billitemsCreateNestedManyWithoutBillsInput
   billpayments?: Prisma.billpaymentsCreateNestedManyWithoutBillsInput
@@ -1298,6 +1360,8 @@ export type billsUncheckedCreateWithoutClientsInput = {
   created_at?: Date | string | null
   subscription_id?: string | null
   due_date?: Date | string | null
+  package_id?: string | null
+  date?: Date | string | null
   tax_amount?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   billitems?: Prisma.billitemsUncheckedCreateNestedManyWithoutBillsInput
   billpayments?: Prisma.billpaymentsUncheckedCreateNestedManyWithoutBillsInput
@@ -1355,6 +1419,8 @@ export type billsScalarWhereInput = {
   created_at?: Prisma.DateTimeNullableFilter<"bills"> | Date | string | null
   subscription_id?: Prisma.UuidNullableFilter<"bills"> | string | null
   due_date?: Prisma.DateTimeNullableFilter<"bills"> | Date | string | null
+  package_id?: Prisma.UuidNullableFilter<"bills"> | string | null
+  date?: Prisma.DateTimeNullableFilter<"bills"> | Date | string | null
   tax_amount?: Prisma.DecimalNullableFilter<"bills"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
 }
 
@@ -1376,6 +1442,8 @@ export type billsCreateWithoutOrganizationsInput = {
   deleted_at?: Date | string | null
   created_at?: Date | string | null
   due_date?: Date | string | null
+  package_id?: string | null
+  date?: Date | string | null
   tax_amount?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   billitems?: Prisma.billitemsCreateNestedManyWithoutBillsInput
   billpayments?: Prisma.billpaymentsCreateNestedManyWithoutBillsInput
@@ -1406,6 +1474,8 @@ export type billsUncheckedCreateWithoutOrganizationsInput = {
   created_at?: Date | string | null
   subscription_id?: string | null
   due_date?: Date | string | null
+  package_id?: string | null
+  date?: Date | string | null
   tax_amount?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   billitems?: Prisma.billitemsUncheckedCreateNestedManyWithoutBillsInput
   billpayments?: Prisma.billpaymentsUncheckedCreateNestedManyWithoutBillsInput
@@ -1456,6 +1526,8 @@ export type billsCreateWithoutRefundsInput = {
   deleted_at?: Date | string | null
   created_at?: Date | string | null
   due_date?: Date | string | null
+  package_id?: string | null
+  date?: Date | string | null
   tax_amount?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   billitems?: Prisma.billitemsCreateNestedManyWithoutBillsInput
   billpayments?: Prisma.billpaymentsCreateNestedManyWithoutBillsInput
@@ -1487,6 +1559,8 @@ export type billsUncheckedCreateWithoutRefundsInput = {
   created_at?: Date | string | null
   subscription_id?: string | null
   due_date?: Date | string | null
+  package_id?: string | null
+  date?: Date | string | null
   tax_amount?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   billitems?: Prisma.billitemsUncheckedCreateNestedManyWithoutBillsInput
   billpayments?: Prisma.billpaymentsUncheckedCreateNestedManyWithoutBillsInput
@@ -1526,6 +1600,8 @@ export type billsUpdateWithoutRefundsInput = {
   deleted_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   created_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   due_date?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  package_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  date?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   tax_amount?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   billitems?: Prisma.billitemsUpdateManyWithoutBillsNestedInput
   billpayments?: Prisma.billpaymentsUpdateManyWithoutBillsNestedInput
@@ -1557,6 +1633,8 @@ export type billsUncheckedUpdateWithoutRefundsInput = {
   created_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   subscription_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   due_date?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  package_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  date?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   tax_amount?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   billitems?: Prisma.billitemsUncheckedUpdateManyWithoutBillsNestedInput
   billpayments?: Prisma.billpaymentsUncheckedUpdateManyWithoutBillsNestedInput
@@ -1580,6 +1658,8 @@ export type billsCreateWithoutSubscriptionsInput = {
   deleted_at?: Date | string | null
   created_at?: Date | string | null
   due_date?: Date | string | null
+  package_id?: string | null
+  date?: Date | string | null
   tax_amount?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   billitems?: Prisma.billitemsCreateNestedManyWithoutBillsInput
   billpayments?: Prisma.billpaymentsCreateNestedManyWithoutBillsInput
@@ -1610,6 +1690,8 @@ export type billsUncheckedCreateWithoutSubscriptionsInput = {
   deleted_at?: Date | string | null
   created_at?: Date | string | null
   due_date?: Date | string | null
+  package_id?: string | null
+  date?: Date | string | null
   tax_amount?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   billitems?: Prisma.billitemsUncheckedCreateNestedManyWithoutBillsInput
   billpayments?: Prisma.billpaymentsUncheckedCreateNestedManyWithoutBillsInput
@@ -1660,6 +1742,8 @@ export type billsCreateWithoutUsersInput = {
   deleted_at?: Date | string | null
   created_at?: Date | string | null
   due_date?: Date | string | null
+  package_id?: string | null
+  date?: Date | string | null
   tax_amount?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   billitems?: Prisma.billitemsCreateNestedManyWithoutBillsInput
   billpayments?: Prisma.billpaymentsCreateNestedManyWithoutBillsInput
@@ -1690,6 +1774,8 @@ export type billsUncheckedCreateWithoutUsersInput = {
   created_at?: Date | string | null
   subscription_id?: string | null
   due_date?: Date | string | null
+  package_id?: string | null
+  date?: Date | string | null
   tax_amount?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   billitems?: Prisma.billitemsUncheckedCreateNestedManyWithoutBillsInput
   billpayments?: Prisma.billpaymentsUncheckedCreateNestedManyWithoutBillsInput
@@ -1743,6 +1829,8 @@ export type billsCreateManyClientsInput = {
   created_at?: Date | string | null
   subscription_id?: string | null
   due_date?: Date | string | null
+  package_id?: string | null
+  date?: Date | string | null
   tax_amount?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
 }
 
@@ -1764,6 +1852,8 @@ export type billsUpdateWithoutClientsInput = {
   deleted_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   created_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   due_date?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  package_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  date?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   tax_amount?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   billitems?: Prisma.billitemsUpdateManyWithoutBillsNestedInput
   billpayments?: Prisma.billpaymentsUpdateManyWithoutBillsNestedInput
@@ -1794,6 +1884,8 @@ export type billsUncheckedUpdateWithoutClientsInput = {
   created_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   subscription_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   due_date?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  package_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  date?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   tax_amount?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   billitems?: Prisma.billitemsUncheckedUpdateManyWithoutBillsNestedInput
   billpayments?: Prisma.billpaymentsUncheckedUpdateManyWithoutBillsNestedInput
@@ -1821,6 +1913,8 @@ export type billsUncheckedUpdateManyWithoutClientsInput = {
   created_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   subscription_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   due_date?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  package_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  date?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   tax_amount?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
 }
 
@@ -1845,6 +1939,8 @@ export type billsCreateManyOrganizationsInput = {
   created_at?: Date | string | null
   subscription_id?: string | null
   due_date?: Date | string | null
+  package_id?: string | null
+  date?: Date | string | null
   tax_amount?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
 }
 
@@ -1866,6 +1962,8 @@ export type billsUpdateWithoutOrganizationsInput = {
   deleted_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   created_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   due_date?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  package_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  date?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   tax_amount?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   billitems?: Prisma.billitemsUpdateManyWithoutBillsNestedInput
   billpayments?: Prisma.billpaymentsUpdateManyWithoutBillsNestedInput
@@ -1896,6 +1994,8 @@ export type billsUncheckedUpdateWithoutOrganizationsInput = {
   created_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   subscription_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   due_date?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  package_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  date?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   tax_amount?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   billitems?: Prisma.billitemsUncheckedUpdateManyWithoutBillsNestedInput
   billpayments?: Prisma.billpaymentsUncheckedUpdateManyWithoutBillsNestedInput
@@ -1923,6 +2023,8 @@ export type billsUncheckedUpdateManyWithoutOrganizationsInput = {
   created_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   subscription_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   due_date?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  package_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  date?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   tax_amount?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
 }
 
@@ -1947,6 +2049,8 @@ export type billsCreateManySubscriptionsInput = {
   deleted_at?: Date | string | null
   created_at?: Date | string | null
   due_date?: Date | string | null
+  package_id?: string | null
+  date?: Date | string | null
   tax_amount?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
 }
 
@@ -1968,6 +2072,8 @@ export type billsUpdateWithoutSubscriptionsInput = {
   deleted_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   created_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   due_date?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  package_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  date?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   tax_amount?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   billitems?: Prisma.billitemsUpdateManyWithoutBillsNestedInput
   billpayments?: Prisma.billpaymentsUpdateManyWithoutBillsNestedInput
@@ -1998,6 +2104,8 @@ export type billsUncheckedUpdateWithoutSubscriptionsInput = {
   deleted_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   created_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   due_date?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  package_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  date?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   tax_amount?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   billitems?: Prisma.billitemsUncheckedUpdateManyWithoutBillsNestedInput
   billpayments?: Prisma.billpaymentsUncheckedUpdateManyWithoutBillsNestedInput
@@ -2025,6 +2133,8 @@ export type billsUncheckedUpdateManyWithoutSubscriptionsInput = {
   deleted_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   created_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   due_date?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  package_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  date?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   tax_amount?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
 }
 
@@ -2049,6 +2159,8 @@ export type billsCreateManyUsersInput = {
   created_at?: Date | string | null
   subscription_id?: string | null
   due_date?: Date | string | null
+  package_id?: string | null
+  date?: Date | string | null
   tax_amount?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
 }
 
@@ -2070,6 +2182,8 @@ export type billsUpdateWithoutUsersInput = {
   deleted_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   created_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   due_date?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  package_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  date?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   tax_amount?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   billitems?: Prisma.billitemsUpdateManyWithoutBillsNestedInput
   billpayments?: Prisma.billpaymentsUpdateManyWithoutBillsNestedInput
@@ -2100,6 +2214,8 @@ export type billsUncheckedUpdateWithoutUsersInput = {
   created_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   subscription_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   due_date?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  package_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  date?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   tax_amount?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   billitems?: Prisma.billitemsUncheckedUpdateManyWithoutBillsNestedInput
   billpayments?: Prisma.billpaymentsUncheckedUpdateManyWithoutBillsNestedInput
@@ -2127,6 +2243,8 @@ export type billsUncheckedUpdateManyWithoutUsersInput = {
   created_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   subscription_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   due_date?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  package_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  date?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   tax_amount?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
 }
 
@@ -2201,6 +2319,8 @@ export type billsSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   created_at?: boolean
   subscription_id?: boolean
   due_date?: boolean
+  package_id?: boolean
+  date?: boolean
   tax_amount?: boolean
   billitems?: boolean | Prisma.bills$billitemsArgs<ExtArgs>
   billpayments?: boolean | Prisma.bills$billpaymentsArgs<ExtArgs>
@@ -2234,6 +2354,8 @@ export type billsSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   created_at?: boolean
   subscription_id?: boolean
   due_date?: boolean
+  package_id?: boolean
+  date?: boolean
   tax_amount?: boolean
   users?: boolean | Prisma.bills$usersArgs<ExtArgs>
   clients?: boolean | Prisma.clientsDefaultArgs<ExtArgs>
@@ -2263,6 +2385,8 @@ export type billsSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   created_at?: boolean
   subscription_id?: boolean
   due_date?: boolean
+  package_id?: boolean
+  date?: boolean
   tax_amount?: boolean
   users?: boolean | Prisma.bills$usersArgs<ExtArgs>
   clients?: boolean | Prisma.clientsDefaultArgs<ExtArgs>
@@ -2292,10 +2416,12 @@ export type billsSelectScalar = {
   created_at?: boolean
   subscription_id?: boolean
   due_date?: boolean
+  package_id?: boolean
+  date?: boolean
   tax_amount?: boolean
 }
 
-export type billsOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "organization_id" | "client_id" | "amount" | "discount" | "total" | "status" | "referral_source_id" | "notes" | "include_notes_in_invoice" | "discount_authorized_by" | "billed_by_id" | "billed_by_name" | "billing_staff_name" | "transaction_id" | "payment_method" | "updated_at" | "deleted_at" | "created_at" | "subscription_id" | "due_date" | "tax_amount", ExtArgs["result"]["bills"]>
+export type billsOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "organization_id" | "client_id" | "amount" | "discount" | "total" | "status" | "referral_source_id" | "notes" | "include_notes_in_invoice" | "discount_authorized_by" | "billed_by_id" | "billed_by_name" | "billing_staff_name" | "transaction_id" | "payment_method" | "updated_at" | "deleted_at" | "created_at" | "subscription_id" | "due_date" | "package_id" | "date" | "tax_amount", ExtArgs["result"]["bills"]>
 export type billsInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   billitems?: boolean | Prisma.bills$billitemsArgs<ExtArgs>
   billpayments?: boolean | Prisma.bills$billpaymentsArgs<ExtArgs>
@@ -2352,6 +2478,8 @@ export type $billsPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs 
     created_at: Date | null
     subscription_id: string | null
     due_date: Date | null
+    package_id: string | null
+    date: Date | null
     tax_amount: runtime.Decimal | null
   }, ExtArgs["result"]["bills"]>
   composites: {}
@@ -2804,6 +2932,8 @@ export interface billsFieldRefs {
   readonly created_at: Prisma.FieldRef<"bills", 'DateTime'>
   readonly subscription_id: Prisma.FieldRef<"bills", 'String'>
   readonly due_date: Prisma.FieldRef<"bills", 'DateTime'>
+  readonly package_id: Prisma.FieldRef<"bills", 'String'>
+  readonly date: Prisma.FieldRef<"bills", 'DateTime'>
   readonly tax_amount: Prisma.FieldRef<"bills", 'Decimal'>
 }
     

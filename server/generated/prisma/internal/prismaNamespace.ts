@@ -399,6 +399,7 @@ export const ModelName = {
   clientdocuments: 'clientdocuments',
   client_field_config: 'client_field_config',
   cliententitlements: 'cliententitlements',
+  client_cases: 'client_cases',
   clientorganizations: 'clientorganizations',
   clients: 'clients',
   consultant_services: 'consultant_services',
@@ -483,7 +484,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "athlete_item_logs" | "athlete_workout_completions" | "authsessions" | "availabilityexceptions" | "billitems" | "billpayments" | "bills" | "bulk_assignments" | "client_assessment_reports" | "client_group_members" | "client_groups" | "clientadminnotes" | "clientdocuments" | "client_field_config" | "cliententitlements" | "clientorganizations" | "clients" | "consultant_services" | "consultantavailability" | "emergency_alerts" | "enquiries" | "enquiryinteractions" | "excel_diagnostic_reports" | "exercises" | "external_training_summary" | "form_responses" | "group_attendance" | "hr_employees" | "hr_jobs" | "hrattendancelogs" | "hrleaves" | "injuries" | "injury_master_data" | "liftitems" | "locations" | "max_pr_records" | "notification_reads" | "notifications" | "organization_notification_settings" | "organizations" | "packages" | "packageservices" | "performance_assessments" | "physiosessiondetails" | "profiles" | "program_assignments" | "questionnaires" | "referralsources" | "refunds" | "rehab_progress" | "report_templates" | "scientific_resources" | "services" | "session_templates" | "sessions" | "staff_schedules" | "subscription_logs" | "subscriptions" | "trainingprograms" | "uhidsequences" | "users" | "waitlist" | "wellness_logs" | "workoutdays" | "workoutitems" | "planner_projects" | "planner_workstreams" | "planner_work_items" | "planner_dependencies" | "user_organizations" | "chat_bots" | "chat_channels" | "channel_members" | "direct_message_threads" | "chat_messages" | "message_attachments" | "message_reactions" | "message_reads" | "teamcomms_settings" | "teamcomms_scheduled_reports" | "planner_daily_tasks" | "planner_teams" | "planner_settings" | "user_push_subscriptions"
+    modelProps: "athlete_item_logs" | "athlete_workout_completions" | "authsessions" | "availabilityexceptions" | "billitems" | "billpayments" | "bills" | "bulk_assignments" | "client_assessment_reports" | "client_group_members" | "client_groups" | "clientadminnotes" | "clientdocuments" | "client_field_config" | "cliententitlements" | "client_cases" | "clientorganizations" | "clients" | "consultant_services" | "consultantavailability" | "emergency_alerts" | "enquiries" | "enquiryinteractions" | "excel_diagnostic_reports" | "exercises" | "external_training_summary" | "form_responses" | "group_attendance" | "hr_employees" | "hr_jobs" | "hrattendancelogs" | "hrleaves" | "injuries" | "injury_master_data" | "liftitems" | "locations" | "max_pr_records" | "notification_reads" | "notifications" | "organization_notification_settings" | "organizations" | "packages" | "packageservices" | "performance_assessments" | "physiosessiondetails" | "profiles" | "program_assignments" | "questionnaires" | "referralsources" | "refunds" | "rehab_progress" | "report_templates" | "scientific_resources" | "services" | "session_templates" | "sessions" | "staff_schedules" | "subscription_logs" | "subscriptions" | "trainingprograms" | "uhidsequences" | "users" | "waitlist" | "wellness_logs" | "workoutdays" | "workoutitems" | "planner_projects" | "planner_workstreams" | "planner_work_items" | "planner_dependencies" | "user_organizations" | "chat_bots" | "chat_channels" | "channel_members" | "direct_message_threads" | "chat_messages" | "message_attachments" | "message_reactions" | "message_reads" | "teamcomms_settings" | "teamcomms_scheduled_reports" | "planner_daily_tasks" | "planner_teams" | "planner_settings" | "user_push_subscriptions"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1594,6 +1595,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.cliententitlementsCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.CliententitlementsCountAggregateOutputType> | number
+        }
+      }
+    }
+    client_cases: {
+      payload: Prisma.$client_casesPayload<ExtArgs>
+      fields: Prisma.client_casesFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.client_casesFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$client_casesPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.client_casesFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$client_casesPayload>
+        }
+        findFirst: {
+          args: Prisma.client_casesFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$client_casesPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.client_casesFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$client_casesPayload>
+        }
+        findMany: {
+          args: Prisma.client_casesFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$client_casesPayload>[]
+        }
+        create: {
+          args: Prisma.client_casesCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$client_casesPayload>
+        }
+        createMany: {
+          args: Prisma.client_casesCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.client_casesCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$client_casesPayload>[]
+        }
+        delete: {
+          args: Prisma.client_casesDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$client_casesPayload>
+        }
+        update: {
+          args: Prisma.client_casesUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$client_casesPayload>
+        }
+        deleteMany: {
+          args: Prisma.client_casesDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.client_casesUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.client_casesUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$client_casesPayload>[]
+        }
+        upsert: {
+          args: Prisma.client_casesUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$client_casesPayload>
+        }
+        aggregate: {
+          args: Prisma.Client_casesAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateClient_cases>
+        }
+        groupBy: {
+          args: Prisma.client_casesGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.Client_casesGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.client_casesCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.Client_casesCountAggregateOutputType> | number
         }
       }
     }
@@ -6848,6 +6923,8 @@ export const BillsScalarFieldEnum = {
   created_at: 'created_at',
   subscription_id: 'subscription_id',
   due_date: 'due_date',
+  package_id: 'package_id',
+  date: 'date',
   tax_amount: 'tax_amount'
 } as const
 
@@ -6964,6 +7041,102 @@ export const CliententitlementsScalarFieldEnum = {
 } as const
 
 export type CliententitlementsScalarFieldEnum = (typeof CliententitlementsScalarFieldEnum)[keyof typeof CliententitlementsScalarFieldEnum]
+
+
+export const Client_casesScalarFieldEnum = {
+  id: 'id',
+  organization_id: 'organization_id',
+  client_id: 'client_id',
+  case_number: 'case_number',
+  status: 'status',
+  chief_complaint: 'chief_complaint',
+  created_by: 'created_by',
+  closed_by: 'closed_by',
+  closed_at: 'closed_at',
+  referral_source: 'referral_source',
+  referred_by: 'referred_by',
+  hopi: 'hopi',
+  duration: 'duration',
+  radiation: 'radiation',
+  onset: 'onset',
+  migration: 'migration',
+  character: 'character',
+  progression: 'progression',
+  aggravation: 'aggravation',
+  alleviation: 'alleviation',
+  associated_features: 'associated_features',
+  diurnal_variation: 'diurnal_variation',
+  mechanism: 'mechanism',
+  aggravating_factors: 'aggravating_factors',
+  relieving_factors: 'relieving_factors',
+  previous_treatment: 'previous_treatment',
+  previous_treatment_details: 'previous_treatment_details',
+  past_medical_history: 'past_medical_history',
+  past_surgical_history: 'past_surgical_history',
+  drug_history: 'drug_history',
+  family_history: 'family_history',
+  history_dm: 'history_dm',
+  history_htn: 'history_htn',
+  history_cad: 'history_cad',
+  history_cva: 'history_cva',
+  history_ba: 'history_ba',
+  history_tb: 'history_tb',
+  allergies: 'allergies',
+  trauma: 'trauma',
+  hospitalisation: 'hospitalisation',
+  years_of_training: 'years_of_training',
+  training_volume: 'training_volume',
+  training_type: 'training_type',
+  training_notes: 'training_notes',
+  lmp: 'lmp',
+  cycle_regularity: 'cycle_regularity',
+  menstrual_notes: 'menstrual_notes',
+  built: 'built',
+  nourishment: 'nourishment',
+  pallor: 'pallor',
+  icterus: 'icterus',
+  cyanosis: 'cyanosis',
+  clubbing: 'clubbing',
+  lymphadenopathy: 'lymphadenopathy',
+  edema: 'edema',
+  beighton_score: 'beighton_score',
+  temperature: 'temperature',
+  pulse_rate: 'pulse_rate',
+  bp: 'bp',
+  spo2: 'spo2',
+  respiratory_rate: 'respiratory_rate',
+  height: 'height',
+  weight: 'weight',
+  bmi: 'bmi',
+  inspection_notes: 'inspection_notes',
+  palpation_notes: 'palpation_notes',
+  range_of_motion_notes: 'range_of_motion_notes',
+  special_tests: 'special_tests',
+  neurovascular_notes: 'neurovascular_notes',
+  dermatome_notes: 'dermatome_notes',
+  myotome_notes: 'myotome_notes',
+  reflexes_notes: 'reflexes_notes',
+  pain_map: 'pain_map',
+  pain_score: 'pain_score',
+  body_region: 'body_region',
+  injury_type: 'injury_type',
+  severity: 'severity',
+  diagnosis_notes: 'diagnosis_notes',
+  provisional_diagnosis: 'provisional_diagnosis',
+  icd_code: 'icd_code',
+  investigations: 'investigations',
+  final_diagnosis: 'final_diagnosis',
+  short_term_goals: 'short_term_goals',
+  long_term_goals: 'long_term_goals',
+  treatment_plan: 'treatment_plan',
+  home_exercise_program: 'home_exercise_program',
+  advice: 'advice',
+  additional_notes: 'additional_notes',
+  created_at: 'created_at',
+  updated_at: 'updated_at'
+} as const
+
+export type Client_casesScalarFieldEnum = (typeof Client_casesScalarFieldEnum)[keyof typeof Client_casesScalarFieldEnum]
 
 
 export const ClientorganizationsScalarFieldEnum = {
@@ -7480,6 +7653,7 @@ export const ProfilesScalarFieldEnum = {
   has_analytics_access: 'has_analytics_access',
   has_assign_work_access: 'has_assign_work_access',
   allowed_consoles: 'allowed_consoles',
+  custom_specialist_settings: 'custom_specialist_settings',
   approved_by: 'approved_by',
   approved_at: 'approved_at'
 } as const
@@ -7650,7 +7824,13 @@ export const SessionsScalarFieldEnum = {
   is_guest: 'is_guest',
   guest_name: 'guest_name',
   guest_contact: 'guest_contact',
-  enquiry_id: 'enquiry_id'
+  enquiry_id: 'enquiry_id',
+  rescheduled_from_session_id: 'rescheduled_from_session_id',
+  rescheduled_to_session_id: 'rescheduled_to_session_id',
+  rescheduled_from_id: 'rescheduled_from_id',
+  reassigned_from_therapist_id: 'reassigned_from_therapist_id',
+  source_console: 'source_console',
+  case_id: 'case_id'
 } as const
 
 export type SessionsScalarFieldEnum = (typeof SessionsScalarFieldEnum)[keyof typeof SessionsScalarFieldEnum]
@@ -8395,6 +8575,7 @@ export type GlobalOmitConfig = {
   clientdocuments?: Prisma.clientdocumentsOmit
   client_field_config?: Prisma.client_field_configOmit
   cliententitlements?: Prisma.cliententitlementsOmit
+  client_cases?: Prisma.client_casesOmit
   clientorganizations?: Prisma.clientorganizationsOmit
   clients?: Prisma.clientsOmit
   consultant_services?: Prisma.consultant_servicesOmit

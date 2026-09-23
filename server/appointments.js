@@ -14,7 +14,7 @@ router.get('/', requireAuth, async (req, res) => {
         }
         const { start, end, therapist_id, therapist_ids, scientist_id, specialist_id, client_id, status, is_unentitled, category } = req.query;
         let query = `
-            SELECT s.id, s.organization_id, s.client_id, s.scientist_id, s.entitlement_id, s.service_id, s.service_type, s.session_mode, s.scheduled_start, s.scheduled_end, s.actual_start, s.actual_end, s.status, s.cancellation_reason, s.is_unentitled, s.preference_type, s.is_flexible_routing, s.created_by, s.created_at, s.updated_at, s.group_name, s.session_location, s.session_notes, s.attachments, s.session_type_id, s.is_guest, s.guest_name, s.guest_contact,
+            SELECT s.id, s.organization_id, s.client_id, s.scientist_id, s.entitlement_id, s.service_id, s.service_type, s.session_mode, s.scheduled_start, s.scheduled_end, s.actual_start, s.actual_end, s.status, s.cancellation_reason, s.is_unentitled, s.preference_type, s.is_flexible_routing, s.created_by, s.created_at, s.updated_at, s.group_name, s.session_location, s.session_notes, s.attachments, s.session_type_id, s.is_guest, s.guest_name, s.guest_contact, s.case_id,
                    COALESCE(s.therapist_id, s.scientist_id) as therapist_id,
                     CASE WHEN s.client_id IS NOT NULL THEN
                        json_build_object(
@@ -149,7 +149,7 @@ router.post('/', requireAuth, async (req, res) => {
         const {
             client_id, therapist_id, service_id, service_type, scheduled_start, scheduled_end,
             entitlement_id, session_mode, is_unentitled, preference_type, is_flexible_routing, waitlist_id,
-            source_console
+            source_console, case_id
         } = req.body;
 
         const effectiveSourceConsole = source_console || (
@@ -271,8 +271,8 @@ router.post('/', requireAuth, async (req, res) => {
                 organization_id, client_id, therapist_id, service_id, service_type, 
                 scheduled_start, scheduled_end, entitlement_id, 
                 session_mode, is_unentitled, preference_type, is_flexible_routing, created_by, status,
-                source_console
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+                source_console, case_id
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
             RETURNING *
         `;
         const values = [
@@ -280,7 +280,7 @@ router.post('/', requireAuth, async (req, res) => {
             scheduled_start, scheduled_end, effectiveEntitlementId,
             session_mode || 'Individual', effectiveIsUnentitled, 
             preference_type || 'Strict', is_flexible_routing || false, req.user.id,
-            appointmentStatus, effectiveSourceConsole
+            appointmentStatus, effectiveSourceConsole, case_id || null
         ];
 
         const sessionRes = await client.query(insertQuery, values);

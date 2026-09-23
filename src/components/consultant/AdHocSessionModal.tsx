@@ -15,7 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { Check, ChevronsUpDown, Users, Loader2 } from "lucide-react";
+import { Check, ChevronsUpDown, Users, Loader2, FileText, PlusCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Slider } from "@/components/ui/slider";
 import { Textarea } from "@/components/ui/textarea";
@@ -23,7 +23,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { filterServicesByRole, Service } from "@/utils/serviceMapping";
-import LogInjuryModal from "./LogInjuryModal";
+import CaseSheetModal from "./CaseSheetModal";
 import PainMap from "./PainMap";
 
 interface AdHocSessionModalProps {
@@ -47,6 +47,9 @@ export default function AdHocSessionModal({ open, onOpenChange, onSuccess, prese
     const [services, setServices] = useState<Service[]>([]);
     const [serviceId, setServiceId] = useState<string>("");
     const [servicesLoading, setServicesLoading] = useState(false);
+    const [clientCases, setClientCases] = useState<any[]>([]);
+    const [selectedCaseId, setSelectedCaseId] = useState<string>("");
+    const [caseModalOpen, setCaseModalOpen] = useState(false);
 
     // Form State
     const [selectedClientId, setSelectedClientId] = useState<string>("");
@@ -105,12 +108,45 @@ export default function AdHocSessionModal({ open, onOpenChange, onSuccess, prese
         }
     }, [open, profile?.organization_id, preselectedClientId]);
 
+    const fetchClientCases = async (clientId: string) => {
+        if (!clientId) return [];
+        try {
+            const cases = await apiFetch<any[]>(`/clinical/clients/${clientId}/cases`);
+            const openCases = (cases || []).filter((c: any) => c.status === 'open');
+            setClientCases(openCases);
+            return openCases;
+        } catch {
+            setClientCases([]);
+            return [];
+        }
+    };
+
+    const handleCaseCreated = async (newCase: any) => {
+        if (selectedClientId) {
+            const openCases = await fetchClientCases(selectedClientId);
+            if (newCase?.id) {
+                setSelectedCaseId(newCase.id);
+            } else if (openCases.length > 0) {
+                setSelectedCaseId(openCases[0].id);
+            }
+        }
+    };
+
     useEffect(() => {
         if (selectedClientId) {
             fetchInjuries(selectedClientId);
+            fetchClientCases(selectedClientId).then(openCases => {
+                if (openCases.length > 0) {
+                    setSelectedCaseId(openCases[0].id);
+                } else {
+                    setSelectedCaseId("");
+                }
+            });
         } else {
             setActiveInjuries([]);
             setSelectedInjuryId("none");
+            setClientCases([]);
+            setSelectedCaseId("");
         }
     }, [selectedClientId]);
 
@@ -190,9 +226,21 @@ export default function AdHocSessionModal({ open, onOpenChange, onSuccess, prese
                     scheduled_start: localStart.toISOString(),
                     scheduled_end: localEnd.toISOString(),
                     is_adhoc: true,
-                    source_console: 'clinical'
+                    source_console: 'clinical',
+                    case_id: selectedCaseId && selectedCaseId !== "none" ? selectedCaseId : null
                 }
             });
+
+            if (selectedCaseId && selectedCaseId !== "none" && sessionData?.id) {
+                try {
+                    await apiFetch(`/clinical/sessions/${sessionData.id}/link-case`, {
+                        method: 'PATCH',
+                        data: { case_id: selectedCaseId }
+                    });
+                } catch (e) {
+                    console.warn("Could not link case:", e);
+                }
+            }
 
             // 2. Save the SOAP Note and complete it
             const currentScores = {
@@ -277,16 +325,28 @@ export default function AdHocSessionModal({ open, onOpenChange, onSuccess, prese
                                         Session & Patient Details
                                     </h3>
                                 </div>
-                                {profile && selectedClientId && (
-                                    <LogInjuryModal
-                                        clientId={selectedClientId}
-                                        organizationId={profile.organization_id}
-                                        onSuccess={() => fetchInjuries(selectedClientId)}
-                                    />
-                                )}
+                                <Button
+                                    type="button"
+                                    size="sm"
+                                    onClick={() => {
+                                        if (!selectedClientId) {
+                                            toast({
+                                                title: "Select Patient First",
+                                                description: "Please select a patient / client first before opening a case sheet.",
+                                                variant: "destructive"
+                                            });
+                                            return;
+                                        }
+                                        setCaseModalOpen(true);
+                                    }}
+                                    className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-xs h-8 px-3 rounded-xl flex items-center gap-1.5 shadow-sm shadow-primary/20 transition-all cursor-pointer"
+                                >
+                                    <PlusCircle className="w-3.5 h-3.5" />
+                                    Open New Case
+                                </Button>
                             </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-start">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
                                 {/* Client Combobox */}
                                 <div className="space-y-1.5">
                                     <Label className="text-xs font-bold text-foreground">Select Patient / Client</Label>
@@ -352,25 +412,35 @@ export default function AdHocSessionModal({ open, onOpenChange, onSuccess, prese
                                         </SelectContent>
                                     </Select>
                                 </div>
+                            </div>
 
-                                {/* Target Injury */}
-                                <div className="space-y-1.5">
-                                    <Label className="text-xs font-bold text-foreground">Target Injury (Optional)</Label>
-                                    <Select value={selectedInjuryId} onValueChange={setSelectedInjuryId} disabled={!selectedClientId}>
+                            {/* Link to Clinical Case Sheet */}
+                            {selectedClientId && (
+                                <div className="space-y-1.5 pt-1 animate-in fade-in slide-in-from-top-1 border-t border-primary/10">
+                                    <div className="flex items-center justify-between">
+                                        <Label className="text-xs font-bold text-primary flex items-center gap-1.5">
+                                            <FileText className="w-3.5 h-3.5" />
+                                            Link to Clinical Case Sheet (Optional)
+                                        </Label>
+                                        <span className="text-[11px] text-muted-foreground">
+                                            {clientCases.length} open case{clientCases.length !== 1 ? "s" : ""}
+                                        </span>
+                                    </div>
+                                    <Select value={selectedCaseId || "none"} onValueChange={v => setSelectedCaseId(v === "none" ? "" : v)}>
                                         <SelectTrigger className="bg-background border-border text-xs h-10 rounded-xl">
-                                            <SelectValue placeholder="Select active injury..." />
+                                            <SelectValue placeholder={clientCases.length === 0 ? "No open cases (Click 'Open New Case' above)" : "Select an open clinical case..."} />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            <SelectItem value="none">No Specific Injury (General Assessment)</SelectItem>
-                                            {activeInjuries.map(inj => (
-                                                <SelectItem key={inj.id} value={inj.id}>
-                                                    {inj.diagnosis} ({format(new Date(inj.injury_date), "MMM d")})
+                                            <SelectItem value="none">-- Do Not Link to Case --</SelectItem>
+                                            {clientCases.map((c: any) => (
+                                                <SelectItem key={c.id} value={c.id}>
+                                                    {c.case_number ? `${c.case_number}: ` : ""}{c.final_diagnosis || c.provisional_diagnosis || c.chief_complaint || "Consultation Case"}
                                                 </SelectItem>
                                             ))}
                                         </SelectContent>
                                     </Select>
                                 </div>
-                            </div>
+                            )}
 
                             {/* Date & Times */}
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-1">
@@ -616,6 +686,16 @@ export default function AdHocSessionModal({ open, onOpenChange, onSuccess, prese
                     </Button>
                 </div>
             </DialogContent>
+
+            {selectedClientId && (
+                <CaseSheetModal
+                    open={caseModalOpen}
+                    onOpenChange={setCaseModalOpen}
+                    clientId={selectedClientId}
+                    client={selectedClient || { id: selectedClientId }}
+                    onSuccess={handleCaseCreated}
+                />
+            )}
         </Dialog>
     );
 }

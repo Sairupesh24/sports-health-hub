@@ -239,6 +239,104 @@ model cliententitlements {
   sessions         sessions[]
 }
 
+model client_cases {
+  id                          String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id             String        @db.Uuid
+  client_id                   String        @db.Uuid
+  case_number                 String?
+  status                      String        @default("open")
+  chief_complaint             String?
+  created_by                  String?       @db.Uuid
+  closed_by                   String?       @db.Uuid
+  closed_at                   DateTime?     @db.Timestamptz(6)
+  referral_source             String?
+  referred_by                 String?
+  hopi                        String?
+  duration                    String?
+  radiation                   String?
+  onset                       String?
+  migration                   String?
+  character                   String?
+  progression                 String?
+  aggravation                 String?
+  alleviation                 String?
+  associated_features         String?
+  diurnal_variation           String?
+  mechanism                   String?
+  aggravating_factors         String?
+  relieving_factors           String?
+  previous_treatment          String?
+  previous_treatment_details  String?
+  past_medical_history        String?
+  past_surgical_history       String?
+  drug_history                String?
+  family_history              String?
+  history_dm                  Boolean?      @default(false)
+  history_htn                 Boolean?      @default(false)
+  history_cad                 Boolean?      @default(false)
+  history_cva                 Boolean?      @default(false)
+  history_ba                  Boolean?      @default(false)
+  history_tb                  Boolean?      @default(false)
+  allergies                   String?
+  trauma                      String?
+  hospitalisation             String?
+  years_of_training           Int?
+  training_volume             String?
+  training_type               String?
+  training_notes              String?
+  lmp                         DateTime?     @db.Date
+  cycle_regularity            String?
+  menstrual_notes             String?
+  built                       String?
+  nourishment                 String?
+  pallor                      Boolean?      @default(false)
+  icterus                     Boolean?      @default(false)
+  cyanosis                    Boolean?      @default(false)
+  clubbing                    Boolean?      @default(false)
+  lymphadenopathy             Boolean?      @default(false)
+  edema                       Boolean?      @default(false)
+  beighton_score              Int?
+  temperature                 String?
+  pulse_rate                  Int?
+  bp                          String?
+  spo2                        Decimal?      @db.Decimal(5, 2)
+  respiratory_rate            Int?
+  height                      Decimal?      @db.Decimal(6, 2)
+  weight                      Decimal?      @db.Decimal(6, 2)
+  bmi                         Decimal?      @db.Decimal(5, 2)
+  inspection_notes            String?
+  palpation_notes             String?
+  range_of_motion_notes       String?
+  special_tests               Json?         @default("[]")
+  neurovascular_notes         String?
+  dermatome_notes             String?
+  myotome_notes               String?
+  reflexes_notes              String?
+  pain_map                    Json?         @default("{}")
+  pain_score                  Int?
+  body_region                 String?
+  injury_type                 String?
+  severity                    String?       @default("Moderate")
+  diagnosis_notes             String?
+  provisional_diagnosis       String?
+  icd_code                    String?
+  investigations              Json?         @default("[]")
+  final_diagnosis             String?
+  short_term_goals            String?
+  long_term_goals             String?
+  treatment_plan              String?
+  home_exercise_program       String?
+  advice                      String?
+  additional_notes            String?
+  created_at                  DateTime?     @default(now()) @db.Timestamptz(6)
+  updated_at                  DateTime?     @default(now()) @db.Timestamptz(6)
+  clients                     clients       @relation(fields: [client_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  organizations               organizations @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  profiles_created_by         profiles?     @relation("client_cases_created_byToprofiles", fields: [created_by], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  profiles_closed_by          profiles?     @relation("client_cases_closed_byToprofiles", fields: [closed_by], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  sessions                    sessions[]
+}
+
 model clientorganizations {
   id              String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   organization_id String        @db.Uuid
@@ -296,6 +394,7 @@ model clients {
   billpayments                                    billpayments[]
   bills                                           bills[]
   client_assessment_reports                       client_assessment_reports[]
+  client_cases                                    client_cases[]
   client_group_members                            client_group_members[]
   clientadminnotes                                clientadminnotes?
   clientdocuments                                 clientdocuments[]
@@ -702,6 +801,7 @@ model organizations {
   bills                              bills[]
   bulk_assignments                   bulk_assignments[]
   client_assessment_reports          client_assessment_reports[]
+  client_cases                       client_cases[]
   client_field_config                client_field_config[]
   client_groups                      client_groups[]
   clientdocuments                    clientdocuments[]
@@ -828,6 +928,8 @@ model profiles {
   approved_at                                    DateTime?                 @db.Timestamptz(6)
   availabilityexceptions                         availabilityexceptions[]
   bulk_assignments                               bulk_assignments[]
+  client_cases_created                           client_cases[]            @relation("client_cases_created_byToprofiles")
+  client_cases_closed                            client_cases[]            @relation("client_cases_closed_byToprofiles")
   clients_clients_primary_scientist_idToprofiles clients[]                 @relation("clients_primary_scientist_idToprofiles")
   clients_clients_profile_idToprofiles           clients[]                 @relation("clients_profile_idToprofiles")
   consultant_services                            consultant_services[]
@@ -1023,8 +1125,10 @@ model sessions {
   rescheduled_from_id                         String?               @db.Uuid
   reassigned_from_therapist_id                String?               @db.Uuid
   source_console                              String?
+  case_id                                     String?               @db.Uuid
   group_attendance                            group_attendance[]
   physiosessiondetails                        physiosessiondetails?
+  client_cases                                client_cases?         @relation(fields: [case_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
   clients                                     clients?              @relation(fields: [client_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   users                                       users?                @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
   enquiries                                   enquiries?            @relation(fields: [enquiry_id], references: [id], onUpdate: NoAction)

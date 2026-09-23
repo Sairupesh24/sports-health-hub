@@ -26,7 +26,8 @@ import {
     Check, 
     ChevronsUpDown, 
     AlertCircle, 
-    Bookmark 
+    Bookmark,
+    FileText 
 } from "lucide-react";
 import { VIPName } from "@/components/ui/VIPBadge";
 import { filterServicesByRole, filterConsultantsByService, type Service } from "@/utils/serviceMapping";
@@ -69,6 +70,8 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess, initialDa
     const [preferenceType, setPreferenceType] = useState<"Strict" | "Flexible">("Flexible");
     const [serviceId, setServiceId] = useState("");
     const [serviceType, setServiceType] = useState("");
+    const [clientCases, setClientCases] = useState<any[]>([]);
+    const [selectedCaseId, setSelectedCaseId] = useState<string>("");
     const [sessionDate, setSessionDate] = useState(format(new Date(), "yyyy-MM-dd"));
     const [startTime, setStartTime] = useState("09:00");
     const [endTime, setEndTime] = useState("10:00");
@@ -204,6 +207,8 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess, initialDa
             setClientData(null);
             setClientEntitlements([]);
             setClientPackageEntitlements([]);
+            setClientCases([]);
+            setSelectedCaseId("");
         }
     }, [clientId, isGuest, clients]);
 
@@ -258,6 +263,15 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess, initialDa
             console.error("Error fetching client entitlements:", error.message);
             setClientEntitlements([]);
             setClientPackageEntitlements([]);
+        }
+
+        // 4. Fetch Client Open Cases
+        try {
+            const cases = await apiFetch<any[]>(`/clinical/clients/${clientId}/cases`);
+            const openCases = (cases || []).filter((c: any) => c.status === 'open');
+            setClientCases(openCases);
+        } catch (error: any) {
+            setClientCases([]);
         }
     };
 
@@ -733,7 +747,8 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess, initialDa
                         scheduled_end: new Date(endTimestamp).toISOString(),
                         status: "Planned",
                         preference_type: preferenceType,
-                        is_flexible_routing: preferenceType === "Flexible"
+                        is_flexible_routing: preferenceType === "Flexible",
+                        case_id: selectedCaseId && selectedCaseId !== "none" ? selectedCaseId : null
                     }
                 });
             }
@@ -793,6 +808,8 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess, initialDa
         setSessionDuration(orgSettings?.default_slot_duration || 60);
         setClientEntitlements([]);
         setClientPackageEntitlements([]);
+        setSelectedCaseId("");
+        setClientCases([]);
         setIsDurationManuallySet(false);
     };
 
@@ -1023,6 +1040,28 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess, initialDa
                                         </SelectContent>
                                     </Select>
                                 </div>
+
+                                {clientCases.length > 0 && (
+                                    <div className="space-y-1.5 animate-in fade-in slide-in-from-top-1">
+                                        <Label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                                            <FileText className="w-3.5 h-3.5 text-primary" />
+                                            Link to Case Sheet (Optional)
+                                        </Label>
+                                        <Select value={selectedCaseId} onValueChange={setSelectedCaseId}>
+                                            <SelectTrigger className="h-10 bg-primary/5 border-primary/20 text-xs">
+                                                <SelectValue placeholder="Select an open clinical case..." />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="none">-- Do Not Link --</SelectItem>
+                                                {clientCases.map((c: any) => (
+                                                    <SelectItem key={c.id} value={c.id}>
+                                                        {c.case_number ? `${c.case_number}: ` : ""}{c.final_diagnosis || c.provisional_diagnosis || c.chief_complaint || "Consultation Case"}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                )}
 
                                 <div className="space-y-3">
                                     <div className="flex items-center justify-between">

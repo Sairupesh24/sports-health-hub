@@ -54,6 +54,12 @@ export type SessionsMinAggregateOutputType = {
   guest_name: string | null
   guest_contact: string | null
   enquiry_id: string | null
+  rescheduled_from_session_id: string | null
+  rescheduled_to_session_id: string | null
+  rescheduled_from_id: string | null
+  reassigned_from_therapist_id: string | null
+  source_console: string | null
+  case_id: string | null
 }
 
 export type SessionsMaxAggregateOutputType = {
@@ -86,6 +92,12 @@ export type SessionsMaxAggregateOutputType = {
   guest_name: string | null
   guest_contact: string | null
   enquiry_id: string | null
+  rescheduled_from_session_id: string | null
+  rescheduled_to_session_id: string | null
+  rescheduled_from_id: string | null
+  reassigned_from_therapist_id: string | null
+  source_console: string | null
+  case_id: string | null
 }
 
 export type SessionsCountAggregateOutputType = {
@@ -119,6 +131,12 @@ export type SessionsCountAggregateOutputType = {
   guest_name: number
   guest_contact: number
   enquiry_id: number
+  rescheduled_from_session_id: number
+  rescheduled_to_session_id: number
+  rescheduled_from_id: number
+  reassigned_from_therapist_id: number
+  source_console: number
+  case_id: number
   _all: number
 }
 
@@ -153,6 +171,12 @@ export type SessionsMinAggregateInputType = {
   guest_name?: true
   guest_contact?: true
   enquiry_id?: true
+  rescheduled_from_session_id?: true
+  rescheduled_to_session_id?: true
+  rescheduled_from_id?: true
+  reassigned_from_therapist_id?: true
+  source_console?: true
+  case_id?: true
 }
 
 export type SessionsMaxAggregateInputType = {
@@ -185,6 +209,12 @@ export type SessionsMaxAggregateInputType = {
   guest_name?: true
   guest_contact?: true
   enquiry_id?: true
+  rescheduled_from_session_id?: true
+  rescheduled_to_session_id?: true
+  rescheduled_from_id?: true
+  reassigned_from_therapist_id?: true
+  source_console?: true
+  case_id?: true
 }
 
 export type SessionsCountAggregateInputType = {
@@ -218,6 +248,12 @@ export type SessionsCountAggregateInputType = {
   guest_name?: true
   guest_contact?: true
   enquiry_id?: true
+  rescheduled_from_session_id?: true
+  rescheduled_to_session_id?: true
+  rescheduled_from_id?: true
+  reassigned_from_therapist_id?: true
+  source_console?: true
+  case_id?: true
   _all?: true
 }
 
@@ -324,6 +360,12 @@ export type SessionsGroupByOutputType = {
   guest_name: string | null
   guest_contact: string | null
   enquiry_id: string | null
+  rescheduled_from_session_id: string | null
+  rescheduled_to_session_id: string | null
+  rescheduled_from_id: string | null
+  reassigned_from_therapist_id: string | null
+  source_console: string | null
+  case_id: string | null
   _count: SessionsCountAggregateOutputType | null
   _min: SessionsMinAggregateOutputType | null
   _max: SessionsMaxAggregateOutputType | null
@@ -378,8 +420,15 @@ export type sessionsWhereInput = {
   guest_name?: Prisma.StringNullableFilter<"sessions"> | string | null
   guest_contact?: Prisma.StringNullableFilter<"sessions"> | string | null
   enquiry_id?: Prisma.UuidNullableFilter<"sessions"> | string | null
+  rescheduled_from_session_id?: Prisma.UuidNullableFilter<"sessions"> | string | null
+  rescheduled_to_session_id?: Prisma.UuidNullableFilter<"sessions"> | string | null
+  rescheduled_from_id?: Prisma.UuidNullableFilter<"sessions"> | string | null
+  reassigned_from_therapist_id?: Prisma.UuidNullableFilter<"sessions"> | string | null
+  source_console?: Prisma.StringNullableFilter<"sessions"> | string | null
+  case_id?: Prisma.UuidNullableFilter<"sessions"> | string | null
   group_attendance?: Prisma.Group_attendanceListRelationFilter
   physiosessiondetails?: Prisma.XOR<Prisma.PhysiosessiondetailsNullableScalarRelationFilter, Prisma.physiosessiondetailsWhereInput> | null
+  client_cases?: Prisma.XOR<Prisma.Client_casesNullableScalarRelationFilter, Prisma.client_casesWhereInput> | null
   clients?: Prisma.XOR<Prisma.ClientsNullableScalarRelationFilter, Prisma.clientsWhereInput> | null
   users?: Prisma.XOR<Prisma.UsersNullableScalarRelationFilter, Prisma.usersWhereInput> | null
   enquiries?: Prisma.XOR<Prisma.EnquiriesNullableScalarRelationFilter, Prisma.enquiriesWhereInput> | null
@@ -422,8 +471,15 @@ export type sessionsOrderByWithRelationInput = {
   guest_name?: Prisma.SortOrderInput | Prisma.SortOrder
   guest_contact?: Prisma.SortOrderInput | Prisma.SortOrder
   enquiry_id?: Prisma.SortOrderInput | Prisma.SortOrder
+  rescheduled_from_session_id?: Prisma.SortOrderInput | Prisma.SortOrder
+  rescheduled_to_session_id?: Prisma.SortOrderInput | Prisma.SortOrder
+  rescheduled_from_id?: Prisma.SortOrderInput | Prisma.SortOrder
+  reassigned_from_therapist_id?: Prisma.SortOrderInput | Prisma.SortOrder
+  source_console?: Prisma.SortOrderInput | Prisma.SortOrder
+  case_id?: Prisma.SortOrderInput | Prisma.SortOrder
   group_attendance?: Prisma.group_attendanceOrderByRelationAggregateInput
   physiosessiondetails?: Prisma.physiosessiondetailsOrderByWithRelationInput
+  client_cases?: Prisma.client_casesOrderByWithRelationInput
   clients?: Prisma.clientsOrderByWithRelationInput
   users?: Prisma.usersOrderByWithRelationInput
   enquiries?: Prisma.enquiriesOrderByWithRelationInput
@@ -469,8 +525,15 @@ export type sessionsWhereUniqueInput = Prisma.AtLeast<{
   guest_name?: Prisma.StringNullableFilter<"sessions"> | string | null
   guest_contact?: Prisma.StringNullableFilter<"sessions"> | string | null
   enquiry_id?: Prisma.UuidNullableFilter<"sessions"> | string | null
+  rescheduled_from_session_id?: Prisma.UuidNullableFilter<"sessions"> | string | null
+  rescheduled_to_session_id?: Prisma.UuidNullableFilter<"sessions"> | string | null
+  rescheduled_from_id?: Prisma.UuidNullableFilter<"sessions"> | string | null
+  reassigned_from_therapist_id?: Prisma.UuidNullableFilter<"sessions"> | string | null
+  source_console?: Prisma.StringNullableFilter<"sessions"> | string | null
+  case_id?: Prisma.UuidNullableFilter<"sessions"> | string | null
   group_attendance?: Prisma.Group_attendanceListRelationFilter
   physiosessiondetails?: Prisma.XOR<Prisma.PhysiosessiondetailsNullableScalarRelationFilter, Prisma.physiosessiondetailsWhereInput> | null
+  client_cases?: Prisma.XOR<Prisma.Client_casesNullableScalarRelationFilter, Prisma.client_casesWhereInput> | null
   clients?: Prisma.XOR<Prisma.ClientsNullableScalarRelationFilter, Prisma.clientsWhereInput> | null
   users?: Prisma.XOR<Prisma.UsersNullableScalarRelationFilter, Prisma.usersWhereInput> | null
   enquiries?: Prisma.XOR<Prisma.EnquiriesNullableScalarRelationFilter, Prisma.enquiriesWhereInput> | null
@@ -513,6 +576,12 @@ export type sessionsOrderByWithAggregationInput = {
   guest_name?: Prisma.SortOrderInput | Prisma.SortOrder
   guest_contact?: Prisma.SortOrderInput | Prisma.SortOrder
   enquiry_id?: Prisma.SortOrderInput | Prisma.SortOrder
+  rescheduled_from_session_id?: Prisma.SortOrderInput | Prisma.SortOrder
+  rescheduled_to_session_id?: Prisma.SortOrderInput | Prisma.SortOrder
+  rescheduled_from_id?: Prisma.SortOrderInput | Prisma.SortOrder
+  reassigned_from_therapist_id?: Prisma.SortOrderInput | Prisma.SortOrder
+  source_console?: Prisma.SortOrderInput | Prisma.SortOrder
+  case_id?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.sessionsCountOrderByAggregateInput
   _max?: Prisma.sessionsMaxOrderByAggregateInput
   _min?: Prisma.sessionsMinOrderByAggregateInput
@@ -552,6 +621,12 @@ export type sessionsScalarWhereWithAggregatesInput = {
   guest_name?: Prisma.StringNullableWithAggregatesFilter<"sessions"> | string | null
   guest_contact?: Prisma.StringNullableWithAggregatesFilter<"sessions"> | string | null
   enquiry_id?: Prisma.UuidNullableWithAggregatesFilter<"sessions"> | string | null
+  rescheduled_from_session_id?: Prisma.UuidNullableWithAggregatesFilter<"sessions"> | string | null
+  rescheduled_to_session_id?: Prisma.UuidNullableWithAggregatesFilter<"sessions"> | string | null
+  rescheduled_from_id?: Prisma.UuidNullableWithAggregatesFilter<"sessions"> | string | null
+  reassigned_from_therapist_id?: Prisma.UuidNullableWithAggregatesFilter<"sessions"> | string | null
+  source_console?: Prisma.StringNullableWithAggregatesFilter<"sessions"> | string | null
+  case_id?: Prisma.UuidNullableWithAggregatesFilter<"sessions"> | string | null
 }
 
 export type sessionsCreateInput = {
@@ -576,8 +651,14 @@ export type sessionsCreateInput = {
   is_guest?: boolean | null
   guest_name?: string | null
   guest_contact?: string | null
+  rescheduled_from_session_id?: string | null
+  rescheduled_to_session_id?: string | null
+  rescheduled_from_id?: string | null
+  reassigned_from_therapist_id?: string | null
+  source_console?: string | null
   group_attendance?: Prisma.group_attendanceCreateNestedManyWithoutSessionsInput
   physiosessiondetails?: Prisma.physiosessiondetailsCreateNestedOneWithoutSessionsInput
+  client_cases?: Prisma.client_casesCreateNestedOneWithoutSessionsInput
   clients?: Prisma.clientsCreateNestedOneWithoutSessionsInput
   users?: Prisma.usersCreateNestedOneWithoutSessionsInput
   enquiries?: Prisma.enquiriesCreateNestedOneWithoutSessionsInput
@@ -620,6 +701,12 @@ export type sessionsUncheckedCreateInput = {
   guest_name?: string | null
   guest_contact?: string | null
   enquiry_id?: string | null
+  rescheduled_from_session_id?: string | null
+  rescheduled_to_session_id?: string | null
+  rescheduled_from_id?: string | null
+  reassigned_from_therapist_id?: string | null
+  source_console?: string | null
+  case_id?: string | null
   group_attendance?: Prisma.group_attendanceUncheckedCreateNestedManyWithoutSessionsInput
   physiosessiondetails?: Prisma.physiosessiondetailsUncheckedCreateNestedOneWithoutSessionsInput
 }
@@ -646,8 +733,14 @@ export type sessionsUpdateInput = {
   is_guest?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   guest_name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   guest_contact?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduled_from_session_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduled_to_session_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduled_from_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  reassigned_from_therapist_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  source_console?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   group_attendance?: Prisma.group_attendanceUpdateManyWithoutSessionsNestedInput
   physiosessiondetails?: Prisma.physiosessiondetailsUpdateOneWithoutSessionsNestedInput
+  client_cases?: Prisma.client_casesUpdateOneWithoutSessionsNestedInput
   clients?: Prisma.clientsUpdateOneWithoutSessionsNestedInput
   users?: Prisma.usersUpdateOneWithoutSessionsNestedInput
   enquiries?: Prisma.enquiriesUpdateOneWithoutSessionsNestedInput
@@ -690,6 +783,12 @@ export type sessionsUncheckedUpdateInput = {
   guest_name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   guest_contact?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enquiry_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduled_from_session_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduled_to_session_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduled_from_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  reassigned_from_therapist_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  source_console?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  case_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   group_attendance?: Prisma.group_attendanceUncheckedUpdateManyWithoutSessionsNestedInput
   physiosessiondetails?: Prisma.physiosessiondetailsUncheckedUpdateOneWithoutSessionsNestedInput
 }
@@ -725,6 +824,12 @@ export type sessionsCreateManyInput = {
   guest_name?: string | null
   guest_contact?: string | null
   enquiry_id?: string | null
+  rescheduled_from_session_id?: string | null
+  rescheduled_to_session_id?: string | null
+  rescheduled_from_id?: string | null
+  reassigned_from_therapist_id?: string | null
+  source_console?: string | null
+  case_id?: string | null
 }
 
 export type sessionsUpdateManyMutationInput = {
@@ -749,6 +854,11 @@ export type sessionsUpdateManyMutationInput = {
   is_guest?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   guest_name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   guest_contact?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduled_from_session_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduled_to_session_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduled_from_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  reassigned_from_therapist_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  source_console?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type sessionsUncheckedUpdateManyInput = {
@@ -782,6 +892,12 @@ export type sessionsUncheckedUpdateManyInput = {
   guest_name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   guest_contact?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enquiry_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduled_from_session_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduled_to_session_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduled_from_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  reassigned_from_therapist_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  source_console?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  case_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type SessionsListRelationFilter = {
@@ -835,6 +951,12 @@ export type sessionsCountOrderByAggregateInput = {
   guest_name?: Prisma.SortOrder
   guest_contact?: Prisma.SortOrder
   enquiry_id?: Prisma.SortOrder
+  rescheduled_from_session_id?: Prisma.SortOrder
+  rescheduled_to_session_id?: Prisma.SortOrder
+  rescheduled_from_id?: Prisma.SortOrder
+  reassigned_from_therapist_id?: Prisma.SortOrder
+  source_console?: Prisma.SortOrder
+  case_id?: Prisma.SortOrder
 }
 
 export type sessionsMaxOrderByAggregateInput = {
@@ -867,6 +989,12 @@ export type sessionsMaxOrderByAggregateInput = {
   guest_name?: Prisma.SortOrder
   guest_contact?: Prisma.SortOrder
   enquiry_id?: Prisma.SortOrder
+  rescheduled_from_session_id?: Prisma.SortOrder
+  rescheduled_to_session_id?: Prisma.SortOrder
+  rescheduled_from_id?: Prisma.SortOrder
+  reassigned_from_therapist_id?: Prisma.SortOrder
+  source_console?: Prisma.SortOrder
+  case_id?: Prisma.SortOrder
 }
 
 export type sessionsMinOrderByAggregateInput = {
@@ -899,6 +1027,12 @@ export type sessionsMinOrderByAggregateInput = {
   guest_name?: Prisma.SortOrder
   guest_contact?: Prisma.SortOrder
   enquiry_id?: Prisma.SortOrder
+  rescheduled_from_session_id?: Prisma.SortOrder
+  rescheduled_to_session_id?: Prisma.SortOrder
+  rescheduled_from_id?: Prisma.SortOrder
+  reassigned_from_therapist_id?: Prisma.SortOrder
+  source_console?: Prisma.SortOrder
+  case_id?: Prisma.SortOrder
 }
 
 export type sessionsCreateNestedManyWithoutCliententitlementsInput = {
@@ -940,6 +1074,48 @@ export type sessionsUncheckedUpdateManyWithoutCliententitlementsNestedInput = {
   connect?: Prisma.sessionsWhereUniqueInput | Prisma.sessionsWhereUniqueInput[]
   update?: Prisma.sessionsUpdateWithWhereUniqueWithoutCliententitlementsInput | Prisma.sessionsUpdateWithWhereUniqueWithoutCliententitlementsInput[]
   updateMany?: Prisma.sessionsUpdateManyWithWhereWithoutCliententitlementsInput | Prisma.sessionsUpdateManyWithWhereWithoutCliententitlementsInput[]
+  deleteMany?: Prisma.sessionsScalarWhereInput | Prisma.sessionsScalarWhereInput[]
+}
+
+export type sessionsCreateNestedManyWithoutClient_casesInput = {
+  create?: Prisma.XOR<Prisma.sessionsCreateWithoutClient_casesInput, Prisma.sessionsUncheckedCreateWithoutClient_casesInput> | Prisma.sessionsCreateWithoutClient_casesInput[] | Prisma.sessionsUncheckedCreateWithoutClient_casesInput[]
+  connectOrCreate?: Prisma.sessionsCreateOrConnectWithoutClient_casesInput | Prisma.sessionsCreateOrConnectWithoutClient_casesInput[]
+  createMany?: Prisma.sessionsCreateManyClient_casesInputEnvelope
+  connect?: Prisma.sessionsWhereUniqueInput | Prisma.sessionsWhereUniqueInput[]
+}
+
+export type sessionsUncheckedCreateNestedManyWithoutClient_casesInput = {
+  create?: Prisma.XOR<Prisma.sessionsCreateWithoutClient_casesInput, Prisma.sessionsUncheckedCreateWithoutClient_casesInput> | Prisma.sessionsCreateWithoutClient_casesInput[] | Prisma.sessionsUncheckedCreateWithoutClient_casesInput[]
+  connectOrCreate?: Prisma.sessionsCreateOrConnectWithoutClient_casesInput | Prisma.sessionsCreateOrConnectWithoutClient_casesInput[]
+  createMany?: Prisma.sessionsCreateManyClient_casesInputEnvelope
+  connect?: Prisma.sessionsWhereUniqueInput | Prisma.sessionsWhereUniqueInput[]
+}
+
+export type sessionsUpdateManyWithoutClient_casesNestedInput = {
+  create?: Prisma.XOR<Prisma.sessionsCreateWithoutClient_casesInput, Prisma.sessionsUncheckedCreateWithoutClient_casesInput> | Prisma.sessionsCreateWithoutClient_casesInput[] | Prisma.sessionsUncheckedCreateWithoutClient_casesInput[]
+  connectOrCreate?: Prisma.sessionsCreateOrConnectWithoutClient_casesInput | Prisma.sessionsCreateOrConnectWithoutClient_casesInput[]
+  upsert?: Prisma.sessionsUpsertWithWhereUniqueWithoutClient_casesInput | Prisma.sessionsUpsertWithWhereUniqueWithoutClient_casesInput[]
+  createMany?: Prisma.sessionsCreateManyClient_casesInputEnvelope
+  set?: Prisma.sessionsWhereUniqueInput | Prisma.sessionsWhereUniqueInput[]
+  disconnect?: Prisma.sessionsWhereUniqueInput | Prisma.sessionsWhereUniqueInput[]
+  delete?: Prisma.sessionsWhereUniqueInput | Prisma.sessionsWhereUniqueInput[]
+  connect?: Prisma.sessionsWhereUniqueInput | Prisma.sessionsWhereUniqueInput[]
+  update?: Prisma.sessionsUpdateWithWhereUniqueWithoutClient_casesInput | Prisma.sessionsUpdateWithWhereUniqueWithoutClient_casesInput[]
+  updateMany?: Prisma.sessionsUpdateManyWithWhereWithoutClient_casesInput | Prisma.sessionsUpdateManyWithWhereWithoutClient_casesInput[]
+  deleteMany?: Prisma.sessionsScalarWhereInput | Prisma.sessionsScalarWhereInput[]
+}
+
+export type sessionsUncheckedUpdateManyWithoutClient_casesNestedInput = {
+  create?: Prisma.XOR<Prisma.sessionsCreateWithoutClient_casesInput, Prisma.sessionsUncheckedCreateWithoutClient_casesInput> | Prisma.sessionsCreateWithoutClient_casesInput[] | Prisma.sessionsUncheckedCreateWithoutClient_casesInput[]
+  connectOrCreate?: Prisma.sessionsCreateOrConnectWithoutClient_casesInput | Prisma.sessionsCreateOrConnectWithoutClient_casesInput[]
+  upsert?: Prisma.sessionsUpsertWithWhereUniqueWithoutClient_casesInput | Prisma.sessionsUpsertWithWhereUniqueWithoutClient_casesInput[]
+  createMany?: Prisma.sessionsCreateManyClient_casesInputEnvelope
+  set?: Prisma.sessionsWhereUniqueInput | Prisma.sessionsWhereUniqueInput[]
+  disconnect?: Prisma.sessionsWhereUniqueInput | Prisma.sessionsWhereUniqueInput[]
+  delete?: Prisma.sessionsWhereUniqueInput | Prisma.sessionsWhereUniqueInput[]
+  connect?: Prisma.sessionsWhereUniqueInput | Prisma.sessionsWhereUniqueInput[]
+  update?: Prisma.sessionsUpdateWithWhereUniqueWithoutClient_casesInput | Prisma.sessionsUpdateWithWhereUniqueWithoutClient_casesInput[]
+  updateMany?: Prisma.sessionsUpdateManyWithWhereWithoutClient_casesInput | Prisma.sessionsUpdateManyWithWhereWithoutClient_casesInput[]
   deleteMany?: Prisma.sessionsScalarWhereInput | Prisma.sessionsScalarWhereInput[]
 }
 
@@ -1331,8 +1507,14 @@ export type sessionsCreateWithoutCliententitlementsInput = {
   is_guest?: boolean | null
   guest_name?: string | null
   guest_contact?: string | null
+  rescheduled_from_session_id?: string | null
+  rescheduled_to_session_id?: string | null
+  rescheduled_from_id?: string | null
+  reassigned_from_therapist_id?: string | null
+  source_console?: string | null
   group_attendance?: Prisma.group_attendanceCreateNestedManyWithoutSessionsInput
   physiosessiondetails?: Prisma.physiosessiondetailsCreateNestedOneWithoutSessionsInput
+  client_cases?: Prisma.client_casesCreateNestedOneWithoutSessionsInput
   clients?: Prisma.clientsCreateNestedOneWithoutSessionsInput
   users?: Prisma.usersCreateNestedOneWithoutSessionsInput
   enquiries?: Prisma.enquiriesCreateNestedOneWithoutSessionsInput
@@ -1373,6 +1555,12 @@ export type sessionsUncheckedCreateWithoutCliententitlementsInput = {
   guest_name?: string | null
   guest_contact?: string | null
   enquiry_id?: string | null
+  rescheduled_from_session_id?: string | null
+  rescheduled_to_session_id?: string | null
+  rescheduled_from_id?: string | null
+  reassigned_from_therapist_id?: string | null
+  source_console?: string | null
+  case_id?: string | null
   group_attendance?: Prisma.group_attendanceUncheckedCreateNestedManyWithoutSessionsInput
   physiosessiondetails?: Prisma.physiosessiondetailsUncheckedCreateNestedOneWithoutSessionsInput
 }
@@ -1437,6 +1625,118 @@ export type sessionsScalarWhereInput = {
   guest_name?: Prisma.StringNullableFilter<"sessions"> | string | null
   guest_contact?: Prisma.StringNullableFilter<"sessions"> | string | null
   enquiry_id?: Prisma.UuidNullableFilter<"sessions"> | string | null
+  rescheduled_from_session_id?: Prisma.UuidNullableFilter<"sessions"> | string | null
+  rescheduled_to_session_id?: Prisma.UuidNullableFilter<"sessions"> | string | null
+  rescheduled_from_id?: Prisma.UuidNullableFilter<"sessions"> | string | null
+  reassigned_from_therapist_id?: Prisma.UuidNullableFilter<"sessions"> | string | null
+  source_console?: Prisma.StringNullableFilter<"sessions"> | string | null
+  case_id?: Prisma.UuidNullableFilter<"sessions"> | string | null
+}
+
+export type sessionsCreateWithoutClient_casesInput = {
+  id?: string
+  service_type: string
+  session_mode?: string | null
+  scheduled_start: Date | string
+  scheduled_end: Date | string
+  actual_start?: Date | string | null
+  actual_end?: Date | string | null
+  status?: string
+  cancellation_reason?: string | null
+  is_unentitled?: boolean | null
+  preference_type?: string | null
+  is_flexible_routing?: boolean | null
+  created_at?: Date | string | null
+  updated_at?: Date | string | null
+  group_name?: string | null
+  session_location?: string | null
+  session_notes?: string | null
+  attachments?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  is_guest?: boolean | null
+  guest_name?: string | null
+  guest_contact?: string | null
+  rescheduled_from_session_id?: string | null
+  rescheduled_to_session_id?: string | null
+  rescheduled_from_id?: string | null
+  reassigned_from_therapist_id?: string | null
+  source_console?: string | null
+  group_attendance?: Prisma.group_attendanceCreateNestedManyWithoutSessionsInput
+  physiosessiondetails?: Prisma.physiosessiondetailsCreateNestedOneWithoutSessionsInput
+  clients?: Prisma.clientsCreateNestedOneWithoutSessionsInput
+  users?: Prisma.usersCreateNestedOneWithoutSessionsInput
+  enquiries?: Prisma.enquiriesCreateNestedOneWithoutSessionsInput
+  cliententitlements?: Prisma.cliententitlementsCreateNestedOneWithoutSessionsInput
+  organizations: Prisma.organizationsCreateNestedOneWithoutSessionsInput
+  profiles_sessions_scientist_idToprofiles?: Prisma.profilesCreateNestedOneWithoutSessions_sessions_scientist_idToprofilesInput
+  services_sessions_service_idToservices?: Prisma.servicesCreateNestedOneWithoutSessions_sessions_service_idToservicesInput
+  services_sessions_session_type_idToservices?: Prisma.servicesCreateNestedOneWithoutSessions_sessions_session_type_idToservicesInput
+  profiles_sessions_therapist_idToprofiles?: Prisma.profilesCreateNestedOneWithoutSessions_sessions_therapist_idToprofilesInput
+}
+
+export type sessionsUncheckedCreateWithoutClient_casesInput = {
+  id?: string
+  organization_id: string
+  client_id?: string | null
+  therapist_id?: string | null
+  scientist_id?: string | null
+  entitlement_id?: string | null
+  service_id?: string | null
+  service_type: string
+  session_mode?: string | null
+  scheduled_start: Date | string
+  scheduled_end: Date | string
+  actual_start?: Date | string | null
+  actual_end?: Date | string | null
+  status?: string
+  cancellation_reason?: string | null
+  is_unentitled?: boolean | null
+  preference_type?: string | null
+  is_flexible_routing?: boolean | null
+  created_by?: string | null
+  created_at?: Date | string | null
+  updated_at?: Date | string | null
+  group_name?: string | null
+  session_location?: string | null
+  session_notes?: string | null
+  attachments?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  session_type_id?: string | null
+  is_guest?: boolean | null
+  guest_name?: string | null
+  guest_contact?: string | null
+  enquiry_id?: string | null
+  rescheduled_from_session_id?: string | null
+  rescheduled_to_session_id?: string | null
+  rescheduled_from_id?: string | null
+  reassigned_from_therapist_id?: string | null
+  source_console?: string | null
+  group_attendance?: Prisma.group_attendanceUncheckedCreateNestedManyWithoutSessionsInput
+  physiosessiondetails?: Prisma.physiosessiondetailsUncheckedCreateNestedOneWithoutSessionsInput
+}
+
+export type sessionsCreateOrConnectWithoutClient_casesInput = {
+  where: Prisma.sessionsWhereUniqueInput
+  create: Prisma.XOR<Prisma.sessionsCreateWithoutClient_casesInput, Prisma.sessionsUncheckedCreateWithoutClient_casesInput>
+}
+
+export type sessionsCreateManyClient_casesInputEnvelope = {
+  data: Prisma.sessionsCreateManyClient_casesInput | Prisma.sessionsCreateManyClient_casesInput[]
+  skipDuplicates?: boolean
+}
+
+export type sessionsUpsertWithWhereUniqueWithoutClient_casesInput = {
+  where: Prisma.sessionsWhereUniqueInput
+  update: Prisma.XOR<Prisma.sessionsUpdateWithoutClient_casesInput, Prisma.sessionsUncheckedUpdateWithoutClient_casesInput>
+  create: Prisma.XOR<Prisma.sessionsCreateWithoutClient_casesInput, Prisma.sessionsUncheckedCreateWithoutClient_casesInput>
+}
+
+export type sessionsUpdateWithWhereUniqueWithoutClient_casesInput = {
+  where: Prisma.sessionsWhereUniqueInput
+  data: Prisma.XOR<Prisma.sessionsUpdateWithoutClient_casesInput, Prisma.sessionsUncheckedUpdateWithoutClient_casesInput>
+}
+
+export type sessionsUpdateManyWithWhereWithoutClient_casesInput = {
+  where: Prisma.sessionsScalarWhereInput
+  data: Prisma.XOR<Prisma.sessionsUpdateManyMutationInput, Prisma.sessionsUncheckedUpdateManyWithoutClient_casesInput>
 }
 
 export type sessionsCreateWithoutClientsInput = {
@@ -1461,8 +1761,14 @@ export type sessionsCreateWithoutClientsInput = {
   is_guest?: boolean | null
   guest_name?: string | null
   guest_contact?: string | null
+  rescheduled_from_session_id?: string | null
+  rescheduled_to_session_id?: string | null
+  rescheduled_from_id?: string | null
+  reassigned_from_therapist_id?: string | null
+  source_console?: string | null
   group_attendance?: Prisma.group_attendanceCreateNestedManyWithoutSessionsInput
   physiosessiondetails?: Prisma.physiosessiondetailsCreateNestedOneWithoutSessionsInput
+  client_cases?: Prisma.client_casesCreateNestedOneWithoutSessionsInput
   users?: Prisma.usersCreateNestedOneWithoutSessionsInput
   enquiries?: Prisma.enquiriesCreateNestedOneWithoutSessionsInput
   cliententitlements?: Prisma.cliententitlementsCreateNestedOneWithoutSessionsInput
@@ -1503,6 +1809,12 @@ export type sessionsUncheckedCreateWithoutClientsInput = {
   guest_name?: string | null
   guest_contact?: string | null
   enquiry_id?: string | null
+  rescheduled_from_session_id?: string | null
+  rescheduled_to_session_id?: string | null
+  rescheduled_from_id?: string | null
+  reassigned_from_therapist_id?: string | null
+  source_console?: string | null
+  case_id?: string | null
   group_attendance?: Prisma.group_attendanceUncheckedCreateNestedManyWithoutSessionsInput
   physiosessiondetails?: Prisma.physiosessiondetailsUncheckedCreateNestedOneWithoutSessionsInput
 }
@@ -1555,8 +1867,14 @@ export type sessionsCreateWithoutEnquiriesInput = {
   is_guest?: boolean | null
   guest_name?: string | null
   guest_contact?: string | null
+  rescheduled_from_session_id?: string | null
+  rescheduled_to_session_id?: string | null
+  rescheduled_from_id?: string | null
+  reassigned_from_therapist_id?: string | null
+  source_console?: string | null
   group_attendance?: Prisma.group_attendanceCreateNestedManyWithoutSessionsInput
   physiosessiondetails?: Prisma.physiosessiondetailsCreateNestedOneWithoutSessionsInput
+  client_cases?: Prisma.client_casesCreateNestedOneWithoutSessionsInput
   clients?: Prisma.clientsCreateNestedOneWithoutSessionsInput
   users?: Prisma.usersCreateNestedOneWithoutSessionsInput
   cliententitlements?: Prisma.cliententitlementsCreateNestedOneWithoutSessionsInput
@@ -1597,6 +1915,12 @@ export type sessionsUncheckedCreateWithoutEnquiriesInput = {
   is_guest?: boolean | null
   guest_name?: string | null
   guest_contact?: string | null
+  rescheduled_from_session_id?: string | null
+  rescheduled_to_session_id?: string | null
+  rescheduled_from_id?: string | null
+  reassigned_from_therapist_id?: string | null
+  source_console?: string | null
+  case_id?: string | null
   group_attendance?: Prisma.group_attendanceUncheckedCreateNestedManyWithoutSessionsInput
   physiosessiondetails?: Prisma.physiosessiondetailsUncheckedCreateNestedOneWithoutSessionsInput
 }
@@ -1649,7 +1973,13 @@ export type sessionsCreateWithoutGroup_attendanceInput = {
   is_guest?: boolean | null
   guest_name?: string | null
   guest_contact?: string | null
+  rescheduled_from_session_id?: string | null
+  rescheduled_to_session_id?: string | null
+  rescheduled_from_id?: string | null
+  reassigned_from_therapist_id?: string | null
+  source_console?: string | null
   physiosessiondetails?: Prisma.physiosessiondetailsCreateNestedOneWithoutSessionsInput
+  client_cases?: Prisma.client_casesCreateNestedOneWithoutSessionsInput
   clients?: Prisma.clientsCreateNestedOneWithoutSessionsInput
   users?: Prisma.usersCreateNestedOneWithoutSessionsInput
   enquiries?: Prisma.enquiriesCreateNestedOneWithoutSessionsInput
@@ -1692,6 +2022,12 @@ export type sessionsUncheckedCreateWithoutGroup_attendanceInput = {
   guest_name?: string | null
   guest_contact?: string | null
   enquiry_id?: string | null
+  rescheduled_from_session_id?: string | null
+  rescheduled_to_session_id?: string | null
+  rescheduled_from_id?: string | null
+  reassigned_from_therapist_id?: string | null
+  source_console?: string | null
+  case_id?: string | null
   physiosessiondetails?: Prisma.physiosessiondetailsUncheckedCreateNestedOneWithoutSessionsInput
 }
 
@@ -1733,7 +2069,13 @@ export type sessionsUpdateWithoutGroup_attendanceInput = {
   is_guest?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   guest_name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   guest_contact?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduled_from_session_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduled_to_session_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduled_from_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  reassigned_from_therapist_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  source_console?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   physiosessiondetails?: Prisma.physiosessiondetailsUpdateOneWithoutSessionsNestedInput
+  client_cases?: Prisma.client_casesUpdateOneWithoutSessionsNestedInput
   clients?: Prisma.clientsUpdateOneWithoutSessionsNestedInput
   users?: Prisma.usersUpdateOneWithoutSessionsNestedInput
   enquiries?: Prisma.enquiriesUpdateOneWithoutSessionsNestedInput
@@ -1776,6 +2118,12 @@ export type sessionsUncheckedUpdateWithoutGroup_attendanceInput = {
   guest_name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   guest_contact?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enquiry_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduled_from_session_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduled_to_session_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduled_from_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  reassigned_from_therapist_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  source_console?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  case_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   physiosessiondetails?: Prisma.physiosessiondetailsUncheckedUpdateOneWithoutSessionsNestedInput
 }
 
@@ -1801,8 +2149,14 @@ export type sessionsCreateWithoutOrganizationsInput = {
   is_guest?: boolean | null
   guest_name?: string | null
   guest_contact?: string | null
+  rescheduled_from_session_id?: string | null
+  rescheduled_to_session_id?: string | null
+  rescheduled_from_id?: string | null
+  reassigned_from_therapist_id?: string | null
+  source_console?: string | null
   group_attendance?: Prisma.group_attendanceCreateNestedManyWithoutSessionsInput
   physiosessiondetails?: Prisma.physiosessiondetailsCreateNestedOneWithoutSessionsInput
+  client_cases?: Prisma.client_casesCreateNestedOneWithoutSessionsInput
   clients?: Prisma.clientsCreateNestedOneWithoutSessionsInput
   users?: Prisma.usersCreateNestedOneWithoutSessionsInput
   enquiries?: Prisma.enquiriesCreateNestedOneWithoutSessionsInput
@@ -1843,6 +2197,12 @@ export type sessionsUncheckedCreateWithoutOrganizationsInput = {
   guest_name?: string | null
   guest_contact?: string | null
   enquiry_id?: string | null
+  rescheduled_from_session_id?: string | null
+  rescheduled_to_session_id?: string | null
+  rescheduled_from_id?: string | null
+  reassigned_from_therapist_id?: string | null
+  source_console?: string | null
+  case_id?: string | null
   group_attendance?: Prisma.group_attendanceUncheckedCreateNestedManyWithoutSessionsInput
   physiosessiondetails?: Prisma.physiosessiondetailsUncheckedCreateNestedOneWithoutSessionsInput
 }
@@ -1895,7 +2255,13 @@ export type sessionsCreateWithoutPhysiosessiondetailsInput = {
   is_guest?: boolean | null
   guest_name?: string | null
   guest_contact?: string | null
+  rescheduled_from_session_id?: string | null
+  rescheduled_to_session_id?: string | null
+  rescheduled_from_id?: string | null
+  reassigned_from_therapist_id?: string | null
+  source_console?: string | null
   group_attendance?: Prisma.group_attendanceCreateNestedManyWithoutSessionsInput
+  client_cases?: Prisma.client_casesCreateNestedOneWithoutSessionsInput
   clients?: Prisma.clientsCreateNestedOneWithoutSessionsInput
   users?: Prisma.usersCreateNestedOneWithoutSessionsInput
   enquiries?: Prisma.enquiriesCreateNestedOneWithoutSessionsInput
@@ -1938,6 +2304,12 @@ export type sessionsUncheckedCreateWithoutPhysiosessiondetailsInput = {
   guest_name?: string | null
   guest_contact?: string | null
   enquiry_id?: string | null
+  rescheduled_from_session_id?: string | null
+  rescheduled_to_session_id?: string | null
+  rescheduled_from_id?: string | null
+  reassigned_from_therapist_id?: string | null
+  source_console?: string | null
+  case_id?: string | null
   group_attendance?: Prisma.group_attendanceUncheckedCreateNestedManyWithoutSessionsInput
 }
 
@@ -1979,7 +2351,13 @@ export type sessionsUpdateWithoutPhysiosessiondetailsInput = {
   is_guest?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   guest_name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   guest_contact?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduled_from_session_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduled_to_session_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduled_from_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  reassigned_from_therapist_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  source_console?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   group_attendance?: Prisma.group_attendanceUpdateManyWithoutSessionsNestedInput
+  client_cases?: Prisma.client_casesUpdateOneWithoutSessionsNestedInput
   clients?: Prisma.clientsUpdateOneWithoutSessionsNestedInput
   users?: Prisma.usersUpdateOneWithoutSessionsNestedInput
   enquiries?: Prisma.enquiriesUpdateOneWithoutSessionsNestedInput
@@ -2022,6 +2400,12 @@ export type sessionsUncheckedUpdateWithoutPhysiosessiondetailsInput = {
   guest_name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   guest_contact?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enquiry_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduled_from_session_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduled_to_session_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduled_from_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  reassigned_from_therapist_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  source_console?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  case_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   group_attendance?: Prisma.group_attendanceUncheckedUpdateManyWithoutSessionsNestedInput
 }
 
@@ -2047,8 +2431,14 @@ export type sessionsCreateWithoutProfiles_sessions_scientist_idToprofilesInput =
   is_guest?: boolean | null
   guest_name?: string | null
   guest_contact?: string | null
+  rescheduled_from_session_id?: string | null
+  rescheduled_to_session_id?: string | null
+  rescheduled_from_id?: string | null
+  reassigned_from_therapist_id?: string | null
+  source_console?: string | null
   group_attendance?: Prisma.group_attendanceCreateNestedManyWithoutSessionsInput
   physiosessiondetails?: Prisma.physiosessiondetailsCreateNestedOneWithoutSessionsInput
+  client_cases?: Prisma.client_casesCreateNestedOneWithoutSessionsInput
   clients?: Prisma.clientsCreateNestedOneWithoutSessionsInput
   users?: Prisma.usersCreateNestedOneWithoutSessionsInput
   enquiries?: Prisma.enquiriesCreateNestedOneWithoutSessionsInput
@@ -2089,6 +2479,12 @@ export type sessionsUncheckedCreateWithoutProfiles_sessions_scientist_idToprofil
   guest_name?: string | null
   guest_contact?: string | null
   enquiry_id?: string | null
+  rescheduled_from_session_id?: string | null
+  rescheduled_to_session_id?: string | null
+  rescheduled_from_id?: string | null
+  reassigned_from_therapist_id?: string | null
+  source_console?: string | null
+  case_id?: string | null
   group_attendance?: Prisma.group_attendanceUncheckedCreateNestedManyWithoutSessionsInput
   physiosessiondetails?: Prisma.physiosessiondetailsUncheckedCreateNestedOneWithoutSessionsInput
 }
@@ -2125,8 +2521,14 @@ export type sessionsCreateWithoutProfiles_sessions_therapist_idToprofilesInput =
   is_guest?: boolean | null
   guest_name?: string | null
   guest_contact?: string | null
+  rescheduled_from_session_id?: string | null
+  rescheduled_to_session_id?: string | null
+  rescheduled_from_id?: string | null
+  reassigned_from_therapist_id?: string | null
+  source_console?: string | null
   group_attendance?: Prisma.group_attendanceCreateNestedManyWithoutSessionsInput
   physiosessiondetails?: Prisma.physiosessiondetailsCreateNestedOneWithoutSessionsInput
+  client_cases?: Prisma.client_casesCreateNestedOneWithoutSessionsInput
   clients?: Prisma.clientsCreateNestedOneWithoutSessionsInput
   users?: Prisma.usersCreateNestedOneWithoutSessionsInput
   enquiries?: Prisma.enquiriesCreateNestedOneWithoutSessionsInput
@@ -2167,6 +2569,12 @@ export type sessionsUncheckedCreateWithoutProfiles_sessions_therapist_idToprofil
   guest_name?: string | null
   guest_contact?: string | null
   enquiry_id?: string | null
+  rescheduled_from_session_id?: string | null
+  rescheduled_to_session_id?: string | null
+  rescheduled_from_id?: string | null
+  reassigned_from_therapist_id?: string | null
+  source_console?: string | null
+  case_id?: string | null
   group_attendance?: Prisma.group_attendanceUncheckedCreateNestedManyWithoutSessionsInput
   physiosessiondetails?: Prisma.physiosessiondetailsUncheckedCreateNestedOneWithoutSessionsInput
 }
@@ -2235,8 +2643,14 @@ export type sessionsCreateWithoutServices_sessions_service_idToservicesInput = {
   is_guest?: boolean | null
   guest_name?: string | null
   guest_contact?: string | null
+  rescheduled_from_session_id?: string | null
+  rescheduled_to_session_id?: string | null
+  rescheduled_from_id?: string | null
+  reassigned_from_therapist_id?: string | null
+  source_console?: string | null
   group_attendance?: Prisma.group_attendanceCreateNestedManyWithoutSessionsInput
   physiosessiondetails?: Prisma.physiosessiondetailsCreateNestedOneWithoutSessionsInput
+  client_cases?: Prisma.client_casesCreateNestedOneWithoutSessionsInput
   clients?: Prisma.clientsCreateNestedOneWithoutSessionsInput
   users?: Prisma.usersCreateNestedOneWithoutSessionsInput
   enquiries?: Prisma.enquiriesCreateNestedOneWithoutSessionsInput
@@ -2277,6 +2691,12 @@ export type sessionsUncheckedCreateWithoutServices_sessions_service_idToservices
   guest_name?: string | null
   guest_contact?: string | null
   enquiry_id?: string | null
+  rescheduled_from_session_id?: string | null
+  rescheduled_to_session_id?: string | null
+  rescheduled_from_id?: string | null
+  reassigned_from_therapist_id?: string | null
+  source_console?: string | null
+  case_id?: string | null
   group_attendance?: Prisma.group_attendanceUncheckedCreateNestedManyWithoutSessionsInput
   physiosessiondetails?: Prisma.physiosessiondetailsUncheckedCreateNestedOneWithoutSessionsInput
 }
@@ -2313,8 +2733,14 @@ export type sessionsCreateWithoutServices_sessions_session_type_idToservicesInpu
   is_guest?: boolean | null
   guest_name?: string | null
   guest_contact?: string | null
+  rescheduled_from_session_id?: string | null
+  rescheduled_to_session_id?: string | null
+  rescheduled_from_id?: string | null
+  reassigned_from_therapist_id?: string | null
+  source_console?: string | null
   group_attendance?: Prisma.group_attendanceCreateNestedManyWithoutSessionsInput
   physiosessiondetails?: Prisma.physiosessiondetailsCreateNestedOneWithoutSessionsInput
+  client_cases?: Prisma.client_casesCreateNestedOneWithoutSessionsInput
   clients?: Prisma.clientsCreateNestedOneWithoutSessionsInput
   users?: Prisma.usersCreateNestedOneWithoutSessionsInput
   enquiries?: Prisma.enquiriesCreateNestedOneWithoutSessionsInput
@@ -2355,6 +2781,12 @@ export type sessionsUncheckedCreateWithoutServices_sessions_session_type_idToser
   guest_name?: string | null
   guest_contact?: string | null
   enquiry_id?: string | null
+  rescheduled_from_session_id?: string | null
+  rescheduled_to_session_id?: string | null
+  rescheduled_from_id?: string | null
+  reassigned_from_therapist_id?: string | null
+  source_console?: string | null
+  case_id?: string | null
   group_attendance?: Prisma.group_attendanceUncheckedCreateNestedManyWithoutSessionsInput
   physiosessiondetails?: Prisma.physiosessiondetailsUncheckedCreateNestedOneWithoutSessionsInput
 }
@@ -2423,8 +2855,14 @@ export type sessionsCreateWithoutUsersInput = {
   is_guest?: boolean | null
   guest_name?: string | null
   guest_contact?: string | null
+  rescheduled_from_session_id?: string | null
+  rescheduled_to_session_id?: string | null
+  rescheduled_from_id?: string | null
+  reassigned_from_therapist_id?: string | null
+  source_console?: string | null
   group_attendance?: Prisma.group_attendanceCreateNestedManyWithoutSessionsInput
   physiosessiondetails?: Prisma.physiosessiondetailsCreateNestedOneWithoutSessionsInput
+  client_cases?: Prisma.client_casesCreateNestedOneWithoutSessionsInput
   clients?: Prisma.clientsCreateNestedOneWithoutSessionsInput
   enquiries?: Prisma.enquiriesCreateNestedOneWithoutSessionsInput
   cliententitlements?: Prisma.cliententitlementsCreateNestedOneWithoutSessionsInput
@@ -2465,6 +2903,12 @@ export type sessionsUncheckedCreateWithoutUsersInput = {
   guest_name?: string | null
   guest_contact?: string | null
   enquiry_id?: string | null
+  rescheduled_from_session_id?: string | null
+  rescheduled_to_session_id?: string | null
+  rescheduled_from_id?: string | null
+  reassigned_from_therapist_id?: string | null
+  source_console?: string | null
+  case_id?: string | null
   group_attendance?: Prisma.group_attendanceUncheckedCreateNestedManyWithoutSessionsInput
   physiosessiondetails?: Prisma.physiosessiondetailsUncheckedCreateNestedOneWithoutSessionsInput
 }
@@ -2525,6 +2969,12 @@ export type sessionsCreateManyCliententitlementsInput = {
   guest_name?: string | null
   guest_contact?: string | null
   enquiry_id?: string | null
+  rescheduled_from_session_id?: string | null
+  rescheduled_to_session_id?: string | null
+  rescheduled_from_id?: string | null
+  reassigned_from_therapist_id?: string | null
+  source_console?: string | null
+  case_id?: string | null
 }
 
 export type sessionsUpdateWithoutCliententitlementsInput = {
@@ -2549,8 +2999,14 @@ export type sessionsUpdateWithoutCliententitlementsInput = {
   is_guest?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   guest_name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   guest_contact?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduled_from_session_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduled_to_session_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduled_from_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  reassigned_from_therapist_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  source_console?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   group_attendance?: Prisma.group_attendanceUpdateManyWithoutSessionsNestedInput
   physiosessiondetails?: Prisma.physiosessiondetailsUpdateOneWithoutSessionsNestedInput
+  client_cases?: Prisma.client_casesUpdateOneWithoutSessionsNestedInput
   clients?: Prisma.clientsUpdateOneWithoutSessionsNestedInput
   users?: Prisma.usersUpdateOneWithoutSessionsNestedInput
   enquiries?: Prisma.enquiriesUpdateOneWithoutSessionsNestedInput
@@ -2591,6 +3047,12 @@ export type sessionsUncheckedUpdateWithoutCliententitlementsInput = {
   guest_name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   guest_contact?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enquiry_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduled_from_session_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduled_to_session_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduled_from_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  reassigned_from_therapist_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  source_console?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  case_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   group_attendance?: Prisma.group_attendanceUncheckedUpdateManyWithoutSessionsNestedInput
   physiosessiondetails?: Prisma.physiosessiondetailsUncheckedUpdateOneWithoutSessionsNestedInput
 }
@@ -2625,6 +3087,168 @@ export type sessionsUncheckedUpdateManyWithoutCliententitlementsInput = {
   guest_name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   guest_contact?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enquiry_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduled_from_session_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduled_to_session_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduled_from_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  reassigned_from_therapist_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  source_console?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  case_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+}
+
+export type sessionsCreateManyClient_casesInput = {
+  id?: string
+  organization_id: string
+  client_id?: string | null
+  therapist_id?: string | null
+  scientist_id?: string | null
+  entitlement_id?: string | null
+  service_id?: string | null
+  service_type: string
+  session_mode?: string | null
+  scheduled_start: Date | string
+  scheduled_end: Date | string
+  actual_start?: Date | string | null
+  actual_end?: Date | string | null
+  status?: string
+  cancellation_reason?: string | null
+  is_unentitled?: boolean | null
+  preference_type?: string | null
+  is_flexible_routing?: boolean | null
+  created_by?: string | null
+  created_at?: Date | string | null
+  updated_at?: Date | string | null
+  group_name?: string | null
+  session_location?: string | null
+  session_notes?: string | null
+  attachments?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  session_type_id?: string | null
+  is_guest?: boolean | null
+  guest_name?: string | null
+  guest_contact?: string | null
+  enquiry_id?: string | null
+  rescheduled_from_session_id?: string | null
+  rescheduled_to_session_id?: string | null
+  rescheduled_from_id?: string | null
+  reassigned_from_therapist_id?: string | null
+  source_console?: string | null
+}
+
+export type sessionsUpdateWithoutClient_casesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  service_type?: Prisma.StringFieldUpdateOperationsInput | string
+  session_mode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  scheduled_start?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  scheduled_end?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  actual_start?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  actual_end?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  status?: Prisma.StringFieldUpdateOperationsInput | string
+  cancellation_reason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  is_unentitled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  preference_type?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  is_flexible_routing?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  created_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  updated_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  group_name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  session_location?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  session_notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  attachments?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  is_guest?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  guest_name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  guest_contact?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduled_from_session_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduled_to_session_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduled_from_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  reassigned_from_therapist_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  source_console?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  group_attendance?: Prisma.group_attendanceUpdateManyWithoutSessionsNestedInput
+  physiosessiondetails?: Prisma.physiosessiondetailsUpdateOneWithoutSessionsNestedInput
+  clients?: Prisma.clientsUpdateOneWithoutSessionsNestedInput
+  users?: Prisma.usersUpdateOneWithoutSessionsNestedInput
+  enquiries?: Prisma.enquiriesUpdateOneWithoutSessionsNestedInput
+  cliententitlements?: Prisma.cliententitlementsUpdateOneWithoutSessionsNestedInput
+  organizations?: Prisma.organizationsUpdateOneRequiredWithoutSessionsNestedInput
+  profiles_sessions_scientist_idToprofiles?: Prisma.profilesUpdateOneWithoutSessions_sessions_scientist_idToprofilesNestedInput
+  services_sessions_service_idToservices?: Prisma.servicesUpdateOneWithoutSessions_sessions_service_idToservicesNestedInput
+  services_sessions_session_type_idToservices?: Prisma.servicesUpdateOneWithoutSessions_sessions_session_type_idToservicesNestedInput
+  profiles_sessions_therapist_idToprofiles?: Prisma.profilesUpdateOneWithoutSessions_sessions_therapist_idToprofilesNestedInput
+}
+
+export type sessionsUncheckedUpdateWithoutClient_casesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  organization_id?: Prisma.StringFieldUpdateOperationsInput | string
+  client_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  therapist_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  scientist_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  entitlement_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  service_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  service_type?: Prisma.StringFieldUpdateOperationsInput | string
+  session_mode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  scheduled_start?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  scheduled_end?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  actual_start?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  actual_end?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  status?: Prisma.StringFieldUpdateOperationsInput | string
+  cancellation_reason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  is_unentitled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  preference_type?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  is_flexible_routing?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  created_by?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  created_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  updated_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  group_name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  session_location?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  session_notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  attachments?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  session_type_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  is_guest?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  guest_name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  guest_contact?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  enquiry_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduled_from_session_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduled_to_session_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduled_from_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  reassigned_from_therapist_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  source_console?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  group_attendance?: Prisma.group_attendanceUncheckedUpdateManyWithoutSessionsNestedInput
+  physiosessiondetails?: Prisma.physiosessiondetailsUncheckedUpdateOneWithoutSessionsNestedInput
+}
+
+export type sessionsUncheckedUpdateManyWithoutClient_casesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  organization_id?: Prisma.StringFieldUpdateOperationsInput | string
+  client_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  therapist_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  scientist_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  entitlement_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  service_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  service_type?: Prisma.StringFieldUpdateOperationsInput | string
+  session_mode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  scheduled_start?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  scheduled_end?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  actual_start?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  actual_end?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  status?: Prisma.StringFieldUpdateOperationsInput | string
+  cancellation_reason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  is_unentitled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  preference_type?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  is_flexible_routing?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  created_by?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  created_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  updated_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  group_name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  session_location?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  session_notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  attachments?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  session_type_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  is_guest?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  guest_name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  guest_contact?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  enquiry_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduled_from_session_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduled_to_session_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduled_from_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  reassigned_from_therapist_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  source_console?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type sessionsCreateManyClientsInput = {
@@ -2657,6 +3281,12 @@ export type sessionsCreateManyClientsInput = {
   guest_name?: string | null
   guest_contact?: string | null
   enquiry_id?: string | null
+  rescheduled_from_session_id?: string | null
+  rescheduled_to_session_id?: string | null
+  rescheduled_from_id?: string | null
+  reassigned_from_therapist_id?: string | null
+  source_console?: string | null
+  case_id?: string | null
 }
 
 export type sessionsUpdateWithoutClientsInput = {
@@ -2681,8 +3311,14 @@ export type sessionsUpdateWithoutClientsInput = {
   is_guest?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   guest_name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   guest_contact?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduled_from_session_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduled_to_session_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduled_from_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  reassigned_from_therapist_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  source_console?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   group_attendance?: Prisma.group_attendanceUpdateManyWithoutSessionsNestedInput
   physiosessiondetails?: Prisma.physiosessiondetailsUpdateOneWithoutSessionsNestedInput
+  client_cases?: Prisma.client_casesUpdateOneWithoutSessionsNestedInput
   users?: Prisma.usersUpdateOneWithoutSessionsNestedInput
   enquiries?: Prisma.enquiriesUpdateOneWithoutSessionsNestedInput
   cliententitlements?: Prisma.cliententitlementsUpdateOneWithoutSessionsNestedInput
@@ -2723,6 +3359,12 @@ export type sessionsUncheckedUpdateWithoutClientsInput = {
   guest_name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   guest_contact?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enquiry_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduled_from_session_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduled_to_session_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduled_from_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  reassigned_from_therapist_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  source_console?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  case_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   group_attendance?: Prisma.group_attendanceUncheckedUpdateManyWithoutSessionsNestedInput
   physiosessiondetails?: Prisma.physiosessiondetailsUncheckedUpdateOneWithoutSessionsNestedInput
 }
@@ -2757,6 +3399,12 @@ export type sessionsUncheckedUpdateManyWithoutClientsInput = {
   guest_name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   guest_contact?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enquiry_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduled_from_session_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduled_to_session_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduled_from_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  reassigned_from_therapist_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  source_console?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  case_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type sessionsCreateManyEnquiriesInput = {
@@ -2789,6 +3437,12 @@ export type sessionsCreateManyEnquiriesInput = {
   is_guest?: boolean | null
   guest_name?: string | null
   guest_contact?: string | null
+  rescheduled_from_session_id?: string | null
+  rescheduled_to_session_id?: string | null
+  rescheduled_from_id?: string | null
+  reassigned_from_therapist_id?: string | null
+  source_console?: string | null
+  case_id?: string | null
 }
 
 export type sessionsUpdateWithoutEnquiriesInput = {
@@ -2813,8 +3467,14 @@ export type sessionsUpdateWithoutEnquiriesInput = {
   is_guest?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   guest_name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   guest_contact?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduled_from_session_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduled_to_session_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduled_from_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  reassigned_from_therapist_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  source_console?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   group_attendance?: Prisma.group_attendanceUpdateManyWithoutSessionsNestedInput
   physiosessiondetails?: Prisma.physiosessiondetailsUpdateOneWithoutSessionsNestedInput
+  client_cases?: Prisma.client_casesUpdateOneWithoutSessionsNestedInput
   clients?: Prisma.clientsUpdateOneWithoutSessionsNestedInput
   users?: Prisma.usersUpdateOneWithoutSessionsNestedInput
   cliententitlements?: Prisma.cliententitlementsUpdateOneWithoutSessionsNestedInput
@@ -2855,6 +3515,12 @@ export type sessionsUncheckedUpdateWithoutEnquiriesInput = {
   is_guest?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   guest_name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   guest_contact?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduled_from_session_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduled_to_session_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduled_from_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  reassigned_from_therapist_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  source_console?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  case_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   group_attendance?: Prisma.group_attendanceUncheckedUpdateManyWithoutSessionsNestedInput
   physiosessiondetails?: Prisma.physiosessiondetailsUncheckedUpdateOneWithoutSessionsNestedInput
 }
@@ -2889,6 +3555,12 @@ export type sessionsUncheckedUpdateManyWithoutEnquiriesInput = {
   is_guest?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   guest_name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   guest_contact?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduled_from_session_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduled_to_session_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduled_from_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  reassigned_from_therapist_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  source_console?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  case_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type sessionsCreateManyOrganizationsInput = {
@@ -2921,6 +3593,12 @@ export type sessionsCreateManyOrganizationsInput = {
   guest_name?: string | null
   guest_contact?: string | null
   enquiry_id?: string | null
+  rescheduled_from_session_id?: string | null
+  rescheduled_to_session_id?: string | null
+  rescheduled_from_id?: string | null
+  reassigned_from_therapist_id?: string | null
+  source_console?: string | null
+  case_id?: string | null
 }
 
 export type sessionsUpdateWithoutOrganizationsInput = {
@@ -2945,8 +3623,14 @@ export type sessionsUpdateWithoutOrganizationsInput = {
   is_guest?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   guest_name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   guest_contact?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduled_from_session_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduled_to_session_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduled_from_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  reassigned_from_therapist_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  source_console?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   group_attendance?: Prisma.group_attendanceUpdateManyWithoutSessionsNestedInput
   physiosessiondetails?: Prisma.physiosessiondetailsUpdateOneWithoutSessionsNestedInput
+  client_cases?: Prisma.client_casesUpdateOneWithoutSessionsNestedInput
   clients?: Prisma.clientsUpdateOneWithoutSessionsNestedInput
   users?: Prisma.usersUpdateOneWithoutSessionsNestedInput
   enquiries?: Prisma.enquiriesUpdateOneWithoutSessionsNestedInput
@@ -2987,6 +3671,12 @@ export type sessionsUncheckedUpdateWithoutOrganizationsInput = {
   guest_name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   guest_contact?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enquiry_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduled_from_session_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduled_to_session_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduled_from_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  reassigned_from_therapist_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  source_console?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  case_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   group_attendance?: Prisma.group_attendanceUncheckedUpdateManyWithoutSessionsNestedInput
   physiosessiondetails?: Prisma.physiosessiondetailsUncheckedUpdateOneWithoutSessionsNestedInput
 }
@@ -3021,6 +3711,12 @@ export type sessionsUncheckedUpdateManyWithoutOrganizationsInput = {
   guest_name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   guest_contact?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enquiry_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduled_from_session_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduled_to_session_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduled_from_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  reassigned_from_therapist_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  source_console?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  case_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type sessionsCreateManyProfiles_sessions_scientist_idToprofilesInput = {
@@ -3053,6 +3749,12 @@ export type sessionsCreateManyProfiles_sessions_scientist_idToprofilesInput = {
   guest_name?: string | null
   guest_contact?: string | null
   enquiry_id?: string | null
+  rescheduled_from_session_id?: string | null
+  rescheduled_to_session_id?: string | null
+  rescheduled_from_id?: string | null
+  reassigned_from_therapist_id?: string | null
+  source_console?: string | null
+  case_id?: string | null
 }
 
 export type sessionsCreateManyProfiles_sessions_therapist_idToprofilesInput = {
@@ -3085,6 +3787,12 @@ export type sessionsCreateManyProfiles_sessions_therapist_idToprofilesInput = {
   guest_name?: string | null
   guest_contact?: string | null
   enquiry_id?: string | null
+  rescheduled_from_session_id?: string | null
+  rescheduled_to_session_id?: string | null
+  rescheduled_from_id?: string | null
+  reassigned_from_therapist_id?: string | null
+  source_console?: string | null
+  case_id?: string | null
 }
 
 export type sessionsUpdateWithoutProfiles_sessions_scientist_idToprofilesInput = {
@@ -3109,8 +3817,14 @@ export type sessionsUpdateWithoutProfiles_sessions_scientist_idToprofilesInput =
   is_guest?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   guest_name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   guest_contact?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduled_from_session_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduled_to_session_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduled_from_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  reassigned_from_therapist_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  source_console?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   group_attendance?: Prisma.group_attendanceUpdateManyWithoutSessionsNestedInput
   physiosessiondetails?: Prisma.physiosessiondetailsUpdateOneWithoutSessionsNestedInput
+  client_cases?: Prisma.client_casesUpdateOneWithoutSessionsNestedInput
   clients?: Prisma.clientsUpdateOneWithoutSessionsNestedInput
   users?: Prisma.usersUpdateOneWithoutSessionsNestedInput
   enquiries?: Prisma.enquiriesUpdateOneWithoutSessionsNestedInput
@@ -3151,6 +3865,12 @@ export type sessionsUncheckedUpdateWithoutProfiles_sessions_scientist_idToprofil
   guest_name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   guest_contact?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enquiry_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduled_from_session_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduled_to_session_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduled_from_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  reassigned_from_therapist_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  source_console?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  case_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   group_attendance?: Prisma.group_attendanceUncheckedUpdateManyWithoutSessionsNestedInput
   physiosessiondetails?: Prisma.physiosessiondetailsUncheckedUpdateOneWithoutSessionsNestedInput
 }
@@ -3185,6 +3905,12 @@ export type sessionsUncheckedUpdateManyWithoutProfiles_sessions_scientist_idTopr
   guest_name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   guest_contact?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enquiry_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduled_from_session_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduled_to_session_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduled_from_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  reassigned_from_therapist_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  source_console?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  case_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type sessionsUpdateWithoutProfiles_sessions_therapist_idToprofilesInput = {
@@ -3209,8 +3935,14 @@ export type sessionsUpdateWithoutProfiles_sessions_therapist_idToprofilesInput =
   is_guest?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   guest_name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   guest_contact?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduled_from_session_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduled_to_session_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduled_from_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  reassigned_from_therapist_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  source_console?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   group_attendance?: Prisma.group_attendanceUpdateManyWithoutSessionsNestedInput
   physiosessiondetails?: Prisma.physiosessiondetailsUpdateOneWithoutSessionsNestedInput
+  client_cases?: Prisma.client_casesUpdateOneWithoutSessionsNestedInput
   clients?: Prisma.clientsUpdateOneWithoutSessionsNestedInput
   users?: Prisma.usersUpdateOneWithoutSessionsNestedInput
   enquiries?: Prisma.enquiriesUpdateOneWithoutSessionsNestedInput
@@ -3251,6 +3983,12 @@ export type sessionsUncheckedUpdateWithoutProfiles_sessions_therapist_idToprofil
   guest_name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   guest_contact?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enquiry_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduled_from_session_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduled_to_session_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduled_from_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  reassigned_from_therapist_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  source_console?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  case_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   group_attendance?: Prisma.group_attendanceUncheckedUpdateManyWithoutSessionsNestedInput
   physiosessiondetails?: Prisma.physiosessiondetailsUncheckedUpdateOneWithoutSessionsNestedInput
 }
@@ -3285,6 +4023,12 @@ export type sessionsUncheckedUpdateManyWithoutProfiles_sessions_therapist_idTopr
   guest_name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   guest_contact?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enquiry_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduled_from_session_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduled_to_session_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduled_from_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  reassigned_from_therapist_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  source_console?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  case_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type sessionsCreateManyServices_sessions_service_idToservicesInput = {
@@ -3317,6 +4061,12 @@ export type sessionsCreateManyServices_sessions_service_idToservicesInput = {
   guest_name?: string | null
   guest_contact?: string | null
   enquiry_id?: string | null
+  rescheduled_from_session_id?: string | null
+  rescheduled_to_session_id?: string | null
+  rescheduled_from_id?: string | null
+  reassigned_from_therapist_id?: string | null
+  source_console?: string | null
+  case_id?: string | null
 }
 
 export type sessionsCreateManyServices_sessions_session_type_idToservicesInput = {
@@ -3349,6 +4099,12 @@ export type sessionsCreateManyServices_sessions_session_type_idToservicesInput =
   guest_name?: string | null
   guest_contact?: string | null
   enquiry_id?: string | null
+  rescheduled_from_session_id?: string | null
+  rescheduled_to_session_id?: string | null
+  rescheduled_from_id?: string | null
+  reassigned_from_therapist_id?: string | null
+  source_console?: string | null
+  case_id?: string | null
 }
 
 export type sessionsUpdateWithoutServices_sessions_service_idToservicesInput = {
@@ -3373,8 +4129,14 @@ export type sessionsUpdateWithoutServices_sessions_service_idToservicesInput = {
   is_guest?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   guest_name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   guest_contact?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduled_from_session_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduled_to_session_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduled_from_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  reassigned_from_therapist_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  source_console?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   group_attendance?: Prisma.group_attendanceUpdateManyWithoutSessionsNestedInput
   physiosessiondetails?: Prisma.physiosessiondetailsUpdateOneWithoutSessionsNestedInput
+  client_cases?: Prisma.client_casesUpdateOneWithoutSessionsNestedInput
   clients?: Prisma.clientsUpdateOneWithoutSessionsNestedInput
   users?: Prisma.usersUpdateOneWithoutSessionsNestedInput
   enquiries?: Prisma.enquiriesUpdateOneWithoutSessionsNestedInput
@@ -3415,6 +4177,12 @@ export type sessionsUncheckedUpdateWithoutServices_sessions_service_idToservices
   guest_name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   guest_contact?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enquiry_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduled_from_session_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduled_to_session_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduled_from_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  reassigned_from_therapist_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  source_console?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  case_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   group_attendance?: Prisma.group_attendanceUncheckedUpdateManyWithoutSessionsNestedInput
   physiosessiondetails?: Prisma.physiosessiondetailsUncheckedUpdateOneWithoutSessionsNestedInput
 }
@@ -3449,6 +4217,12 @@ export type sessionsUncheckedUpdateManyWithoutServices_sessions_service_idToserv
   guest_name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   guest_contact?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enquiry_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduled_from_session_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduled_to_session_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduled_from_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  reassigned_from_therapist_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  source_console?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  case_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type sessionsUpdateWithoutServices_sessions_session_type_idToservicesInput = {
@@ -3473,8 +4247,14 @@ export type sessionsUpdateWithoutServices_sessions_session_type_idToservicesInpu
   is_guest?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   guest_name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   guest_contact?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduled_from_session_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduled_to_session_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduled_from_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  reassigned_from_therapist_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  source_console?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   group_attendance?: Prisma.group_attendanceUpdateManyWithoutSessionsNestedInput
   physiosessiondetails?: Prisma.physiosessiondetailsUpdateOneWithoutSessionsNestedInput
+  client_cases?: Prisma.client_casesUpdateOneWithoutSessionsNestedInput
   clients?: Prisma.clientsUpdateOneWithoutSessionsNestedInput
   users?: Prisma.usersUpdateOneWithoutSessionsNestedInput
   enquiries?: Prisma.enquiriesUpdateOneWithoutSessionsNestedInput
@@ -3515,6 +4295,12 @@ export type sessionsUncheckedUpdateWithoutServices_sessions_session_type_idToser
   guest_name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   guest_contact?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enquiry_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduled_from_session_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduled_to_session_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduled_from_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  reassigned_from_therapist_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  source_console?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  case_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   group_attendance?: Prisma.group_attendanceUncheckedUpdateManyWithoutSessionsNestedInput
   physiosessiondetails?: Prisma.physiosessiondetailsUncheckedUpdateOneWithoutSessionsNestedInput
 }
@@ -3549,6 +4335,12 @@ export type sessionsUncheckedUpdateManyWithoutServices_sessions_session_type_idT
   guest_name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   guest_contact?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enquiry_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduled_from_session_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduled_to_session_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduled_from_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  reassigned_from_therapist_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  source_console?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  case_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type sessionsCreateManyUsersInput = {
@@ -3581,6 +4373,12 @@ export type sessionsCreateManyUsersInput = {
   guest_name?: string | null
   guest_contact?: string | null
   enquiry_id?: string | null
+  rescheduled_from_session_id?: string | null
+  rescheduled_to_session_id?: string | null
+  rescheduled_from_id?: string | null
+  reassigned_from_therapist_id?: string | null
+  source_console?: string | null
+  case_id?: string | null
 }
 
 export type sessionsUpdateWithoutUsersInput = {
@@ -3605,8 +4403,14 @@ export type sessionsUpdateWithoutUsersInput = {
   is_guest?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   guest_name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   guest_contact?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduled_from_session_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduled_to_session_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduled_from_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  reassigned_from_therapist_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  source_console?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   group_attendance?: Prisma.group_attendanceUpdateManyWithoutSessionsNestedInput
   physiosessiondetails?: Prisma.physiosessiondetailsUpdateOneWithoutSessionsNestedInput
+  client_cases?: Prisma.client_casesUpdateOneWithoutSessionsNestedInput
   clients?: Prisma.clientsUpdateOneWithoutSessionsNestedInput
   enquiries?: Prisma.enquiriesUpdateOneWithoutSessionsNestedInput
   cliententitlements?: Prisma.cliententitlementsUpdateOneWithoutSessionsNestedInput
@@ -3647,6 +4451,12 @@ export type sessionsUncheckedUpdateWithoutUsersInput = {
   guest_name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   guest_contact?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enquiry_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduled_from_session_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduled_to_session_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduled_from_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  reassigned_from_therapist_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  source_console?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  case_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   group_attendance?: Prisma.group_attendanceUncheckedUpdateManyWithoutSessionsNestedInput
   physiosessiondetails?: Prisma.physiosessiondetailsUncheckedUpdateOneWithoutSessionsNestedInput
 }
@@ -3681,6 +4491,12 @@ export type sessionsUncheckedUpdateManyWithoutUsersInput = {
   guest_name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   guest_contact?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enquiry_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduled_from_session_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduled_to_session_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduled_from_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  reassigned_from_therapist_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  source_console?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  case_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 
@@ -3745,8 +4561,15 @@ export type sessionsSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs
   guest_name?: boolean
   guest_contact?: boolean
   enquiry_id?: boolean
+  rescheduled_from_session_id?: boolean
+  rescheduled_to_session_id?: boolean
+  rescheduled_from_id?: boolean
+  reassigned_from_therapist_id?: boolean
+  source_console?: boolean
+  case_id?: boolean
   group_attendance?: boolean | Prisma.sessions$group_attendanceArgs<ExtArgs>
   physiosessiondetails?: boolean | Prisma.sessions$physiosessiondetailsArgs<ExtArgs>
+  client_cases?: boolean | Prisma.sessions$client_casesArgs<ExtArgs>
   clients?: boolean | Prisma.sessions$clientsArgs<ExtArgs>
   users?: boolean | Prisma.sessions$usersArgs<ExtArgs>
   enquiries?: boolean | Prisma.sessions$enquiriesArgs<ExtArgs>
@@ -3790,6 +4613,13 @@ export type sessionsSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Exte
   guest_name?: boolean
   guest_contact?: boolean
   enquiry_id?: boolean
+  rescheduled_from_session_id?: boolean
+  rescheduled_to_session_id?: boolean
+  rescheduled_from_id?: boolean
+  reassigned_from_therapist_id?: boolean
+  source_console?: boolean
+  case_id?: boolean
+  client_cases?: boolean | Prisma.sessions$client_casesArgs<ExtArgs>
   clients?: boolean | Prisma.sessions$clientsArgs<ExtArgs>
   users?: boolean | Prisma.sessions$usersArgs<ExtArgs>
   enquiries?: boolean | Prisma.sessions$enquiriesArgs<ExtArgs>
@@ -3832,6 +4662,13 @@ export type sessionsSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Exte
   guest_name?: boolean
   guest_contact?: boolean
   enquiry_id?: boolean
+  rescheduled_from_session_id?: boolean
+  rescheduled_to_session_id?: boolean
+  rescheduled_from_id?: boolean
+  reassigned_from_therapist_id?: boolean
+  source_console?: boolean
+  case_id?: boolean
+  client_cases?: boolean | Prisma.sessions$client_casesArgs<ExtArgs>
   clients?: boolean | Prisma.sessions$clientsArgs<ExtArgs>
   users?: boolean | Prisma.sessions$usersArgs<ExtArgs>
   enquiries?: boolean | Prisma.sessions$enquiriesArgs<ExtArgs>
@@ -3874,12 +4711,19 @@ export type sessionsSelectScalar = {
   guest_name?: boolean
   guest_contact?: boolean
   enquiry_id?: boolean
+  rescheduled_from_session_id?: boolean
+  rescheduled_to_session_id?: boolean
+  rescheduled_from_id?: boolean
+  reassigned_from_therapist_id?: boolean
+  source_console?: boolean
+  case_id?: boolean
 }
 
-export type sessionsOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "organization_id" | "client_id" | "therapist_id" | "scientist_id" | "entitlement_id" | "service_id" | "service_type" | "session_mode" | "scheduled_start" | "scheduled_end" | "actual_start" | "actual_end" | "status" | "cancellation_reason" | "is_unentitled" | "preference_type" | "is_flexible_routing" | "created_by" | "created_at" | "updated_at" | "group_name" | "session_location" | "session_notes" | "attachments" | "session_type_id" | "is_guest" | "guest_name" | "guest_contact" | "enquiry_id", ExtArgs["result"]["sessions"]>
+export type sessionsOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "organization_id" | "client_id" | "therapist_id" | "scientist_id" | "entitlement_id" | "service_id" | "service_type" | "session_mode" | "scheduled_start" | "scheduled_end" | "actual_start" | "actual_end" | "status" | "cancellation_reason" | "is_unentitled" | "preference_type" | "is_flexible_routing" | "created_by" | "created_at" | "updated_at" | "group_name" | "session_location" | "session_notes" | "attachments" | "session_type_id" | "is_guest" | "guest_name" | "guest_contact" | "enquiry_id" | "rescheduled_from_session_id" | "rescheduled_to_session_id" | "rescheduled_from_id" | "reassigned_from_therapist_id" | "source_console" | "case_id", ExtArgs["result"]["sessions"]>
 export type sessionsInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   group_attendance?: boolean | Prisma.sessions$group_attendanceArgs<ExtArgs>
   physiosessiondetails?: boolean | Prisma.sessions$physiosessiondetailsArgs<ExtArgs>
+  client_cases?: boolean | Prisma.sessions$client_casesArgs<ExtArgs>
   clients?: boolean | Prisma.sessions$clientsArgs<ExtArgs>
   users?: boolean | Prisma.sessions$usersArgs<ExtArgs>
   enquiries?: boolean | Prisma.sessions$enquiriesArgs<ExtArgs>
@@ -3892,6 +4736,7 @@ export type sessionsInclude<ExtArgs extends runtime.Types.Extensions.InternalArg
   _count?: boolean | Prisma.SessionsCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type sessionsIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  client_cases?: boolean | Prisma.sessions$client_casesArgs<ExtArgs>
   clients?: boolean | Prisma.sessions$clientsArgs<ExtArgs>
   users?: boolean | Prisma.sessions$usersArgs<ExtArgs>
   enquiries?: boolean | Prisma.sessions$enquiriesArgs<ExtArgs>
@@ -3903,6 +4748,7 @@ export type sessionsIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Ext
   profiles_sessions_therapist_idToprofiles?: boolean | Prisma.sessions$profiles_sessions_therapist_idToprofilesArgs<ExtArgs>
 }
 export type sessionsIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  client_cases?: boolean | Prisma.sessions$client_casesArgs<ExtArgs>
   clients?: boolean | Prisma.sessions$clientsArgs<ExtArgs>
   users?: boolean | Prisma.sessions$usersArgs<ExtArgs>
   enquiries?: boolean | Prisma.sessions$enquiriesArgs<ExtArgs>
@@ -3919,6 +4765,7 @@ export type $sessionsPayload<ExtArgs extends runtime.Types.Extensions.InternalAr
   objects: {
     group_attendance: Prisma.$group_attendancePayload<ExtArgs>[]
     physiosessiondetails: Prisma.$physiosessiondetailsPayload<ExtArgs> | null
+    client_cases: Prisma.$client_casesPayload<ExtArgs> | null
     clients: Prisma.$clientsPayload<ExtArgs> | null
     users: Prisma.$usersPayload<ExtArgs> | null
     enquiries: Prisma.$enquiriesPayload<ExtArgs> | null
@@ -3960,6 +4807,12 @@ export type $sessionsPayload<ExtArgs extends runtime.Types.Extensions.InternalAr
     guest_name: string | null
     guest_contact: string | null
     enquiry_id: string | null
+    rescheduled_from_session_id: string | null
+    rescheduled_to_session_id: string | null
+    rescheduled_from_id: string | null
+    reassigned_from_therapist_id: string | null
+    source_console: string | null
+    case_id: string | null
   }, ExtArgs["result"]["sessions"]>
   composites: {}
 }
@@ -4356,6 +5209,7 @@ export interface Prisma__sessionsClient<T, Null = never, ExtArgs extends runtime
   readonly [Symbol.toStringTag]: "PrismaPromise"
   group_attendance<T extends Prisma.sessions$group_attendanceArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.sessions$group_attendanceArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$group_attendancePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   physiosessiondetails<T extends Prisma.sessions$physiosessiondetailsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.sessions$physiosessiondetailsArgs<ExtArgs>>): Prisma.Prisma__physiosessiondetailsClient<runtime.Types.Result.GetResult<Prisma.$physiosessiondetailsPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+  client_cases<T extends Prisma.sessions$client_casesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.sessions$client_casesArgs<ExtArgs>>): Prisma.Prisma__client_casesClient<runtime.Types.Result.GetResult<Prisma.$client_casesPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   clients<T extends Prisma.sessions$clientsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.sessions$clientsArgs<ExtArgs>>): Prisma.Prisma__clientsClient<runtime.Types.Result.GetResult<Prisma.$clientsPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   users<T extends Prisma.sessions$usersArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.sessions$usersArgs<ExtArgs>>): Prisma.Prisma__usersClient<runtime.Types.Result.GetResult<Prisma.$usersPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   enquiries<T extends Prisma.sessions$enquiriesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.sessions$enquiriesArgs<ExtArgs>>): Prisma.Prisma__enquiriesClient<runtime.Types.Result.GetResult<Prisma.$enquiriesPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
@@ -4424,6 +5278,12 @@ export interface sessionsFieldRefs {
   readonly guest_name: Prisma.FieldRef<"sessions", 'String'>
   readonly guest_contact: Prisma.FieldRef<"sessions", 'String'>
   readonly enquiry_id: Prisma.FieldRef<"sessions", 'String'>
+  readonly rescheduled_from_session_id: Prisma.FieldRef<"sessions", 'String'>
+  readonly rescheduled_to_session_id: Prisma.FieldRef<"sessions", 'String'>
+  readonly rescheduled_from_id: Prisma.FieldRef<"sessions", 'String'>
+  readonly reassigned_from_therapist_id: Prisma.FieldRef<"sessions", 'String'>
+  readonly source_console: Prisma.FieldRef<"sessions", 'String'>
+  readonly case_id: Prisma.FieldRef<"sessions", 'String'>
 }
     
 
@@ -4865,6 +5725,25 @@ export type sessions$physiosessiondetailsArgs<ExtArgs extends runtime.Types.Exte
    */
   include?: Prisma.physiosessiondetailsInclude<ExtArgs> | null
   where?: Prisma.physiosessiondetailsWhereInput
+}
+
+/**
+ * sessions.client_cases
+ */
+export type sessions$client_casesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the client_cases
+   */
+  select?: Prisma.client_casesSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the client_cases
+   */
+  omit?: Prisma.client_casesOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.client_casesInclude<ExtArgs> | null
+  where?: Prisma.client_casesWhereInput
 }
 
 /**

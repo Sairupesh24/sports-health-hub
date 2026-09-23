@@ -527,6 +527,7 @@ export type clientsWhereInput = {
   billpayments?: Prisma.BillpaymentsListRelationFilter
   bills?: Prisma.BillsListRelationFilter
   client_assessment_reports?: Prisma.Client_assessment_reportsListRelationFilter
+  client_cases?: Prisma.Client_casesListRelationFilter
   client_group_members?: Prisma.Client_group_membersListRelationFilter
   clientadminnotes?: Prisma.XOR<Prisma.ClientadminnotesNullableScalarRelationFilter, Prisma.clientadminnotesWhereInput> | null
   clientdocuments?: Prisma.ClientdocumentsListRelationFilter
@@ -597,6 +598,7 @@ export type clientsOrderByWithRelationInput = {
   billpayments?: Prisma.billpaymentsOrderByRelationAggregateInput
   bills?: Prisma.billsOrderByRelationAggregateInput
   client_assessment_reports?: Prisma.client_assessment_reportsOrderByRelationAggregateInput
+  client_cases?: Prisma.client_casesOrderByRelationAggregateInput
   client_group_members?: Prisma.client_group_membersOrderByRelationAggregateInput
   clientadminnotes?: Prisma.clientadminnotesOrderByWithRelationInput
   clientdocuments?: Prisma.clientdocumentsOrderByRelationAggregateInput
@@ -670,6 +672,7 @@ export type clientsWhereUniqueInput = Prisma.AtLeast<{
   billpayments?: Prisma.BillpaymentsListRelationFilter
   bills?: Prisma.BillsListRelationFilter
   client_assessment_reports?: Prisma.Client_assessment_reportsListRelationFilter
+  client_cases?: Prisma.Client_casesListRelationFilter
   client_group_members?: Prisma.Client_group_membersListRelationFilter
   clientadminnotes?: Prisma.XOR<Prisma.ClientadminnotesNullableScalarRelationFilter, Prisma.clientadminnotesWhereInput> | null
   clientdocuments?: Prisma.ClientdocumentsListRelationFilter
@@ -834,6 +837,7 @@ export type clientsCreateInput = {
   billpayments?: Prisma.billpaymentsCreateNestedManyWithoutClientsInput
   bills?: Prisma.billsCreateNestedManyWithoutClientsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutClientsInput
+  client_cases?: Prisma.client_casesCreateNestedManyWithoutClientsInput
   client_group_members?: Prisma.client_group_membersCreateNestedManyWithoutClientsInput
   clientadminnotes?: Prisma.clientadminnotesCreateNestedOneWithoutClientsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutClientsInput
@@ -904,6 +908,7 @@ export type clientsUncheckedCreateInput = {
   billpayments?: Prisma.billpaymentsUncheckedCreateNestedManyWithoutClientsInput
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutClientsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutClientsInput
+  client_cases?: Prisma.client_casesUncheckedCreateNestedManyWithoutClientsInput
   client_group_members?: Prisma.client_group_membersUncheckedCreateNestedManyWithoutClientsInput
   clientadminnotes?: Prisma.clientadminnotesUncheckedCreateNestedOneWithoutClientsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutClientsInput
@@ -962,6 +967,7 @@ export type clientsUpdateInput = {
   billpayments?: Prisma.billpaymentsUpdateManyWithoutClientsNestedInput
   bills?: Prisma.billsUpdateManyWithoutClientsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutClientsNestedInput
+  client_cases?: Prisma.client_casesUpdateManyWithoutClientsNestedInput
   client_group_members?: Prisma.client_group_membersUpdateManyWithoutClientsNestedInput
   clientadminnotes?: Prisma.clientadminnotesUpdateOneWithoutClientsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutClientsNestedInput
@@ -1032,6 +1038,7 @@ export type clientsUncheckedUpdateInput = {
   billpayments?: Prisma.billpaymentsUncheckedUpdateManyWithoutClientsNestedInput
   bills?: Prisma.billsUncheckedUpdateManyWithoutClientsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutClientsNestedInput
+  client_cases?: Prisma.client_casesUncheckedUpdateManyWithoutClientsNestedInput
   client_group_members?: Prisma.client_group_membersUncheckedUpdateManyWithoutClientsNestedInput
   clientadminnotes?: Prisma.clientadminnotesUncheckedUpdateOneWithoutClientsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutClientsNestedInput
@@ -1447,6 +1454,20 @@ export type clientsUpdateOneRequiredWithoutCliententitlementsNestedInput = {
   upsert?: Prisma.clientsUpsertWithoutCliententitlementsInput
   connect?: Prisma.clientsWhereUniqueInput
   update?: Prisma.XOR<Prisma.XOR<Prisma.clientsUpdateToOneWithWhereWithoutCliententitlementsInput, Prisma.clientsUpdateWithoutCliententitlementsInput>, Prisma.clientsUncheckedUpdateWithoutCliententitlementsInput>
+}
+
+export type clientsCreateNestedOneWithoutClient_casesInput = {
+  create?: Prisma.XOR<Prisma.clientsCreateWithoutClient_casesInput, Prisma.clientsUncheckedCreateWithoutClient_casesInput>
+  connectOrCreate?: Prisma.clientsCreateOrConnectWithoutClient_casesInput
+  connect?: Prisma.clientsWhereUniqueInput
+}
+
+export type clientsUpdateOneRequiredWithoutClient_casesNestedInput = {
+  create?: Prisma.XOR<Prisma.clientsCreateWithoutClient_casesInput, Prisma.clientsUncheckedCreateWithoutClient_casesInput>
+  connectOrCreate?: Prisma.clientsCreateOrConnectWithoutClient_casesInput
+  upsert?: Prisma.clientsUpsertWithoutClient_casesInput
+  connect?: Prisma.clientsWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.clientsUpdateToOneWithWhereWithoutClient_casesInput, Prisma.clientsUpdateWithoutClient_casesInput>, Prisma.clientsUncheckedUpdateWithoutClient_casesInput>
 }
 
 export type clientsCreateNestedOneWithoutEnquiriesInput = {
@@ -1901,6 +1922,7 @@ export type clientsCreateWithoutBillpaymentsInput = {
   deleted_at?: Date | string | null
   bills?: Prisma.billsCreateNestedManyWithoutClientsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutClientsInput
+  client_cases?: Prisma.client_casesCreateNestedManyWithoutClientsInput
   client_group_members?: Prisma.client_group_membersCreateNestedManyWithoutClientsInput
   clientadminnotes?: Prisma.clientadminnotesCreateNestedOneWithoutClientsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutClientsInput
@@ -1970,6 +1992,7 @@ export type clientsUncheckedCreateWithoutBillpaymentsInput = {
   deleted_at?: Date | string | null
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutClientsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutClientsInput
+  client_cases?: Prisma.client_casesUncheckedCreateNestedManyWithoutClientsInput
   client_group_members?: Prisma.client_group_membersUncheckedCreateNestedManyWithoutClientsInput
   clientadminnotes?: Prisma.clientadminnotesUncheckedCreateNestedOneWithoutClientsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutClientsInput
@@ -2043,6 +2066,7 @@ export type clientsUpdateWithoutBillpaymentsInput = {
   deleted_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   bills?: Prisma.billsUpdateManyWithoutClientsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutClientsNestedInput
+  client_cases?: Prisma.client_casesUpdateManyWithoutClientsNestedInput
   client_group_members?: Prisma.client_group_membersUpdateManyWithoutClientsNestedInput
   clientadminnotes?: Prisma.clientadminnotesUpdateOneWithoutClientsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutClientsNestedInput
@@ -2112,6 +2136,7 @@ export type clientsUncheckedUpdateWithoutBillpaymentsInput = {
   deleted_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   bills?: Prisma.billsUncheckedUpdateManyWithoutClientsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutClientsNestedInput
+  client_cases?: Prisma.client_casesUncheckedUpdateManyWithoutClientsNestedInput
   client_group_members?: Prisma.client_group_membersUncheckedUpdateManyWithoutClientsNestedInput
   clientadminnotes?: Prisma.clientadminnotesUncheckedUpdateOneWithoutClientsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutClientsNestedInput
@@ -2169,6 +2194,7 @@ export type clientsCreateWithoutBillsInput = {
   deleted_at?: Date | string | null
   billpayments?: Prisma.billpaymentsCreateNestedManyWithoutClientsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutClientsInput
+  client_cases?: Prisma.client_casesCreateNestedManyWithoutClientsInput
   client_group_members?: Prisma.client_group_membersCreateNestedManyWithoutClientsInput
   clientadminnotes?: Prisma.clientadminnotesCreateNestedOneWithoutClientsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutClientsInput
@@ -2238,6 +2264,7 @@ export type clientsUncheckedCreateWithoutBillsInput = {
   deleted_at?: Date | string | null
   billpayments?: Prisma.billpaymentsUncheckedCreateNestedManyWithoutClientsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutClientsInput
+  client_cases?: Prisma.client_casesUncheckedCreateNestedManyWithoutClientsInput
   client_group_members?: Prisma.client_group_membersUncheckedCreateNestedManyWithoutClientsInput
   clientadminnotes?: Prisma.clientadminnotesUncheckedCreateNestedOneWithoutClientsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutClientsInput
@@ -2311,6 +2338,7 @@ export type clientsUpdateWithoutBillsInput = {
   deleted_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   billpayments?: Prisma.billpaymentsUpdateManyWithoutClientsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutClientsNestedInput
+  client_cases?: Prisma.client_casesUpdateManyWithoutClientsNestedInput
   client_group_members?: Prisma.client_group_membersUpdateManyWithoutClientsNestedInput
   clientadminnotes?: Prisma.clientadminnotesUpdateOneWithoutClientsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutClientsNestedInput
@@ -2380,6 +2408,7 @@ export type clientsUncheckedUpdateWithoutBillsInput = {
   deleted_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   billpayments?: Prisma.billpaymentsUncheckedUpdateManyWithoutClientsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutClientsNestedInput
+  client_cases?: Prisma.client_casesUncheckedUpdateManyWithoutClientsNestedInput
   client_group_members?: Prisma.client_group_membersUncheckedUpdateManyWithoutClientsNestedInput
   clientadminnotes?: Prisma.clientadminnotesUncheckedUpdateOneWithoutClientsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutClientsNestedInput
@@ -2437,6 +2466,7 @@ export type clientsCreateWithoutClient_assessment_reportsInput = {
   deleted_at?: Date | string | null
   billpayments?: Prisma.billpaymentsCreateNestedManyWithoutClientsInput
   bills?: Prisma.billsCreateNestedManyWithoutClientsInput
+  client_cases?: Prisma.client_casesCreateNestedManyWithoutClientsInput
   client_group_members?: Prisma.client_group_membersCreateNestedManyWithoutClientsInput
   clientadminnotes?: Prisma.clientadminnotesCreateNestedOneWithoutClientsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutClientsInput
@@ -2506,6 +2536,7 @@ export type clientsUncheckedCreateWithoutClient_assessment_reportsInput = {
   deleted_at?: Date | string | null
   billpayments?: Prisma.billpaymentsUncheckedCreateNestedManyWithoutClientsInput
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutClientsInput
+  client_cases?: Prisma.client_casesUncheckedCreateNestedManyWithoutClientsInput
   client_group_members?: Prisma.client_group_membersUncheckedCreateNestedManyWithoutClientsInput
   clientadminnotes?: Prisma.clientadminnotesUncheckedCreateNestedOneWithoutClientsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutClientsInput
@@ -2579,6 +2610,7 @@ export type clientsUpdateWithoutClient_assessment_reportsInput = {
   deleted_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   billpayments?: Prisma.billpaymentsUpdateManyWithoutClientsNestedInput
   bills?: Prisma.billsUpdateManyWithoutClientsNestedInput
+  client_cases?: Prisma.client_casesUpdateManyWithoutClientsNestedInput
   client_group_members?: Prisma.client_group_membersUpdateManyWithoutClientsNestedInput
   clientadminnotes?: Prisma.clientadminnotesUpdateOneWithoutClientsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutClientsNestedInput
@@ -2648,6 +2680,7 @@ export type clientsUncheckedUpdateWithoutClient_assessment_reportsInput = {
   deleted_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   billpayments?: Prisma.billpaymentsUncheckedUpdateManyWithoutClientsNestedInput
   bills?: Prisma.billsUncheckedUpdateManyWithoutClientsNestedInput
+  client_cases?: Prisma.client_casesUncheckedUpdateManyWithoutClientsNestedInput
   client_group_members?: Prisma.client_group_membersUncheckedUpdateManyWithoutClientsNestedInput
   clientadminnotes?: Prisma.clientadminnotesUncheckedUpdateOneWithoutClientsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutClientsNestedInput
@@ -2706,6 +2739,7 @@ export type clientsCreateWithoutClient_group_membersInput = {
   billpayments?: Prisma.billpaymentsCreateNestedManyWithoutClientsInput
   bills?: Prisma.billsCreateNestedManyWithoutClientsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutClientsInput
+  client_cases?: Prisma.client_casesCreateNestedManyWithoutClientsInput
   clientadminnotes?: Prisma.clientadminnotesCreateNestedOneWithoutClientsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutClientsInput
   cliententitlements?: Prisma.cliententitlementsCreateNestedManyWithoutClientsInput
@@ -2775,6 +2809,7 @@ export type clientsUncheckedCreateWithoutClient_group_membersInput = {
   billpayments?: Prisma.billpaymentsUncheckedCreateNestedManyWithoutClientsInput
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutClientsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutClientsInput
+  client_cases?: Prisma.client_casesUncheckedCreateNestedManyWithoutClientsInput
   clientadminnotes?: Prisma.clientadminnotesUncheckedCreateNestedOneWithoutClientsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutClientsInput
   cliententitlements?: Prisma.cliententitlementsUncheckedCreateNestedManyWithoutClientsInput
@@ -2848,6 +2883,7 @@ export type clientsUpdateWithoutClient_group_membersInput = {
   billpayments?: Prisma.billpaymentsUpdateManyWithoutClientsNestedInput
   bills?: Prisma.billsUpdateManyWithoutClientsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutClientsNestedInput
+  client_cases?: Prisma.client_casesUpdateManyWithoutClientsNestedInput
   clientadminnotes?: Prisma.clientadminnotesUpdateOneWithoutClientsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutClientsNestedInput
   cliententitlements?: Prisma.cliententitlementsUpdateManyWithoutClientsNestedInput
@@ -2917,6 +2953,7 @@ export type clientsUncheckedUpdateWithoutClient_group_membersInput = {
   billpayments?: Prisma.billpaymentsUncheckedUpdateManyWithoutClientsNestedInput
   bills?: Prisma.billsUncheckedUpdateManyWithoutClientsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutClientsNestedInput
+  client_cases?: Prisma.client_casesUncheckedUpdateManyWithoutClientsNestedInput
   clientadminnotes?: Prisma.clientadminnotesUncheckedUpdateOneWithoutClientsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutClientsNestedInput
   cliententitlements?: Prisma.cliententitlementsUncheckedUpdateManyWithoutClientsNestedInput
@@ -2974,6 +3011,7 @@ export type clientsCreateWithoutClientadminnotesInput = {
   billpayments?: Prisma.billpaymentsCreateNestedManyWithoutClientsInput
   bills?: Prisma.billsCreateNestedManyWithoutClientsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutClientsInput
+  client_cases?: Prisma.client_casesCreateNestedManyWithoutClientsInput
   client_group_members?: Prisma.client_group_membersCreateNestedManyWithoutClientsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutClientsInput
   cliententitlements?: Prisma.cliententitlementsCreateNestedManyWithoutClientsInput
@@ -3043,6 +3081,7 @@ export type clientsUncheckedCreateWithoutClientadminnotesInput = {
   billpayments?: Prisma.billpaymentsUncheckedCreateNestedManyWithoutClientsInput
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutClientsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutClientsInput
+  client_cases?: Prisma.client_casesUncheckedCreateNestedManyWithoutClientsInput
   client_group_members?: Prisma.client_group_membersUncheckedCreateNestedManyWithoutClientsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutClientsInput
   cliententitlements?: Prisma.cliententitlementsUncheckedCreateNestedManyWithoutClientsInput
@@ -3116,6 +3155,7 @@ export type clientsUpdateWithoutClientadminnotesInput = {
   billpayments?: Prisma.billpaymentsUpdateManyWithoutClientsNestedInput
   bills?: Prisma.billsUpdateManyWithoutClientsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutClientsNestedInput
+  client_cases?: Prisma.client_casesUpdateManyWithoutClientsNestedInput
   client_group_members?: Prisma.client_group_membersUpdateManyWithoutClientsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutClientsNestedInput
   cliententitlements?: Prisma.cliententitlementsUpdateManyWithoutClientsNestedInput
@@ -3185,6 +3225,7 @@ export type clientsUncheckedUpdateWithoutClientadminnotesInput = {
   billpayments?: Prisma.billpaymentsUncheckedUpdateManyWithoutClientsNestedInput
   bills?: Prisma.billsUncheckedUpdateManyWithoutClientsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutClientsNestedInput
+  client_cases?: Prisma.client_casesUncheckedUpdateManyWithoutClientsNestedInput
   client_group_members?: Prisma.client_group_membersUncheckedUpdateManyWithoutClientsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutClientsNestedInput
   cliententitlements?: Prisma.cliententitlementsUncheckedUpdateManyWithoutClientsNestedInput
@@ -3242,6 +3283,7 @@ export type clientsCreateWithoutClientdocumentsInput = {
   billpayments?: Prisma.billpaymentsCreateNestedManyWithoutClientsInput
   bills?: Prisma.billsCreateNestedManyWithoutClientsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutClientsInput
+  client_cases?: Prisma.client_casesCreateNestedManyWithoutClientsInput
   client_group_members?: Prisma.client_group_membersCreateNestedManyWithoutClientsInput
   clientadminnotes?: Prisma.clientadminnotesCreateNestedOneWithoutClientsInput
   cliententitlements?: Prisma.cliententitlementsCreateNestedManyWithoutClientsInput
@@ -3311,6 +3353,7 @@ export type clientsUncheckedCreateWithoutClientdocumentsInput = {
   billpayments?: Prisma.billpaymentsUncheckedCreateNestedManyWithoutClientsInput
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutClientsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutClientsInput
+  client_cases?: Prisma.client_casesUncheckedCreateNestedManyWithoutClientsInput
   client_group_members?: Prisma.client_group_membersUncheckedCreateNestedManyWithoutClientsInput
   clientadminnotes?: Prisma.clientadminnotesUncheckedCreateNestedOneWithoutClientsInput
   cliententitlements?: Prisma.cliententitlementsUncheckedCreateNestedManyWithoutClientsInput
@@ -3384,6 +3427,7 @@ export type clientsUpdateWithoutClientdocumentsInput = {
   billpayments?: Prisma.billpaymentsUpdateManyWithoutClientsNestedInput
   bills?: Prisma.billsUpdateManyWithoutClientsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutClientsNestedInput
+  client_cases?: Prisma.client_casesUpdateManyWithoutClientsNestedInput
   client_group_members?: Prisma.client_group_membersUpdateManyWithoutClientsNestedInput
   clientadminnotes?: Prisma.clientadminnotesUpdateOneWithoutClientsNestedInput
   cliententitlements?: Prisma.cliententitlementsUpdateManyWithoutClientsNestedInput
@@ -3453,6 +3497,7 @@ export type clientsUncheckedUpdateWithoutClientdocumentsInput = {
   billpayments?: Prisma.billpaymentsUncheckedUpdateManyWithoutClientsNestedInput
   bills?: Prisma.billsUncheckedUpdateManyWithoutClientsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutClientsNestedInput
+  client_cases?: Prisma.client_casesUncheckedUpdateManyWithoutClientsNestedInput
   client_group_members?: Prisma.client_group_membersUncheckedUpdateManyWithoutClientsNestedInput
   clientadminnotes?: Prisma.clientadminnotesUncheckedUpdateOneWithoutClientsNestedInput
   cliententitlements?: Prisma.cliententitlementsUncheckedUpdateManyWithoutClientsNestedInput
@@ -3510,6 +3555,7 @@ export type clientsCreateWithoutCliententitlementsInput = {
   billpayments?: Prisma.billpaymentsCreateNestedManyWithoutClientsInput
   bills?: Prisma.billsCreateNestedManyWithoutClientsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutClientsInput
+  client_cases?: Prisma.client_casesCreateNestedManyWithoutClientsInput
   client_group_members?: Prisma.client_group_membersCreateNestedManyWithoutClientsInput
   clientadminnotes?: Prisma.clientadminnotesCreateNestedOneWithoutClientsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutClientsInput
@@ -3579,6 +3625,7 @@ export type clientsUncheckedCreateWithoutCliententitlementsInput = {
   billpayments?: Prisma.billpaymentsUncheckedCreateNestedManyWithoutClientsInput
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutClientsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutClientsInput
+  client_cases?: Prisma.client_casesUncheckedCreateNestedManyWithoutClientsInput
   client_group_members?: Prisma.client_group_membersUncheckedCreateNestedManyWithoutClientsInput
   clientadminnotes?: Prisma.clientadminnotesUncheckedCreateNestedOneWithoutClientsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutClientsInput
@@ -3652,6 +3699,7 @@ export type clientsUpdateWithoutCliententitlementsInput = {
   billpayments?: Prisma.billpaymentsUpdateManyWithoutClientsNestedInput
   bills?: Prisma.billsUpdateManyWithoutClientsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutClientsNestedInput
+  client_cases?: Prisma.client_casesUpdateManyWithoutClientsNestedInput
   client_group_members?: Prisma.client_group_membersUpdateManyWithoutClientsNestedInput
   clientadminnotes?: Prisma.clientadminnotesUpdateOneWithoutClientsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutClientsNestedInput
@@ -3721,9 +3769,282 @@ export type clientsUncheckedUpdateWithoutCliententitlementsInput = {
   billpayments?: Prisma.billpaymentsUncheckedUpdateManyWithoutClientsNestedInput
   bills?: Prisma.billsUncheckedUpdateManyWithoutClientsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutClientsNestedInput
+  client_cases?: Prisma.client_casesUncheckedUpdateManyWithoutClientsNestedInput
   client_group_members?: Prisma.client_group_membersUncheckedUpdateManyWithoutClientsNestedInput
   clientadminnotes?: Prisma.clientadminnotesUncheckedUpdateOneWithoutClientsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutClientsNestedInput
+  enquiries?: Prisma.enquiriesUncheckedUpdateManyWithoutClientsNestedInput
+  external_training_summary?: Prisma.external_training_summaryUncheckedUpdateManyWithoutClientsNestedInput
+  form_responses?: Prisma.form_responsesUncheckedUpdateManyWithoutClientsNestedInput
+  group_attendance?: Prisma.group_attendanceUncheckedUpdateManyWithoutClientsNestedInput
+  injuries?: Prisma.injuriesUncheckedUpdateManyWithoutClientsNestedInput
+  performance_assessments?: Prisma.performance_assessmentsUncheckedUpdateManyWithoutClientsNestedInput
+  refunds?: Prisma.refundsUncheckedUpdateManyWithoutClientsNestedInput
+  scientific_resources?: Prisma.scientific_resourcesUncheckedUpdateManyWithoutClientsNestedInput
+  sessions?: Prisma.sessionsUncheckedUpdateManyWithoutClientsNestedInput
+  subscriptions?: Prisma.subscriptionsUncheckedUpdateManyWithoutClientsNestedInput
+  waitlist?: Prisma.waitlistUncheckedUpdateManyWithoutClientsNestedInput
+}
+
+export type clientsCreateWithoutClient_casesInput = {
+  id?: string
+  uhid: string
+  registered_on?: Date | string | null
+  honorific?: string | null
+  first_name: string
+  middle_name?: string | null
+  last_name: string
+  gender?: string | null
+  mobile_no: string
+  aadhaar_no?: string | null
+  blood_group?: string | null
+  dob?: Date | string | null
+  age?: number | null
+  email?: string | null
+  alternate_mobile_no?: string | null
+  occupation?: string | null
+  sport?: string | null
+  athlete_type?: string | null
+  org_name?: string | null
+  address?: string | null
+  locality?: string | null
+  pincode?: string | null
+  city?: string | null
+  district?: string | null
+  state?: string | null
+  country?: string | null
+  has_insurance?: boolean | null
+  insurance_provider?: string | null
+  insurance_policy_no?: string | null
+  insurance_validity?: Date | string | null
+  insurance_coverage_amount?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  is_vip?: boolean | null
+  referral_source?: string | null
+  referral_source_detail?: string | null
+  created_at?: Date | string | null
+  updated_at?: Date | string | null
+  deleted_at?: Date | string | null
+  billpayments?: Prisma.billpaymentsCreateNestedManyWithoutClientsInput
+  bills?: Prisma.billsCreateNestedManyWithoutClientsInput
+  client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutClientsInput
+  client_group_members?: Prisma.client_group_membersCreateNestedManyWithoutClientsInput
+  clientadminnotes?: Prisma.clientadminnotesCreateNestedOneWithoutClientsInput
+  clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutClientsInput
+  cliententitlements?: Prisma.cliententitlementsCreateNestedManyWithoutClientsInput
+  users_clients_assigned_consultant_idTousers?: Prisma.usersCreateNestedOneWithoutClients_clients_assigned_consultant_idTousersInput
+  users_clients_created_byTousers?: Prisma.usersCreateNestedOneWithoutClients_clients_created_byTousersInput
+  locations?: Prisma.locationsCreateNestedOneWithoutClientsInput
+  organizations: Prisma.organizationsCreateNestedOneWithoutClientsInput
+  profiles_clients_primary_scientist_idToprofiles?: Prisma.profilesCreateNestedOneWithoutClients_clients_primary_scientist_idToprofilesInput
+  profiles_clients_profile_idToprofiles?: Prisma.profilesCreateNestedOneWithoutClients_clients_profile_idToprofilesInput
+  enquiries?: Prisma.enquiriesCreateNestedManyWithoutClientsInput
+  external_training_summary?: Prisma.external_training_summaryCreateNestedManyWithoutClientsInput
+  form_responses?: Prisma.form_responsesCreateNestedManyWithoutClientsInput
+  group_attendance?: Prisma.group_attendanceCreateNestedManyWithoutClientsInput
+  injuries?: Prisma.injuriesCreateNestedManyWithoutClientsInput
+  performance_assessments?: Prisma.performance_assessmentsCreateNestedManyWithoutClientsInput
+  refunds?: Prisma.refundsCreateNestedManyWithoutClientsInput
+  scientific_resources?: Prisma.scientific_resourcesCreateNestedManyWithoutClientsInput
+  sessions?: Prisma.sessionsCreateNestedManyWithoutClientsInput
+  subscriptions?: Prisma.subscriptionsCreateNestedManyWithoutClientsInput
+  waitlist?: Prisma.waitlistCreateNestedManyWithoutClientsInput
+}
+
+export type clientsUncheckedCreateWithoutClient_casesInput = {
+  id?: string
+  organization_id: string
+  location_id?: string | null
+  uhid: string
+  registered_on?: Date | string | null
+  honorific?: string | null
+  first_name: string
+  middle_name?: string | null
+  last_name: string
+  gender?: string | null
+  mobile_no: string
+  aadhaar_no?: string | null
+  blood_group?: string | null
+  dob?: Date | string | null
+  age?: number | null
+  email?: string | null
+  alternate_mobile_no?: string | null
+  occupation?: string | null
+  sport?: string | null
+  athlete_type?: string | null
+  org_name?: string | null
+  address?: string | null
+  locality?: string | null
+  pincode?: string | null
+  city?: string | null
+  district?: string | null
+  state?: string | null
+  country?: string | null
+  has_insurance?: boolean | null
+  insurance_provider?: string | null
+  insurance_policy_no?: string | null
+  insurance_validity?: Date | string | null
+  insurance_coverage_amount?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  is_vip?: boolean | null
+  referral_source?: string | null
+  referral_source_detail?: string | null
+  assigned_consultant_id?: string | null
+  created_by?: string | null
+  created_at?: Date | string | null
+  updated_at?: Date | string | null
+  profile_id?: string | null
+  primary_scientist_id?: string | null
+  deleted_at?: Date | string | null
+  billpayments?: Prisma.billpaymentsUncheckedCreateNestedManyWithoutClientsInput
+  bills?: Prisma.billsUncheckedCreateNestedManyWithoutClientsInput
+  client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutClientsInput
+  client_group_members?: Prisma.client_group_membersUncheckedCreateNestedManyWithoutClientsInput
+  clientadminnotes?: Prisma.clientadminnotesUncheckedCreateNestedOneWithoutClientsInput
+  clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutClientsInput
+  cliententitlements?: Prisma.cliententitlementsUncheckedCreateNestedManyWithoutClientsInput
+  enquiries?: Prisma.enquiriesUncheckedCreateNestedManyWithoutClientsInput
+  external_training_summary?: Prisma.external_training_summaryUncheckedCreateNestedManyWithoutClientsInput
+  form_responses?: Prisma.form_responsesUncheckedCreateNestedManyWithoutClientsInput
+  group_attendance?: Prisma.group_attendanceUncheckedCreateNestedManyWithoutClientsInput
+  injuries?: Prisma.injuriesUncheckedCreateNestedManyWithoutClientsInput
+  performance_assessments?: Prisma.performance_assessmentsUncheckedCreateNestedManyWithoutClientsInput
+  refunds?: Prisma.refundsUncheckedCreateNestedManyWithoutClientsInput
+  scientific_resources?: Prisma.scientific_resourcesUncheckedCreateNestedManyWithoutClientsInput
+  sessions?: Prisma.sessionsUncheckedCreateNestedManyWithoutClientsInput
+  subscriptions?: Prisma.subscriptionsUncheckedCreateNestedManyWithoutClientsInput
+  waitlist?: Prisma.waitlistUncheckedCreateNestedManyWithoutClientsInput
+}
+
+export type clientsCreateOrConnectWithoutClient_casesInput = {
+  where: Prisma.clientsWhereUniqueInput
+  create: Prisma.XOR<Prisma.clientsCreateWithoutClient_casesInput, Prisma.clientsUncheckedCreateWithoutClient_casesInput>
+}
+
+export type clientsUpsertWithoutClient_casesInput = {
+  update: Prisma.XOR<Prisma.clientsUpdateWithoutClient_casesInput, Prisma.clientsUncheckedUpdateWithoutClient_casesInput>
+  create: Prisma.XOR<Prisma.clientsCreateWithoutClient_casesInput, Prisma.clientsUncheckedCreateWithoutClient_casesInput>
+  where?: Prisma.clientsWhereInput
+}
+
+export type clientsUpdateToOneWithWhereWithoutClient_casesInput = {
+  where?: Prisma.clientsWhereInput
+  data: Prisma.XOR<Prisma.clientsUpdateWithoutClient_casesInput, Prisma.clientsUncheckedUpdateWithoutClient_casesInput>
+}
+
+export type clientsUpdateWithoutClient_casesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  uhid?: Prisma.StringFieldUpdateOperationsInput | string
+  registered_on?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  honorific?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  first_name?: Prisma.StringFieldUpdateOperationsInput | string
+  middle_name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  last_name?: Prisma.StringFieldUpdateOperationsInput | string
+  gender?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  mobile_no?: Prisma.StringFieldUpdateOperationsInput | string
+  aadhaar_no?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  blood_group?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dob?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  age?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  alternate_mobile_no?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  occupation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sport?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  athlete_type?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  org_name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  address?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  locality?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  pincode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  city?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  district?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  state?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  country?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  has_insurance?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  insurance_provider?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  insurance_policy_no?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  insurance_validity?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  insurance_coverage_amount?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  is_vip?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  referral_source?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  referral_source_detail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  created_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  updated_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deleted_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  billpayments?: Prisma.billpaymentsUpdateManyWithoutClientsNestedInput
+  bills?: Prisma.billsUpdateManyWithoutClientsNestedInput
+  client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutClientsNestedInput
+  client_group_members?: Prisma.client_group_membersUpdateManyWithoutClientsNestedInput
+  clientadminnotes?: Prisma.clientadminnotesUpdateOneWithoutClientsNestedInput
+  clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutClientsNestedInput
+  cliententitlements?: Prisma.cliententitlementsUpdateManyWithoutClientsNestedInput
+  users_clients_assigned_consultant_idTousers?: Prisma.usersUpdateOneWithoutClients_clients_assigned_consultant_idTousersNestedInput
+  users_clients_created_byTousers?: Prisma.usersUpdateOneWithoutClients_clients_created_byTousersNestedInput
+  locations?: Prisma.locationsUpdateOneWithoutClientsNestedInput
+  organizations?: Prisma.organizationsUpdateOneRequiredWithoutClientsNestedInput
+  profiles_clients_primary_scientist_idToprofiles?: Prisma.profilesUpdateOneWithoutClients_clients_primary_scientist_idToprofilesNestedInput
+  profiles_clients_profile_idToprofiles?: Prisma.profilesUpdateOneWithoutClients_clients_profile_idToprofilesNestedInput
+  enquiries?: Prisma.enquiriesUpdateManyWithoutClientsNestedInput
+  external_training_summary?: Prisma.external_training_summaryUpdateManyWithoutClientsNestedInput
+  form_responses?: Prisma.form_responsesUpdateManyWithoutClientsNestedInput
+  group_attendance?: Prisma.group_attendanceUpdateManyWithoutClientsNestedInput
+  injuries?: Prisma.injuriesUpdateManyWithoutClientsNestedInput
+  performance_assessments?: Prisma.performance_assessmentsUpdateManyWithoutClientsNestedInput
+  refunds?: Prisma.refundsUpdateManyWithoutClientsNestedInput
+  scientific_resources?: Prisma.scientific_resourcesUpdateManyWithoutClientsNestedInput
+  sessions?: Prisma.sessionsUpdateManyWithoutClientsNestedInput
+  subscriptions?: Prisma.subscriptionsUpdateManyWithoutClientsNestedInput
+  waitlist?: Prisma.waitlistUpdateManyWithoutClientsNestedInput
+}
+
+export type clientsUncheckedUpdateWithoutClient_casesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  organization_id?: Prisma.StringFieldUpdateOperationsInput | string
+  location_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  uhid?: Prisma.StringFieldUpdateOperationsInput | string
+  registered_on?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  honorific?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  first_name?: Prisma.StringFieldUpdateOperationsInput | string
+  middle_name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  last_name?: Prisma.StringFieldUpdateOperationsInput | string
+  gender?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  mobile_no?: Prisma.StringFieldUpdateOperationsInput | string
+  aadhaar_no?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  blood_group?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dob?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  age?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  alternate_mobile_no?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  occupation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sport?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  athlete_type?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  org_name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  address?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  locality?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  pincode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  city?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  district?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  state?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  country?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  has_insurance?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  insurance_provider?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  insurance_policy_no?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  insurance_validity?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  insurance_coverage_amount?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  is_vip?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  referral_source?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  referral_source_detail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  assigned_consultant_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  created_by?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  created_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  updated_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  profile_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  primary_scientist_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deleted_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  billpayments?: Prisma.billpaymentsUncheckedUpdateManyWithoutClientsNestedInput
+  bills?: Prisma.billsUncheckedUpdateManyWithoutClientsNestedInput
+  client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutClientsNestedInput
+  client_group_members?: Prisma.client_group_membersUncheckedUpdateManyWithoutClientsNestedInput
+  clientadminnotes?: Prisma.clientadminnotesUncheckedUpdateOneWithoutClientsNestedInput
+  clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutClientsNestedInput
+  cliententitlements?: Prisma.cliententitlementsUncheckedUpdateManyWithoutClientsNestedInput
   enquiries?: Prisma.enquiriesUncheckedUpdateManyWithoutClientsNestedInput
   external_training_summary?: Prisma.external_training_summaryUncheckedUpdateManyWithoutClientsNestedInput
   form_responses?: Prisma.form_responsesUncheckedUpdateManyWithoutClientsNestedInput
@@ -3778,6 +4099,7 @@ export type clientsCreateWithoutEnquiriesInput = {
   billpayments?: Prisma.billpaymentsCreateNestedManyWithoutClientsInput
   bills?: Prisma.billsCreateNestedManyWithoutClientsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutClientsInput
+  client_cases?: Prisma.client_casesCreateNestedManyWithoutClientsInput
   client_group_members?: Prisma.client_group_membersCreateNestedManyWithoutClientsInput
   clientadminnotes?: Prisma.clientadminnotesCreateNestedOneWithoutClientsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutClientsInput
@@ -3847,6 +4169,7 @@ export type clientsUncheckedCreateWithoutEnquiriesInput = {
   billpayments?: Prisma.billpaymentsUncheckedCreateNestedManyWithoutClientsInput
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutClientsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutClientsInput
+  client_cases?: Prisma.client_casesUncheckedCreateNestedManyWithoutClientsInput
   client_group_members?: Prisma.client_group_membersUncheckedCreateNestedManyWithoutClientsInput
   clientadminnotes?: Prisma.clientadminnotesUncheckedCreateNestedOneWithoutClientsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutClientsInput
@@ -3920,6 +4243,7 @@ export type clientsUpdateWithoutEnquiriesInput = {
   billpayments?: Prisma.billpaymentsUpdateManyWithoutClientsNestedInput
   bills?: Prisma.billsUpdateManyWithoutClientsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutClientsNestedInput
+  client_cases?: Prisma.client_casesUpdateManyWithoutClientsNestedInput
   client_group_members?: Prisma.client_group_membersUpdateManyWithoutClientsNestedInput
   clientadminnotes?: Prisma.clientadminnotesUpdateOneWithoutClientsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutClientsNestedInput
@@ -3989,6 +4313,7 @@ export type clientsUncheckedUpdateWithoutEnquiriesInput = {
   billpayments?: Prisma.billpaymentsUncheckedUpdateManyWithoutClientsNestedInput
   bills?: Prisma.billsUncheckedUpdateManyWithoutClientsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutClientsNestedInput
+  client_cases?: Prisma.client_casesUncheckedUpdateManyWithoutClientsNestedInput
   client_group_members?: Prisma.client_group_membersUncheckedUpdateManyWithoutClientsNestedInput
   clientadminnotes?: Prisma.clientadminnotesUncheckedUpdateOneWithoutClientsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutClientsNestedInput
@@ -4046,6 +4371,7 @@ export type clientsCreateWithoutExternal_training_summaryInput = {
   billpayments?: Prisma.billpaymentsCreateNestedManyWithoutClientsInput
   bills?: Prisma.billsCreateNestedManyWithoutClientsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutClientsInput
+  client_cases?: Prisma.client_casesCreateNestedManyWithoutClientsInput
   client_group_members?: Prisma.client_group_membersCreateNestedManyWithoutClientsInput
   clientadminnotes?: Prisma.clientadminnotesCreateNestedOneWithoutClientsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutClientsInput
@@ -4115,6 +4441,7 @@ export type clientsUncheckedCreateWithoutExternal_training_summaryInput = {
   billpayments?: Prisma.billpaymentsUncheckedCreateNestedManyWithoutClientsInput
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutClientsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutClientsInput
+  client_cases?: Prisma.client_casesUncheckedCreateNestedManyWithoutClientsInput
   client_group_members?: Prisma.client_group_membersUncheckedCreateNestedManyWithoutClientsInput
   clientadminnotes?: Prisma.clientadminnotesUncheckedCreateNestedOneWithoutClientsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutClientsInput
@@ -4188,6 +4515,7 @@ export type clientsUpdateWithoutExternal_training_summaryInput = {
   billpayments?: Prisma.billpaymentsUpdateManyWithoutClientsNestedInput
   bills?: Prisma.billsUpdateManyWithoutClientsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutClientsNestedInput
+  client_cases?: Prisma.client_casesUpdateManyWithoutClientsNestedInput
   client_group_members?: Prisma.client_group_membersUpdateManyWithoutClientsNestedInput
   clientadminnotes?: Prisma.clientadminnotesUpdateOneWithoutClientsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutClientsNestedInput
@@ -4257,6 +4585,7 @@ export type clientsUncheckedUpdateWithoutExternal_training_summaryInput = {
   billpayments?: Prisma.billpaymentsUncheckedUpdateManyWithoutClientsNestedInput
   bills?: Prisma.billsUncheckedUpdateManyWithoutClientsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutClientsNestedInput
+  client_cases?: Prisma.client_casesUncheckedUpdateManyWithoutClientsNestedInput
   client_group_members?: Prisma.client_group_membersUncheckedUpdateManyWithoutClientsNestedInput
   clientadminnotes?: Prisma.clientadminnotesUncheckedUpdateOneWithoutClientsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutClientsNestedInput
@@ -4314,6 +4643,7 @@ export type clientsCreateWithoutForm_responsesInput = {
   billpayments?: Prisma.billpaymentsCreateNestedManyWithoutClientsInput
   bills?: Prisma.billsCreateNestedManyWithoutClientsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutClientsInput
+  client_cases?: Prisma.client_casesCreateNestedManyWithoutClientsInput
   client_group_members?: Prisma.client_group_membersCreateNestedManyWithoutClientsInput
   clientadminnotes?: Prisma.clientadminnotesCreateNestedOneWithoutClientsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutClientsInput
@@ -4383,6 +4713,7 @@ export type clientsUncheckedCreateWithoutForm_responsesInput = {
   billpayments?: Prisma.billpaymentsUncheckedCreateNestedManyWithoutClientsInput
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutClientsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutClientsInput
+  client_cases?: Prisma.client_casesUncheckedCreateNestedManyWithoutClientsInput
   client_group_members?: Prisma.client_group_membersUncheckedCreateNestedManyWithoutClientsInput
   clientadminnotes?: Prisma.clientadminnotesUncheckedCreateNestedOneWithoutClientsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutClientsInput
@@ -4456,6 +4787,7 @@ export type clientsUpdateWithoutForm_responsesInput = {
   billpayments?: Prisma.billpaymentsUpdateManyWithoutClientsNestedInput
   bills?: Prisma.billsUpdateManyWithoutClientsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutClientsNestedInput
+  client_cases?: Prisma.client_casesUpdateManyWithoutClientsNestedInput
   client_group_members?: Prisma.client_group_membersUpdateManyWithoutClientsNestedInput
   clientadminnotes?: Prisma.clientadminnotesUpdateOneWithoutClientsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutClientsNestedInput
@@ -4525,6 +4857,7 @@ export type clientsUncheckedUpdateWithoutForm_responsesInput = {
   billpayments?: Prisma.billpaymentsUncheckedUpdateManyWithoutClientsNestedInput
   bills?: Prisma.billsUncheckedUpdateManyWithoutClientsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutClientsNestedInput
+  client_cases?: Prisma.client_casesUncheckedUpdateManyWithoutClientsNestedInput
   client_group_members?: Prisma.client_group_membersUncheckedUpdateManyWithoutClientsNestedInput
   clientadminnotes?: Prisma.clientadminnotesUncheckedUpdateOneWithoutClientsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutClientsNestedInput
@@ -4582,6 +4915,7 @@ export type clientsCreateWithoutGroup_attendanceInput = {
   billpayments?: Prisma.billpaymentsCreateNestedManyWithoutClientsInput
   bills?: Prisma.billsCreateNestedManyWithoutClientsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutClientsInput
+  client_cases?: Prisma.client_casesCreateNestedManyWithoutClientsInput
   client_group_members?: Prisma.client_group_membersCreateNestedManyWithoutClientsInput
   clientadminnotes?: Prisma.clientadminnotesCreateNestedOneWithoutClientsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutClientsInput
@@ -4651,6 +4985,7 @@ export type clientsUncheckedCreateWithoutGroup_attendanceInput = {
   billpayments?: Prisma.billpaymentsUncheckedCreateNestedManyWithoutClientsInput
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutClientsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutClientsInput
+  client_cases?: Prisma.client_casesUncheckedCreateNestedManyWithoutClientsInput
   client_group_members?: Prisma.client_group_membersUncheckedCreateNestedManyWithoutClientsInput
   clientadminnotes?: Prisma.clientadminnotesUncheckedCreateNestedOneWithoutClientsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutClientsInput
@@ -4724,6 +5059,7 @@ export type clientsUpdateWithoutGroup_attendanceInput = {
   billpayments?: Prisma.billpaymentsUpdateManyWithoutClientsNestedInput
   bills?: Prisma.billsUpdateManyWithoutClientsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutClientsNestedInput
+  client_cases?: Prisma.client_casesUpdateManyWithoutClientsNestedInput
   client_group_members?: Prisma.client_group_membersUpdateManyWithoutClientsNestedInput
   clientadminnotes?: Prisma.clientadminnotesUpdateOneWithoutClientsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutClientsNestedInput
@@ -4793,6 +5129,7 @@ export type clientsUncheckedUpdateWithoutGroup_attendanceInput = {
   billpayments?: Prisma.billpaymentsUncheckedUpdateManyWithoutClientsNestedInput
   bills?: Prisma.billsUncheckedUpdateManyWithoutClientsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutClientsNestedInput
+  client_cases?: Prisma.client_casesUncheckedUpdateManyWithoutClientsNestedInput
   client_group_members?: Prisma.client_group_membersUncheckedUpdateManyWithoutClientsNestedInput
   clientadminnotes?: Prisma.clientadminnotesUncheckedUpdateOneWithoutClientsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutClientsNestedInput
@@ -4850,6 +5187,7 @@ export type clientsCreateWithoutInjuriesInput = {
   billpayments?: Prisma.billpaymentsCreateNestedManyWithoutClientsInput
   bills?: Prisma.billsCreateNestedManyWithoutClientsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutClientsInput
+  client_cases?: Prisma.client_casesCreateNestedManyWithoutClientsInput
   client_group_members?: Prisma.client_group_membersCreateNestedManyWithoutClientsInput
   clientadminnotes?: Prisma.clientadminnotesCreateNestedOneWithoutClientsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutClientsInput
@@ -4919,6 +5257,7 @@ export type clientsUncheckedCreateWithoutInjuriesInput = {
   billpayments?: Prisma.billpaymentsUncheckedCreateNestedManyWithoutClientsInput
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutClientsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutClientsInput
+  client_cases?: Prisma.client_casesUncheckedCreateNestedManyWithoutClientsInput
   client_group_members?: Prisma.client_group_membersUncheckedCreateNestedManyWithoutClientsInput
   clientadminnotes?: Prisma.clientadminnotesUncheckedCreateNestedOneWithoutClientsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutClientsInput
@@ -4992,6 +5331,7 @@ export type clientsUpdateWithoutInjuriesInput = {
   billpayments?: Prisma.billpaymentsUpdateManyWithoutClientsNestedInput
   bills?: Prisma.billsUpdateManyWithoutClientsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutClientsNestedInput
+  client_cases?: Prisma.client_casesUpdateManyWithoutClientsNestedInput
   client_group_members?: Prisma.client_group_membersUpdateManyWithoutClientsNestedInput
   clientadminnotes?: Prisma.clientadminnotesUpdateOneWithoutClientsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutClientsNestedInput
@@ -5061,6 +5401,7 @@ export type clientsUncheckedUpdateWithoutInjuriesInput = {
   billpayments?: Prisma.billpaymentsUncheckedUpdateManyWithoutClientsNestedInput
   bills?: Prisma.billsUncheckedUpdateManyWithoutClientsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutClientsNestedInput
+  client_cases?: Prisma.client_casesUncheckedUpdateManyWithoutClientsNestedInput
   client_group_members?: Prisma.client_group_membersUncheckedUpdateManyWithoutClientsNestedInput
   clientadminnotes?: Prisma.clientadminnotesUncheckedUpdateOneWithoutClientsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutClientsNestedInput
@@ -5118,6 +5459,7 @@ export type clientsCreateWithoutLocationsInput = {
   billpayments?: Prisma.billpaymentsCreateNestedManyWithoutClientsInput
   bills?: Prisma.billsCreateNestedManyWithoutClientsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutClientsInput
+  client_cases?: Prisma.client_casesCreateNestedManyWithoutClientsInput
   client_group_members?: Prisma.client_group_membersCreateNestedManyWithoutClientsInput
   clientadminnotes?: Prisma.clientadminnotesCreateNestedOneWithoutClientsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutClientsInput
@@ -5186,6 +5528,7 @@ export type clientsUncheckedCreateWithoutLocationsInput = {
   billpayments?: Prisma.billpaymentsUncheckedCreateNestedManyWithoutClientsInput
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutClientsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutClientsInput
+  client_cases?: Prisma.client_casesUncheckedCreateNestedManyWithoutClientsInput
   client_group_members?: Prisma.client_group_membersUncheckedCreateNestedManyWithoutClientsInput
   clientadminnotes?: Prisma.clientadminnotesUncheckedCreateNestedOneWithoutClientsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutClientsInput
@@ -5319,6 +5662,7 @@ export type clientsCreateWithoutOrganizationsInput = {
   billpayments?: Prisma.billpaymentsCreateNestedManyWithoutClientsInput
   bills?: Prisma.billsCreateNestedManyWithoutClientsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutClientsInput
+  client_cases?: Prisma.client_casesCreateNestedManyWithoutClientsInput
   client_group_members?: Prisma.client_group_membersCreateNestedManyWithoutClientsInput
   clientadminnotes?: Prisma.clientadminnotesCreateNestedOneWithoutClientsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutClientsInput
@@ -5387,6 +5731,7 @@ export type clientsUncheckedCreateWithoutOrganizationsInput = {
   billpayments?: Prisma.billpaymentsUncheckedCreateNestedManyWithoutClientsInput
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutClientsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutClientsInput
+  client_cases?: Prisma.client_casesUncheckedCreateNestedManyWithoutClientsInput
   client_group_members?: Prisma.client_group_membersUncheckedCreateNestedManyWithoutClientsInput
   clientadminnotes?: Prisma.clientadminnotesUncheckedCreateNestedOneWithoutClientsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutClientsInput
@@ -5471,6 +5816,7 @@ export type clientsCreateWithoutPerformance_assessmentsInput = {
   billpayments?: Prisma.billpaymentsCreateNestedManyWithoutClientsInput
   bills?: Prisma.billsCreateNestedManyWithoutClientsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutClientsInput
+  client_cases?: Prisma.client_casesCreateNestedManyWithoutClientsInput
   client_group_members?: Prisma.client_group_membersCreateNestedManyWithoutClientsInput
   clientadminnotes?: Prisma.clientadminnotesCreateNestedOneWithoutClientsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutClientsInput
@@ -5540,6 +5886,7 @@ export type clientsUncheckedCreateWithoutPerformance_assessmentsInput = {
   billpayments?: Prisma.billpaymentsUncheckedCreateNestedManyWithoutClientsInput
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutClientsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutClientsInput
+  client_cases?: Prisma.client_casesUncheckedCreateNestedManyWithoutClientsInput
   client_group_members?: Prisma.client_group_membersUncheckedCreateNestedManyWithoutClientsInput
   clientadminnotes?: Prisma.clientadminnotesUncheckedCreateNestedOneWithoutClientsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutClientsInput
@@ -5613,6 +5960,7 @@ export type clientsUpdateWithoutPerformance_assessmentsInput = {
   billpayments?: Prisma.billpaymentsUpdateManyWithoutClientsNestedInput
   bills?: Prisma.billsUpdateManyWithoutClientsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutClientsNestedInput
+  client_cases?: Prisma.client_casesUpdateManyWithoutClientsNestedInput
   client_group_members?: Prisma.client_group_membersUpdateManyWithoutClientsNestedInput
   clientadminnotes?: Prisma.clientadminnotesUpdateOneWithoutClientsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutClientsNestedInput
@@ -5682,6 +6030,7 @@ export type clientsUncheckedUpdateWithoutPerformance_assessmentsInput = {
   billpayments?: Prisma.billpaymentsUncheckedUpdateManyWithoutClientsNestedInput
   bills?: Prisma.billsUncheckedUpdateManyWithoutClientsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutClientsNestedInput
+  client_cases?: Prisma.client_casesUncheckedUpdateManyWithoutClientsNestedInput
   client_group_members?: Prisma.client_group_membersUncheckedUpdateManyWithoutClientsNestedInput
   clientadminnotes?: Prisma.clientadminnotesUncheckedUpdateOneWithoutClientsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutClientsNestedInput
@@ -5739,6 +6088,7 @@ export type clientsCreateWithoutProfiles_clients_primary_scientist_idToprofilesI
   billpayments?: Prisma.billpaymentsCreateNestedManyWithoutClientsInput
   bills?: Prisma.billsCreateNestedManyWithoutClientsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutClientsInput
+  client_cases?: Prisma.client_casesCreateNestedManyWithoutClientsInput
   client_group_members?: Prisma.client_group_membersCreateNestedManyWithoutClientsInput
   clientadminnotes?: Prisma.clientadminnotesCreateNestedOneWithoutClientsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutClientsInput
@@ -5807,6 +6157,7 @@ export type clientsUncheckedCreateWithoutProfiles_clients_primary_scientist_idTo
   billpayments?: Prisma.billpaymentsUncheckedCreateNestedManyWithoutClientsInput
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutClientsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutClientsInput
+  client_cases?: Prisma.client_casesUncheckedCreateNestedManyWithoutClientsInput
   client_group_members?: Prisma.client_group_membersUncheckedCreateNestedManyWithoutClientsInput
   clientadminnotes?: Prisma.clientadminnotesUncheckedCreateNestedOneWithoutClientsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutClientsInput
@@ -5875,6 +6226,7 @@ export type clientsCreateWithoutProfiles_clients_profile_idToprofilesInput = {
   billpayments?: Prisma.billpaymentsCreateNestedManyWithoutClientsInput
   bills?: Prisma.billsCreateNestedManyWithoutClientsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutClientsInput
+  client_cases?: Prisma.client_casesCreateNestedManyWithoutClientsInput
   client_group_members?: Prisma.client_group_membersCreateNestedManyWithoutClientsInput
   clientadminnotes?: Prisma.clientadminnotesCreateNestedOneWithoutClientsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutClientsInput
@@ -5943,6 +6295,7 @@ export type clientsUncheckedCreateWithoutProfiles_clients_profile_idToprofilesIn
   billpayments?: Prisma.billpaymentsUncheckedCreateNestedManyWithoutClientsInput
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutClientsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutClientsInput
+  client_cases?: Prisma.client_casesUncheckedCreateNestedManyWithoutClientsInput
   client_group_members?: Prisma.client_group_membersUncheckedCreateNestedManyWithoutClientsInput
   clientadminnotes?: Prisma.clientadminnotesUncheckedCreateNestedOneWithoutClientsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutClientsInput
@@ -6043,6 +6396,7 @@ export type clientsCreateWithoutRefundsInput = {
   billpayments?: Prisma.billpaymentsCreateNestedManyWithoutClientsInput
   bills?: Prisma.billsCreateNestedManyWithoutClientsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutClientsInput
+  client_cases?: Prisma.client_casesCreateNestedManyWithoutClientsInput
   client_group_members?: Prisma.client_group_membersCreateNestedManyWithoutClientsInput
   clientadminnotes?: Prisma.clientadminnotesCreateNestedOneWithoutClientsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutClientsInput
@@ -6112,6 +6466,7 @@ export type clientsUncheckedCreateWithoutRefundsInput = {
   billpayments?: Prisma.billpaymentsUncheckedCreateNestedManyWithoutClientsInput
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutClientsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutClientsInput
+  client_cases?: Prisma.client_casesUncheckedCreateNestedManyWithoutClientsInput
   client_group_members?: Prisma.client_group_membersUncheckedCreateNestedManyWithoutClientsInput
   clientadminnotes?: Prisma.clientadminnotesUncheckedCreateNestedOneWithoutClientsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutClientsInput
@@ -6185,6 +6540,7 @@ export type clientsUpdateWithoutRefundsInput = {
   billpayments?: Prisma.billpaymentsUpdateManyWithoutClientsNestedInput
   bills?: Prisma.billsUpdateManyWithoutClientsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutClientsNestedInput
+  client_cases?: Prisma.client_casesUpdateManyWithoutClientsNestedInput
   client_group_members?: Prisma.client_group_membersUpdateManyWithoutClientsNestedInput
   clientadminnotes?: Prisma.clientadminnotesUpdateOneWithoutClientsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutClientsNestedInput
@@ -6254,6 +6610,7 @@ export type clientsUncheckedUpdateWithoutRefundsInput = {
   billpayments?: Prisma.billpaymentsUncheckedUpdateManyWithoutClientsNestedInput
   bills?: Prisma.billsUncheckedUpdateManyWithoutClientsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutClientsNestedInput
+  client_cases?: Prisma.client_casesUncheckedUpdateManyWithoutClientsNestedInput
   client_group_members?: Prisma.client_group_membersUncheckedUpdateManyWithoutClientsNestedInput
   clientadminnotes?: Prisma.clientadminnotesUncheckedUpdateOneWithoutClientsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutClientsNestedInput
@@ -6311,6 +6668,7 @@ export type clientsCreateWithoutScientific_resourcesInput = {
   billpayments?: Prisma.billpaymentsCreateNestedManyWithoutClientsInput
   bills?: Prisma.billsCreateNestedManyWithoutClientsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutClientsInput
+  client_cases?: Prisma.client_casesCreateNestedManyWithoutClientsInput
   client_group_members?: Prisma.client_group_membersCreateNestedManyWithoutClientsInput
   clientadminnotes?: Prisma.clientadminnotesCreateNestedOneWithoutClientsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutClientsInput
@@ -6380,6 +6738,7 @@ export type clientsUncheckedCreateWithoutScientific_resourcesInput = {
   billpayments?: Prisma.billpaymentsUncheckedCreateNestedManyWithoutClientsInput
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutClientsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutClientsInput
+  client_cases?: Prisma.client_casesUncheckedCreateNestedManyWithoutClientsInput
   client_group_members?: Prisma.client_group_membersUncheckedCreateNestedManyWithoutClientsInput
   clientadminnotes?: Prisma.clientadminnotesUncheckedCreateNestedOneWithoutClientsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutClientsInput
@@ -6453,6 +6812,7 @@ export type clientsUpdateWithoutScientific_resourcesInput = {
   billpayments?: Prisma.billpaymentsUpdateManyWithoutClientsNestedInput
   bills?: Prisma.billsUpdateManyWithoutClientsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutClientsNestedInput
+  client_cases?: Prisma.client_casesUpdateManyWithoutClientsNestedInput
   client_group_members?: Prisma.client_group_membersUpdateManyWithoutClientsNestedInput
   clientadminnotes?: Prisma.clientadminnotesUpdateOneWithoutClientsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutClientsNestedInput
@@ -6522,6 +6882,7 @@ export type clientsUncheckedUpdateWithoutScientific_resourcesInput = {
   billpayments?: Prisma.billpaymentsUncheckedUpdateManyWithoutClientsNestedInput
   bills?: Prisma.billsUncheckedUpdateManyWithoutClientsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutClientsNestedInput
+  client_cases?: Prisma.client_casesUncheckedUpdateManyWithoutClientsNestedInput
   client_group_members?: Prisma.client_group_membersUncheckedUpdateManyWithoutClientsNestedInput
   clientadminnotes?: Prisma.clientadminnotesUncheckedUpdateOneWithoutClientsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutClientsNestedInput
@@ -6579,6 +6940,7 @@ export type clientsCreateWithoutSessionsInput = {
   billpayments?: Prisma.billpaymentsCreateNestedManyWithoutClientsInput
   bills?: Prisma.billsCreateNestedManyWithoutClientsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutClientsInput
+  client_cases?: Prisma.client_casesCreateNestedManyWithoutClientsInput
   client_group_members?: Prisma.client_group_membersCreateNestedManyWithoutClientsInput
   clientadminnotes?: Prisma.clientadminnotesCreateNestedOneWithoutClientsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutClientsInput
@@ -6648,6 +7010,7 @@ export type clientsUncheckedCreateWithoutSessionsInput = {
   billpayments?: Prisma.billpaymentsUncheckedCreateNestedManyWithoutClientsInput
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutClientsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutClientsInput
+  client_cases?: Prisma.client_casesUncheckedCreateNestedManyWithoutClientsInput
   client_group_members?: Prisma.client_group_membersUncheckedCreateNestedManyWithoutClientsInput
   clientadminnotes?: Prisma.clientadminnotesUncheckedCreateNestedOneWithoutClientsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutClientsInput
@@ -6721,6 +7084,7 @@ export type clientsUpdateWithoutSessionsInput = {
   billpayments?: Prisma.billpaymentsUpdateManyWithoutClientsNestedInput
   bills?: Prisma.billsUpdateManyWithoutClientsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutClientsNestedInput
+  client_cases?: Prisma.client_casesUpdateManyWithoutClientsNestedInput
   client_group_members?: Prisma.client_group_membersUpdateManyWithoutClientsNestedInput
   clientadminnotes?: Prisma.clientadminnotesUpdateOneWithoutClientsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutClientsNestedInput
@@ -6790,6 +7154,7 @@ export type clientsUncheckedUpdateWithoutSessionsInput = {
   billpayments?: Prisma.billpaymentsUncheckedUpdateManyWithoutClientsNestedInput
   bills?: Prisma.billsUncheckedUpdateManyWithoutClientsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutClientsNestedInput
+  client_cases?: Prisma.client_casesUncheckedUpdateManyWithoutClientsNestedInput
   client_group_members?: Prisma.client_group_membersUncheckedUpdateManyWithoutClientsNestedInput
   clientadminnotes?: Prisma.clientadminnotesUncheckedUpdateOneWithoutClientsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutClientsNestedInput
@@ -6847,6 +7212,7 @@ export type clientsCreateWithoutSubscriptionsInput = {
   billpayments?: Prisma.billpaymentsCreateNestedManyWithoutClientsInput
   bills?: Prisma.billsCreateNestedManyWithoutClientsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutClientsInput
+  client_cases?: Prisma.client_casesCreateNestedManyWithoutClientsInput
   client_group_members?: Prisma.client_group_membersCreateNestedManyWithoutClientsInput
   clientadminnotes?: Prisma.clientadminnotesCreateNestedOneWithoutClientsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutClientsInput
@@ -6916,6 +7282,7 @@ export type clientsUncheckedCreateWithoutSubscriptionsInput = {
   billpayments?: Prisma.billpaymentsUncheckedCreateNestedManyWithoutClientsInput
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutClientsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutClientsInput
+  client_cases?: Prisma.client_casesUncheckedCreateNestedManyWithoutClientsInput
   client_group_members?: Prisma.client_group_membersUncheckedCreateNestedManyWithoutClientsInput
   clientadminnotes?: Prisma.clientadminnotesUncheckedCreateNestedOneWithoutClientsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutClientsInput
@@ -6989,6 +7356,7 @@ export type clientsUpdateWithoutSubscriptionsInput = {
   billpayments?: Prisma.billpaymentsUpdateManyWithoutClientsNestedInput
   bills?: Prisma.billsUpdateManyWithoutClientsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutClientsNestedInput
+  client_cases?: Prisma.client_casesUpdateManyWithoutClientsNestedInput
   client_group_members?: Prisma.client_group_membersUpdateManyWithoutClientsNestedInput
   clientadminnotes?: Prisma.clientadminnotesUpdateOneWithoutClientsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutClientsNestedInput
@@ -7058,6 +7426,7 @@ export type clientsUncheckedUpdateWithoutSubscriptionsInput = {
   billpayments?: Prisma.billpaymentsUncheckedUpdateManyWithoutClientsNestedInput
   bills?: Prisma.billsUncheckedUpdateManyWithoutClientsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutClientsNestedInput
+  client_cases?: Prisma.client_casesUncheckedUpdateManyWithoutClientsNestedInput
   client_group_members?: Prisma.client_group_membersUncheckedUpdateManyWithoutClientsNestedInput
   clientadminnotes?: Prisma.clientadminnotesUncheckedUpdateOneWithoutClientsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutClientsNestedInput
@@ -7115,6 +7484,7 @@ export type clientsCreateWithoutUsers_clients_assigned_consultant_idTousersInput
   billpayments?: Prisma.billpaymentsCreateNestedManyWithoutClientsInput
   bills?: Prisma.billsCreateNestedManyWithoutClientsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutClientsInput
+  client_cases?: Prisma.client_casesCreateNestedManyWithoutClientsInput
   client_group_members?: Prisma.client_group_membersCreateNestedManyWithoutClientsInput
   clientadminnotes?: Prisma.clientadminnotesCreateNestedOneWithoutClientsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutClientsInput
@@ -7183,6 +7553,7 @@ export type clientsUncheckedCreateWithoutUsers_clients_assigned_consultant_idTou
   billpayments?: Prisma.billpaymentsUncheckedCreateNestedManyWithoutClientsInput
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutClientsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutClientsInput
+  client_cases?: Prisma.client_casesUncheckedCreateNestedManyWithoutClientsInput
   client_group_members?: Prisma.client_group_membersUncheckedCreateNestedManyWithoutClientsInput
   clientadminnotes?: Prisma.clientadminnotesUncheckedCreateNestedOneWithoutClientsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutClientsInput
@@ -7251,6 +7622,7 @@ export type clientsCreateWithoutUsers_clients_created_byTousersInput = {
   billpayments?: Prisma.billpaymentsCreateNestedManyWithoutClientsInput
   bills?: Prisma.billsCreateNestedManyWithoutClientsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutClientsInput
+  client_cases?: Prisma.client_casesCreateNestedManyWithoutClientsInput
   client_group_members?: Prisma.client_group_membersCreateNestedManyWithoutClientsInput
   clientadminnotes?: Prisma.clientadminnotesCreateNestedOneWithoutClientsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutClientsInput
@@ -7319,6 +7691,7 @@ export type clientsUncheckedCreateWithoutUsers_clients_created_byTousersInput = 
   billpayments?: Prisma.billpaymentsUncheckedCreateNestedManyWithoutClientsInput
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutClientsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutClientsInput
+  client_cases?: Prisma.client_casesUncheckedCreateNestedManyWithoutClientsInput
   client_group_members?: Prisma.client_group_membersUncheckedCreateNestedManyWithoutClientsInput
   clientadminnotes?: Prisma.clientadminnotesUncheckedCreateNestedOneWithoutClientsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutClientsInput
@@ -7419,6 +7792,7 @@ export type clientsCreateWithoutWaitlistInput = {
   billpayments?: Prisma.billpaymentsCreateNestedManyWithoutClientsInput
   bills?: Prisma.billsCreateNestedManyWithoutClientsInput
   client_assessment_reports?: Prisma.client_assessment_reportsCreateNestedManyWithoutClientsInput
+  client_cases?: Prisma.client_casesCreateNestedManyWithoutClientsInput
   client_group_members?: Prisma.client_group_membersCreateNestedManyWithoutClientsInput
   clientadminnotes?: Prisma.clientadminnotesCreateNestedOneWithoutClientsInput
   clientdocuments?: Prisma.clientdocumentsCreateNestedManyWithoutClientsInput
@@ -7488,6 +7862,7 @@ export type clientsUncheckedCreateWithoutWaitlistInput = {
   billpayments?: Prisma.billpaymentsUncheckedCreateNestedManyWithoutClientsInput
   bills?: Prisma.billsUncheckedCreateNestedManyWithoutClientsInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedCreateNestedManyWithoutClientsInput
+  client_cases?: Prisma.client_casesUncheckedCreateNestedManyWithoutClientsInput
   client_group_members?: Prisma.client_group_membersUncheckedCreateNestedManyWithoutClientsInput
   clientadminnotes?: Prisma.clientadminnotesUncheckedCreateNestedOneWithoutClientsInput
   clientdocuments?: Prisma.clientdocumentsUncheckedCreateNestedManyWithoutClientsInput
@@ -7561,6 +7936,7 @@ export type clientsUpdateWithoutWaitlistInput = {
   billpayments?: Prisma.billpaymentsUpdateManyWithoutClientsNestedInput
   bills?: Prisma.billsUpdateManyWithoutClientsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutClientsNestedInput
+  client_cases?: Prisma.client_casesUpdateManyWithoutClientsNestedInput
   client_group_members?: Prisma.client_group_membersUpdateManyWithoutClientsNestedInput
   clientadminnotes?: Prisma.clientadminnotesUpdateOneWithoutClientsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutClientsNestedInput
@@ -7630,6 +8006,7 @@ export type clientsUncheckedUpdateWithoutWaitlistInput = {
   billpayments?: Prisma.billpaymentsUncheckedUpdateManyWithoutClientsNestedInput
   bills?: Prisma.billsUncheckedUpdateManyWithoutClientsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutClientsNestedInput
+  client_cases?: Prisma.client_casesUncheckedUpdateManyWithoutClientsNestedInput
   client_group_members?: Prisma.client_group_membersUncheckedUpdateManyWithoutClientsNestedInput
   clientadminnotes?: Prisma.clientadminnotesUncheckedUpdateOneWithoutClientsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutClientsNestedInput
@@ -7732,6 +8109,7 @@ export type clientsUpdateWithoutLocationsInput = {
   billpayments?: Prisma.billpaymentsUpdateManyWithoutClientsNestedInput
   bills?: Prisma.billsUpdateManyWithoutClientsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutClientsNestedInput
+  client_cases?: Prisma.client_casesUpdateManyWithoutClientsNestedInput
   client_group_members?: Prisma.client_group_membersUpdateManyWithoutClientsNestedInput
   clientadminnotes?: Prisma.clientadminnotesUpdateOneWithoutClientsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutClientsNestedInput
@@ -7800,6 +8178,7 @@ export type clientsUncheckedUpdateWithoutLocationsInput = {
   billpayments?: Prisma.billpaymentsUncheckedUpdateManyWithoutClientsNestedInput
   bills?: Prisma.billsUncheckedUpdateManyWithoutClientsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutClientsNestedInput
+  client_cases?: Prisma.client_casesUncheckedUpdateManyWithoutClientsNestedInput
   client_group_members?: Prisma.client_group_membersUncheckedUpdateManyWithoutClientsNestedInput
   clientadminnotes?: Prisma.clientadminnotesUncheckedUpdateOneWithoutClientsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutClientsNestedInput
@@ -7948,6 +8327,7 @@ export type clientsUpdateWithoutOrganizationsInput = {
   billpayments?: Prisma.billpaymentsUpdateManyWithoutClientsNestedInput
   bills?: Prisma.billsUpdateManyWithoutClientsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutClientsNestedInput
+  client_cases?: Prisma.client_casesUpdateManyWithoutClientsNestedInput
   client_group_members?: Prisma.client_group_membersUpdateManyWithoutClientsNestedInput
   clientadminnotes?: Prisma.clientadminnotesUpdateOneWithoutClientsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutClientsNestedInput
@@ -8016,6 +8396,7 @@ export type clientsUncheckedUpdateWithoutOrganizationsInput = {
   billpayments?: Prisma.billpaymentsUncheckedUpdateManyWithoutClientsNestedInput
   bills?: Prisma.billsUncheckedUpdateManyWithoutClientsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutClientsNestedInput
+  client_cases?: Prisma.client_casesUncheckedUpdateManyWithoutClientsNestedInput
   client_group_members?: Prisma.client_group_membersUncheckedUpdateManyWithoutClientsNestedInput
   clientadminnotes?: Prisma.clientadminnotesUncheckedUpdateOneWithoutClientsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutClientsNestedInput
@@ -8209,6 +8590,7 @@ export type clientsUpdateWithoutProfiles_clients_primary_scientist_idToprofilesI
   billpayments?: Prisma.billpaymentsUpdateManyWithoutClientsNestedInput
   bills?: Prisma.billsUpdateManyWithoutClientsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutClientsNestedInput
+  client_cases?: Prisma.client_casesUpdateManyWithoutClientsNestedInput
   client_group_members?: Prisma.client_group_membersUpdateManyWithoutClientsNestedInput
   clientadminnotes?: Prisma.clientadminnotesUpdateOneWithoutClientsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutClientsNestedInput
@@ -8277,6 +8659,7 @@ export type clientsUncheckedUpdateWithoutProfiles_clients_primary_scientist_idTo
   billpayments?: Prisma.billpaymentsUncheckedUpdateManyWithoutClientsNestedInput
   bills?: Prisma.billsUncheckedUpdateManyWithoutClientsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutClientsNestedInput
+  client_cases?: Prisma.client_casesUncheckedUpdateManyWithoutClientsNestedInput
   client_group_members?: Prisma.client_group_membersUncheckedUpdateManyWithoutClientsNestedInput
   clientadminnotes?: Prisma.clientadminnotesUncheckedUpdateOneWithoutClientsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutClientsNestedInput
@@ -8380,6 +8763,7 @@ export type clientsUpdateWithoutProfiles_clients_profile_idToprofilesInput = {
   billpayments?: Prisma.billpaymentsUpdateManyWithoutClientsNestedInput
   bills?: Prisma.billsUpdateManyWithoutClientsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutClientsNestedInput
+  client_cases?: Prisma.client_casesUpdateManyWithoutClientsNestedInput
   client_group_members?: Prisma.client_group_membersUpdateManyWithoutClientsNestedInput
   clientadminnotes?: Prisma.clientadminnotesUpdateOneWithoutClientsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutClientsNestedInput
@@ -8448,6 +8832,7 @@ export type clientsUncheckedUpdateWithoutProfiles_clients_profile_idToprofilesIn
   billpayments?: Prisma.billpaymentsUncheckedUpdateManyWithoutClientsNestedInput
   bills?: Prisma.billsUncheckedUpdateManyWithoutClientsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutClientsNestedInput
+  client_cases?: Prisma.client_casesUncheckedUpdateManyWithoutClientsNestedInput
   client_group_members?: Prisma.client_group_membersUncheckedUpdateManyWithoutClientsNestedInput
   clientadminnotes?: Prisma.clientadminnotesUncheckedUpdateOneWithoutClientsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutClientsNestedInput
@@ -8641,6 +9026,7 @@ export type clientsUpdateWithoutUsers_clients_assigned_consultant_idTousersInput
   billpayments?: Prisma.billpaymentsUpdateManyWithoutClientsNestedInput
   bills?: Prisma.billsUpdateManyWithoutClientsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutClientsNestedInput
+  client_cases?: Prisma.client_casesUpdateManyWithoutClientsNestedInput
   client_group_members?: Prisma.client_group_membersUpdateManyWithoutClientsNestedInput
   clientadminnotes?: Prisma.clientadminnotesUpdateOneWithoutClientsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutClientsNestedInput
@@ -8709,6 +9095,7 @@ export type clientsUncheckedUpdateWithoutUsers_clients_assigned_consultant_idTou
   billpayments?: Prisma.billpaymentsUncheckedUpdateManyWithoutClientsNestedInput
   bills?: Prisma.billsUncheckedUpdateManyWithoutClientsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutClientsNestedInput
+  client_cases?: Prisma.client_casesUncheckedUpdateManyWithoutClientsNestedInput
   client_group_members?: Prisma.client_group_membersUncheckedUpdateManyWithoutClientsNestedInput
   clientadminnotes?: Prisma.clientadminnotesUncheckedUpdateOneWithoutClientsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutClientsNestedInput
@@ -8812,6 +9199,7 @@ export type clientsUpdateWithoutUsers_clients_created_byTousersInput = {
   billpayments?: Prisma.billpaymentsUpdateManyWithoutClientsNestedInput
   bills?: Prisma.billsUpdateManyWithoutClientsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUpdateManyWithoutClientsNestedInput
+  client_cases?: Prisma.client_casesUpdateManyWithoutClientsNestedInput
   client_group_members?: Prisma.client_group_membersUpdateManyWithoutClientsNestedInput
   clientadminnotes?: Prisma.clientadminnotesUpdateOneWithoutClientsNestedInput
   clientdocuments?: Prisma.clientdocumentsUpdateManyWithoutClientsNestedInput
@@ -8880,6 +9268,7 @@ export type clientsUncheckedUpdateWithoutUsers_clients_created_byTousersInput = 
   billpayments?: Prisma.billpaymentsUncheckedUpdateManyWithoutClientsNestedInput
   bills?: Prisma.billsUncheckedUpdateManyWithoutClientsNestedInput
   client_assessment_reports?: Prisma.client_assessment_reportsUncheckedUpdateManyWithoutClientsNestedInput
+  client_cases?: Prisma.client_casesUncheckedUpdateManyWithoutClientsNestedInput
   client_group_members?: Prisma.client_group_membersUncheckedUpdateManyWithoutClientsNestedInput
   clientadminnotes?: Prisma.clientadminnotesUncheckedUpdateOneWithoutClientsNestedInput
   clientdocuments?: Prisma.clientdocumentsUncheckedUpdateManyWithoutClientsNestedInput
@@ -8951,6 +9340,7 @@ export type ClientsCountOutputType = {
   billpayments: number
   bills: number
   client_assessment_reports: number
+  client_cases: number
   client_group_members: number
   clientdocuments: number
   cliententitlements: number
@@ -8971,6 +9361,7 @@ export type ClientsCountOutputTypeSelect<ExtArgs extends runtime.Types.Extension
   billpayments?: boolean | ClientsCountOutputTypeCountBillpaymentsArgs
   bills?: boolean | ClientsCountOutputTypeCountBillsArgs
   client_assessment_reports?: boolean | ClientsCountOutputTypeCountClient_assessment_reportsArgs
+  client_cases?: boolean | ClientsCountOutputTypeCountClient_casesArgs
   client_group_members?: boolean | ClientsCountOutputTypeCountClient_group_membersArgs
   clientdocuments?: boolean | ClientsCountOutputTypeCountClientdocumentsArgs
   cliententitlements?: boolean | ClientsCountOutputTypeCountCliententitlementsArgs
@@ -9016,6 +9407,13 @@ export type ClientsCountOutputTypeCountBillsArgs<ExtArgs extends runtime.Types.E
  */
 export type ClientsCountOutputTypeCountClient_assessment_reportsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   where?: Prisma.client_assessment_reportsWhereInput
+}
+
+/**
+ * ClientsCountOutputType without action
+ */
+export type ClientsCountOutputTypeCountClient_casesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.client_casesWhereInput
 }
 
 /**
@@ -9164,6 +9562,7 @@ export type clientsSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs 
   billpayments?: boolean | Prisma.clients$billpaymentsArgs<ExtArgs>
   bills?: boolean | Prisma.clients$billsArgs<ExtArgs>
   client_assessment_reports?: boolean | Prisma.clients$client_assessment_reportsArgs<ExtArgs>
+  client_cases?: boolean | Prisma.clients$client_casesArgs<ExtArgs>
   client_group_members?: boolean | Prisma.clients$client_group_membersArgs<ExtArgs>
   clientadminnotes?: boolean | Prisma.clients$clientadminnotesArgs<ExtArgs>
   clientdocuments?: boolean | Prisma.clients$clientdocumentsArgs<ExtArgs>
@@ -9343,6 +9742,7 @@ export type clientsInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs
   billpayments?: boolean | Prisma.clients$billpaymentsArgs<ExtArgs>
   bills?: boolean | Prisma.clients$billsArgs<ExtArgs>
   client_assessment_reports?: boolean | Prisma.clients$client_assessment_reportsArgs<ExtArgs>
+  client_cases?: boolean | Prisma.clients$client_casesArgs<ExtArgs>
   client_group_members?: boolean | Prisma.clients$client_group_membersArgs<ExtArgs>
   clientadminnotes?: boolean | Prisma.clients$clientadminnotesArgs<ExtArgs>
   clientdocuments?: boolean | Prisma.clients$clientdocumentsArgs<ExtArgs>
@@ -9389,6 +9789,7 @@ export type $clientsPayload<ExtArgs extends runtime.Types.Extensions.InternalArg
     billpayments: Prisma.$billpaymentsPayload<ExtArgs>[]
     bills: Prisma.$billsPayload<ExtArgs>[]
     client_assessment_reports: Prisma.$client_assessment_reportsPayload<ExtArgs>[]
+    client_cases: Prisma.$client_casesPayload<ExtArgs>[]
     client_group_members: Prisma.$client_group_membersPayload<ExtArgs>[]
     clientadminnotes: Prisma.$clientadminnotesPayload<ExtArgs> | null
     clientdocuments: Prisma.$clientdocumentsPayload<ExtArgs>[]
@@ -9852,6 +10253,7 @@ export interface Prisma__clientsClient<T, Null = never, ExtArgs extends runtime.
   billpayments<T extends Prisma.clients$billpaymentsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.clients$billpaymentsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$billpaymentsPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   bills<T extends Prisma.clients$billsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.clients$billsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$billsPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   client_assessment_reports<T extends Prisma.clients$client_assessment_reportsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.clients$client_assessment_reportsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$client_assessment_reportsPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  client_cases<T extends Prisma.clients$client_casesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.clients$client_casesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$client_casesPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   client_group_members<T extends Prisma.clients$client_group_membersArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.clients$client_group_membersArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$client_group_membersPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   clientadminnotes<T extends Prisma.clients$clientadminnotesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.clients$clientadminnotesArgs<ExtArgs>>): Prisma.Prisma__clientadminnotesClient<runtime.Types.Result.GetResult<Prisma.$clientadminnotesPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   clientdocuments<T extends Prisma.clients$clientdocumentsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.clients$clientdocumentsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$clientdocumentsPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
@@ -10415,6 +10817,30 @@ export type clients$client_assessment_reportsArgs<ExtArgs extends runtime.Types.
   take?: number
   skip?: number
   distinct?: Prisma.Client_assessment_reportsScalarFieldEnum | Prisma.Client_assessment_reportsScalarFieldEnum[]
+}
+
+/**
+ * clients.client_cases
+ */
+export type clients$client_casesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the client_cases
+   */
+  select?: Prisma.client_casesSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the client_cases
+   */
+  omit?: Prisma.client_casesOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.client_casesInclude<ExtArgs> | null
+  where?: Prisma.client_casesWhereInput
+  orderBy?: Prisma.client_casesOrderByWithRelationInput | Prisma.client_casesOrderByWithRelationInput[]
+  cursor?: Prisma.client_casesWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.Client_casesScalarFieldEnum | Prisma.Client_casesScalarFieldEnum[]
 }
 
 /**

@@ -140,6 +140,8 @@ export function AnnouncementsManager({ open, onOpenChange }: AnnouncementsManage
 
             queryClient.invalidateQueries({ queryKey: ["staff-notifications-history"] });
             queryClient.invalidateQueries({ queryKey: ["unread-notifications"] });
+            queryClient.invalidateQueries({ queryKey: ["pending-approvals-count"] });
+            queryClient.invalidateQueries({ queryKey: ["hr-dashboard-stats"] });
         } catch (err: any) {
             console.error(err);
             toast({ title: "Action Failed", description: err.message, variant: "destructive" });

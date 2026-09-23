@@ -56,6 +56,7 @@ interface PainMapProps {
   layout?: "side-by-side" | "stacked";
   numberedBadges?: Record<string, number>;
   hideScores?: boolean;
+  viewHeightClass?: string;
 }
 
 const SENSATION_TOOLS: Array<{
@@ -107,8 +108,9 @@ export default function PainMap({
   clinicalNotes = "",
   onClinicalNotesChange,
   gender: genderProp = "male",
-  layout = "stacked",
+  layout = "side-by-side",
   hideScores = true,
+  viewHeightClass = "h-[240px] sm:h-[280px] md:h-[310px] lg:h-[330px] max-h-[46vh]",
 }: PainMapProps) {
   const [gender, setGender] = useState<"male" | "female">(genderProp || "male");
 
@@ -491,29 +493,9 @@ export default function PainMap({
         />
       )}
 
-      {/* 1. Colour Legend Above Views */}
-      <div className="flex flex-wrap items-center justify-center gap-2.5 sm:gap-4 p-3 bg-slate-50 dark:bg-slate-900/60 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs">
-        <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800 dark:text-slate-200">
-          <span className="w-3 h-3 rounded-full bg-red-600 shadow-xs inline-block shrink-0" />
-          <span>Pain</span>
-        </div>
-        <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800 dark:text-slate-200">
-          <span className="w-3 h-3 rounded-full bg-orange-500 shadow-xs inline-block shrink-0" />
-          <span>Burning Sensation</span>
-        </div>
-        <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800 dark:text-slate-200">
-          <span className="w-3 h-3 rounded-full bg-purple-600 shadow-xs inline-block shrink-0" />
-          <span>Muscle Weakness</span>
-        </div>
-        <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800 dark:text-slate-200">
-          <span className="w-3 h-3 rounded-full bg-sky-600 shadow-xs inline-block shrink-0" />
-          <span>Numbness / Tingling</span>
-        </div>
-      </div>
-
-      {/* 2. Interactive Drawing Tools Toolbar (When Editing in SOAP / Consult) */}
-      {!readOnly && (
-        <div className="flex flex-wrap items-center justify-between gap-2 p-3 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+      {/* 1. Interactive Drawing Tools Toolbar & Color Indicators */}
+      {!readOnly ? (
+        <div className="flex flex-wrap items-center justify-between gap-2 p-2 sm:p-2.5 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs">
           {/* Sensation Tool Selectors */}
           <div className="flex flex-wrap items-center gap-1.5">
             {SENSATION_TOOLS.map((t) => {
@@ -524,15 +506,16 @@ export default function PainMap({
                   key={t.id}
                   type="button"
                   onClick={() => setActiveTool(t.id)}
+                  title={t.sublabel}
                   className={cn(
-                    "flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all",
+                    "flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold transition-all select-none",
                     isSelected
-                      ? `${t.badgeClass} shadow-sm ring-2 ring-primary/20 scale-[1.02]`
+                      ? `${t.badgeClass} shadow-xs ring-2 ring-primary/20 scale-[1.02]`
                       : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
                   )}
                 >
-                  <Icon className="w-3.5 h-3.5" />
-                  <span>{t.label}</span>
+                  <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: t.color }} />
+                  <span className="text-[11px] sm:text-xs">{t.label}</span>
                 </button>
               );
             })}
@@ -541,25 +524,25 @@ export default function PainMap({
               type="button"
               onClick={() => setActiveTool("erase")}
               className={cn(
-                "flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all",
+                "flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold transition-all select-none",
                 activeTool === "erase"
-                  ? "bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-sm ring-2 ring-primary/20 scale-[1.02]"
+                  ? "bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-xs ring-2 ring-primary/20 scale-[1.02]"
                   : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
               )}
             >
               <Eraser className="w-3.5 h-3.5" />
-              <span>Eraser</span>
+              <span className="text-[11px] sm:text-xs">Eraser</span>
             </button>
           </div>
 
           {/* Gender & Undo / Clear actions */}
-          <div className="flex items-center gap-2">
-            <div className="inline-flex items-center bg-slate-100 dark:bg-slate-800 rounded-xl p-1 border border-slate-200 dark:border-slate-700">
+          <div className="flex items-center gap-1.5">
+            <div className="inline-flex items-center bg-slate-100 dark:bg-slate-800 rounded-lg p-0.5 border border-slate-200 dark:border-slate-700">
               <button
                 type="button"
                 onClick={() => handleGenderChange("male")}
                 className={cn(
-                  "px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all",
+                  "px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider transition-all",
                   gender === "male"
                     ? "bg-white dark:bg-slate-900 text-primary shadow-xs"
                     : "text-muted-foreground hover:text-foreground"
@@ -571,7 +554,7 @@ export default function PainMap({
                 type="button"
                 onClick={() => handleGenderChange("female")}
                 className={cn(
-                  "px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all",
+                  "px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider transition-all",
                   gender === "female"
                     ? "bg-white dark:bg-slate-900 text-primary shadow-xs"
                     : "text-muted-foreground hover:text-foreground"
@@ -588,37 +571,60 @@ export default function PainMap({
                   variant="outline"
                   size="sm"
                   onClick={handleUndo}
-                  className="h-8 px-2.5 text-[10px] font-bold rounded-xl border-slate-200"
+                  className="h-7 px-2 text-[10px] font-bold rounded-lg border-slate-200"
                 >
-                  <RotateCcw className="w-3.5 h-3.5 mr-1" /> Undo
+                  <RotateCcw className="w-3 h-3 mr-1" /> Undo
                 </Button>
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
                   onClick={handleClearAll}
-                  className="h-8 px-2.5 text-[10px] font-bold rounded-xl border-slate-200 text-rose-600 hover:text-rose-700 hover:bg-rose-50"
+                  className="h-7 px-2 text-[10px] font-bold rounded-lg border-slate-200 text-rose-600 hover:text-rose-700 hover:bg-rose-50"
                 >
-                  <Trash2 className="w-3.5 h-3.5 mr-1" /> Clear
+                  <Trash2 className="w-3 h-3 mr-1" /> Clear
                 </Button>
               </div>
             )}
           </div>
         </div>
+      ) : (
+        /* Readonly Colour Legend */
+        <div className="flex flex-wrap items-center justify-center gap-3 p-2 bg-slate-50 dark:bg-slate-900/60 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-xs">
+          <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800 dark:text-slate-200">
+            <span className="w-2.5 h-2.5 rounded-full bg-red-600 inline-block shrink-0" />
+            <span>Pain</span>
+          </div>
+          <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800 dark:text-slate-200">
+            <span className="w-2.5 h-2.5 rounded-full bg-orange-500 inline-block shrink-0" />
+            <span>Burning Sensation</span>
+          </div>
+          <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800 dark:text-slate-200">
+            <span className="w-2.5 h-2.5 rounded-full bg-purple-600 inline-block shrink-0" />
+            <span>Muscle Weakness</span>
+          </div>
+          <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800 dark:text-slate-200">
+            <span className="w-2.5 h-2.5 rounded-full bg-sky-600 inline-block shrink-0" />
+            <span>Numbness / Tingling</span>
+          </div>
+        </div>
       )}
 
-      {/* 3. Views: Side-by-side in SOAP Modal, Stacked in Report */}
-      <div className={cn(layout === "side-by-side" ? "grid grid-cols-1 sm:grid-cols-2 gap-4 items-start" : "space-y-4")}>
+      {/* 2. Views: Side-by-side Views */}
+      <div className={cn(layout === "side-by-side" ? "grid grid-cols-2 gap-3 sm:gap-4 items-start" : "space-y-4")}>
         
         {/* Anterior (Front) View Container */}
-        <div className="p-3.5 bg-slate-50/50 dark:bg-slate-900/40 rounded-2xl border border-slate-100 dark:border-slate-800 flex flex-col items-center justify-between">
-          <div className="text-[10px] font-black tracking-[0.2em] text-slate-500 uppercase mb-2">
+        <div className="p-2 sm:p-2.5 bg-slate-50/60 dark:bg-slate-900/40 rounded-xl sm:rounded-2xl border border-slate-200/80 dark:border-slate-800 flex flex-col items-center">
+          <div className="text-[10px] font-black tracking-[0.18em] text-slate-500 dark:text-slate-400 uppercase mb-1.5">
             ANTERIOR VIEW
           </div>
 
           <div
             ref={frontContainerRef}
-            className="relative w-full max-w-[340px] aspect-[600/896] bg-white dark:bg-slate-950 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-sm overflow-hidden select-none touch-none flex items-center justify-center cursor-crosshair"
+            className={cn(
+              "relative aspect-[600/896] max-w-full bg-white dark:bg-slate-950 rounded-xl border border-slate-200/90 dark:border-slate-800 shadow-xs overflow-hidden select-none touch-none flex items-center justify-center cursor-crosshair",
+              viewHeightClass
+            )}
           >
             {/* Front Anatomy Image */}
             <img
@@ -643,14 +649,17 @@ export default function PainMap({
         </div>
 
         {/* Posterior (Back) View Container */}
-        <div className="p-3.5 bg-slate-50/50 dark:bg-slate-900/40 rounded-2xl border border-slate-100 dark:border-slate-800 flex flex-col items-center justify-between">
-          <div className="text-[10px] font-black tracking-[0.2em] text-slate-500 uppercase mb-2">
+        <div className="p-2 sm:p-2.5 bg-slate-50/60 dark:bg-slate-900/40 rounded-xl sm:rounded-2xl border border-slate-200/80 dark:border-slate-800 flex flex-col items-center">
+          <div className="text-[10px] font-black tracking-[0.18em] text-slate-500 dark:text-slate-400 uppercase mb-1.5">
             POSTERIOR VIEW
           </div>
 
           <div
             ref={backContainerRef}
-            className="relative w-full max-w-[340px] aspect-[600/896] bg-white dark:bg-slate-950 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-sm overflow-hidden select-none touch-none flex items-center justify-center cursor-crosshair"
+            className={cn(
+              "relative aspect-[600/896] max-w-full bg-white dark:bg-slate-950 rounded-xl border border-slate-200/90 dark:border-slate-800 shadow-xs overflow-hidden select-none touch-none flex items-center justify-center cursor-crosshair",
+              viewHeightClass
+            )}
           >
             {/* Back Anatomy Image */}
             <img
@@ -673,7 +682,6 @@ export default function PainMap({
             />
           </div>
         </div>
-
       </div>
     </div>
   );
