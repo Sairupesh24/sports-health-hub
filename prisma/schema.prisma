@@ -730,6 +730,12 @@ model OrganizationNotificationSetting {
   notifyQuestionnaireCompleted Boolean?     @default(true) @map("notify_questionnaire_completed")
   notifyEmergencyLeave         Boolean?     @default(true) @map("notify_emergency_leave")
   notifyOutstandingBalance     Boolean?     @default(true) @map("notify_outstanding_balance")
+  enableEodSessionReminder     Boolean?     @default(true) @map("enable_eod_session_reminder")
+  eodReminderTime              String?      @default("19:00") @map("eod_reminder_time")
+  eodReminderChannels          Json?        @default("{\"email\": true, \"teamcomms\": true}") @map("eod_reminder_channels")
+  eodReminderScope             Json?        @default("{\"require_status_update\": true, \"require_notes\": true}") @map("eod_reminder_scope")
+  eodReminderRoles             String[]     @default(["physiotherapist", "consultant", "sports_scientist", "sports_physician", "coach"]) @map("eod_reminder_roles")
+  eodLastRunAt                 DateTime?    @map("eod_last_run_at") @db.Timestamptz(6)
   updatedAt                    DateTime?    @default(now()) @map("updated_at") @db.Timestamptz(6)
   organizations                Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 

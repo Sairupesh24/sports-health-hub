@@ -1,4 +1,5 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiFetch } from "@/utils/api";
 import { useQuery } from "@tanstack/react-query";
@@ -44,8 +45,24 @@ interface SessionEvent {
 export default function MobileConsultantSchedule() {
     const { profile, roles } = useAuth();
     const isAdminOrFoe = roles?.some(r => ["admin", "super_admin", "clinic_admin", "foe"].includes(r));
-    const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-    const [monthViewDate, setMonthViewDate] = useState<Date>(new Date());
+    const [searchParams] = useSearchParams();
+    const dateParam = searchParams.get("date");
+    const sessionIdParam = searchParams.get("session_id");
+
+    const [selectedDate, setSelectedDate] = useState<Date>(() => {
+        if (dateParam) {
+            const parsed = parseISO(dateParam);
+            if (!isNaN(parsed.getTime())) return parsed;
+        }
+        return new Date();
+    });
+    const [monthViewDate, setMonthViewDate] = useState<Date>(() => {
+        if (dateParam) {
+            const parsed = parseISO(dateParam);
+            if (!isNaN(parsed.getTime())) return parsed;
+        }
+        return new Date();
+    });
 
     // Modal states
     const [soapModalOpen, setSoapModalOpen] = useState(false);
@@ -82,6 +99,17 @@ export default function MobileConsultantSchedule() {
         },
         enabled: !!profile?.id
     });
+
+    // Auto-open session SOAP modal if session_id is in query params
+    useEffect(() => {
+        if (sessionIdParam && sessions.length > 0) {
+            const found = sessions.find((s: any) => s.id === sessionIdParam || s.rawSession?.id === sessionIdParam);
+            if (found) {
+                setSelectedSession(found.rawSession || found);
+                setSoapModalOpen(true);
+            }
+        }
+    }, [sessionIdParam, sessions]);
 
     // Entitlement checking
     const plannedClientIds = useMemo(() =>

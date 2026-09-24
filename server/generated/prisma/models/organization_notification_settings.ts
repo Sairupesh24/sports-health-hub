@@ -33,6 +33,9 @@ export type Organization_notification_settingsMinAggregateOutputType = {
   notify_questionnaire_completed: boolean | null
   notify_emergency_leave: boolean | null
   notify_outstanding_balance: boolean | null
+  enable_eod_session_reminder: boolean | null
+  eod_reminder_time: string | null
+  eod_last_run_at: Date | null
   updated_at: Date | null
 }
 
@@ -45,6 +48,9 @@ export type Organization_notification_settingsMaxAggregateOutputType = {
   notify_questionnaire_completed: boolean | null
   notify_emergency_leave: boolean | null
   notify_outstanding_balance: boolean | null
+  enable_eod_session_reminder: boolean | null
+  eod_reminder_time: string | null
+  eod_last_run_at: Date | null
   updated_at: Date | null
 }
 
@@ -57,6 +63,12 @@ export type Organization_notification_settingsCountAggregateOutputType = {
   notify_questionnaire_completed: number
   notify_emergency_leave: number
   notify_outstanding_balance: number
+  enable_eod_session_reminder: number
+  eod_reminder_time: number
+  eod_reminder_channels: number
+  eod_reminder_scope: number
+  eod_reminder_roles: number
+  eod_last_run_at: number
   updated_at: number
   _all: number
 }
@@ -71,6 +83,9 @@ export type Organization_notification_settingsMinAggregateInputType = {
   notify_questionnaire_completed?: true
   notify_emergency_leave?: true
   notify_outstanding_balance?: true
+  enable_eod_session_reminder?: true
+  eod_reminder_time?: true
+  eod_last_run_at?: true
   updated_at?: true
 }
 
@@ -83,6 +98,9 @@ export type Organization_notification_settingsMaxAggregateInputType = {
   notify_questionnaire_completed?: true
   notify_emergency_leave?: true
   notify_outstanding_balance?: true
+  enable_eod_session_reminder?: true
+  eod_reminder_time?: true
+  eod_last_run_at?: true
   updated_at?: true
 }
 
@@ -95,6 +113,12 @@ export type Organization_notification_settingsCountAggregateInputType = {
   notify_questionnaire_completed?: true
   notify_emergency_leave?: true
   notify_outstanding_balance?: true
+  enable_eod_session_reminder?: true
+  eod_reminder_time?: true
+  eod_reminder_channels?: true
+  eod_reminder_scope?: true
+  eod_reminder_roles?: true
+  eod_last_run_at?: true
   updated_at?: true
   _all?: true
 }
@@ -180,6 +204,12 @@ export type Organization_notification_settingsGroupByOutputType = {
   notify_questionnaire_completed: boolean | null
   notify_emergency_leave: boolean | null
   notify_outstanding_balance: boolean | null
+  enable_eod_session_reminder: boolean | null
+  eod_reminder_time: string | null
+  eod_reminder_channels: runtime.JsonValue | null
+  eod_reminder_scope: runtime.JsonValue | null
+  eod_reminder_roles: string[]
+  eod_last_run_at: Date | null
   updated_at: Date | null
   _count: Organization_notification_settingsCountAggregateOutputType | null
   _min: Organization_notification_settingsMinAggregateOutputType | null
@@ -213,6 +243,12 @@ export type organization_notification_settingsWhereInput = {
   notify_questionnaire_completed?: Prisma.BoolNullableFilter<"organization_notification_settings"> | boolean | null
   notify_emergency_leave?: Prisma.BoolNullableFilter<"organization_notification_settings"> | boolean | null
   notify_outstanding_balance?: Prisma.BoolNullableFilter<"organization_notification_settings"> | boolean | null
+  enable_eod_session_reminder?: Prisma.BoolNullableFilter<"organization_notification_settings"> | boolean | null
+  eod_reminder_time?: Prisma.StringNullableFilter<"organization_notification_settings"> | string | null
+  eod_reminder_channels?: Prisma.JsonNullableFilter<"organization_notification_settings">
+  eod_reminder_scope?: Prisma.JsonNullableFilter<"organization_notification_settings">
+  eod_reminder_roles?: Prisma.StringNullableListFilter<"organization_notification_settings">
+  eod_last_run_at?: Prisma.DateTimeNullableFilter<"organization_notification_settings"> | Date | string | null
   updated_at?: Prisma.DateTimeNullableFilter<"organization_notification_settings"> | Date | string | null
   organizations?: Prisma.XOR<Prisma.OrganizationsScalarRelationFilter, Prisma.organizationsWhereInput>
 }
@@ -226,6 +262,12 @@ export type organization_notification_settingsOrderByWithRelationInput = {
   notify_questionnaire_completed?: Prisma.SortOrderInput | Prisma.SortOrder
   notify_emergency_leave?: Prisma.SortOrderInput | Prisma.SortOrder
   notify_outstanding_balance?: Prisma.SortOrderInput | Prisma.SortOrder
+  enable_eod_session_reminder?: Prisma.SortOrderInput | Prisma.SortOrder
+  eod_reminder_time?: Prisma.SortOrderInput | Prisma.SortOrder
+  eod_reminder_channels?: Prisma.SortOrderInput | Prisma.SortOrder
+  eod_reminder_scope?: Prisma.SortOrderInput | Prisma.SortOrder
+  eod_reminder_roles?: Prisma.SortOrder
+  eod_last_run_at?: Prisma.SortOrderInput | Prisma.SortOrder
   updated_at?: Prisma.SortOrderInput | Prisma.SortOrder
   organizations?: Prisma.organizationsOrderByWithRelationInput
 }
@@ -242,6 +284,12 @@ export type organization_notification_settingsWhereUniqueInput = Prisma.AtLeast<
   notify_questionnaire_completed?: Prisma.BoolNullableFilter<"organization_notification_settings"> | boolean | null
   notify_emergency_leave?: Prisma.BoolNullableFilter<"organization_notification_settings"> | boolean | null
   notify_outstanding_balance?: Prisma.BoolNullableFilter<"organization_notification_settings"> | boolean | null
+  enable_eod_session_reminder?: Prisma.BoolNullableFilter<"organization_notification_settings"> | boolean | null
+  eod_reminder_time?: Prisma.StringNullableFilter<"organization_notification_settings"> | string | null
+  eod_reminder_channels?: Prisma.JsonNullableFilter<"organization_notification_settings">
+  eod_reminder_scope?: Prisma.JsonNullableFilter<"organization_notification_settings">
+  eod_reminder_roles?: Prisma.StringNullableListFilter<"organization_notification_settings">
+  eod_last_run_at?: Prisma.DateTimeNullableFilter<"organization_notification_settings"> | Date | string | null
   updated_at?: Prisma.DateTimeNullableFilter<"organization_notification_settings"> | Date | string | null
   organizations?: Prisma.XOR<Prisma.OrganizationsScalarRelationFilter, Prisma.organizationsWhereInput>
 }, "organization_id">
@@ -255,6 +303,12 @@ export type organization_notification_settingsOrderByWithAggregationInput = {
   notify_questionnaire_completed?: Prisma.SortOrderInput | Prisma.SortOrder
   notify_emergency_leave?: Prisma.SortOrderInput | Prisma.SortOrder
   notify_outstanding_balance?: Prisma.SortOrderInput | Prisma.SortOrder
+  enable_eod_session_reminder?: Prisma.SortOrderInput | Prisma.SortOrder
+  eod_reminder_time?: Prisma.SortOrderInput | Prisma.SortOrder
+  eod_reminder_channels?: Prisma.SortOrderInput | Prisma.SortOrder
+  eod_reminder_scope?: Prisma.SortOrderInput | Prisma.SortOrder
+  eod_reminder_roles?: Prisma.SortOrder
+  eod_last_run_at?: Prisma.SortOrderInput | Prisma.SortOrder
   updated_at?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.organization_notification_settingsCountOrderByAggregateInput
   _max?: Prisma.organization_notification_settingsMaxOrderByAggregateInput
@@ -273,6 +327,12 @@ export type organization_notification_settingsScalarWhereWithAggregatesInput = {
   notify_questionnaire_completed?: Prisma.BoolNullableWithAggregatesFilter<"organization_notification_settings"> | boolean | null
   notify_emergency_leave?: Prisma.BoolNullableWithAggregatesFilter<"organization_notification_settings"> | boolean | null
   notify_outstanding_balance?: Prisma.BoolNullableWithAggregatesFilter<"organization_notification_settings"> | boolean | null
+  enable_eod_session_reminder?: Prisma.BoolNullableWithAggregatesFilter<"organization_notification_settings"> | boolean | null
+  eod_reminder_time?: Prisma.StringNullableWithAggregatesFilter<"organization_notification_settings"> | string | null
+  eod_reminder_channels?: Prisma.JsonNullableWithAggregatesFilter<"organization_notification_settings">
+  eod_reminder_scope?: Prisma.JsonNullableWithAggregatesFilter<"organization_notification_settings">
+  eod_reminder_roles?: Prisma.StringNullableListFilter<"organization_notification_settings">
+  eod_last_run_at?: Prisma.DateTimeNullableWithAggregatesFilter<"organization_notification_settings"> | Date | string | null
   updated_at?: Prisma.DateTimeNullableWithAggregatesFilter<"organization_notification_settings"> | Date | string | null
 }
 
@@ -284,6 +344,12 @@ export type organization_notification_settingsCreateInput = {
   notify_questionnaire_completed?: boolean | null
   notify_emergency_leave?: boolean | null
   notify_outstanding_balance?: boolean | null
+  enable_eod_session_reminder?: boolean | null
+  eod_reminder_time?: string | null
+  eod_reminder_channels?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  eod_reminder_scope?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  eod_reminder_roles?: Prisma.organization_notification_settingsCreateeod_reminder_rolesInput | string[]
+  eod_last_run_at?: Date | string | null
   updated_at?: Date | string | null
   organizations: Prisma.organizationsCreateNestedOneWithoutOrganization_notification_settingsInput
 }
@@ -297,6 +363,12 @@ export type organization_notification_settingsUncheckedCreateInput = {
   notify_questionnaire_completed?: boolean | null
   notify_emergency_leave?: boolean | null
   notify_outstanding_balance?: boolean | null
+  enable_eod_session_reminder?: boolean | null
+  eod_reminder_time?: string | null
+  eod_reminder_channels?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  eod_reminder_scope?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  eod_reminder_roles?: Prisma.organization_notification_settingsCreateeod_reminder_rolesInput | string[]
+  eod_last_run_at?: Date | string | null
   updated_at?: Date | string | null
 }
 
@@ -308,6 +380,12 @@ export type organization_notification_settingsUpdateInput = {
   notify_questionnaire_completed?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   notify_emergency_leave?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   notify_outstanding_balance?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  enable_eod_session_reminder?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  eod_reminder_time?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  eod_reminder_channels?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  eod_reminder_scope?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  eod_reminder_roles?: Prisma.organization_notification_settingsUpdateeod_reminder_rolesInput | string[]
+  eod_last_run_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   updated_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   organizations?: Prisma.organizationsUpdateOneRequiredWithoutOrganization_notification_settingsNestedInput
 }
@@ -321,6 +399,12 @@ export type organization_notification_settingsUncheckedUpdateInput = {
   notify_questionnaire_completed?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   notify_emergency_leave?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   notify_outstanding_balance?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  enable_eod_session_reminder?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  eod_reminder_time?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  eod_reminder_channels?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  eod_reminder_scope?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  eod_reminder_roles?: Prisma.organization_notification_settingsUpdateeod_reminder_rolesInput | string[]
+  eod_last_run_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   updated_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
@@ -333,6 +417,12 @@ export type organization_notification_settingsCreateManyInput = {
   notify_questionnaire_completed?: boolean | null
   notify_emergency_leave?: boolean | null
   notify_outstanding_balance?: boolean | null
+  enable_eod_session_reminder?: boolean | null
+  eod_reminder_time?: string | null
+  eod_reminder_channels?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  eod_reminder_scope?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  eod_reminder_roles?: Prisma.organization_notification_settingsCreateeod_reminder_rolesInput | string[]
+  eod_last_run_at?: Date | string | null
   updated_at?: Date | string | null
 }
 
@@ -344,6 +434,12 @@ export type organization_notification_settingsUpdateManyMutationInput = {
   notify_questionnaire_completed?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   notify_emergency_leave?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   notify_outstanding_balance?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  enable_eod_session_reminder?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  eod_reminder_time?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  eod_reminder_channels?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  eod_reminder_scope?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  eod_reminder_roles?: Prisma.organization_notification_settingsUpdateeod_reminder_rolesInput | string[]
+  eod_last_run_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   updated_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
@@ -356,6 +452,12 @@ export type organization_notification_settingsUncheckedUpdateManyInput = {
   notify_questionnaire_completed?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   notify_emergency_leave?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   notify_outstanding_balance?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  enable_eod_session_reminder?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  eod_reminder_time?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  eod_reminder_channels?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  eod_reminder_scope?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  eod_reminder_roles?: Prisma.organization_notification_settingsUpdateeod_reminder_rolesInput | string[]
+  eod_last_run_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   updated_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
@@ -368,6 +470,12 @@ export type organization_notification_settingsCountOrderByAggregateInput = {
   notify_questionnaire_completed?: Prisma.SortOrder
   notify_emergency_leave?: Prisma.SortOrder
   notify_outstanding_balance?: Prisma.SortOrder
+  enable_eod_session_reminder?: Prisma.SortOrder
+  eod_reminder_time?: Prisma.SortOrder
+  eod_reminder_channels?: Prisma.SortOrder
+  eod_reminder_scope?: Prisma.SortOrder
+  eod_reminder_roles?: Prisma.SortOrder
+  eod_last_run_at?: Prisma.SortOrder
   updated_at?: Prisma.SortOrder
 }
 
@@ -380,6 +488,9 @@ export type organization_notification_settingsMaxOrderByAggregateInput = {
   notify_questionnaire_completed?: Prisma.SortOrder
   notify_emergency_leave?: Prisma.SortOrder
   notify_outstanding_balance?: Prisma.SortOrder
+  enable_eod_session_reminder?: Prisma.SortOrder
+  eod_reminder_time?: Prisma.SortOrder
+  eod_last_run_at?: Prisma.SortOrder
   updated_at?: Prisma.SortOrder
 }
 
@@ -392,12 +503,24 @@ export type organization_notification_settingsMinOrderByAggregateInput = {
   notify_questionnaire_completed?: Prisma.SortOrder
   notify_emergency_leave?: Prisma.SortOrder
   notify_outstanding_balance?: Prisma.SortOrder
+  enable_eod_session_reminder?: Prisma.SortOrder
+  eod_reminder_time?: Prisma.SortOrder
+  eod_last_run_at?: Prisma.SortOrder
   updated_at?: Prisma.SortOrder
 }
 
 export type Organization_notification_settingsNullableScalarRelationFilter = {
   is?: Prisma.organization_notification_settingsWhereInput | null
   isNot?: Prisma.organization_notification_settingsWhereInput | null
+}
+
+export type organization_notification_settingsCreateeod_reminder_rolesInput = {
+  set: string[]
+}
+
+export type organization_notification_settingsUpdateeod_reminder_rolesInput = {
+  set?: string[]
+  push?: string | string[]
 }
 
 export type organization_notification_settingsCreateNestedOneWithoutOrganizationsInput = {
@@ -440,6 +563,12 @@ export type organization_notification_settingsCreateWithoutOrganizationsInput = 
   notify_questionnaire_completed?: boolean | null
   notify_emergency_leave?: boolean | null
   notify_outstanding_balance?: boolean | null
+  enable_eod_session_reminder?: boolean | null
+  eod_reminder_time?: string | null
+  eod_reminder_channels?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  eod_reminder_scope?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  eod_reminder_roles?: Prisma.organization_notification_settingsCreateeod_reminder_rolesInput | string[]
+  eod_last_run_at?: Date | string | null
   updated_at?: Date | string | null
 }
 
@@ -451,6 +580,12 @@ export type organization_notification_settingsUncheckedCreateWithoutOrganization
   notify_questionnaire_completed?: boolean | null
   notify_emergency_leave?: boolean | null
   notify_outstanding_balance?: boolean | null
+  enable_eod_session_reminder?: boolean | null
+  eod_reminder_time?: string | null
+  eod_reminder_channels?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  eod_reminder_scope?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  eod_reminder_roles?: Prisma.organization_notification_settingsCreateeod_reminder_rolesInput | string[]
+  eod_last_run_at?: Date | string | null
   updated_at?: Date | string | null
 }
 
@@ -478,6 +613,12 @@ export type organization_notification_settingsUpdateWithoutOrganizationsInput = 
   notify_questionnaire_completed?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   notify_emergency_leave?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   notify_outstanding_balance?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  enable_eod_session_reminder?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  eod_reminder_time?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  eod_reminder_channels?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  eod_reminder_scope?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  eod_reminder_roles?: Prisma.organization_notification_settingsUpdateeod_reminder_rolesInput | string[]
+  eod_last_run_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   updated_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
@@ -489,6 +630,12 @@ export type organization_notification_settingsUncheckedUpdateWithoutOrganization
   notify_questionnaire_completed?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   notify_emergency_leave?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   notify_outstanding_balance?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  enable_eod_session_reminder?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  eod_reminder_time?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  eod_reminder_channels?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  eod_reminder_scope?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  eod_reminder_roles?: Prisma.organization_notification_settingsUpdateeod_reminder_rolesInput | string[]
+  eod_last_run_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   updated_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
@@ -503,6 +650,12 @@ export type organization_notification_settingsSelect<ExtArgs extends runtime.Typ
   notify_questionnaire_completed?: boolean
   notify_emergency_leave?: boolean
   notify_outstanding_balance?: boolean
+  enable_eod_session_reminder?: boolean
+  eod_reminder_time?: boolean
+  eod_reminder_channels?: boolean
+  eod_reminder_scope?: boolean
+  eod_reminder_roles?: boolean
+  eod_last_run_at?: boolean
   updated_at?: boolean
   organizations?: boolean | Prisma.organizationsDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["organization_notification_settings"]>
@@ -516,6 +669,12 @@ export type organization_notification_settingsSelectCreateManyAndReturn<ExtArgs 
   notify_questionnaire_completed?: boolean
   notify_emergency_leave?: boolean
   notify_outstanding_balance?: boolean
+  enable_eod_session_reminder?: boolean
+  eod_reminder_time?: boolean
+  eod_reminder_channels?: boolean
+  eod_reminder_scope?: boolean
+  eod_reminder_roles?: boolean
+  eod_last_run_at?: boolean
   updated_at?: boolean
   organizations?: boolean | Prisma.organizationsDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["organization_notification_settings"]>
@@ -529,6 +688,12 @@ export type organization_notification_settingsSelectUpdateManyAndReturn<ExtArgs 
   notify_questionnaire_completed?: boolean
   notify_emergency_leave?: boolean
   notify_outstanding_balance?: boolean
+  enable_eod_session_reminder?: boolean
+  eod_reminder_time?: boolean
+  eod_reminder_channels?: boolean
+  eod_reminder_scope?: boolean
+  eod_reminder_roles?: boolean
+  eod_last_run_at?: boolean
   updated_at?: boolean
   organizations?: boolean | Prisma.organizationsDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["organization_notification_settings"]>
@@ -542,10 +707,16 @@ export type organization_notification_settingsSelectScalar = {
   notify_questionnaire_completed?: boolean
   notify_emergency_leave?: boolean
   notify_outstanding_balance?: boolean
+  enable_eod_session_reminder?: boolean
+  eod_reminder_time?: boolean
+  eod_reminder_channels?: boolean
+  eod_reminder_scope?: boolean
+  eod_reminder_roles?: boolean
+  eod_last_run_at?: boolean
   updated_at?: boolean
 }
 
-export type organization_notification_settingsOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"organization_id" | "enable_email_notifications" | "enable_in_app_notifications" | "notify_signup_approval" | "notify_questionnaire_assigned" | "notify_questionnaire_completed" | "notify_emergency_leave" | "notify_outstanding_balance" | "updated_at", ExtArgs["result"]["organization_notification_settings"]>
+export type organization_notification_settingsOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"organization_id" | "enable_email_notifications" | "enable_in_app_notifications" | "notify_signup_approval" | "notify_questionnaire_assigned" | "notify_questionnaire_completed" | "notify_emergency_leave" | "notify_outstanding_balance" | "enable_eod_session_reminder" | "eod_reminder_time" | "eod_reminder_channels" | "eod_reminder_scope" | "eod_reminder_roles" | "eod_last_run_at" | "updated_at", ExtArgs["result"]["organization_notification_settings"]>
 export type organization_notification_settingsInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   organizations?: boolean | Prisma.organizationsDefaultArgs<ExtArgs>
 }
@@ -570,6 +741,12 @@ export type $organization_notification_settingsPayload<ExtArgs extends runtime.T
     notify_questionnaire_completed: boolean | null
     notify_emergency_leave: boolean | null
     notify_outstanding_balance: boolean | null
+    enable_eod_session_reminder: boolean | null
+    eod_reminder_time: string | null
+    eod_reminder_channels: runtime.JsonValue | null
+    eod_reminder_scope: runtime.JsonValue | null
+    eod_reminder_roles: string[]
+    eod_last_run_at: Date | null
     updated_at: Date | null
   }, ExtArgs["result"]["organization_notification_settings"]>
   composites: {}
@@ -1003,6 +1180,12 @@ export interface organization_notification_settingsFieldRefs {
   readonly notify_questionnaire_completed: Prisma.FieldRef<"organization_notification_settings", 'Boolean'>
   readonly notify_emergency_leave: Prisma.FieldRef<"organization_notification_settings", 'Boolean'>
   readonly notify_outstanding_balance: Prisma.FieldRef<"organization_notification_settings", 'Boolean'>
+  readonly enable_eod_session_reminder: Prisma.FieldRef<"organization_notification_settings", 'Boolean'>
+  readonly eod_reminder_time: Prisma.FieldRef<"organization_notification_settings", 'String'>
+  readonly eod_reminder_channels: Prisma.FieldRef<"organization_notification_settings", 'Json'>
+  readonly eod_reminder_scope: Prisma.FieldRef<"organization_notification_settings", 'Json'>
+  readonly eod_reminder_roles: Prisma.FieldRef<"organization_notification_settings", 'String[]'>
+  readonly eod_last_run_at: Prisma.FieldRef<"organization_notification_settings", 'DateTime'>
   readonly updated_at: Prisma.FieldRef<"organization_notification_settings", 'DateTime'>
 }
     

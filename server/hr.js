@@ -74,7 +74,9 @@ export async function calculateStaffActivityMetrics(targetDate) {
         SELECT p.id, p.first_name, p.last_name, p.profession, u.role, u.email
         FROM profiles p
         JOIN users u ON p.id = u.id
-        WHERE u.role NOT IN ('client', 'athlete')
+        WHERE u.role NOT IN ('client', 'athlete', 'bot')
+          AND (p.ams_role != 'System Bot' OR p.ams_role IS NULL)
+          AND u.email NOT LIKE 'hubbot_%'
         ORDER BY p.first_name ASC
     `;
     const staffRes = await db.query(staffQuery);
@@ -90,27 +92,20 @@ export async function calculateStaffActivityMetrics(targetDate) {
         activityMap[r.user_id] = parseInt(r.active_seconds, 10);
     });
 
-    // 3. Fetch session entries for each user on targetDate
-    // Pull distinct sessions where either:
-    // a) The user recorded/entered the session on targetDate (created_by = user.id and DATE(created_at) = targetDate)
-    // b) OR the user is assigned/conducted the session on targetDate (therapist_id/scientist_id = user.id and DATE(scheduled_start/actual_start) = targetDate)
+    // 3. Fetch COMPLETED session entries for each user on targetDate.
+    // Only sessions with status = 'Completed' are counted as "sessions conducted".
     const sessionsRes = await db.query(`
         SELECT u.id as user_id, COUNT(DISTINCT s.id) as count
         FROM users u
         JOIN sessions s ON (
-            (s.created_by = u.id AND (
-                DATE(s.created_at AT TIME ZONE 'Asia/Kolkata') = $1 OR DATE(s.created_at) = $1
-            ))
-            OR
-            ((s.therapist_id = u.id OR s.scientist_id = u.id) AND (
+            (s.therapist_id = u.id OR s.scientist_id = u.id)
+            AND s.status = 'Completed'
+            AND (
                 DATE(s.scheduled_start AT TIME ZONE 'Asia/Kolkata') = $1 OR DATE(s.scheduled_start) = $1
                 OR DATE(s.actual_start AT TIME ZONE 'Asia/Kolkata') = $1 OR DATE(s.actual_start) = $1
-                OR (s.status = 'Completed' AND (
-                    DATE(s.updated_at AT TIME ZONE 'Asia/Kolkata') = $1 OR DATE(s.updated_at) = $1
-                ))
-            ))
+                OR DATE(s.updated_at AT TIME ZONE 'Asia/Kolkata') = $1 OR DATE(s.updated_at) = $1
+            )
         )
-        WHERE s.status NOT IN ('Deleted')
         GROUP BY u.id
     `, [targetDate]).catch(err => {
         console.error('Error fetching sessions metrics:', err);
@@ -348,7 +343,7 @@ router.get('/employees', requireAuth, async (req, res) => {
                    (SELECT json_agg(ea.*) FROM emergency_alerts ea WHERE ea.staff_id = p.id AND ea.status = 'unresolved') as emergency_alerts
             FROM profiles p
             JOIN users u ON p.id = u.id
-            WHERE p.organization_id = $1 AND p.is_approved = true
+            WHERE p.organization_id = $1 AND p.is_approved = true AND u.role != 'bot' AND (p.ams_role != 'System Bot' OR p.ams_role IS NULL) AND u.email NOT LIKE 'hubbot_%'
         `;
         const params = [orgId];
 
@@ -489,9 +484,9 @@ router.get('/stats', requireAuth, async (req, res) => {
         const orgId = req.user.organization_id;
         
         const [empCount, pendingLeaves, approvalCount] = await Promise.all([
-            db.query('SELECT COUNT(*) FROM profiles WHERE organization_id = $1 AND deleted_at IS NULL AND (is_active IS NULL OR is_active = true)', [orgId]),
+            db.query("SELECT COUNT(*) FROM profiles p JOIN users u ON p.id = u.id WHERE p.organization_id = $1 AND u.role != 'bot' AND (p.ams_role != 'System Bot' OR p.ams_role IS NULL) AND u.email NOT LIKE 'hubbot_%' AND p.deleted_at IS NULL AND (p.is_active IS NULL OR p.is_active = true)", [orgId]),
             db.query('SELECT COUNT(*) FROM hrleaves WHERE organization_id = $1 AND status = \'Requested\'', [orgId]),
-            db.query('SELECT COUNT(*) FROM profiles WHERE organization_id = $1 AND is_approved = false AND deleted_at IS NULL AND (is_active IS NULL OR is_active = true)', [orgId])
+            db.query("SELECT COUNT(*) FROM profiles p JOIN users u ON p.id = u.id WHERE p.organization_id = $1 AND u.role != 'bot' AND (p.ams_role != 'System Bot' OR p.ams_role IS NULL) AND u.email NOT LIKE 'hubbot_%' AND p.is_approved = false AND p.deleted_at IS NULL AND (p.is_active IS NULL OR p.is_active = true)", [orgId])
         ]);
 
         res.json({
@@ -511,7 +506,7 @@ router.get('/users', requireAuth, async (req, res) => {
         const orgId = req.user.organization_id;
         const includeRevoked = req.query.include_revoked === 'true' || req.query.status === 'all';
         
-        let filterClause = "WHERE p.organization_id = $1 AND u.role != 'super_admin'";
+        let filterClause = "WHERE p.organization_id = $1 AND u.role != 'super_admin' AND u.role != 'bot' AND (p.ams_role != 'System Bot' OR p.ams_role IS NULL) AND u.email NOT LIKE 'hubbot_%'";
         if (!includeRevoked) {
             filterClause += " AND (p.deleted_at IS NULL AND (p.is_active IS NULL OR p.is_active = true))";
         }

@@ -977,11 +977,13 @@ router.get('/dms/:id/messages', async (req, res) => {
     const result = await db.query(
       `SELECT m.id, m.organization_id, m.channel_id, m.dm_thread_id, m.user_id, m.bot_id, m.parent_message_id,
               m.message_type, m.is_edited, m.edited_at, m.created_at, m.deleted_at,
+              m.metadata,
               CASE WHEN m.deleted_at IS NOT NULL THEN TRUE ELSE FALSE END as is_deleted,
               CASE WHEN m.deleted_at IS NOT NULL THEN NULL ELSE m.content END as content,
               CASE WHEN m.deleted_at IS NOT NULL THEN NULL ELSE m.content_html END as content_html,
               p.first_name, p.last_name, p.avatar_url,
               COALESCE(p.profession, p.ams_role, u.role, 'Member') as role,
+              cb.name as bot_name, cb.avatar_url as bot_avatar,
               (
                 SELECT json_agg(json_build_object(
                   'emoji', r.emoji,
@@ -1005,6 +1007,7 @@ router.get('/dms/:id/messages', async (req, res) => {
        FROM chat_messages m
        LEFT JOIN profiles p ON p.id = m.user_id
        LEFT JOIN users u ON u.id = p.id
+       LEFT JOIN chat_bots cb ON cb.id = m.bot_id
        WHERE m.dm_thread_id = $1
          AND ($2::timestamptz IS NULL OR m.created_at < $2)
        ORDER BY m.created_at DESC

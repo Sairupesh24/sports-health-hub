@@ -9,11 +9,12 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { formatUserRole, getRoleBadgeStyle } from "./messengerUtils";
 import type { ChatMessage } from "@/hooks/useMessenger";
-import type { OrgUser } from "@/pages/messenger/MessengerPage";
+import type { OrgUser, DMThread } from "@/pages/messenger/MessengerPage";
 
 interface Props {
   threadId: string;
   otherUserId: string;
+  dmThread?: DMThread;
   messengerCtx: ReturnType<typeof import("@/hooks/useMessenger").useMessenger>;
   users: OrgUser[];
   currentUserId: string;
@@ -23,6 +24,7 @@ interface Props {
 const DirectMessageView: React.FC<Props> = ({
   threadId,
   otherUserId,
+  dmThread,
   messengerCtx,
   users,
   currentUserId,
@@ -35,11 +37,24 @@ const DirectMessageView: React.FC<Props> = ({
   const [threadMessage, setThreadMessage] = useState<ChatMessage | null>(null);
 
   const otherUser = users.find((u) => u.id === otherUserId);
-  const otherInitials = otherUser
-    ? `${otherUser.first_name?.[0] || ""}${otherUser.last_name?.[0] || ""}`.toUpperCase()
-    : "?";
-  const roleLabel = formatUserRole(otherUser?.role, otherUser?.profession);
-  const roleStyle = getRoleBadgeStyle(otherUser?.role);
+  const firstName = otherUser?.first_name || dmThread?.other_first_name || "Team";
+  const lastName = otherUser?.last_name || dmThread?.other_last_name || "";
+  const avatarUrl = otherUser?.avatar_url || dmThread?.other_avatar_url;
+  const role = otherUser?.role || dmThread?.other_role || "Member";
+  const profession = otherUser?.profession || dmThread?.other_profession;
+  const otherInitials = `${firstName[0] || ""}${lastName[0] || ""}`.toUpperCase() || "?";
+  const roleLabel = formatUserRole(role, profession);
+  const roleStyle = getRoleBadgeStyle(role);
+  const displayName = `${firstName} ${lastName}`.trim() || "Direct Message";
+  const isBot =
+    Boolean(otherUser?.role === "bot") ||
+    Boolean(dmThread?.other_role?.toLowerCase()?.includes("bot")) ||
+    Boolean(role?.toLowerCase()?.includes("bot")) ||
+    Boolean(profession?.toLowerCase()?.includes("automated")) ||
+    displayName.toLowerCase().includes("hubbot") ||
+    Boolean(otherUser?.email?.toLowerCase()?.includes("hubbot")) ||
+    Boolean(otherUser?.first_name?.toLowerCase()?.includes("hubbot")) ||
+    Boolean(dmThread?.other_first_name?.toLowerCase()?.includes("hubbot"));
 
   const fetchLatestMessages = useCallback(() => {
     if (!threadId) return;
@@ -186,7 +201,7 @@ const DirectMessageView: React.FC<Props> = ({
             </Button>
           )}
           <Avatar className="h-8 w-8 sm:h-9 sm:w-9 ring-2 ring-teal-500/20 flex-shrink-0">
-            <AvatarImage src={otherUser?.avatar_url} />
+            <AvatarImage src={avatarUrl} />
             <AvatarFallback className="bg-teal-600 text-white text-xs font-bold">
               {otherInitials}
             </AvatarFallback>
@@ -194,7 +209,7 @@ const DirectMessageView: React.FC<Props> = ({
           <div className="min-w-0">
             <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
               <h2 className="font-black text-xs sm:text-sm text-slate-900 truncate">
-                {otherUser ? `${otherUser.first_name} ${otherUser.last_name}` : "Direct Message"}
+                {displayName}
               </h2>
               <Badge
                 variant="outline"
@@ -223,15 +238,22 @@ const DirectMessageView: React.FC<Props> = ({
           messengerCtx={messengerCtx}
         />
 
-        {/* Input */}
-        <div className="border-t border-slate-200/80 bg-white flex-shrink-0 z-10">
-          <MessageInput
-            placeholder={`Message ${otherUser ? `${otherUser.first_name} ${otherUser.last_name}` : "..."}`}
-            onSend={handleSend}
-            onTypingChange={() => {}}
-            users={users}
-          />
-        </div>
+        {/* Input / Bot read-only indicator */}
+        {isBot ? (
+          <div className="border-t border-slate-200/80 bg-slate-50/70 py-3 px-4 text-center flex items-center justify-center gap-2 flex-shrink-0 z-10 text-xs text-slate-500 font-medium select-none">
+            <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500" />
+            <span>HubBot is an automated notification assistant &bull; Messaging is disabled</span>
+          </div>
+        ) : (
+          <div className="border-t border-slate-200/80 bg-white flex-shrink-0 z-10">
+            <MessageInput
+              placeholder={`Message ${displayName}...`}
+              onSend={handleSend}
+              onTypingChange={() => {}}
+              users={users}
+            />
+          </div>
+        )}
       </div>
 
       {/* Thread / Reference Panel */}

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { format } from "date-fns";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiFetch } from "@/utils/api";
@@ -54,6 +54,7 @@ export default function AdHocSessionModal({ open, onOpenChange, onSuccess, prese
     // Form State
     const [selectedClientId, setSelectedClientId] = useState<string>("");
     const [selectedInjuryId, setSelectedInjuryId] = useState<string>("none");
+    const [clientDropdownOpen, setClientDropdownOpen] = useState(false);
 
     // Session Timings
     const [sessionDate, setSessionDate] = useState<string>(format(new Date(), 'yyyy-MM-dd'));
@@ -90,6 +91,7 @@ export default function AdHocSessionModal({ open, onOpenChange, onSuccess, prese
             fetchClients();
             // Reset form
             setSelectedClientId(preselectedClientId || "");
+            setClientDropdownOpen(false);
             setSelectedInjuryId("none");
             setPainScore(0);
             setSorenessData({});
@@ -295,33 +297,33 @@ export default function AdHocSessionModal({ open, onOpenChange, onSuccess, prese
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[92vw] lg:max-w-[1240px] max-h-[92vh] flex flex-col p-0 overflow-hidden bg-card border-border rounded-3xl shadow-2xl">
-                <DialogHeader className="px-6 py-4 border-b shrink-0 bg-background/90 backdrop-blur-sm">
-                    <div className="flex flex-wrap items-center justify-between gap-3">
-                        <div className="space-y-1 text-left">
-                            <div className="flex items-center gap-2">
-                                <DialogTitle className="text-xl font-bold font-display text-foreground leading-tight">
+            <DialogContent className="w-[96vw] sm:w-[92vw] lg:max-w-[1240px] max-h-[94vh] flex flex-col p-0 overflow-hidden bg-card border-border rounded-2xl sm:rounded-3xl shadow-2xl">
+                <DialogHeader className="px-4 sm:px-6 py-3.5 sm:py-4 border-b shrink-0 bg-background/90 backdrop-blur-sm pr-12">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 sm:gap-3">
+                        <div className="space-y-0.5 sm:space-y-1 text-left">
+                            <div className="flex flex-wrap items-center gap-2">
+                                <DialogTitle className="text-lg sm:text-xl font-bold font-display text-foreground leading-tight">
                                     Start Ad-Hoc Session
                                 </DialogTitle>
-                                <span className="px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 text-[10px] font-black tracking-wider border border-amber-500/20 uppercase">
+                                <span className="px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 text-[9px] sm:text-[10px] font-black tracking-wider border border-amber-500/20 uppercase shrink-0">
                                     AD-HOC / UNSCHEDULED
                                 </span>
                             </div>
-                            <DialogDescription className="text-xs text-muted-foreground font-medium">
+                            <DialogDescription className="text-[11px] sm:text-xs text-muted-foreground font-medium line-clamp-2 sm:line-clamp-none">
                                 Create an unscheduled treatment session and document clinical SOAP notes simultaneously.
                             </DialogDescription>
                         </div>
                     </div>
                 </DialogHeader>
 
-                <ScrollArea className="flex-1 px-6 py-5 overflow-y-auto">
-                    <div className="space-y-6 pb-6 max-w-full">
+                <ScrollArea className="flex-1 px-3 sm:px-6 py-3 sm:py-5 overflow-y-auto">
+                    <div className="space-y-5 sm:space-y-6 pb-6 max-w-full">
                         {/* 1. Client, Timing & Service Setup Card */}
-                        <div className="rounded-2xl border border-primary/20 bg-primary/[0.03] p-5 shadow-sm space-y-4">
-                            <div className="flex items-center justify-between border-b border-primary/10 pb-3">
+                        <div className="rounded-xl sm:rounded-2xl border border-primary/20 bg-primary/[0.03] p-3.5 sm:p-5 shadow-sm space-y-4">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 border-b border-primary/10 pb-3">
                                 <div className="flex items-center gap-2">
-                                    <div className="w-1.5 h-4 bg-primary rounded-full" />
-                                    <h3 className="font-black text-sm uppercase tracking-wider text-primary">
+                                    <div className="w-1.5 h-4 bg-primary rounded-full shrink-0" />
+                                    <h3 className="font-black text-xs sm:text-sm uppercase tracking-wider text-primary">
                                         Session & Patient Details
                                     </h3>
                                 </div>
@@ -339,9 +341,9 @@ export default function AdHocSessionModal({ open, onOpenChange, onSuccess, prese
                                         }
                                         setCaseModalOpen(true);
                                     }}
-                                    className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-xs h-8 px-3 rounded-xl flex items-center gap-1.5 shadow-sm shadow-primary/20 transition-all cursor-pointer"
+                                    className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-xs h-8 px-3 rounded-xl flex items-center justify-center gap-1.5 shadow-sm shadow-primary/20 transition-all cursor-pointer w-full sm:w-auto"
                                 >
-                                    <PlusCircle className="w-3.5 h-3.5" />
+                                    <PlusCircle className="w-3.5 h-3.5 shrink-0" />
                                     Open New Case
                                 </Button>
                             </div>
@@ -350,32 +352,39 @@ export default function AdHocSessionModal({ open, onOpenChange, onSuccess, prese
                                 {/* Client Combobox */}
                                 <div className="space-y-1.5">
                                     <Label className="text-xs font-bold text-foreground">Select Patient / Client</Label>
-                                    <Popover>
+                                    <Popover open={clientDropdownOpen} onOpenChange={setClientDropdownOpen}>
                                         <PopoverTrigger asChild>
                                             <Button
                                                 variant="outline"
                                                 role="combobox"
                                                 className={cn(
-                                                    "w-full justify-between font-normal bg-background border-border hover:border-primary/40 text-xs h-10 rounded-xl",
+                                                    "w-full justify-between font-normal bg-background border-border hover:border-primary/40 text-xs h-10 rounded-xl px-3",
                                                     !selectedClientId && "text-muted-foreground"
                                                 )}
                                             >
-                                                <div className="flex items-center gap-2 truncate">
+                                                <div className="flex items-center gap-2 min-w-0 flex-1 text-left">
                                                     <Users className="w-4 h-4 text-primary/70 shrink-0" />
-                                                    {selectedClientId ? (() => {
-                                                        const c = clients.find(x => x.id === selectedClientId);
-                                                        if (!c) return "Search client...";
-                                                        const fullName = [c.honorific, c.first_name, c.middle_name, c.last_name].filter(Boolean).join(" ");
-                                                        return `${fullName} ${c.uhid ? `(${c.uhid})` : ''}`;
-                                                    })() : "Search by name, UHID or phone..."}
+                                                    <span className="truncate block flex-1 text-xs">
+                                                        {selectedClientId ? (() => {
+                                                            const c = clients.find(x => x.id === selectedClientId);
+                                                            if (!c) return "Search client...";
+                                                            const fullName = [c.honorific, c.first_name, c.middle_name, c.last_name].filter(Boolean).join(" ");
+                                                            return `${fullName} ${c.uhid ? `(${c.uhid})` : ''}`;
+                                                        })() : "Search by name, UHID or phone..."}
+                                                    </span>
                                                 </div>
-                                                <ChevronsUpDown className="ml-2 h-3.5 w-3.5 shrink-0 opacity-50" />
+                                                <ChevronsUpDown className="ml-1.5 h-3.5 w-3.5 shrink-0 opacity-50" />
                                             </Button>
                                         </PopoverTrigger>
-                                        <PopoverContent className="w-[380px] p-0" align="start">
+                                        <PopoverContent 
+                                            className="w-[calc(100vw-2.5rem)] sm:w-[420px] max-w-[420px] p-0 z-[70] shadow-2xl rounded-2xl overflow-hidden border border-border" 
+                                            align="start"
+                                            sideOffset={4}
+                                            collisionPadding={12}
+                                        >
                                             <Command>
                                                 <CommandInput placeholder="Search client name or UHID..." />
-                                                <CommandList>
+                                                <CommandList className="max-h-[260px] overflow-y-auto overscroll-contain">
                                                     <CommandEmpty>No client found.</CommandEmpty>
                                                     <CommandGroup>
                                                         {clients.map(c => {
@@ -384,10 +393,24 @@ export default function AdHocSessionModal({ open, onOpenChange, onSuccess, prese
                                                                 <CommandItem
                                                                     key={c.id}
                                                                     value={`${fullName} ${c.uhid || ''}`}
-                                                                    onSelect={() => setSelectedClientId(c.id)}
+                                                                    onSelect={() => {
+                                                                        setSelectedClientId(c.id);
+                                                                        setClientDropdownOpen(false);
+                                                                    }}
+                                                                    className="py-2.5 px-3 flex items-center justify-between cursor-pointer"
                                                                 >
-                                                                    <Check className={cn("mr-2 h-4 w-4", selectedClientId === c.id ? "opacity-100" : "opacity-0")} />
-                                                                    {fullName} {c.uhid ? `(${c.uhid})` : ''}
+                                                                    <div className="flex items-center min-w-0 flex-1 mr-2">
+                                                                        <Check className={cn("mr-2 h-4 w-4 shrink-0 text-primary", selectedClientId === c.id ? "opacity-100" : "opacity-0")} />
+                                                                        <div className="flex flex-col min-w-0 flex-1">
+                                                                            <span className="font-semibold text-xs text-foreground truncate">{fullName}</span>
+                                                                            {c.uhid && (
+                                                                                <span className="text-[10px] text-muted-foreground uppercase font-black tracking-wider truncate">{c.uhid}</span>
+                                                                            )}
+                                                                        </div>
+                                                                    </div>
+                                                                    {c.mobile_no && (
+                                                                        <span className="text-[10px] text-muted-foreground shrink-0 hidden sm:inline">{c.mobile_no}</span>
+                                                                    )}
                                                                 </CommandItem>
                                                             );
                                                         })}
@@ -660,12 +683,12 @@ export default function AdHocSessionModal({ open, onOpenChange, onSuccess, prese
                 </ScrollArea>
 
                 {/* Sticky Action Footer */}
-                <div className="px-6 py-4 border-t flex items-center justify-between bg-background/95 backdrop-blur-md shrink-0 shadow-lg z-20">
+                <div className="px-4 sm:px-6 py-3 sm:py-4 border-t flex items-center justify-between gap-3 bg-background/95 backdrop-blur-md shrink-0 shadow-lg z-20">
                     <Button 
                         type="button" 
                         variant="ghost" 
                         onClick={() => onOpenChange(false)}
-                        className="font-bold text-xs"
+                        className="font-bold text-xs h-10 px-3 sm:px-4"
                     >
                         Cancel
                     </Button>
@@ -673,7 +696,7 @@ export default function AdHocSessionModal({ open, onOpenChange, onSuccess, prese
                         type="button"
                         onClick={handleSaveSession}
                         disabled={loading || !selectedClientId}
-                        className="min-w-[170px] font-black uppercase text-xs tracking-wider shadow-lg shadow-primary/20 rounded-xl h-10"
+                        className="flex-1 sm:flex-none sm:min-w-[170px] font-black uppercase text-xs tracking-wider shadow-lg shadow-primary/20 rounded-xl h-10"
                     >
                         {loading ? (
                             <>

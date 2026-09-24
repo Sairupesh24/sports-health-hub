@@ -118,6 +118,7 @@ export default function UserApproval() {
 
   const roleBreakdown = activeUsers.reduce((acc, u) => {
     const r = u.current_role || 'unassigned';
+    if (r === 'bot') return acc;
     acc[r] = (acc[r] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
@@ -153,11 +154,16 @@ export default function UserApproval() {
       const profiles = response.data;
 
       if (profiles) {
-        const filtered = profiles.filter(u => {
+        const filtered = profiles.filter((u: any) => {
           // Exclude super admins
-          if (u.current_role === 'super_admin') return false;
+          if (u.current_role === 'super_admin' || u.role === 'super_admin') return false;
           // Exclude ghost profiles
           if (u.email?.startsWith('deleted_')) return false;
+          // Exclude system bot accounts
+          if (u.current_role === 'bot' || u.role === 'bot') return false;
+          if (u.ams_role === 'System Bot' || u.ams_role === 'bot') return false;
+          if (u.email?.startsWith('hubbot_') || u.email?.toLowerCase().includes('hubbot')) return false;
+          if (u.first_name?.toLowerCase().includes('hubbot') || u.last_name?.toLowerCase().includes('hubbot')) return false;
           return true;
         });
 

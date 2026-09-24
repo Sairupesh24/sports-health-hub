@@ -269,15 +269,21 @@ const ChannelView: React.FC<Props> = ({
         {typingInChannel.length > 0 && <TypingIndicator names={typingInChannel} />}
 
         {/* Input */}
-        <div className="border-t border-slate-200/80 bg-white flex-shrink-0 z-10">
-          <MessageInput
-            placeholder={`Message #${channel?.name || "..."}`}
-            onSend={handleSend}
-            onTypingChange={handleTyping}
-            users={users}
-            disabled={channel?.channel_type === "automated"}
-          />
-        </div>
+        {channel?.channel_type === "automated" || channel?.name === "hub-notifications" ? (
+          <div className="border-t border-slate-200/80 bg-slate-50/70 py-3 px-4 text-center flex items-center justify-center gap-2 flex-shrink-0 z-10 text-xs text-slate-500 font-medium select-none">
+            <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500" />
+            <span>Automated channel &bull; Notifications are system-generated</span>
+          </div>
+        ) : (
+          <div className="border-t border-slate-200/80 bg-white flex-shrink-0 z-10">
+            <MessageInput
+              placeholder={`Message #${channel?.name || "..."}`}
+              onSend={handleSend}
+              onTypingChange={handleTyping}
+              users={users}
+            />
+          </div>
+        )}
       </div>
 
       {/* Thread panel */}

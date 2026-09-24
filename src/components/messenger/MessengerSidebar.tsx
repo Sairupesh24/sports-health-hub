@@ -229,7 +229,12 @@ const MessengerSidebar: React.FC<Props> = ({
             <div className="space-y-0.5 px-2 mt-1">
               {filteredDMs.map((dm) => {
                 const isActive = activeView?.type === "dm" && activeView.threadId === dm.id;
-                const dmInitials = `${dm.other_first_name?.[0] || ""}${dm.other_last_name?.[0] || ""}`.toUpperCase();
+                const dmInitials = (
+                  `${dm.other_first_name?.[0] || ""}${dm.other_last_name?.[0] || ""}` ||
+                  dm.other_first_name?.slice(0, 2) ||
+                  "?"
+                ).toUpperCase();
+                const otherFullName = `${dm.other_first_name || ""} ${dm.other_last_name || ""}`.trim() || "Team Member";
                 const roleLabel = formatUserRole(dm.other_role, dm.other_profession);
                 const roleBadge = getRoleBadgeStyle(dm.other_role);
                 const dmUnread = unreadMap[dm.id] || unreadMap[dm.other_user_id] || 0;
@@ -256,7 +261,7 @@ const MessengerSidebar: React.FC<Props> = ({
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-1">
                         <p className={cn("text-xs truncate", dmUnread > 0 ? "font-black text-slate-900" : "font-medium")}>
-                          {dm.other_first_name} {dm.other_last_name}
+                          {otherFullName}
                         </p>
                         {dmUnread > 0 && (
                           <span className="flex h-4 min-w-[16px] items-center justify-center rounded-full bg-rose-500 px-1 text-[9px] font-bold text-white shadow-xs animate-pulse">

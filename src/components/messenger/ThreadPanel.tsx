@@ -62,12 +62,19 @@ const ThreadPanel: React.FC<Props> = ({ message, users, currentUserId, messenger
     });
   };
 
-  const senderUser = users.find((u) => u.id === message.user_id);
-  const senderName = message.first_name
+  const senderName = message.bot_name
+    ? message.bot_name
+    : message.first_name
     ? `${message.first_name} ${message.last_name || ""}`.trim()
     : senderUser
     ? `${senderUser.first_name} ${senderUser.last_name || ""}`.trim()
     : "Team Member";
+
+  const isBotMessage =
+    Boolean(message.bot_name) ||
+    Boolean(message.sender_role === "bot") ||
+    senderName.toLowerCase().includes("hubbot") ||
+    Boolean(message.sender_email?.toLowerCase().includes("hubbot"));
 
   return (
     <div className="fixed inset-0 z-50 md:relative md:inset-auto flex flex-col w-full md:w-80 xl:w-96 flex-shrink-0 border-l border-slate-200/80 bg-white shadow-xl md:shadow-none h-full min-h-0 overflow-hidden">
@@ -141,14 +148,21 @@ const ThreadPanel: React.FC<Props> = ({ message, users, currentUserId, messenger
       </div>
 
       {/* Reply input */}
-      <div className="border-t border-slate-200/80 bg-white flex-shrink-0 z-10">
-        <MessageInput
-          placeholder={`Reply to ${senderName}...`}
-          onSend={handleSendReply}
-          onTypingChange={() => {}}
-          users={users}
-        />
-      </div>
+      {isBotMessage ? (
+        <div className="border-t border-slate-200/80 bg-slate-50/70 py-3 px-4 text-center text-xs text-slate-500 font-medium select-none flex items-center justify-center gap-1.5 flex-shrink-0 z-10">
+          <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500" />
+          <span>Automated message &bull; Thread replies are disabled</span>
+        </div>
+      ) : (
+        <div className="border-t border-slate-200/80 bg-white flex-shrink-0 z-10">
+          <MessageInput
+            placeholder={`Reply to ${senderName}...`}
+            onSend={handleSendReply}
+            onTypingChange={() => {}}
+            users={users}
+          />
+        </div>
+      )}
     </div>
   );
 };

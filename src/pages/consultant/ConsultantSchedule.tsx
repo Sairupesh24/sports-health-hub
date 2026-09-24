@@ -1,4 +1,5 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiFetch } from "@/utils/api";
@@ -54,8 +55,18 @@ interface SessionEvent {
 export default function ConsultantSchedule() {
     const { profile, roles } = useAuth();
     const isAdminOrFoe = roles?.some(r => ["admin", "super_admin", "clinic_admin", "foe"].includes(r));
-    const [currentDate, setCurrentDate] = useState(new Date());
-    const [viewMode, setViewMode] = useState<ViewMode>("month");
+    const [searchParams] = useSearchParams();
+    const dateParam = searchParams.get("date");
+    const sessionIdParam = searchParams.get("session_id");
+
+    const [currentDate, setCurrentDate] = useState(() => {
+        if (dateParam) {
+            const parsed = parseISO(dateParam);
+            if (!isNaN(parsed.getTime())) return parsed;
+        }
+        return new Date();
+    });
+    const [viewMode, setViewMode] = useState<ViewMode>(() => (dateParam || sessionIdParam ? "day" : "month"));
 
     // Modal states
     const [soapModalOpen, setSoapModalOpen] = useState(false);
@@ -112,6 +123,17 @@ export default function ConsultantSchedule() {
         },
         enabled: !!profile?.id
     });
+
+    // Auto-open session SOAP modal if session_id is in query params
+    useEffect(() => {
+        if (sessionIdParam && sessions.length > 0) {
+            const found = sessions.find((s: any) => s.id === sessionIdParam || s.rawSession?.id === sessionIdParam);
+            if (found) {
+                setSelectedSession(found.rawSession || found);
+                setSoapModalOpen(true);
+            }
+        }
+    }, [sessionIdParam, sessions]);
 
     // ── Pre-completion entitlement check for Planned sessions ─────────────────
     const plannedClientIds = useMemo(() =>

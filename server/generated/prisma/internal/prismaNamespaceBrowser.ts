@@ -873,6 +873,12 @@ export const Organization_notification_settingsScalarFieldEnum = {
   notify_questionnaire_completed: 'notify_questionnaire_completed',
   notify_emergency_leave: 'notify_emergency_leave',
   notify_outstanding_balance: 'notify_outstanding_balance',
+  enable_eod_session_reminder: 'enable_eod_session_reminder',
+  eod_reminder_time: 'eod_reminder_time',
+  eod_reminder_channels: 'eod_reminder_channels',
+  eod_reminder_scope: 'eod_reminder_scope',
+  eod_reminder_roles: 'eod_reminder_roles',
+  eod_last_run_at: 'eod_last_run_at',
   updated_at: 'updated_at'
 } as const
 

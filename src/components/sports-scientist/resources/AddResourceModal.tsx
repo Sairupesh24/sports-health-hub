@@ -34,6 +34,7 @@ export function AddResourceModal({ isOpen, onClose, onSuccess, initialAthleteId 
   const [url, setUrl] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [selectedAthleteId, setSelectedAthleteId] = useState<string | null>(initialAthleteId || null);
+  const [athleteOpen, setAthleteOpen] = useState(false);
 
   useEffect(() => {
     if (isOpen && profile?.organization_id) {
@@ -186,14 +187,14 @@ export function AddResourceModal({ isOpen, onClose, onSuccess, initialAthleteId 
           {category === 'athlete_document' && (
             <div className="grid gap-1.5 animate-in slide-in-from-top-2">
               <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Associate Athlete</Label>
-              <Popover>
+              <Popover open={athleteOpen} onOpenChange={setAthleteOpen}>
                 <PopoverTrigger asChild>
                   <Button
                     variant="outline"
                     role="combobox"
                     disabled={!!initialAthleteId}
                     className={cn(
-                      "w-full justify-between h-11 sm:h-12 bg-slate-50 border-slate-200/70 rounded-2xl font-bold text-sm", 
+                      "w-full justify-between h-11 sm:h-12 bg-slate-50 border-slate-200/70 rounded-2xl font-bold text-sm text-left", 
                       !selectedAthleteId && "text-slate-400"
                     )}
                   >
@@ -205,23 +206,31 @@ export function AddResourceModal({ isOpen, onClose, onSuccess, initialAthleteId 
                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent disablePortal={true} className="w-[calc(100vw-48px)] sm:w-[400px] max-w-full p-0 rounded-2xl overflow-hidden border border-slate-200 shadow-2xl z-50">
+                <PopoverContent 
+                  className="w-[calc(100vw-2.5rem)] sm:w-[400px] max-w-[400px] p-0 rounded-2xl overflow-hidden border border-slate-200 shadow-2xl z-50"
+                  align="start"
+                  sideOffset={4}
+                  collisionPadding={12}
+                >
                   <Command>
                     <CommandInput placeholder="Search athlete by name or UHID..." className="h-11 sm:h-12" />
-                    <CommandList>
+                    <CommandList className="max-h-[260px] overflow-y-auto overscroll-contain">
                       <CommandEmpty>No athlete found.</CommandEmpty>
                       <CommandGroup>
                         {clients.map((c) => (
                           <CommandItem
                             key={c.id}
                             value={`${formatClientName(c)} ${c.uhid}`}
-                            onSelect={() => setSelectedAthleteId(c.id)}
-                            className="h-11 sm:h-12"
+                            onSelect={() => {
+                              setSelectedAthleteId(c.id);
+                              setAthleteOpen(false);
+                            }}
+                            className="h-11 sm:h-12 cursor-pointer"
                           >
-                            <Check className={cn("mr-2 h-4 w-4", selectedAthleteId === c.id ? "opacity-100" : "opacity-0")} />
-                            <div className="flex flex-col">
-                              <span className="font-bold">{formatClientName(c)}</span>
-                              <span className="text-[10px] font-bold text-slate-400 uppercase">{c.uhid}</span>
+                            <Check className={cn("mr-2 h-4 w-4 text-primary", selectedAthleteId === c.id ? "opacity-100" : "opacity-0")} />
+                            <div className="flex flex-col min-w-0 flex-1">
+                              <span className="font-bold text-sm truncate">{formatClientName(c)}</span>
+                              <span className="text-[10px] font-bold text-slate-400 uppercase truncate">{c.uhid}</span>
                             </div>
                           </CommandItem>
                         ))}

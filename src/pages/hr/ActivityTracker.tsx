@@ -81,8 +81,17 @@ export default function ActivityTracker() {
 
   const staffActivities = response?.data || [];
 
-  // Filter staff members by search query and role filter
+  // Filter staff members by search query and role filter, excluding bot/system accounts
   const filteredStaff = staffActivities.filter(staff => {
+    // Exclude HubBot and system bot accounts
+    const isBot =
+      staff.role === 'bot' ||
+      (staff.profession || '').toLowerCase().includes('automated') ||
+      staff.email.includes('hubbot_') ||
+      staff.name.toLowerCase() === 'hubbot' ||
+      (staff.profession || '').toLowerCase() === 'automated assistant';
+    if (isBot) return false;
+
     const matchesSearch = 
       staff.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       staff.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -96,6 +105,7 @@ export default function ActivityTracker() {
 
     return matchesSearch && matchesRole;
   });
+
 
   const formatActiveTime = (mins: number) => {
     if (!mins || mins <= 0) return "0 mins";

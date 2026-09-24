@@ -204,6 +204,53 @@ async function loadAndScheduleAll(io) {
   }
 }
 
+import { runReconciliationSweep } from './services/sessionReminderService.js';
+
+// ─────────────────────────────────────────────────────────────
+// Daily Session Reconciliation Job
+// ─────────────────────────────────────────────────────────────
+
+async function checkAndRunDailySessionReminders(io) {
+  try {
+    const now = new Date();
+    const currentTimeStr = now.toLocaleTimeString('en-GB', {
+      timeZone: 'Asia/Kolkata',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    }); // e.g. "19:00"
+
+    const todayDateStr = now.toLocaleDateString('en-CA', {
+      timeZone: 'Asia/Kolkata',
+    }); // e.g. "2026-09-24"
+
+    // Query orgs where reminder is enabled, time matches, and has not yet run today
+    const orgsRes = await db.query(
+      `SELECT organization_id, eod_reminder_time, eod_last_run_at
+       FROM organization_notification_settings
+       WHERE enable_eod_session_reminder = TRUE
+         AND eod_reminder_time = $1
+         AND (
+           eod_last_run_at IS NULL 
+           OR (eod_last_run_at AT TIME ZONE 'Asia/Kolkata')::date < $2::date
+         )`,
+      [currentTimeStr, todayDateStr]
+    );
+
+    for (const org of orgsRes.rows) {
+      console.log(`[Scheduler] Executing scheduled Daily Session Reconciliation for org ${org.organization_id} at ${currentTimeStr} IST`);
+      runReconciliationSweep(org.organization_id, io, {
+        targetDate: todayDateStr,
+        isTestRun: false,
+      }).catch((err) => {
+        console.error(`[Scheduler] Error in daily session reconciliation for org ${org.organization_id}:`, err);
+      });
+    }
+  } catch (err) {
+    console.error('[Scheduler] Error checking daily session reminders:', err);
+  }
+}
+
 // ─────────────────────────────────────────────────────────────
 // Public API
 // ─────────────────────────────────────────────────────────────
@@ -213,13 +260,18 @@ async function loadAndScheduleAll(io) {
  * @param {object} io - Socket.io server instance
  */
 export async function startScheduler(io) {
-  console.log('[Scheduler] Starting TeamComms scheduled report engine...');
+  console.log('[Scheduler] Starting TeamComms scheduled report engine & session reminder runner...');
   await loadAndScheduleAll(io);
 
   // Reload every 5 minutes to pick up new/deleted reports
   cron.schedule('*/5 * * * *', async () => {
     await loadAndScheduleAll(io);
   });
+
+  // Check every minute for daily session reconciliation reminders matching clinic shift-end time
+  cron.schedule('* * * * *', async () => {
+    await checkAndRunDailySessionReminders(io);
+  }, { timezone: 'Asia/Kolkata' });
 }
 
 /**
@@ -235,3 +287,4 @@ export async function triggerReportNow(reportId, io) {
   if (result.rows.length === 0) throw new Error('Report not found');
   await postScheduledReport(result.rows[0], io);
 }
+

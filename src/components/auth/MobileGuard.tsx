@@ -33,11 +33,31 @@ export default function MobileGuard({ children }: MobileGuardProps) {
     const isConsultantPath = location.pathname.startsWith("/consultant");
     const isMobileConsultantPath = location.pathname.startsWith("/mobile/consultant");
 
+    const isClinicalSpecialist = roles?.some((r) =>
+      ["sports_physician", "physiotherapist", "consultant", "massage_therapist"].includes(r)
+    );
+    const isSportsScientist = roles?.some((r) => ["sports_scientist"].includes(r));
+    const isNutritionist = roles?.some((r) => ["nutritionist"].includes(r));
+    const isClinicalOnly = isClinicalSpecialist && !isSportsScientist;
+
     if (effectiveIsMobile) {
       // Profile Redirection to Mobile Profile Page
       if (location.pathname === "/profile") {
         navigate("/mobile/profile" + location.search, { replace: true });
         return;
+      }
+
+      // If clinical specialist is on sports-scientist or mobile specialist sessions, redirect to consultant calendar
+      if (isClinicalOnly && (isSpecialistPath || isMobileSpecialistPath)) {
+        if (
+          location.pathname.includes("/sessions") ||
+          location.pathname.includes("/schedule") ||
+          location.pathname === "/sports-scientist" ||
+          location.pathname === "/mobile/specialist"
+        ) {
+          navigate("/mobile/consultant/schedule" + location.search, { replace: true });
+          return;
+        }
       }
 
       // Handle Consultant / Clinical Redirection on Mobile
@@ -52,7 +72,7 @@ export default function MobileGuard({ children }: MobileGuardProps) {
       // Handle Specialist / AMS Redirection on Mobile
       if (isSpecialistPath && !isMobileSpecialistPath) {
         let mobilePath = location.pathname.replace("/sports-scientist", "/mobile/specialist");
-        
+
         if (location.pathname === "/ams/questionnaires") {
           mobilePath = "/mobile/specialist/forms";
         } else if (location.pathname.startsWith("/ams") && !location.pathname.startsWith("/ams/questionnaires")) {
@@ -80,22 +100,44 @@ export default function MobileGuard({ children }: MobileGuardProps) {
         return;
       }
 
+      // If clinical specialist on desktop hits specialist / sports-scientist routes, take them to consultant calendar
+      if (isClinicalOnly && (isMobileSpecialistPath || isSpecialistPath)) {
+        if (
+          location.pathname.includes("/sessions") ||
+          location.pathname.includes("/schedule") ||
+          location.pathname === "/sports-scientist" ||
+          location.pathname === "/mobile/specialist"
+        ) {
+          navigate("/consultant/schedule" + location.search, { replace: true });
+          return;
+        }
+      }
+
       if (isMobileClientPath) {
         const desktopPath = location.pathname.replace("/mobile/client", "/client");
         if (location.pathname !== desktopPath) {
-          navigate(desktopPath, { replace: true });
+          navigate(desktopPath + location.search, { replace: true });
         }
       } else if (isMobileSpecialistPath) {
-        const desktopPath = location.pathname === "/mobile/specialist/forms" 
-          ? "/ams/questionnaires"
-          : location.pathname.replace("/mobile/specialist", "/sports-scientist");
+        if (isClinicalOnly) {
+          navigate("/consultant/schedule" + location.search, { replace: true });
+          return;
+        }
+        if (isNutritionist && !isSportsScientist) {
+          navigate("/nutritionist/schedule" + location.search, { replace: true });
+          return;
+        }
+        const desktopPath =
+          location.pathname === "/mobile/specialist/forms"
+            ? "/ams/questionnaires"
+            : location.pathname.replace("/mobile/specialist", "/sports-scientist");
         if (location.pathname !== desktopPath) {
-          navigate(desktopPath, { replace: true });
+          navigate(desktopPath + location.search, { replace: true });
         }
       } else if (isMobileConsultantPath) {
         const desktopPath = location.pathname.replace("/mobile/consultant", "/consultant");
         if (location.pathname !== desktopPath) {
-          navigate(desktopPath, { replace: true });
+          navigate(desktopPath + location.search, { replace: true });
         }
       }
     }

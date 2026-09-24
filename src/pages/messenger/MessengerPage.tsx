@@ -541,6 +541,7 @@ const MessengerPage: React.FC = () => {
             <DirectMessageView
               threadId={activeView.threadId}
               otherUserId={activeView.otherUserId}
+              dmThread={dms.find((d) => d.id === activeView.threadId)}
               messengerCtx={messengerCtx}
               users={users}
               currentUserId={profile?.id || ""}

@@ -1943,8 +1943,24 @@ async function runMigrations() {
         notify_questionnaire_completed BOOLEAN DEFAULT true,
         notify_emergency_leave BOOLEAN DEFAULT true,
         notify_outstanding_balance BOOLEAN DEFAULT true,
+        enable_eod_session_reminder BOOLEAN DEFAULT true,
+        eod_reminder_time VARCHAR(10) DEFAULT '19:00',
+        eod_reminder_channels JSONB DEFAULT '{"email": true, "teamcomms": true}',
+        eod_reminder_scope JSONB DEFAULT '{"require_status_update": true, "require_notes": true}',
+        eod_reminder_roles TEXT[] DEFAULT ARRAY['physiotherapist', 'consultant', 'sports_scientist', 'sports_physician', 'coach'],
+        eod_last_run_at TIMESTAMPTZ,
         updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
       )
+    `);
+
+    // Safely add missing columns to organization_notification_settings if table pre-existed
+    await pool.query(`
+      ALTER TABLE organization_notification_settings ADD COLUMN IF NOT EXISTS enable_eod_session_reminder BOOLEAN DEFAULT true;
+      ALTER TABLE organization_notification_settings ADD COLUMN IF NOT EXISTS eod_reminder_time VARCHAR(10) DEFAULT '19:00';
+      ALTER TABLE organization_notification_settings ADD COLUMN IF NOT EXISTS eod_reminder_channels JSONB DEFAULT '{"email": true, "teamcomms": true}';
+      ALTER TABLE organization_notification_settings ADD COLUMN IF NOT EXISTS eod_reminder_scope JSONB DEFAULT '{"require_status_update": true, "require_notes": true}';
+      ALTER TABLE organization_notification_settings ADD COLUMN IF NOT EXISTS eod_reminder_roles TEXT[] DEFAULT ARRAY['physiotherapist', 'consultant', 'sports_scientist', 'sports_physician', 'coach'];
+      ALTER TABLE organization_notification_settings ADD COLUMN IF NOT EXISTS eod_last_run_at TIMESTAMPTZ;
     `);
 
     // Report Templates

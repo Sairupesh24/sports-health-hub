@@ -1,6 +1,7 @@
 import express from 'express';
 import { db, logStaffServiceUpdate } from './db.js';
 import { requireAuth } from './middleware.js';
+import { runReconciliationSweep } from './services/sessionReminderService.js';
 
 const router = express.Router();
 
@@ -248,7 +249,25 @@ router.get('/settings/notifications', requireAuth, async (req, res) => {
             
             result = await db.query('SELECT * FROM organization_notification_settings WHERE organization_id = $1', [orgId]);
         }
-        res.json(result.rows[0]);
+
+        const row = result.rows[0] || {};
+        res.json({
+            organization_id: row.organization_id || orgId,
+            enable_email_notifications: row.enable_email_notifications ?? true,
+            enable_in_app_notifications: row.enable_in_app_notifications ?? true,
+            notify_signup_approval: row.notify_signup_approval ?? true,
+            notify_questionnaire_assigned: row.notify_questionnaire_assigned ?? true,
+            notify_questionnaire_completed: row.notify_questionnaire_completed ?? true,
+            notify_emergency_leave: row.notify_emergency_leave ?? true,
+            notify_outstanding_balance: row.notify_outstanding_balance ?? true,
+            enable_eod_session_reminder: row.enable_eod_session_reminder ?? true,
+            eod_reminder_time: row.eod_reminder_time || '19:00',
+            eod_reminder_channels: row.eod_reminder_channels || { email: true, teamcomms: true },
+            eod_reminder_scope: row.eod_reminder_scope || { require_status_update: true, require_notes: true },
+            eod_reminder_roles: row.eod_reminder_roles || ['physiotherapist', 'consultant', 'sports_scientist', 'sports_physician', 'coach'],
+            eod_last_run_at: row.eod_last_run_at || null,
+            updated_at: row.updated_at
+        });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
@@ -267,7 +286,12 @@ router.put('/settings/notifications', requireAuth, async (req, res) => {
             notify_questionnaire_assigned,
             notify_questionnaire_completed,
             notify_emergency_leave,
-            notify_outstanding_balance
+            notify_outstanding_balance,
+            enable_eod_session_reminder,
+            eod_reminder_time,
+            eod_reminder_channels,
+            eod_reminder_scope,
+            eod_reminder_roles
         } = req.body;
 
         const result = await db.query(`
@@ -280,8 +304,13 @@ router.put('/settings/notifications', requireAuth, async (req, res) => {
                 notify_questionnaire_completed,
                 notify_emergency_leave,
                 notify_outstanding_balance,
+                enable_eod_session_reminder,
+                eod_reminder_time,
+                eod_reminder_channels,
+                eod_reminder_scope,
+                eod_reminder_roles,
                 updated_at
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, NOW())
             ON CONFLICT (organization_id) DO UPDATE SET
                 enable_email_notifications = EXCLUDED.enable_email_notifications,
                 enable_in_app_notifications = EXCLUDED.enable_in_app_notifications,
@@ -290,6 +319,11 @@ router.put('/settings/notifications', requireAuth, async (req, res) => {
                 notify_questionnaire_completed = EXCLUDED.notify_questionnaire_completed,
                 notify_emergency_leave = EXCLUDED.notify_emergency_leave,
                 notify_outstanding_balance = EXCLUDED.notify_outstanding_balance,
+                enable_eod_session_reminder = EXCLUDED.enable_eod_session_reminder,
+                eod_reminder_time = EXCLUDED.eod_reminder_time,
+                eod_reminder_channels = EXCLUDED.eod_reminder_channels,
+                eod_reminder_scope = EXCLUDED.eod_reminder_scope,
+                eod_reminder_roles = EXCLUDED.eod_reminder_roles,
                 updated_at = NOW()
             RETURNING *
         `, [
@@ -300,7 +334,12 @@ router.put('/settings/notifications', requireAuth, async (req, res) => {
             notify_questionnaire_assigned !== undefined ? notify_questionnaire_assigned : true,
             notify_questionnaire_completed !== undefined ? notify_questionnaire_completed : true,
             notify_emergency_leave !== undefined ? notify_emergency_leave : true,
-            notify_outstanding_balance !== undefined ? notify_outstanding_balance : true
+            notify_outstanding_balance !== undefined ? notify_outstanding_balance : true,
+            enable_eod_session_reminder !== undefined ? enable_eod_session_reminder : true,
+            eod_reminder_time || '19:00',
+            JSON.stringify(eod_reminder_channels || { email: true, teamcomms: true }),
+            JSON.stringify(eod_reminder_scope || { require_status_update: true, require_notes: true }),
+            eod_reminder_roles || ['physiotherapist', 'consultant', 'sports_scientist', 'sports_physician', 'coach']
         ]);
 
         res.json(result.rows[0]);
@@ -308,6 +347,28 @@ router.put('/settings/notifications', requireAuth, async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 });
+
+// POST Trigger On-Demand Daily Session Reconciliation Sweep / Test Run
+router.post('/settings/notifications/trigger-eod-reminder', requireAuth, async (req, res) => {
+    try {
+        const orgId = req.user.organization_id;
+        if (!orgId) return res.status(400).json({ error: 'User does not belong to an organization' });
+
+        const io = req.app.get('io');
+        const { targetDate, isTestRun } = req.body;
+
+        const result = await runReconciliationSweep(orgId, io, {
+            targetDate: targetDate || new Date().toISOString().split('T')[0],
+            isTestRun: isTestRun === true
+        });
+
+        res.json(result);
+    } catch (error) {
+        console.error('[Admin] Error triggering EOD reminder sweep:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 
 // GET Unread Notifications Count
 router.get('/notifications/unread-count', requireAuth, async (req, res) => {

@@ -1,6 +1,7 @@
 import React from "react";
 import { cn } from "@/lib/utils";
 import { ExternalLink, Bot, ClipboardList, Calendar, UserCheck, Stethoscope, Apple, CreditCard, BarChart3 } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 import type { ChatMessage } from "@/hooks/useMessenger";
 
 interface Props {
@@ -77,12 +78,36 @@ function parseMarkdown(text: string) {
 }
 
 const AutomatedMessageCard: React.FC<Props> = ({ message }) => {
+  const { roles } = useAuth();
   const meta = message.metadata as Record<string, string> | null;
   const module = meta?.module || "reports";
   const config = MODULE_CONFIG[module] || MODULE_CONFIG.reports;
-  const actionUrl = meta?.action_url;
+  let actionUrl = meta?.action_url;
   const actionLabel = meta?.action_label || "View Details";
   const isReport = message.message_type === "automated_report";
+
+  // Role-aware redirect resolution: Ensure Clinical Specialists (e.g. Sports Physician) land on their calendar
+  if (actionUrl) {
+    const isClinical = roles?.some((r) =>
+      ["sports_physician", "physiotherapist", "consultant", "massage_therapist"].includes(r)
+    );
+    const isSportsScientist = roles?.some((r) => ["sports_scientist"].includes(r));
+    const isNutritionist = roles?.some((r) => ["nutritionist"].includes(r));
+
+    if (
+      isClinical &&
+      !isSportsScientist &&
+      (actionUrl.includes("/specialist") || actionUrl.includes("/sports-scientist"))
+    ) {
+      actionUrl = "/consultant/schedule";
+    } else if (
+      isNutritionist &&
+      !isSportsScientist &&
+      (actionUrl.includes("/specialist") || actionUrl.includes("/sports-scientist"))
+    ) {
+      actionUrl = "/nutritionist/schedule";
+    }
+  }
 
   return (
     <div

@@ -124,7 +124,7 @@ export function SubscriptionModal({ open, onOpenChange, orgId, onSuccess }: Subs
                                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                 </Button>
                             </PopoverTrigger>
-                            <PopoverContent disablePortal={true} className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+                            <PopoverContent className="w-[var(--radix-popover-trigger-width)] min-w-[280px] max-w-[calc(100vw-2rem)] p-0 z-50 shadow-2xl rounded-2xl overflow-hidden border border-border" align="start" sideOffset={4} collisionPadding={12}>
                                 <Command>
                                     <CommandInput placeholder="Search plan..." />
                                     <CommandList>

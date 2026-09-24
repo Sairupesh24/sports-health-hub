@@ -1721,16 +1721,18 @@ router.post('/bulk-edit', requireAuth, async (req, res) => {
 
 /**
  * Auto-completes any started sessions that were never stopped
- * once 60 minutes have elapsed since actual_start (or scheduled_start).
+ * once 60 minutes have elapsed since actual_start.
+ * NOTE: 'Checked In' and 'Planned' sessions must NEVER be auto-completed,
+ * because checking in only marks client arrival and does not mean the session has concluded.
  */
 export async function autoCompleteStartedSessions(targetOrgId = null) {
     try {
         const queryText = `
             SELECT s.id, s.organization_id, s.client_id, s.service_type, s.scheduled_start, s.scheduled_end, s.actual_start, s.entitlement_id, s.is_unentitled
             FROM sessions s
-            WHERE s.status IN ('Checked In', 'IN_PROGRESS', 'In Progress', 'Planned')
-              AND (s.actual_start IS NOT NULL OR s.status IN ('Checked In', 'IN_PROGRESS', 'In Progress'))
-              AND NOW() >= (COALESCE(s.actual_start, s.scheduled_start) + INTERVAL '60 minutes')
+            WHERE s.status IN ('IN_PROGRESS', 'In Progress')
+              AND s.actual_start IS NOT NULL
+              AND NOW() >= (s.actual_start + INTERVAL '60 minutes')
               ${targetOrgId ? 'AND s.organization_id = $1' : ''}
         `;
         const params = targetOrgId ? [targetOrgId] : [];

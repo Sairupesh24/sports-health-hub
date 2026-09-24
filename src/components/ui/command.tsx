@@ -5,6 +5,7 @@ import { Search } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { attachTouchAndWheelScroll } from "@/lib/touch-scroll";
 
 const Command = React.forwardRef<
   React.ElementRef<typeof CommandPrimitive>,
@@ -58,13 +59,33 @@ CommandInput.displayName = CommandPrimitive.Input.displayName;
 const CommandList = React.forwardRef<
   React.ElementRef<typeof CommandPrimitive.List>,
   React.ComponentPropsWithoutRef<typeof CommandPrimitive.List>
->(({ className, ...props }, ref) => (
-  <CommandPrimitive.List
-    ref={ref}
-    className={cn("max-h-[300px] overflow-y-auto overflow-x-hidden", className)}
-    {...props}
-  />
-));
+>(({ className, ...props }, forwardedRef) => {
+  const localRef = React.useRef<HTMLDivElement | null>(null);
+
+  React.useEffect(() => {
+    if (localRef.current) {
+      return attachTouchAndWheelScroll(localRef.current);
+    }
+  }, []);
+
+  return (
+    <CommandPrimitive.List
+      ref={(node) => {
+        localRef.current = node;
+        if (typeof forwardedRef === "function") {
+          forwardedRef(node);
+        } else if (forwardedRef) {
+          (forwardedRef as React.MutableRefObject<HTMLDivElement | null>).current = node;
+        }
+      }}
+      className={cn(
+        "max-h-[300px] overflow-y-auto overflow-x-hidden overscroll-contain touch-pan-y",
+        className
+      )}
+      {...props}
+    />
+  );
+});
 
 CommandList.displayName = CommandPrimitive.List.displayName;
 

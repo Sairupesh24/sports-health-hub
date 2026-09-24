@@ -49,6 +49,8 @@ export function SportsScientistBookSessionModal({ open, onOpenChange, onSuccess 
     const [isRecurring, setIsRecurring] = useState(false);
     const [groupNameOpen, setGroupNameOpen] = useState(false);
     const [groupNameSearch, setGroupNameSearch] = useState("");
+    const [athleteOpen, setAthleteOpen] = useState(false);
+    const [sessionTypeOpen, setSessionTypeOpen] = useState(false);
 
     const [recurringEndDate, setRecurringEndDate] = useState(format(addWeeks(new Date(), 4), "yyyy-MM-dd"));
     const [recurringSlots, setRecurringSlots] = useState<Array<{ day: string, startTime: string, endTime: string }>>([
@@ -313,9 +315,9 @@ export function SportsScientistBookSessionModal({ open, onOpenChange, onSuccess 
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="w-[95vw] sm:max-w-[500px] max-h-[90vh] flex flex-col p-0 overflow-hidden border-none bg-slate-50 dark:bg-slate-950 rounded-[2.5rem]">
-                <DialogHeader className="p-6 pb-0 shrink-0">
-                    <DialogTitle className="text-xl font-black italic tracking-tight text-slate-900 dark:text-white">
+            <DialogContent className="w-[96vw] sm:max-w-[500px] max-h-[92vh] flex flex-col p-0 overflow-hidden border-none bg-slate-50 dark:bg-slate-950 rounded-2xl sm:rounded-[2.5rem] shadow-2xl">
+                <DialogHeader className="p-4 sm:p-6 pb-0 shrink-0 pr-12">
+                    <DialogTitle className="text-lg sm:text-xl font-black italic tracking-tight text-slate-900 dark:text-white">
                        Schedule Session
                     </DialogTitle>
                     <DialogDescription className="sr-only">
@@ -323,14 +325,14 @@ export function SportsScientistBookSessionModal({ open, onOpenChange, onSuccess 
                     </DialogDescription>
                 </DialogHeader>
                 
-                <div className="flex-1 overflow-y-auto px-6 py-4 custom-scrollbar">
-                    <div className="space-y-6">
+                <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-4 custom-scrollbar">
+                    <div className="space-y-5 sm:space-y-6">
                         {/* Mode Selection - Premium Segmented Control */}
                         <div className="p-1.5 bg-slate-200/50 dark:bg-slate-900/50 rounded-2xl flex items-center gap-1">
                             <button 
                                 onClick={() => { setSessionMode("Individual"); }}
                                 className={cn(
-                                    "flex-1 flex items-center justify-center gap-2 h-10 rounded-xl transition-all font-black uppercase tracking-widest text-[10px]",
+                                    "flex-1 flex items-center justify-center gap-1.5 sm:gap-2 h-10 rounded-xl transition-all font-black uppercase tracking-widest text-[9px] sm:text-[10px]",
                                     sessionMode === "Individual" ? "bg-white dark:bg-slate-800 text-primary shadow-sm" : "text-slate-500"
                                 )}
                             >
@@ -339,7 +341,7 @@ export function SportsScientistBookSessionModal({ open, onOpenChange, onSuccess 
                             <button 
                                 onClick={() => { setSessionMode("Group"); }}
                                 className={cn(
-                                    "flex-1 flex items-center justify-center gap-2 h-10 rounded-xl transition-all font-black uppercase tracking-widest text-[10px]",
+                                    "flex-1 flex items-center justify-center gap-1.5 sm:gap-2 h-10 rounded-xl transition-all font-black uppercase tracking-widest text-[9px] sm:text-[10px]",
                                     sessionMode === "Group" ? "bg-white dark:bg-slate-800 text-primary shadow-sm" : "text-slate-500"
                                 )}
                             >
@@ -348,7 +350,7 @@ export function SportsScientistBookSessionModal({ open, onOpenChange, onSuccess 
                             <button 
                                 onClick={() => { setSessionMode("Other"); setSelectedClientIds([]); }}
                                 className={cn(
-                                    "flex-1 flex items-center justify-center gap-2 h-10 rounded-xl transition-all font-black uppercase tracking-widest text-[10px]",
+                                    "flex-1 flex items-center justify-center gap-1.5 sm:gap-2 h-10 rounded-xl transition-all font-black uppercase tracking-widest text-[9px] sm:text-[10px]",
                                     sessionMode === "Other" ? "bg-white dark:bg-slate-800 text-primary shadow-sm" : "text-slate-500"
                                 )}
                             >
@@ -404,10 +406,10 @@ export function SportsScientistBookSessionModal({ open, onOpenChange, onSuccess 
                                             </Button>
                                         </PopoverTrigger>
                                         <PopoverContent 
-                                            disablePortal={true}
-                                            className="w-[calc(100vw-3rem)] sm:w-[450px] p-0 rounded-2xl overflow-hidden shadow-2xl" 
+                                            className="w-[calc(100vw-2.5rem)] sm:w-[450px] max-w-[450px] p-0 rounded-2xl overflow-hidden shadow-2xl border border-slate-200 dark:border-slate-800 z-[70]" 
                                             align="start"
-                                            onWheel={(e) => e.stopPropagation()}
+                                            sideOffset={4}
+                                            collisionPadding={12}
                                         >
                                             <Command>
                                                 <CommandInput 
@@ -462,23 +464,23 @@ export function SportsScientistBookSessionModal({ open, onOpenChange, onSuccess 
                                 <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">
                                    {sessionMode === "Individual" ? "Athletes" : "Participating Athletes"}
                                 </Label>
-                                <Popover>
+                                <Popover open={athleteOpen} onOpenChange={setAthleteOpen}>
                                     <PopoverTrigger asChild>
                                         <Button
                                             variant="outline"
                                             role="combobox"
-                                            className={cn("w-full justify-between h-auto min-h-[48px] py-2 px-3 rounded-2xl border-border/50", selectedClientIds.length === 0 && "text-muted-foreground")}
+                                            className={cn("w-full justify-between h-auto min-h-[48px] py-2 px-3 rounded-2xl border-border/50 text-left", selectedClientIds.length === 0 && "text-muted-foreground")}
                                         >
-                                            <div className="flex flex-wrap gap-1.5 items-center">
+                                            <div className="flex flex-wrap gap-1.5 items-center min-w-0 flex-1">
                                                 {selectedClientIds.length === 0 ? (
-                                                    <span className="font-bold">Search or select athletes...</span>
+                                                    <span className="font-bold text-xs sm:text-sm">Search or select athletes...</span>
                                                 ) : (
                                                     selectedClientIds.map(id => {
                                                         const c = clients.find(x => x.id === id);
                                                         return (
-                                                            <Badge key={id} variant="secondary" className="bg-primary/10 text-primary border-none py-1 px-2 font-black italic tracking-tighter">
-                                                                {c ? formatClientName(c) : id}
-                                                                <X className="w-3 h-3 ml-1.5 cursor-pointer opacity-50 hover:opacity-100" onClick={(e) => { e.stopPropagation(); toggleClient(id); }} />
+                                                            <Badge key={id} variant="secondary" className="bg-primary/10 text-primary border-none py-1 px-2 font-black italic tracking-tighter text-xs">
+                                                                <span className="truncate max-w-[130px] sm:max-w-[200px] inline-block">{c ? formatClientName(c) : id}</span>
+                                                                <X className="w-3 h-3 ml-1.5 cursor-pointer opacity-50 hover:opacity-100 shrink-0" onClick={(e) => { e.stopPropagation(); toggleClient(id); }} />
                                                             </Badge>
                                                         );
                                                     })
@@ -488,14 +490,14 @@ export function SportsScientistBookSessionModal({ open, onOpenChange, onSuccess 
                                         </Button>
                                     </PopoverTrigger>
                                     <PopoverContent 
-                                        disablePortal={true}
-                                        className="w-[calc(100vw-3rem)] sm:w-[450px] p-0 rounded-2xl overflow-hidden shadow-2xl" 
+                                        className="w-[calc(100vw-2.5rem)] sm:w-[460px] max-w-[460px] p-0 rounded-2xl overflow-hidden shadow-2xl border border-slate-200 dark:border-slate-800 z-[70]" 
                                         align="start"
-                                        onWheel={(e) => e.stopPropagation()}
+                                        sideOffset={4}
+                                        collisionPadding={12}
                                     >
                                         <Command>
                                             <CommandInput placeholder="Search by name or UHID..." />
-                                            <CommandList>
+                                            <CommandList className="max-h-[280px] overflow-y-auto overscroll-contain">
                                                 <CommandEmpty>No athlete found.</CommandEmpty>
                                                 <CommandGroup>
                                                     {(sessionMode === "Group" || sessionMode === "Individual") && displayedClients.length > 0 && (
@@ -516,19 +518,26 @@ export function SportsScientistBookSessionModal({ open, onOpenChange, onSuccess 
                                                     {displayedClients.map((c) => (
                                                         <CommandItem
                                                             key={c.id}
-                                                            value={`${formatClientName(c)} ${c.uhid}`}
-                                                            onSelect={() => toggleClient(c.id)}
-                                                            className="py-3 px-4 flex items-center justify-between"
+                                                            value={`${formatClientName(c)} ${c.uhid || ''}`}
+                                                            onSelect={() => {
+                                                                if (sessionMode === "Individual") {
+                                                                    setSelectedClientIds([c.id]);
+                                                                    setAthleteOpen(false);
+                                                                } else {
+                                                                    toggleClient(c.id);
+                                                                }
+                                                            }}
+                                                            className="py-2.5 px-3 sm:px-4 flex items-center justify-between cursor-pointer"
                                                         >
-                                                            <div className="flex items-center">
-                                                                <Check className={cn("mr-2 h-4 w-4 text-primary", selectedClientIds.includes(c.id) ? "opacity-100" : "opacity-0")} />
-                                                                <div className="flex flex-col">
-                                                                    <span className="font-bold">{formatClientName(c)}</span>
-                                                                    <span className="text-[10px] text-muted-foreground uppercase font-black">{c.uhid}</span>
+                                                            <div className="flex items-center min-w-0 flex-1 mr-2">
+                                                                <Check className={cn("mr-2 h-4 w-4 shrink-0 text-primary", selectedClientIds.includes(c.id) ? "opacity-100" : "opacity-0")} />
+                                                                <div className="flex flex-col min-w-0 flex-1">
+                                                                    <span className="font-bold text-xs sm:text-sm text-foreground truncate">{formatClientName(c)}</span>
+                                                                    <span className="text-[10px] text-muted-foreground uppercase font-black tracking-wider truncate">{c.uhid}</span>
                                                                 </div>
                                                             </div>
                                                             {c.outstanding_balance > 0 && (
-                                                                <div className="text-right">
+                                                                <div className="text-right shrink-0">
                                                                     <span className="text-[7px] bg-rose-500 text-white px-2 py-0.5 rounded font-black uppercase tracking-widest inline-block leading-none">
                                                                         DUE PENDING
                                                                     </span>
@@ -574,12 +583,12 @@ export function SportsScientistBookSessionModal({ open, onOpenChange, onSuccess 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div className="space-y-2">
                                 <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Session Type</Label>
-                                <Popover>
+                                <Popover open={sessionTypeOpen} onOpenChange={setSessionTypeOpen}>
                                     <PopoverTrigger asChild>
                                         <Button
                                             variant="outline"
                                             role="combobox"
-                                            className={cn("w-full justify-between h-12 rounded-2xl border-border/50 font-bold", !sessionTypeId && "text-muted-foreground")}
+                                            className={cn("w-full justify-between h-12 rounded-2xl border-border/50 font-bold text-left", !sessionTypeId && "text-muted-foreground")}
                                         >
                                             <span className="truncate">
                                                 {sessionTypeId 
@@ -590,25 +599,28 @@ export function SportsScientistBookSessionModal({ open, onOpenChange, onSuccess 
                                         </Button>
                                     </PopoverTrigger>
                                     <PopoverContent 
-                                        disablePortal={true}
-                                        className="w-[calc(100vw-3rem)] sm:w-[450px] p-0 rounded-2xl overflow-hidden shadow-2xl" 
+                                        className="w-[calc(100vw-2.5rem)] sm:w-[450px] max-w-[450px] p-0 rounded-2xl overflow-hidden shadow-2xl border border-slate-200 dark:border-slate-800 z-[70]" 
                                         align="start"
-                                        onWheel={(e) => e.stopPropagation()}
+                                        sideOffset={4}
+                                        collisionPadding={12}
                                     >
                                         <Command>
                                             <CommandInput placeholder="Search types..." />
-                                            <CommandList>
+                                            <CommandList className="max-h-[260px] overflow-y-auto overscroll-contain">
                                                 <CommandEmpty>No session type found.</CommandEmpty>
                                                 <CommandGroup>
                                                     {sessionTypes.map((t) => (
                                                         <CommandItem
                                                             key={t.id}
                                                             value={t.name}
-                                                            onSelect={() => setSessionTypeId(t.id)}
-                                                            className="py-3 px-4"
+                                                            onSelect={() => {
+                                                                setSessionTypeId(t.id);
+                                                                setSessionTypeOpen(false);
+                                                            }}
+                                                            className="py-3 px-4 cursor-pointer"
                                                         >
                                                             <Check className={cn("mr-2 h-4 w-4 text-primary", sessionTypeId === t.id ? "opacity-100" : "opacity-0")} />
-                                                            <span className="font-bold">{t.name}</span>
+                                                            <span className="font-bold text-xs sm:text-sm">{t.name}</span>
                                                         </CommandItem>
                                                     ))}
                                                 </CommandGroup>
