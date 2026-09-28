@@ -133,12 +133,12 @@ export default function ProtectedRoute({ children, requiredRole, checkCalendarAc
       if (!hasRole && allowedConsolesList.length > 0) {
         hasRole = rolesArray.some(role => {
           if (allowedConsolesList.includes(role)) return true;
-          if (role === "client" && (allowedConsolesList.includes("client") || allowedConsolesList.includes("athlete"))) return true;
-          if (role === "consultant" && (allowedConsolesList.includes("consultant") || allowedConsolesList.includes("clinical"))) return true;
-          if (role === "sports_scientist" && (allowedConsolesList.includes("sports_scientist") || allowedConsolesList.includes("ams"))) return true;
-          if (role === "hr_manager" && (allowedConsolesList.includes("hr_manager") || allowedConsolesList.includes("hr"))) return true;
+          if (["client", "athlete"].includes(role) && (allowedConsolesList.includes("client") || allowedConsolesList.includes("athlete"))) return true;
+          if (["consultant", "sports_physician", "physiotherapist"].includes(role) && (allowedConsolesList.includes("consultant") || allowedConsolesList.includes("clinical"))) return true;
+          if (["sports_scientist", "coach"].includes(role) && (allowedConsolesList.includes("sports_scientist") || allowedConsolesList.includes("ams"))) return true;
+          if (["hr_manager", "hr"].includes(role) && (allowedConsolesList.includes("hr_manager") || allowedConsolesList.includes("hr"))) return true;
           if (role === "nutritionist" && allowedConsolesList.includes("nutritionist")) return true;
-          if (role === "foe" && (allowedConsolesList.includes("foe") || allowedConsolesList.includes("admin"))) return true;
+          if (["foe", "admin"].includes(role) && (allowedConsolesList.includes("foe") || allowedConsolesList.includes("admin"))) return true;
           return false;
         });
       }

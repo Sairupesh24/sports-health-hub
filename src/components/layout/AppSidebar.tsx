@@ -301,10 +301,63 @@ export default function AppSidebar({ role, isMobile, className, onNavigate }: Ap
     };
   }, [profile?.id, isMobile, queryClient, refreshAuth]);
 
-  const items = useMemo(() => {
+  const effectiveConsole = useMemo(() => {
     const path = location.pathname;
-    const primaryConsole = getPrimaryConsole(roles, profile, resolvedRole || role);
+    const storedConsole = sessionStorage.getItem("active_console");
+    const isPureFoeUser = Boolean(roles?.includes("foe") && !roles?.includes("admin") && !roles?.includes("super_admin"));
 
+    let resolved = storedConsole;
+
+    // Detect console from unambiguous routes
+    if (path.startsWith('/admin/settings') || path.startsWith('/admin/permissions')) {
+      resolved = 'settings';
+      try { sessionStorage.setItem('active_console', 'settings'); } catch {}
+    } else if (path.startsWith('/hr')) {
+      resolved = 'hr';
+      try { sessionStorage.setItem('active_console', 'hr'); } catch {}
+    } else if (path.startsWith('/sports-scientist') || path.startsWith('/mobile/specialist')) {
+      resolved = 'sports_scientist';
+      try { sessionStorage.setItem('active_console', 'sports_scientist'); } catch {}
+    } else if (path.startsWith('/consultant') || path.startsWith('/mobile/consultant')) {
+      resolved = 'consultant';
+      try { sessionStorage.setItem('active_console', 'consultant'); } catch {}
+    } else if (path.startsWith('/nutritionist')) {
+      resolved = 'nutritionist';
+      try { sessionStorage.setItem('active_console', 'nutritionist'); } catch {}
+    } else if (path.startsWith('/ams/questionnaires') || path.startsWith('/ams/batch-tests')) {
+      if (storedConsole !== 'sports_scientist' && storedConsole !== 'consultant' && storedConsole !== 'coach') {
+        resolved = 'questionnaires';
+      }
+    } else if (path.startsWith('/ams/coach-dashboard') || path.startsWith('/ams/programs') || path.startsWith('/ams/feed') || path.startsWith('/ams/calendar') || path.startsWith('/ams/exercises')) {
+      if (storedConsole !== 'sports_scientist') {
+        resolved = 'coach';
+        try { sessionStorage.setItem('active_console', 'coach'); } catch {}
+      }
+    } else if (path.startsWith('/ams/athlete-portal') || path.startsWith('/ams/athlete')) {
+      resolved = 'athlete';
+      try { sessionStorage.setItem('active_console', 'athlete'); } catch {}
+    } else if (path.startsWith('/client') || path.startsWith('/mobile/client')) {
+      resolved = 'client';
+      try { sessionStorage.setItem('active_console', 'client'); } catch {}
+    } else if (path.startsWith('/super-admin')) {
+      resolved = 'super_admin';
+      try { sessionStorage.setItem('active_console', 'super_admin'); } catch {}
+    } else if (path === '/admin/foe' || path.startsWith('/admin/foe') || isPureFoeUser) {
+      resolved = 'foe';
+      try { sessionStorage.setItem('active_console', 'foe'); } catch {}
+    } else if (path === '/admin' || (path.startsWith('/admin') && !path.startsWith('/admin/calendar') && !path.startsWith('/admin/analytics') && !path.startsWith('/admin/clients') && !path.startsWith('/admin/billing') && !path.startsWith('/admin/leads') && storedConsole === 'admin')) {
+      resolved = 'admin';
+      try { sessionStorage.setItem('active_console', 'admin'); } catch {}
+    }
+
+    if (!resolved) {
+      resolved = getPrimaryConsole(roles, profile, resolvedRole || role);
+    }
+
+    return resolved;
+  }, [location.pathname, roles, profile, resolvedRole, role]);
+
+  const items = useMemo(() => {
     const hasCalendarAccess = Boolean(
       roles?.some(r => ["admin", "super_admin", "foe"].includes(r)) ||
       profile?.has_calendar_access === true
@@ -432,55 +485,6 @@ export default function AppSidebar({ role, isMobile, className, onNavigate }: Ap
       return foeNav;
     };
 
-    const storedConsole = sessionStorage.getItem("active_console");
-    const isPureFoeUser = Boolean(roles?.includes("foe") && !roles?.includes("admin") && !roles?.includes("super_admin"));
-
-    let effectiveConsole = storedConsole;
-
-    // Detect console from unambiguous routes
-    if (path.startsWith('/admin/settings') || path.startsWith('/admin/permissions')) {
-      effectiveConsole = 'settings';
-      try { sessionStorage.setItem('active_console', 'settings'); } catch {}
-    } else if (path.startsWith('/hr')) {
-      effectiveConsole = 'hr';
-      try { sessionStorage.setItem('active_console', 'hr'); } catch {}
-    } else if (path.startsWith('/sports-scientist')) {
-      effectiveConsole = 'sports_scientist';
-      try { sessionStorage.setItem('active_console', 'sports_scientist'); } catch {}
-    } else if (path.startsWith('/consultant')) {
-      effectiveConsole = 'consultant';
-      try { sessionStorage.setItem('active_console', 'consultant'); } catch {}
-    } else if (path.startsWith('/nutritionist')) {
-      effectiveConsole = 'nutritionist';
-      try { sessionStorage.setItem('active_console', 'nutritionist'); } catch {}
-    } else if (path.startsWith('/ams/questionnaires') || path.startsWith('/ams/batch-tests')) {
-      if (storedConsole !== 'sports_scientist' && storedConsole !== 'consultant' && storedConsole !== 'coach') {
-        effectiveConsole = 'questionnaires';
-      }
-    } else if (path.startsWith('/ams/coach-dashboard') || path.startsWith('/ams/programs') || path.startsWith('/ams/feed') || path.startsWith('/ams/calendar') || path.startsWith('/ams/exercises')) {
-      effectiveConsole = 'coach';
-      try { sessionStorage.setItem('active_console', 'coach'); } catch {}
-    } else if (path.startsWith('/ams/athlete-portal') || path.startsWith('/ams/athlete')) {
-      effectiveConsole = 'athlete';
-      try { sessionStorage.setItem('active_console', 'athlete'); } catch {}
-    } else if (path.startsWith('/client')) {
-      effectiveConsole = 'client';
-      try { sessionStorage.setItem('active_console', 'client'); } catch {}
-    } else if (path.startsWith('/super-admin')) {
-      effectiveConsole = 'super_admin';
-      try { sessionStorage.setItem('active_console', 'super_admin'); } catch {}
-    } else if (path === '/admin/foe' || path.startsWith('/admin/foe') || isPureFoeUser) {
-      effectiveConsole = 'foe';
-      try { sessionStorage.setItem('active_console', 'foe'); } catch {}
-    } else if (path === '/admin' || (path.startsWith('/admin') && !path.startsWith('/admin/calendar') && !path.startsWith('/admin/analytics') && !path.startsWith('/admin/clients') && !path.startsWith('/admin/billing') && !path.startsWith('/admin/leads') && storedConsole === 'admin')) {
-      effectiveConsole = 'admin';
-      try { sessionStorage.setItem('active_console', 'admin'); } catch {}
-    }
-
-    if (!effectiveConsole) {
-      effectiveConsole = primaryConsole;
-    }
-
     let activeConsoleItems: NavItem[] = buildAdminNav();
 
     switch (effectiveConsole) {
@@ -525,7 +529,7 @@ export default function AppSidebar({ role, isMobile, className, onNavigate }: Ap
     }
 
     return activeConsoleItems;
-  }, [resolvedRole, role, roles, profile?.has_calendar_access, profile?.has_analytics_access, profile?.profession, profile?.ams_role, profile?.role, location.pathname]);
+  }, [effectiveConsole, profile?.has_calendar_access, profile?.has_analytics_access, roles]);
 
   const isLoadingState = loading || items.length === 0;
 
@@ -546,19 +550,33 @@ export default function AppSidebar({ role, isMobile, className, onNavigate }: Ap
           className
         )}
       >
-        {/* Logo */}
+        {/* Logo & Active Console */}
         <div className="flex items-center gap-3 px-4 py-5 border-b border-sidebar-border h-[65px] shrink-0">
           <div className="w-8 h-8 rounded-lg gradient-primary flex items-center justify-center flex-shrink-0">
             <Activity className="w-4 h-4 text-primary-foreground" />
           </div>
-          <span
-            className={cn(
-              "font-display font-bold text-sidebar-primary-foreground text-lg tracking-tight whitespace-nowrap transition-all duration-300 ease-in-out overflow-hidden",
-              isExpanded ? "opacity-100 max-w-[150px]" : "opacity-0 max-w-0 pointer-events-none"
-            )}
-          >
-            ISHPO
-          </span>
+          <div className={cn(
+            "flex flex-col min-w-0 transition-all duration-300 ease-in-out overflow-hidden",
+            isExpanded ? "opacity-100 max-w-[170px]" : "opacity-0 max-w-0 pointer-events-none"
+          )}>
+            <span className="font-display font-bold text-sidebar-primary-foreground text-lg tracking-tight whitespace-nowrap leading-none">
+              ISHPO
+            </span>
+            <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground truncate mt-0.5">
+              {effectiveConsole === 'sports_scientist' ? 'Athlete Management'
+                : effectiveConsole === 'consultant' ? 'Clinical Management'
+                : effectiveConsole === 'nutritionist' ? 'Nutritionist'
+                : effectiveConsole === 'hr' || effectiveConsole === 'hr_manager' ? 'HR Console'
+                : effectiveConsole === 'foe' ? 'Front Office'
+                : effectiveConsole === 'admin' ? 'Admin Console'
+                : effectiveConsole === 'super_admin' ? 'Super Admin'
+                : effectiveConsole === 'coach' ? 'Coach Console'
+                : effectiveConsole === 'athlete' ? 'Athlete Portal'
+                : effectiveConsole === 'client' ? 'Client Portal'
+                : effectiveConsole === 'settings' ? 'Settings'
+                : 'Console'}
+            </span>
+          </div>
         </div>
 
         {/* Nav Items Container */}

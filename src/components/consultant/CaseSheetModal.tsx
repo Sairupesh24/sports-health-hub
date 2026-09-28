@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
 import { apiFetch } from "@/utils/api";
 import { format } from "date-fns";
-import { Save, Lock, Unlock, Loader2, FileText, Stethoscope, ClipboardList, Activity, FlaskConical, ChevronRight, AlertTriangle, User, X } from "lucide-react";
+import { Save, Lock, Unlock, Loader2, FileText, Stethoscope, ClipboardList, Activity, FlaskConical, ChevronRight, AlertTriangle, User, X, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import PainMap from "./PainMap";
 
@@ -597,17 +597,59 @@ export default function CaseSheetModal({ open, onOpenChange, clientId, client, c
 
                                 <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
                                     <SectionHeader icon={ClipboardList} title="Previous Treatment History" color="text-teal-600" />
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <FieldRow label="Previous Treatment Taken?">
-                                            <Select value={form.previous_treatment} onValueChange={set("previous_treatment")} disabled={isReadOnly}>
-                                                <SelectTrigger className={inputClass}><SelectValue /></SelectTrigger>
-                                                <SelectContent><SelectItem value="No">No</SelectItem><SelectItem value="Yes">Yes</SelectItem></SelectContent>
-                                            </Select>
-                                        </FieldRow>
+                                    <div className="space-y-4">
+                                        <div>
+                                            <Label className="text-xs font-bold text-foreground mb-2 block">
+                                                Previous Treatment Taken?
+                                            </Label>
+                                            <div className="inline-flex p-1 bg-muted/60 dark:bg-muted/30 rounded-xl border border-border/80 gap-1.5 w-full sm:w-auto">
+                                                <button
+                                                    type="button"
+                                                    disabled={isReadOnly}
+                                                    onClick={() => set("previous_treatment")("No")}
+                                                    className={cn(
+                                                        "flex-1 sm:flex-initial flex items-center justify-center gap-2 px-6 py-2 rounded-lg text-xs font-bold transition-all select-none",
+                                                        form.previous_treatment === "No" || !form.previous_treatment
+                                                            ? "bg-background text-foreground shadow-xs border border-border/80 dark:border-border font-black"
+                                                            : "text-muted-foreground hover:text-foreground hover:bg-background/40",
+                                                        isReadOnly && "opacity-60 cursor-not-allowed"
+                                                    )}
+                                                >
+                                                    {(form.previous_treatment === "No" || !form.previous_treatment) && (
+                                                        <Check className="w-3.5 h-3.5 text-slate-700 dark:text-slate-200 stroke-[2.5]" />
+                                                    )}
+                                                    No
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    disabled={isReadOnly}
+                                                    onClick={() => set("previous_treatment")("Yes")}
+                                                    className={cn(
+                                                        "flex-1 sm:flex-initial flex items-center justify-center gap-2 px-6 py-2 rounded-lg text-xs font-bold transition-all select-none",
+                                                        form.previous_treatment === "Yes"
+                                                            ? "bg-teal-600 text-white shadow-xs font-black border border-teal-700"
+                                                            : "text-muted-foreground hover:text-foreground hover:bg-background/40",
+                                                        isReadOnly && "opacity-60 cursor-not-allowed"
+                                                    )}
+                                                >
+                                                    {form.previous_treatment === "Yes" && (
+                                                        <Check className="w-3.5 h-3.5 text-white stroke-[2.5]" />
+                                                    )}
+                                                    Yes
+                                                </button>
+                                            </div>
+                                        </div>
+
                                         {form.previous_treatment === "Yes" && (
-                                            <div className="md:col-span-2">
+                                            <div className="pt-1 animate-in fade-in-50 duration-200">
                                                 <FieldRow label="Treatment Details">
-                                                    <Textarea className={textareaClass} value={form.previous_treatment_details} onChange={setEvt("previous_treatment_details")} disabled={isReadOnly} placeholder="Describe previous treatment, manual therapy, modalities, injections..." />
+                                                    <Textarea
+                                                        className={textareaClass}
+                                                        value={form.previous_treatment_details}
+                                                        onChange={setEvt("previous_treatment_details")}
+                                                        disabled={isReadOnly}
+                                                        placeholder="Describe previous treatment, manual therapy, modalities, injections..."
+                                                    />
                                                 </FieldRow>
                                             </div>
                                         )}

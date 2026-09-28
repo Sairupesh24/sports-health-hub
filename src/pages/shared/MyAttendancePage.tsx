@@ -49,7 +49,12 @@ export default function MyAttendancePage() {
   const [viewMode, setViewMode] = useState<"week" | "history">("week");
 
   // Derive role for layout
-  const role = roles?.includes("sports_scientist") ? "sports_scientist"
+  const activeConsole = typeof window !== 'undefined' ? sessionStorage.getItem("active_console") : null;
+  const role = (activeConsole === "sports_scientist")
+    ? "sports_scientist"
+    : (activeConsole === "consultant")
+    ? "consultant"
+    : roles?.includes("sports_scientist") ? "sports_scientist"
     : roles?.includes("physiotherapist") ? "physiotherapist"
     : roles?.includes("foe") ? "foe"
     : "consultant";

@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth } from "@/contexts/AuthContext";
+import { APP_MODULES, isModuleGrantedForUser } from "@/config/appModules";
 
 interface MobileGuardProps {
   children: React.ReactNode;
@@ -15,7 +16,7 @@ export default function MobileGuard({ children }: MobileGuardProps) {
   const isMobileHook = useIsMobile();
   const location = useLocation();
   const navigate = useNavigate();
-  const { roles } = useAuth();
+  const { roles, profile } = useAuth();
 
   useEffect(() => {
     // Check viewport width as fallback if hook is initializing
@@ -33,12 +34,17 @@ export default function MobileGuard({ children }: MobileGuardProps) {
     const isConsultantPath = location.pathname.startsWith("/consultant");
     const isMobileConsultantPath = location.pathname.startsWith("/mobile/consultant");
 
+    const amsModule = APP_MODULES.find((m) => m.id === "ams");
+    const hasAmsAccess = Boolean(
+      roles?.some((r) => ["sports_scientist", "admin", "super_admin"].includes(r)) ||
+      (amsModule && isModuleGrantedForUser(roles, profile?.profession, profile?.allowed_consoles, amsModule, profile?.organization_enabled_modules))
+    );
+
     const isClinicalSpecialist = roles?.some((r) =>
       ["sports_physician", "physiotherapist", "consultant", "massage_therapist"].includes(r)
     );
-    const isSportsScientist = roles?.some((r) => ["sports_scientist"].includes(r));
     const isNutritionist = roles?.some((r) => ["nutritionist"].includes(r));
-    const isClinicalOnly = isClinicalSpecialist && !isSportsScientist;
+    const isClinicalOnly = isClinicalSpecialist && !hasAmsAccess;
 
     if (effectiveIsMobile) {
       // Profile Redirection to Mobile Profile Page
@@ -123,7 +129,7 @@ export default function MobileGuard({ children }: MobileGuardProps) {
           navigate("/consultant/schedule" + location.search, { replace: true });
           return;
         }
-        if (isNutritionist && !isSportsScientist) {
+        if (isNutritionist && !hasAmsAccess) {
           navigate("/nutritionist/schedule" + location.search, { replace: true });
           return;
         }
@@ -141,7 +147,7 @@ export default function MobileGuard({ children }: MobileGuardProps) {
         }
       }
     }
-  }, [isMobileHook, location.pathname, location.search, navigate, roles]);
+  }, [isMobileHook, location.pathname, location.search, navigate, roles, profile]);
 
   return <>{children}</>;
 }

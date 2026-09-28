@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useLocation } from "react-router-dom";
 import AppSidebar from "./AppSidebar";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
@@ -15,32 +16,51 @@ interface DashboardLayoutProps {
 
 export default function DashboardLayout({ role, children }: DashboardLayoutProps) {
   const { roles, profile } = useAuth();
+  const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  // Compute effective role based on explicit prop or authenticated context
+  // Compute effective role based on route, explicit prop, active console, or authenticated context
   let effectiveRole = role;
-  if (!effectiveRole) {
-    if (roles?.includes("super_admin")) effectiveRole = "super_admin";
-    else if (roles?.includes("admin")) effectiveRole = "admin";
-    else if (
+  if (location.pathname.startsWith('/sports-scientist') || location.pathname.startsWith('/mobile/specialist')) {
+    effectiveRole = "sports_scientist";
+  } else if (location.pathname.startsWith('/consultant') || location.pathname.startsWith('/mobile/consultant')) {
+    effectiveRole = "consultant";
+  } else if (!effectiveRole || effectiveRole === "user") {
+    const activeConsole = typeof window !== 'undefined' ? sessionStorage.getItem("active_console") : null;
+    if (activeConsole === "sports_scientist") {
+      effectiveRole = "sports_scientist";
+    } else if (activeConsole === "consultant") {
+      effectiveRole = "consultant";
+    } else if (roles?.includes("super_admin")) {
+      effectiveRole = "super_admin";
+    } else if (roles?.includes("admin")) {
+      effectiveRole = "admin";
+    } else if (
       roles?.includes("nutritionist") ||
       (profile?.profession || "").toLowerCase().includes("nutrition") ||
       (profile?.role || "").toLowerCase().includes("nutrition") ||
       (profile?.ams_role || "").toLowerCase().includes("nutrition")
     ) {
       effectiveRole = "nutritionist";
-    } else if (roles?.includes("sports_scientist")) effectiveRole = "sports_scientist";
-    else if (roles?.includes("hr_manager")) effectiveRole = "hr_manager";
-    else if (
+    } else if (roles?.includes("sports_scientist")) {
+      effectiveRole = "sports_scientist";
+    } else if (roles?.includes("hr_manager")) {
+      effectiveRole = "hr_manager";
+    } else if (
       roles?.includes("consultant") ||
       roles?.includes("physiotherapist") ||
       roles?.includes("sports_physician")
     ) {
       effectiveRole = "consultant";
-    } else if (roles?.includes("foe")) effectiveRole = "foe";
-    else if (roles?.includes("manager")) effectiveRole = "manager";
-    else if (roles?.includes("client")) effectiveRole = "client";
-    else if (roles?.includes("athlete")) effectiveRole = "athlete";
+    } else if (roles?.includes("foe")) {
+      effectiveRole = "foe";
+    } else if (roles?.includes("manager")) {
+      effectiveRole = "manager";
+    } else if (roles?.includes("client")) {
+      effectiveRole = "client";
+    } else if (roles?.includes("athlete")) {
+      effectiveRole = "athlete";
+    }
   }
 
   return (
