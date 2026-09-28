@@ -1056,16 +1056,29 @@ router.post('/nutrition/assessments', requireAuth, async (req, res) => {
 // CLIENT CASES — Consultation Case Sheets
 // ══════════════════════════════════════════════════════════════════════════════
 
-// GET /clinical/cases?client_id=xxx  — list all cases for a client
+// GET /clinical/cases?client_id=xxx  — list all cases for a client or entire organization
 // Handler for fetching client cases
 async function handleGetClientCases(req, res) {
     try {
         const client_id = req.query.client_id || req.params.clientId;
         const orgId = req.user.organization_id;
-        if (!client_id) return res.status(400).json({ error: 'client_id required' });
+        const { status, region, body_region, type, injury_type, severity, search } = req.query;
 
-        const result = await db.query(`
+        let query = `
             SELECT cc.*,
+                   json_build_object(
+                       'id', c.id,
+                       'first_name', c.first_name,
+                       'middle_name', c.middle_name,
+                       'last_name', c.last_name,
+                       'honorific', c.honorific,
+                       'uhid', c.uhid,
+                       'gender', c.gender,
+                       'age', c.age,
+                       'dob', c.dob,
+                       'mobile_no', c.mobile_no,
+                       'sport', c.sport
+                   ) AS client,
                    p_created.first_name AS created_by_first, p_created.last_name AS created_by_last,
                    p_closed.first_name  AS closed_by_first,  p_closed.last_name  AS closed_by_last,
                    (SELECT COUNT(*) FROM sessions s WHERE s.case_id = cc.id AND s.organization_id = $1)::int AS session_count,
@@ -1086,14 +1099,62 @@ async function handleGetClientCases(req, res) {
                        WHERE s.case_id = cc.id AND s.organization_id = $1
                    ), '[]'::json) AS sessions
             FROM client_cases cc
+            JOIN clients c ON c.id = cc.client_id
             LEFT JOIN profiles p_created ON p_created.id = cc.created_by
             LEFT JOIN profiles p_closed  ON p_closed.id  = cc.closed_by
-            WHERE cc.client_id = $2 AND cc.organization_id = $1
-            ORDER BY cc.created_at DESC
-        `, [orgId, client_id]);
+            WHERE cc.organization_id = $1
+        `;
 
+        const params = [orgId];
+        let paramIdx = 2;
+
+        if (client_id) {
+            query += ` AND cc.client_id = $${paramIdx++}`;
+            params.push(client_id);
+        }
+
+        if (status && status !== 'all') {
+            query += ` AND cc.status = $${paramIdx++}`;
+            params.push(status);
+        }
+
+        const selectedRegion = region || body_region;
+        if (selectedRegion && selectedRegion !== 'all') {
+            query += ` AND cc.body_region ILIKE $${paramIdx++}`;
+            params.push(`%${selectedRegion}%`);
+        }
+
+        const selectedType = type || injury_type;
+        if (selectedType && selectedType !== 'all') {
+            query += ` AND cc.injury_type ILIKE $${paramIdx++}`;
+            params.push(`%${selectedType}%`);
+        }
+
+        if (severity && severity !== 'all') {
+            query += ` AND cc.severity ILIKE $${paramIdx++}`;
+            params.push(severity);
+        }
+
+        if (search && search.trim()) {
+            query += ` AND (
+                cc.case_number ILIKE $${paramIdx} OR
+                cc.chief_complaint ILIKE $${paramIdx} OR
+                cc.final_diagnosis ILIKE $${paramIdx} OR
+                cc.provisional_diagnosis ILIKE $${paramIdx} OR
+                c.first_name ILIKE $${paramIdx} OR
+                c.last_name ILIKE $${paramIdx} OR
+                c.uhid ILIKE $${paramIdx}
+            )`;
+            params.push(`%${search.trim()}%`);
+            paramIdx++;
+        }
+
+        query += ` ORDER BY cc.created_at DESC`;
+
+        const result = await db.query(query, params);
         res.json(result.rows);
     } catch (error) {
+        console.error("Failed to fetch cases", error);
         res.status(500).json({ error: error.message });
     }
 }
@@ -1109,9 +1170,23 @@ router.get('/cases/:id', requireAuth, async (req, res) => {
 
         const result = await db.query(`
             SELECT cc.*,
+                   json_build_object(
+                       'id', c.id,
+                       'first_name', c.first_name,
+                       'middle_name', c.middle_name,
+                       'last_name', c.last_name,
+                       'honorific', c.honorific,
+                       'uhid', c.uhid,
+                       'gender', c.gender,
+                       'age', c.age,
+                       'dob', c.dob,
+                       'mobile_no', c.mobile_no,
+                       'sport', c.sport
+                   ) AS client,
                    p_created.first_name AS created_by_first, p_created.last_name AS created_by_last,
                    p_closed.first_name  AS closed_by_first,  p_closed.last_name  AS closed_by_last
             FROM client_cases cc
+            JOIN clients c ON c.id = cc.client_id
             LEFT JOIN profiles p_created ON p_created.id = cc.created_by
             LEFT JOIN profiles p_closed  ON p_closed.id  = cc.closed_by
             WHERE cc.id = $1 AND cc.organization_id = $2

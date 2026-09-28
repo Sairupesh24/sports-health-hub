@@ -28,6 +28,7 @@ import {
   ShieldCheck,
   Building2,
   Microscope,
+  FolderKanban,
 } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 import { cn } from "@/lib/utils";
@@ -58,7 +59,7 @@ const consultantNav: NavItem[] = [
   { label: "Clients", icon: Users, href: "/consultant/clients" },
   { label: "Schedule", icon: Calendar, href: "/consultant/schedule" },
   { label: "Reports", icon: ClipboardList, href: "/consultant/reports" },
-  { label: "Injury Repo", icon: Activity, href: "/consultant/injuries" },
+  { label: "Case Repo", icon: FolderKanban, href: "/consultant/cases" },
   { label: "My Attendance", icon: Clock, href: "/my-attendance" },
 ];
 
@@ -385,7 +386,7 @@ export default function AppSidebar({ role, isMobile, className, onNavigate }: Ap
       }
       nav.push(
         { label: "Reports", icon: ClipboardList, href: "/consultant/reports" },
-        { label: "Injury Repo", icon: Activity, href: "/consultant/injuries" },
+        { label: "Case Repo", icon: FolderKanban, href: "/consultant/cases" },
         { label: "My Attendance", icon: Clock, href: "/my-attendance" }
       );
       return nav;

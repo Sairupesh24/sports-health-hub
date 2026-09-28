@@ -14,7 +14,6 @@ import {
 import { apiFetch } from "@/utils/api";
 import { useToast } from "@/hooks/use-toast";
 import AMSTrainingLoadWidget from "@/components/dashboard/AMSTrainingLoadWidget";
-import LogInjuryModal from "@/components/consultant/LogInjuryModal";
 import SOAPNoteModal from "@/components/consultant/SOAPNoteModal";
 import CaseSheetModal from "@/components/consultant/CaseSheetModal";
 import ResolveInjuryModal from "@/components/consultant/ResolveInjuryModal";
@@ -608,21 +607,6 @@ export default function ConsultantClientProfile() {
                                 >
                                     <ClipboardList className="w-4 h-4" /> Add SOAP Note
                                 </Button>
-
-                                <LogInjuryModal
-                                    clientId={client.id}
-                                    organizationId={client.organization_id}
-                                    onSuccess={fetchData}
-                                    trigger={
-                                        <Button 
-                                            variant="outline"
-                                            size="sm"
-                                            className="flex-1 sm:flex-initial h-9 px-3.5 gap-2 text-xs font-bold rounded-xl border-border/80 bg-card hover:bg-muted/70 text-foreground shadow-2xs whitespace-nowrap transition-all"
-                                        >
-                                            <PlusCircle className="w-4 h-4 text-primary" /> Log New Injury
-                                        </Button>
-                                    }
-                                />
 
                                 <Button 
                                     variant="outline" 
@@ -1496,11 +1480,16 @@ export default function ConsultantClientProfile() {
                                         Active diagnoses, clinical evaluations, injury history, and resolution tracking.
                                     </CardDescription>
                                 </div>
-                                <LogInjuryModal
-                                    clientId={client.id}
-                                    organizationId={client.organization_id}
-                                    onSuccess={fetchData}
-                                />
+                                <Button
+                                    size="sm"
+                                    onClick={() => {
+                                        setEditingCaseId(null);
+                                        setCaseSheetOpen(true);
+                                    }}
+                                    className="h-9 px-3.5 gap-1.5 text-xs font-bold rounded-xl shadow-xs bg-primary text-primary-foreground hover:bg-primary/90"
+                                >
+                                    <FolderPlus className="w-4 h-4" /> New Case Sheet
+                                </Button>
                             </CardHeader>
                             <CardContent className="pt-5 space-y-6">
                                 {injuries.length === 0 ? (

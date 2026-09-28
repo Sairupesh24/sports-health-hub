@@ -62,7 +62,7 @@ import ConsultantAvailability from "./pages/consultant/ConsultantAvailability";
 import MyClients from "./pages/consultant/MyClients";
 import ConsultantClientProfile from "./pages/consultant/ClientProfile";
 import ConsultantSchedule from "./pages/consultant/ConsultantSchedule";
-import InjuryRepoPage from "./pages/consultant/InjuryRepoPage";
+import CaseRepoPage from "./pages/consultant/CaseRepoPage";
 import ClientDashboard from "./pages/client/ClientDashboard";
 import BookAppointment from "./pages/client/BookAppointment";
 import ClientPerformancePage from "./pages/client/ClientPerformancePage";
@@ -217,7 +217,8 @@ const App = () => (
               <Route path="/consultant/availability" element={<MobileGuard><ProtectedRoute requiredRole={["consultant", "sports_physician", "physiotherapist", "nutritionist", "massage_therapist", "admin", "super_admin"]}><ConsultantAvailability /></ProtectedRoute></MobileGuard>} />
               <Route path="/consultant/reports" element={<MobileGuard><ProtectedRoute requiredRole={["consultant", "sports_physician", "physiotherapist", "nutritionist", "massage_therapist", "admin", "super_admin"]}><ReportsPage role="consultant" /></ProtectedRoute></MobileGuard>} />
               <Route path="/consultant/schedule" element={<MobileGuard><ProtectedRoute requiredRole={["consultant", "sports_physician", "physiotherapist", "nutritionist", "massage_therapist", "admin", "super_admin"]}><ConsultantSchedule /></ProtectedRoute></MobileGuard>} />
-              <Route path="/consultant/injuries" element={<MobileGuard><ProtectedRoute requiredRole={["consultant", "sports_physician", "physiotherapist", "nutritionist", "massage_therapist", "admin", "super_admin"]}><InjuryRepoPage /></ProtectedRoute></MobileGuard>} />
+              <Route path="/consultant/cases" element={<MobileGuard><ProtectedRoute requiredRole={["consultant", "sports_physician", "physiotherapist", "nutritionist", "massage_therapist", "admin", "super_admin"]}><CaseRepoPage /></ProtectedRoute></MobileGuard>} />
+              <Route path="/consultant/injuries" element={<MobileGuard><ProtectedRoute requiredRole={["consultant", "sports_physician", "physiotherapist", "nutritionist", "massage_therapist", "admin", "super_admin"]}><CaseRepoPage /></ProtectedRoute></MobileGuard>} />
               
               <Route path="/sports-scientist" element={<MobileGuard><ProtectedRoute requiredRole={["sports_scientist", "admin"]}><SportsScientistDashboard /></ProtectedRoute></MobileGuard>} />
               <Route path="/sports-scientist/schedule" element={<MobileGuard><ProtectedRoute requiredRole={["sports_scientist", "admin"]}><SportsScientistSchedule /></ProtectedRoute></MobileGuard>} />
