@@ -277,14 +277,22 @@ model client_cases {
   history_cva                 Boolean?      @default(false)
   history_ba                  Boolean?      @default(false)
   history_tb                  Boolean?      @default(false)
+  history_other               Boolean?      @default(false)
+  history_other_details       String?
+  illness_durations           Json?         @default("{}")
   allergies                   String?
   trauma                      String?
   hospitalisation             String?
+  last_checkup_date           String?
+  current_medication          String?
   years_of_training           Int?
   training_volume             String?
   training_type               String?
   training_notes              String?
+  training_history            Json?         @default("[]")
   lmp                         DateTime?     @db.Date
+  age_of_menarche             String?
+  age_of_menopause            String?
   cycle_regularity            String?
   menstrual_notes             String?
   built                       String?
@@ -317,6 +325,9 @@ model client_cases {
   body_region                 String?
   injury_type                 String?
   severity                    String?       @default("Moderate")
+  side_of_body                String?
+  injury_nature               String?
+  etiology                    String?
   diagnosis_notes             String?
   provisional_diagnosis       String?
   icd_code                    String?

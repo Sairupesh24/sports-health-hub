@@ -1221,13 +1221,15 @@ router.post('/cases', requireAuth, async (req, res) => {
             client_id, chief_complaint, referral_source, referred_by,
             hopi, duration, radiation, onset, migration, character, progression,
             aggravation, alleviation, associated_features, diurnal_variation,
+            last_checkup_date, current_medication,
             mechanism, aggravating_factors, relieving_factors, previous_treatment, previous_treatment_details,
             past_medical_history, past_surgical_history, drug_history, family_history,
             history_dm, history_htn, history_cad, history_cva, history_ba, history_tb,
+            history_other, history_other_details, illness_durations,
             dm, htn, cad, cva, ba, tb,
             allergies, trauma, hospitalisation, hospitalization,
-            years_of_training, training_volume, training_type, training_notes,
-            lmp, cycle_regularity, menstrual_notes,
+            years_of_training, training_volume, training_type, training_notes, training_history,
+            lmp, cycle_regularity, menstrual_notes, age_of_menarche, age_of_menopause,
             built, nourishment, pallor, icterus, cyanosis, clubbing, lymphadenopathy, edema,
             beighton_score, temperature, pulse_rate, bp, spo2, respiratory_rate, height, weight, bmi,
             inspection_notes, palpation_notes, range_of_motion_notes, special_tests,
@@ -1237,6 +1239,7 @@ router.post('/cases', requireAuth, async (req, res) => {
             provisional_diagnosis, icd_code,
             investigations,
             final_diagnosis,
+            side_of_body, injury_nature, nature, etiology,
             short_term_goals, long_term_goals, treatment_plan, home_exercise_program, advice,
             additional_notes
         } = req.body;
@@ -1255,6 +1258,15 @@ router.post('/cases', requireAuth, async (req, res) => {
         const cvaVal = history_cva !== undefined ? history_cva : (cva !== undefined ? cva : false);
         const baVal = history_ba !== undefined ? history_ba : (ba !== undefined ? ba : false);
         const tbVal = history_tb !== undefined ? history_tb : (tb !== undefined ? tb : false);
+        const otherVal = history_other !== undefined ? history_other : false;
+
+        const primaryTraining = Array.isArray(training_history) && training_history.length > 0 ? training_history[0] : null;
+        const finalTrainingType = training_type || primaryTraining?.training_type || null;
+        const finalTrainingVolume = training_volume || primaryTraining?.training_volume || null;
+        const finalYearsOfTraining = years_of_training !== undefined && years_of_training !== null ? years_of_training : (primaryTraining?.years_of_training ? parseInt(primaryTraining.years_of_training) : null);
+        const finalTrainingNotes = training_notes || (Array.isArray(training_history) && training_history.length > 1
+            ? training_history.map(t => `${t.training_type}: ${t.training_notes || ''}`.trim()).filter(Boolean).join('; ')
+            : primaryTraining?.training_notes || null);
 
         const result = await db.query(`
             INSERT INTO client_cases (
@@ -1278,7 +1290,11 @@ router.post('/cases', requireAuth, async (req, res) => {
                 short_term_goals, long_term_goals, treatment_plan, home_exercise_program, advice,
                 additional_notes,
                 history_dm, history_htn, history_cad, history_cva, history_ba, history_tb,
-                allergies, trauma, hospitalisation
+                allergies, trauma, hospitalisation,
+                last_checkup_date, current_medication, history_other, history_other_details, illness_durations,
+                training_history,
+                age_of_menarche, age_of_menopause,
+                side_of_body, injury_nature, etiology
             ) VALUES (
                 $1,$2,$3,'open',$4,$5,
                 $6,$7,
@@ -1300,7 +1316,11 @@ router.post('/cases', requireAuth, async (req, res) => {
                 $70,$71,$72,$73,$74,
                 $75,
                 $76,$77,$78,$79,$80,$81,
-                $82,$83,$84
+                $82,$83,$84,
+                $85,$86,$87,$88,$89,
+                $90,
+                $91,$92,
+                $93,$94,$95
             ) RETURNING *
         `, [
             orgId, client_id, case_number, chief_complaint || null, profileId,
@@ -1309,7 +1329,7 @@ router.post('/cases', requireAuth, async (req, res) => {
             aggravation || aggravating_factors || null, alleviation || relieving_factors || null, associated_features || null, diurnal_variation || null,
             mechanism || null, aggravating_factors || aggravation || null, relieving_factors || alleviation || null, previous_treatment || null, previous_treatment_details || null,
             past_medical_history || null, past_surgical_history || null, drug_history || null, family_history || null,
-            years_of_training || null, training_volume || null, training_type || null, training_notes || null,
+            finalYearsOfTraining || null, finalTrainingVolume || null, finalTrainingType || null, finalTrainingNotes || null,
             lmp || null, cycle_regularity || null, menstrual_notes || null,
             built || null, nourishment || null, pallor || false, icterus || false, cyanosis || false, clubbing || false, lymphadenopathy || false, edema || false,
             beighton_score || null, temperature || null, pulse_rate || null, bp || null, spo2 || null, respiratory_rate || null, height || null, weight || null, bmi || null,
@@ -1323,7 +1343,12 @@ router.post('/cases', requireAuth, async (req, res) => {
             short_term_goals || null, long_term_goals || null, treatment_plan || null, home_exercise_program || null, advice || null,
             additional_notes || null,
             dmVal, htnVal, cadVal, cvaVal, baVal, tbVal,
-            allergies || null, trauma || null, hospitalisation || hospitalization || null
+            allergies || null, trauma || null, hospitalisation || hospitalization || null,
+            last_checkup_date || null, current_medication || null, otherVal, history_other_details || null,
+            JSON.stringify(illness_durations || {}),
+            JSON.stringify(training_history || []),
+            age_of_menarche || null, age_of_menopause || null,
+            side_of_body || null, injury_nature || nature || null, etiology || null
         ]);
 
         res.status(201).json(result.rows[0]);
@@ -1350,13 +1375,15 @@ router.put('/cases/:id', requireAuth, async (req, res) => {
             chief_complaint, referral_source, referred_by,
             hopi, duration, radiation, onset, migration, character, progression,
             aggravation, alleviation, associated_features, diurnal_variation,
+            last_checkup_date, current_medication,
             mechanism, aggravating_factors, relieving_factors, previous_treatment, previous_treatment_details,
             past_medical_history, past_surgical_history, drug_history, family_history,
             history_dm, history_htn, history_cad, history_cva, history_ba, history_tb,
+            history_other, history_other_details, illness_durations,
             dm, htn, cad, cva, ba, tb,
             allergies, trauma, hospitalisation, hospitalization,
-            years_of_training, training_volume, training_type, training_notes,
-            lmp, cycle_regularity, menstrual_notes,
+            years_of_training, training_volume, training_type, training_notes, training_history,
+            lmp, cycle_regularity, menstrual_notes, age_of_menarche, age_of_menopause,
             built, nourishment, pallor, icterus, cyanosis, clubbing, lymphadenopathy, edema,
             beighton_score, temperature, pulse_rate, bp, spo2, respiratory_rate, height, weight, bmi,
             inspection_notes, palpation_notes, range_of_motion_notes, special_tests,
@@ -1366,9 +1393,18 @@ router.put('/cases/:id', requireAuth, async (req, res) => {
             provisional_diagnosis, icd_code,
             investigations,
             final_diagnosis,
+            side_of_body, injury_nature, nature, etiology,
             short_term_goals, long_term_goals, treatment_plan, home_exercise_program, advice,
             additional_notes
         } = req.body;
+
+        const primaryTraining = Array.isArray(training_history) && training_history.length > 0 ? training_history[0] : null;
+        const finalTrainingType = training_type !== undefined ? training_type : (primaryTraining?.training_type || null);
+        const finalTrainingVolume = training_volume !== undefined ? training_volume : (primaryTraining?.training_volume || null);
+        const finalYearsOfTraining = years_of_training !== undefined ? years_of_training : (primaryTraining?.years_of_training ? parseInt(primaryTraining.years_of_training) : null);
+        const finalTrainingNotes = training_notes !== undefined ? training_notes : (Array.isArray(training_history) && training_history.length > 1
+            ? training_history.map(t => `${t.training_type}: ${t.training_notes || ''}`.trim()).filter(Boolean).join('; ')
+            : primaryTraining?.training_notes || null);
 
         const result = await db.query(`
             UPDATE client_cases SET
@@ -1452,8 +1488,19 @@ router.put('/cases/:id', requireAuth, async (req, res) => {
                 allergies = COALESCE($78, allergies),
                 trauma = COALESCE($79, trauma),
                 hospitalisation = COALESCE($80, hospitalisation),
+                last_checkup_date = COALESCE($81, last_checkup_date),
+                current_medication = COALESCE($82, current_medication),
+                history_other = COALESCE($83, history_other),
+                history_other_details = COALESCE($84, history_other_details),
+                illness_durations = COALESCE($85::jsonb, illness_durations),
+                training_history = COALESCE($86::jsonb, training_history),
+                age_of_menarche = COALESCE($87, age_of_menarche),
+                age_of_menopause = COALESCE($88, age_of_menopause),
+                side_of_body = COALESCE($89, side_of_body),
+                injury_nature = COALESCE($90, injury_nature),
+                etiology = COALESCE($91, etiology),
                 updated_at = CURRENT_TIMESTAMP
-            WHERE id = $81 AND organization_id = $82
+            WHERE id = $92 AND organization_id = $93
             RETURNING *
         `, [
             chief_complaint || null, referral_source || null, referred_by || null,
@@ -1461,7 +1508,10 @@ router.put('/cases/:id', requireAuth, async (req, res) => {
             aggravation || aggravating_factors || null, alleviation || relieving_factors || null, associated_features || null, diurnal_variation || null,
             mechanism || null, aggravating_factors || aggravation || null, relieving_factors || alleviation || null, previous_treatment || null, previous_treatment_details || null,
             past_medical_history || null, past_surgical_history || null, drug_history || null, family_history || null,
-            years_of_training || null, training_volume || null, training_type || null, training_notes || null,
+            finalYearsOfTraining !== undefined ? finalYearsOfTraining : null,
+            finalTrainingVolume !== undefined ? finalTrainingVolume : null,
+            finalTrainingType !== undefined ? finalTrainingType : null,
+            finalTrainingNotes !== undefined ? finalTrainingNotes : null,
             lmp || null, cycle_regularity || null, menstrual_notes || null,
             built || null, nourishment || null,
             pallor !== undefined ? pallor : null, icterus !== undefined ? icterus : null, cyanosis !== undefined ? cyanosis : null, clubbing !== undefined ? clubbing : null, lymphadenopathy !== undefined ? lymphadenopathy : null, edema !== undefined ? edema : null,
@@ -1485,6 +1535,17 @@ router.put('/cases/:id', requireAuth, async (req, res) => {
             allergies || null,
             trauma || null,
             hospitalisation || hospitalization || null,
+            last_checkup_date !== undefined ? last_checkup_date : null,
+            current_medication !== undefined ? current_medication : null,
+            history_other !== undefined ? history_other : null,
+            history_other_details !== undefined ? history_other_details : null,
+            illness_durations !== undefined ? JSON.stringify(illness_durations) : null,
+            training_history !== undefined ? JSON.stringify(training_history) : null,
+            age_of_menarche !== undefined ? (age_of_menarche || null) : null,
+            age_of_menopause !== undefined ? (age_of_menopause || null) : null,
+            side_of_body !== undefined ? (side_of_body || null) : null,
+            (injury_nature !== undefined ? injury_nature : nature) !== undefined ? ((injury_nature || nature) || null) : null,
+            etiology !== undefined ? (etiology || null) : null,
             id, orgId
         ]);
 

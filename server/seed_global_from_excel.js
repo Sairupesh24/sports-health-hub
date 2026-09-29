@@ -46,9 +46,13 @@ async function seed() {
             const row = rows[i];
             if (!row || row.length === 0) continue;
             
-            const region = row[0]?.toString().trim();
-            const injuryType = row[1]?.toString().trim();
-            const diagnosis = row[2]?.toString().trim();
+            const region = row[0]?.toString().replace(/\u00a0/g, ' ').trim();
+            let injuryType = row[1]?.toString().replace(/\u00a0/g, ' ').trim();
+            const diagnosis = row[2]?.toString().replace(/\u00a0/g, ' ').trim();
+
+            if (region === 'Medical' && !injuryType) {
+                injuryType = 'Medical Condition';
+            }
 
             if (region && injuryType && diagnosis) {
                 items.push({ region, injuryType, diagnosis });

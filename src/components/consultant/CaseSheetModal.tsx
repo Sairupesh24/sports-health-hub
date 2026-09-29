@@ -11,9 +11,29 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
 import { apiFetch } from "@/utils/api";
 import { format } from "date-fns";
-import { Save, Lock, Unlock, Loader2, FileText, Stethoscope, ClipboardList, Activity, FlaskConical, ChevronRight, AlertTriangle, User, X, Check } from "lucide-react";
+import { Save, Lock, Unlock, Loader2, FileText, Stethoscope, ClipboardList, Activity, FlaskConical, ChevronRight, AlertTriangle, User, X, Check, Clock, Plus, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import PainMap from "./PainMap";
+
+export interface TrainingHistoryEntry {
+    training_type: string;
+    training_volume: string;
+    years_of_training: string;
+    training_notes: string;
+}
+
+export const AVAILABLE_TRAINING_TYPES = [
+    "Strength",
+    "Endurance",
+    "Skill-based",
+    "Mixed",
+    "Recreational",
+    "Competitive",
+    "Flexibility & Mobility",
+    "Hypertrophy",
+    "Speed & Agility",
+    "Other"
+];
 
 interface CaseSheetModalProps {
     open: boolean;
@@ -28,14 +48,20 @@ const BLANK_FORM = {
     chief_complaint: "", referral_source: "", referred_by: "",
     duration: "", radiation: "", onset: "", migration: "", character: "",
     progression: "", aggravation: "", alleviation: "", associated_features: "", diurnal_variation: "",
+    last_checkup_date: "", current_medication: "",
     hopi: "", mechanism: "", aggravating_factors: "", relieving_factors: "",
     previous_treatment: "No", previous_treatment_details: "",
     past_medical_history: "", past_surgical_history: "", drug_history: "", family_history: "",
     history_dm: false as boolean, history_htn: false as boolean, history_cad: false as boolean,
     history_cva: false as boolean, history_ba: false as boolean, history_tb: false as boolean,
+    history_other: false as boolean, history_other_details: "",
+    illness_durations: {} as Record<string, string>,
     allergies: "", trauma: "", hospitalisation: "",
+    training_history: [
+        { training_type: "", training_volume: "", years_of_training: "", training_notes: "" }
+    ] as TrainingHistoryEntry[],
     years_of_training: "", training_volume: "", training_type: "", training_notes: "",
-    lmp: "", cycle_regularity: "", menstrual_notes: "",
+    lmp: "", cycle_regularity: "", menstrual_notes: "", age_of_menarche: "", age_of_menopause: "",
     built: "", nourishment: "",
     pallor: false as boolean, icterus: false as boolean, cyanosis: false as boolean,
     clubbing: false as boolean, lymphadenopathy: false as boolean, edema: false as boolean,
@@ -46,6 +72,7 @@ const BLANK_FORM = {
     neurovascular_notes: "", dermatome_notes: "", myotome_notes: "", reflexes_notes: "",
     pain_map: {} as Record<string, any>, pain_score: 0 as number,
     body_region: "", injury_type: "", severity: "Moderate",
+    side_of_body: "", injury_nature: "", etiology: "",
     diagnosis_notes: "",
     provisional_diagnosis: "", icd_code: "", investigations: [] as string[],
     final_diagnosis: "", short_term_goals: "", long_term_goals: "",
@@ -148,7 +175,26 @@ export default function CaseSheetModal({ open, onOpenChange, clientId, client, c
 
     const prefillFromClient = useCallback(() => {
         if (!client) return;
-        setForm(prev => ({ ...prev, height: client.height ? String(client.height) : prev.height, weight: client.weight ? String(client.weight) : prev.weight }));
+        setForm(prev => {
+            const hasTraining = prev.training_history.some(t => t.training_type);
+            const clientTrainingType = client.exercise_type || "";
+            const clientYears = client.training_age ? String(client.training_age) : "";
+            const clientVolume = client.training_sessions_count ? `${client.training_sessions_count} sessions/wk` : "";
+
+            return {
+                ...prev,
+                height: client.height ? String(client.height) : prev.height,
+                weight: client.weight ? String(client.weight) : prev.weight,
+                ...(!hasTraining && (clientTrainingType || clientYears || clientVolume) ? {
+                    training_history: [{
+                        training_type: clientTrainingType,
+                        training_volume: clientVolume,
+                        years_of_training: clientYears,
+                        training_notes: "",
+                    }]
+                } : {})
+            };
+        });
     }, [client]);
 
     const fetchCase = useCallback(async () => {
@@ -159,6 +205,30 @@ export default function CaseSheetModal({ open, onOpenChange, clientId, client, c
             setCaseData(data);
             const loadedFinalDx = data.final_diagnosis || (data.body_region && data.provisional_diagnosis && !data.final_diagnosis ? data.provisional_diagnosis : "");
             const loadedProvDx = (data.body_region && data.provisional_diagnosis && !data.final_diagnosis) ? "" : (data.provisional_diagnosis || "");
+
+            let loadedTrainingHistory: TrainingHistoryEntry[] = [];
+            if (Array.isArray(data.training_history) && data.training_history.length > 0) {
+                loadedTrainingHistory = data.training_history.map((th: any) => ({
+                    training_type: th.training_type || "",
+                    training_volume: th.training_volume || "",
+                    years_of_training: th.years_of_training != null ? String(th.years_of_training) : "",
+                    training_notes: th.training_notes || "",
+                }));
+            } else if (data.training_type || data.training_volume || data.years_of_training || data.training_notes) {
+                loadedTrainingHistory = [{
+                    training_type: data.training_type || "",
+                    training_volume: data.training_volume || "",
+                    years_of_training: data.years_of_training != null ? String(data.years_of_training) : "",
+                    training_notes: data.training_notes || "",
+                }];
+            } else {
+                loadedTrainingHistory = [{
+                    training_type: "",
+                    training_volume: "",
+                    years_of_training: "",
+                    training_notes: "",
+                }];
+            }
 
             setForm({
                 chief_complaint: data.chief_complaint || "", referral_source: data.referral_source || "", referred_by: data.referred_by || "",
@@ -172,6 +242,8 @@ export default function CaseSheetModal({ open, onOpenChange, clientId, client, c
                 alleviation: data.alleviation || data.relieving_factors || "",
                 associated_features: data.associated_features || "",
                 diurnal_variation: data.diurnal_variation || "",
+                last_checkup_date: data.last_checkup_date || "",
+                current_medication: data.current_medication || "",
                 hopi: data.hopi || "", mechanism: data.mechanism || "",
                 aggravating_factors: data.aggravating_factors || "", relieving_factors: data.relieving_factors || "",
                 previous_treatment: data.previous_treatment || "No", previous_treatment_details: data.previous_treatment_details || "",
@@ -183,12 +255,18 @@ export default function CaseSheetModal({ open, onOpenChange, clientId, client, c
                 history_cva: data.history_cva ?? data.cva ?? false,
                 history_ba: data.history_ba ?? data.ba ?? false,
                 history_tb: data.history_tb ?? data.tb ?? false,
+                history_other: data.history_other || false,
+                history_other_details: data.history_other_details || "",
+                illness_durations: typeof data.illness_durations === "object" && data.illness_durations !== null ? data.illness_durations : {},
                 allergies: data.allergies || "",
                 trauma: data.trauma || "",
                 hospitalisation: data.hospitalisation || data.hospitalization || "",
+                training_history: loadedTrainingHistory,
                 years_of_training: data.years_of_training != null ? String(data.years_of_training) : "",
                 training_volume: data.training_volume || "", training_type: data.training_type || "", training_notes: data.training_notes || "",
                 lmp: data.lmp ? format(new Date(data.lmp), "yyyy-MM-dd") : "",
+                age_of_menarche: data.age_of_menarche != null ? String(data.age_of_menarche) : "",
+                age_of_menopause: data.age_of_menopause != null ? String(data.age_of_menopause) : "",
                 cycle_regularity: data.cycle_regularity || "", menstrual_notes: data.menstrual_notes || "",
                 built: data.built || "", nourishment: data.nourishment || "",
                 pallor: data.pallor || false, icterus: data.icterus || false, cyanosis: data.cyanosis || false,
@@ -208,6 +286,9 @@ export default function CaseSheetModal({ open, onOpenChange, clientId, client, c
                 body_region: data.body_region || "",
                 injury_type: data.injury_type || "",
                 severity: data.severity || "Moderate",
+                side_of_body: data.side_of_body || "",
+                injury_nature: data.injury_nature || data.nature || "",
+                etiology: data.etiology || "",
                 diagnosis_notes: data.diagnosis_notes || "",
                 provisional_diagnosis: loadedProvDx, icd_code: data.icd_code || "",
                 investigations: Array.isArray(data.investigations) ? data.investigations : [],
@@ -243,15 +324,57 @@ export default function CaseSheetModal({ open, onOpenChange, clientId, client, c
     const set = (field: keyof FormState) => (value: any) => setForm(prev => ({ ...prev, [field]: value }));
     const setEvt = (field: keyof FormState) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setForm(prev => ({ ...prev, [field]: e.target.value }));
 
+    const handleAddTrainingEntry = () => {
+        setForm(prev => {
+            const selectedTypes = new Set(prev.training_history.map(t => t.training_type).filter(Boolean));
+            const nextAvailable = AVAILABLE_TRAINING_TYPES.find(t => !selectedTypes.has(t)) || "";
+            return {
+                ...prev,
+                training_history: [
+                    ...prev.training_history,
+                    { training_type: nextAvailable, training_volume: "", years_of_training: "", training_notes: "" }
+                ]
+            };
+        });
+    };
+
+    const handleRemoveTrainingEntry = (index: number) => {
+        setForm(prev => {
+            const updated = prev.training_history.filter((_, i) => i !== index);
+            return {
+                ...prev,
+                training_history: updated.length > 0 ? updated : [{ training_type: "", training_volume: "", years_of_training: "", training_notes: "" }]
+            };
+        });
+    };
+
+    const handleUpdateTrainingEntry = (index: number, field: keyof TrainingHistoryEntry, value: string) => {
+        setForm(prev => {
+            const updated = [...prev.training_history];
+            updated[index] = { ...updated[index], [field]: value };
+            return { ...prev, training_history: updated };
+        });
+    };
+
     const handleSave = async () => {
         if (isReadOnly) return;
         if (!form.chief_complaint.trim()) { toast({ title: "Required", description: "Chief Complaint is required.", variant: "destructive" }); setActiveTab("history"); return; }
         setLoading(true);
         try {
+            const cleanTrainingHistory = form.training_history.filter(t => t.training_type.trim() !== "");
+            const primaryTraining = cleanTrainingHistory[0];
+
             const payload: Record<string, any> = {
-                ...form, client_id: clientId, pain_score: form.pain_score || 0,
+                ...form,
+                training_history: cleanTrainingHistory,
+                training_type: primaryTraining?.training_type || form.training_type || "",
+                training_volume: primaryTraining?.training_volume || form.training_volume || "",
+                years_of_training: primaryTraining?.years_of_training ? parseInt(primaryTraining.years_of_training) : (form.years_of_training ? parseInt(form.years_of_training) : null),
+                training_notes: cleanTrainingHistory.length > 1
+                    ? cleanTrainingHistory.map(t => `${t.training_type}: ${t.training_notes || ''}`.trim()).filter(Boolean).join('; ')
+                    : (primaryTraining?.training_notes || form.training_notes || ""),
+                client_id: clientId, pain_score: form.pain_score || 0,
                 beighton_score: form.beighton_score ? parseInt(form.beighton_score) : null,
-                years_of_training: form.years_of_training ? parseInt(form.years_of_training) : null,
                 pulse_rate: form.pulse_rate ? parseInt(form.pulse_rate) : null,
                 respiratory_rate: form.respiratory_rate ? parseInt(form.respiratory_rate) : null,
                 height: form.height ? parseFloat(form.height) : null,
@@ -259,8 +382,13 @@ export default function CaseSheetModal({ open, onOpenChange, clientId, client, c
                 bmi: form.bmi ? parseFloat(form.bmi) : null,
                 spo2: form.spo2 ? parseFloat(form.spo2) : null,
                 lmp: isFemale && form.lmp ? form.lmp : null,
+                age_of_menarche: isFemale ? (form.age_of_menarche || null) : null,
+                age_of_menopause: isFemale ? (form.age_of_menopause || null) : null,
                 cycle_regularity: isFemale ? form.cycle_regularity : null,
                 menstrual_notes: isFemale ? form.menstrual_notes : null,
+                side_of_body: form.side_of_body || null,
+                injury_nature: form.injury_nature || null,
+                etiology: form.etiology || null,
             };
             let result: any;
             if (isEditing && caseId) {
@@ -476,6 +604,27 @@ export default function CaseSheetModal({ open, onOpenChange, clientId, client, c
                                                 placeholder="e.g., Worse in morning / morning stiffness, nocturnal pain..."
                                             />
                                         </FieldRow>
+
+                                        <FieldRow label="Date of Last Check-up">
+                                            <Input
+                                                type="date"
+                                                className={inputClass}
+                                                value={form.last_checkup_date}
+                                                onChange={setEvt("last_checkup_date")}
+                                                disabled={isReadOnly}
+                                            />
+                                        </FieldRow>
+
+                                        <FieldRow label="Medication (for current illness)" counter={`${(form.current_medication || "").length}/150`}>
+                                            <Input
+                                                className={inputClass}
+                                                value={form.current_medication}
+                                                onChange={setEvt("current_medication")}
+                                                disabled={isReadOnly}
+                                                maxLength={150}
+                                                placeholder="e.g., Analgesics, NSAIDs, muscle relaxants..."
+                                            />
+                                        </FieldRow>
                                     </div>
                                 </div>
 
@@ -495,7 +644,7 @@ export default function CaseSheetModal({ open, onOpenChange, clientId, client, c
                                             </Label>
                                             <span className="text-[11px] text-muted-foreground">Select all that apply</span>
                                         </div>
-                                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
+                                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-2.5">
                                             {[
                                                 { key: "history_dm", label: "DM", title: "Diabetes Mellitus" },
                                                 { key: "history_htn", label: "HTN", title: "Hypertension" },
@@ -503,6 +652,7 @@ export default function CaseSheetModal({ open, onOpenChange, clientId, client, c
                                                 { key: "history_cva", label: "CVA", title: "Cerebrovascular Accident" },
                                                 { key: "history_ba", label: "BA", title: "Bronchial Asthma" },
                                                 { key: "history_tb", label: "TB", title: "Tuberculosis" },
+                                                { key: "history_other", label: "Other", title: "Other Illness" },
                                             ].map(item => {
                                                 const isChecked = !!form[item.key as keyof FormState];
                                                 return (
@@ -511,23 +661,38 @@ export default function CaseSheetModal({ open, onOpenChange, clientId, client, c
                                                         htmlFor={`past-history-${item.key}`}
                                                         title={item.title}
                                                         className={cn(
-                                                            "flex items-center justify-between px-3.5 py-2.5 rounded-xl border transition-all cursor-pointer select-none",
+                                                            "flex items-center justify-between px-3 py-2.5 rounded-xl border transition-all cursor-pointer select-none",
                                                             isChecked
                                                                 ? "border-indigo-500 bg-indigo-50/80 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 font-bold shadow-xs"
                                                                 : "border-border bg-background hover:bg-muted/50 text-foreground",
                                                             isReadOnly && "opacity-60 cursor-not-allowed"
                                                         )}
                                                     >
-                                                        <div className="flex flex-col">
+                                                        <div className="flex flex-col min-w-0 pr-1">
                                                             <span className="text-xs font-black tracking-wide">{item.label}</span>
                                                             <span className="text-[9px] text-muted-foreground truncate max-w-[70px]" title={item.title}>
-                                                                {item.title}
+                                                                {item.key === "history_other" && form.history_other_details ? form.history_other_details : item.title}
                                                             </span>
                                                         </div>
                                                         <Checkbox
                                                             id={`past-history-${item.key}`}
                                                             checked={isChecked}
-                                                            onCheckedChange={v => !isReadOnly && set(item.key as keyof FormState)(!!v)}
+                                                            onCheckedChange={v => {
+                                                                if (isReadOnly) return;
+                                                                const checked = !!v;
+                                                                setForm(prev => {
+                                                                    const updatedDurations = { ...prev.illness_durations };
+                                                                    if (!checked) {
+                                                                        delete updatedDurations[item.key];
+                                                                    }
+                                                                    return {
+                                                                        ...prev,
+                                                                        [item.key]: checked,
+                                                                        illness_durations: updatedDurations,
+                                                                        ...(item.key === "history_other" && !checked ? { history_other_details: "" } : {})
+                                                                    };
+                                                                });
+                                                            }}
                                                             disabled={isReadOnly}
                                                             className="shrink-0 data-[state=checked]:bg-indigo-600 data-[state=checked]:border-indigo-600"
                                                         />
@@ -535,6 +700,89 @@ export default function CaseSheetModal({ open, onOpenChange, clientId, client, c
                                                 );
                                             })}
                                         </div>
+
+                                        {/* Other Condition Specification Input & Duration in Months */}
+                                        {([
+                                            "history_dm", "history_htn", "history_cad", "history_cva", "history_ba", "history_tb", "history_other"
+                                        ].some(k => !!form[k as keyof FormState])) && (
+                                            <div className="mt-4 pt-3.5 border-t border-border/60 space-y-3">
+                                                {/* If Other is checked, show the 'Other: ___________' input */}
+                                                {form.history_other && (
+                                                    <div className="p-3 rounded-xl border border-indigo-200/80 dark:border-indigo-900/60 bg-indigo-50/40 dark:bg-indigo-950/20">
+                                                        <FieldRow label="Other: Specify Condition" counter={`${(form.history_other_details || "").length}/100`}>
+                                                            <Input
+                                                                className={inputClass}
+                                                                value={form.history_other_details}
+                                                                onChange={setEvt("history_other_details")}
+                                                                disabled={isReadOnly}
+                                                                maxLength={100}
+                                                                placeholder="e.g., Hypothyroidism, Chronic Kidney Disease, Epilepsy, Gout..."
+                                                            />
+                                                        </FieldRow>
+                                                    </div>
+                                                )}
+
+                                                {/* Duration in months for each selected condition */}
+                                                <div className="space-y-2">
+                                                    <div className="flex items-center justify-between">
+                                                        <div className="flex items-center gap-1.5 text-xs font-bold text-foreground">
+                                                            <Clock className="w-3.5 h-3.5 text-indigo-500" />
+                                                            <span>Illness Duration (in months)</span>
+                                                        </div>
+                                                        <span className="text-[10px] text-muted-foreground">Enter duration in months for each selected illness</span>
+                                                    </div>
+
+                                                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5">
+                                                        {[
+                                                            { key: "history_dm", label: "DM", title: "Diabetes Mellitus" },
+                                                            { key: "history_htn", label: "HTN", title: "Hypertension" },
+                                                            { key: "history_cad", label: "CAD", title: "Coronary Artery Disease" },
+                                                            { key: "history_cva", label: "CVA", title: "Cerebrovascular Accident" },
+                                                            { key: "history_ba", label: "BA", title: "Bronchial Asthma" },
+                                                            { key: "history_tb", label: "TB", title: "Tuberculosis" },
+                                                            { key: "history_other", label: "Other", title: "Other Illness" },
+                                                        ].filter(item => !!form[item.key as keyof FormState]).map(item => {
+                                                            const displayName = item.key === "history_other"
+                                                                ? (form.history_other_details?.trim() || "Other Condition")
+                                                                : item.title;
+                                                            return (
+                                                                <div key={item.key} className="p-2.5 rounded-xl border border-border bg-card shadow-xs flex flex-col justify-between gap-1.5">
+                                                                    <div className="flex items-center justify-between gap-1">
+                                                                        <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400">{item.label}</span>
+                                                                        <span className="text-[10px] text-muted-foreground truncate" title={displayName}>
+                                                                            {displayName}
+                                                                        </span>
+                                                                    </div>
+                                                                    <div className="flex items-center gap-2">
+                                                                        <Input
+                                                                            type="number"
+                                                                            min="0"
+                                                                            max="1200"
+                                                                            step="1"
+                                                                            className={cn(inputClass, "h-8 text-xs font-medium")}
+                                                                            placeholder="e.g. 12"
+                                                                            value={form.illness_durations?.[item.key] ?? ""}
+                                                                            onChange={e => {
+                                                                                const val = e.target.value;
+                                                                                setForm(prev => ({
+                                                                                    ...prev,
+                                                                                    illness_durations: {
+                                                                                        ...prev.illness_durations,
+                                                                                        [item.key]: val
+                                                                                    }
+                                                                                }));
+                                                                            }}
+                                                                            disabled={isReadOnly}
+                                                                        />
+                                                                        <span className="text-[11px] font-semibold text-muted-foreground shrink-0">months</span>
+                                                                    </div>
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
 
                                     {/* Allergies, Trauma, Hospitalisation */}
@@ -656,23 +904,212 @@ export default function CaseSheetModal({ open, onOpenChange, clientId, client, c
                                     </div>
                                 </div>
 
-                                <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
-                                    <SectionHeader icon={Activity} title="Training History" color="text-emerald-500" subtitle="Auto-filled from athlete profile where available" />
-                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                        <FieldRow label="Years of Training"><Input type="number" min="0" className={inputClass} value={form.years_of_training} onChange={setEvt("years_of_training")} disabled={isReadOnly} placeholder="e.g. 5" /></FieldRow>
-                                        <FieldRow label="Training Volume"><Input className={inputClass} value={form.training_volume} onChange={setEvt("training_volume")} disabled={isReadOnly} placeholder="e.g. 8 hrs/week" /></FieldRow>
-                                        <FieldRow label="Training Type"><Select value={form.training_type} onValueChange={set("training_type")} disabled={isReadOnly}><SelectTrigger className={inputClass}><SelectValue placeholder="Select..." /></SelectTrigger><SelectContent>{["Strength","Endurance","Skill-based","Mixed","Recreational","Competitive"].map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent></Select></FieldRow>
-                                        <FieldRow label="Training Notes"><Input className={inputClass} value={form.training_notes} onChange={setEvt("training_notes")} disabled={isReadOnly} placeholder="Additional notes..." /></FieldRow>
+                                <div className="rounded-2xl border border-border bg-card p-5 shadow-sm space-y-4">
+                                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pb-3 border-b border-border/40">
+                                        <div className="flex items-start gap-2.5">
+                                            <div className="p-1.5 rounded-lg bg-emerald-500/10 mt-0.5 shrink-0">
+                                                <Activity className="w-4 h-4 text-emerald-500" />
+                                            </div>
+                                            <div>
+                                                <h4 className="font-black text-sm uppercase tracking-wider text-foreground">Training History</h4>
+                                                <p className="text-[11px] text-muted-foreground mt-0.5">Select training type first, then enter volume, duration, and notes</p>
+                                            </div>
+                                        </div>
+                                        {!isReadOnly && (
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={handleAddTrainingEntry}
+                                                disabled={form.training_history.length >= AVAILABLE_TRAINING_TYPES.length}
+                                                className="gap-1.5 text-xs font-bold rounded-xl border-emerald-500/40 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/10 shrink-0 self-start sm:self-auto"
+                                            >
+                                                <Plus className="w-3.5 h-3.5" /> Add Training Type
+                                            </Button>
+                                        )}
                                     </div>
+
+                                    <div className="space-y-3.5">
+                                        {form.training_history.map((entry, idx) => {
+                                            const otherSelectedTypes = new Set(
+                                                form.training_history
+                                                    .filter((_, oIdx) => oIdx !== idx)
+                                                    .map(t => t.training_type)
+                                                    .filter(Boolean)
+                                            );
+                                            const selectableTypes = AVAILABLE_TRAINING_TYPES.filter(t => !otherSelectedTypes.has(t));
+                                            if (entry.training_type && !selectableTypes.includes(entry.training_type)) {
+                                                selectableTypes.unshift(entry.training_type);
+                                            }
+
+                                            return (
+                                                <div 
+                                                    key={idx} 
+                                                    className={cn(
+                                                        "p-4 rounded-xl border transition-all",
+                                                        entry.training_type 
+                                                            ? "border-border/80 bg-muted/20" 
+                                                            : "border-dashed border-border bg-muted/10"
+                                                    )}
+                                                >
+                                                    <div className="flex items-center justify-between pb-2.5 mb-3 border-b border-border/40">
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="text-xs font-black uppercase tracking-wider text-muted-foreground">
+                                                                Training Profile #{idx + 1}
+                                                            </span>
+                                                            {entry.training_type && (
+                                                                <Badge variant="secondary" className="text-[10px] font-bold bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20">
+                                                                    {entry.training_type}
+                                                                </Badge>
+                                                            )}
+                                                        </div>
+                                                        {form.training_history.length > 1 && !isReadOnly && (
+                                                            <Button
+                                                                type="button"
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                onClick={() => handleRemoveTrainingEntry(idx)}
+                                                                className="h-6 px-2 text-[11px] text-muted-foreground hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 gap-1 rounded-lg transition-colors"
+                                                            >
+                                                                <Trash2 className="w-3 h-3" /> Remove
+                                                            </Button>
+                                                        )}
+                                                    </div>
+
+                                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+                                                        {/* 1. Training Type FIRST */}
+                                                        <FieldRow label="Training Type" required>
+                                                            <Select 
+                                                                value={entry.training_type} 
+                                                                onValueChange={val => handleUpdateTrainingEntry(idx, "training_type", val)}
+                                                                disabled={isReadOnly}
+                                                            >
+                                                                <SelectTrigger className={inputClass}>
+                                                                    <SelectValue placeholder="Select Training Type..." />
+                                                                </SelectTrigger>
+                                                                <SelectContent>
+                                                                    {selectableTypes.map(t => (
+                                                                        <SelectItem key={t} value={t}>{t}</SelectItem>
+                                                                    ))}
+                                                                </SelectContent>
+                                                            </Select>
+                                                        </FieldRow>
+
+                                                        {/* 2. Training Volume */}
+                                                        <FieldRow label="Training Volume">
+                                                            <Input 
+                                                                className={inputClass} 
+                                                                value={entry.training_volume} 
+                                                                onChange={e => handleUpdateTrainingEntry(idx, "training_volume", e.target.value)} 
+                                                                disabled={isReadOnly || !entry.training_type} 
+                                                                placeholder={entry.training_type ? "e.g. 8 hrs/week, 4 sessions/wk" : "Select training type first"} 
+                                                            />
+                                                        </FieldRow>
+
+                                                        {/* 3. Years of Training */}
+                                                        <FieldRow label="Years of Training">
+                                                            <Input 
+                                                                type="number" 
+                                                                min="0" 
+                                                                className={inputClass} 
+                                                                value={entry.years_of_training} 
+                                                                onChange={e => handleUpdateTrainingEntry(idx, "years_of_training", e.target.value)} 
+                                                                disabled={isReadOnly || !entry.training_type} 
+                                                                placeholder={entry.training_type ? "e.g. 5" : "Select training type first"} 
+                                                            />
+                                                        </FieldRow>
+
+                                                        {/* 4. Training Notes */}
+                                                        <FieldRow label="Training Notes">
+                                                            <Input 
+                                                                className={inputClass} 
+                                                                value={entry.training_notes} 
+                                                                onChange={e => handleUpdateTrainingEntry(idx, "training_notes", e.target.value)} 
+                                                                disabled={isReadOnly || !entry.training_type} 
+                                                                placeholder={entry.training_type ? "Additional notes, periodization..." : "Select training type first"} 
+                                                            />
+                                                        </FieldRow>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+
+                                    {!isReadOnly && form.training_history.length < AVAILABLE_TRAINING_TYPES.length && (
+                                        <div className="pt-1">
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={handleAddTrainingEntry}
+                                                className="w-full sm:w-auto gap-1.5 text-xs font-bold rounded-xl border-dashed border-border hover:border-emerald-500 hover:text-emerald-600 transition-colors"
+                                            >
+                                                <Plus className="w-3.5 h-3.5" /> Add Another Training Type
+                                            </Button>
+                                        </div>
+                                    )}
                                 </div>
 
                                 {isFemale && (
                                     <div className="rounded-2xl border border-pink-200 dark:border-pink-800/50 bg-pink-50/40 dark:bg-pink-950/20 p-5 shadow-sm">
                                         <SectionHeader icon={User} title="Menstrual History" color="text-pink-500" subtitle="Applicable for female athletes only" />
-                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                            <FieldRow label="Last Menstrual Period (LMP)"><Input type="date" className={inputClass} value={form.lmp} onChange={setEvt("lmp")} disabled={isReadOnly} /></FieldRow>
-                                            <FieldRow label="Cycle Regularity"><Select value={form.cycle_regularity} onValueChange={set("cycle_regularity")} disabled={isReadOnly}><SelectTrigger className={inputClass}><SelectValue placeholder="Select..." /></SelectTrigger><SelectContent>{["Regular","Irregular","Amenorrhea","Dysmenorrhea"].map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent></Select></FieldRow>
-                                            <FieldRow label="Notes"><Input className={inputClass} value={form.menstrual_notes} onChange={setEvt("menstrual_notes")} disabled={isReadOnly} placeholder="Contraceptives, cycle length, etc." /></FieldRow>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                                            <FieldRow label="Age of Menarche (yrs)">
+                                                <Input
+                                                    type="number"
+                                                    min="5"
+                                                    max="30"
+                                                    placeholder="e.g. 13"
+                                                    className={inputClass}
+                                                    value={form.age_of_menarche}
+                                                    onChange={setEvt("age_of_menarche")}
+                                                    disabled={isReadOnly}
+                                                />
+                                            </FieldRow>
+                                            <FieldRow label="Age of Menopause (yrs)">
+                                                <Input
+                                                    type="number"
+                                                    min="20"
+                                                    max="80"
+                                                    placeholder="e.g. 48 (if applicable)"
+                                                    className={inputClass}
+                                                    value={form.age_of_menopause}
+                                                    onChange={setEvt("age_of_menopause")}
+                                                    disabled={isReadOnly}
+                                                />
+                                            </FieldRow>
+                                            <FieldRow label="Last Menstrual Period (LMP)">
+                                                <Input
+                                                    type="date"
+                                                    className={inputClass}
+                                                    value={form.lmp}
+                                                    onChange={setEvt("lmp")}
+                                                    disabled={isReadOnly}
+                                                />
+                                            </FieldRow>
+                                            <FieldRow label="Cycle Regularity">
+                                                <Select value={form.cycle_regularity} onValueChange={set("cycle_regularity")} disabled={isReadOnly}>
+                                                    <SelectTrigger className={inputClass}>
+                                                        <SelectValue placeholder="Select..." />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        {["Regular", "Irregular", "Amenorrhea", "Dysmenorrhea", "Post-menopausal"].map(c => (
+                                                            <SelectItem key={c} value={c}>{c}</SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                            </FieldRow>
+                                            <div className="sm:col-span-2 md:col-span-4">
+                                                <FieldRow label="Notes">
+                                                    <Input
+                                                        className={inputClass}
+                                                        value={form.menstrual_notes}
+                                                        onChange={setEvt("menstrual_notes")}
+                                                        disabled={isReadOnly}
+                                                        placeholder="Contraceptives, cycle length, symptoms, etc."
+                                                    />
+                                                </FieldRow>
+                                            </div>
                                         </div>
                                     </div>
                                 )}
@@ -821,7 +1258,7 @@ export default function CaseSheetModal({ open, onOpenChange, clientId, client, c
                                                 <SelectTrigger className={cn("h-10 text-xs rounded-xl bg-background border-border", isReadOnly && "opacity-60 cursor-not-allowed")}>
                                                     <SelectValue placeholder="Select region" />
                                                 </SelectTrigger>
-                                                <SelectContent>
+                                                <SelectContent className="max-h-64">
                                                     {regions.map(r => (
                                                         <SelectItem key={r} value={r} className="text-xs">{r}</SelectItem>
                                                     ))}
@@ -835,7 +1272,7 @@ export default function CaseSheetModal({ open, onOpenChange, clientId, client, c
                                                 <SelectTrigger className={cn("h-10 text-xs rounded-xl bg-background border-border", (isReadOnly || !form.body_region) && "opacity-60 cursor-not-allowed")}>
                                                     <SelectValue placeholder={!form.body_region ? "Select region first" : "Select type"} />
                                                 </SelectTrigger>
-                                                <SelectContent>
+                                                <SelectContent className="max-h-64">
                                                     {types.map(t => (
                                                         <SelectItem key={t} value={t} className="text-xs">{t}</SelectItem>
                                                     ))}
@@ -849,7 +1286,7 @@ export default function CaseSheetModal({ open, onOpenChange, clientId, client, c
                                                 <SelectTrigger className={cn("h-10 text-xs rounded-xl bg-background border-border", (isReadOnly || !form.injury_type) && "opacity-60 cursor-not-allowed")}>
                                                     <SelectValue placeholder={!form.injury_type ? "Select type first" : "Select diagnosis"} />
                                                 </SelectTrigger>
-                                                <SelectContent>
+                                                <SelectContent className="max-h-72">
                                                     {form.final_diagnosis && !diagnoses.includes(form.final_diagnosis) && (
                                                         <SelectItem value={form.final_diagnosis} className="text-xs">{form.final_diagnosis}</SelectItem>
                                                     )}
@@ -873,11 +1310,52 @@ export default function CaseSheetModal({ open, onOpenChange, clientId, client, c
                                                 </SelectContent>
                                             </Select>
                                         </FieldRow>
-                                    </div>
 
-                                    <div className="pt-2 border-t border-border/40">
-                                        <FieldRow label="Specific Notes / Laterality (Optional)">
-                                            <Input className={inputClass} value={form.diagnosis_notes} onChange={setEvt("diagnosis_notes")} disabled={isReadOnly} placeholder="Custom notes, grade, side (left/right)..." />
+                                        {/* Side of the Body */}
+                                        <FieldRow label="Side of Body">
+                                            <Select value={form.side_of_body} onValueChange={set("side_of_body")} disabled={isReadOnly}>
+                                                <SelectTrigger className={cn("h-10 text-xs rounded-xl bg-background border-border", isReadOnly && "opacity-60 cursor-not-allowed")}>
+                                                    <SelectValue placeholder="Select side..." />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="Right" className="text-xs">Right</SelectItem>
+                                                    <SelectItem value="Left" className="text-xs">Left</SelectItem>
+                                                    <SelectItem value="Bilateral" className="text-xs">Bilateral</SelectItem>
+                                                    <SelectItem value="N/A" className="text-xs">N/A (Central / Non-sided)</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </FieldRow>
+
+                                        {/* Nature of Injury */}
+                                        <FieldRow label="Nature">
+                                            <Select value={form.injury_nature} onValueChange={set("injury_nature")} disabled={isReadOnly}>
+                                                <SelectTrigger className={cn("h-10 text-xs rounded-xl bg-background border-border", isReadOnly && "opacity-60 cursor-not-allowed")}>
+                                                    <SelectValue placeholder="Select nature..." />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="Acute" className="text-xs">Acute</SelectItem>
+                                                    <SelectItem value="Chronic" className="text-xs">Chronic</SelectItem>
+                                                    <SelectItem value="Acute-on-chronic" className="text-xs">Acute-on-chronic</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </FieldRow>
+
+                                        {/* Etiology */}
+                                        <FieldRow label="Etiology">
+                                            <Select value={form.etiology} onValueChange={set("etiology")} disabled={isReadOnly}>
+                                                <SelectTrigger className={cn("h-10 text-xs rounded-xl bg-background border-border", isReadOnly && "opacity-60 cursor-not-allowed")}>
+                                                    <SelectValue placeholder="Select etiology..." />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="Traumatic" className="text-xs">Traumatic</SelectItem>
+                                                    <SelectItem value="Non-traumatic" className="text-xs">Non-traumatic</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </FieldRow>
+
+                                        {/* Specific Diagnosis Notes */}
+                                        <FieldRow label="Specific Diagnosis Notes">
+                                            <Input className={inputClass} value={form.diagnosis_notes} onChange={setEvt("diagnosis_notes")} disabled={isReadOnly} placeholder="Custom notes, grade, staging..." />
                                         </FieldRow>
                                     </div>
                                 </div>

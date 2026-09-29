@@ -1013,6 +1013,17 @@ async function runMigrations() {
         await pool.query(`ALTER TABLE client_cases ADD COLUMN IF NOT EXISTS allergies TEXT;`);
         await pool.query(`ALTER TABLE client_cases ADD COLUMN IF NOT EXISTS trauma TEXT;`);
         await pool.query(`ALTER TABLE client_cases ADD COLUMN IF NOT EXISTS hospitalisation TEXT;`);
+        await pool.query(`ALTER TABLE client_cases ADD COLUMN IF NOT EXISTS last_checkup_date TEXT;`);
+        await pool.query(`ALTER TABLE client_cases ADD COLUMN IF NOT EXISTS current_medication TEXT;`);
+        await pool.query(`ALTER TABLE client_cases ADD COLUMN IF NOT EXISTS history_other BOOLEAN DEFAULT false;`);
+        await pool.query(`ALTER TABLE client_cases ADD COLUMN IF NOT EXISTS history_other_details TEXT;`);
+        await pool.query(`ALTER TABLE client_cases ADD COLUMN IF NOT EXISTS illness_durations JSONB DEFAULT '{}'::jsonb;`);
+        await pool.query(`ALTER TABLE client_cases ADD COLUMN IF NOT EXISTS training_history JSONB DEFAULT '[]'::jsonb;`);
+        await pool.query(`ALTER TABLE client_cases ADD COLUMN IF NOT EXISTS age_of_menarche TEXT;`);
+        await pool.query(`ALTER TABLE client_cases ADD COLUMN IF NOT EXISTS age_of_menopause TEXT;`);
+        await pool.query(`ALTER TABLE client_cases ADD COLUMN IF NOT EXISTS side_of_body TEXT;`);
+        await pool.query(`ALTER TABLE client_cases ADD COLUMN IF NOT EXISTS injury_nature TEXT;`);
+        await pool.query(`ALTER TABLE client_cases ADD COLUMN IF NOT EXISTS etiology TEXT;`);
     } catch (e) {}
 
     // Create case_number sequence if not exists
@@ -1634,9 +1645,13 @@ async function runMigrations() {
                         const row = rows[i];
                         if (!row || row.length === 0) continue;
                         
-                        const region = row[0]?.toString().trim();
-                        const injuryType = row[1]?.toString().trim();
-                        const diagnosis = row[2]?.toString().trim();
+                        let region = row[0]?.toString().replace(/\u00a0/g, ' ').trim();
+                        let injuryType = row[1]?.toString().replace(/\u00a0/g, ' ').trim();
+                        let diagnosis = row[2]?.toString().replace(/\u00a0/g, ' ').trim();
+
+                        if (region === 'Medical' && !injuryType) {
+                            injuryType = 'Medical Condition';
+                        }
 
                         if (region && injuryType && diagnosis) {
                             // Check uniqueness

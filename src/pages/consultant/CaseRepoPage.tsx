@@ -57,6 +57,9 @@ interface CaseItem {
     body_region?: string;
     injury_type?: string;
     severity?: string;
+    side_of_body?: string;
+    injury_nature?: string;
+    etiology?: string;
     pain_score?: number;
     created_at: string;
     closed_at?: string;
@@ -638,11 +641,26 @@ export default function CaseRepoPage() {
                                                 {/* Region & Type */}
                                                 <td className="px-5 py-4 whitespace-nowrap">
                                                     <div className="flex flex-col gap-0.5">
-                                                        <span className="font-medium text-foreground text-xs">
+                                                        <span className="font-medium text-foreground text-xs flex items-center gap-1">
                                                             {c.body_region || "–"}
+                                                            {c.side_of_body && c.side_of_body !== 'N/A' && (
+                                                                <span className="text-[10px] font-semibold text-primary px-1 rounded bg-primary/10">
+                                                                    {c.side_of_body}
+                                                                </span>
+                                                            )}
                                                         </span>
-                                                        <span className="text-[11px] text-muted-foreground">
-                                                            {c.injury_type || "General"}
+                                                        <span className="text-[11px] text-muted-foreground flex items-center gap-1.5 flex-wrap">
+                                                            <span>{c.injury_type || "General"}</span>
+                                                            {c.injury_nature && (
+                                                                <span className="text-[10px] text-muted-foreground/80 px-1 rounded bg-muted">
+                                                                    {c.injury_nature}
+                                                                </span>
+                                                            )}
+                                                            {c.etiology && (
+                                                                <span className="text-[10px] text-muted-foreground/80 px-1 rounded bg-muted">
+                                                                    {c.etiology}
+                                                                </span>
+                                                            )}
                                                         </span>
                                                     </div>
                                                 </td>
