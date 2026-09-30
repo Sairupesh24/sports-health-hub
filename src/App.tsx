@@ -167,8 +167,10 @@ const App = () => (
               <Route path="/admin/clients" element={<ProtectedRoute requiredRole={["admin", "foe"]}><ClientList /></ProtectedRoute>} />
               <Route path="/admin/clients/register" element={<ProtectedRoute requiredRole={["admin", "foe"]}><ClientRegistration /></ProtectedRoute>} />
               <Route path="/admin/clients/:id" element={<ProtectedRoute requiredRole={["admin", "foe"]}><ClientProfile /></ProtectedRoute>} />
-              <Route path="/admin/settings" element={<ProtectedRoute requiredRole="admin"><ConsoleAccess /></ProtectedRoute>} />
-              <Route path="/admin/settings/console-access" element={<ProtectedRoute requiredRole="admin"><ConsoleAccess /></ProtectedRoute>} />
+               <Route path="/admin/settings" element={<ProtectedRoute requiredRole="admin"><ConsoleAccess /></ProtectedRoute>} />
+              <Route path="/admin/settings/console-access" element={<ProtectedRoute requiredRole="admin"><ConsoleAccess defaultTab="matrix" /></ProtectedRoute>} />
+              <Route path="/admin/settings/audit-logs" element={<ProtectedRoute requiredRole="admin"><ConsoleAccess defaultTab="audit" /></ProtectedRoute>} />
+              <Route path="/admin/audit-logs" element={<ProtectedRoute requiredRole="admin"><ConsoleAccess defaultTab="audit" /></ProtectedRoute>} />
               <Route path="/admin/settings/fields" element={<ProtectedRoute requiredRole="admin"><FieldConfig /></ProtectedRoute>} />
               <Route path="/admin/settings/services" element={<ProtectedRoute requiredRole="admin"><ServiceMapping /></ProtectedRoute>} />
               <Route path="/admin/settings/resource-schedule" element={<ProtectedRoute requiredRole="admin"><ResourceScheduleManager /></ProtectedRoute>} />

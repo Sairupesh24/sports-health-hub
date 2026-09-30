@@ -733,10 +733,51 @@ router.post('/users/:id/approve', requireAuth, async (req, res) => {
 
         // Record audit log for user approval
         try {
+            const targetDetailsRes = await db.query(`
+                SELECT u.email, p.first_name, p.last_name
+                FROM users u
+                LEFT JOIN profiles p ON p.id = u.id
+                WHERE u.id = $1
+            `, [id]);
+            const targetUserObj = targetDetailsRes.rows[0] || {};
+            const targetUserName = `${targetUserObj.first_name || ''} ${targetUserObj.last_name || ''}`.trim() || targetUserObj.email || 'User';
+
+            const actorDetailsRes = await db.query(`
+                SELECT u.email, u.role, p.first_name, p.last_name
+                FROM users u
+                LEFT JOIN profiles p ON p.id = u.id
+                WHERE u.id = $1
+            `, [req.user.id]);
+            const actorObj = actorDetailsRes.rows[0] || {};
+            const actorUserName = `${actorObj.first_name || ''} ${actorObj.last_name || ''}`.trim() || req.user.email || 'Administrator';
+
             await db.query(`
                 INSERT INTO audit_logs (organization_id, entity_type, entity_id, action, performed_by, details)
-                VALUES ($1, 'user', $2, 'approved', $3, $4::jsonb)
-            `, [orgId, id, req.user.id, JSON.stringify({ role, profession, ams_role, uhid: finalUhid })]);
+                VALUES ($1, 'user_access', $2, 'approved', $3, $4::jsonb)
+            `, [
+                orgId, 
+                id, 
+                req.user.id, 
+                JSON.stringify({ 
+                    target_user_id: id,
+                    target_user_name: targetUserName,
+                    target_user_email: targetUserObj.email,
+                    actor_id: req.user.id,
+                    actor_name: actorUserName,
+                    actor_email: req.user.email,
+                    actor_role: req.user.role,
+                    role, 
+                    profession, 
+                    ams_role, 
+                    uhid: finalUhid,
+                    summary: `User account approved and assigned role "${role}"${profession ? ` (${profession})` : ''}`,
+                    changes: [
+                        { field: 'role', label: 'Primary Role', old_val: 'pending', new_val: role, display: `Role set to "${role}"` },
+                        ...(profession ? [{ field: 'profession', label: 'Profession', old_val: 'None', new_val: profession, display: `Profession set to "${profession}"` }] : []),
+                        ...(ams_role ? [{ field: 'ams_role', label: 'AMS Role', old_val: 'None', new_val: ams_role, display: `AMS Role set to "${ams_role}"` }] : [])
+                    ]
+                })
+            ]);
         } catch (auditErr) {
             console.warn('Could not record user approval in audit_logs:', auditErr.message);
         }
@@ -765,7 +806,204 @@ router.post('/users/:id/approve', requireAuth, async (req, res) => {
     }
 });
 
-// PATCH update user role
+// Mapping of console keys to human-readable names for audit logs
+const CONSOLE_DISPLAY_NAMES = {
+    admin: 'Admin Console',
+    clinical: 'Clinical Management Console',
+    ams: 'Athlete Management (AMS)',
+    foe: 'Front Office & Front Desk Console',
+    hr: 'HRMS & People Console',
+    nutritionist: 'Nutritionist Console',
+    sports_scientist: 'Sports Scientist Console'
+};
+
+function formatConsoleName(key) {
+    return CONSOLE_DISPLAY_NAMES[key] || (key ? key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) : key);
+}
+
+function normalizeConsolesArray(raw) {
+    if (!raw) return [];
+    if (Array.isArray(raw)) return raw;
+    try {
+        const p = JSON.parse(raw);
+        return Array.isArray(p) ? p : [];
+    } catch {
+        if (typeof raw === 'string') {
+            return raw.split(',').map(s => s.trim()).filter(Boolean);
+        }
+        return [];
+    }
+}
+
+// GET /hr/audit-logs - Retrieve access, role, and permission audit logs
+router.get('/audit-logs', requireAuth, async (req, res) => {
+    try {
+        const orgId = req.user.organization_id;
+        const userRole = req.user.role;
+
+        // Security check: Only admins or super_admins can view audit logs
+        if (userRole !== 'admin' && userRole !== 'super_admin') {
+            return res.status(403).json({ error: 'Forbidden: Only administrators can view audit logs' });
+        }
+
+        const {
+            page = 1,
+            limit = 50,
+            search = '',
+            action = 'all',
+            category = 'all',
+            start_date,
+            end_date
+        } = req.query;
+
+        const pageNum = Math.max(1, parseInt(page, 10) || 1);
+        const limitNum = Math.min(200, Math.max(1, parseInt(limit, 10) || 50));
+        const offset = (pageNum - 1) * limitNum;
+
+        const conditions = [];
+        const params = [];
+
+        // Organization isolation
+        if (userRole !== 'super_admin' || orgId) {
+            params.push(orgId);
+            conditions.push(`(al.organization_id = $${params.length} OR al.organization_id IS NULL)`);
+        }
+
+        // Entity type filter: role, permissions, and access changes
+        conditions.push(`al.entity_type IN ('user_access', 'user', 'user_permission', 'user_role')`);
+
+        // Action filter
+        if (action && action !== 'all') {
+            params.push(action);
+            conditions.push(`al.action = $${params.length}`);
+        }
+
+        // Category filter
+        if (category === 'role') {
+            conditions.push(`al.action IN ('role_changed', 'approved', 'user_approved')`);
+        } else if (category === 'console') {
+            conditions.push(`al.action = 'console_access_changed'`);
+        } else if (category === 'features') {
+            conditions.push(`al.action = 'feature_permissions_changed'`);
+        } else if (category === 'status') {
+            conditions.push(`al.action IN ('access_revoked', 'access_removed', 'access_restored', 'approved')`);
+        }
+
+        // Search across actor, target, summary, or details
+        if (search && search.trim()) {
+            params.push(`%${search.trim().toLowerCase()}%`);
+            const pIdx = params.length;
+            conditions.push(`(
+                LOWER(COALESCE(TRIM(CONCAT(tp.first_name, ' ', tp.last_name)), '')) LIKE $${pIdx}
+                OR LOWER(COALESCE(tu.email, '')) LIKE $${pIdx}
+                OR LOWER(COALESCE(TRIM(CONCAT(ap.first_name, ' ', ap.last_name)), '')) LIKE $${pIdx}
+                OR LOWER(COALESCE(au.email, '')) LIKE $${pIdx}
+                OR LOWER(COALESCE(al.details->>'target_user_name', '')) LIKE $${pIdx}
+                OR LOWER(COALESCE(al.details->>'target_user_email', '')) LIKE $${pIdx}
+                OR LOWER(COALESCE(al.details->>'actor_name', '')) LIKE $${pIdx}
+                OR LOWER(COALESCE(al.details->>'summary', '')) LIKE $${pIdx}
+                OR LOWER(al.action) LIKE $${pIdx}
+            )`);
+        }
+
+        if (start_date) {
+            params.push(start_date);
+            conditions.push(`al.created_at >= $${params.length}`);
+        }
+        if (end_date) {
+            params.push(end_date);
+            conditions.push(`al.created_at <= $${params.length}`);
+        }
+
+        const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
+        // Get total count
+        const countQuery = `
+            SELECT COUNT(*) AS total
+            FROM audit_logs al
+            LEFT JOIN users au ON au.id = al.performed_by
+            LEFT JOIN profiles ap ON ap.id = al.performed_by
+            LEFT JOIN users tu ON tu.id = al.entity_id
+            LEFT JOIN profiles tp ON tp.id = al.entity_id
+            ${whereClause}
+        `;
+        const countRes = await db.query(countQuery, params);
+        const totalCount = parseInt(countRes.rows[0]?.total || '0', 10);
+
+        // Get quick metric stats
+        const statsQuery = `
+            SELECT 
+                COUNT(*) as total_events,
+                COUNT(*) FILTER (WHERE al.action IN ('role_changed', 'approved', 'user_approved')) as role_events,
+                COUNT(*) FILTER (WHERE al.action = 'console_access_changed') as console_events,
+                COUNT(*) FILTER (WHERE al.action = 'feature_permissions_changed') as feature_events,
+                COUNT(*) FILTER (WHERE al.action IN ('access_revoked', 'access_removed', 'access_restored')) as status_events
+            FROM audit_logs al
+            WHERE (al.organization_id = $1 OR al.organization_id IS NULL)
+              AND al.entity_type IN ('user_access', 'user', 'user_permission', 'user_role')
+        `;
+        const statsRes = await db.query(statsQuery, [orgId]);
+        const stats = statsRes.rows[0] || {
+            total_events: 0,
+            role_events: 0,
+            console_events: 0,
+            feature_events: 0,
+            status_events: 0
+        };
+
+        // Query paginated rows with full joins
+        const queryParams = [...params, limitNum, offset];
+        const dataQuery = `
+            SELECT 
+                al.id,
+                al.organization_id,
+                al.entity_type,
+                al.entity_id,
+                al.action,
+                al.performed_by,
+                al.details,
+                al.created_at,
+                -- Actor info
+                COALESCE(NULLIF(TRIM(CONCAT(ap.first_name, ' ', ap.last_name)), ''), au.email, (al.details->>'actor_name'), 'System Administrator') AS actor_name,
+                COALESCE(au.email, (al.details->>'actor_email')) AS actor_email,
+                COALESCE(au.role, (al.details->>'actor_role'), 'admin') AS actor_role,
+                ap.avatar_url AS actor_avatar_url,
+                -- Target info
+                COALESCE(NULLIF(TRIM(CONCAT(tp.first_name, ' ', tp.last_name)), ''), tu.email, (al.details->>'target_user_name'), 'User') AS target_name,
+                COALESCE(tu.email, (al.details->>'target_user_email')) AS target_email,
+                COALESCE(tu.role, (al.details->>'target_role'), 'user') AS target_role,
+                tp.profession AS target_profession,
+                tp.ams_role AS target_ams_role,
+                tp.avatar_url AS target_avatar_url
+            FROM audit_logs al
+            LEFT JOIN users au ON au.id = al.performed_by
+            LEFT JOIN profiles ap ON ap.id = al.performed_by
+            LEFT JOIN users tu ON tu.id = al.entity_id
+            LEFT JOIN profiles tp ON tp.id = al.entity_id
+            ${whereClause}
+            ORDER BY al.created_at DESC
+            LIMIT $${params.length + 1} OFFSET $${params.length + 2}
+        `;
+        const rowsRes = await db.query(dataQuery, queryParams);
+
+        res.json({
+            success: true,
+            data: rowsRes.rows,
+            pagination: {
+                total: totalCount,
+                page: pageNum,
+                limit: limitNum,
+                totalPages: Math.ceil(totalCount / limitNum) || 1
+            },
+            stats
+        });
+    } catch (error) {
+        console.error('Error fetching audit logs:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// PATCH update user role and permissions with full audit logging
 router.patch('/users/:id/role', requireAuth, async (req, res) => {
     const client = await db.connect();
     try {
@@ -780,6 +1018,134 @@ router.patch('/users/:id/role', requireAuth, async (req, res) => {
 
         await client.query('BEGIN');
 
+        // Fetch current user & profile state before modifying
+        const targetRes = await client.query(`
+            SELECT u.id, u.email, u.role, 
+                   p.first_name, p.last_name, p.profession, p.ams_role, p.uhid,
+                   p.has_calendar_access, p.has_analytics_access, p.has_assign_work_access,
+                   p.allowed_consoles
+            FROM users u
+            LEFT JOIN profiles p ON p.id = u.id
+            WHERE u.id = $1
+        `, [id]);
+
+        if (targetRes.rows.length === 0) {
+            await client.query('ROLLBACK');
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        const targetUser = targetRes.rows[0];
+
+        // Fetch actor information
+        const actorRes = await client.query(`
+            SELECT u.email, u.role, p.first_name, p.last_name
+            FROM users u
+            LEFT JOIN profiles p ON p.id = u.id
+            WHERE u.id = $1
+        `, [req.user.id]);
+        const actorInfo = actorRes.rows[0] || {};
+        const actorName = `${actorInfo.first_name || ''} ${actorInfo.last_name || ''}`.trim() || req.user.email || 'Administrator';
+        const targetName = `${targetUser.first_name || ''} ${targetUser.last_name || ''}`.trim() || targetUser.email || 'User';
+
+        // Compute detailed changes
+        const changes = [];
+
+        if (role && role !== targetUser.role) {
+            changes.push({
+                field: 'role',
+                label: 'Primary Role',
+                old_val: targetUser.role || 'user',
+                new_val: role,
+                display: `Role changed from "${targetUser.role || 'user'}" to "${role}"`
+            });
+        }
+
+        if (profession !== undefined && profession !== targetUser.profession) {
+            changes.push({
+                field: 'profession',
+                label: 'Specialist Profession',
+                old_val: targetUser.profession || 'None',
+                new_val: profession || 'None',
+                display: `Profession updated to "${profession || 'None'}"`
+            });
+        }
+
+        if (ams_role !== undefined && ams_role !== targetUser.ams_role) {
+            changes.push({
+                field: 'ams_role',
+                label: 'AMS Role',
+                old_val: targetUser.ams_role || 'None',
+                new_val: ams_role || 'None',
+                display: `AMS Role updated to "${ams_role || 'None'}"`
+            });
+        }
+
+        if (uhid !== undefined && uhid !== targetUser.uhid) {
+            changes.push({
+                field: 'uhid',
+                label: 'UHID / Employee ID',
+                old_val: targetUser.uhid || 'None',
+                new_val: uhid || 'None',
+                display: `UHID set to "${uhid || 'None'}"`
+            });
+        }
+
+        if (has_calendar_access !== undefined && Boolean(has_calendar_access) !== Boolean(targetUser.has_calendar_access)) {
+            changes.push({
+                field: 'has_calendar_access',
+                label: 'Admin Calendar Access',
+                old_val: Boolean(targetUser.has_calendar_access),
+                new_val: Boolean(has_calendar_access),
+                display: `Admin Calendar access ${has_calendar_access ? 'Enabled' : 'Disabled'}`
+            });
+        }
+
+        if (has_analytics_access !== undefined && Boolean(has_analytics_access) !== Boolean(targetUser.has_analytics_access)) {
+            changes.push({
+                field: 'has_analytics_access',
+                label: 'Staff Analytics Access',
+                old_val: Boolean(targetUser.has_analytics_access),
+                new_val: Boolean(has_analytics_access),
+                display: `Staff Analytics access ${has_analytics_access ? 'Enabled' : 'Disabled'}`
+            });
+        }
+
+        if (has_assign_work_access !== undefined && Boolean(has_assign_work_access) !== Boolean(targetUser.has_assign_work_access)) {
+            changes.push({
+                field: 'has_assign_work_access',
+                label: 'Work Allocation Privileges',
+                old_val: Boolean(targetUser.has_assign_work_access),
+                new_val: Boolean(has_assign_work_access),
+                display: `Work Allocation privilege ${has_assign_work_access ? 'Enabled' : 'Disabled'}`
+            });
+        }
+
+        if (allowed_consoles !== undefined) {
+            const oldConsoles = normalizeConsolesArray(targetUser.allowed_consoles);
+            const newConsoles = normalizeConsolesArray(allowed_consoles);
+            const added = newConsoles.filter(c => !oldConsoles.includes(c));
+            const removed = oldConsoles.filter(c => !newConsoles.includes(c));
+            if (added.length > 0 || removed.length > 0) {
+                const addedNames = added.map(formatConsoleName);
+                const removedNames = removed.map(formatConsoleName);
+                const parts = [];
+                if (addedNames.length > 0) parts.push(`Granted: ${addedNames.join(', ')}`);
+                if (removedNames.length > 0) parts.push(`Revoked: ${removedNames.join(', ')}`);
+                changes.push({
+                    field: 'allowed_consoles',
+                    label: 'Console & Module Access',
+                    old_val: oldConsoles,
+                    new_val: newConsoles,
+                    added: added,
+                    removed: removed,
+                    added_labels: addedNames,
+                    removed_labels: removedNames,
+                    display: parts.join(' | ')
+                });
+            }
+        }
+
+        // Apply database updates
         if (role) {
             await client.query('UPDATE Users SET role = $1 WHERE id = $2', [role, id]);
         }
@@ -827,6 +1193,43 @@ router.patch('/users/:id/role', requireAuth, async (req, res) => {
             await autoAllocateStaffServices(id, profession, orgId, client);
         }
 
+        // Record audit log if any change was detected
+        if (changes.length > 0) {
+            let action = 'permissions_updated';
+            if (changes.some(c => c.field === 'role')) {
+                action = 'role_changed';
+            } else if (changes.some(c => c.field === 'allowed_consoles')) {
+                action = 'console_access_changed';
+            } else if (changes.some(c => c.field.startsWith('has_'))) {
+                action = 'feature_permissions_changed';
+            }
+
+            const summary = changes.map(c => c.display).join('; ') || 'Updated permissions';
+
+            await client.query(`
+                INSERT INTO audit_logs (
+                    organization_id, entity_type, entity_id, action, performed_by, details
+                ) VALUES ($1, 'user_access', $2, $3, $4, $5::jsonb)
+            `, [
+                orgId,
+                id,
+                action,
+                req.user.id,
+                JSON.stringify({
+                    target_user_id: id,
+                    target_user_name: targetName,
+                    target_user_email: targetUser.email,
+                    target_role: targetUser.role,
+                    actor_id: req.user.id,
+                    actor_name: actorName,
+                    actor_email: req.user.email,
+                    actor_role: req.user.role,
+                    changes,
+                    summary
+                })
+            ]);
+        }
+
         await client.query('COMMIT');
 
         // Notify the affected user about their role/profession/permissions change
@@ -854,7 +1257,7 @@ router.patch('/users/:id/role', requireAuth, async (req, res) => {
             ]);
         }
 
-        res.json({ success: true });
+        res.json({ success: true, changesRecorded: changes.length });
     } catch (error) {
         await client.query('ROLLBACK');
         res.status(500).json({ error: error.message });
@@ -931,10 +1334,47 @@ router.delete('/users/:id', requireAuth, async (req, res) => {
 
         // Record in audit_logs
         try {
+            const targetDetailsRes = await client.query(`
+                SELECT u.email, p.first_name, p.last_name, u.role, p.profession
+                FROM users u
+                LEFT JOIN profiles p ON p.id = u.id
+                WHERE u.id = $1
+            `, [id]);
+            const targetObj = targetDetailsRes.rows[0] || {};
+            const targetName = `${targetObj.first_name || ''} ${targetObj.last_name || ''}`.trim() || targetObj.email || 'User';
+
+            const actorDetailsRes = await client.query(`
+                SELECT u.email, u.role, p.first_name, p.last_name
+                FROM users u
+                LEFT JOIN profiles p ON p.id = u.id
+                WHERE u.id = $1
+            `, [req.user.id]);
+            const actorObj = actorDetailsRes.rows[0] || {};
+            const actorName = `${actorObj.first_name || ''} ${actorObj.last_name || ''}`.trim() || req.user.email || 'Administrator';
+
             await client.query(`
                 INSERT INTO audit_logs (organization_id, entity_type, entity_id, action, performed_by, details)
-                VALUES ($1, 'user', $2, 'access_removed', $3, $4::jsonb)
-            `, [orgId, id, req.user.id, JSON.stringify({ reason: 'User access removed; all associated records preserved' })]);
+                VALUES ($1, 'user_access', $2, 'access_removed', $3, $4::jsonb)
+            `, [
+                orgId, 
+                id, 
+                req.user.id, 
+                JSON.stringify({ 
+                    target_user_id: id,
+                    target_user_name: targetName,
+                    target_user_email: targetObj.email,
+                    target_role: targetObj.role,
+                    actor_id: req.user.id,
+                    actor_name: actorName,
+                    actor_email: req.user.email,
+                    actor_role: req.user.role,
+                    reason: 'User access removed; all associated records preserved',
+                    summary: `User account deleted / access removed (all history preserved)`,
+                    changes: [
+                        { field: 'is_active', label: 'Account Status', old_val: 'Active', new_val: 'Deactivated / Removed', display: 'Account deactivated' }
+                    ]
+                })
+            ]);
         } catch (auditErr) {
             console.warn('Could not record access revocation in audit_logs:', auditErr.message);
         }

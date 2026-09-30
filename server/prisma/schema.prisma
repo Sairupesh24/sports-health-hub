@@ -812,6 +812,7 @@ model organizations {
   enabled_modules                    String?
   athlete_item_logs                  athlete_item_logs[]
   athlete_workout_completions        athlete_workout_completions[]
+  audit_logs                         audit_logs[]
   availabilityexceptions             availabilityexceptions[]
   billitems                          billitems[]
   billpayments                       billpayments[]
@@ -1238,6 +1239,7 @@ model users {
   created_at                                    DateTime?                     @default(now()) @db.Timestamptz(6)
   athlete_item_logs                             athlete_item_logs[]
   athlete_workout_completions                   athlete_workout_completions[]
+  audit_logs                                    audit_logs[]
   authsessions                                  authsessions[]
   bills                                         bills[]
   client_assessment_reports                     client_assessment_reports[]
@@ -1627,5 +1629,24 @@ model user_push_subscriptions {
 
   @@unique([user_id, endpoint])
   @@index([user_id], map: "idx_push_subs_user")
+}
+
+model audit_logs {
+  id              String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id String?        @db.Uuid
+  entity_type     String
+  entity_id       String         @db.Uuid
+  action          String
+  performed_by    String?        @db.Uuid
+  details         Json?          @default("{}")
+  created_at      DateTime?      @default(now()) @db.Timestamptz(6)
+  organizations   organizations? @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users           users?         @relation(fields: [performed_by], references: [id], onUpdate: NoAction)
+
+  @@index([organization_id, entity_type, created_at(sort: Desc)], map: "idx_audit_logs_org_entity_created")
+  @@index([entity_type, entity_id], map: "idx_audit_logs_entity")
+  @@index([performed_by], map: "idx_audit_logs_performed_by")
+  @@index([created_at(sort: Desc)], map: "idx_audit_logs_created_at")
+  @@index([action], map: "idx_audit_logs_action")
 }
 

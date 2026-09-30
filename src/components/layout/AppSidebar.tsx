@@ -640,6 +640,9 @@ export default function AppSidebar({ role, isMobile, className, onNavigate }: Ap
                     location.pathname.startsWith(item.href + '/') ||
                     (item.href === "/admin/settings/console-access" && (
                       location.pathname === "/admin/settings" ||
+                      location.pathname.startsWith("/admin/settings/console-access") ||
+                      location.pathname.startsWith("/admin/settings/audit-logs") ||
+                      location.pathname === "/admin/audit-logs" ||
                       location.pathname.startsWith("/admin/settings/permissions") ||
                       location.pathname.startsWith("/admin/permissions")
                     ))

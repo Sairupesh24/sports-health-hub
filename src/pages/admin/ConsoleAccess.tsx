@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { useSearchParams, useLocation } from "react-router-dom";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
@@ -9,27 +10,31 @@ import {
     Search, 
     Users, 
     RefreshCw, 
-    Calendar,
-    Check,
-    AlertCircle,
-    Lock,
-    Stethoscope,
-    Activity,
-    Apple,
-    CalendarDays,
-    TrendingUp,
-    Briefcase,
-    Building2,
-    ChevronRight,
-    UserCheck,
-    CheckCircle2,
-    XCircle,
-    SlidersHorizontal
+    Calendar, 
+    Check, 
+    AlertCircle, 
+    Lock, 
+    Stethoscope, 
+    Activity, 
+    Apple, 
+    CalendarDays, 
+    TrendingUp, 
+    Briefcase, 
+    Building2, 
+    ChevronRight, 
+    UserCheck, 
+    CheckCircle2, 
+    XCircle, 
+    SlidersHorizontal,
+    Clock,
+    History,
+    FileText
 } from "lucide-react";
 import { apiFetch } from "@/utils/api";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
+import AuditLogsViewer from "@/components/admin/AuditLogsViewer";
 
 import { APP_MODULES, AppModuleDefinition, isModuleGrantedForUser } from "@/config/appModules";
 
@@ -49,14 +54,53 @@ interface UserProfile {
     has_assign_work_access: boolean;
 }
 
-export default function ConsoleAccess() {
+interface ConsoleAccessProps {
+    defaultTab?: "matrix" | "audit";
+}
+
+export default function ConsoleAccess({ defaultTab }: ConsoleAccessProps) {
     const { profile: currentAuthProfile, refreshAuth } = useAuth();
+    const [searchParams, setSearchParams] = useSearchParams();
+    const location = useLocation();
+
+    // Determine initial active tab based on defaultTab prop, path, or ?tab= query
+    const initialTab: "matrix" | "audit" = 
+        defaultTab === "audit" || 
+        location.pathname.includes("audit") || 
+        searchParams.get("tab") === "audit" ||
+        searchParams.get("tab") === "logs"
+            ? "audit" 
+            : "matrix";
+
+    const [activeViewTab, setActiveViewTab] = useState<"matrix" | "audit">(initialTab);
     const [users, setUsers] = useState<UserProfile[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState("");
     const [activeRoleFilter, setActiveRoleFilter] = useState<"all" | "clinical" | "admin" | "client">("all");
     const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
     const [togglingModuleId, setTogglingModuleId] = useState<string | null>(null);
+
+    // Sync tab when url changes
+    useEffect(() => {
+        if (location.pathname.includes("audit") || searchParams.get("tab") === "audit") {
+            setActiveViewTab("audit");
+        } else if (searchParams.get("tab") === "matrix") {
+            setActiveViewTab("matrix");
+        }
+    }, [location.pathname, searchParams]);
+
+    const handleSwitchTab = (tab: "matrix" | "audit") => {
+        setActiveViewTab(tab);
+        setSearchParams(prev => {
+            const next = new URLSearchParams(prev);
+            if (tab === "audit") {
+                next.set("tab", "audit");
+            } else {
+                next.delete("tab");
+            }
+            return next;
+        });
+    };
 
     useEffect(() => {
         fetchUsers();
@@ -268,24 +312,54 @@ export default function ConsoleAccess() {
                     <div className="relative z-10 space-y-1">
                         <div className="flex items-center gap-2 text-primary text-xs font-black uppercase tracking-widest">
                             <ShieldCheck className="w-4 h-4" />
-                            Multi-Console Permissions
+                            Security & Access Controls
                         </div>
-                        <h1 className="text-2xl font-display font-extrabold tracking-tight">Console & Module Access Management</h1>
+                        <h1 className="text-2xl font-display font-extrabold tracking-tight">
+                            {activeViewTab === "matrix" ? "Console & Module Access Management" : "Access & Permission Audit Trail"}
+                        </h1>
                         <p className="text-slate-300 text-xs max-w-2xl">
-                            Select any staff member from the left panel to configure their console permissions and module access switches.
+                            {activeViewTab === "matrix" 
+                                ? "Configure multi-console access switches and administrative feature permissions across staff members."
+                                : "Review immutable audit logs of who changed user roles, module permissions, and control privileges."}
                         </p>
                     </div>
 
-                    <div className="relative z-10 flex items-center gap-2 self-start md:self-center">
-                        <Badge className="bg-primary/20 text-primary border border-primary/30 px-3 py-1 rounded-xl text-[10px] font-mono uppercase tracking-widest flex items-center gap-1.5">
-                            <Lock className="w-3 h-3" />
-                            Administrator Access
-                        </Badge>
+                    <div className="relative z-10 flex flex-wrap items-center gap-2 self-start md:self-center">
+                        <div className="flex items-center bg-slate-800/90 p-1 rounded-2xl border border-slate-700/60 shadow-inner">
+                            <button
+                                onClick={() => handleSwitchTab("matrix")}
+                                className={cn(
+                                    "flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all",
+                                    activeViewTab === "matrix"
+                                        ? "bg-primary text-primary-foreground shadow-sm"
+                                        : "text-slate-300 hover:text-white hover:bg-slate-700/50"
+                                )}
+                            >
+                                <ShieldCheck className="w-3.5 h-3.5" />
+                                <span>Permissions Matrix</span>
+                            </button>
+
+                            <button
+                                onClick={() => handleSwitchTab("audit")}
+                                className={cn(
+                                    "flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all",
+                                    activeViewTab === "audit"
+                                        ? "bg-primary text-primary-foreground shadow-sm"
+                                        : "text-slate-300 hover:text-white hover:bg-slate-700/50"
+                                )}
+                            >
+                                <Clock className="w-3.5 h-3.5" />
+                                <span>Audit & Security Logs</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
 
-                {/* Master-Detail Split Grid */}
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                {activeViewTab === "audit" ? (
+                    <AuditLogsViewer />
+                ) : (
+                    /* Master-Detail Split Grid */
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
                     
                     {/* LEFT PANEL: Staff Directory & Filters (5 cols) */}
                     <div className="lg:col-span-4 space-y-4">
@@ -632,9 +706,9 @@ export default function ConsoleAccess() {
                             </Card>
                         )}
                     </div>
-
                 </div>
-            </div>
-        </DashboardLayout>
-    );
+            )}
+        </div>
+    </DashboardLayout>
+);
 }
