@@ -34,7 +34,7 @@ import { useNavigate } from "react-router-dom";
 import { format, startOfMonth, endOfMonth, subDays, subMonths } from "date-fns";
 import { cn } from "@/lib/utils";
 
-export default function ManagerialAnalytics() {
+export default function ManagerialAnalytics({ embedded = false }: { embedded?: boolean }) {
   const { roles, profile } = useAuth();
   const navigate = useNavigate();
 
@@ -139,6 +139,15 @@ export default function ManagerialAnalytics() {
   }, [data?.teamData, staffSearch, professionFilter, utilizationFilter]);
 
   if (!isAuthorized) {
+    if (embedded) {
+      return (
+        <div className="p-8 text-center text-muted-foreground flex flex-col items-center justify-center space-y-2">
+          <ShieldAlert className="w-8 h-8 text-destructive opacity-80" />
+          <p className="text-sm font-semibold text-foreground">Access Restricted</p>
+          <p className="text-xs">You do not have permissions to view staff efficiency analytics.</p>
+        </div>
+      );
+    }
     return (
       <DashboardLayout role={roles?.[0] || "client"}>
         <div className="h-[75vh] flex flex-col items-center justify-center p-6 text-center max-w-md mx-auto space-y-4">
@@ -175,9 +184,8 @@ export default function ManagerialAnalytics() {
   // Recharts color palette
   const CHART_COLORS = ["#6366f1", "#06b6d4", "#10b981", "#f59e0b", "#ec4899", "#8b5cf6", "#f43f5e"];
 
-  return (
-    <DashboardLayout role={roles?.[0] || "admin"}>
-      <div className="space-y-6 pb-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
+  const content = (
+    <div className="space-y-6 pb-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
         
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -600,6 +608,15 @@ export default function ManagerialAnalytics() {
           </>
         )}
       </div>
+  );
+
+  if (embedded) {
+    return content;
+  }
+
+  return (
+    <DashboardLayout role={roles?.[0] || "admin"}>
+      {content}
     </DashboardLayout>
   );
 }

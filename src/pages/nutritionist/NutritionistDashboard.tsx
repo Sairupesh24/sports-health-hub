@@ -283,7 +283,11 @@ export default function NutritionistDashboard() {
 
         {/* ---------------- NEW ASSESSMENT FORM DIALOG ---------------- */}
         <Dialog open={assessmentModalOpen} onOpenChange={setAssessmentModalOpen}>
-          <DialogContent className="w-[95vw] sm:max-w-5xl max-h-[90vh] overflow-y-auto bg-card border-border p-4 sm:p-6">
+          <DialogContent 
+            className="w-[95vw] sm:max-w-5xl max-h-[90vh] overflow-y-auto bg-card border-border p-4 sm:p-6"
+            onPointerDownOutside={(e) => e.preventDefault()}
+            onInteractOutside={(e) => e.preventDefault()}
+          >
             <DialogHeader className="sr-only">
               <DialogTitle>NUTRITION ASSESSMENT FORM</DialogTitle>
             </DialogHeader>

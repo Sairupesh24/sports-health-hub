@@ -75,13 +75,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setProfile(data.profile);
       setRoles(data.roles || []);
       setClientId(data.clientId || null);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to fetch user session from backend:", err);
-      localStorage.removeItem("ishpo_jwt");
-      setUser(null);
-      setProfile(null);
-      setRoles([]);
-      setClientId(null);
+      // Only remove session if confirmed unauthorized/invalid token
+      const isAuthError = err?.message?.includes("401") || err?.message?.includes("Invalid token") || err?.message?.includes("jwt expired");
+      if (isAuthError) {
+        localStorage.removeItem("ishpo_jwt");
+        setUser(null);
+        setProfile(null);
+        setRoles([]);
+        setClientId(null);
+      }
     } finally {
       if (isInitialLoad.current) {
         setLoading(false);
@@ -98,12 +102,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!user) return;
 
+    let lastFocusTime = 0;
     const handleAuthUpdated = () => {
       refreshAuth();
     };
 
+    const handleFocus = () => {
+      const now = Date.now();
+      // Throttle window focus refreshes to once every 60 seconds
+      if (now - lastFocusTime > 60000) {
+        lastFocusTime = now;
+        refreshAuth();
+      }
+    };
+
     window.addEventListener('auth_updated', handleAuthUpdated);
-    window.addEventListener('focus', handleAuthUpdated);
+    window.addEventListener('focus', handleFocus);
 
     const token = localStorage.getItem('ishpo_jwt');
     let eventSource: EventSource | null = null;

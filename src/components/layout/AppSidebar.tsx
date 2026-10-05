@@ -29,6 +29,7 @@ import {
   Building2,
   Microscope,
   FolderKanban,
+  BarChart3,
 } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 import { cn } from "@/lib/utils";
@@ -46,7 +47,8 @@ interface NavItem {
 
 const adminNav: NavItem[] = [
   { label: "Dashboard", icon: LayoutDashboard, href: "/admin" },
-  { label: "Staff Efficiency", icon: TrendingUp, href: "/admin/analytics/managerial" },
+  { label: "Analytics & Reports", icon: BarChart3, href: "/admin/analytics" },
+  { label: "Staff Efficiency", icon: TrendingUp, href: "/admin/analytics?tab=staff" },
   { label: "Clients", icon: Users, href: "/admin/clients" },
   { label: "Billing", icon: CreditCard, href: "/admin/billing" },
   { label: "Calendar", icon: CalendarDays, href: "/admin/calendar" },
@@ -92,7 +94,8 @@ const sportsScientistNav: NavItem[] = [
 
 const managerNav: NavItem[] = [
   { label: "Dashboard", icon: LayoutDashboard, href: "/admin" },
-  { label: "Staff Efficiency", icon: TrendingUp, href: "/admin/analytics/managerial" },
+  { label: "Analytics & Reports", icon: BarChart3, href: "/admin/analytics" },
+  { label: "Staff Efficiency", icon: TrendingUp, href: "/admin/analytics?tab=staff" },
   { label: "Clients", icon: Users, href: "/admin/clients" },
   { label: "Calendar", icon: CalendarDays, href: "/admin/calendar" },
   { label: "Reports", icon: ClipboardList, href: "/admin/reports" },
@@ -284,10 +287,21 @@ export default function AppSidebar({ role, isMobile, className, onNavigate }: Ap
     const streamUrl = `/api/notifications/stream?token=${encodeURIComponent(token)}`;
     const eventSource = new EventSource(streamUrl);
 
-    eventSource.onmessage = () => {
+    eventSource.onmessage = (event) => {
       try {
         queryClient.invalidateQueries({ queryKey: ["pending-approvals-count"] });
-        refreshAuth();
+        if (event?.data) {
+          try {
+            const data = JSON.parse(event.data);
+            if (
+              data?.title?.toLowerCase().includes('permission') ||
+              data?.title?.toLowerCase().includes('role') ||
+              data?.title?.toLowerCase().includes('access')
+            ) {
+              refreshAuth();
+            }
+          } catch {}
+        }
       } catch (err) {
         console.error('[SSE Sidebar] Failed to parse message:', err);
       }

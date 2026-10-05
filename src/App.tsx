@@ -37,6 +37,7 @@ import AdminInjuries from "./pages/admin/AdminInjuries";
 import AdminPermissions from "./pages/admin/AdminPermissions";
 import ConsoleAccess from "./pages/admin/ConsoleAccess";
 import ManagerialAnalytics from "./pages/admin/ManagerialAnalytics";
+import AnalyticsConsole from "./pages/admin/analytics/AnalyticsConsole";
 import ResourceScheduleManager from "./pages/admin/ResourceScheduleManager";
 import NotificationSettings from "./pages/admin/NotificationSettings";
 import ConsultantDashboard from "./pages/consultant/ConsultantDashboard";
@@ -177,7 +178,9 @@ const App = () => (
               <Route path="/admin/settings/injuries" element={<ProtectedRoute requiredRole="admin"><AdminInjuries /></ProtectedRoute>} />
               <Route path="/admin/settings/permissions" element={<ProtectedRoute requiredRole="admin"><ConsoleAccess /></ProtectedRoute>} />
               <Route path="/admin/permissions" element={<ProtectedRoute requiredRole="admin"><ConsoleAccess /></ProtectedRoute>} />
-              <Route path="/admin/analytics/managerial" element={<ProtectedRoute><ManagerialAnalytics /></ProtectedRoute>} />
+              <Route path="/admin/analytics" element={<ProtectedRoute><AnalyticsConsole /></ProtectedRoute>} />
+              <Route path="/admin/analytics/patients" element={<ProtectedRoute><AnalyticsConsole /></ProtectedRoute>} />
+              <Route path="/admin/analytics/managerial" element={<ProtectedRoute><AnalyticsConsole /></ProtectedRoute>} />
               <Route path="/admin/settings/notifications" element={<ProtectedRoute requiredRole="admin"><NotificationSettings /></ProtectedRoute>} />
               <Route path="/admin/billing" element={<ProtectedRoute requiredRole={["admin", "foe"]}><BillingPage /></ProtectedRoute>} />
               <Route path="/admin/users" element={<ProtectedRoute requiredRole={["admin", "foe"]}><UserApproval /></ProtectedRoute>} />

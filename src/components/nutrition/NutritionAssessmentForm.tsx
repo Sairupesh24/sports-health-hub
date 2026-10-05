@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -96,86 +96,6 @@ export default function NutritionAssessmentForm({
   const [exerciseDuration, setExerciseDuration] = useState<string>(initialData?.exercise_duration || "");
   const [trainingSessionsCount, setTrainingSessionsCount] = useState<number | string>(initialData?.training_sessions_count || "");
   const [exerciseType, setExerciseType] = useState<string>(initialData?.exercise_type || "");
-
-  // Fetch list of registered clients for dropdown
-  useEffect(() => {
-    const fetchRegisteredClients = async () => {
-      try {
-        setLoadingClients(true);
-        const res = await apiFetch<any[]>("/clients");
-        if (res && Array.isArray(res)) {
-          setClients(res);
-
-          // If clientId was passed as prop or initialData, auto-match the client
-          const targetId = clientId || initialData?.client_id;
-          if (targetId) {
-            const matched = res.find((c) => c.id === targetId);
-            if (matched) {
-              handleSelectClient(matched);
-            }
-          }
-        }
-      } catch (err) {
-        console.warn("Failed to load registered clients:", err);
-      } finally {
-        setLoadingClients(false);
-      }
-    };
-    fetchRegisteredClients();
-  }, [clientId, initialData?.client_id]);
-
-  const handleSelectClient = (c: any) => {
-    const fullName = formatClientName(c) || "Unnamed Client";
-    setName(fullName);
-    setSelectedClientId(c.id);
-    setSelectedClientUhid(c.uhid || "");
-
-    // Auto-fill Age if available
-    if (c.age) {
-      setAge(c.age);
-    } else if (c.dob) {
-      const birthYear = new Date(c.dob).getFullYear();
-      const currentYear = new Date().getFullYear();
-      if (!isNaN(birthYear) && currentYear > birthYear) {
-        setAge(currentYear - birthYear);
-      }
-    }
-
-    // Auto-fill Gender if available
-    if (c.gender) {
-      const g = c.gender.toString().toLowerCase();
-      if (g.startsWith("m")) setGender("Male");
-      else if (g.startsWith("f")) setGender("Female");
-      else setGender("Other");
-    }
-
-    // Auto-fill Profession/Occupation
-    if (c.occupation || c.profession) {
-      setProfession(c.occupation || c.profession);
-    }
-
-    // Auto-fill Sport & Population Category
-    if (c.sport) {
-      setSport(c.sport);
-    }
-    if (c.athlete_type || c.sport) {
-      setClientType("athlete");
-      if (c.athlete_type) setCompetitionLevel(c.athlete_type);
-    }
-
-    // Auto-fill Dietary Preference
-    if (c.dietary_preference) {
-      setDietaryPreference(c.dietary_preference);
-    }
-
-    // Auto-fill Allergies
-    if (c.allergies_intolerances || c.allergies) {
-      const list = c.allergies_intolerances || c.allergies;
-      if (Array.isArray(list)) {
-        setAllergies(list);
-      }
-    }
-  };
 
   // --- Section B: Anthropometric Details ---
   const [heightCm, setHeightCm] = useState<number | string>(initialData?.height_cm || "");
@@ -352,6 +272,322 @@ export default function NutritionAssessmentForm({
   const [takenBy, setTakenBy] = useState<string>(initialData?.taken_by || loggedInName);
   const [assessmentDate, setAssessmentDate] = useState<string>(initialData?.assessment_date || todayDate);
 
+  // --- Client Selection & Safe Auto-Fill Handler ---
+  const handleSelectClient = useCallback((c: any, forceOverride: boolean = false) => {
+    const fullName = formatClientName(c) || "Unnamed Client";
+    if (forceOverride || !name) setName(fullName);
+    setSelectedClientId(c.id);
+    setSelectedClientUhid(c.uhid || "");
+
+    // Auto-fill Age if available
+    if (forceOverride || !age) {
+      if (c.age) {
+        setAge(c.age);
+      } else if (c.dob) {
+        const birthYear = new Date(c.dob).getFullYear();
+        const currentYear = new Date().getFullYear();
+        if (!isNaN(birthYear) && currentYear > birthYear) {
+          setAge(currentYear - birthYear);
+        }
+      }
+    }
+
+    // Auto-fill Gender if available
+    if ((forceOverride || !gender) && c.gender) {
+      const g = c.gender.toString().toLowerCase();
+      if (g.startsWith("m")) setGender("Male");
+      else if (g.startsWith("f")) setGender("Female");
+      else setGender("Other");
+    }
+
+    // Auto-fill Profession/Occupation
+    if ((forceOverride || !profession) && (c.occupation || c.profession)) {
+      setProfession(c.occupation || c.profession);
+    }
+
+    // Auto-fill Sport & Population Category
+    if ((forceOverride || !sport) && c.sport) {
+      setSport(c.sport);
+    }
+    if (c.athlete_type || c.sport) {
+      if (forceOverride || !clientType) setClientType("athlete");
+      if ((forceOverride || !competitionLevel) && c.athlete_type) setCompetitionLevel(c.athlete_type);
+    }
+
+    // Auto-fill Dietary Preference
+    if ((forceOverride || !dietaryPreference) && c.dietary_preference) {
+      setDietaryPreference(c.dietary_preference);
+    }
+
+    // Auto-fill Allergies
+    if ((forceOverride || allergies.length === 0) && (c.allergies_intolerances || c.allergies)) {
+      const list = c.allergies_intolerances || c.allergies;
+      if (Array.isArray(list) && list.length > 0) {
+        setAllergies(list);
+      }
+    }
+  }, [name, age, gender, profession, sport, clientType, competitionLevel, dietaryPreference, allergies]);
+
+  // Fetch list of registered clients for dropdown
+  useEffect(() => {
+    let isCancelled = false;
+    const fetchRegisteredClients = async () => {
+      try {
+        setLoadingClients(true);
+        const res = await apiFetch<any[]>("/clients");
+        if (!isCancelled && res && Array.isArray(res)) {
+          setClients(res);
+
+          // If clientId was passed as prop or initialData, auto-match the client safely
+          const targetId = clientId || initialData?.client_id;
+          if (targetId) {
+            const matched = res.find((c) => c.id === targetId);
+            if (matched && !isDraftRestoredRef.current) {
+              handleSelectClient(matched, false);
+            }
+          }
+        }
+      } catch (err) {
+        console.warn("Failed to load registered clients:", err);
+      } finally {
+        if (!isCancelled) setLoadingClients(false);
+      }
+    };
+    fetchRegisteredClients();
+    return () => { isCancelled = true; };
+  }, [clientId, initialData?.client_id, handleSelectClient]);
+
+  // --- Autosave & Draft Persistence Mechanism ---
+  const DRAFT_KEY_PREFIX = "nutrition_assessment_draft_";
+  const draftKey = `${DRAFT_KEY_PREFIX}${selectedClientId || clientId || "active"}`;
+  const isDraftRestoredRef = useRef(false);
+  const [restoredDraftTime, setRestoredDraftTime] = useState<string | null>(null);
+
+  // Restore draft once on mount
+  useEffect(() => {
+    try {
+      const saved =
+        localStorage.getItem(draftKey) ||
+        localStorage.getItem(`${DRAFT_KEY_PREFIX}active`) ||
+        localStorage.getItem(`${DRAFT_KEY_PREFIX}new`);
+
+      if (saved) {
+        const draft = JSON.parse(saved);
+        if (draft && typeof draft === "object") {
+          if (draft.name) setName(draft.name);
+          if (draft.selectedClientId) setSelectedClientId(draft.selectedClientId);
+          if (draft.selectedClientUhid) setSelectedClientUhid(draft.selectedClientUhid);
+          if (draft.age !== undefined && draft.age !== "") setAge(draft.age);
+          if (draft.gender) setGender(draft.gender);
+          if (draft.profession) setProfession(draft.profession);
+          if (draft.clientType) setClientType(draft.clientType);
+          if (draft.sport) setSport(draft.sport);
+          if (draft.position) setPosition(draft.position);
+          if (draft.trainingAge) setTrainingAge(draft.trainingAge);
+          if (draft.competitionLevel) setCompetitionLevel(draft.competitionLevel);
+          if (draft.exercise !== undefined) setExercise(draft.exercise);
+          if (draft.exerciseDuration) setExerciseDuration(draft.exerciseDuration);
+          if (draft.trainingSessionsCount !== undefined) setTrainingSessionsCount(draft.trainingSessionsCount);
+          if (draft.exerciseType) setExerciseType(draft.exerciseType);
+
+          if (draft.heightCm) setHeightCm(draft.heightCm);
+          if (draft.weightKg) setWeightKg(draft.weightKg);
+          if (draft.bodyFatPct) setBodyFatPct(draft.bodyFatPct);
+          if (draft.muscleMassKg) setMuscleMassKg(draft.muscleMassKg);
+          if (draft.complaints) setComplaints(draft.complaints);
+          if (draft.biochemicalInterpretations) setBiochemicalInterpretations(draft.biochemicalInterpretations);
+          if (draft.medicalHistory) setMedicalHistory(draft.medicalHistory);
+          if (draft.otherMedications) setOtherMedications(draft.otherMedications);
+          if (Array.isArray(draft.comorbidities) && draft.comorbidities.length > 0) setComorbidities(draft.comorbidities);
+          if (Array.isArray(draft.allergies) && draft.allergies.length > 0) setAllergies(draft.allergies);
+
+          if (draft.dietaryPreference) setDietaryPreference(draft.dietaryPreference);
+          if (draft.sleepDurationHours) setSleepDurationHours(draft.sleepDurationHours);
+          if (draft.dailyFluidIntakeL) setDailyFluidIntakeL(draft.dailyFluidIntakeL);
+          if (draft.recallTimeline && typeof draft.recallTimeline === "object") setRecallTimeline(draft.recallTimeline);
+
+          if (Array.isArray(draft.fuelingSessions) && draft.fuelingSessions.length > 0) setFuelingSessions(draft.fuelingSessions);
+          if (Array.isArray(draft.supplements) && draft.supplements.length > 0) setSupplements(draft.supplements);
+
+          if (draft.observations) setObservations(draft.observations);
+          if (draft.goal) setGoal(draft.goal);
+          if (draft.advicePrescription) setAdvicePrescription(draft.advicePrescription);
+          if (draft.takenBy) setTakenBy(draft.takenBy);
+          if (draft.assessmentDate) setAssessmentDate(draft.assessmentDate);
+          if (draft.activeTab) setActiveTab(draft.activeTab);
+
+          if (draft.savedAt) {
+            setRestoredDraftTime(new Date(draft.savedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+          }
+          isDraftRestoredRef.current = true;
+        }
+      }
+    } catch (e) {
+      console.warn("Failed to restore assessment form draft:", e);
+    }
+  }, []);
+
+  // Debounced auto-save effect
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const hasAnyContent = Boolean(
+        name ||
+        age ||
+        profession ||
+        sport ||
+        heightCm ||
+        weightKg ||
+        bodyFatPct ||
+        muscleMassKg ||
+        complaints ||
+        biochemicalInterpretations ||
+        medicalHistory ||
+        otherMedications ||
+        comorbidities.length > 0 ||
+        allergies.length > 0 ||
+        observations ||
+        goal ||
+        advicePrescription ||
+        Object.values(recallTimeline).some(Boolean) ||
+        supplements.length > 0 ||
+        fuelingSessions.some((s) => s.pre_workout || s.during_workout || s.post_workout)
+      );
+
+      if (hasAnyContent) {
+        const draftPayload = {
+          name,
+          age,
+          gender,
+          profession,
+          clientType,
+          sport,
+          position,
+          trainingAge,
+          competitionLevel,
+          exercise,
+          exerciseDuration,
+          trainingSessionsCount,
+          exerciseType,
+          heightCm,
+          weightKg,
+          bodyFatPct,
+          muscleMassKg,
+          complaints,
+          biochemicalInterpretations,
+          medicalHistory,
+          otherMedications,
+          comorbidities,
+          allergies,
+          dietaryPreference,
+          sleepDurationHours,
+          dailyFluidIntakeL,
+          recallTimeline,
+          fuelingSessions,
+          supplements,
+          observations,
+          goal,
+          advicePrescription,
+          takenBy,
+          assessmentDate,
+          selectedClientId,
+          selectedClientUhid,
+          activeTab,
+          savedAt: new Date().toISOString(),
+        };
+        try {
+          localStorage.setItem(draftKey, JSON.stringify(draftPayload));
+          localStorage.setItem(`${DRAFT_KEY_PREFIX}active`, JSON.stringify(draftPayload));
+        } catch (e) {}
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [
+    name, age, gender, profession, clientType, sport, position, trainingAge, competitionLevel,
+    exercise, exerciseDuration, trainingSessionsCount, exerciseType,
+    heightCm, weightKg, bodyFatPct, muscleMassKg, complaints, biochemicalInterpretations,
+    medicalHistory, otherMedications, comorbidities, allergies,
+    dietaryPreference, sleepDurationHours, dailyFluidIntakeL, recallTimeline,
+    fuelingSessions, supplements, observations, goal, advicePrescription,
+    takenBy, assessmentDate, selectedClientId, selectedClientUhid, activeTab, draftKey
+  ]);
+
+  // Window beforeunload warning if unsaved data exists
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      const hasContent = Boolean(
+        name || heightCm || weightKg || observations || goal || advicePrescription ||
+        Object.values(recallTimeline).some(Boolean)
+      );
+      if (hasContent) {
+        e.preventDefault();
+        e.returnValue = "";
+      }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [name, heightCm, weightKg, observations, goal, advicePrescription, recallTimeline]);
+
+  const handleClearDraft = () => {
+    try {
+      localStorage.removeItem(draftKey);
+      localStorage.removeItem(`${DRAFT_KEY_PREFIX}active`);
+      localStorage.removeItem(`${DRAFT_KEY_PREFIX}new`);
+      setRestoredDraftTime(null);
+      isDraftRestoredRef.current = false;
+
+      setName(clientName || initialData?.name || "");
+      setSelectedClientId(clientId || initialData?.client_id || "");
+      setSelectedClientUhid(clientUhid || "");
+      setAge(initialData?.age || "");
+      setGender(initialData?.gender || "Male");
+      setProfession(initialData?.profession || "");
+      setClientType(initialData?.client_type || "athlete");
+      setSport(initialData?.sport || "");
+      setPosition(initialData?.position || "");
+      setTrainingAge(initialData?.training_age || "");
+      setCompetitionLevel(initialData?.competition_level || "");
+      setExercise(initialData?.exercise ?? true);
+      setExerciseDuration(initialData?.exercise_duration || "");
+      setTrainingSessionsCount(initialData?.training_sessions_count || "");
+      setExerciseType(initialData?.exercise_type || "");
+
+      setHeightCm(initialData?.height_cm || "");
+      setWeightKg(initialData?.weight_kg || "");
+      setBodyFatPct(initialData?.body_fat_pct || "");
+      setMuscleMassKg(initialData?.muscle_mass_kg || "");
+      setComplaints(initialData?.complaints || "");
+      setBiochemicalInterpretations(initialData?.biochemical_interpretations || "");
+      setMedicalHistory(initialData?.medical_history || "");
+      setOtherMedications(initialData?.other_medications || "");
+      setComorbidities(parseInitialComorbidities());
+      setAllergies(initialData?.allergies_intolerances || []);
+
+      setDietaryPreference(initialData?.dietary_preference || "Non-Vegetarian");
+      setSleepDurationHours(initialData?.sleep_duration_hours || "");
+      setDailyFluidIntakeL(initialData?.daily_fluid_intake_l || "");
+      setRecallTimeline(initialData?.timeline_recall || {
+        early_morning: "",
+        breakfast: "",
+        mid_morning: "",
+        lunch: "",
+        evening_snack: "",
+        dinner: "",
+        bed_time: "",
+      });
+      setFuelingSessions(parseInitialFuelingSessions());
+      setSupplements(initialData?.supplements || []);
+      setObservations(initialData?.observations || "");
+      setGoal(initialData?.goal || "");
+      setAdvicePrescription(initialData?.advice_prescription || "");
+
+      toast({
+        title: "Draft Cleared",
+        description: "Assessment form has been reset to defaults.",
+      });
+    } catch (e) {}
+  };
+
   const handleSubmitAssessment = async () => {
     if (!selectedClientId && !clientId) {
       toast({
@@ -443,6 +679,14 @@ export default function NutritionAssessmentForm({
         console.warn("Backend API endpoint fallback:", err);
       }
 
+      // Clear auto-saved draft upon successful save
+      try {
+        localStorage.removeItem(draftKey);
+        localStorage.removeItem(`${DRAFT_KEY_PREFIX}active`);
+        localStorage.removeItem(`${DRAFT_KEY_PREFIX}new`);
+        setRestoredDraftTime(null);
+      } catch (e) {}
+
       toast({
         title: "Assessment Saved",
         description: `Nutrition Assessment Form for ${name || "Client"} recorded.`,
@@ -490,6 +734,26 @@ export default function NutritionAssessmentForm({
           </Button>
         </div>
       </div>
+
+      {/* Draft Restored Banner */}
+      {restoredDraftTime && (
+        <div className="flex items-center justify-between p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-700 dark:text-emerald-400 text-xs">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-emerald-500 shrink-0" />
+            <span>
+              Restored unsaved assessment draft from <strong className="font-mono">{restoredDraftTime}</strong>. Your typed inputs are protected against auto-refresh or reloads.
+            </span>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleClearDraft}
+            className="h-7 text-xs text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+          >
+            Clear Draft
+          </Button>
+        </div>
+      )}
 
       {/* Navigation Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -591,7 +855,7 @@ export default function NutritionAssessmentForm({
                                   key={c.id}
                                   value={`${fullName} ${c.uhid || ""} ${c.mobile_no || ""} ${c.sport || ""}`}
                                   onSelect={() => {
-                                    handleSelectClient(c);
+                                    handleSelectClient(c, true);
                                     setClientComboboxOpen(false);
                                   }}
                                   className="px-3 py-2.5 cursor-pointer text-xs rounded-lg hover:bg-muted/80 flex items-center justify-between gap-2"

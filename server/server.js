@@ -517,11 +517,14 @@ app.use((req, res, next) => {
   const originalSend = res.send;
   res.send = function (body) {
     if (res.statusCode >= 400) {
-      try {
-        const logMsg = `[${new Date().toISOString()}] ${req.method} ${req.url} - Status: ${res.statusCode} - Body: ${body}\nHeaders: ${JSON.stringify(req.headers)}\n\n`;
-        fs.appendFileSync(path.join(__dirname, 'debug_requests.log'), logMsg);
-      } catch (err) {
-        console.error('Error writing debug request log:', err);
+      // Avoid writing to disk in watch mode to prevent server reloads
+      if (process.env.DEBUG_LOG_FILE === 'true') {
+        try {
+          const logMsg = `[${new Date().toISOString()}] ${req.method} ${req.url} - Status: ${res.statusCode} - Body: ${body}\nHeaders: ${JSON.stringify(req.headers)}\n\n`;
+          fs.appendFileSync(path.join(__dirname, 'debug_requests.log'), logMsg);
+        } catch (err) {
+          console.error('Error writing debug request log:', err);
+        }
       }
     }
     return originalSend.apply(this, arguments);

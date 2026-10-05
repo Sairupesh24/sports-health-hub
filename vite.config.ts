@@ -15,6 +15,18 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 3001,
+    watch: {
+      ignored: [
+        '**/server/**',
+        '**/scratch/**',
+        '**/plans/**',
+        '**/uploads/**',
+        '**/mock_reports/**',
+        '**/*.log',
+        '**/dist/**',
+        '**/.git/**',
+      ],
+    },
     proxy: {
       '/api': {
         target: 'http://localhost:3000',
