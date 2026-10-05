@@ -225,7 +225,8 @@ router.patch('/:id', requireAuth, async (req, res) => {
             'occupation', 'sport', 'athlete_type', 'org_name',
             'address', 'locality', 'pincode', 'city', 'district', 'state', 'country',
             'has_insurance', 'insurance_provider', 'insurance_policy_no', 'insurance_coverage_amount',
-            'is_vip', 'assigned_consultant_id'
+            'is_vip', 'assigned_consultant_id',
+            'referral_source', 'referral_source_detail'
         ];
 
         const updates = {};

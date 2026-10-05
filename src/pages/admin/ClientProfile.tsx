@@ -1,12 +1,12 @@
 import { useState, useEffect, useMemo } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import SessionCategoryFilterBar from "@/components/shared/SessionCategoryFilterBar";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, User, Phone, MapPin, Shield, Activity, CalendarDays, FileText, Download, Users, Banknote, Smartphone, Landmark, CreditCard, Plus, X, ClipboardList, Clock, FolderOpen, FolderClosed, Stethoscope } from "lucide-react";
+import { ArrowLeft, User, Phone, MapPin, Shield, Activity, CalendarDays, FileText, Download, Users, Banknote, Smartphone, Landmark, CreditCard, Plus, X, ClipboardList, Clock, FolderOpen, FolderClosed, Stethoscope, ChevronsUpDown, Check } from "lucide-react";
 import CaseSheetModal from "@/components/consultant/CaseSheetModal";
 import { apiFetch } from "@/utils/api";
 import { formatStaffName } from "@/utils/serviceMapping";
@@ -21,6 +21,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { toast } from "@/hooks/use-toast";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -39,6 +41,13 @@ import { AssessmentReportsList } from "@/components/shared/assessment/Assessment
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { UpcomingPlanManager } from "@/components/sports-scientist/UpcomingPlanManager";
 import ClientQuestionnairesTab from "@/components/client/ClientQuestionnairesTab";
+
+const SPORTS = [
+    "Cricket", "Football", "Hockey", "Badminton", "Tennis", "Basketball",
+    "Volleyball", "Athletics", "Swimming", "Boxing", "Wrestling", "Kabaddi",
+    "Table Tennis", "Shooting", "Archery", "Weightlifting", "Gymnastics",
+    "Cycling", "Rugby", "Martial Arts", "Other",
+];
 
 const SESSION_CATEGORY_CONFIG: Record<string, { label: string; badgeClass: string }> = {
     physiotherapy: {
@@ -139,6 +148,13 @@ export default function ClientProfile() {
         age: "",
         mobile_no: "",
         email: "",
+        occupation: "",
+        is_recreational: false,
+        sport: "",
+        athlete_type: "",
+        referral_source: "",
+        referral_source_detail: "",
+        org_name: "",
         address: "",
         locality: "",
         city: "",
@@ -146,6 +162,98 @@ export default function ClientProfile() {
         pincode: "",
         country: ""
     });
+
+    const [openOrg, setOpenOrg] = useState(false);
+    const [orgSearch, setOrgSearch] = useState("");
+    const [openReferral, setOpenReferral] = useState(false);
+    const [referralSearch, setReferralSearch] = useState("");
+
+    const clientOrgId = currentUserProfile?.organization_id || client?.organization_id;
+
+    const { data: rawOrganizations = [] } = useQuery({
+        queryKey: ["client_organizations", clientOrgId],
+        queryFn: async () => {
+            if (!clientOrgId) return [];
+            return apiFetch<string[]>("/clients/organizations");
+        },
+        enabled: !!clientOrgId,
+    });
+
+    const { data: rawReferralSources = [] } = useQuery({
+        queryKey: ["referral_sources", clientOrgId],
+        queryFn: async () => {
+            if (!clientOrgId) return [];
+            return apiFetch<string[]>("/clients/referral-sources");
+        },
+        enabled: !!clientOrgId,
+    });
+
+    const generateReferralMutation = useMutation({
+        mutationFn: async (newName: string) => {
+            return apiFetch<{ name: string }>("/clients/referral-sources", {
+                method: "POST",
+                data: { name: newName }
+            });
+        },
+        onSuccess: (data) => {
+            queryClient.invalidateQueries({ queryKey: ["referral_sources"] });
+            setEditForm(prev => ({ ...prev, referral_source: data.name }));
+            setOpenReferral(false);
+            setReferralSearch("");
+            toast({ title: "Referral Source Added", description: `${data.name} is now available.` });
+        }
+    });
+
+    const handleCreateReferral = () => {
+        if (referralSearch && !rawReferralSources.includes(referralSearch)) {
+            generateReferralMutation.mutate(referralSearch);
+        }
+    };
+
+    const generateOrgMutation = useMutation({
+        mutationFn: async (newName: string) => {
+            return apiFetch<{ name: string }>("/clients/organizations", {
+                method: "POST",
+                data: { name: newName }
+            });
+        },
+        onSuccess: (data) => {
+            queryClient.invalidateQueries({ queryKey: ["client_organizations"] });
+            setEditForm(prev => ({ ...prev, org_name: data.name }));
+            setOpenOrg(false);
+            setOrgSearch("");
+            toast({ title: "Organization Added", description: `${data.name} is now available.` });
+        }
+    });
+
+    const handleCreateOrg = () => {
+        if (orgSearch && !rawOrganizations.includes(orgSearch)) {
+            generateOrgMutation.mutate(orgSearch);
+        }
+    };
+
+    const organizations = useMemo(() => {
+        const list = [...rawOrganizations];
+        if (editForm.org_name && !list.includes(editForm.org_name)) {
+            list.unshift(editForm.org_name);
+        }
+        return list;
+    }, [rawOrganizations, editForm.org_name]);
+
+    const referralSources = useMemo(() => {
+        const list = [...rawReferralSources];
+        if (editForm.referral_source && !list.includes(editForm.referral_source)) {
+            list.unshift(editForm.referral_source);
+        }
+        return list;
+    }, [rawReferralSources, editForm.referral_source]);
+
+    const sportsList = useMemo(() => {
+        if (editForm.sport && !SPORTS.includes(editForm.sport)) {
+            return [editForm.sport, ...SPORTS];
+        }
+        return SPORTS;
+    }, [editForm.sport]);
 
     // Clinical Cases State
     const [cases, setCases] = useState<any[]>([]);
@@ -210,6 +318,13 @@ export default function ClientProfile() {
                 age: client.age !== null && client.age !== undefined ? String(client.age) : "",
                 mobile_no: client.mobile_no || "",
                 email: client.email || "",
+                occupation: client.occupation || "",
+                is_recreational: false,
+                sport: client.sport || "",
+                athlete_type: client.athlete_type || "",
+                referral_source: client.referral_source || "",
+                referral_source_detail: client.referral_source_detail || "",
+                org_name: client.org_name || "",
                 address: client.address || "",
                 locality: client.locality || "",
                 city: client.city || "",
@@ -231,6 +346,12 @@ export default function ClientProfile() {
                 age: editForm.age ? parseInt(editForm.age, 10) : null,
                 mobile_no: editForm.mobile_no,
                 email: editForm.email || null,
+                occupation: editForm.occupation || null,
+                sport: editForm.sport || null,
+                athlete_type: editForm.athlete_type || null,
+                referral_source: editForm.referral_source || null,
+                referral_source_detail: editForm.referral_source_detail || null,
+                org_name: editForm.org_name || null,
                 address: editForm.address,
                 locality: editForm.locality,
                 city: editForm.city,
@@ -810,9 +931,16 @@ export default function ClientProfile() {
                                         <div><span className="text-muted-foreground block mb-1">Gender</span><span className="font-medium">{gender || "-"}</span></div>
                                         <div><span className="text-muted-foreground block mb-1">Age / DOB</span><span className="font-medium">{age || "-"} yrs {dob ? `(${format(new Date(dob), "dd/MM/yyyy")})` : ""}</span></div>
                                         <div><span className="text-muted-foreground block mb-1">Blood Group</span><span className="font-medium">{blood_group || "-"}</span></div>
-                                        <div><span className="text-muted-foreground block mb-1">Occupation</span><span className="font-medium">{occupation || "-"}</span></div>
+                                        <div><span className="text-muted-foreground block mb-1">Status / Occupation</span><span className="font-medium">{occupation || "-"}</span></div>
                                         <div><span className="text-muted-foreground block mb-1">Sport</span><span className="font-medium">{sport || "-"}</span></div>
+                                        <div><span className="text-muted-foreground block mb-1">Level of Play</span><span className="font-medium">{client.athlete_type || "-"}</span></div>
                                         <div><span className="text-muted-foreground block mb-1">Organization</span><span className="font-medium">{org_name || "-"}</span></div>
+                                        <div>
+                                            <span className="text-muted-foreground block mb-1">Referral Source</span>
+                                            <span className="font-medium">
+                                                {referral_source ? `${referral_source}${referral_source_detail ? ` (${referral_source_detail})` : ""}` : "-"}
+                                            </span>
+                                        </div>
                                     </div>
                                 </CardContent>
                             </Card>
@@ -1903,7 +2031,7 @@ export default function ClientProfile() {
 
             {/* Edit Profile Modal */}
             <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
-                <DialogContent aria-describedby={undefined} className="sm:max-w-[550px] max-h-[90vh] overflow-y-auto">
+                <DialogContent aria-describedby={undefined} className="sm:max-w-[620px] max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
                         <DialogTitle>Edit Client Profile</DialogTitle>
                     </DialogHeader>
@@ -1992,6 +2120,203 @@ export default function ClientProfile() {
                                     />
                                 </div>
                             </div>
+                        </div>
+
+                        {/* Status, Sport, Level of Play, Referral Source, Organization Name */}
+                        <div className="space-y-2">
+                            <h4 className="font-bold text-primary uppercase tracking-wide text-[10px]">Status & Background Details</h4>
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                <div className="space-y-1.5">
+                                    <div className="flex items-center justify-between">
+                                        <Label htmlFor="edit-status">Status</Label>
+                                        {editForm.occupation === "General Population" && (
+                                            <div className="flex items-center gap-1.5 animate-in fade-in zoom-in duration-200">
+                                                <Checkbox 
+                                                    id="edit-recreational" 
+                                                    checked={editForm.is_recreational}
+                                                    onCheckedChange={(v) => setEditForm(prev => ({ ...prev, is_recreational: !!v }))}
+                                                />
+                                                <Label htmlFor="edit-recreational" className="text-[10px] font-medium leading-none cursor-pointer">Recreational?</Label>
+                                            </div>
+                                        )}
+                                    </div>
+                                    <Select 
+                                        value={editForm.occupation} 
+                                        onValueChange={(val) => setEditForm(prev => ({ ...prev, occupation: val }))}
+                                    >
+                                        <SelectTrigger id="edit-status" className="h-9 text-xs">
+                                            <SelectValue placeholder="Select status" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="Athlete">Athlete</SelectItem>
+                                            <SelectItem value="General Population">General Population</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="edit-sport">Sport</Label>
+                                    <Select 
+                                        value={editForm.sport} 
+                                        onValueChange={(val) => setEditForm(prev => ({ ...prev, sport: val }))}
+                                    >
+                                        <SelectTrigger id="edit-sport" className="h-9 text-xs">
+                                            <SelectValue placeholder="Select sport" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {sportsList.map((s) => (
+                                                <SelectItem key={s} value={s}>{s}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="edit-level-of-play">Level of Play</Label>
+                                    <Input 
+                                        id="edit-level-of-play"
+                                        className="h-9 text-xs" 
+                                        value={editForm.athlete_type} 
+                                        onChange={e => setEditForm(prev => ({ ...prev, athlete_type: e.target.value }))} 
+                                        placeholder="e.g. National, Club, etc."
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                                <div className="space-y-1.5 flex flex-col">
+                                    <Label>How did you hear about us? (Referral Source)</Label>
+                                    <Popover open={openReferral} onOpenChange={setOpenReferral}>
+                                        <PopoverTrigger asChild>
+                                            <Button
+                                                variant="outline"
+                                                role="combobox"
+                                                aria-expanded={openReferral}
+                                                className={cn("w-full justify-between h-9 text-xs border-input hover:bg-muted font-normal", !editForm.referral_source && "text-muted-foreground")}
+                                            >
+                                                <span className="truncate">{editForm.referral_source || "Select source..."}</span>
+                                                <ChevronsUpDown className="ml-2 h-3.5 w-3.5 shrink-0 opacity-50" />
+                                            </Button>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-[280px] p-0" align="start">
+                                            <Command>
+                                                <CommandInput
+                                                    placeholder="Search source..."
+                                                    value={referralSearch}
+                                                    onValueChange={setReferralSearch}
+                                                    className="text-xs"
+                                                />
+                                                <CommandList>
+                                                    <CommandEmpty className="py-4 text-center text-xs">
+                                                        <p className="text-muted-foreground mb-2">No source found.</p>
+                                                        {referralSearch && (
+                                                            <Button variant="secondary" size="sm" className="text-xs h-7" onClick={handleCreateReferral}>
+                                                                <Plus className="w-3 h-3 mr-1" />
+                                                                Add "{referralSearch}"
+                                                            </Button>
+                                                        )}
+                                                    </CommandEmpty>
+                                                    <CommandGroup>
+                                                        {referralSources.map((source) => (
+                                                            <CommandItem
+                                                                key={source}
+                                                                value={source}
+                                                                className="text-xs"
+                                                                onSelect={() => {
+                                                                    setEditForm(prev => ({ ...prev, referral_source: source }));
+                                                                    setOpenReferral(false);
+                                                                }}
+                                                            >
+                                                                <Check
+                                                                    className={cn(
+                                                                        "mr-2 h-3.5 w-3.5",
+                                                                        editForm.referral_source === source ? "opacity-100" : "opacity-0"
+                                                                    )}
+                                                                />
+                                                                {source}
+                                                            </CommandItem>
+                                                        ))}
+                                                    </CommandGroup>
+                                                </CommandList>
+                                            </Command>
+                                        </PopoverContent>
+                                    </Popover>
+                                </div>
+
+                                <div className="space-y-1.5 flex flex-col">
+                                    <Label>Organization Name</Label>
+                                    <Popover open={openOrg} onOpenChange={setOpenOrg}>
+                                        <PopoverTrigger asChild>
+                                            <Button
+                                                variant="outline"
+                                                role="combobox"
+                                                aria-expanded={openOrg}
+                                                className={cn("w-full justify-between h-9 text-xs border-input hover:bg-muted font-normal", !editForm.org_name && "text-muted-foreground")}
+                                            >
+                                                <span className="truncate">{editForm.org_name || "Search or add organization..."}</span>
+                                                <ChevronsUpDown className="ml-2 h-3.5 w-3.5 shrink-0 opacity-50" />
+                                            </Button>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-[280px] p-0" align="start">
+                                            <Command>
+                                                <CommandInput
+                                                    placeholder="Search organization..."
+                                                    value={orgSearch}
+                                                    onValueChange={setOrgSearch}
+                                                    className="text-xs"
+                                                />
+                                                <CommandList>
+                                                    <CommandEmpty className="py-4 text-center text-xs">
+                                                        <p className="text-muted-foreground mb-2">No organization found.</p>
+                                                        {orgSearch && (
+                                                            <Button variant="secondary" size="sm" className="text-xs h-7" onClick={handleCreateOrg}>
+                                                                <Plus className="w-3 h-3 mr-1" />
+                                                                Add "{orgSearch}"
+                                                            </Button>
+                                                        )}
+                                                    </CommandEmpty>
+                                                    <CommandGroup>
+                                                        {organizations.map((org) => (
+                                                            <CommandItem
+                                                                key={org}
+                                                                value={org}
+                                                                className="text-xs"
+                                                                onSelect={() => {
+                                                                    setEditForm(prev => ({ ...prev, org_name: org }));
+                                                                    setOpenOrg(false);
+                                                                }}
+                                                            >
+                                                                <Check
+                                                                    className={cn(
+                                                                        "mr-2 h-3.5 w-3.5",
+                                                                        editForm.org_name === org ? "opacity-100" : "opacity-0"
+                                                                    )}
+                                                                />
+                                                                {org}
+                                                            </CommandItem>
+                                                        ))}
+                                                    </CommandGroup>
+                                                </CommandList>
+                                            </Command>
+                                        </PopoverContent>
+                                    </Popover>
+                                </div>
+                            </div>
+
+                            {(editForm.referral_source === "Doctor Referral" || editForm.referral_source === "Other") && (
+                                <div className="space-y-1.5 animate-in fade-in zoom-in-95 duration-200">
+                                    <Label htmlFor="edit-referral-detail">
+                                        {editForm.referral_source === "Doctor Referral" ? "Doctor's Name" : "Specify Source"}
+                                    </Label>
+                                    <Input 
+                                        id="edit-referral-detail"
+                                        className="h-9 text-xs" 
+                                        value={editForm.referral_source_detail} 
+                                        onChange={e => setEditForm(prev => ({ ...prev, referral_source_detail: e.target.value }))} 
+                                        placeholder={editForm.referral_source === "Doctor Referral" ? "Enter Doctor's Name" : "Please specify"} 
+                                    />
+                                </div>
+                            )}
                         </div>
 
                         {/* Contact details */}
