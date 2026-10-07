@@ -116,6 +116,24 @@ export async function calculateStaffActivityMetrics(targetDate) {
         if (r.user_id) sessionsMap[r.user_id] = parseInt(r.count, 10);
     });
 
+    // 3.5. Fetch PLANNED session entries for each user on targetDate
+    const plannedRes = await db.query(`
+        SELECT u.id as user_id, COUNT(DISTINCT s.id) as count
+        FROM users u
+        JOIN sessions s ON (
+            (s.therapist_id = u.id OR s.scientist_id = u.id)
+            AND s.status IN ('Planned', 'Checked In')
+            AND (
+                DATE(s.scheduled_start AT TIME ZONE 'Asia/Kolkata') = $1::date OR DATE(s.scheduled_start) = $1::date
+            )
+        )
+        GROUP BY u.id
+    `, [targetDate]).catch(() => ({ rows: [] }));
+    const plannedMap = {};
+    plannedRes.rows.forEach(r => {
+        if (r.user_id) plannedMap[r.user_id] = parseInt(r.count, 10);
+    });
+
     // 4. Fetch performance assessments recorded on target date
     const paRes = await db.query(`
         SELECT recorded_by as user_id, COUNT(*) as count
@@ -131,14 +149,14 @@ export async function calculateStaffActivityMetrics(targetDate) {
 
     // 5. Fetch nutrition assessments recorded on target date
     const naRes = await db.query(`
-        SELECT COALESCE(nutritionist_id, taken_by) as user_id, COUNT(*) as count
+        SELECT nutritionist_id as user_id, COUNT(*) as count
         FROM nutrition_assessments
         WHERE (
             DATE(created_at AT TIME ZONE 'Asia/Kolkata') = $1 OR DATE(created_at) = $1
             OR DATE(assessment_date) = $1
         )
-        AND COALESCE(nutritionist_id, taken_by) IS NOT NULL
-        GROUP BY COALESCE(nutritionist_id, taken_by)
+        AND nutritionist_id IS NOT NULL
+        GROUP BY nutritionist_id
     `, [targetDate]).catch(() => ({ rows: [] }));
     naRes.rows.forEach(r => {
         if (r.user_id) assessmentsMap[r.user_id] = (assessmentsMap[r.user_id] || 0) + parseInt(r.count, 10);
@@ -163,6 +181,7 @@ export async function calculateStaffActivityMetrics(targetDate) {
         const activeMinutes = Math.round(activeSeconds / 60);
 
         const sessionsCount = (sessionsMap[staff.id] || 0) + (assessmentsMap[staff.id] || 0);
+        const plannedSessionsCount = plannedMap[staff.id] || 0;
         const registrationsCount = regMap[staff.id] || 0;
 
         return {
@@ -173,6 +192,7 @@ export async function calculateStaffActivityMetrics(targetDate) {
             profession: staff.profession || staff.role,
             activeMinutes,
             sessionsCount,
+            plannedSessionsCount,
             registrationsCount
         };
     });
@@ -180,12 +200,236 @@ export async function calculateStaffActivityMetrics(targetDate) {
     return results;
 }
 
+// Helper function to accurately calculate Time Frame Activity & Session Performance Report
+export async function calculateTimeFrameActivityReport(startDate, endDate, roleFilter = 'all', orgId = null) {
+    // 1. Fetch all staff members (excluding pure client/athlete accounts and bot accounts)
+    const staffQuery = `
+        SELECT p.id, p.first_name, p.last_name, p.profession, u.role, u.email
+        FROM profiles p
+        JOIN users u ON p.id = u.id
+        WHERE u.role NOT IN ('client', 'athlete', 'bot')
+          AND (p.ams_role != 'System Bot' OR p.ams_role IS NULL)
+          AND u.email NOT LIKE 'hubbot_%'
+        ORDER BY p.first_name ASC
+    `;
+    const staffRes = await db.query(staffQuery);
+    let staffList = staffRes.rows;
+
+    if (roleFilter && roleFilter !== 'all') {
+        const rf = roleFilter.toLowerCase();
+        staffList = staffList.filter(s => {
+            const r = (s.role || '').toLowerCase();
+            const p = (s.profession || '').toLowerCase();
+            return r === rf || p.includes(rf) || r.includes(rf);
+        });
+    }
+
+    // 2. Fetch Planned sessions in range
+    const plannedRes = await db.query(`
+        SELECT COALESCE(s.therapist_id, s.scientist_id) as user_id, COUNT(DISTINCT s.id) as count
+        FROM sessions s
+        WHERE s.status IN ('Planned', 'Checked In')
+          AND (
+            DATE(s.scheduled_start AT TIME ZONE 'Asia/Kolkata') BETWEEN $1::date AND $2::date
+            OR DATE(s.scheduled_start) BETWEEN $1::date AND $2::date
+          )
+          AND COALESCE(s.therapist_id, s.scientist_id) IS NOT NULL
+        GROUP BY COALESCE(s.therapist_id, s.scientist_id)
+    `, [startDate, endDate]).catch(err => {
+        console.error('Error fetching planned sessions in timeframe:', err);
+        return { rows: [] };
+    });
+    const plannedMap = {};
+    plannedRes.rows.forEach(r => {
+        if (r.user_id) plannedMap[r.user_id] = parseInt(r.count, 10);
+    });
+
+    // 3. Fetch Completed sessions in range
+    const completedRes = await db.query(`
+        SELECT COALESCE(s.therapist_id, s.scientist_id) as user_id, COUNT(DISTINCT s.id) as count
+        FROM sessions s
+        WHERE s.status = 'Completed'
+          AND (
+            DATE(COALESCE(s.actual_start, s.scheduled_start, s.updated_at) AT TIME ZONE 'Asia/Kolkata') BETWEEN $1::date AND $2::date
+            OR DATE(COALESCE(s.actual_start, s.scheduled_start, s.updated_at)) BETWEEN $1::date AND $2::date
+          )
+          AND COALESCE(s.therapist_id, s.scientist_id) IS NOT NULL
+        GROUP BY COALESCE(s.therapist_id, s.scientist_id)
+    `, [startDate, endDate]).catch(err => {
+        console.error('Error fetching completed sessions in timeframe:', err);
+        return { rows: [] };
+    });
+    const completedMap = {};
+    completedRes.rows.forEach(r => {
+        if (r.user_id) completedMap[r.user_id] = parseInt(r.count, 10);
+    });
+
+    // 4. Fetch performance assessments recorded in range
+    const paRes = await db.query(`
+        SELECT recorded_by as user_id, COUNT(*) as count
+        FROM performance_assessments
+        WHERE (
+            DATE(created_at AT TIME ZONE 'Asia/Kolkata') BETWEEN $1::date AND $2::date
+            OR DATE(created_at) BETWEEN $1::date AND $2::date
+        )
+        AND recorded_by IS NOT NULL
+        GROUP BY recorded_by
+    `, [startDate, endDate]).catch(() => ({ rows: [] }));
+    const assessmentsMap = {};
+    paRes.rows.forEach(r => {
+        if (r.user_id) assessmentsMap[r.user_id] = (assessmentsMap[r.user_id] || 0) + parseInt(r.count, 10);
+    });
+
+    // 5. Fetch nutrition assessments recorded in range
+    const naRes = await db.query(`
+        SELECT nutritionist_id as user_id, COUNT(*) as count
+        FROM nutrition_assessments
+        WHERE (
+            DATE(COALESCE(assessment_date, created_at) AT TIME ZONE 'Asia/Kolkata') BETWEEN $1::date AND $2::date
+            OR DATE(COALESCE(assessment_date, created_at)) BETWEEN $1::date AND $2::date
+        )
+        AND nutritionist_id IS NOT NULL
+        GROUP BY nutritionist_id
+    `, [startDate, endDate]).catch(() => ({ rows: [] }));
+    naRes.rows.forEach(r => {
+        if (r.user_id) assessmentsMap[r.user_id] = (assessmentsMap[r.user_id] || 0) + parseInt(r.count, 10);
+    });
+
+    // 6. Fetch application usage activity (active seconds) in range
+    const appActivityRes = await db.query(`
+        SELECT user_id, SUM(active_seconds) as total_seconds
+        FROM user_app_activity
+        WHERE date >= $1::date AND date <= $2::date
+        GROUP BY user_id
+    `, [startDate, endDate]).catch(() => ({ rows: [] }));
+    const activityMap = {};
+    appActivityRes.rows.forEach(r => {
+        if (r.user_id) activityMap[r.user_id] = parseInt(r.total_seconds, 10);
+    });
+
+    // 7. Fetch client registrations created in range
+    const regRes = await db.query(`
+        SELECT created_by as user_id, COUNT(*) as count
+        FROM clients
+        WHERE (
+            DATE(created_at AT TIME ZONE 'Asia/Kolkata') BETWEEN $1::date AND $2::date
+            OR DATE(created_at) BETWEEN $1::date AND $2::date
+        )
+        AND created_by IS NOT NULL
+        GROUP BY created_by
+    `, [startDate, endDate]).catch(() => ({ rows: [] }));
+    const regMap = {};
+    regRes.rows.forEach(r => {
+        if (r.user_id) regMap[r.user_id] = parseInt(r.count, 10);
+    });
+
+    // 8. Fetch detailed session rows in range for drill-down/modal
+    const sessionListRes = await db.query(`
+        SELECT 
+          s.id,
+          s.status,
+          s.scheduled_start,
+          s.scheduled_end,
+          s.actual_start,
+          s.actual_end,
+          s.service_type,
+          s.session_mode,
+          COALESCE(s.therapist_id, s.scientist_id) as staff_id,
+          COALESCE(TRIM(CONCAT(c.first_name, ' ', c.last_name)), s.guest_name, 'Unknown Client') as client_name,
+          c.uhid
+        FROM sessions s
+        LEFT JOIN clients c ON s.client_id = c.id
+        WHERE COALESCE(s.therapist_id, s.scientist_id) IS NOT NULL
+          AND (
+            DATE(COALESCE(s.actual_start, s.scheduled_start) AT TIME ZONE 'Asia/Kolkata') BETWEEN $1::date AND $2::date
+            OR DATE(COALESCE(s.actual_start, s.scheduled_start)) BETWEEN $1::date AND $2::date
+            OR DATE(s.scheduled_start AT TIME ZONE 'Asia/Kolkata') BETWEEN $1::date AND $2::date
+            OR DATE(s.scheduled_start) BETWEEN $1::date AND $2::date
+          )
+        ORDER BY s.scheduled_start DESC
+    `, [startDate, endDate]).catch(() => ({ rows: [] }));
+
+    const sessionsByStaff = {};
+    sessionListRes.rows.forEach(sess => {
+        if (!sessionsByStaff[sess.staff_id]) sessionsByStaff[sess.staff_id] = [];
+        sessionsByStaff[sess.staff_id].push({
+            id: sess.id,
+            status: sess.status,
+            scheduledStart: sess.scheduled_start,
+            scheduledEnd: sess.scheduled_end,
+            actualStart: sess.actual_start,
+            actualEnd: sess.actual_end,
+            serviceType: sess.service_type || 'General',
+            sessionMode: sess.session_mode || 'Individual',
+            clientName: sess.client_name,
+            uhid: sess.uhid
+        });
+    });
+
+    let totalPlanned = 0;
+    let totalCompleted = 0;
+
+    const results = staffList.map(staff => {
+        const planned = plannedMap[staff.id] || 0;
+        const completed = (completedMap[staff.id] || 0) + (assessmentsMap[staff.id] || 0);
+        const totalScheduled = planned + completed;
+        const completionRate = totalScheduled > 0 ? Math.round((completed / totalScheduled) * 100) : 0;
+        const activeSeconds = activityMap[staff.id] || 0;
+        const activeMinutes = Math.round(activeSeconds / 60);
+        const registrationsCount = regMap[staff.id] || 0;
+        const staffSessions = sessionsByStaff[staff.id] || [];
+
+        totalPlanned += planned;
+        totalCompleted += completed;
+
+        return {
+            id: staff.id,
+            name: `${staff.first_name || ''} ${staff.last_name || ''}`.trim() || staff.email,
+            email: staff.email,
+            role: staff.role,
+            profession: staff.profession || staff.role,
+            plannedSessions: planned,
+            completedSessions: completed,
+            totalScheduled,
+            completionRate,
+            activeMinutes,
+            registrationsCount,
+            sessions: staffSessions
+        };
+    });
+
+    const totalScheduledOverall = totalPlanned + totalCompleted;
+    const overallCompletionRate = totalScheduledOverall > 0 ? Math.round((totalCompleted / totalScheduledOverall) * 100) : 0;
+    const totalActiveStaff = results.filter(d => d.plannedSessions > 0 || d.completedSessions > 0 || d.activeMinutes > 0).length;
+
+    return {
+        startDate,
+        endDate,
+        roleFilter,
+        summary: {
+            totalPlanned,
+            totalCompleted,
+            totalScheduled: totalScheduledOverall,
+            overallCompletionRate,
+            totalActiveStaff,
+            totalStaffCount: results.length
+        },
+        data: results
+    };
+}
+
 // GET Staff Activity Tracker & Console Activity Metrics
 const getActivityMetricsHandler = async (req, res) => {
     try {
-        const { date } = req.query;
-        const targetDate = date || new Date().toISOString().split('T')[0];
+        const { date, startDate, endDate, role } = req.query;
 
+        // If startDate and endDate are provided, redirect/serve time frame report
+        if (startDate && endDate) {
+            const report = await calculateTimeFrameActivityReport(startDate, endDate, role || 'all', req.user?.organization_id);
+            return res.json(report);
+        }
+
+        const targetDate = date || new Date().toISOString().split('T')[0];
         const results = await calculateStaffActivityMetrics(targetDate);
         res.json({ date: targetDate, data: results });
     } catch (error) {
@@ -194,8 +438,28 @@ const getActivityMetricsHandler = async (req, res) => {
     }
 };
 
+// GET Time Frame Activity & Session Performance Report
+const getTimeFrameReportHandler = async (req, res) => {
+    try {
+        const { startDate, endDate, role } = req.query;
+        const today = new Date().toISOString().split('T')[0];
+        const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
+        const start = startDate || thirtyDaysAgo;
+        const end = endDate || today;
+        const roleFilter = role || 'all';
+
+        const report = await calculateTimeFrameActivityReport(start, end, roleFilter, req.user?.organization_id);
+        res.json(report);
+    } catch (error) {
+        console.error('Error in GET /activity-tracker/report:', error);
+        res.status(500).json({ error: error.message });
+    }
+};
+
 router.get('/staff-efficiency', requireAuth, getActivityMetricsHandler);
 router.get('/activity-tracker', requireAuth, getActivityMetricsHandler);
+router.get('/activity-tracker/report', requireAuth, getTimeFrameReportHandler);
 
 // GET Automation Settings
 router.get('/activity-tracker/automation', requireAuth, async (req, res) => {
