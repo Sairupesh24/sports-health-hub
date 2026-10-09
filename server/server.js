@@ -17,6 +17,7 @@ import adminRoutes from './admin.js';
 import analyticsRoutes from './analytics.js';
 import plannerRoutes from './planner.js';
 import messengerRoutes from './messenger.js';
+import performanceRoutes from './performance.js';
 import { startNotificationBridge } from './notification_bridge.js';
 import { startScheduler } from './scheduler.js';
 import { requireAuth } from './middleware.js';
@@ -547,6 +548,7 @@ app.use('/api/analytics', analyticsRoutes);
 app.use('/api/v1/analytics', analyticsRoutes);
 app.use('/api/planner', plannerRoutes);
 app.use('/api/messenger', messengerRoutes);
+app.use('/api/performance', performanceRoutes);
 
 // --- Public Routes ---
 app.get('/api/public/orgs/:slug', async (req, res) => {

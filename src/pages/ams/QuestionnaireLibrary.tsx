@@ -1,11 +1,12 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 
 import { apiFetch } from "@/utils/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
-import { ClipboardList, Plus, Users, History, Search, LayoutGrid, List, Sparkles, ArrowRight, TrendingUp, Clock, CheckCircle2, Inbox, Play, Pause, Trash2, Calendar, Link2, User } from "lucide-react";
+import { ClipboardList, Plus, Users, History, Search, LayoutGrid, List, Sparkles, ArrowRight, TrendingUp, Clock, CheckCircle2, Inbox, Play, Pause, Trash2, Calendar, Link2, User, Activity, Grid } from "lucide-react";
 import { format } from "date-fns";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -18,6 +19,7 @@ import FormBuilder from "@/components/ams/FormBuilder";
 import SingleClientAssignModal from "@/components/ams/SingleClientAssignModal";
 
 export default function QuestionnaireLibrary() {
+  const navigate = useNavigate();
   const { profile, roles } = useAuth();
   const isClinical = roles.some(r => ["coach", "sports_scientist", "sports_physician", "physiotherapist", "nutritionist"].includes(r));
   const isAdminOrFoe = roles.some(r => ["admin", "foe"].includes(r));
@@ -128,14 +130,56 @@ export default function QuestionnaireLibrary() {
               </p>
             </div>
             
-            {(isClinical || isAdminOrFoe) && (
-              <Button 
-                onClick={handleCreateNew}
-                className="h-14 px-8 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-black uppercase tracking-widest text-[11px] gap-3 shadow-xl transition-all hover:scale-105"
+            <div className="flex items-center gap-3">
+              <Button
+                onClick={() => navigate('/ams/performance-testing')}
+                className="h-14 px-6 rounded-2xl bg-primary hover:bg-primary/90 text-white font-black uppercase tracking-wider text-[11px] gap-2.5 shadow-xl shadow-primary/20 transition-all hover:scale-105"
               >
-                <Plus className="w-4 h-4" /> Create New Form
+                <Sparkles className="w-4 h-4" /> Performance Testing Hub
               </Button>
-            )}
+              {(isClinical || isAdminOrFoe) && (
+                <Button 
+                  onClick={handleCreateNew}
+                  className="h-14 px-8 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-black uppercase tracking-widest text-[11px] gap-3 shadow-xl transition-all hover:scale-105"
+                >
+                  <Plus className="w-4 h-4" /> Create New Form
+                </Button>
+              )}
+            </div>
+          </div>
+
+          {/* Quick Gateway Card to Performance Testing Hub */}
+          <div className="p-6 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 rounded-[2rem] text-white shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <Badge className="bg-primary text-white border-0 font-black uppercase text-[9px] tracking-widest">
+                  Performance Testing Sub-System
+                </Badge>
+                <span className="text-xs text-slate-400 font-bold">• 8 Supported Sport Batteries</span>
+              </div>
+              <h2 className="text-xl font-black uppercase tracking-tight font-display">
+                Multi-Sport Performance Testing & Athlete Assessment Hub
+              </h2>
+              <p className="text-xs text-slate-300 max-w-2xl">
+                Diagnostic Individual Assessments with automated FMS, YBT composite, Sayers power, and Yo-Yo VO2 max calculations, plus high-density keyboard Station Testing Spreadsheet Grid.
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-3 shrink-0">
+              <Button
+                onClick={() => navigate('/ams/performance-testing')}
+                className="bg-white hover:bg-slate-100 text-slate-900 font-black uppercase tracking-wider text-xs px-5 h-11 rounded-xl shadow-md gap-2 border border-slate-200 transition-all hover:scale-[1.02]"
+              >
+                <Activity className="w-4 h-4 text-emerald-600" />
+                Launch Individual Form
+              </Button>
+              <Button
+                onClick={() => navigate('/ams/performance-testing/grid')}
+                className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black uppercase tracking-wider text-xs px-5 h-11 rounded-xl shadow-lg shadow-emerald-500/25 gap-2 transition-all hover:scale-[1.02]"
+              >
+                <Grid className="w-4 h-4 text-slate-950" />
+                Combine Station Grid
+              </Button>
+            </div>
           </div>
 
           <Tabs defaultValue="library" className="w-full">

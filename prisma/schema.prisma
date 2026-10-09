@@ -733,6 +733,7 @@ model OrganizationNotificationSetting {
   notifyOutstandingBalance     Boolean?     @default(true) @map("notify_outstanding_balance")
   updatedAt                    DateTime?    @default(now()) @map("updated_at") @db.Timestamptz(6)
   enableEodSessionReminder     Boolean?     @default(true) @map("enable_eod_session_reminder")
+  eodReminderEnabled           Boolean?     @default(true) @map("eod_reminder_enabled")
   eodReminderTime              String?      @default("19:00") @map("eod_reminder_time") @db.VarChar(10)
   eodReminderChannels          Json?        @default("{\"email\": true, \"teamcomms\": true}") @map("eod_reminder_channels")
   eodReminderScope             Json?        @default("{\"require_notes\": true, \"require_status_update\": true}") @map("eod_reminder_scope")
@@ -813,7 +814,9 @@ model Organization {
   nutritionAssessments             NutritionAssessment[]
   organizationNotificationSettings OrganizationNotificationSetting?
   packages                         Package[]
-  performanceAssessments           PerformanceAssessment[]
+  performanceAssessments           PerformanceAssessment[]          @relation("performanceAssessments_organizationId")
+  performanceAssessmentsOrg        PerformanceAssessment[]          @relation("performanceAssessments_orgId")
+  performanceProtocols             PerformanceProtocol[]
   planner_daily_tasks              PlannerDailyTask[]
   planner_projects                 PlannerProject[]
   planner_settings                 PlannerSetting[]
@@ -877,19 +880,61 @@ model PackageService {
 }
 
 model PerformanceAssessment {
-  id             String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  organizationId String?       @map("organization_id") @db.Uuid
-  athleteId      String        @map("athlete_id") @db.Uuid
-  category       String
-  testName       String        @map("test_name")
-  metrics        Json          @default("{}")
-  recordedBy     String?       @map("recorded_by") @db.Uuid
-  createdAt      DateTime?     @default(now()) @map("created_at") @db.Timestamptz(6)
-  clients        Client        @relation(fields: [athleteId], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  organizations  Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  profiles       Profile?      @relation(fields: [recordedBy], references: [id], onUpdate: NoAction)
+  id                String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId    String?              @map("organization_id") @db.Uuid
+  orgId             String?              @map("org_id") @db.Uuid
+  athleteId         String               @map("athlete_id") @db.Uuid
+  assessorId        String?              @map("assessor_id") @db.Uuid
+  protocolId        String?              @map("protocol_id") @db.Uuid
+  category          String?
+  testName          String?              @map("test_name")
+  metrics           Json?                @default("{}")
+  assessmentDate    DateTime?            @default(dbgenerated("CURRENT_DATE")) @map("assessment_date") @db.Date
+  batchOrSquad      String?              @map("batch_or_squad")
+  needsAnalysis     Json?                @default("{}") @map("needs_analysis")
+  anthropometrics   Json?                @default("{}") @map("anthropometrics")
+  fmsData           Json?                @default("{}") @map("fms_data")
+  stabilityData     Json?                @default("{}") @map("stability_data")
+  powerSpeedData    Json?                @default("{}") @map("power_speed_data")
+  agilityData       Json?                @default("{}") @map("agility_data")
+  enduranceData     Json?                @default("{}") @map("endurance_data")
+  anaerobicData     Json?                @default("{}") @map("anaerobic_data")
+  aerobicData       Json?                @default("{}") @map("aerobic_data")
+  biomotorRatings   Json?                @default("{}") @map("biomotor_ratings")
+  correctivePlan    String?              @map("corrective_plan")
+  planOfAction      String?              @map("plan_of_action")
+  overallImpression String?              @map("overall_impression")
+  status            String?              @default("completed")
+  recordedBy        String?              @map("recorded_by") @db.Uuid
+  createdAt         DateTime?            @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime?            @default(now()) @map("updated_at") @db.Timestamptz(6)
+  clients           Client               @relation(fields: [athleteId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  organizations     Organization?        @relation("performanceAssessments_organizationId", fields: [organizationId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  org               Organization?        @relation("performanceAssessments_orgId", fields: [orgId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  profiles          Profile?             @relation(fields: [recordedBy], references: [id], onUpdate: NoAction)
+  assessor          User?                @relation("performanceAssessments_assessorId", fields: [assessorId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  protocol          PerformanceProtocol? @relation(fields: [protocolId], references: [id], onDelete: SetNull, onUpdate: NoAction)
 
+  @@index([athleteId], map: "idx_perf_assessments_athlete")
+  @@index([batchOrSquad], map: "idx_perf_assessments_batch")
+  @@index([assessmentDate(sort: Desc)], map: "idx_perf_assessments_date")
   @@map("performance_assessments")
+}
+
+model PerformanceProtocol {
+  id             String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orgId          String?                 @map("org_id") @db.Uuid
+  sportName      String                  @map("sport_name")
+  templateName   String                  @map("template_name")
+  slug           String                  @unique(map: "uq_performance_protocols_slug")
+  sectionsConfig Json                    @default("{}") @map("sections_config")
+  createdAt      DateTime?               @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime?               @default(now()) @map("updated_at") @db.Timestamptz(6)
+  organizations  Organization?           @relation(fields: [orgId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  assessments    PerformanceAssessment[]
+
+  @@index([slug], map: "idx_perf_protocols_slug")
+  @@map("performance_protocols")
 }
 
 model PhysioSessionDetail {
@@ -1298,6 +1343,7 @@ model User {
   notificationReads                         NotificationRead[]
   notifications                             Notification[]
   nutritionAssessments                      NutritionAssessment[]
+  performanceAssessmentsAssessor            PerformanceAssessment[]    @relation("performanceAssessments_assessorId")
   profiles                                  Profile?
   programAssignments                        ProgramAssignment[]
   questionnaires                            Questionnaire[]
@@ -2006,8 +2052,9 @@ model client_cases {
   organizations                              Organization @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   sessions                                   Session[]
 
-  @@index([case_number], map: "idx_client_cases_case_number")
+  @@index([case_number], map: "idx_client_cases_case_num")
   @@index([client_id], map: "idx_client_cases_client")
   @@index([organization_id], map: "idx_client_cases_org")
   @@index([status], map: "idx_client_cases_status")
+  @@index([created_at(sort: Desc)], map: "idx_client_cases_created")
 }

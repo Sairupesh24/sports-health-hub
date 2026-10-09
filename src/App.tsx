@@ -78,6 +78,7 @@ import MobileProfilePage from "./pages/mobile/MobileProfilePage";
 import ReportsPage from "./pages/shared/ReportsPage";
 import AppGallery from "./pages/AppGallery";
 import PublicQuestionnaireForm from "./pages/public/PublicQuestionnaireForm";
+import PerformanceTestingHub from "./pages/ams/PerformanceTestingHub";
 
 // TeamComms Messenger
 import MessengerPage from "./pages/messenger/MessengerPage";
@@ -241,6 +242,8 @@ const App = () => (
               <Route path="/ams/calendar" element={<ProtectedRoute requiredRole={["coach", "sports_scientist", "admin", "sports_physician", "physiotherapist", "nutritionist"]}><AmsCalendar /></ProtectedRoute>} />
               <Route path="/ams/exercises" element={<ProtectedRoute requiredRole={["coach", "sports_scientist", "admin", "sports_physician", "physiotherapist", "nutritionist"]}><ExerciseLibrary /></ProtectedRoute>} />
               <Route path="/ams/questionnaires" element={<MobileGuard><ProtectedRoute requiredRole={["coach", "sports_scientist", "admin", "sports_physician", "physiotherapist", "nutritionist", "foe"]}><QuestionnaireLibrary /></ProtectedRoute></MobileGuard>} />
+              <Route path="/ams/performance-testing" element={<MobileGuard><ProtectedRoute requiredRole={["coach", "sports_scientist", "admin", "sports_physician", "physiotherapist", "nutritionist", "foe"]}><PerformanceTestingHub /></ProtectedRoute></MobileGuard>} />
+              <Route path="/ams/performance-testing/:subview" element={<MobileGuard><ProtectedRoute requiredRole={["coach", "sports_scientist", "admin", "sports_physician", "physiotherapist", "nutritionist", "foe"]}><PerformanceTestingHub /></ProtectedRoute></MobileGuard>} />
               <Route path="/ams/athlete/calendar" element={<ProtectedRoute requiredRole={["client", "athlete"]}><AthleteDashboard /></ProtectedRoute>} />
               <Route path="/ams/athlete/workout/:id" element={<ProtectedRoute requiredRole={["client", "athlete"]}><WorkoutLogging /></ProtectedRoute>} />
               <Route path="/ams/batch-tests" element={<MobileGuard><ProtectedRoute requiredRole={["coach", "sports_scientist", "admin", "sports_physician", "physiotherapist", "nutritionist"]}><BatchTestEntry /></ProtectedRoute></MobileGuard>} />

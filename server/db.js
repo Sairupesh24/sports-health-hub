@@ -1578,8 +1578,47 @@ async function runMigrations() {
 
     // Safely add missing columns to performance_assessments
     try {
-        await pool.query(`ALTER TABLE performance_assessments ADD COLUMN organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;`);
-    } catch (e) {}
+        await pool.query(`ALTER TABLE performance_assessments ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;`);
+        await pool.query(`ALTER TABLE performance_assessments ADD COLUMN IF NOT EXISTS org_id UUID REFERENCES organizations(id) ON DELETE CASCADE;`);
+        await pool.query(`ALTER TABLE performance_assessments ADD COLUMN IF NOT EXISTS assessor_id UUID REFERENCES users(id) ON DELETE SET NULL;`);
+        await pool.query(`ALTER TABLE performance_assessments ADD COLUMN IF NOT EXISTS protocol_id UUID;`);
+        await pool.query(`ALTER TABLE performance_assessments ADD COLUMN IF NOT EXISTS assessment_date DATE DEFAULT CURRENT_DATE;`);
+        await pool.query(`ALTER TABLE performance_assessments ADD COLUMN IF NOT EXISTS batch_or_squad TEXT;`);
+        await pool.query(`ALTER TABLE performance_assessments ADD COLUMN IF NOT EXISTS needs_analysis JSONB DEFAULT '{}'::jsonb;`);
+        await pool.query(`ALTER TABLE performance_assessments ADD COLUMN IF NOT EXISTS anthropometrics JSONB DEFAULT '{}'::jsonb;`);
+        await pool.query(`ALTER TABLE performance_assessments ADD COLUMN IF NOT EXISTS fms_data JSONB DEFAULT '{}'::jsonb;`);
+        await pool.query(`ALTER TABLE performance_assessments ADD COLUMN IF NOT EXISTS stability_data JSONB DEFAULT '{}'::jsonb;`);
+        await pool.query(`ALTER TABLE performance_assessments ADD COLUMN IF NOT EXISTS power_speed_data JSONB DEFAULT '{}'::jsonb;`);
+        await pool.query(`ALTER TABLE performance_assessments ADD COLUMN IF NOT EXISTS agility_data JSONB DEFAULT '{}'::jsonb;`);
+        await pool.query(`ALTER TABLE performance_assessments ADD COLUMN IF NOT EXISTS endurance_data JSONB DEFAULT '{}'::jsonb;`);
+        await pool.query(`ALTER TABLE performance_assessments ADD COLUMN IF NOT EXISTS anaerobic_data JSONB DEFAULT '{}'::jsonb;`);
+        await pool.query(`ALTER TABLE performance_assessments ADD COLUMN IF NOT EXISTS aerobic_data JSONB DEFAULT '{}'::jsonb;`);
+        await pool.query(`ALTER TABLE performance_assessments ADD COLUMN IF NOT EXISTS biomotor_ratings JSONB DEFAULT '{}'::jsonb;`);
+        await pool.query(`ALTER TABLE performance_assessments ADD COLUMN IF NOT EXISTS corrective_plan TEXT;`);
+        await pool.query(`ALTER TABLE performance_assessments ADD COLUMN IF NOT EXISTS plan_of_action TEXT;`);
+        await pool.query(`ALTER TABLE performance_assessments ADD COLUMN IF NOT EXISTS overall_impression TEXT;`);
+        await pool.query(`ALTER TABLE performance_assessments ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'completed';`);
+        await pool.query(`ALTER TABLE performance_assessments ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP;`);
+        await pool.query(`ALTER TABLE performance_assessments ALTER COLUMN category DROP NOT NULL;`);
+        await pool.query(`ALTER TABLE performance_assessments ALTER COLUMN test_name DROP NOT NULL;`);
+        await pool.query(`ALTER TABLE performance_assessments ALTER COLUMN metrics DROP NOT NULL;`);
+
+        await pool.query(`
+          CREATE TABLE IF NOT EXISTS performance_protocols (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            org_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
+            sport_name TEXT NOT NULL,
+            template_name TEXT NOT NULL,
+            slug TEXT NOT NULL,
+            sections_config JSONB NOT NULL DEFAULT '{}'::jsonb,
+            created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+            CONSTRAINT uq_performance_protocols_slug UNIQUE (slug)
+          );
+        `);
+    } catch (e) {
+      console.error('[DB] Error running performance migration in db.js:', e.message);
+    }
 
     // Max PR Records
     await pool.query(`

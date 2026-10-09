@@ -141,7 +141,7 @@ export function SportsScientistAssignWorkModal({ open, onOpenChange, onSuccess }
             return;
         }
         if (sessionMode === "Individual" && selectedClientIds.length === 0) {
-            toast({ title: "Validation Error", description: "Please select a client.", variant: "destructive" });
+            toast({ title: "Validation Error", description: "Please select at least one athlete.", variant: "destructive" });
             return;
         }
         if (sessionMode === "Group" && (!groupName || selectedClientIds.length === 0)) {
@@ -301,13 +301,9 @@ export function SportsScientistAssignWorkModal({ open, onOpenChange, onSuccess }
     };
 
     const toggleClient = (id: string) => {
-        if (sessionMode === "Individual") {
-            setSelectedClientIds([id]);
-        } else {
-            setSelectedClientIds(prev => 
-                prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
-            );
-        }
+        setSelectedClientIds(prev => 
+            prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+        );
     };
 
     const matchedGroup = recentGroups.find(g => g.name === groupName);
@@ -495,7 +491,7 @@ export function SportsScientistAssignWorkModal({ open, onOpenChange, onSuccess }
                         {sessionMode !== "Other" && (
                             <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
                                 <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">
-                                   {sessionMode === "Individual" ? "Athlete Profile" : "Participating Athletes"}
+                                   {sessionMode === "Individual" ? "Athletes" : "Participating Athletes"}
                                 </Label>
                                 <Popover open={athleteOpen} onOpenChange={setAthleteOpen}>
                                     <PopoverTrigger asChild>
@@ -513,9 +509,7 @@ export function SportsScientistAssignWorkModal({ open, onOpenChange, onSuccess }
                                                         return (
                                                             <Badge key={id} variant="secondary" className="bg-primary/10 text-primary border-none py-1 px-2 font-black italic tracking-tighter text-xs">
                                                                 <span className="truncate max-w-[130px] sm:max-w-[200px] inline-block">{c ? formatClientName(c) : id}</span>
-                                                                {sessionMode === "Group" && (
-                                                                    <X className="w-3 h-3 ml-1.5 cursor-pointer opacity-50 hover:opacity-100 shrink-0" onClick={(e) => { e.stopPropagation(); toggleClient(id); }} />
-                                                                )}
+                                                                <X className="w-3 h-3 ml-1.5 cursor-pointer opacity-50 hover:opacity-100 shrink-0" onClick={(e) => { e.stopPropagation(); toggleClient(id); }} />
                                                             </Badge>
                                                         );
                                                     })
@@ -535,7 +529,7 @@ export function SportsScientistAssignWorkModal({ open, onOpenChange, onSuccess }
                                             <CommandList className="max-h-[280px] overflow-y-auto overscroll-contain">
                                                 <CommandEmpty>No athlete found.</CommandEmpty>
                                                 <CommandGroup>
-                                                    {sessionMode === "Group" && displayedClients.length > 0 && (
+                                                    {(sessionMode === "Group" || sessionMode === "Individual") && displayedClients.length > 0 && (
                                                         <div className="p-2 border-b">
                                                             <Button 
                                                                 variant="secondary" 
@@ -555,12 +549,7 @@ export function SportsScientistAssignWorkModal({ open, onOpenChange, onSuccess }
                                                             key={c.id}
                                                             value={`${formatClientName(c)} ${c.uhid || ''}`}
                                                             onSelect={() => {
-                                                                if (sessionMode === "Individual") {
-                                                                    setSelectedClientIds([c.id]);
-                                                                    setAthleteOpen(false);
-                                                                } else {
-                                                                    toggleClient(c.id);
-                                                                }
+                                                                toggleClient(c.id);
                                                             }}
                                                             className="py-2.5 px-3 sm:px-4 flex items-center justify-between cursor-pointer"
                                                         >
@@ -601,6 +590,14 @@ export function SportsScientistAssignWorkModal({ open, onOpenChange, onSuccess }
                                             <span className="font-black uppercase tracking-wider text-[10px] block mb-0.5 text-rose-700 dark:text-rose-400">Payment Overdue Notice</span>
                                             One or more selected athletes have pending payments. Please advise them to clear dues.
                                         </div>
+                                    </div>
+                                )}
+                                {sessionMode === "Individual" && selectedClientIds.length > 1 && (
+                                    <div className="mt-2.5 p-3 bg-primary/5 border border-primary/10 rounded-2xl flex items-center gap-2.5 text-xs text-primary animate-in fade-in slide-in-from-top-1">
+                                        <Users className="w-3.5 h-3.5 shrink-0" />
+                                        <p className="font-black text-[10px] uppercase tracking-wide">
+                                            {selectedClientIds.length} athletes selected — a separate session card will be created for each on the calendar.
+                                        </p>
                                     </div>
                                 )}
                             </div>
@@ -852,7 +849,11 @@ export function SportsScientistAssignWorkModal({ open, onOpenChange, onSuccess }
                                 <Loader2 className="w-5 h-5 animate-spin" />
                             ) : (
                                 <div className="flex items-center gap-2">
-                                   <Plus className="w-4 h-4" /> Assign Session
+                                   <Plus className="w-4 h-4" />
+                                   {sessionMode === "Individual" && selectedClientIds.length > 1
+                                       ? `Assign ${selectedClientIds.length} Sessions`
+                                       : "Assign Session"
+                                   }
                                 </div>
                             )}
                         </Button>

@@ -111,7 +111,7 @@ export function SportsScientistBookSessionModal({ open, onOpenChange, onSuccess 
 
     const handleSave = async () => {
         if (sessionMode === "Individual" && selectedClientIds.length === 0) {
-            toast({ title: "Validation Error", description: "Please select a client.", variant: "destructive" });
+            toast({ title: "Validation Error", description: "Please select at least one athlete.", variant: "destructive" });
             return;
         }
         if (sessionMode === "Group" && (!groupName || selectedClientIds.length === 0)) {
@@ -520,12 +520,7 @@ export function SportsScientistBookSessionModal({ open, onOpenChange, onSuccess 
                                                             key={c.id}
                                                             value={`${formatClientName(c)} ${c.uhid || ''}`}
                                                             onSelect={() => {
-                                                                if (sessionMode === "Individual") {
-                                                                    setSelectedClientIds([c.id]);
-                                                                    setAthleteOpen(false);
-                                                                } else {
-                                                                    toggleClient(c.id);
-                                                                }
+                                                                toggleClient(c.id);
                                                             }}
                                                             className="py-2.5 px-3 sm:px-4 flex items-center justify-between cursor-pointer"
                                                         >
