@@ -432,48 +432,10 @@ router.post('/sessions/bulk', requireAuth, async (req, res) => {
         const insertedSessions = [];
         for (const session of sessions) {
             const provider_id = session.scientist_id || session.therapist_id;
-            if (provider_id) {
-                // Check capacity
-                const providerRes = await client.query('SELECT ams_role, profession FROM profiles WHERE id = $1', [provider_id]);
-                const provider = providerRes.rows.length > 0 ? providerRes.rows[0] : null;
-                const profession = (provider?.profession || '').toLowerCase();
-                const amsRole = (provider?.ams_role || '').toLowerCase();
-
-                // Sports scientists have no capacity limit — they can take any number of clients per slot.
-                const isSportsScientist = profession.includes('scientist') || amsRole.includes('scientist');
-                if (!isSportsScientist) {
-                    let capacityLimit = 2;
-                    try {
-                        const orgRes = await client.query('SELECT default_slot_capacity, allow_custom_duration, custom_specialist_settings FROM organizations WHERE id = $1', [orgId]);
-                        if (orgRes.rows.length > 0) {
-                            const org = orgRes.rows[0];
-                            if (org.default_slot_capacity) capacityLimit = parseInt(org.default_slot_capacity, 10) || 2;
-                            if (org.allow_custom_duration && org.custom_specialist_settings) {
-                                const custom = typeof org.custom_specialist_settings === 'string' ? JSON.parse(org.custom_specialist_settings) : org.custom_specialist_settings;
-                                const override = (provider_id && custom[provider_id]) || custom[profession] || custom[amsRole];
-                                if (override && override.capacity !== undefined) {
-                                    capacityLimit = override.capacity === 'infinity' ? Infinity : (parseInt(override.capacity, 10) || capacityLimit);
-                                }
-                            }
-                        }
-                    } catch (e) {}
-
-                    const activeRes = await client.query(`
-                        SELECT id FROM sessions 
-                        WHERE (therapist_id = $1 OR scientist_id = $1)
-                        AND status != 'Cancelled'
-                        AND status != 'Waitlisted'
-                        AND (
-                            (scheduled_start <= $2 AND scheduled_end > $2) OR
-                            (scheduled_start < $3 AND scheduled_end >= $3) OR
-                            (scheduled_start >= $2 AND scheduled_end <= $3)
-                        )
-                    `, [provider_id, session.scheduled_start, session.scheduled_end]);
-
-                    if (activeRes.rows.length >= capacityLimit) {
-                        session.status = 'Waitlisted';
-                    }
-                }
+            // Sports science / athlete management sessions (Training, Testing, S&C) have no slot capacity limitation (unlimited athletes per slot).
+            // Waitlisting is strictly restricted to clinical physiotherapy consultations.
+            if (session.status === 'Waitlisted') {
+                session.status = 'Planned';
             }
 
             // Check if an existing session already exists for this client/group, provider, and slot

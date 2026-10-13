@@ -175,4 +175,90 @@ describe('Custom Specialist Durations and Dynamic Slot Capacity', () => {
         expect(slots[2]).toMatchObject({ startTime: "13:00", endTime: "14:00", duration: 60, capacityLimit: 1 });
         expect(slots[3]).toMatchObject({ startTime: "14:00", endTime: "15:00", duration: 60, capacityLimit: 1 });
     });
+
+    describe('Dual-role Professional (Sports Scientist & Physiotherapist) capacity', () => {
+        const dualRoleProfessional = {
+            id: "dual-role-1",
+            profession: "Physiotherapist",
+            role: "therapist",
+            ams_role: "coach"
+        };
+
+        const orgSettings = {
+            default_slot_duration: 60,
+            default_slot_capacity: 2
+        };
+
+        it('resolves capacityLimit as Infinity for sports science / athlete management context even if profession is Physiotherapist', () => {
+            // Training service context
+            const trainingResolved = resolveSpecialistSettings(orgSettings, dualRoleProfessional, {
+                serviceType: "Training",
+                serviceName: "Strength & Conditioning"
+            });
+            expect(trainingResolved.capacityLimit).toBe(Infinity);
+
+            // Sports science source console context
+            const amsResolved = resolveSpecialistSettings(orgSettings, dualRoleProfessional, {
+                sourceConsole: "sports_science"
+            });
+            expect(amsResolved.capacityLimit).toBe(Infinity);
+
+            // Clinical Physiotherapy context retains normal capacity limit (e.g., 2)
+            const clinicalResolved = resolveSpecialistSettings(orgSettings, dualRoleProfessional, {
+                serviceType: "Physiotherapy",
+                sourceConsole: "clinical"
+            });
+            expect(clinicalResolved.capacityLimit).toBe(2);
+        });
+
+        it('never waitlists or marks slot FULL for sports science sessions with many booked athletes', () => {
+            // 5 athletes already booked in 09:00 - 10:00
+            const bookedSessions = [
+                { therapist_id: "dual-role-1", scheduled_start: "2026-09-01T09:00:00", scheduled_end: "2026-09-01T10:00:00", status: "Planned", source_console: "sports_science" },
+                { therapist_id: "dual-role-1", scheduled_start: "2026-09-01T09:00:00", scheduled_end: "2026-09-01T10:00:00", status: "Planned", source_console: "sports_science" },
+                { therapist_id: "dual-role-1", scheduled_start: "2026-09-01T09:00:00", scheduled_end: "2026-09-01T10:00:00", status: "Planned", source_console: "sports_science" },
+                { therapist_id: "dual-role-1", scheduled_start: "2026-09-01T09:00:00", scheduled_end: "2026-09-01T10:00:00", status: "Planned", source_console: "sports_science" },
+                { therapist_id: "dual-role-1", scheduled_start: "2026-09-01T09:00:00", scheduled_end: "2026-09-01T10:00:00", status: "Planned", source_console: "sports_science" }
+            ];
+
+            const trainingSlots = generateDynamicSlots({
+                shiftStart: "09:00:00",
+                shiftEnd: "11:00:00",
+                defaultSlotDuration: 60,
+                capacityLimit: Infinity, // Sports science sessions have no limit
+                bookedSessions,
+                consultantId: "dual-role-1",
+                dateStr: "2026-09-01"
+            });
+
+            expect(trainingSlots[0].status).toBe("available");
+            expect(trainingSlots[0].isBooked).toBe(false);
+            expect(trainingSlots[0].label).not.toContain("FULL");
+        });
+
+        it('clinical physiotherapy capacity excludes sports science training sessions from slot usage count', () => {
+            // 3 sports science training sessions + 1 clinical session in 09:00 - 10:00
+            const bookedSessions = [
+                { therapist_id: "dual-role-1", scheduled_start: "2026-09-01T09:00:00", scheduled_end: "2026-09-01T10:00:00", status: "Planned", source_console: "sports_science", service_type: "Training" },
+                { therapist_id: "dual-role-1", scheduled_start: "2026-09-01T09:00:00", scheduled_end: "2026-09-01T10:00:00", status: "Planned", source_console: "sports_science", service_type: "Training" },
+                { therapist_id: "dual-role-1", scheduled_start: "2026-09-01T09:00:00", scheduled_end: "2026-09-01T10:00:00", status: "Planned", source_console: "sports_science", service_type: "Training" },
+                { therapist_id: "dual-role-1", scheduled_start: "2026-09-01T09:00:00", scheduled_end: "2026-09-01T10:00:00", status: "Planned", source_console: "clinical", service_type: "Physiotherapy" }
+            ];
+
+            const physioSlots = generateDynamicSlots({
+                shiftStart: "09:00:00",
+                shiftEnd: "11:00:00",
+                defaultSlotDuration: 60,
+                capacityLimit: 2, // Physio limit 2
+                bookedSessions,
+                consultantId: "dual-role-1",
+                dateStr: "2026-09-01"
+            });
+
+            // Since sports science sessions don't consume clinical capacity, bookedCount is 1 (< 2), so slot remains available
+            expect(physioSlots[0].bookedCount).toBe(1);
+            expect(physioSlots[0].status).toBe("available");
+            expect(physioSlots[0].isBooked).toBe(false);
+        });
+    });
 });

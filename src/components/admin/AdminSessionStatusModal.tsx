@@ -188,7 +188,11 @@ export function AdminSessionStatusModal({ open, onOpenChange, session, onSuccess
         const dayOfWeek = dateObj.getDay();
 
         const targetStaff = staffList.find(s => s.id === reassignConsultantId);
-        const resolved = resolveSpecialistSettings(orgSettings, targetStaff);
+        const resolved = resolveSpecialistSettings(orgSettings, targetStaff, {
+            serviceType: session?.service_type,
+            serviceName: session?.service_name,
+            sourceConsole: session?.source_console
+        });
         const capacityLimit = resolved.capacityLimit;
         const defaultSlotDuration = resolved.slotDuration;
 
@@ -208,7 +212,7 @@ export function AdminSessionStatusModal({ open, onOpenChange, session, onSuccess
         });
 
         return dynamicSlots.filter(s => s.status === 'available');
-    }, [reassignConsultantId, reassignDate, targetConsultantLeave, targetSchedule, orgSettings, targetBookedSessions, staffList]);
+    }, [reassignConsultantId, reassignDate, targetConsultantLeave, targetSchedule, orgSettings, targetBookedSessions, staffList, session]);
 
     useEffect(() => {
         if (session) {
@@ -218,13 +222,13 @@ export function AdminSessionStatusModal({ open, onOpenChange, session, onSuccess
             fetchServices();
             if (session.actual_start) {
                 setActualStart(format(new Date(session.actual_start), "HH:mm"));
-            } else if (session.scheduled_start) {
-                setActualStart(format(new Date(session.scheduled_start), "HH:mm"));
+            } else {
+                setActualStart("");
             }
             if (session.actual_end) {
                 setActualEnd(format(new Date(session.actual_end), "HH:mm"));
-            } else if (session.scheduled_end) {
-                setActualEnd(format(new Date(session.scheduled_end), "HH:mm"));
+            } else {
+                setActualEnd("");
             }
 
             // Initialize rescheduling defaults
@@ -302,8 +306,9 @@ export function AdminSessionStatusModal({ open, onOpenChange, session, onSuccess
     const sessionDay = sessionDate ? startOfDay(sessionDate) : todayStart;
     const daysFromToday = differenceInCalendarDays(sessionDay, todayStart);
 
-    // Future session: scheduled for TOMORROW OR LATER (daysFromToday > 0)
-    const isFutureSession = daysFromToday > 0;
+    // Future session: scheduled for later or in the future
+    const isFutureScheduled = sessionDate ? sessionDate > now : false;
+    const isFutureSession = daysFromToday > 0 || isFutureScheduled;
     const isTodaySession = daysFromToday === 0;
     const isPastSession = daysFromToday < 0;
 
@@ -320,9 +325,20 @@ export function AdminSessionStatusModal({ open, onOpenChange, session, onSuccess
     const handleSave = async () => {
         if (!session?.id) return;
 
-        if (status === "Completed" && isFutureSession) {
-            toast({ title: "Not Allowed", description: `This session is scheduled for ${format(new Date(session.scheduled_start), "MMM d, yyyy h:mm a")}. You cannot mark a future session as Completed.`, variant: "destructive" });
-            return;
+        if (status === "Completed") {
+            const nowTime = new Date();
+            if (isFutureSession || (session?.scheduled_start && new Date(session.scheduled_start) > nowTime)) {
+                toast({ title: "Not Allowed", description: `This session is scheduled for ${format(new Date(session.scheduled_start), "MMM d, yyyy h:mm a")}. You cannot mark a future session as Completed.`, variant: "destructive" });
+                return;
+            }
+            if (!actualStart?.trim() || !actualEnd?.trim()) {
+                toast({ title: "Session Timings Required", description: "Please enter both actual start and end timings to mark this session as Completed.", variant: "destructive" });
+                return;
+            }
+            if (actualEnd.trim() <= actualStart.trim()) {
+                toast({ title: "Invalid Timings", description: "Actual end time must be after the start time.", variant: "destructive" });
+                return;
+            }
         }
         if (status === "Cancelled" && !cancellationReason.trim()) {
             toast({ title: "Reason Required", description: "Please enter the reason for cancelling this session.", variant: "destructive" });
@@ -336,10 +352,22 @@ export function AdminSessionStatusModal({ open, onOpenChange, session, onSuccess
         setLoading(true);
         try {
             if (status === "Completed") {
-                if (!actualStart || !actualEnd) throw new Error("Actual start and end times are required for completed sessions.");
+                if (!actualStart?.trim() || !actualEnd?.trim()) throw new Error("Actual start and end times are required for completed sessions.");
+                if (actualEnd.trim() <= actualStart.trim()) throw new Error("Actual end time must be after start time.");
+
                 const dateStr = format(new Date(session.scheduled_start), "yyyy-MM-dd");
-                const aStart = new Date(`${dateStr}T${actualStart}:00`).toISOString();
-                const aEnd = new Date(`${dateStr}T${actualEnd}:00`).toISOString();
+                const cleanStart = actualStart.trim().length === 5 ? `${actualStart.trim()}:00` : actualStart.trim();
+                const cleanEnd = actualEnd.trim().length === 5 ? `${actualEnd.trim()}:00` : actualEnd.trim();
+
+                const startDateObj = new Date(`${dateStr}T${cleanStart}`);
+                const endDateObj = new Date(`${dateStr}T${cleanEnd}`);
+
+                if (isNaN(startDateObj.getTime()) || isNaN(endDateObj.getTime())) {
+                    throw new Error("Invalid start or end time format.");
+                }
+
+                const aStart = startDateObj.toISOString();
+                const aEnd = endDateObj.toISOString();
 
                 await apiFetch(`/appointments/${session.id}/complete`, {
                     method: 'POST',
@@ -678,6 +706,86 @@ export function AdminSessionStatusModal({ open, onOpenChange, session, onSuccess
                                 </Select>
                             </div>
 
+                            {status === "Completed" && (
+                                <div className="grid gap-3 animate-in slide-in-from-top-2 p-3.5 bg-emerald-50/70 dark:bg-emerald-950/30 rounded-xl border border-emerald-200 dark:border-emerald-800">
+                                    <div className="flex items-center justify-between">
+                                        <Label className="font-semibold text-emerald-900 dark:text-emerald-200 flex items-center gap-1.5 text-xs">
+                                            <Clock className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                                            Session Timings <span className="text-rose-500 font-bold">*</span>
+                                        </Label>
+                                        <span className="text-[10px] bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-300 font-bold uppercase tracking-wider px-2 py-0.5 rounded">
+                                            Mandatory
+                                        </span>
+                                    </div>
+                                    <p className="text-[11px] text-muted-foreground leading-tight">
+                                        Please enter the actual start and end timings to mark this session as completed.
+                                    </p>
+
+                                    {session.scheduled_start && session.scheduled_end && (
+                                        <div className="flex items-center justify-between bg-white dark:bg-slate-900 px-2.5 py-1.5 rounded-lg border border-emerald-200/60 dark:border-emerald-800/60 text-xs">
+                                            <span className="text-muted-foreground text-[11px]">
+                                                Scheduled: <strong className="text-foreground">{format(new Date(session.scheduled_start), "h:mm a")} – {format(new Date(session.scheduled_end), "h:mm a")}</strong>
+                                            </span>
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="sm"
+                                                className="h-6 text-[10px] text-emerald-700 hover:text-emerald-800 hover:bg-emerald-100 dark:text-emerald-400 dark:hover:bg-emerald-950 font-bold px-2 py-0"
+                                                onClick={() => {
+                                                    setActualStart(format(new Date(session.scheduled_start), "HH:mm"));
+                                                    setActualEnd(format(new Date(session.scheduled_end), "HH:mm"));
+                                                }}
+                                            >
+                                                Prefill Scheduled
+                                            </Button>
+                                        </div>
+                                    )}
+
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div className="space-y-1">
+                                            <Label htmlFor="actual-start-time" className="text-xs text-muted-foreground font-medium flex items-center justify-between">
+                                                <span>Actual Start *</span>
+                                            </Label>
+                                            <Input
+                                                id="actual-start-time"
+                                                type="time"
+                                                value={actualStart}
+                                                onChange={(e) => setActualStart(e.target.value)}
+                                                className="h-9 text-xs bg-white dark:bg-slate-900 border-emerald-300 dark:border-emerald-700 font-medium"
+                                                required
+                                            />
+                                        </div>
+                                        <div className="space-y-1">
+                                            <Label htmlFor="actual-end-time" className="text-xs text-muted-foreground font-medium flex items-center justify-between">
+                                                <span>Actual End *</span>
+                                            </Label>
+                                            <Input
+                                                id="actual-end-time"
+                                                type="time"
+                                                value={actualEnd}
+                                                onChange={(e) => setActualEnd(e.target.value)}
+                                                className="h-9 text-xs bg-white dark:bg-slate-900 border-emerald-300 dark:border-emerald-700 font-medium"
+                                                required
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {actualStart && actualEnd && actualEnd <= actualStart && (
+                                        <p className="text-[11px] text-rose-600 dark:text-rose-400 font-semibold flex items-center gap-1">
+                                            <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                                            Actual end time must be after start time.
+                                        </p>
+                                    )}
+
+                                    {(!actualStart || !actualEnd) && (
+                                        <p className="text-[11px] text-amber-700 dark:text-amber-400 flex items-center gap-1">
+                                            <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                                            Both start and end timings are mandatory to mark as Completed.
+                                        </p>
+                                    )}
+                                </div>
+                            )}
+
                             {status === "Cancelled" && (
                                 <div className="grid gap-2 animate-in slide-in-from-top-2 p-3 bg-rose-50/70 dark:bg-rose-950/30 rounded-xl border border-rose-200 dark:border-rose-800">
                                     <Label className="font-semibold text-rose-800 dark:text-rose-300 flex items-center justify-between text-xs">
@@ -820,9 +928,19 @@ export function AdminSessionStatusModal({ open, onOpenChange, session, onSuccess
                                 </div>
                             )}
 
-                            <Button onClick={handleSave} disabled={loading} className="w-full mt-2">
+                            <Button 
+                                onClick={handleSave} 
+                                disabled={loading || (status === "Completed" && (!actualStart?.trim() || !actualEnd?.trim() || actualEnd.trim() <= actualStart.trim()))} 
+                                className="w-full mt-2"
+                            >
                                 {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                {status === "Rescheduled" ? "Reschedule Session" : status === "Reassigned" ? "Confirm Reassignment" : "Save Status"}
+                                {status === "Rescheduled" 
+                                    ? "Reschedule Session" 
+                                    : status === "Reassigned" 
+                                    ? "Confirm Reassignment" 
+                                    : status === "Completed"
+                                    ? "Complete Session"
+                                    : "Save Status"}
                             </Button>
                         </>
                     )}

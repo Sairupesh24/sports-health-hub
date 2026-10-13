@@ -193,29 +193,38 @@ router.post('/', requireAuth, async (req, res) => {
             }
         }
 
-        // 1. Check capacity for this therapist
-        const providerRes = await client.query('SELECT ams_role, profession FROM profiles WHERE id = $1', [therapist_id]);
+        // 1. Check capacity for this provider
+        const providerId = therapist_id || req.body.scientist_id;
+        const providerRes = await client.query('SELECT ams_role, profession FROM profiles WHERE id = $1', [providerId]);
         const provider = providerRes.rows.length > 0 ? providerRes.rows[0] : null;
         const profession = provider?.profession?.toLowerCase();
         const amsRole = provider?.ams_role?.toLowerCase();
 
-        const capacityLimit = await resolveProviderCapacity(client, orgId, therapist_id, profession, amsRole);
-
-        const activeRes = await client.query(`
-            SELECT id FROM sessions 
-            WHERE (therapist_id = $1 OR scientist_id = $1)
-            AND status != 'Cancelled'
-            AND status != 'Waitlisted'
-            AND (
-                (scheduled_start <= $2 AND scheduled_end > $2) OR
-                (scheduled_start < $3 AND scheduled_end >= $3) OR
-                (scheduled_start >= $2 AND scheduled_end <= $3)
-            )
-        `, [therapist_id, scheduled_start, scheduled_end]);
+        const capacityLimit = await resolveProviderCapacity(client, orgId, providerId, profession, amsRole, {
+            serviceType: service_type,
+            serviceId: service_id,
+            sourceConsole: effectiveSourceConsole,
+            scientistId: req.body.scientist_id,
+            therapistId: therapist_id
+        });
 
         let appointmentStatus = 'Planned';
-        if (capacityLimit !== Infinity && activeRes.rows.length >= capacityLimit) {
-            appointmentStatus = 'Waitlisted';
+        if (capacityLimit !== Infinity) {
+            const activeRes = await client.query(`
+                SELECT id FROM sessions 
+                WHERE (therapist_id = $1 OR scientist_id = $1)
+                AND status NOT IN ('Cancelled', 'Waitlisted', 'Deleted')
+                AND (source_console IS NULL OR source_console != 'sports_science')
+                AND (
+                    (scheduled_start <= $2 AND scheduled_end > $2) OR
+                    (scheduled_start < $3 AND scheduled_end >= $3) OR
+                    (scheduled_start >= $2 AND scheduled_end <= $3)
+                )
+            `, [providerId, scheduled_start, scheduled_end]);
+
+            if (activeRes.rows.length >= capacityLimit) {
+                appointmentStatus = 'Waitlisted';
+            }
         }
 
         // 1.5 Check if client has outstanding dues
@@ -407,13 +416,42 @@ async function checkIsAdmin(userId, userRole) {
     return false;
 }
 
+// Helper to determine if a session is in the Sports Science / Athlete Management context
+function isSportsScienceContext({ serviceType, sourceConsole, scientistId, profession, amsRole } = {}) {
+    if (sourceConsole === 'sports_science') return true;
+    if (Boolean(scientistId)) return true;
+    const sType = (serviceType || '').toLowerCase().trim();
+    if (['training', 'testing', 's&c', 'strength & conditioning', 'strength and conditioning', 'performance', 'sports science', 'workout', 'athletic'].some(k => sType.includes(k))) {
+        return true;
+    }
+    const prof = (profession || '').toLowerCase().trim();
+    const role = (amsRole || '').toLowerCase().trim();
+    if (prof.includes('scientist') || role.includes('scientist')) {
+        return true;
+    }
+    return false;
+}
+
 // Helper to resolve dynamic provider capacity based on organization settings & specialist overrides
-async function resolveProviderCapacity(client, orgId, providerId, profession, amsRole) {
+async function resolveProviderCapacity(client, orgId, providerId, profession, amsRole, sessionContext = {}) {
     const prof = (profession || '').toLowerCase();
     const role = (amsRole || '').toLowerCase();
 
-    const isScientist = prof.includes('scientist') || role.includes('scientist');
-    let defaultCapacity = isScientist ? Infinity : 2;
+    // Sports Science / Athlete Management sessions have NO capacity limit (can take any number of clients per slot).
+    // Waitlisting is strictly restricted to clinical / physiotherapy sessions.
+    const isSportsScience = isSportsScienceContext({
+        serviceType: sessionContext.serviceType,
+        sourceConsole: sessionContext.sourceConsole,
+        scientistId: sessionContext.scientistId,
+        profession: prof,
+        amsRole: role
+    });
+
+    if (isSportsScience) {
+        return Infinity;
+    }
+
+    let defaultCapacity = 2;
 
     try {
         const orgRes = await client.query(
@@ -423,7 +461,7 @@ async function resolveProviderCapacity(client, orgId, providerId, profession, am
         if (orgRes.rows.length > 0) {
             const org = orgRes.rows[0];
             const globalCap = parseInt(org.default_slot_capacity, 10);
-            if (!isNaN(globalCap) && !isScientist) {
+            if (!isNaN(globalCap)) {
                 defaultCapacity = globalCap;
             }
 
@@ -434,7 +472,7 @@ async function resolveProviderCapacity(client, orgId, providerId, profession, am
 
                 const override = (providerId && custom[providerId]) || custom[prof] || custom[role];
                 if (override && override.capacity !== undefined) {
-                    if (override.capacity === 'infinity' || override.capacity === Infinity) {
+                    if (override.capacity === 'infinity' || override.capacity === Infinity || override.capacity === 'Unlimited') {
                         return Infinity;
                     }
                     const parsed = parseInt(override.capacity, 10);
@@ -487,22 +525,32 @@ router.post('/:id/reschedule', requireAuth, async (req, res) => {
         const profession = (provider?.profession || '').toLowerCase();
         const amsRole = (provider?.ams_role || '').toLowerCase();
 
-        const capacityLimit = await resolveProviderCapacity(client, orgId, providerId, profession, amsRole);
-
-        const activeRes = await client.query(`
-            SELECT id FROM sessions 
-            WHERE (therapist_id = $1 OR scientist_id = $1)
-            AND status NOT IN ('Cancelled', 'Waitlisted', 'Rescheduled')
-            AND (
-                (scheduled_start <= $2 AND scheduled_end > $2) OR
-                (scheduled_start < $3 AND scheduled_end >= $3) OR
-                (scheduled_start >= $2 AND scheduled_end <= $3)
-            )
-        `, [providerId, new_start, new_end]);
+        const capacityLimit = await resolveProviderCapacity(client, orgId, providerId, profession, amsRole, {
+            serviceType: old.service_type,
+            serviceId: old.service_id,
+            sourceConsole: old.source_console,
+            scientistId: old.scientist_id,
+            therapistId: old.therapist_id
+        });
 
         let newStatus = 'Planned';
-        if (capacityLimit !== Infinity && activeRes.rows.length >= capacityLimit) {
-            newStatus = 'Waitlisted';
+        if (capacityLimit !== Infinity) {
+            const activeRes = await client.query(`
+                SELECT id FROM sessions 
+                WHERE (therapist_id = $1 OR scientist_id = $1)
+                AND id != $4
+                AND status NOT IN ('Cancelled', 'Waitlisted', 'Rescheduled', 'Deleted')
+                AND (source_console IS NULL OR source_console != 'sports_science')
+                AND (
+                    (scheduled_start <= $2 AND scheduled_end > $2) OR
+                    (scheduled_start < $3 AND scheduled_end >= $3) OR
+                    (scheduled_start >= $2 AND scheduled_end <= $3)
+                )
+            `, [providerId, new_start, new_end, id]);
+
+            if (activeRes.rows.length >= capacityLimit) {
+                newStatus = 'Waitlisted';
+            }
         }
         // 3. Update session in place on the SAME record
         await client.query(`
@@ -633,7 +681,13 @@ router.post('/:id/reschedule-future', requireAuth, async (req, res) => {
         const profession = (provider?.profession || '').toLowerCase();
         const amsRole = (provider?.ams_role || '').toLowerCase();
 
-        const capacityLimit = await resolveProviderCapacity(client, orgId, providerId, profession, amsRole);
+        const capacityLimit = await resolveProviderCapacity(client, orgId, providerId, profession, amsRole, {
+            serviceType: old.service_type,
+            serviceId: old.service_id,
+            sourceConsole: old.source_console,
+            scientistId: old.scientist_id,
+            therapistId: old.therapist_id
+        });
 
         let confirmedCount = 0;
         let waitlistedCount = 0;
@@ -651,23 +705,28 @@ router.post('/:id/reschedule-future', requireAuth, async (req, res) => {
             const futNewStart = futNewStartObj.toISOString();
             const futNewEnd = new Date(futNewStartObj.getTime() + durationMs).toISOString();
 
-            // Capacity check for this target slot
-            const activeRes = await client.query(`
-                SELECT id FROM sessions 
-                WHERE (therapist_id = $1 OR scientist_id = $1)
-                AND id != $4
-                AND LOWER(status) NOT IN ('cancelled', 'waitlisted', 'rescheduled', 'deleted')
-                AND (
-                    (scheduled_start <= $2 AND scheduled_end > $2) OR
-                    (scheduled_start < $3 AND scheduled_end >= $3) OR
-                    (scheduled_start >= $2 AND scheduled_end <= $3)
-                )
-            `, [providerId, futNewStart, futNewEnd, fut.id]);
-
             let newStatus = 'Planned';
-            if (capacityLimit !== Infinity && activeRes.rows.length >= capacityLimit) {
-                newStatus = 'Waitlisted';
-                waitlistedCount++;
+            if (capacityLimit !== Infinity) {
+                // Capacity check for this target slot
+                const activeRes = await client.query(`
+                    SELECT id FROM sessions 
+                    WHERE (therapist_id = $1 OR scientist_id = $1)
+                    AND id != $4
+                    AND LOWER(status) NOT IN ('cancelled', 'waitlisted', 'rescheduled', 'deleted')
+                    AND (source_console IS NULL OR source_console != 'sports_science')
+                    AND (
+                        (scheduled_start <= $2 AND scheduled_end > $2) OR
+                        (scheduled_start < $3 AND scheduled_end >= $3) OR
+                        (scheduled_start >= $2 AND scheduled_end <= $3)
+                    )
+                `, [providerId, futNewStart, futNewEnd, fut.id]);
+
+                if (activeRes.rows.length >= capacityLimit) {
+                    newStatus = 'Waitlisted';
+                    waitlistedCount++;
+                } else {
+                    confirmedCount++;
+                }
             } else {
                 confirmedCount++;
             }
@@ -768,20 +827,27 @@ router.post('/:id/reassign', requireAuth, async (req, res) => {
         const profession = targetProf?.profession?.toLowerCase() || '';
         const amsRole = targetProf?.ams_role?.toLowerCase() || '';
 
-        const isScientist = profession.includes('scientist') || amsRole.includes('scientist');
+        const isScientist = isSportsScienceContext({
+            serviceType: old.service_type,
+            sourceConsole: old.source_console,
+            scientistId: old.scientist_id,
+            profession,
+            amsRole
+        });
         const newTherapistId = isScientist ? null : target_consultant_id;
         const newScientistId = isScientist ? target_consultant_id : null;
+        const newSourceConsole = old.source_console || (isScientist ? 'sports_science' : 'clinical');
 
         // 4. Insert new session for the target consultant
         const newRes = await client.query(`
             INSERT INTO sessions (
                 organization_id, client_id, therapist_id, scientist_id, service_id, service_type, session_mode, session_notes,
-                scheduled_start, scheduled_end, status, entitlement_id, is_unentitled, created_by
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+                scheduled_start, scheduled_end, status, entitlement_id, is_unentitled, created_by, source_console
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
             RETURNING id
         `, [
             orgId, old.client_id, newTherapistId, newScientistId, old.service_id, old.service_type, old.session_mode || 'In-Person', old.session_notes || null,
-            new_start, new_end, 'Planned', old.entitlement_id || null, old.is_unentitled || false, req.user.id
+            new_start, new_end, 'Planned', old.entitlement_id || null, old.is_unentitled || false, req.user.id, newSourceConsole
         ]);
 
         await client.query('COMMIT');

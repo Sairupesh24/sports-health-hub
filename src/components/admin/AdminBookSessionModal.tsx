@@ -421,9 +421,14 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess, initialDa
     useEffect(() => {
         if (!consultantId || !sessionDate) return;
         const consultant = filteredConsultants.find(c => c.id === consultantId) || consultants.find(c => c.id === consultantId);
-        const resolved = resolveSpecialistSettings(orgSettings, consultant);
+        const selectedService = services.find(s => s.id === serviceId);
+        const resolved = resolveSpecialistSettings(orgSettings, consultant, {
+            serviceType: serviceType || selectedService?.service_type,
+            serviceName: selectedService?.name,
+            category: (selectedService as any)?.category
+        });
         setSessionDuration(resolved.slotDuration);
-    }, [consultantId, sessionDate, orgSettings, filteredConsultants, consultants]);
+    }, [consultantId, sessionDate, orgSettings, filteredConsultants, consultants, serviceId, serviceType, services]);
 
     const fetchServices = async () => {
         try {
@@ -495,7 +500,12 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess, initialDa
 
         // 1. Resolve duration & capacity from org settings / specialist overrides
         const consultant = filteredConsultants.find(c => c.id === consultantId) || consultants.find(c => c.id === consultantId);
-        const resolved = resolveSpecialistSettings(orgSettings, consultant);
+        const selectedService = services.find(s => s.id === serviceId);
+        const resolved = resolveSpecialistSettings(orgSettings, consultant, {
+            serviceType: serviceType || selectedService?.service_type,
+            serviceName: selectedService?.name,
+            category: (selectedService as any)?.category
+        });
 
         const schedStartRaw = consultantSchedule?.shift_start
             || allConsultantAvailability.find(a => a.consultant_id === consultantId && a.day_of_week === dayOfWeek)?.start_time
@@ -542,7 +552,7 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess, initialDa
                 duration: s.duration
             };
         });
-    }, [consultantId, sessionDate, allConsultantAvailability, allBookedSessions, orgSettings, filteredConsultants, consultants, consultantSchedule, selectedConsultantLeave]);
+    }, [consultantId, sessionDate, allConsultantAvailability, allBookedSessions, orgSettings, filteredConsultants, consultants, consultantSchedule, selectedConsultantLeave, serviceId, serviceType, services]);
 
     const checkSlotAvailability = async (time: string, endT: string) => {
         if (!time || !endT || !consultantId) return;
@@ -626,9 +636,11 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess, initialDa
             const consultant = filteredConsultants.find(c => c.id === consultantId) || consultants.find(c => c.id === consultantId);
             const prof = consultant?.profession?.toLowerCase();
             const r = consultant?.role?.toLowerCase();
-            const isSportsScientist = prof === 'sports scientist' || r === 'sports_scientist';
+            const sType = (serviceType || '').toLowerCase();
+            const isSportsScienceService = ['training', 'testing', 's&c', 'strength & conditioning', 'strength and conditioning', 'performance', 'sports science', 'workout', 'athletic'].some(k => sType.includes(k));
+            const isSportsScientist = prof === 'sports scientist' || r === 'sports_scientist' || isSportsScienceService;
 
-            // Sports scientists have no capacity limit — always available regardless of booking count.
+            // Sports scientists and Sports Science training sessions have no capacity limit — always available regardless of booking count.
             if (isSportsScientist) {
                 setIsAvailable(true);
                 setIsConflict(false);

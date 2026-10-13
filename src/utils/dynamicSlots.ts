@@ -184,6 +184,15 @@ export function generateDynamicSlots(options: GenerateSlotsOptions): DynamicSlot
                         sStatus === 'rescheduled';
                     if (isInactive) return false;
 
+                    // In clinical capacity evaluation, sports science / training sessions do not consume clinical slot capacity
+                    if (capacityLimit !== Infinity) {
+                        const sSourceConsole = s.source_console || s.rawSession?.source_console;
+                        const sType = String(s.service_type || s.rawSession?.service_type || '').toLowerCase();
+                        if (sSourceConsole === 'sports_science' || sType.includes('training') || sType.includes('workout') || sType.includes('performance')) {
+                            return false;
+                        }
+                    }
+
                     if (!s.scheduled_start) return false;
                     const sStart = new Date(s.scheduled_start).getTime();
                     const sEnd = s.scheduled_end 
@@ -224,23 +233,45 @@ export interface SpecialistInfo {
     role?: string;
 }
 
+export interface ServiceContext {
+    serviceType?: string;
+    serviceName?: string;
+    sourceConsole?: string;
+    category?: string;
+    isSportsScience?: boolean;
+}
+
+export function isSportsScienceContext(
+    specialist?: SpecialistInfo | null,
+    serviceContext?: ServiceContext | null
+): boolean {
+    if (serviceContext?.isSportsScience) return true;
+    if (serviceContext?.sourceConsole === 'sports_science') return true;
+
+    const prof = (specialist?.profession || specialist?.ams_role || specialist?.role || '').toLowerCase();
+    if (prof.includes('scientist') || prof.includes('s&c') || prof === 'sports_scientist') {
+        return true;
+    }
+
+    const sType = `${serviceContext?.serviceType || ''} ${serviceContext?.serviceName || ''} ${serviceContext?.category || ''}`.toLowerCase();
+    const athleticKeywords = ['training', 'testing', 's&c', 'strength & conditioning', 'strength and conditioning', 'performance', 'sports science', 'workout', 'athletic', 'ams'];
+    return athleticKeywords.some(k => sType.includes(k));
+}
+
 /**
  * Resolves the applicable slot duration and appointment capacity limit
  * based on organization global settings and custom specialist overrides.
+ * For sports science sessions / athlete management, capacity limit is always Infinity (unlimited).
  */
 export function resolveSpecialistSettings(
     orgSettings: any,
-    specialist?: SpecialistInfo | null
+    specialist?: SpecialistInfo | null,
+    serviceContext?: ServiceContext | null
 ): { slotDuration: number; capacityLimit: number } {
     const defaultDuration = parseInt(orgSettings?.default_slot_duration, 10) || 60;
     const defaultCapacity = parseInt(orgSettings?.default_slot_capacity, 10) || 2;
 
-    if (!specialist) {
-        return { slotDuration: defaultDuration, capacityLimit: defaultCapacity };
-    }
-
-    const prof = (specialist.profession || specialist.ams_role || specialist.role || '').toLowerCase();
-    const isScientist = prof.includes('scientist');
+    const isScientist = isSportsScienceContext(specialist, serviceContext);
     let baseCapacity = isScientist ? Infinity : defaultCapacity;
 
     if (orgSettings?.allow_custom_duration && orgSettings?.custom_specialist_settings) {
@@ -248,10 +279,12 @@ export function resolveSpecialistSettings(
             ? JSON.parse(orgSettings.custom_specialist_settings)
             : orgSettings.custom_specialist_settings;
 
-        let override = (specialist.id && custom[specialist.id]) 
+        const prof = (specialist?.profession || specialist?.ams_role || specialist?.role || '').toLowerCase();
+
+        let override = (specialist?.id && custom[specialist.id]) 
             || custom[prof] 
-            || (specialist.role && custom[specialist.role.toLowerCase()])
-            || (specialist.profession && custom[specialist.profession.toLowerCase()]);
+            || (specialist?.role && custom[specialist.role.toLowerCase()])
+            || (specialist?.profession && custom[specialist.profession.toLowerCase()]);
 
         if (!override && custom) {
             if (prof.includes('nutrition') || prof.includes('diet')) {
@@ -269,7 +302,7 @@ export function resolveSpecialistSettings(
             const slotDuration = parseInt(override.slot_duration, 10) || defaultDuration;
             const capacityLimit = (override.capacity === 'infinity' || override.capacity === Infinity || override.capacity === 'Unlimited')
                 ? Infinity
-                : (parseInt(override.capacity, 10) || baseCapacity);
+                : (isScientist ? Infinity : (parseInt(override.capacity, 10) || baseCapacity));
             return { slotDuration, capacityLimit };
         }
     }

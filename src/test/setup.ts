@@ -12,4 +12,6 @@ Object.defineProperty(window, "matchMedia", {
     removeEventListener: () => {},
     dispatchEvent: () => {},
   }),
-});
+});window.HTMLElement.prototype.scrollIntoView = function () {};
+window.HTMLElement.prototype.hasPointerCapture = function () { return false; };
+window.HTMLElement.prototype.releasePointerCapture = function () {};
