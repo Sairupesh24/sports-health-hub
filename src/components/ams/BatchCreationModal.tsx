@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { 
   Dialog, 
   DialogContent, 
@@ -153,9 +153,19 @@ export default function BatchCreationModal({
     }
   };
 
-  const filteredAthletes = athletes.filter(a => 
-    `${formatClientName(a)} ${a.uhid}`.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredAthletes = useMemo(() => {
+    if (!searchQuery.trim()) {
+      const selected = athletes.filter(a => selectedAthleteIds.includes(a.id));
+      const unselected = athletes.filter(a => !selectedAthleteIds.includes(a.id)).slice(0, 80);
+      return [...selected, ...unselected];
+    }
+    const q = searchQuery.toLowerCase();
+    return athletes.filter(a => {
+      const name = formatClientName(a).toLowerCase();
+      const uhid = (a.uhid || '').toLowerCase();
+      return name.includes(q) || uhid.includes(q);
+    }).slice(0, 100);
+  }, [athletes, searchQuery, selectedAthleteIds]);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>

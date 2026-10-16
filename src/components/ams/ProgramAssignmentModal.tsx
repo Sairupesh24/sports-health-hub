@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { 
   Dialog, 
   DialogContent, 
@@ -58,7 +58,6 @@ export default function ProgramAssignmentModal({
   const [selectedProgramId, setSelectedProgramId] = useState<string>("");
   const [fetching, setFetching] = useState(true);
   const [step, setStep] = useState<'selection' | 'builder'>('selection');
-  const [activeQuestionId, setActiveQuestionId] = useState<string | null>(null);
   const { user } = useAuth();
   const { toast } = useToast();
 
@@ -87,7 +86,7 @@ export default function ProgramAssignmentModal({
         setStartDate(new Date().toISOString().split('T')[0]);
       }
     }
-  }, [isOpen, initialSelectedAthleteId, initialStartDate]);
+  }, [isOpen, initialSelectedAthleteId, initialSelectedBatchId, initialStartDate]);
 
   const fetchPrograms = async () => {
     try {
@@ -189,7 +188,10 @@ export default function ProgramAssignmentModal({
   const handleQuickSave = async (daysData: any[]) => {
     try {
       setLoading(true);
-      if (!user) return;
+
+      const targetAthleteIds = selectedAthleteIds.length > 0 
+        ? selectedAthleteIds 
+        : (initialSelectedAthleteId ? [initialSelectedAthleteId] : []);
 
       // Handle EDITING existing items
       if (initialDays && initialDays.length > 0) {
@@ -215,7 +217,7 @@ export default function ProgramAssignmentModal({
             title: `Quick Assign - ${format(new Date(), 'MMM d, HH:mm')}`,
             days: daysData,
             startDate,
-            athleteIds: selectedAthleteIds,
+            athleteIds: targetAthleteIds,
             batchId: initialSelectedBatchId
         }
       });
@@ -224,7 +226,7 @@ export default function ProgramAssignmentModal({
         title: "Workout Assigned!",
         description: initialSelectedBatchId 
           ? "Custom plan sent to the batch." 
-          : `Custom plan sent to ${selectedAthleteIds.length} athletes.`,
+          : `Custom plan sent to ${targetAthleteIds.length} athletes.`,
       });
 
       onSuccess();
@@ -240,17 +242,41 @@ export default function ProgramAssignmentModal({
     }
   };
 
-  const filteredAthletes = athletes.filter(a => 
-    `${formatClientName(a)} ${a.uhid}`.toLowerCase().includes(searchQuery.toLowerCase())
+  // Derive recipient display name for the builder
+  const effectiveRecipientName = recipientName || (
+    selectedAthleteIds.length === 1
+      ? (() => {
+          const a = athletes.find(ath => String(ath.id) === String(selectedAthleteIds[0]));
+          return a ? formatClientName(a) : "Selected Athlete";
+        })()
+      : selectedAthleteIds.length > 1
+        ? `${selectedAthleteIds.length} Athletes Selected`
+        : undefined
   );
+
+  // Optimized windowed list for performance with thousands of athletes
+  const filteredAthletes = useMemo(() => {
+    if (!searchQuery.trim()) {
+      const selected = athletes.filter(a => selectedAthleteIds.includes(a.id));
+      const unselected = athletes.filter(a => !selectedAthleteIds.includes(a.id)).slice(0, 80);
+      return [...selected, ...unselected];
+    }
+    const q = searchQuery.toLowerCase().trim();
+    return athletes.filter(a => {
+      const name = formatClientName(a).toLowerCase();
+      const uhid = (a.uhid || '').toLowerCase();
+      return name.includes(q) || uhid.includes(q);
+    }).slice(0, 100);
+  }, [athletes, searchQuery, selectedAthleteIds]);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent aria-describedby={undefined} className={cn(
-        "bg-[#1A1F26] border-white/10 text-white rounded-2xl overflow-hidden shadow-2xl p-0 transition-all duration-300",
-        step === 'selection' ? "max-w-md" : "max-w-4xl"
+        "bg-[#1A1F26] border-white/10 text-white rounded-2xl overflow-hidden shadow-2xl p-0 transition-all duration-300 flex flex-col",
+        step === 'selection' ? "max-w-md max-h-[85vh]" : "max-w-4xl h-[85vh] max-h-[85vh]"
       )}>
-        <DialogHeader className="px-6 py-4 bg-white/[0.02] border-b border-white/5">
+        {/* Pinned Header */}
+        <DialogHeader className="px-6 py-4 bg-white/[0.02] border-b border-white/5 shrink-0">
           <div className="flex items-center justify-between">
             <DialogTitle className="text-lg font-bold uppercase tracking-tight flex items-center gap-3">
                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
@@ -265,13 +291,11 @@ export default function ProgramAssignmentModal({
           </div>
         </DialogHeader>
 
-        <div className={cn(
-          "p-6 space-y-6 no-scrollbar",
-          step === 'selection' ? "max-h-[60vh] overflow-y-auto" : "max-h-[85vh] overflow-y-auto"
-        )}>
-          {step === 'selection' ? (
-            <>
-              <div className="space-y-3">
+        {step === 'selection' ? (
+          <>
+            {/* Scrollable Selection Body */}
+            <div className="p-6 space-y-4 overflow-y-auto flex-1 min-h-0">
+              <div className="space-y-2">
                 <Label className="text-[10px] uppercase font-bold tracking-widest text-primary opacity-80">Start Date</Label>
                 <div className="relative group">
                   <CalendarIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-primary" />
@@ -279,21 +303,26 @@ export default function ProgramAssignmentModal({
                     type="date" 
                     value={startDate} 
                     onChange={(e) => setStartDate(e.target.value)}
-                    className="h-12 bg-white/[0.04] border-white/10 rounded-xl pl-12 font-bold focus:ring-primary/40 text-white"
+                    className="h-11 bg-white/[0.04] border-white/10 rounded-xl pl-12 font-bold focus:ring-primary/40 text-white"
                   />
                 </div>
               </div>
 
               {/* Athlete Search & List */}
-              <div className="space-y-3">
+              <div className="space-y-2.5">
                 <div className="flex justify-between items-center px-1">
-                  <Label className="text-[10px] uppercase font-bold tracking-widest text-primary opacity-80">Athletes ({selectedAthleteIds.length})</Label>
-                  <button 
-                    onClick={() => setSelectedAthleteIds(selectedAthleteIds.length === athletes.length ? [] : athletes.map(a => a.id))}
-                    className="text-[9px] font-bold uppercase text-white/40 hover:text-primary transition-colors"
-                  >
-                    {selectedAthleteIds.length === athletes.length ? "Clear" : "Select All"}
-                  </button>
+                  <Label className="text-[10px] uppercase font-bold tracking-widest text-primary opacity-80">
+                    Athletes {selectedAthleteIds.length > 0 ? `(${selectedAthleteIds.length} selected)` : `(${athletes.length})`}
+                  </Label>
+                  {selectedAthleteIds.length > 0 && (
+                    <button 
+                      type="button"
+                      onClick={() => setSelectedAthleteIds([])}
+                      className="text-[9px] font-bold uppercase text-white/40 hover:text-primary transition-colors"
+                    >
+                      Clear Selection
+                    </button>
+                  )}
                 </div>
                 
                 <div className="relative group">
@@ -302,13 +331,13 @@ export default function ProgramAssignmentModal({
                     placeholder="Search athletes..." 
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="h-11 bg-white/[0.04] border-white/10 rounded-xl pl-11 text-xs font-medium text-white placeholder:opacity-20 focus:ring-primary/40 transition-all"
+                    className="h-10 bg-white/[0.04] border-white/10 rounded-xl pl-11 text-xs font-medium text-white placeholder:opacity-30 focus:ring-primary/40 transition-all"
                   />
                 </div>
 
-                <div className="grid grid-cols-1 gap-2 pr-2">
+                <div className="h-64 sm:h-72 overflow-y-auto space-y-2 pr-1 border border-white/5 rounded-xl p-2 bg-white/[0.01]">
                   {fetching ? (
-                    [1, 2, 3].map(i => <div key={i} className="h-20 bg-white/[0.05] rounded-3xl animate-pulse" />)
+                    [1, 2, 3].map(i => <div key={i} className="h-14 bg-white/[0.05] rounded-xl animate-pulse" />)
                   ) : filteredAthletes.length > 0 ? (
                     filteredAthletes.map((athlete) => {
                       const isSelected = selectedAthleteIds.includes(athlete.id);
@@ -319,25 +348,25 @@ export default function ProgramAssignmentModal({
                           className={cn(
                             "flex items-center justify-between p-3 rounded-xl border transition-all cursor-pointer group",
                             isSelected 
-                              ? "bg-primary/10 border-primary/30" 
-                              : "bg-white/[0.02] border-white/5 hover:border-white/10"
+                              ? "bg-primary/10 border-primary/40 shadow-sm shadow-primary/10" 
+                              : "bg-white/[0.02] border-white/5 hover:border-white/10 hover:bg-white/[0.04]"
                           )}
                         >
                           <div className="flex items-center gap-3">
                             <div className={cn(
-                              "w-10 h-10 rounded-lg flex items-center justify-center font-bold text-[10px] transition-all uppercase",
-                              isSelected ? "bg-primary text-primary-foreground" : "bg-white/5 border border-white/10"
+                              "w-9 h-9 rounded-lg flex items-center justify-center font-bold text-[10px] transition-all uppercase",
+                              isSelected ? "bg-primary text-primary-foreground" : "bg-white/5 border border-white/10 text-white/70"
                             )}>
-                              {athlete.first_name?.[0]}{athlete.last_name?.[0]}
+                              {athlete.first_name?.[0] || 'A'}{athlete.last_name?.[0] || ''}
                             </div>
                             <div>
-                              <div className="font-bold text-sm text-slate-100 uppercase tracking-tight">{formatClientName(athlete)}</div>
-                              <div className="text-[9px] opacity-20 font-bold uppercase tracking-widest">{athlete.uhid || "CLIENT"}</div>
+                              <div className="font-bold text-xs text-slate-100 uppercase tracking-tight">{formatClientName(athlete)}</div>
+                              <div className="text-[9px] opacity-40 font-bold uppercase tracking-widest">{athlete.uhid || "CLIENT"}</div>
                             </div>
                           </div>
                           <div className={cn(
                             "w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all",
-                            isSelected ? "bg-primary border-primary" : "border-white/10"
+                            isSelected ? "bg-primary border-primary" : "border-white/20"
                           )}>
                              {isSelected && <Check className="w-3 h-3 text-white stroke-[4px]" />}
                           </div>
@@ -345,30 +374,43 @@ export default function ProgramAssignmentModal({
                       );
                     })
                   ) : (
-                    <div className="text-center py-12 bg-white/[0.02] rounded-3xl border border-dashed border-white/5">
-                       <Users className="w-10 h-10 text-white/5 mx-auto mb-3" />
-                       <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">No athletes found matching search.</p>
+                    <div className="text-center py-10 bg-white/[0.02] rounded-xl border border-dashed border-white/5">
+                       <Users className="w-8 h-8 text-white/10 mx-auto mb-2" />
+                       <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">No athletes found matching search.</p>
                     </div>
                   )}
                 </div>
               </div>
+            </div>
 
-              <DialogFooter className="pt-4 gap-2 bg-transparent border-none">
-                 <Button variant="ghost" onClick={onClose} className="h-11 px-6 font-bold uppercase tracking-widest text-[10px] opacity-40">Cancel</Button>
-                 <Button 
-                   onClick={() => setStep('builder')} 
-                   disabled={selectedAthleteIds.length === 0}
-                   className="h-11 flex-1 font-bold uppercase tracking-widest text-[10px] bg-primary hover:bg-primary/90 gap-2"
-                 >
-                   Continue <MoveRight className="w-3.5 h-3.5" />
-                 </Button>
-              </DialogFooter>
-            </>
-          ) : (
+            {/* Pinned Footer with Cancel & Next Buttons */}
+            <DialogFooter className="px-6 py-4 bg-white/[0.03] border-t border-white/10 flex items-center justify-between gap-3 shrink-0 sm:justify-between">
+              <Button 
+                variant="ghost" 
+                onClick={onClose} 
+                className="h-10 px-4 font-bold uppercase tracking-widest text-[10px] text-white/60 hover:text-white hover:bg-white/5"
+              >
+                Cancel
+              </Button>
+              <Button 
+                onClick={program ? handleAssign : () => setStep('builder')} 
+                disabled={selectedAthleteIds.length === 0 || loading}
+                className="h-10 px-6 font-bold uppercase tracking-widest text-[10px] bg-primary hover:bg-primary/90 text-primary-foreground gap-2 rounded-xl shadow-lg shadow-primary/20 transition-all disabled:opacity-40"
+              >
+                {loading ? "Assigning..." : program ? "Assign Program" : (
+                  <>
+                    Next <MoveRight className="w-4 h-4" />
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </>
+        ) : (
+          /* Step 2: Builder with scrollable plan */
+          <div className="p-6 flex-1 min-h-0 overflow-hidden flex flex-col">
             <AmsQuickBuilder 
               startDate={startDate}
               onCancel={() => {
-                // If it was a pre-selection from timeline, cancel should close modal
                 if (initialSelectedAthleteId || initialSelectedBatchId) {
                   onClose();
                 } else {
@@ -378,11 +420,11 @@ export default function ProgramAssignmentModal({
               onSave={handleQuickSave}
               loading={loading}
               initialDays={initialDays}
-              recipientName={recipientName}
+              recipientName={effectiveRecipientName}
               hideTitle={true}
             />
-          )}
-        </div>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );

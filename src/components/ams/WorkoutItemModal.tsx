@@ -158,15 +158,15 @@ export default function WorkoutItemModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent aria-describedby={undefined} className="max-w-2xl bg-[#161920] border-white/10 text-white rounded-3xl overflow-hidden glass p-0">
-        <DialogHeader className="p-6 bg-white/[0.02] border-b border-white/5">
+      <DialogContent aria-describedby={undefined} className="max-w-2xl w-[95vw] sm:w-full bg-[#161920] border-white/10 text-white rounded-3xl overflow-hidden glass p-0 flex flex-col max-h-[85vh] my-auto">
+        <DialogHeader className="p-5 sm:p-6 bg-white/[0.02] border-b border-white/5 shrink-0">
           <DialogTitle className="text-xl font-black uppercase tracking-tight flex items-center gap-2">
             <Plus className="w-5 h-5 text-primary" />
             {initialItem ? "Edit Workout Item" : "Add Workout Item"}
           </DialogTitle>
         </DialogHeader>
 
-        <div className="p-6">
+        <div className="p-5 sm:p-6 overflow-y-auto flex-1 overscroll-contain">
           {!initialItem && (
             <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-8">
               <TabsList className="bg-white/5 p-1 h-auto grid grid-cols-3 md:grid-cols-6 rounded-2xl border border-white/10">
@@ -282,11 +282,11 @@ export default function WorkoutItemModal({
           </div>
         </div>
 
-        <DialogFooter className="p-6 bg-white/[0.02] border-t border-white/5 gap-3">
+        <DialogFooter className="p-4 sm:p-6 bg-white/[0.02] border-t border-white/5 gap-3 shrink-0 flex items-center justify-end">
           <Button variant="ghost" onClick={onClose} className="rounded-xl h-12 px-6 font-bold uppercase tracking-widest text-[11px] opacity-40 hover:opacity-100">Cancel</Button>
           <Button 
             onClick={handleSave} 
-            disabled={saving || (activeTab === 'lift' && !selectedExercise)}
+            disabled={saving || ((activeTab === 'lift' || activeTab === 'saqc') && !selectedExercise)}
             className="rounded-xl h-12 px-10 font-black uppercase tracking-[0.2em] text-[11px] bg-primary hover:bg-primary/90 shadow-xl shadow-primary/20"
           >
             {saving ? "Saving..." : initialItem ? "Update Item" : "Add to Workout"}

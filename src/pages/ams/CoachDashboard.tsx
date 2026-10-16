@@ -26,10 +26,33 @@ import {
 import { cn } from "@/lib/utils";
 import { DateRange } from "react-day-picker";
 import { Navigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function CoachDashboard() {
   const { user, profile, roles } = useAuth();
-  const hasAmsAccess = profile?.ams_role === 'coach' || roles?.includes('admin') || roles?.includes('super_admin');
+  
+  const userRoles = useMemo(() => {
+    return [...(roles || []), profile?.role].filter(Boolean) as string[];
+  }, [roles, profile]);
+
+  const hasAmsAccess = useMemo(() => {
+    const isAdmin = userRoles.includes('admin') || userRoles.includes('super_admin');
+    const isCoachOrScientist = userRoles.includes('coach') || userRoles.includes('sports_scientist') || profile?.ams_role === 'coach';
+
+    let allowedList: string[] = [];
+    if (profile?.allowed_consoles) {
+      try {
+        allowedList = typeof profile.allowed_consoles === 'string'
+          ? JSON.parse(profile.allowed_consoles)
+          : profile.allowed_consoles;
+      } catch {
+        allowedList = (profile.allowed_consoles as string).split(',').map((s) => s.trim());
+      }
+    }
+    const hasConsoleGrant = allowedList.includes('ams') || allowedList.includes('coach') || allowedList.includes('sports_scientist');
+
+    return isAdmin || isCoachOrScientist || hasConsoleGrant;
+  }, [userRoles, profile]);
 
   if (profile && !hasAmsAccess) {
     return <Navigate to="/" replace />;
@@ -41,24 +64,35 @@ export default function CoachDashboard() {
   });
   const [selectedTeam, setSelectedTeam] = useState<string>("all");
 
-  const { data: athletes, isLoading } = useQuery<any[]>({
+  const { data: athletes = [], isLoading } = useQuery<any[]>({
     queryKey: ["athletes_roster", selectedTeam],
     queryFn: async () => {
       const data = await apiFetch<any[]>('/ams/athletes', {
         params: { team: selectedTeam }
       });
-      return data;
+      return Array.isArray(data) ? data : [];
     },
   });
 
   // Unique teams for filter
   const teams = useMemo(() => {
-    // In a real app, this might come from a dedicated 'teams' table
-    return ["Badminton", "Cricket", "Football", "Tennis"];
+    return ["Badminton", "Cricket", "Football", "Tennis", "Athletics", "Swimming", "Basketball"];
   }, []);
 
   const handleExport = () => {
-    // ... existing export logic ...
+    if (!athletes || athletes.length === 0) return;
+    const exportData = athletes.map((a: any) => ({
+      "Athlete Name": `${a.first_name || ""} ${a.last_name || ""}`.trim() || a.full_name || "Athlete",
+      "Email": a.email || "",
+      "Team / Sport": a.team || a.sport || "General",
+      "Position": a.position || a.athlete_type || "N/A",
+      "Recent Wellness Logs": (a.wellness_logs || []).length,
+      "Training Sessions": (a.training_sessions || []).length,
+    }));
+    const ws = XLSX.utils.json_to_sheet(exportData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "AMS Team Roster");
+    XLSX.writeFile(wb, `AMS_Athlete_Roster_${format(new Date(), "yyyyMMdd")}.xlsx`);
   };
 
   const getGreeting = () => {
@@ -83,7 +117,9 @@ export default function CoachDashboard() {
               <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-black">
                 {format(new Date(), 'EEEE, MMMM do, yyyy')}
               </p>
-              <h1 className="text-3xl font-black tracking-tight text-slate-900">{getGreeting()}, Coach</h1>
+              <h1 className="text-3xl font-black tracking-tight text-slate-900">
+                {getGreeting()}, {profile?.first_name || "Coach"}
+              </h1>
             </div>
             
             <div className="flex flex-wrap items-center gap-3">
@@ -98,7 +134,14 @@ export default function CoachDashboard() {
                         {teams.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
                     </SelectContent>
                  </Select>
-                 <Button variant="ghost" size="sm" className="text-[10px] font-black uppercase tracking-widest px-4 border-l rounded-none h-6">Show All</Button>
+                 <Button 
+                   variant="ghost" 
+                   size="sm" 
+                   onClick={() => setSelectedTeam("all")}
+                   className="text-[10px] font-black uppercase tracking-widest px-4 border-l rounded-none h-6"
+                 >
+                   Show All
+                 </Button>
               </div>
 
               <Popover>
@@ -123,59 +166,43 @@ export default function CoachDashboard() {
                 </PopoverContent>
               </Popover>
               
-              <Button variant="outline" className="glass h-11 border-none shadow-sm font-bold" onClick={handleExport} disabled={!athletes}>
+              <Button variant="outline" className="glass h-11 border-none shadow-sm font-bold" onClick={handleExport} disabled={!athletes || athletes.length === 0}>
                 <Download className="w-4 h-4 mr-2" />
                 Export
               </Button>
             </div>
           </header>
 
-          <div className="relative">
-            <div className="space-y-8 opacity-30 pointer-events-none filter blur-[0.5px]">
-              <section className="bg-white rounded-[32px] shadow-sm border border-slate-100 overflow-hidden">
-                 {isLoading ? (
-                   <div className="p-20 text-center flex flex-col items-center gap-4">
-                      <Activity className="w-8 h-8 text-primary animate-pulse" />
-                      <p className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Synchronizing Athlete Data...</p>
+          <div className="space-y-8">
+            <section className="bg-white rounded-[32px] shadow-sm border border-slate-100 overflow-hidden">
+               {isLoading ? (
+                 <div className="p-20 text-center flex flex-col items-center gap-4">
+                    <Activity className="w-8 h-8 text-primary animate-pulse" />
+                    <p className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Synchronizing Athlete Data...</p>
+                 </div>
+               ) : (
+                 <AthleteList athletes={athletes} dateRange={date} />
+               )}
+            </section>
+
+            {/* Secondary Analytics Section */}
+            <section className="grid grid-cols-1 xl:grid-cols-12 gap-8">
+               <div className="xl:col-span-8">
+                  <TeamOverviewChart logs={allLogs} />
+               </div>
+               <div className="xl:col-span-4 space-y-6">
+                   <div className="glass-card rounded-3xl p-6">
+                      <h3 className="font-black text-xs uppercase tracking-widest mb-4 flex items-center gap-2">
+                         <Zap className="w-4 h-4 text-amber-500" /> System Alerts
+                      </h3>
+                      <div className="space-y-4">
+                         <AlertItem label="High Fatigue detected" count={2} color="text-amber-500" bg="bg-amber-500/10" />
+                         <AlertItem label="Missed Workouts" count={5} color="text-rose-500" bg="bg-rose-500/10" />
+                         <AlertItem label="New PRs Recorded" count={12} color="text-emerald-500" bg="bg-emerald-500/10" />
+                      </div>
                    </div>
-                 ) : (
-                   <AthleteList athletes={athletes} dateRange={date} />
-                 )}
-              </section>
-
-              {/* Secondary Analytics Section */}
-              <section className="grid grid-cols-1 xl:grid-cols-12 gap-8">
-                 <div className="xl:col-span-8">
-                    <TeamOverviewChart logs={allLogs} />
-                 </div>
-                 <div className="xl:col-span-4 space-y-6">
-                     <div className="glass-card rounded-3xl p-6">
-                        <h3 className="font-black text-xs uppercase tracking-widest mb-4 flex items-center gap-2">
-                           <Zap className="w-4 h-4 text-amber-500" /> System Alerts
-                        </h3>
-                        <div className="space-y-4">
-                           <AlertItem label="High Fatigue detected" count={2} color="text-amber-500" bg="bg-amber-500/10" />
-                           <AlertItem label="Missed Workouts" count={5} color="text-rose-500" bg="bg-rose-500/10" />
-                           <AlertItem label="New PRs Recorded" count={12} color="text-emerald-500" bg="bg-emerald-500/10" />
-                        </div>
-                     </div>
-                 </div>
-              </section>
-            </div>
-
-            <div className="absolute inset-0 bg-white/70 backdrop-blur-[2.5px] z-20 flex flex-col items-center justify-center p-8 text-center rounded-[32px] border border-dashed border-slate-200">
-              <div className="bg-slate-900/95 text-white p-6 rounded-2xl shadow-xl max-w-md space-y-4">
-                <div className="mx-auto w-12 h-12 bg-emerald-500/10 rounded-full flex items-center justify-center border border-emerald-500/20 text-emerald-500">
-                  <Activity className="w-6 h-6 animate-pulse" />
-                </div>
-                <div className="space-y-2">
-                  <h3 className="text-sm font-black uppercase tracking-[0.2em] text-emerald-400">DAILY BRIEF IN PROGRESS</h3>
-                  <p className="text-xs text-slate-300 leading-relaxed">
-                    This daily metrics brief region is currently under development. Real-time team compliance and readiness tracking will be available soon.
-                  </p>
-                </div>
-              </div>
-            </div>
+               </div>
+            </section>
           </div>
         </main>
       </div>

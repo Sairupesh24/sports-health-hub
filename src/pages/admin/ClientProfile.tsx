@@ -449,7 +449,7 @@ export default function ClientProfile() {
             setAmsRole(result.ams_role);
             toast({ 
                 title: "AMS Access Updated", 
-                description: `Client has been ${checked ? 'granted' : 'revoked'} access to the Athlete Monitoring System.` 
+                description: `Client has been ${checked ? 'granted' : 'revoked'} access to the Activity Monitoring System.` 
             });
         } catch (err: any) {
             toast({ 

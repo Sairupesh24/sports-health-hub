@@ -68,6 +68,34 @@ model AvailabilityException {
   @@map("availabilityexceptions")
 }
 
+model Batch {
+  id                 String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name               String
+  organizationId     String?             @map("organization_id") @db.Uuid
+  createdBy          String?             @map("created_by") @db.Uuid
+  createdAt          DateTime?           @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime?           @default(now()) @map("updated_at") @db.Timestamptz(6)
+  organizations      Organization?       @relation(fields: [organizationId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users              User?               @relation("batches_created_byTousers", fields: [createdBy], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  batchMembers       BatchMember[]
+  programAssignments ProgramAssignment[]
+
+  @@index([organizationId], map: "idx_batches_organization_id")
+  @@map("batches")
+}
+
+model BatchMember {
+  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  batchId   String?   @map("batch_id") @db.Uuid
+  athleteId String    @map("athlete_id") @db.Uuid
+  createdAt DateTime? @default(now()) @map("created_at") @db.Timestamptz(6)
+  batches   Batch?    @relation(fields: [batchId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([batchId, athleteId])
+  @@index([athleteId], map: "idx_batch_members_athlete_id")
+  @@map("batch_members")
+}
+
 model BillItem {
   id             String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   organizationId String       @map("organization_id") @db.Uuid
@@ -653,6 +681,7 @@ model LiftItem {
   restTimeSecs    Int?        @map("rest_time_secs")
   additionalInfo  String?     @map("additional_info")
   workoutGrouping String?     @map("workout_grouping")
+  eachSide        Boolean?    @default(false) @map("each_side")
   exercises       Exercise    @relation(fields: [exerciseId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   workoutitems    WorkoutItem @relation(fields: [workoutItemId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
@@ -778,6 +807,7 @@ model Organization {
   athleteWorkoutCompletions        AthleteWorkoutCompletion[]
   audit_logs                       audit_logs[]
   availabilityexceptions           AvailabilityException[]
+  batches                          Batch[]
   billitems                        BillItem[]
   billpayments                     BillPayment[]
   bills                            Bill[]
@@ -1033,10 +1063,14 @@ model ProgramAssignment {
   status           String?         @default("active")
   organization_id  String?         @db.Uuid
   createdAt        DateTime?       @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime?       @default(now()) @map("updated_at") @db.Timestamptz(6)
   users            User?           @relation(fields: [athleteId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   organizations    Organization?   @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   trainingprograms TrainingProgram @relation(fields: [programId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  batches          Batch?          @relation(fields: [batchId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
+  @@index([batchId], map: "idx_program_assignments_batch_id")
+  @@index([athleteId], map: "idx_program_assignments_athlete_id")
   @@map("program_assignments")
 }
 
@@ -1233,6 +1267,8 @@ model Session {
 
   @@index([case_id], map: "idx_sessions_case_id")
   @@index([sourceConsole], map: "idx_sessions_source_console")
+  @@index([scheduledStart], map: "idx_sessions_scheduled_start")
+  @@index([therapistId, scientistId], map: "idx_sessions_therapist_scientist")
   @@map("sessions")
 }
 
@@ -1329,6 +1365,7 @@ model User {
   athleteWorkoutCompletions                 AthleteWorkoutCompletion[]
   audit_logs                                audit_logs[]
   authsessions                              AuthSession[]
+  batchesCreated                            Batch[]                    @relation("batches_created_byTousers")
   bills                                     Bill[]
   clientAssessmentReports                   ClientAssessmentReport[]
   clientGroupMembers                        ClientGroupMember[]
@@ -1373,6 +1410,8 @@ model Waitlist {
   services          Service?     @relation(fields: [serviceId], references: [id], onUpdate: NoAction)
   profiles          Profile?     @relation(fields: [therapistId], references: [id], onUpdate: NoAction)
 
+  @@index([organizationId, status], map: "idx_waitlist_org_status")
+  @@index([clientId], map: "idx_waitlist_client")
   @@map("waitlist")
 }
 

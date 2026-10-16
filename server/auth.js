@@ -348,10 +348,17 @@ router.get('/me', async (req, res) => {
       profile.is_approved = true;
     }
 
+    const enrichedProfile = profile ? {
+      ...profile,
+      email: profile.email || decoded.email,
+      role: profile.role || decoded.role,
+      full_name: `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || decoded.email?.split('@')[0]
+    } : null;
+
     res.json({
       user: { id: decoded.id, email: decoded.email },
       roles: [decoded.role],
-      profile
+      profile: enrichedProfile
     });
   } catch (error) {
     console.error('Error in /me:', error);

@@ -95,7 +95,7 @@ export default function MobileLayout({ children, showBack }: MobileLayoutProps) 
           )}
           <div onClick={() => !showBack && navigate('/mobile/client')}>
             <h1 className="text-base sm:text-lg font-black italic tracking-tighter uppercase leading-none">ISHPO</h1>
-            <p className="text-[8px] font-bold text-primary uppercase tracking-[0.2em] mt-0.5 sm:mt-1">AMS Console</p>
+            <p className="text-[8px] font-bold text-primary uppercase tracking-[0.2em] mt-0.5 sm:mt-1">Activity Monitoring System</p>
           </div>
         </div>
  

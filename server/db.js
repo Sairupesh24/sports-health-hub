@@ -1765,13 +1765,35 @@ async function runMigrations() {
       )
     `);
 
+    // Batches & Batch Members
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS batches (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        name TEXT NOT NULL,
+        organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
+        created_by UUID,
+        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS batch_members (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        batch_id UUID REFERENCES batches(id) ON DELETE CASCADE,
+        athlete_id UUID NOT NULL,
+        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(batch_id, athlete_id)
+      )
+    `);
+
     // Program Assignments
     await pool.query(`
       CREATE TABLE IF NOT EXISTS program_assignments (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         athlete_id UUID REFERENCES users(id) ON DELETE CASCADE,
         program_id UUID NOT NULL REFERENCES trainingprograms(id) ON DELETE CASCADE,
-        batch_id UUID, -- Placeholder if batches exist
+        batch_id UUID REFERENCES batches(id) ON DELETE CASCADE,
         start_date DATE NOT NULL,
         status TEXT DEFAULT 'active',
         organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE,

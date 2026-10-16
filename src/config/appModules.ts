@@ -76,15 +76,26 @@ export const APP_MODULES: AppModuleDefinition[] = [
     defaultRoles: ["admin", "super_admin", "sports_physician", "physiotherapist", "consultant"],
   },
   {
-    id: "ams",
-    name: "Athlete Management",
-    description: "Entire Sports Scientist Console: dashboard, schedule, athlete directory, reports, and membership management.",
+    id: "sports_scientist",
+    name: "Sports Science Console",
+    description: "Entire Sports Scientist Console: dashboard, schedule, athlete directory, scientific hub, reports, and membership management.",
     icon: Dumbbell,
     href: "/sports-scientist",
     color: "text-emerald-600 bg-emerald-100 border-emerald-200",
     gradient: "from-emerald-500/20 via-emerald-600/10 to-teal-600/10",
     badgeStyle: "bg-emerald-100 text-emerald-800 border-emerald-200",
     defaultRoles: ["admin", "super_admin", "sports_scientist"],
+  },
+  {
+    id: "ams",
+    name: "Activity Monitoring System",
+    description: "Activity Monitoring System: coach daily brief, team readiness & compliance, workout programs, activity feed, calendar, and batch testing.",
+    icon: Activity,
+    href: "/ams/coach-dashboard",
+    color: "text-green-600 bg-green-100 border-green-200",
+    gradient: "from-green-500/20 via-emerald-600/10 to-teal-600/10",
+    badgeStyle: "bg-green-100 text-green-800 border-green-200",
+    defaultRoles: ["admin", "super_admin", "sports_scientist", "coach"],
   },
   {
     id: "nutritionist",
@@ -218,7 +229,11 @@ export const isModuleGrantedForUser = (
       }
     }
     if (Array.isArray(parsedOrgModules) && parsedOrgModules.length > 0) {
-      if (!parsedOrgModules.includes(moduleObj.id)) {
+      const isAllowedByOrg =
+        parsedOrgModules.includes(moduleObj.id) ||
+        (moduleObj.id === "sports_scientist" && (parsedOrgModules.includes("sports_scientist") || parsedOrgModules.includes("ams"))) ||
+        (moduleObj.id === "ams" && (parsedOrgModules.includes("ams") || parsedOrgModules.includes("coach") || parsedOrgModules.includes("sports_scientist")));
+      if (!isAllowedByOrg) {
         return false;
       }
     }
@@ -244,7 +259,14 @@ export const isModuleGrantedForUser = (
 
   // If admin has customized allowedConsoles list for this non-admin user
   if (parsedAllowed && Array.isArray(parsedAllowed)) {
-    return parsedAllowed.includes(moduleObj.id);
+    if (parsedAllowed.includes(moduleObj.id)) return true;
+    if (moduleObj.id === "sports_scientist" && (parsedAllowed.includes("sports_scientist") || parsedAllowed.includes("ams"))) {
+      return true;
+    }
+    if (moduleObj.id === "ams" && (parsedAllowed.includes("ams") || parsedAllowed.includes("coach") || parsedAllowed.includes("sports_scientist"))) {
+      return true;
+    }
+    return false;
   }
 
   // Fallback to default role permissions matrix for non-admin users
@@ -252,7 +274,8 @@ export const isModuleGrantedForUser = (
     userRolesArray.some((r) => moduleObj.defaultRoles.includes(r)) ||
     (moduleObj.id === "nutritionist" && prof.includes("nutrition")) ||
     (moduleObj.id === "clinical" && userRolesArray.some((r) => ["consultant", "sports_physician", "physiotherapist"].includes(r))) ||
-    (moduleObj.id === "ams" && userRolesArray.includes("sports_scientist")) ||
+    (moduleObj.id === "sports_scientist" && (userRolesArray.includes("sports_scientist") || prof.includes("scientist"))) ||
+    (moduleObj.id === "ams" && (userRolesArray.includes("sports_scientist") || userRolesArray.includes("coach") || prof.includes("coach") || prof.includes("scientist"))) ||
     (moduleObj.id === "hr" && userRolesArray.includes("hr_manager")) ||
     (moduleObj.id === "foe" && userRolesArray.includes("foe"));
 

@@ -63,11 +63,17 @@ const MODULE_HOVER_GLOWS: Record<string, { hoverBorder: string; hoverRing: strin
     hoverShadow: "hover:shadow-xl hover:shadow-teal-500/10",
     textHover: "group-hover:text-teal-600",
   },
-  ams: {
+  sports_scientist: {
     hoverBorder: "hover:border-emerald-400",
     hoverRing: "hover:ring-4 hover:ring-emerald-500/10",
     hoverShadow: "hover:shadow-xl hover:shadow-emerald-500/10",
     textHover: "group-hover:text-emerald-600",
+  },
+  ams: {
+    hoverBorder: "hover:border-green-400",
+    hoverRing: "hover:ring-4 hover:ring-green-500/10",
+    hoverShadow: "hover:shadow-xl hover:shadow-green-500/10",
+    textHover: "group-hover:text-green-600",
   },
   nutritionist: {
     hoverBorder: "hover:border-amber-400",
@@ -153,7 +159,7 @@ export default function AppGallery() {
         return ["super_admin", "admin", "settings", "hr", "foe", "manager", "analytics"].includes(mod.id);
       }
       if (activeCategory === "portal") {
-        return ["client", "ams", "planner"].includes(mod.id);
+        return ["client", "ams", "sports_scientist", "planner"].includes(mod.id);
       }
 
       return true;
@@ -357,8 +363,10 @@ export default function AppGallery() {
                       sessionStorage.setItem("active_console", "settings");
                     } else if (mod.id === "hr") {
                       sessionStorage.setItem("active_console", "hr");
-                    } else if (mod.id === "ams") {
+                    } else if (mod.id === "sports_scientist") {
                       sessionStorage.setItem("active_console", "sports_scientist");
+                    } else if (mod.id === "ams") {
+                      sessionStorage.setItem("active_console", "coach");
                     } else if (mod.id === "clinical") {
                       sessionStorage.setItem("active_console", "consultant");
                     } else if (mod.id === "nutritionist") {

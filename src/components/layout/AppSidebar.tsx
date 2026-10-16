@@ -157,7 +157,7 @@ const coachNav: NavItem[] = [
   { label: "Feed", icon: Activity, href: "/ams/feed" },
   { label: "Calendar", icon: CalendarDays, href: "/ams/calendar" },
   { label: "Exercise Library", icon: ClipboardList, href: "/ams/exercises" },
-  { label: "Batch Testing", icon: Target, href: "/ams/batch-tests" },
+  { label: "Batch Testing", icon: Target, href: "/ams/performance-testing/grid" },
 ];
 
 const navMap: Record<string, NavItem[]> = {
@@ -323,16 +323,26 @@ export default function AppSidebar({ role, isMobile, className, onNavigate }: Ap
     const path = location.pathname;
     const storedConsole = sessionStorage.getItem("active_console");
     const isPureFoeUser = Boolean(roles?.includes("foe") && !roles?.includes("admin") && !roles?.includes("super_admin"));
+    const searchParams = typeof window !== 'undefined' ? new URLSearchParams(location.search) : new URLSearchParams();
+    const consoleOverride = searchParams.get('console');
 
     let resolved = storedConsole;
 
     // Detect console from unambiguous routes
-    if (path.startsWith('/admin/settings') || path.startsWith('/admin/permissions')) {
+    if (consoleOverride === 'foe' || path === '/admin/foe' || path.startsWith('/admin/foe') || (isPureFoeUser && !path.startsWith('/ams') && !path.startsWith('/client'))) {
+      resolved = 'foe';
+      try { sessionStorage.setItem('active_console', 'foe'); } catch {}
+    } else if (path.startsWith('/admin/settings') || path.startsWith('/admin/permissions')) {
       resolved = 'settings';
       try { sessionStorage.setItem('active_console', 'settings'); } catch {}
     } else if (path.startsWith('/hr')) {
-      resolved = 'hr';
-      try { sessionStorage.setItem('active_console', 'hr'); } catch {}
+      if (role === 'foe' || resolvedRole === 'foe' || storedConsole === 'foe') {
+        resolved = 'foe';
+        try { sessionStorage.setItem('active_console', 'foe'); } catch {}
+      } else {
+        resolved = 'hr';
+        try { sessionStorage.setItem('active_console', 'hr'); } catch {}
+      }
     } else if (path.startsWith('/sports-scientist') || path.startsWith('/mobile/specialist')) {
       resolved = 'sports_scientist';
       try { sessionStorage.setItem('active_console', 'sports_scientist'); } catch {}
@@ -342,10 +352,10 @@ export default function AppSidebar({ role, isMobile, className, onNavigate }: Ap
     } else if (path.startsWith('/nutritionist')) {
       resolved = 'nutritionist';
       try { sessionStorage.setItem('active_console', 'nutritionist'); } catch {}
-    } else if (path.startsWith('/ams/questionnaires') || path.startsWith('/ams/performance-testing') || path.startsWith('/ams/batch-tests')) {
+    } else if (path.startsWith('/ams/questionnaires') || path.startsWith('/ams/performance-testing')) {
       resolved = 'questionnaires';
       try { sessionStorage.setItem('active_console', 'questionnaires'); } catch {}
-    } else if (path.startsWith('/ams/coach-dashboard') || path.startsWith('/ams/programs') || path.startsWith('/ams/feed') || path.startsWith('/ams/calendar') || path.startsWith('/ams/exercises')) {
+    } else if (path.startsWith('/ams/coach-dashboard') || path.startsWith('/ams/programs') || path.startsWith('/ams/feed') || path.startsWith('/ams/calendar') || path.startsWith('/ams/exercises') || path.startsWith('/ams/batch-tests')) {
       if (storedConsole !== 'sports_scientist') {
         resolved = 'coach';
         try { sessionStorage.setItem('active_console', 'coach'); } catch {}
@@ -580,14 +590,14 @@ export default function AppSidebar({ role, isMobile, className, onNavigate }: Ap
               ISHPO
             </span>
             <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground truncate mt-0.5">
-              {effectiveConsole === 'sports_scientist' ? 'Athlete Management'
+              {effectiveConsole === 'sports_scientist' ? 'Sports Science Console'
                 : effectiveConsole === 'consultant' ? 'Clinical Management'
                 : effectiveConsole === 'nutritionist' ? 'Nutritionist'
                 : effectiveConsole === 'hr' || effectiveConsole === 'hr_manager' ? 'HR Console'
                 : effectiveConsole === 'foe' ? 'Front Office'
                 : effectiveConsole === 'admin' ? 'Admin Console'
                 : effectiveConsole === 'super_admin' ? 'Super Admin'
-                : effectiveConsole === 'coach' ? 'Coach Console'
+                : effectiveConsole === 'coach' ? 'Activity Monitoring System'
                 : effectiveConsole === 'athlete' ? 'Athlete Portal'
                 : effectiveConsole === 'client' ? 'Client Portal'
                 : effectiveConsole === 'settings' ? 'Settings'
@@ -650,7 +660,9 @@ export default function AppSidebar({ role, isMobile, className, onNavigate }: Ap
                 "/sports-scientist",
                 "/client"
               ].includes(item.href);
-              const isActive = isDashboardRoot
+              const isActive = item.href === "/admin/foe"
+                ? (location.pathname === "/admin/foe" || location.pathname.startsWith("/admin/foe/"))
+                : isDashboardRoot
                 ? location.pathname === item.href
                 : (
                     location.pathname === item.href ||

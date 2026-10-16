@@ -17,6 +17,7 @@ import BulkAssignmentModal from "@/components/ams/BulkAssignmentModal";
 import BulkStatusDashboard from "@/components/ams/BulkStatusDashboard";
 import FormBuilder from "@/components/ams/FormBuilder";
 import SingleClientAssignModal from "@/components/ams/SingleClientAssignModal";
+import AmsStaffNav from "@/components/ams/AmsStaffNav";
 
 export default function QuestionnaireLibrary() {
   const navigate = useNavigate();
@@ -111,8 +112,7 @@ export default function QuestionnaireLibrary() {
   return (
     <DashboardLayout role={profile?.role || "coach"}>
       <div className="min-h-screen bg-[#F8FAFC] flex flex-col font-sans">
-
-        
+        <AmsStaffNav />
         <main className="flex-1 p-6 md:p-10 space-y-10 max-w-[1600px] mx-auto w-full">
           {/* Hero Header */}
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">

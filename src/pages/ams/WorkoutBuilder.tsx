@@ -70,7 +70,7 @@ export default function WorkoutBuilder() {
       setLoading(true);
       const data = await apiFetch<any>(`/ams/programs/${programId}`);
       setProgram(data);
-      setDays(data.days || []);
+      setDays((data.days || []).map((d: any) => ({ ...d, items: d.items || [] })));
     } catch (error: any) {
       toast({
         title: "Error fetching builder data",
@@ -144,8 +144,8 @@ export default function WorkoutBuilder() {
           </div>
         </header>
 
-        <main className="flex-1 overflow-x-auto overflow-y-hidden bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[#1d222b] via-[#0f1115] to-[#0f1115]">
-          <div className="flex flex-col md:flex-row h-full p-4 md:p-8 gap-8 min-w-0 items-start">
+        <main className="flex-1 overflow-x-auto overflow-y-auto bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[#1d222b] via-[#0f1115] to-[#0f1115]">
+          <div className="flex flex-col md:flex-row min-h-full p-4 md:p-8 gap-8 min-w-0 items-start">
             {days.map((day) => (
               <div key={day.id} className="w-full md:w-[400px] flex flex-col max-h-full group">
                 <div className="flex items-center justify-between mb-4 px-2">
@@ -176,8 +176,8 @@ export default function WorkoutBuilder() {
                   </DropdownMenu>
                 </div>
 
-                <div className="flex-1 overflow-y-auto space-y-4 h-[calc(100vh-320px)] scrollbar-hide pb-10">
-                  {day.items.map((item) => (
+                <div className="flex-1 overflow-y-auto space-y-4 max-h-[calc(100vh-260px)] min-h-[280px] pb-10 pr-1">
+                  {(day.items || []).map((item) => (
                     <WorkoutItemCard 
                       key={item.id} 
                       item={item} 

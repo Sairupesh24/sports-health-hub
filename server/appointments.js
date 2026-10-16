@@ -28,6 +28,8 @@ router.get('/', requireAuth, async (req, res) => {
                            'mobile_no', c.mobile_no,
                            'email', c.email,
                            'sport', c.sport,
+                           'occupation', c.occupation,
+                           'athlete_type', c.athlete_type,
                            'outstanding_balance', COALESCE((
                                SELECT SUM(b.total - COALESCE((SELECT SUM(bp.amount) FROM billpayments bp WHERE bp.bill_id = b.id), 0))
                                FROM bills b

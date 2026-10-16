@@ -218,9 +218,9 @@ export default function AmsQuickBuilder({ startDate, onSave, onCancel, loading, 
   };
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
+    <div className="h-full flex flex-col min-h-0 animate-in fade-in duration-500">
       {!hideTitle && (
-        <div className="flex flex-col">
+        <div className="flex flex-col shrink-0 mb-3">
           <h3 className="text-xl font-bold text-white flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
               <Dumbbell className="w-4 h-4" />
@@ -230,13 +230,13 @@ export default function AmsQuickBuilder({ startDate, onSave, onCancel, loading, 
         </div>
       )}
       {recipientName && (
-        <div className={cn("flex items-center gap-2 mt-2", !hideTitle && "pl-13")}>
+        <div className={cn("flex items-center gap-2 mb-3 shrink-0", !hideTitle && "pl-13")}>
           <Badge variant="outline" className="bg-primary/20 border-primary/40 text-primary text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-lg">
             Assigning to: {recipientName}
           </Badge>
         </div>
       )}
-      <div className="space-y-6">
+      <div className="flex-1 overflow-y-auto min-h-0 space-y-6 pr-1 pb-4">
         {days.map((day, dayIdx) => (
           <div key={day.id} className="rounded-2xl border border-white/10 overflow-hidden bg-[#1A1F26] shadow-xl relative">
             <div className="px-6 py-4 border-b border-white/5 bg-white/[0.02] flex items-center justify-between">
@@ -294,7 +294,7 @@ export default function AmsQuickBuilder({ startDate, onSave, onCancel, loading, 
                           variant="ghost" 
                           size="sm" 
                           className="w-full justify-start text-[10px] uppercase font-black tracking-wider text-[#FF6B35] hover:bg-[#FF6B35]/10 hover:text-[#FF6B35]"
-                          onClick={() => navigate('/sports-scientist/templates')}
+                          onClick={() => navigate('/ams/templates')}
                         >
                           <Plus className="w-3 h-3 mr-2" /> Create New Template
                         </Button>
@@ -500,12 +500,12 @@ export default function AmsQuickBuilder({ startDate, onSave, onCancel, loading, 
         </Button>
       </div>
 
-      <div className="flex gap-4 pt-6 mt-8 border-t border-white/5">
-        <Button variant="ghost" onClick={onCancel} className="h-12 flex-1 rounded-xl font-bold uppercase tracking-widest text-[10px] opacity-40">Cancel</Button>
+      <div className="flex gap-4 pt-4 border-t border-white/10 shrink-0 bg-[#1A1F26] mt-auto">
+        <Button variant="ghost" onClick={onCancel} className="h-11 flex-1 rounded-xl font-bold uppercase tracking-widest text-[10px] opacity-60 hover:opacity-100">Cancel</Button>
         <Button 
-          onClick={() => onSave(days)} 
-          disabled={loading || days.some(d => d.items.length === 0)}
-          className="h-12 flex-[2] rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold uppercase tracking-[0.15em] text-[10px]"
+          onClick={() => onSave(days.filter(d => d.items.length > 0))} 
+          disabled={loading || days.every(d => d.items.length === 0)}
+          className="h-11 flex-[2] rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold uppercase tracking-[0.15em] text-[10px] shadow-lg shadow-primary/20"
         >
           {loading ? "Saving..." : (templateMode ? "Save Template" : "Publish Plan")}
         </Button>

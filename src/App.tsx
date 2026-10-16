@@ -96,6 +96,7 @@ import SportsScientistSchedule from "./pages/sports-scientist/SportsScientistSch
 import SportsScientistClients from "./pages/sports-scientist/SportsScientistClients";
 
 import SportsScientistTemplates from "./pages/sports-scientist/SportsScientistTemplates";
+import WorkoutTemplatesPage from "./pages/ams/WorkoutTemplatesPage";
 import SportsScientistAnalytics from "./pages/sports-scientist/SportsScientistAnalytics";
 import SportsScientistResources from "./pages/sports-scientist/SportsScientistResources";
 import SportsScientistBilling from "./pages/sports-scientist/SportsScientistBilling";
@@ -159,12 +160,16 @@ const App = () => (
               <Route path="/reset-password" element={<ResetPasswordPage />} />
               {/* Public Questionnaire — no auth required */}
               <Route path="/q/:token" element={<PublicQuestionnaireForm />} />
+              {/* AMS Console Routes */}
+              <Route path="/ams" element={<Navigate to="/ams/coach-dashboard" replace />} />
+              <Route path="/ams/coach-dashboard" element={<ProtectedRoute requiredRole={["coach", "sports_scientist", "admin", "super_admin"]}><CoachDashboard /></ProtectedRoute>} />
               <Route path="/ams/athlete-portal" element={<ProtectedRoute><AthleteDashboard /></ProtectedRoute>} />
-              <Route path="/ams/coach-dashboard" element={<ProtectedRoute><CoachDashboard /></ProtectedRoute>} />
               <Route path="/pending-approval" element={<PendingApprovalPage />} />
               <Route path="/setup" element={<SetupPage />} />
               <Route path="/admin" element={<ProtectedRoute requiredRole={["admin", "foe", "super_admin"]}><AdminDashboardRedirect /></ProtectedRoute>} />
               <Route path="/admin/foe" element={<ProtectedRoute requiredRole={["admin", "foe", "super_admin"]}><FOEDashboard /></ProtectedRoute>} />
+              <Route path="/admin/foe/session-report" element={<ProtectedRoute requiredRole={["admin", "foe", "super_admin"]}><ActivityTracker role="foe" defaultTab="report" /></ProtectedRoute>} />
+              <Route path="/admin/foe/activity-tracker" element={<ProtectedRoute requiredRole={["admin", "foe", "super_admin"]}><ActivityTracker role="foe" defaultTab="report" /></ProtectedRoute>} />
               <Route path="/admin/leads" element={<ProtectedRoute requiredRole={["admin", "foe"]}><LeadsDashboard /></ProtectedRoute>} />
               <Route path="/admin/clients" element={<ProtectedRoute requiredRole={["admin", "foe"]}><ClientList /></ProtectedRoute>} />
               <Route path="/admin/clients/register" element={<ProtectedRoute requiredRole={["admin", "foe"]}><ClientRegistration /></ProtectedRoute>} />
@@ -189,7 +194,7 @@ const App = () => (
               
               {/* HRMS Console Routes */}
               <Route path="/hr" element={<ProtectedRoute requiredRole={["admin", "hr_manager", "super_admin"]}><HrDashboard /></ProtectedRoute>} />
-              <Route path="/hr/activity-tracker" element={<ProtectedRoute requiredRole={["admin", "hr_manager", "super_admin"]}><ActivityTracker /></ProtectedRoute>} />
+              <Route path="/hr/activity-tracker" element={<ProtectedRoute requiredRole={["admin", "hr_manager", "super_admin", "foe"]}><ActivityTracker /></ProtectedRoute>} />
               <Route path="/hr/staff-efficiency" element={<Navigate to="/hr/activity-tracker" replace />} />
               <Route path="/hr/day-planner" element={<ProtectedRoute requiredRole={["admin", "hr_manager", "super_admin"]}><HrDayPlanner /></ProtectedRoute>} />
               <Route path="/hr/employees" element={<Navigate to="/hr/leave-approvals" replace />} />
@@ -233,7 +238,8 @@ const App = () => (
               <Route path="/sports-scientist/clients" element={<MobileGuard><ProtectedRoute requiredRole={["sports_scientist", "admin", "super_admin", "consultant", "physiotherapist", "sports_physician"]}><SportsScientistClients /></ProtectedRoute></MobileGuard>} />
               <Route path="/sports-scientist/clients/:id" element={<MobileGuard><ProtectedRoute requiredRole={["sports_scientist", "admin", "super_admin", "consultant", "physiotherapist", "sports_physician"]}><ConsultantClientProfile /></ProtectedRoute></MobileGuard>} />
               <Route path="/sports-scientist/reports" element={<MobileGuard><ProtectedRoute requiredRole={["sports_scientist", "admin"]}><ReportsPage role="sports_scientist" /></ProtectedRoute></MobileGuard>} />
-              <Route path="/sports-scientist/templates" element={<MobileGuard><ProtectedRoute requiredRole={["sports_scientist", "admin"]}><SportsScientistTemplates /></ProtectedRoute></MobileGuard>} />
+              <Route path="/sports-scientist/templates" element={<Navigate to="/ams/templates" replace />} />
+              <Route path="/ams/templates" element={<MobileGuard><ProtectedRoute requiredRole={["coach", "sports_scientist", "admin", "super_admin", "sports_physician", "physiotherapist", "nutritionist"]}><WorkoutTemplatesPage /></ProtectedRoute></MobileGuard>} />
               <Route path="/sports-scientist/resources" element={<MobileGuard><ProtectedRoute requiredRole={["sports_scientist", "admin", "super_admin", "consultant", "physiotherapist", "sports_physician"]}><SportsScientistResources /></ProtectedRoute></MobileGuard>} />
 
               <Route path="/ams/programs" element={<MobileGuard><ProtectedRoute requiredRole={["coach", "sports_scientist", "admin", "sports_physician", "physiotherapist", "nutritionist"]}><ProgramsPage /></ProtectedRoute></MobileGuard>} />
@@ -246,7 +252,7 @@ const App = () => (
               <Route path="/ams/performance-testing/:subview" element={<MobileGuard><ProtectedRoute requiredRole={["coach", "sports_scientist", "admin", "sports_physician", "physiotherapist", "nutritionist", "foe"]}><PerformanceTestingHub /></ProtectedRoute></MobileGuard>} />
               <Route path="/ams/athlete/calendar" element={<ProtectedRoute requiredRole={["client", "athlete"]}><AthleteDashboard /></ProtectedRoute>} />
               <Route path="/ams/athlete/workout/:id" element={<ProtectedRoute requiredRole={["client", "athlete"]}><WorkoutLogging /></ProtectedRoute>} />
-              <Route path="/ams/batch-tests" element={<MobileGuard><ProtectedRoute requiredRole={["coach", "sports_scientist", "admin", "sports_physician", "physiotherapist", "nutritionist"]}><BatchTestEntry /></ProtectedRoute></MobileGuard>} />
+              <Route path="/ams/batch-tests" element={<Navigate to="/ams/performance-testing/grid" replace />} />
               <Route path="/sports-scientist/analytics" element={<MobileGuard><ProtectedRoute requiredRole={["sports_scientist", "admin"]}><SportsScientistAnalytics /></ProtectedRoute></MobileGuard>} />
               <Route path="/sports-scientist/billing" element={<MobileGuard><ProtectedRoute requiredRole={["sports_scientist", "admin"]}><SportsScientistBilling /></ProtectedRoute></MobileGuard>} />
 

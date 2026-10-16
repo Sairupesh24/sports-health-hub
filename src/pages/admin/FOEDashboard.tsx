@@ -17,6 +17,7 @@ import {
     Activity,
     CreditCard,
     Plus,
+    CalendarRange,
 } from "lucide-react";
 import { LogEnquiryModal } from "@/components/admin/LogEnquiryModal";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -50,6 +51,102 @@ const DAYS_OF_WEEK = [
     { id: 5, label: "Friday" },
     { id: 6, label: "Saturday" },
 ];
+
+export function getSessionPopulationCategory(session: any): "Athlete" | "General Population" {
+  if (!session) return "General Population";
+
+  // 1. Explicit client occupation
+  const rawOccupation = session.client?.occupation?.trim()?.toLowerCase();
+  if (rawOccupation === "athlete") return "Athlete";
+  if (
+    rawOccupation === "general population" || 
+    rawOccupation === "gen-pop" || 
+    rawOccupation === "general" ||
+    rawOccupation === "corporate" ||
+    rawOccupation === "non-athlete"
+  ) {
+    return "General Population";
+  }
+
+  // 2. Client athlete flags
+  if (session.client?.athlete_type) return "Athlete";
+  if (
+    session.client?.sport && 
+    session.client.sport.trim() !== "" && 
+    session.client.sport !== "--" && 
+    session.client.sport.toLowerCase() !== "none"
+  ) {
+    return "Athlete";
+  }
+
+  // 3. Group session classification by group name
+  const groupName = (session.group_name || "").trim().toLowerCase();
+  if (groupName) {
+    if (
+      groupName.includes("gen-pop") || 
+      groupName.includes("gen pop") || 
+      groupName.includes("general population") || 
+      groupName.includes("general pop") ||
+      groupName.includes("corporate") ||
+      groupName.includes("wellness") ||
+      groupName.includes("rehab group")
+    ) {
+      return "General Population";
+    }
+
+    if (
+      groupName.includes("champ") || 
+      groupName.includes("athlete") || 
+      groupName.includes("s&c") || 
+      groupName.includes("strength") || 
+      groupName.includes("squad") || 
+      groupName.includes("team") || 
+      groupName.includes("academy") || 
+      groupName.includes("badminton") || 
+      groupName.includes("cricket") || 
+      groupName.includes("tennis") || 
+      groupName.includes("football") || 
+      groupName.includes("swimming") || 
+      groupName.includes("track") ||
+      groupName.includes("fencing") ||
+      groupName.includes("rowing") ||
+      groupName.includes("boxing") ||
+      groupName.includes("elite") ||
+      groupName.includes("junior") ||
+      groupName.includes("senior") ||
+      groupName.includes("pro")
+    ) {
+      return "Athlete";
+    }
+  }
+
+  // 4. Session service type indicator
+  const service = (session.service_type || session.session_type?.name || "").trim().toLowerCase();
+  if (
+    service.includes("athlete") || 
+    service.includes("sports science") || 
+    service.includes("s&c") || 
+    service.includes("strength & conditioning") ||
+    service.includes("performance testing") ||
+    service.includes("combine") ||
+    service.includes("vo2")
+  ) {
+    return "Athlete";
+  }
+
+  // 5. If group session with training/conditioning in sports hub
+  const isGroup = session.session_mode?.toLowerCase() === "group" || Boolean(session.group_name);
+  if (isGroup && (service.includes("training") || service.includes("conditioning"))) {
+    return "Athlete";
+  }
+
+  // Default fallback for client
+  if (session.client) {
+    return "General Population";
+  }
+
+  return "General Population";
+}
 
 export default function FOEDashboard() {
   const navigate = useNavigate();
@@ -243,12 +340,28 @@ export default function FOEDashboard() {
             
             {/* Today's Schedule Card */}
             <Card className="border-none shadow-premium overflow-hidden">
-              <CardHeader className="bg-muted/10 border-b pb-4">
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Calendar className="w-5 h-5 text-primary" />
-                  Today's Appointment Log
-                </CardTitle>
-                <CardDescription>Real-time view of all scheduled clinical activities</CardDescription>
+              <CardHeader className="bg-muted/10 border-b pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Calendar className="w-5 h-5 text-primary" />
+                    Today's Visits Log
+                  </CardTitle>
+                  <CardDescription>Real-time view of all scheduled clinical activities & visits</CardDescription>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    sessionStorage.setItem("active_console", "foe");
+                    navigate("/admin/foe/session-report");
+                  }}
+                  className="gap-2 font-bold bg-white/90 hover:bg-white text-xs sm:text-sm border-purple-200 text-purple-700 hover:text-purple-800 hover:border-purple-300 shadow-sm shrink-0 rounded-xl"
+                  title="Redirect to Time Frame Session Report"
+                >
+                  <CalendarRange className="w-4 h-4 text-purple-600" />
+                  <span>Time Frame Session Report</span>
+                  <ArrowRight className="w-3.5 h-3.5 text-purple-500 ml-0.5" />
+                </Button>
               </CardHeader>
               <CardContent className="p-0">
                 <ScrollArea className="h-[450px]">
@@ -258,49 +371,93 @@ export default function FOEDashboard() {
                     <div className="p-12 text-center text-muted-foreground italic">No appointments scheduled for today.</div>
                   ) : (
                     <div className="divide-y divide-border">
-                      {todaysSessions.map((session: any) => (
-                        <div key={session.id} className="p-4 hover:bg-muted/10 transition-colors flex items-center justify-between group">
-                          <div className="flex items-center gap-4">
-                            <div className="text-center min-w-[60px] bg-primary/5 py-2 px-1 rounded-lg border border-primary/10">
-                              <span className="block text-xs font-black text-primary uppercase">{format(parseISO(session.scheduled_start), "hh:mm")}</span>
-                              <span className="block text-[10px] opacity-60 font-bold uppercase">{format(parseISO(session.scheduled_start), "aa")}</span>
-                            </div>
-                            <div>
-                                <div className="flex items-center gap-2">
-                                    <span className="font-bold text-foreground">{formatClientName(session.client)}</span>
-                                    <VIPBadge isVIP={session.client?.is_vip} />
-                                </div>
-                                <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
-                                    <span className="font-mono text-[10px] bg-muted px-1.5 py-0.5 rounded uppercase">UHID: {session.client?.uhid}</span>
-                                    <span>•</span>
-                                    <span className="font-medium text-primary/80">{session.service_type}</span>
-                                </div>
-                            </div>
-                          </div>
+                      {todaysSessions.map((session: any) => {
+                        const isGroup = session.session_mode?.toLowerCase() === 'group' || Boolean(session.group_name);
+                        const groupTitle = session.group_name?.trim() || (isGroup ? "Group Session" : "");
+                        const clientTitle = formatClientName(session.client);
+                        const displayName = isGroup ? groupTitle : (clientTitle || session.guest_name || "Guest Patient");
+                        const populationType = getSessionPopulationCategory(session);
 
-                          <div className="flex items-center gap-4">
-                            <div className="text-right hidden sm:block">
-                                <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">Consultant</p>
-                                <p className="text-xs font-semibold">{formatStaffName(session.therapist || session.scientist || session.staff, { useFirstName: true })}</p>
+                        return (
+                          <div key={session.id} className="p-4 hover:bg-muted/10 transition-colors flex items-center justify-between group">
+                            <div className="flex items-center gap-4">
+                              <div className="text-center min-w-[60px] bg-primary/5 py-2 px-1 rounded-lg border border-primary/10">
+                                <span className="block text-xs font-black text-primary uppercase">{format(parseISO(session.scheduled_start), "hh:mm")}</span>
+                                <span className="block text-[10px] opacity-60 font-bold uppercase">{format(parseISO(session.scheduled_start), "aa")}</span>
+                              </div>
+                              <div>
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                      <span className="font-bold text-foreground flex items-center gap-1.5">
+                                          {isGroup && <Users className="w-4 h-4 text-primary shrink-0" />}
+                                          {displayName}
+                                      </span>
+                                      {isGroup && (
+                                        <Badge className="bg-primary/10 text-primary border-primary/20 text-[9px] font-black uppercase tracking-wider px-1.5 py-0.2 rounded-md">
+                                          Group
+                                        </Badge>
+                                      )}
+                                      {!isGroup && <VIPBadge isVIP={session.client?.is_vip} />}
+                                      <Badge 
+                                        variant="outline"
+                                        className={cn(
+                                          "text-[9px] font-black uppercase tracking-wider px-1.5 py-0.2 rounded-md border",
+                                          populationType === "Athlete"
+                                            ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-800"
+                                            : "bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-950/30 dark:text-sky-400 dark:border-sky-800"
+                                        )}
+                                      >
+                                        {populationType}
+                                      </Badge>
+                                  </div>
+                                  <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5 flex-wrap">
+                                      {session.client?.uhid && (
+                                        <>
+                                          <span className="font-mono text-[10px] bg-muted px-1.5 py-0.5 rounded uppercase">UHID: {session.client.uhid}</span>
+                                          <span>•</span>
+                                        </>
+                                      )}
+                                      <span className="font-medium text-primary/80">{session.service_type || 'Training'}</span>
+                                      {session.client?.sport && session.client.sport !== '--' && (
+                                        <>
+                                          <span>•</span>
+                                          <span className="text-[11px] font-medium text-muted-foreground">{session.client.sport}</span>
+                                        </>
+                                      )}
+                                  </div>
+                              </div>
                             </div>
-                            <Badge className={`uppercase text-[10px] font-black px-2 py-0.5 ${
-                                session.status === 'Completed' ? 'bg-emerald-100 text-emerald-700' :
-                                session.status === 'Checked In' ? 'bg-purple-100 text-purple-700' :
-                                'bg-blue-100 text-blue-700'
-                            }`}>
-                                {session.status}
-                            </Badge>
-                            <Button 
-                                variant="ghost" 
-                                size="icon" 
-                                className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-                                onClick={() => navigate(`/admin/clients/${session.client?.id}?tab=sessions`)}
-                            >
-                                <ArrowRight className="w-4 h-4" />
-                            </Button>
+
+                            <div className="flex items-center gap-4">
+                              <div className="text-right hidden sm:block">
+                                  <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">Consultant</p>
+                                  <p className="text-xs font-semibold">{formatStaffName(session.therapist || session.scientist || session.staff, { useFirstName: true })}</p>
+                              </div>
+                              <Badge className={`uppercase text-[10px] font-black px-2 py-0.5 ${
+                                  session.status === 'Completed' ? 'bg-emerald-100 text-emerald-700' :
+                                  session.status === 'Checked In' ? 'bg-purple-100 text-purple-700' :
+                                  'bg-blue-100 text-blue-700'
+                              }`}>
+                                  {session.status}
+                              </Badge>
+                              <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                                  title={session.client?.id ? "View Client Sessions" : "View in Master Calendar"}
+                                  onClick={() => {
+                                    if (session.client?.id) {
+                                      navigate(`/admin/clients/${session.client.id}?tab=sessions`);
+                                    } else {
+                                      navigate('/admin/calendar');
+                                    }
+                                  }}
+                              >
+                                  <ArrowRight className="w-4 h-4" />
+                              </Button>
+                            </div>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   )}
                 </ScrollArea>
@@ -343,7 +500,7 @@ export default function FOEDashboard() {
                                 <div className="flex items-center gap-2 text-xs text-orange-900/60 mt-0.5">
                                     <span className="bg-white/50 px-1.5 py-0.5 rounded border border-orange-100 text-[10px] font-bold">UHID: {item.client?.uhid}</span>
                                     <span>•</span>
-                                    <span className="font-bold uppercase text-[9px] tracking-widest">{item.preferred_time_slot.substring(0, 5)} Slot</span>
+                                    <span className="font-bold uppercase text-[9px] tracking-widest">{(item.preferred_time_slot || 'Flexible').substring(0, 5)} Slot</span>
                                 </div>
                              </div>
                           </div>

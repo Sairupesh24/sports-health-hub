@@ -24,6 +24,55 @@ router.get('/programs', requireAuth, async (req, res) => {
     }
 });
 
+// POST Create training program
+router.post('/programs', requireAuth, async (req, res) => {
+    try {
+        const { name, description } = req.body;
+        const orgId = req.user.organization_id;
+        const result = await db.query(`
+            INSERT INTO trainingprograms (name, description, organization_id, scientist_id)
+            VALUES ($1, $2, $3, $4)
+            RETURNING *
+        `, [name || 'New Training Program', description || 'Click to edit description', orgId, req.user.id]);
+        res.status(201).json(result.rows[0]);
+    } catch (error) {
+        console.error('Error creating program:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// PATCH Update training program
+router.patch('/programs/:id', requireAuth, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { name, description } = req.body;
+        const orgId = req.user.organization_id;
+        const result = await db.query(`
+            UPDATE trainingprograms
+            SET name = COALESCE($1, name),
+                description = COALESCE($2, description)
+            WHERE id = $3 AND organization_id = $4
+            RETURNING *
+        `, [name, description, id, orgId]);
+        if (result.rows.length === 0) return res.status(404).json({ error: 'Program not found' });
+        res.json(result.rows[0]);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// DELETE training program
+router.delete('/programs/:id', requireAuth, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const orgId = req.user.organization_id;
+        await db.query('DELETE FROM trainingprograms WHERE id = $1 AND organization_id = $2', [id, orgId]);
+        res.json({ success: true });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
 // GET Questionnaires
 router.get('/questionnaires', requireAuth, async (req, res) => {
     try {
@@ -94,11 +143,32 @@ router.get('/programs/:id', requireAuth, async (req, res) => {
         
         const daysRes = await db.query(`
             SELECT wd.*, 
-            (
-                SELECT json_agg(wi.*)
+            COALESCE((
+                SELECT json_agg(
+                    json_build_object(
+                        'id', wi.id,
+                        'workout_day_id', wi.workout_day_id,
+                        'item_type', wi.item_type,
+                        'display_order', wi.display_order,
+                        'lift', CASE WHEN li.id IS NOT NULL THEN json_build_object(
+                            'id', li.id,
+                            'sets', li.sets,
+                            'reps', li.reps,
+                            'load_value', li.load_value,
+                            'tempo', li.tempo,
+                            'rest_time_secs', li.rest_time_secs,
+                            'workout_grouping', li.workout_grouping,
+                            'each_side', li.each_side,
+                            'additional_info', li.additional_info,
+                            'exercise', json_build_object('id', e.id, 'name', e.name)
+                        ) ELSE NULL END
+                    ) ORDER BY wi.display_order ASC
+                )
                 FROM workoutitems wi
+                LEFT JOIN liftitems li ON wi.id = li.workout_item_id
+                LEFT JOIN exercises e ON li.exercise_id = e.id
                 WHERE wi.workout_day_id = wd.id
-            ) as items
+            ), '[]'::json) as items
             FROM workoutdays wd
             WHERE wd.program_id = $1
             ORDER BY wd.display_order ASC
@@ -1447,40 +1517,44 @@ router.get('/training-summary', requireAuth, async (req, res) => {
     }
 });
 
-// GET Athletes for Coach
+// GET Athletes for Coach & Activity Monitoring System (all registered clients)
 router.get('/athletes', requireAuth, async (req, res) => {
     try {
         const { team } = req.query;
         const orgId = req.user.organization_id;
         
         let query = `
-            SELECT p.*, u.email
-            FROM profiles p
-            JOIN users u ON p.id = u.id
-            WHERE p.organization_id = $1 AND p.ams_role = 'athlete'
+            SELECT c.id, 
+                   c.first_name, 
+                   c.last_name,
+                   (c.first_name || ' ' || COALESCE(c.last_name, '')) as full_name,
+                   c.uhid,
+                   COALESCE(c.sport, 'Athletics') as team,
+                   COALESCE(c.athlete_type, 'Athlete') as position,
+                   COALESCE(c.sport, 'Athletics') as sport,
+                   c.email,
+                   p.avatar_url,
+                   COALESCE(p.ams_role, 'athlete') as ams_role,
+                   c.mobile_no,
+                   c.created_at
+            FROM clients c
+            LEFT JOIN profiles p ON (c.profile_id = p.id OR c.id = p.id)
+            WHERE (c.organization_id = $1 OR $1 IS NULL)
+              AND c.deleted_at IS NULL
         `;
         const params = [orgId];
         
         if (team && team !== 'all') {
-            query += ' AND p.team = $2';
+            query += ' AND LOWER(COALESCE(c.sport, \'\')) = LOWER($2)';
             params.push(team);
         }
         
+        query += ' ORDER BY c.first_name ASC, c.last_name ASC';
         const athletesRes = await db.query(query, params);
         
-        const athletes = await Promise.all(athletesRes.rows.map(async (athlete) => {
-            const logs = await db.query('SELECT * FROM wellness_logs WHERE athlete_id = $1 ORDER BY created_at DESC LIMIT 30', [athlete.id]);
-            const sessions = await db.query('SELECT * FROM external_training_summary WHERE client_id = $1 ORDER BY training_date DESC LIMIT 10', [athlete.id]);
-            
-            return {
-                ...athlete,
-                wellness_logs: logs.rows,
-                training_sessions: sessions.rows
-            };
-        }));
-        
-        res.json(athletes);
+        res.json(athletesRes.rows);
     } catch (error) {
+        console.error('[AMS] Error fetching athletes:', error);
         res.status(500).json({ error: error.message });
     }
 });
@@ -1489,7 +1563,7 @@ router.get('/athletes', requireAuth, async (req, res) => {
 router.get('/groups', requireAuth, async (req, res) => {
     try {
         const orgId = req.user.organization_id;
-        const result = await db.query('SELECT * FROM client_groups WHERE organization_id = $1 ORDER BY name', [orgId]);
+        const result = await db.query('SELECT * FROM client_groups WHERE (organization_id = $1 OR $1 IS NULL) ORDER BY name', [orgId]);
         res.json(result.rows);
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -1506,13 +1580,53 @@ router.get('/group-members', requireAuth, async (req, res) => {
     }
 });
 
-// GET Batches
+// GET Batches (both batches and groups created by sports scientists)
 router.get('/batches', requireAuth, async (req, res) => {
     try {
         const orgId = req.user.organization_id;
-        const result = await db.query('SELECT * FROM batches WHERE organization_id = $1 ORDER BY name', [orgId]);
-        res.json(result.rows);
+        let batchesRows = [];
+        try {
+            const batchesRes = await db.query(`
+                SELECT b.id, b.name, b.created_at, b.organization_id, 'batch' as source_type,
+                       (SELECT count(*)::int FROM batch_members bm WHERE bm.batch_id = b.id) as member_count
+                FROM batches b
+                WHERE (b.organization_id = $1 OR $1 IS NULL)
+                ORDER BY b.name ASC
+            `, [orgId]);
+            batchesRows = batchesRes.rows || [];
+        } catch (e) {
+            console.warn('[AMS] batches query warning:', e.message);
+        }
+
+        let groupsRows = [];
+        try {
+            const groupsRes = await db.query(`
+                SELECT cg.id, cg.name, cg.created_at, cg.organization_id, 'client_group' as source_type,
+                       (SELECT count(*)::int FROM client_group_members cgm WHERE cgm.group_id = cg.id) as member_count
+                FROM client_groups cg
+                WHERE (cg.organization_id = $1 OR $1 IS NULL)
+                ORDER BY cg.name ASC
+            `, [orgId]);
+            groupsRows = groupsRes.rows || [];
+        } catch (e) {
+            console.warn('[AMS] client_groups query warning:', e.message);
+        }
+
+        const seen = new Set();
+        const combined = [];
+        for (const b of batchesRows) {
+            if (b.name) seen.add(b.name.toLowerCase());
+            combined.push(b);
+        }
+        for (const g of groupsRows) {
+            if (g.name && !seen.has(g.name.toLowerCase())) {
+                seen.add(g.name.toLowerCase());
+                combined.push(g);
+            }
+        }
+        res.json(combined);
     } catch (error) {
+        console.error('[AMS] Error fetching batches:', error);
         res.status(500).json({ error: error.message });
     }
 });
@@ -1525,6 +1639,7 @@ router.get('/program-assignments', requireAuth, async (req, res) => {
         
         let query = `
             SELECT pa.*, 
+                   pa.start_date::text as start_date,
                    tp.name as program_name,
                    (
                        SELECT json_agg(day_data)
@@ -1618,12 +1733,7 @@ router.delete('/program-assignments/:id', requireAuth, async (req, res) => {
 router.delete('/workout-items/:id', requireAuth, async (req, res) => {
     try {
         const { id } = req.params;
-        const orgId = req.user.organization_id;
-        // Verify ownership via day -> program -> org
-        await db.query(`
-            DELETE FROM workoutitems 
-            WHERE id = $1 AND organization_id = $2
-        `, [id, orgId]);
+        await db.query(`DELETE FROM workoutitems WHERE id = $1`, [id]);
         res.json({ success: true });
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -1635,7 +1745,6 @@ router.post('/workout-items', requireAuth, async (req, res) => {
     const client = await db.connect();
     try {
         const { workout_day_id, item_type, display_order, details } = req.body;
-        const orgId = req.user.organization_id;
         
         await client.query('BEGIN');
         
@@ -1643,18 +1752,18 @@ router.post('/workout-items', requireAuth, async (req, res) => {
             INSERT INTO workoutitems (workout_day_id, item_type, display_order)
             VALUES ($1, $2, $3)
             RETURNING *
-        `, [workout_day_id, item_type, display_order]);
+        `, [workout_day_id, item_type, display_order || 0]);
         
         const newItem = itemRes.rows[0];
         
-        if (item_type === 'lift' || item_type === 'saqc') {
+        if ((item_type === 'lift' || item_type === 'saqc') && details) {
             await client.query(`
                 INSERT INTO liftitems (
-                    id, exercise_id, sets, reps, load_value, tempo, rest_time_secs, additional_info, workout_grouping, each_side
+                    workout_item_id, exercise_id, sets, reps, load_value, tempo, rest_time_secs, additional_info, workout_grouping, each_side
                 ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
             `, [
-                newItem.id, details.exercise_id, details.sets, details.reps, details.load_value, 
-                details.tempo, details.rest_time_secs, details.additional_info, details.workout_grouping, details.each_side
+                newItem.id, details.exercise_id, details.sets || 1, details.reps || '10', details.load_value || 0, 
+                details.tempo || '0-0-0-0', details.rest_time_secs || 60, details.additional_info || null, details.workout_grouping || null, !!details.each_side
             ]);
         }
         
@@ -1662,10 +1771,21 @@ router.post('/workout-items', requireAuth, async (req, res) => {
         
         // Return full item with details
         const fullItemRes = await db.query(`
-            SELECT wi.*, li.sets, li.reps, li.load_value, li.tempo, li.rest_time_secs, li.additional_info, li.workout_grouping, li.each_side,
-                   e.name as exercise_name
+            SELECT wi.*, 
+                   json_build_object(
+                       'id', li.id,
+                       'sets', li.sets,
+                       'reps', li.reps,
+                       'load_value', li.load_value,
+                       'tempo', li.tempo,
+                       'rest_time_secs', li.rest_time_secs,
+                       'additional_info', li.additional_info,
+                       'workout_grouping', li.workout_grouping,
+                       'each_side', li.each_side,
+                       'exercise', json_build_object('id', e.id, 'name', e.name)
+                   ) as lift
             FROM workoutitems wi
-            LEFT JOIN liftitems li ON wi.id = li.id
+            LEFT JOIN liftitems li ON wi.id = li.workout_item_id
             LEFT JOIN exercises e ON li.exercise_id = e.id
             WHERE wi.id = $1
         `, [newItem.id]);
@@ -1673,6 +1793,7 @@ router.post('/workout-items', requireAuth, async (req, res) => {
         res.status(201).json(fullItemRes.rows[0]);
     } catch (error) {
         await client.query('ROLLBACK');
+        console.error('Error creating workout item:', error);
         res.status(500).json({ error: error.message });
     } finally {
         client.release();
@@ -1685,7 +1806,6 @@ router.patch('/workout-items/:id', requireAuth, async (req, res) => {
     try {
         const { id } = req.params;
         const { item_type, display_order, details } = req.body;
-        const orgId = req.user.organization_id;
         
         await client.query('BEGIN');
         
@@ -1696,35 +1816,57 @@ router.patch('/workout-items/:id', requireAuth, async (req, res) => {
             WHERE id = $3
         `, [item_type, display_order, id]);
         
-        if (item_type === 'lift' || item_type === 'saqc') {
-            await client.query(`
-                INSERT INTO liftitems (
-                    id, exercise_id, sets, reps, load_value, tempo, rest_time_secs, additional_info, workout_grouping, each_side
-                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-                ON CONFLICT (id) DO UPDATE SET
-                    exercise_id = EXCLUDED.exercise_id,
-                    sets = EXCLUDED.sets,
-                    reps = EXCLUDED.reps,
-                    load_value = EXCLUDED.load_value,
-                    tempo = EXCLUDED.tempo,
-                    rest_time_secs = EXCLUDED.rest_time_secs,
-                    additional_info = EXCLUDED.additional_info,
-                    workout_grouping = EXCLUDED.workout_grouping,
-                    each_side = EXCLUDED.each_side
-            `, [
-                id, details.exercise_id, details.sets, details.reps, details.load_value, 
-                details.tempo, details.rest_time_secs, details.additional_info, details.workout_grouping, details.each_side
-            ]);
+        if ((item_type === 'lift' || item_type === 'saqc') && details) {
+            const existingLi = await client.query('SELECT id FROM liftitems WHERE workout_item_id = $1', [id]);
+            if (existingLi.rows.length > 0) {
+                await client.query(`
+                    UPDATE liftitems SET
+                        exercise_id = COALESCE($1, exercise_id),
+                        sets = COALESCE($2, sets),
+                        reps = COALESCE($3, reps),
+                        load_value = COALESCE($4, load_value),
+                        tempo = COALESCE($5, tempo),
+                        rest_time_secs = COALESCE($6, rest_time_secs),
+                        additional_info = COALESCE($7, additional_info),
+                        workout_grouping = COALESCE($8, workout_grouping),
+                        each_side = COALESCE($9, each_side)
+                    WHERE workout_item_id = $10
+                `, [
+                    details.exercise_id, details.sets, details.reps, details.load_value, 
+                    details.tempo, details.rest_time_secs, details.additional_info, details.workout_grouping, details.each_side,
+                    id
+                ]);
+            } else {
+                await client.query(`
+                    INSERT INTO liftitems (
+                        workout_item_id, exercise_id, sets, reps, load_value, tempo, rest_time_secs, additional_info, workout_grouping, each_side
+                    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+                `, [
+                    id, details.exercise_id, details.sets || 1, details.reps || '10', details.load_value || 0, 
+                    details.tempo || '0-0-0-0', details.rest_time_secs || 60, details.additional_info || null, details.workout_grouping || null, !!details.each_side
+                ]);
+            }
         }
         
         await client.query('COMMIT');
         
         // Return full item with details
         const fullItemRes = await db.query(`
-            SELECT wi.*, li.sets, li.reps, li.load_value, li.tempo, li.rest_time_secs, li.additional_info, li.workout_grouping, li.each_side,
-                   e.name as exercise_name
+            SELECT wi.*, 
+                   json_build_object(
+                       'id', li.id,
+                       'sets', li.sets,
+                       'reps', li.reps,
+                       'load_value', li.load_value,
+                       'tempo', li.tempo,
+                       'rest_time_secs', li.rest_time_secs,
+                       'additional_info', li.additional_info,
+                       'workout_grouping', li.workout_grouping,
+                       'each_side', li.each_side,
+                       'exercise', json_build_object('id', e.id, 'name', e.name)
+                   ) as lift
             FROM workoutitems wi
-            LEFT JOIN liftitems li ON wi.id = li.id
+            LEFT JOIN liftitems li ON wi.id = li.workout_item_id
             LEFT JOIN exercises e ON li.exercise_id = e.id
             WHERE wi.id = $1
         `, [id]);
@@ -1732,6 +1874,7 @@ router.patch('/workout-items/:id', requireAuth, async (req, res) => {
         res.json(fullItemRes.rows[0]);
     } catch (error) {
         await client.query('ROLLBACK');
+        console.error('Error updating workout item:', error);
         res.status(500).json({ error: error.message });
     } finally {
         client.release();
@@ -1743,34 +1886,58 @@ router.get('/batches/:id/members', requireAuth, async (req, res) => {
     try {
         const { id } = req.params;
         const result = await db.query(`
-            SELECT p.id, p.first_name, p.last_name, p.uhid
+            SELECT DISTINCT COALESCE(c.id, p.id) as id, 
+                   COALESCE(c.first_name, p.first_name) as first_name, 
+                   COALESCE(c.last_name, p.last_name) as last_name, 
+                   COALESCE(c.uhid, p.uhid) as uhid
             FROM batch_members bm
-            JOIN profiles p ON bm.athlete_id = p.id
+            LEFT JOIN profiles p ON bm.athlete_id = p.id
+            LEFT JOIN clients c ON (bm.athlete_id = c.id OR c.profile_id = p.id)
             WHERE bm.batch_id = $1
+            UNION
+            SELECT DISTINCT c.id, c.first_name, c.last_name, c.uhid
+            FROM client_group_members cgm
+            JOIN clients c ON cgm.client_id = c.id
+            WHERE cgm.group_id = $1
         `, [id]);
         res.json(result.rows);
     } catch (error) {
+        console.error('[AMS] Error fetching batch members:', error);
         res.status(500).json({ error: error.message });
     }
 });
 
-// POST Create Batch
+// POST Create Batch (syncs with client_groups)
 router.post('/batches', requireAuth, async (req, res) => {
     try {
         const { name } = req.body;
         const orgId = req.user.organization_id;
+        const userId = req.user.id;
+        
         const result = await db.query(`
             INSERT INTO batches (name, organization_id, created_by)
             VALUES ($1, $2, $3)
             RETURNING *
-        `, [name, orgId, req.user.id]);
+        `, [name, orgId, userId]);
+
+        // Also sync to client_groups so Sports Scientist console immediately sees it
+        try {
+            await db.query(`
+                INSERT INTO client_groups (id, organization_id, name, created_by)
+                VALUES ($1, $2, $3, $4)
+                ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name
+            `, [result.rows[0].id, orgId, name, userId]);
+        } catch (cgErr) {
+            console.warn('[AMS] client_groups sync note:', cgErr.message);
+        }
+
         res.status(201).json(result.rows[0]);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
 });
 
-// PATCH Update Batch
+// PATCH Update Batch (syncs with client_groups)
 router.patch('/batches/:id', requireAuth, async (req, res) => {
     try {
         const { id } = req.params;
@@ -1782,28 +1949,48 @@ router.patch('/batches/:id', requireAuth, async (req, res) => {
             WHERE id = $2 AND organization_id = $3
             RETURNING *
         `, [name, id, orgId]);
+
+        // Also update client_groups
+        try {
+            await db.query(`
+                UPDATE client_groups 
+                SET name = $1, updated_at = CURRENT_TIMESTAMP
+                WHERE id = $2 AND organization_id = $3
+            `, [name, id, orgId]);
+        } catch (cgErr) {
+            console.warn('[AMS] client_groups patch sync note:', cgErr.message);
+        }
+
         res.json(result.rows[0]);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
 });
 
-// POST Update Batch Members (Sync)
+// POST Update Batch Members (Syncs with client_group_members)
 router.post('/batches/:id/members', requireAuth, async (req, res) => {
     const client = await db.connect();
     try {
         const { id } = req.params;
         const { athlete_ids } = req.body;
+        const userId = req.user.id;
         
         await client.query('BEGIN');
-        // 1. Remove old members
+        // 1. Remove old members from both batch_members and client_group_members
         await client.query('DELETE FROM batch_members WHERE batch_id = $1', [id]);
+        await client.query('DELETE FROM client_group_members WHERE group_id = $1', [id]);
+        
         // 2. Add new members
         for (const athleteId of athlete_ids) {
             await client.query(`
                 INSERT INTO batch_members (batch_id, athlete_id)
                 VALUES ($1, $2)
             `, [id, athleteId]);
+            await client.query(`
+                INSERT INTO client_group_members (group_id, client_id, added_by)
+                VALUES ($1, $2, $3)
+                ON CONFLICT (group_id, client_id) DO NOTHING
+            `, [id, athleteId, userId]);
         }
         await client.query('COMMIT');
         res.json({ success: true });
@@ -1820,6 +2007,7 @@ router.delete('/batches/:id/members/:athleteId', requireAuth, async (req, res) =
     try {
         const { id, athleteId } = req.params;
         await db.query('DELETE FROM batch_members WHERE batch_id = $1 AND athlete_id = $2', [id, athleteId]);
+        await db.query('DELETE FROM client_group_members WHERE group_id = $1 AND client_id = $2', [id, athleteId]);
         res.json({ success: true });
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -1985,42 +2173,43 @@ router.post('/quick-assign', requireAuth, async (req, res) => {
         
         // 1. Create Transient Program
         const programRes = await client.query(`
-            INSERT INTO trainingprograms (name, description, organization_id, coach_id, status, is_template)
-            VALUES ($1, $2, $3, $4, $5, $6)
+            INSERT INTO trainingprograms (name, description, organization_id, scientist_id)
+            VALUES ($1, $2, $3, $4)
             RETURNING id
-        `, [title, 'Ad-hoc workout assigned from calendar', orgId, req.user.id, 'active', false]);
+        `, [title, 'Ad-hoc workout assigned from calendar', orgId, req.user.id]);
         
         const programId = programRes.rows[0].id;
         
         // 2. Create Days and Items
         for (let dIdx = 0; dIdx < days.length; dIdx++) {
             const day = days[dIdx];
+            const displayOrder = typeof day.dayOffset === 'number' ? day.dayOffset : dIdx;
             const dayRes = await client.query(`
                 INSERT INTO workoutdays (program_id, organization_id, title, display_order)
                 VALUES ($1, $2, $3, $4)
                 RETURNING id
-            `, [programId, orgId, day.title || 'Untitled Workout', dIdx]);
+            `, [programId, orgId, day.title || 'Untitled Workout', displayOrder]);
             
             const dayId = dayRes.rows[0].id;
             
             for (let iIdx = 0; iIdx < day.items.length; iIdx++) {
                 const item = day.items[iIdx];
                 const itemRes = await client.query(`
-                    INSERT INTO workoutitems (workout_day_id, organization_id, item_type, display_order)
-                    VALUES ($1, $2, $3, $4)
+                    INSERT INTO workoutitems (workout_day_id, item_type, display_order)
+                    VALUES ($1, $2, $3)
                     RETURNING id
-                `, [dayId, orgId, 'lift', iIdx]);
+                `, [dayId, 'lift', iIdx]);
                 
                 const itemId = itemRes.rows[0].id;
                 
                 await client.query(`
                     INSERT INTO liftitems (
-                        id, organization_id, exercise_id, sets, reps, load_value, load_type, 
-                        tempo, rest_time_secs, workout_grouping, each_side, additional_info
-                    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+                        workout_item_id, exercise_id, sets, reps, load_value, load_type, 
+                        tempo, rest_time_secs, workout_grouping, additional_info
+                    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
                 `, [
-                    itemId, orgId, item.exerciseId, item.sets, item.reps, item.weight, item.load_type || 'absolute',
-                    item.tempo, item.rest_time_secs, item.workout_grouping, item.each_side, item.additional_info
+                    itemId, item.exerciseId, item.sets || 3, String(item.reps || '10'), item.weight || 0, item.load_type || 'kg',
+                    item.tempo || null, item.rest_time_secs || null, item.workout_grouping || null, item.additional_info || null
                 ]);
             }
         }
@@ -2718,9 +2907,249 @@ async function processRecurringQuestionnaires() {
     }
 }
 
-// Run immediately on startup after 8 seconds
-setTimeout(processRecurringQuestionnaires, 8000);
-// Check every 10 minutes
-setInterval(processRecurringQuestionnaires, 600000);
+// POST /ams/calendar/delete-day
+router.post('/calendar/delete-day', requireAuth, async (req, res) => {
+    const client = await db.connect();
+    try {
+        const { athleteId, batchId, date } = req.body;
+        const orgId = req.user.organization_id;
+
+        if (!date || (!athleteId && !batchId)) {
+            return res.status(400).json({ error: "Missing required parameters (date and athleteId/batchId)" });
+        }
+
+        await client.query('BEGIN');
+
+        let assignQuery = `
+            SELECT pa.*, 
+                   pa.start_date::text as start_date_str,
+                   json_agg(wd.*) as days
+            FROM program_assignments pa
+            JOIN workoutdays wd ON pa.program_id = wd.program_id
+            WHERE pa.organization_id = $1 AND pa.status = 'active'
+        `;
+        const params = [orgId];
+        if (athleteId) {
+            assignQuery += ` AND pa.athlete_id = $2`;
+            params.push(athleteId);
+        } else {
+            assignQuery += ` AND pa.batch_id = $2`;
+            params.push(batchId);
+        }
+        assignQuery += ` GROUP BY pa.id`;
+
+        const assignRes = await client.query(assignQuery, params);
+        let deletedCount = 0;
+
+        for (const row of assignRes.rows) {
+            const startStr = row.start_date_str || (typeof row.start_date === 'string' ? row.start_date.split('T')[0] : new Date(row.start_date).toISOString().split('T')[0]);
+            const startDate = new Date(startStr + 'T00:00:00');
+            const targetDate = new Date(date + 'T00:00:00');
+            const diffDays = Math.round((targetDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+
+            if (diffDays >= 0 && Array.isArray(row.days)) {
+                const matchingDay = row.days.find(d => d.display_order === diffDays);
+                if (matchingDay) {
+                    deletedCount++;
+                    if (row.days.length <= 1) {
+                        await client.query(`DELETE FROM program_assignments WHERE id = $1`, [row.id]);
+                        await client.query(`DELETE FROM trainingprograms WHERE id = $1`, [row.program_id]);
+                    } else {
+                        await client.query(`DELETE FROM workoutdays WHERE id = $1`, [matchingDay.id]);
+                    }
+                }
+            }
+        }
+
+        await client.query('COMMIT');
+        res.json({ success: true, deletedCount });
+    } catch (error) {
+        await client.query('ROLLBACK');
+        console.error("Error deleting day workout:", error);
+        res.status(500).json({ error: error.message });
+    } finally {
+        client.release();
+    }
+});
+
+// POST /ams/calendar/delete-upcoming
+router.post('/calendar/delete-upcoming', requireAuth, async (req, res) => {
+    const client = await db.connect();
+    try {
+        const { athleteId, batchId, fromDate } = req.body;
+        const orgId = req.user.organization_id;
+
+        if (!fromDate || (!athleteId && !batchId)) {
+            return res.status(400).json({ error: "Missing required parameters (fromDate and athleteId/batchId)" });
+        }
+
+        await client.query('BEGIN');
+
+        let assignQuery = `
+            SELECT pa.*, 
+                   pa.start_date::text as start_date_str,
+                   json_agg(wd.*) as days
+            FROM program_assignments pa
+            JOIN workoutdays wd ON pa.program_id = wd.program_id
+            WHERE pa.organization_id = $1 AND pa.status = 'active'
+        `;
+        const params = [orgId];
+        if (athleteId) {
+            assignQuery += ` AND pa.athlete_id = $2`;
+            params.push(athleteId);
+        } else {
+            assignQuery += ` AND pa.batch_id = $2`;
+            params.push(batchId);
+        }
+        assignQuery += ` GROUP BY pa.id`;
+
+        const assignRes = await client.query(assignQuery, params);
+        let deletedAssignments = 0;
+        let deletedDays = 0;
+
+        for (const row of assignRes.rows) {
+            const startStr = row.start_date_str || (typeof row.start_date === 'string' ? row.start_date.split('T')[0] : new Date(row.start_date).toISOString().split('T')[0]);
+            const startDate = new Date(startStr + 'T00:00:00');
+            const targetFromDate = new Date(fromDate + 'T00:00:00');
+            const minDiffDays = Math.round((targetFromDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+
+            if (Array.isArray(row.days)) {
+                const upcomingDays = row.days.filter(d => d.display_order >= minDiffDays);
+                const pastDays = row.days.filter(d => d.display_order < minDiffDays);
+
+                if (upcomingDays.length > 0) {
+                    if (pastDays.length === 0) {
+                        await client.query(`DELETE FROM program_assignments WHERE id = $1`, [row.id]);
+                        await client.query(`DELETE FROM trainingprograms WHERE id = $1`, [row.program_id]);
+                        deletedAssignments++;
+                    } else {
+                        const dayIdsToDelete = upcomingDays.map(d => d.id);
+                        await client.query(`DELETE FROM workoutdays WHERE id = ANY($1::uuid[])`, [dayIdsToDelete]);
+                        deletedDays += upcomingDays.length;
+                    }
+                }
+            }
+        }
+
+        await client.query('COMMIT');
+        res.json({ success: true, deletedAssignments, deletedDays });
+    } catch (error) {
+        await client.query('ROLLBACK');
+        console.error("Error deleting upcoming workouts:", error);
+        res.status(500).json({ error: error.message });
+    } finally {
+        client.release();
+    }
+});
+
+// POST /ams/calendar/paste-workouts
+router.post('/calendar/paste-workouts', requireAuth, async (req, res) => {
+    const client = await db.connect();
+    try {
+        const { athleteId, batchId, startDate, planTitle, days } = req.body;
+        const orgId = req.user.organization_id;
+
+        if (!startDate || (!athleteId && !batchId) || !Array.isArray(days) || days.length === 0) {
+            return res.status(400).json({ error: "Missing required parameters (startDate, athleteId/batchId, and days array)" });
+        }
+
+        await client.query('BEGIN');
+
+        // 1. Create Transient Program
+        const programRes = await client.query(`
+            INSERT INTO trainingprograms (name, description, organization_id, scientist_id)
+            VALUES ($1, $2, $3, $4)
+            RETURNING id
+        `, [planTitle || 'Copied Workout Plan', 'Applied copied workouts with preserved day gaps', orgId, req.user.id]);
+
+        const programId = programRes.rows[0].id;
+
+        // 2. Create Days and Items with display_order matching dayOffset
+        for (const day of days) {
+            const displayOrder = typeof day.dayOffset === 'number' ? day.dayOffset : 0;
+            const dayRes = await client.query(`
+                INSERT INTO workoutdays (program_id, organization_id, title, display_order)
+                VALUES ($1, $2, $3, $4)
+                RETURNING id
+            `, [programId, orgId, day.title || 'Workout', displayOrder]);
+
+            const dayId = dayRes.rows[0].id;
+
+            if (Array.isArray(day.items)) {
+                for (let iIdx = 0; iIdx < day.items.length; iIdx++) {
+                    const item = day.items[iIdx];
+                    if (!item.exerciseId) continue;
+
+                    const itemRes = await client.query(`
+                        INSERT INTO workoutitems (workout_day_id, item_type, display_order)
+                        VALUES ($1, $2, $3)
+                        RETURNING id
+                    `, [dayId, 'lift', iIdx]);
+
+                    const itemId = itemRes.rows[0].id;
+
+                    await client.query(`
+                        INSERT INTO liftitems (
+                            workout_item_id, exercise_id, sets, reps, load_value, load_type,
+                            tempo, rest_time_secs, workout_grouping, additional_info
+                        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+                    `, [
+                        itemId, item.exerciseId, item.sets || 3, String(item.reps || '10'),
+                        item.weight || 0, item.load_type || 'kg',
+                        item.tempo || null, item.rest_time_secs || null, item.workout_grouping || null, item.additional_info || null
+                    ]);
+                }
+            }
+        }
+
+        // 3. Assign
+        if (batchId) {
+            await client.query(`
+                INSERT INTO program_assignments (program_id, batch_id, start_date, organization_id, status)
+                VALUES ($1, $2, $3, $4, $5)
+            `, [programId, batchId, startDate, orgId, 'active']);
+        } else if (athleteId) {
+            await client.query(`
+                INSERT INTO program_assignments (program_id, athlete_id, start_date, organization_id, status)
+                VALUES ($1, $2, $3, $4, $5)
+            `, [programId, athleteId, startDate, orgId, 'active']);
+        }
+
+        await client.query('COMMIT');
+
+        // Notifications
+        try {
+            const specNameRes = await db.query('SELECT first_name, last_name FROM profiles WHERE id = $1', [req.user.id]);
+            const specName = specNameRes.rows.length > 0
+                ? `${specNameRes.rows[0].first_name} ${specNameRes.rows[0].last_name}`
+                : 'A specialist';
+
+            const targetAthletes = [];
+            if (athleteId) targetAthletes.push(athleteId);
+            if (batchId) {
+                const batchMembersRes = await db.query('SELECT athlete_id FROM batch_members WHERE batch_id = $1', [batchId]);
+                batchMembersRes.rows.forEach(r => targetAthletes.push(r.athlete_id));
+            }
+
+            for (const aId of targetAthletes) {
+                await db.query(`
+                    INSERT INTO notifications (organization_id, title, content, type, target_user_id, category)
+                    VALUES ($1, $2, $3, $4, $5, $6)
+                `, [orgId, 'New Workout Plan Applied', `${specName} has applied a workout plan to your calendar: "${planTitle || 'Training Plan'}".`, 'info', aId, 'in_app']);
+            }
+        } catch (notifErr) {
+            console.error("Error creating notifications for pasted workout:", notifErr);
+        }
+
+        res.status(201).json({ success: true, count: days.length });
+    } catch (error) {
+        await client.query('ROLLBACK');
+        console.error("Error pasting workouts:", error);
+        res.status(500).json({ error: error.message });
+    } finally {
+        client.release();
+    }
+});
 
 export default router;
+

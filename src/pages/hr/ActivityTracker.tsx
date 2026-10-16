@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -101,11 +102,46 @@ interface AutomationConfig {
   last_sent_date?: string | null;
 }
 
-export default function ActivityTracker() {
-  const { profile } = useAuth();
+interface ActivityTrackerProps {
+  role?: string;
+  defaultTab?: "daily" | "report";
+}
+
+export default function ActivityTracker({ role: propRole, defaultTab: propDefaultTab }: ActivityTrackerProps = {}) {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { profile, roles } = useAuth();
+
+  const searchParams = typeof window !== 'undefined' 
+    ? new URLSearchParams(location.search || window.location.search) 
+    : new URLSearchParams();
+  const tabParam = searchParams.get("tab");
+  const consoleParam = searchParams.get("console");
+  const activeConsole = typeof window !== 'undefined' ? sessionStorage.getItem("active_console") : null;
+
+  const isFoe = 
+    propRole === "foe" || 
+    consoleParam === "foe" || 
+    location.pathname.startsWith("/admin/foe") || 
+    activeConsole === "foe" ||
+    Boolean(roles?.includes("foe") && !roles?.includes("hr_manager") && !roles?.includes("admin"));
+
+  const layoutRole = isFoe ? "foe" : (propRole || "hr_manager");
+
+  useEffect(() => {
+    if (isFoe && typeof window !== 'undefined') {
+      try {
+        sessionStorage.setItem("active_console", "foe");
+      } catch {}
+    }
+  }, [isFoe]);
 
   // Navigation Tab: 'daily' vs 'report'
-  const [activeTab, setActiveTab] = useState<"daily" | "report">("daily");
+  const initialTab: "daily" | "report" = 
+    propDefaultTab || 
+    (tabParam === "daily" ? "daily" : (tabParam === "report" || isFoe ? "report" : "daily"));
+
+  const [activeTab, setActiveTab] = useState<"daily" | "report">(initialTab);
 
   // Daily View State
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
@@ -454,19 +490,32 @@ export default function ActivityTracker() {
   };
 
   return (
-    <DashboardLayout role="hr_manager">
+    <DashboardLayout role={layoutRole}>
       <div className="space-y-6 max-w-6xl mx-auto pb-32 sm:pb-12 px-2 sm:px-4">
         {/* Header with Title and Global Action Buttons */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
+            {isFoe && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate("/admin/foe")}
+                className="gap-1.5 text-xs text-muted-foreground hover:text-foreground font-bold -ml-2 mb-2 h-7"
+              >
+                <ChevronLeft className="w-4 h-4" />
+                Back to FOE Dashboard
+              </Button>
+            )}
             <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
               <Activity className="w-6 h-6 text-primary" />
-              Activity Tracker & Performance Reports
+              {isFoe ? "Time Frame Session Report" : "Activity Tracker & Performance Reports"}
             </h1>
             <p className="text-slate-500 text-xs sm:text-sm mt-0.5">
-              {activeTab === "daily" 
-                ? "Daily staff console active time, sessions conducted, and client registrations."
-                : "Comprehensive time frame report for planned vs completed sessions and staff productivity."}
+              {isFoe 
+                ? "Comprehensive time frame report for planned vs completed sessions and clinical staff productivity."
+                : activeTab === "daily" 
+                  ? "Daily staff console active time, sessions conducted, and client registrations."
+                  : "Comprehensive time frame report for planned vs completed sessions and staff productivity."}
             </p>
           </div>
 

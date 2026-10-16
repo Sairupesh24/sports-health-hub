@@ -21,13 +21,28 @@ export default function DashboardLayout({ role, children }: DashboardLayoutProps
 
   // Compute effective role based on route, explicit prop, active console, or authenticated context
   let effectiveRole = role;
-  if (location.pathname.startsWith('/sports-scientist') || location.pathname.startsWith('/mobile/specialist')) {
+  if (
+    location.pathname.startsWith('/ams/coach-dashboard') ||
+    location.pathname.startsWith('/ams/programs') ||
+    location.pathname.startsWith('/ams/feed') ||
+    location.pathname.startsWith('/ams/calendar') ||
+    location.pathname.startsWith('/ams/exercises') ||
+    location.pathname.startsWith('/ams/batch-tests')
+  ) {
+    effectiveRole = "coach";
+  } else if (location.pathname.startsWith('/sports-scientist') || location.pathname.startsWith('/mobile/specialist')) {
     effectiveRole = "sports_scientist";
   } else if (location.pathname.startsWith('/consultant') || location.pathname.startsWith('/mobile/consultant')) {
     effectiveRole = "consultant";
+  } else if (location.pathname.startsWith('/admin/foe')) {
+    effectiveRole = "foe";
   } else if (!effectiveRole || effectiveRole === "user") {
     const activeConsole = typeof window !== 'undefined' ? sessionStorage.getItem("active_console") : null;
-    if (activeConsole === "sports_scientist") {
+    if (activeConsole === "foe") {
+      effectiveRole = "foe";
+    } else if (activeConsole === "coach") {
+      effectiveRole = "coach";
+    } else if (activeConsole === "sports_scientist") {
       effectiveRole = "sports_scientist";
     } else if (activeConsole === "consultant") {
       effectiveRole = "consultant";
@@ -61,6 +76,19 @@ export default function DashboardLayout({ role, children }: DashboardLayoutProps
     } else if (roles?.includes("athlete")) {
       effectiveRole = "athlete";
     }
+  }
+
+  const isAmsConsole =
+    effectiveRole === "coach" ||
+    (location.pathname.startsWith('/ams') && !location.pathname.startsWith('/ams/athlete'));
+
+  // Remodeled AMS Console: Side navigation menu is removed; full screen utilizes top navigation bar
+  if (isAmsConsole) {
+    return (
+      <div className="flex flex-col h-[100dvh] min-h-[100dvh] overflow-y-auto bg-[#f8fafc] w-full antialiased font-sans">
+        {children}
+      </div>
+    );
   }
 
   return (

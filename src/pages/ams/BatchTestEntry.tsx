@@ -1,11 +1,13 @@
 import React from "react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import PerformanceTestingGrid from "@/components/ams/PerformanceTestingGrid";
+import AmsStaffNav from "@/components/ams/AmsStaffNav";
 import { Target } from "lucide-react";
 
 export default function BatchTestEntry() {
     return (
-        <DashboardLayout role="sports_scientist">
+        <DashboardLayout role="coach">
+            <AmsStaffNav />
             <div className="container mx-auto p-6 space-y-6">
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b pb-6">
                     <div>

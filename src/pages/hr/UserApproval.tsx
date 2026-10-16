@@ -776,7 +776,7 @@ export default function UserApproval() {
                       </div>
                     )}
                     <div className="space-y-2">
-                      <Label>AMS Role (Athlete Monitoring System)</Label>
+                      <Label>AMS Role (Activity Monitoring System)</Label>
                       <Select value={pendingActionAmsRole} onValueChange={setPendingActionAmsRole}>
                         <SelectTrigger>
                           <SelectValue placeholder="Select AMS Role" />
@@ -865,7 +865,7 @@ export default function UserApproval() {
                         </Select>
                       </div>
                       <div className="space-y-2 animate-in fade-in zoom-in duration-200">
-                        <Label>AMS Role (Athlete Monitoring System)</Label>
+                        <Label>AMS Role (Activity Monitoring System)</Label>
                         <Select value={newAmsRole} onValueChange={setNewAmsRole}>
                           <SelectTrigger>
                             <SelectValue placeholder="Select AMS Role" />
