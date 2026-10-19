@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { apiFetch } from "@/utils/api";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, AlertTriangle, CheckCircle, ClipboardList, RefreshCw, Clock, Check, UserCheck } from "lucide-react";
+import { Loader2, AlertTriangle, CheckCircle, ClipboardList, RefreshCw, Clock, Check, UserCheck, MapPin } from "lucide-react";
 import { format, startOfDay, differenceInCalendarDays, addDays } from "date-fns";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -13,6 +13,7 @@ import { Separator } from "@/components/ui/separator";
 import { filterServicesByRole, filterConsultantsByService, Service, formatStaffName } from "@/utils/serviceMapping";
 import { generateDynamicSlots, resolveSpecialistSettings, DynamicSlot } from "@/utils/dynamicSlots";
 import { cn, formatClientName } from "@/lib/utils";
+import { SessionLocationCombobox } from "@/components/shared/SessionLocationCombobox";
 
 interface Props {
     open: boolean;
@@ -29,6 +30,7 @@ export function AdminSessionStatusModal({ open, onOpenChange, session, onSuccess
     const [cancellationReason, setCancellationReason] = useState("");
     const [actualStart, setActualStart] = useState("");
     const [actualEnd, setActualEnd] = useState("");
+    const [sessionLocation, setSessionLocation] = useState<string>("");
     const [soapNote, setSoapNote] = useState<any>(null);
     const [soapLoading, setSoapLoading] = useState(false);
     const [balanceLoading, setBalanceLoading] = useState(false);
@@ -220,6 +222,7 @@ export function AdminSessionStatusModal({ open, onOpenChange, session, onSuccess
             setCancellationReason(session.cancellation_reason || "");
             setServiceId(session.service_id || "");
             fetchServices();
+            setSessionLocation(session.session_location || "");
             if (session.actual_start) {
                 setActualStart(format(new Date(session.actual_start), "HH:mm"));
             } else {
@@ -371,7 +374,11 @@ export function AdminSessionStatusModal({ open, onOpenChange, session, onSuccess
 
                 await apiFetch(`/appointments/${session.id}/complete`, {
                     method: 'POST',
-                    data: { actual_start: aStart, actual_end: aEnd }
+                    data: { 
+                        actual_start: aStart, 
+                        actual_end: aEnd,
+                        session_location: sessionLocation.trim() || null
+                    }
                 });
             } else if (status === "Rescheduled") {
                 if (!rescheduledDate || !rescheduledTime) throw new Error("Please select both a date and time for rescheduling.");
@@ -406,7 +413,8 @@ export function AdminSessionStatusModal({ open, onOpenChange, session, onSuccess
                         status, 
                         cancellation_reason: status === "Cancelled" ? cancellationReason.trim() : null,
                         service_id: serviceId || null,
-                        service_type: selectedService?.name || session.service_type
+                        service_type: selectedService?.name || session.service_type,
+                        session_location: sessionLocation.trim() || null
                     }
                 });
             }
@@ -561,6 +569,12 @@ export function AdminSessionStatusModal({ open, onOpenChange, session, onSuccess
                                 <strong>Cancellation Reason:</strong> {session.cancellation_reason}
                             </p>
                         )}
+                        {session?.session_location && (
+                            <p className="text-muted-foreground text-xs flex items-center gap-1.5 pt-0.5">
+                                <MapPin className="w-3 h-3 text-emerald-600 shrink-0" />
+                                <span><strong>Recorded Location:</strong> {session.session_location}</span>
+                            </p>
+                        )}
                         <div className="flex items-center gap-2">
                              <strong>Service:</strong>
                              <Select 
@@ -704,6 +718,24 @@ export function AdminSessionStatusModal({ open, onOpenChange, session, onSuccess
                                         <SelectItem value="Cancelled">Cancelled</SelectItem>
                                     </SelectContent>
                                 </Select>
+                            </div>
+
+                            {/* Where session took place / Location */}
+                            <div className="grid gap-1.5">
+                                <Label htmlFor="session-location-input" className="text-xs font-semibold flex items-center justify-between text-foreground">
+                                    <span className="flex items-center gap-1.5">
+                                        <MapPin className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                                        Where session took place / Location
+                                    </span>
+                                    <span className="text-[10px] text-muted-foreground font-normal">Type or search</span>
+                                </Label>
+                                <SessionLocationCombobox
+                                    id="session-location-input"
+                                    value={sessionLocation}
+                                    onChange={setSessionLocation}
+                                    disabled={isLocked}
+                                    placeholder="Type or search location (e.g. CSSH, HPL, PGBA Ground)..."
+                                />
                             </div>
 
                             {status === "Completed" && (

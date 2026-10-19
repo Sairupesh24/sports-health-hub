@@ -162,4 +162,117 @@ describe('AdminSessionStatusModal - Mandatory Session Timings on Completion', ()
       expect(onOpenChange).toHaveBeenCalledWith(false);
     });
   });
+
+  it('shows default locations CSSH, HPL, PGBA Ground and allows selecting or entering new location', async () => {
+    mockApiFetch.mockImplementation(async (url: string, options?: any) => {
+      if (url.includes('/appointments/locations') && options?.method === 'POST') {
+        return { success: true, name: options.data.name };
+      }
+      if (url.includes('/appointments/locations')) return ['CSSH', 'HPL', 'PGBA Ground'];
+      if (url.includes('/billing/services')) return [];
+      if (url.includes('/billing/entitlements/balance')) return { byServiceName: { training: 2 } };
+      if (url.includes('/hr/employees')) return [];
+      if (url.includes('/admin/consultant-services')) return [];
+      if (url.includes('/hr/leaves')) return [];
+      return {};
+    });
+
+    const onSuccess = vi.fn();
+    const onOpenChange = vi.fn();
+
+    render(
+      <AdminSessionStatusModal
+        open={true}
+        onOpenChange={onOpenChange}
+        session={dummyCompletedSession}
+        onSuccess={onSuccess}
+      />
+    );
+
+    // Location input should be present
+    const locationInput = screen.getByPlaceholderText(/Type or search location/i) as HTMLInputElement;
+    expect(locationInput).toBeInTheDocument();
+
+    // Focus input - default locations should be visible
+    fireEvent.focus(locationInput);
+    await waitFor(() => {
+      expect(screen.getByText('CSSH')).toBeInTheDocument();
+      expect(screen.getByText('HPL')).toBeInTheDocument();
+      expect(screen.getByText('PGBA Ground')).toBeInTheDocument();
+    });
+
+    // Select CSSH from dropdown
+    fireEvent.mouseDown(screen.getByText('CSSH'));
+    expect(locationInput.value).toBe('CSSH');
+
+    // Fill start and end times
+    const startInput = screen.getByLabelText(/Actual Start \*/i);
+    const endInput = screen.getByLabelText(/Actual End \*/i);
+    fireEvent.change(startInput, { target: { value: '09:00' } });
+    fireEvent.change(endInput, { target: { value: '10:00' } });
+
+    const completeButton = screen.getByRole('button', { name: /Complete Session/i });
+    fireEvent.click(completeButton);
+
+    await waitFor(() => {
+      expect(mockApiFetch).toHaveBeenCalledWith(
+        `/appointments/${dummyCompletedSession.id}/complete`,
+        expect.objectContaining({
+          method: 'POST',
+          data: expect.objectContaining({
+            session_location: 'CSSH',
+          }),
+        })
+      );
+    });
+  });
+
+  it('persists newly entered custom location to /appointments/locations for future use', async () => {
+    mockApiFetch.mockImplementation(async (url: string, options?: any) => {
+      if (url.includes('/appointments/locations') && options?.method === 'POST') {
+        return { success: true, name: options.data.name };
+      }
+      if (url.includes('/appointments/locations')) return ['CSSH', 'HPL', 'PGBA Ground'];
+      if (url.includes('/billing/services')) return [];
+      if (url.includes('/billing/entitlements/balance')) return { byServiceName: { training: 2 } };
+      if (url.includes('/hr/employees')) return [];
+      if (url.includes('/admin/consultant-services')) return [];
+      if (url.includes('/hr/leaves')) return [];
+      return {};
+    });
+
+    render(
+      <AdminSessionStatusModal
+        open={true}
+        onOpenChange={vi.fn()}
+        session={dummyCompletedSession}
+        onSuccess={vi.fn()}
+      />
+    );
+
+    const locationInput = screen.getByPlaceholderText(/Type or search location/i) as HTMLInputElement;
+    fireEvent.focus(locationInput);
+    fireEvent.change(locationInput, { target: { value: 'Badminton Court 1' } });
+
+    // Expect "Use Badminton Court 1 as location" option to appear
+    await waitFor(() => {
+      expect(screen.getByText(/Use "Badminton Court 1" as location/i)).toBeInTheDocument();
+    });
+
+    // Click to select the new location
+    fireEvent.mouseDown(screen.getByText(/Use "Badminton Court 1" as location/i));
+    expect(locationInput.value).toBe('Badminton Court 1');
+
+    // Verifies that POST /appointments/locations was called to store for future use
+    await waitFor(() => {
+      expect(mockApiFetch).toHaveBeenCalledWith(
+        '/appointments/locations',
+        expect.objectContaining({
+          method: 'POST',
+          data: { name: 'Badminton Court 1' }
+        })
+      );
+    });
+  });
 });
+

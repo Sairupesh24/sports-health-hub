@@ -341,13 +341,112 @@ router.post('/', requireAuth, async (req, res) => {
     }
 });
 
+// Helper to ensure a session location is stored in locations table for an organization
+async function storeLocationForOrg(orgId, locationName) {
+    if (!locationName || !locationName.trim()) return null;
+    const cleanName = locationName.trim();
+    if (!orgId) return cleanName;
+    try {
+        const check = await db.query(
+            'SELECT id FROM locations WHERE organization_id = $1 AND LOWER(TRIM(name)) = LOWER($2)',
+            [orgId, cleanName]
+        );
+        if (check.rows.length === 0) {
+            await db.query(
+                'INSERT INTO locations (organization_id, name) VALUES ($1, $2)',
+                [orgId, cleanName]
+            );
+        }
+    } catch (e) {
+        console.warn('Error saving location for org:', e.message);
+    }
+    return cleanName;
+}
+
+// GET distinct session locations for search/type autocomplete
+router.get('/locations', requireAuth, async (req, res) => {
+    try {
+        const orgId = req.user.organization_id;
+        // 1. Get distinct non-empty session_location from sessions
+        const sessionLocsRes = await db.query(`
+            SELECT DISTINCT session_location 
+            FROM sessions 
+            WHERE (organization_id = $1 OR $1 IS NULL)
+              AND session_location IS NOT NULL 
+              AND TRIM(session_location) != ''
+            ORDER BY session_location ASC
+        `, [orgId]);
+
+        // 2. Also get any configured locations from locations table
+        const locsTableRes = await db.query(`
+            SELECT DISTINCT name as session_location
+            FROM locations
+            WHERE (organization_id = $1 OR $1 IS NULL)
+              AND name IS NOT NULL
+              AND TRIM(name) != ''
+            ORDER BY name ASC
+        `, [orgId]).catch(() => ({ rows: [] }));
+
+        const set = new Set();
+        
+        // Default locations requested: CSSH, HPL, PGBA Ground
+        const defaults = ['CSSH', 'HPL', 'PGBA Ground'];
+        for (const d of defaults) {
+            set.add(d);
+            if (orgId) {
+                storeLocationForOrg(orgId, d).catch(() => {});
+            }
+        }
+
+        // Add real user-entered locations from sessions and locations table
+        for (const r of sessionLocsRes.rows) {
+            if (r.session_location && r.session_location.trim()) {
+                set.add(r.session_location.trim());
+            }
+        }
+        for (const r of locsTableRes.rows) {
+            if (r.session_location && r.session_location.trim()) {
+                set.add(r.session_location.trim());
+            }
+        }
+
+        const sortedLocations = Array.from(set).sort((a, b) => {
+            const aIsDefault = defaults.includes(a);
+            const bIsDefault = defaults.includes(b);
+            if (aIsDefault && !bIsDefault) return -1;
+            if (!aIsDefault && bIsDefault) return 1;
+            return a.localeCompare(b);
+        });
+        res.json(sortedLocations);
+    } catch (error) {
+        console.error("Error fetching locations:", error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// POST a newly entered location so it is stored for future use
+router.post('/locations', requireAuth, async (req, res) => {
+    try {
+        const orgId = req.user.organization_id;
+        const { name } = req.body;
+        if (!name || !name.trim()) {
+            return res.status(400).json({ error: 'Location name is required' });
+        }
+        const saved = await storeLocationForOrg(orgId, name);
+        res.json({ success: true, name: saved });
+    } catch (error) {
+        console.error("Error storing location:", error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 // POST complete session (marks as completed and handles entitlements)
 router.post('/:id/complete', requireAuth, async (req, res) => {
     const client = await db.connect();
     try {
         const { id } = req.params;
         const orgId = req.user.organization_id;
-        const { actual_start, actual_end } = req.body;
+        const { actual_start, actual_end, session_location } = req.body;
 
         await client.query('BEGIN');
 
@@ -369,13 +468,23 @@ router.post('/:id/complete', requireAuth, async (req, res) => {
         const entitlementId = deductRes.entitlementId;
         const isUnentitled = deductRes.isUnentitled;
 
+        const effectiveLocation = session_location !== undefined 
+            ? (session_location ? session_location.trim() : null)
+            : session.session_location;
+
+        // Persist newly entered location for future use
+        if (effectiveLocation && orgId) {
+            await storeLocationForOrg(orgId, effectiveLocation);
+        }
+
         // 3. Update session
         await client.query(`
             UPDATE sessions 
             SET status = 'Completed', actual_start = $1, actual_end = $2, 
-                entitlement_id = $3, is_unentitled = $4, updated_at = CURRENT_TIMESTAMP
-            WHERE id = $5
-        `, [actual_start, actual_end, entitlementId, isUnentitled, id]);
+                session_location = $3,
+                entitlement_id = $4, is_unentitled = $5, updated_at = CURRENT_TIMESTAMP
+            WHERE id = $6
+        `, [actual_start, actual_end, effectiveLocation, entitlementId, isUnentitled, id]);
 
         // 4.5 Clean up any lingering duplicate Planned sessions for this client & provider at this exact slot
         const providerId = session.therapist_id || session.scientist_id;
@@ -1272,7 +1381,7 @@ router.patch('/:id', requireAuth, async (req, res) => {
             }
         }
 
-        const allowedColumns = ['status', 'service_id', 'service_type', 'cancellation_reason', 'actual_start', 'actual_end', 'session_notes'];
+        const allowedColumns = ['status', 'service_id', 'service_type', 'cancellation_reason', 'actual_start', 'actual_end', 'session_notes', 'session_location'];
         const keys = Object.keys(updates).filter(k => allowedColumns.includes(k));
         
         if (keys.length === 0) return res.status(400).json({ error: 'No valid update fields' });
@@ -1287,6 +1396,11 @@ router.patch('/:id', requireAuth, async (req, res) => {
         `, [...values, id, orgId]);
 
         const session = result.rows[0];
+
+        // Ensure newly entered location is stored for future use
+        if (updates.session_location && updates.session_location.trim() && orgId) {
+            await storeLocationForOrg(orgId, updates.session_location.trim());
+        }
 
         // Notify client and specialist when a session is cancelled
         if (updates.status === 'Cancelled' && session) {

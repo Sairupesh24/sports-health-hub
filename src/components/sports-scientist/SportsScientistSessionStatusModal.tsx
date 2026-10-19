@@ -6,13 +6,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { apiFetch } from "@/utils/api";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Lock, AlertTriangle, Clock, CheckCircle2, XCircle, Info, Calendar } from "lucide-react";
+import { Loader2, Lock, AlertTriangle, Clock, CheckCircle2, XCircle, Info, Calendar, MapPin } from "lucide-react";
 import { format, startOfDay, differenceInCalendarDays, parseISO, isFuture, isBefore, addMinutes } from "date-fns";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/contexts/AuthContext";
 import { Badge } from "@/components/ui/badge";
 import { useQueryClient } from "@tanstack/react-query";
 import { formatClientName } from "@/lib/utils";
+import { SessionLocationCombobox } from "@/components/shared/SessionLocationCombobox";
 
 interface Props {
     open: boolean;
@@ -74,6 +75,7 @@ export function SportsScientistSessionStatusModal({ open, onOpenChange, session,
     const [status, setStatus] = useState<string>("Planned");
     const [actualStart, setActualStart] = useState("");
     const [actualEnd, setActualEnd] = useState("");
+    const [sessionLocation, setSessionLocation] = useState<string>("");
     const [sessionNotes, setSessionNotes] = useState("");
     const [cancellationReason, setCancellationReason] = useState("");
     
@@ -132,6 +134,7 @@ export function SportsScientistSessionStatusModal({ open, onOpenChange, session,
             setStatus(effectiveStatus);
             setSessionNotes(session.session_notes || "");
             setCancellationReason(session.cancellation_reason || "");
+            setSessionLocation(session.session_location || "");
 
             if (session.actual_start) {
                 setActualStart(format(parseISO(session.actual_start), "HH:mm"));
@@ -204,7 +207,8 @@ export function SportsScientistSessionStatusModal({ open, onOpenChange, session,
                     method: 'POST',
                     body: JSON.stringify({
                         actual_start: session.actual_start || actualEndIso,
-                        actual_end: actualEndIso
+                        actual_end: actualEndIso,
+                        session_location: sessionLocation.trim() || session.session_location || null
                     })
                 });
                 
@@ -249,7 +253,8 @@ export function SportsScientistSessionStatusModal({ open, onOpenChange, session,
                 method: 'POST',
                 body: JSON.stringify({
                     actual_start: actualStartIso,
-                    actual_end: actualEndIso
+                    actual_end: actualEndIso,
+                    session_location: sessionLocation.trim() || null
                 })
             });
 
@@ -344,6 +349,7 @@ export function SportsScientistSessionStatusModal({ open, onOpenChange, session,
                 status,
                 session_notes: sessionNotes,
                 cancellation_reason: (status === "Missed" || status === "Cancelled") ? cancellationReason : null,
+                session_location: sessionLocation.trim() || null,
                 updated_at: new Date().toISOString(),
             };
 
@@ -354,7 +360,11 @@ export function SportsScientistSessionStatusModal({ open, onOpenChange, session,
 
                 await apiFetch(`/api/appointments/${session.id}/complete`, {
                     method: 'POST',
-                    body: JSON.stringify({ actual_start, actual_end })
+                    body: JSON.stringify({ 
+                        actual_start, 
+                        actual_end,
+                        session_location: sessionLocation.trim() || null
+                    })
                 });
             } else {
                 await apiFetch(`/api/appointments/${session.id}`, {
@@ -463,6 +473,14 @@ export function SportsScientistSessionStatusModal({ open, onOpenChange, session,
                             <span className="text-muted-foreground font-medium">Scheduled</span>
                             <span className="font-semibold text-right truncate ml-2">{format(scheduledDate, "MMM d, h:mm a")} – {format(parseISO(session.scheduled_end || session.scheduled_start), "h:mm a")}</span>
                         </div>
+                        {session.session_location && (
+                            <div className="flex justify-between items-center text-[11px] sm:text-xs">
+                                <span className="text-muted-foreground font-medium flex items-center gap-1">
+                                    <MapPin className="w-3 h-3 text-emerald-600" /> Location
+                                </span>
+                                <span className="font-semibold text-right truncate ml-2">{session.session_location}</span>
+                            </div>
+                        )}
                         {(session.actual_start || session.actual_end) && (
                             <div className="flex justify-between items-center text-[11px] sm:text-xs bg-emerald-500/10 dark:bg-emerald-950/40 p-2 sm:p-2.5 rounded-lg border border-emerald-300 dark:border-emerald-800">
                                 <span className="text-emerald-800 dark:text-emerald-300 font-bold flex items-center gap-1.5">
@@ -589,6 +607,17 @@ export function SportsScientistSessionStatusModal({ open, onOpenChange, session,
                                     <p className="text-[10.5px] sm:text-[11px] text-muted-foreground leading-tight">
                                         The scheduled end time has passed. Specify exact actual start and end times:
                                     </p>
+                                    <div className="space-y-1">
+                                        <Label className="text-[11px] sm:text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1">
+                                            <MapPin className="w-3.5 h-3.5 text-emerald-600" />
+                                            Where session took place / Location
+                                        </Label>
+                                        <SessionLocationCombobox
+                                            value={sessionLocation}
+                                            onChange={setSessionLocation}
+                                            placeholder="Type or search location (e.g. CSSH, HPL, PGBA Ground)..."
+                                        />
+                                    </div>
                                     <div className="grid grid-cols-2 gap-2 sm:gap-3">
                                         <div>
                                             <Label className="text-[11px] sm:text-xs font-bold text-slate-700 dark:text-slate-300 mb-1 block">Actual Start *</Label>
