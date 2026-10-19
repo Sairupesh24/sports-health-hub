@@ -75,17 +75,19 @@ export default function WellnessCheckinForm({ onComplete }: { onComplete?: () =>
   };
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
+    <div className="space-y-6 animate-in fade-in duration-300">
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             {step === 1 && (
-              <div className="space-y-6 animate-in fade-in slide-in-from-right-4">
+              <div className="space-y-6 animate-in fade-in duration-200">
                 <FormField
                   control={form.control}
                   name="sleep_score"
                   render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-slate-200 font-bold text-[10px] uppercase tracking-widest">Sleep Quality (1-10)</FormLabel>
+                    <FormItem className="space-y-2.5">
+                      <FormLabel className="text-slate-900 dark:text-white font-bold text-xs uppercase tracking-wider block">
+                        Sleep Quality (1-10)
+                      </FormLabel>
                       <FormControl>
                         <Slider
                           min={1}
@@ -93,12 +95,13 @@ export default function WellnessCheckinForm({ onComplete }: { onComplete?: () =>
                           step={1}
                           defaultValue={[field.value]}
                           onValueChange={(vals) => field.onChange(vals[0])}
+                          className="py-1"
                         />
                       </FormControl>
-                      <div className="flex justify-between items-center mt-1">
-                        <span className="text-[9px] font-bold text-slate-500 uppercase">Poor</span>
-                        <div className="text-sm font-black text-primary italic">{field.value}/10</div>
-                        <span className="text-[9px] font-bold text-slate-500 uppercase">Excellent</span>
+                      <div className="flex justify-between items-center pt-1">
+                        <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Poor</span>
+                        <div className="text-sm font-extrabold text-primary italic">{field.value}/10</div>
+                        <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Excellent</span>
                       </div>
                       <FormMessage />
                     </FormItem>
@@ -108,8 +111,10 @@ export default function WellnessCheckinForm({ onComplete }: { onComplete?: () =>
                   control={form.control}
                   name="stress_level"
                   render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-slate-200 font-bold text-[10px] uppercase tracking-widest">Stress Level (1-10)</FormLabel>
+                    <FormItem className="space-y-2.5">
+                      <FormLabel className="text-slate-900 dark:text-white font-bold text-xs uppercase tracking-wider block">
+                        Stress Level (1-10)
+                      </FormLabel>
                       <FormControl>
                         <Slider
                           min={1}
@@ -117,31 +122,38 @@ export default function WellnessCheckinForm({ onComplete }: { onComplete?: () =>
                           step={1}
                           defaultValue={[field.value]}
                           onValueChange={(vals) => field.onChange(vals[0])}
+                          className="py-1"
                         />
                       </FormControl>
-                      <div className="flex justify-between items-center mt-1">
-                        <span className="text-[9px] font-bold text-slate-500 uppercase">Low</span>
-                        <div className="text-sm font-black text-primary italic">{field.value}/10</div>
-                        <span className="text-[9px] font-bold text-slate-500 uppercase">High</span>
+                      <div className="flex justify-between items-center pt-1">
+                        <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Low</span>
+                        <div className="text-sm font-extrabold text-primary italic">{field.value}/10</div>
+                        <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">High</span>
                       </div>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-                <Button type="button" onClick={nextStep} className="w-full">
+                <Button 
+                  type="button" 
+                  onClick={nextStep} 
+                  className="w-full h-11 rounded-xl bg-primary hover:bg-primary/90 text-white font-semibold text-xs tracking-wider shadow-sm mt-2"
+                >
                   Next
                 </Button>
               </div>
             )}
 
             {step === 2 && (
-              <div className="space-y-6 animate-in fade-in slide-in-from-right-4">
+              <div className="space-y-6 animate-in fade-in duration-200">
                 <FormField
                   control={form.control}
                   name="soreness_level"
                   render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-slate-200 font-bold text-[10px] uppercase tracking-widest">Muscle Soreness (1-10)</FormLabel>
+                    <FormItem className="space-y-2.5">
+                      <FormLabel className="text-slate-900 dark:text-white font-bold text-xs uppercase tracking-wider block">
+                        Muscle Soreness (1-10)
+                      </FormLabel>
                       <FormControl>
                         <Slider
                           min={1}
@@ -149,12 +161,13 @@ export default function WellnessCheckinForm({ onComplete }: { onComplete?: () =>
                           step={1}
                           defaultValue={[field.value]}
                           onValueChange={(vals) => field.onChange(vals[0])}
+                          className="py-1"
                         />
                       </FormControl>
-                      <div className="flex justify-between items-center mt-1">
-                        <span className="text-[9px] font-bold text-slate-500 uppercase">None</span>
-                        <div className="text-sm font-black text-primary italic">{field.value}/10</div>
-                        <span className="text-[9px] font-bold text-slate-500 uppercase">Severe</span>
+                      <div className="flex justify-between items-center pt-1">
+                        <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">None</span>
+                        <div className="text-sm font-extrabold text-primary italic">{field.value}/10</div>
+                        <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Severe</span>
                       </div>
                       <FormMessage />
                     </FormItem>
@@ -164,8 +177,10 @@ export default function WellnessCheckinForm({ onComplete }: { onComplete?: () =>
                   control={form.control}
                   name="fatigue_level"
                   render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-slate-200 font-bold text-[10px] uppercase tracking-widest">Fatigue Level (1-10)</FormLabel>
+                    <FormItem className="space-y-2.5">
+                      <FormLabel className="text-slate-900 dark:text-white font-bold text-xs uppercase tracking-wider block">
+                        Fatigue Level (1-10)
+                      </FormLabel>
                       <FormControl>
                         <Slider
                           min={1}
@@ -173,22 +188,32 @@ export default function WellnessCheckinForm({ onComplete }: { onComplete?: () =>
                           step={1}
                           defaultValue={[field.value]}
                           onValueChange={(vals) => field.onChange(vals[0])}
+                          className="py-1"
                         />
                       </FormControl>
-                      <div className="flex justify-between items-center mt-1">
-                        <span className="text-[9px] font-bold text-slate-500 uppercase">Fresh</span>
-                        <div className="text-sm font-black text-primary italic">{field.value}/10</div>
-                        <span className="text-[9px] font-bold text-slate-500 uppercase">Exhausted</span>
+                      <div className="flex justify-between items-center pt-1">
+                        <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Fresh</span>
+                        <div className="text-sm font-extrabold text-primary italic">{field.value}/10</div>
+                        <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Exhausted</span>
                       </div>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-                <div className="flex gap-4">
-                  <Button type="button" variant="outline" onClick={() => setStep(1)} className="w-full text-slate-900 font-bold">
+                <div className="flex gap-3 pt-2">
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={() => setStep(1)} 
+                    className="flex-1 h-11 rounded-xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-semibold text-xs tracking-wider"
+                  >
                     Back
                   </Button>
-                  <Button type="submit" disabled={submitWellness.isPending} className="w-full">
+                  <Button 
+                    type="submit" 
+                    disabled={submitWellness.isPending} 
+                    className="flex-1 h-11 rounded-xl bg-primary hover:bg-primary/90 text-white font-semibold text-xs tracking-wider shadow-sm"
+                  >
                     {submitWellness.isPending ? "Submitting..." : "Complete Check-in"}
                   </Button>
                 </div>

@@ -2,6 +2,14 @@ import React, { createContext, useContext, useEffect, useRef, useState, useCallb
 import { io, Socket } from "socket.io-client";
 import { useAuth } from "./AuthContext";
 import { registerServiceWorker } from "@/services/pushNotificationService";
+import {
+  sendChannelMessage,
+  sendDMMessage,
+  markChannelRead as apiMarkChannelRead,
+  markDMRead as apiMarkDMRead,
+  toggleReaction as apiToggleReaction,
+  deleteMessage as apiDeleteMessage,
+} from "@/services/messengerService";
 
 export interface ChatMessage {
   id: string;
@@ -255,34 +263,30 @@ export const MessengerProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       } else {
         // Fallback to REST API if socket is disconnected/reconnecting
         if (data.channel_id) {
-          import("@/services/messengerService").then(({ sendChannelMessage }) => {
-            sendChannelMessage(data.channel_id!, {
-              content: data.content,
-              content_html: data.content_html,
-              parent_message_id: data.parent_message_id,
-              attachments: data.attachments,
+          sendChannelMessage(data.channel_id!, {
+            content: data.content,
+            content_html: data.content_html,
+            parent_message_id: data.parent_message_id,
+            attachments: data.attachments,
+          })
+            .then((res) => {
+              if (res?.message) {
+                newMessageHandlers.current.forEach((fn) => fn(res.message));
+              }
             })
-              .then((res) => {
-                if (res?.message) {
-                  newMessageHandlers.current.forEach((fn) => fn(res.message));
-                }
-              })
-              .catch((err) => console.error("[TeamComms] Failed to send channel message via REST fallback:", err));
-          });
+            .catch((err) => console.error("[TeamComms] Failed to send channel message via REST fallback:", err));
         } else if (data.dm_thread_id) {
-          import("@/services/messengerService").then(({ sendDMMessage }) => {
-            sendDMMessage(data.dm_thread_id!, {
-              content: data.content,
-              content_html: data.content_html,
-              attachments: data.attachments,
+          sendDMMessage(data.dm_thread_id!, {
+            content: data.content,
+            content_html: data.content_html,
+            attachments: data.attachments,
+          })
+            .then((res) => {
+              if (res?.message) {
+                newDMMessageHandlers.current.forEach((fn) => fn(res.message));
+              }
             })
-              .then((res) => {
-                if (res?.message) {
-                  newDMMessageHandlers.current.forEach((fn) => fn(res.message));
-                }
-              })
-              .catch((err) => console.error("[TeamComms] Failed to send DM message via REST fallback:", err));
-          });
+            .catch((err) => console.error("[TeamComms] Failed to send DM message via REST fallback:", err));
         }
       }
     },
@@ -323,30 +327,22 @@ export const MessengerProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   const markChannelRead = useCallback((channelId: string) => {
     socketRef.current?.emit("mark_channel_read", { channel_id: channelId });
-    import("@/services/messengerService").then(({ markChannelRead: apiCall }) => {
-      apiCall(channelId).catch(() => {});
-    });
+    apiMarkChannelRead(channelId).catch(() => {});
   }, []);
 
   const markDMRead = useCallback((threadId: string) => {
     socketRef.current?.emit("mark_dm_read", { dm_thread_id: threadId });
-    import("@/services/messengerService").then(({ markDMRead: apiCall }) => {
-      apiCall(threadId).catch(() => {});
-    });
+    apiMarkDMRead(threadId).catch(() => {});
   }, []);
 
   const toggleReaction = useCallback((data: { message_id: string; emoji: string; channel_id?: string; dm_thread_id?: string }) => {
     socketRef.current?.emit("toggle_reaction", data);
-    import("@/services/messengerService").then(({ toggleReaction: apiCall }) => {
-      apiCall(data.message_id, data.emoji).catch(() => {});
-    });
+    apiToggleReaction(data.message_id, data.emoji).catch(() => {});
   }, []);
 
   const deleteMessage = useCallback((messageId: string, channelId?: string, dmThreadId?: string) => {
     socketRef.current?.emit("delete_message", { message_id: messageId, channel_id: channelId, dm_thread_id: dmThreadId });
-    import("@/services/messengerService").then(({ deleteMessage: apiCall }) => {
-      apiCall(messageId).catch(() => {});
-    });
+    apiDeleteMessage(messageId).catch(() => {});
   }, []);
 
   const onNewMessage = useCallback((handler: (msg: ChatMessage) => void) => {

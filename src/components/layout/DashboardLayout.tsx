@@ -36,10 +36,14 @@ export default function DashboardLayout({ role, children }: DashboardLayoutProps
     effectiveRole = "consultant";
   } else if (location.pathname.startsWith('/admin/foe')) {
     effectiveRole = "foe";
+  } else if (location.pathname.startsWith('/questionnaires')) {
+    effectiveRole = "questionnaires";
   } else if (!effectiveRole || effectiveRole === "user") {
     const activeConsole = typeof window !== 'undefined' ? sessionStorage.getItem("active_console") : null;
     if (activeConsole === "foe") {
       effectiveRole = "foe";
+    } else if (activeConsole === "questionnaires") {
+      effectiveRole = "questionnaires";
     } else if (activeConsole === "coach") {
       effectiveRole = "coach";
     } else if (activeConsole === "sports_scientist") {
@@ -79,8 +83,9 @@ export default function DashboardLayout({ role, children }: DashboardLayoutProps
   }
 
   const isAmsConsole =
-    effectiveRole === "coach" ||
-    (location.pathname.startsWith('/ams') && !location.pathname.startsWith('/ams/athlete'));
+    !location.pathname.startsWith('/questionnaires') &&
+    (effectiveRole === "coach" ||
+     (location.pathname.startsWith('/ams') && !location.pathname.startsWith('/ams/athlete')));
 
   // Remodeled AMS Console: Side navigation menu is removed; full screen utilizes top navigation bar
   if (isAmsConsole) {

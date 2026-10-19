@@ -968,7 +968,29 @@ router.post('/users/:id/approve', requireAuth, async (req, res) => {
             WHERE id = $5 AND organization_id = $6
         `, [profession || null, ams_role || null, finalUhid, req.user.id, id, orgId]);
 
-        // 2. Update User Role
+        // 2. Link Client record with Profile ID
+        if (finalUhid) {
+            const existingClientRes = await client.query(
+                'SELECT id FROM clients WHERE uhid = $1 AND (organization_id = $2 OR $2 IS NULL)',
+                [finalUhid, orgId]
+            );
+            if (existingClientRes.rows.length > 0) {
+                await client.query(
+                    'UPDATE clients SET profile_id = $1 WHERE id = $2',
+                    [id, existingClientRes.rows[0].id]
+                );
+            } else if (role === 'client' || role === 'athlete') {
+                const uRes = await client.query('SELECT u.email, p.first_name, p.last_name, p.mobile_no FROM users u JOIN profiles p ON u.id = p.id WHERE u.id = $1', [id]);
+                const uData = uRes.rows[0] || {};
+                await client.query(`
+                    INSERT INTO clients (
+                        organization_id, uhid, first_name, last_name, email, mobile_no, profile_id, registered_on
+                    ) VALUES ($1, $2, $3, $4, $5, $6, $7, CURRENT_DATE)
+                `, [orgId, finalUhid, uData.first_name || 'Client', uData.last_name || '', uData.email || null, uData.mobile_no || null, id]);
+            }
+        }
+
+        // 3. Update User Role
         await client.query('UPDATE users SET role = $1 WHERE id = $2', [role, id]);
 
         // --- Auto-allocation trigger ---
@@ -1452,6 +1474,30 @@ router.patch('/users/:id/role', requireAuth, async (req, res) => {
             `, params);
         }
 
+        // Link client record with user profile if UHID or client role is present
+        const effectiveUhid = uhid || targetUser.uhid;
+        const effectiveRole = role || targetUser.role;
+        if (effectiveUhid) {
+            const existingClientRes = await client.query(
+                'SELECT id FROM clients WHERE uhid = $1 AND (organization_id = $2 OR $2 IS NULL)',
+                [effectiveUhid, orgId]
+            );
+            if (existingClientRes.rows.length > 0) {
+                await client.query(
+                    'UPDATE clients SET profile_id = $1 WHERE id = $2',
+                    [id, existingClientRes.rows[0].id]
+                );
+            } else if (effectiveRole === 'client' || effectiveRole === 'athlete') {
+                const uRes = await client.query('SELECT u.email, p.first_name, p.last_name, p.mobile_no FROM users u JOIN profiles p ON u.id = p.id WHERE u.id = $1', [id]);
+                const uData = uRes.rows[0] || {};
+                await client.query(`
+                    INSERT INTO clients (
+                        organization_id, uhid, first_name, last_name, email, mobile_no, profile_id, registered_on
+                    ) VALUES ($1, $2, $3, $4, $5, $6, $7, CURRENT_DATE)
+                `, [orgId, effectiveUhid, uData.first_name || 'Client', uData.last_name || '', uData.email || null, uData.mobile_no || null, id]);
+            }
+        }
+
         // --- Auto-allocation trigger ---
         if (profession) {
             await autoAllocateStaffServices(id, profession, orgId, client);
@@ -1810,6 +1856,26 @@ router.post('/users', requireAuth, async (req, res) => {
             'INSERT INTO profiles (id, first_name, last_name, organization_id, is_approved, profession, uhid, ams_role, approved_by, approved_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, CURRENT_TIMESTAMP)',
             [userId, firstName, lastName, orgId, true, profession || null, uhid || null, ams_role || null, req.user.id]
         );
+
+        // 3. Link Client record with Profile ID
+        if (uhid) {
+            const existingClientRes = await client.query(
+                'SELECT id FROM clients WHERE uhid = $1 AND (organization_id = $2 OR $2 IS NULL)',
+                [uhid, orgId]
+            );
+            if (existingClientRes.rows.length > 0) {
+                await client.query(
+                    'UPDATE clients SET profile_id = $1 WHERE id = $2',
+                    [userId, existingClientRes.rows[0].id]
+                );
+            } else if (role === 'client' || role === 'athlete') {
+                await client.query(`
+                    INSERT INTO clients (
+                        organization_id, uhid, first_name, last_name, email, profile_id, registered_on
+                    ) VALUES ($1, $2, $3, $4, $5, $6, CURRENT_DATE)
+                `, [orgId, uhid, firstName || 'Client', lastName || '', email || null, userId]);
+            }
+        }
 
         // --- Auto-allocation trigger ---
         if (profession) {

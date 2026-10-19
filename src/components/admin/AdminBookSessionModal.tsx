@@ -78,6 +78,20 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess, initialDa
     const [sessionDuration, setSessionDuration] = useState<number>(60);
     const [isDurationManuallySet, setIsDurationManuallySet] = useState(false);
     const [isConflict, setIsConflict] = useState(false);
+    const [isCustomTime, setIsCustomTime] = useState(false);
+
+    const customDurationMinutes = useMemo(() => {
+        if (!startTime || !endTime) return 0;
+        const [sH, sM] = startTime.split(':').map(Number);
+        const [eH, eM] = endTime.split(':').map(Number);
+        return (eH * 60 + eM) - (sH * 60 + sM);
+    }, [startTime, endTime]);
+
+    const isInvalidCustomRange = useMemo(() => {
+        if (!isCustomTime) return false;
+        if (!startTime || !endTime) return true;
+        return customDurationMinutes <= 0;
+    }, [isCustomTime, startTime, endTime, customDurationMinutes]);
 
     const safeParseDate = (dateStr: string) => {
         if (!dateStr) return new Date();
@@ -554,6 +568,19 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess, initialDa
         });
     }, [consultantId, sessionDate, allConsultantAvailability, allBookedSessions, orgSettings, filteredConsultants, consultants, consultantSchedule, selectedConsultantLeave, serviceId, serviceType, services]);
 
+    useEffect(() => {
+        if (!isCustomTime && availableSlots.length > 0) {
+            const hasCurrentSlot = availableSlots.some(s => s.start === startTime);
+            if (!hasCurrentSlot) {
+                const firstAvail = availableSlots.find(s => s.status === 'available') || availableSlots[0];
+                if (firstAvail) {
+                    setStartTime(firstAvail.start);
+                    setSessionDuration(firstAvail.duration);
+                }
+            }
+        }
+    }, [availableSlots, isCustomTime]);
+
     const checkSlotAvailability = async (time: string, endT: string) => {
         if (!time || !endT || !consultantId) return;
         
@@ -671,12 +698,12 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess, initialDa
 
     useEffect(() => {
         const timer = setTimeout(() => {
-            if (startTime && endTime && sessionDate && consultantId) {
+            if (startTime && endTime && sessionDate && consultantId && !isInvalidCustomRange) {
                 checkSlotAvailability(startTime, endTime);
             }
         }, 300);
         return () => clearTimeout(timer);
-    }, [startTime, endTime, sessionDate, consultantId, allBookedSessions, allConsultantAvailability, consultantSchedule, selectedConsultantLeave]);
+    }, [startTime, endTime, sessionDate, consultantId, allBookedSessions, allConsultantAvailability, consultantSchedule, selectedConsultantLeave, isInvalidCustomRange]);
 
     useEffect(() => {
         const selected = services.find(s => s.id === serviceId);
@@ -684,7 +711,7 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess, initialDa
     }, [serviceId, services]);
 
     useEffect(() => {
-        if (startTime && sessionDuration) {
+        if (!isCustomTime && startTime && sessionDuration) {
             try {
                 const [hours, minutes] = startTime.split(":").map(Number);
                 const date = new Date();
@@ -695,7 +722,7 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess, initialDa
                 console.error("Error calculating end time:", e);
             }
         }
-    }, [startTime, sessionDuration]);
+    }, [startTime, sessionDuration, isCustomTime]);
 
     const handleSave = async () => {
         if (!isGuest && !clientId) {
@@ -813,6 +840,7 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess, initialDa
         setConsultantId("");
         setPreferenceType("Flexible");
         setIsAvailable(null);
+        setIsCustomTime(false);
         setServiceType("");
         setSessionDate(format(new Date(), "yyyy-MM-dd"));
         setStartTime("09:00");
@@ -827,47 +855,60 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess, initialDa
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-4xl p-0 overflow-hidden bg-background border-none shadow-2xl rounded-xl sm:rounded-2xl">
-                <div className="flex flex-col h-[90vh] sm:h-auto max-h-[90vh] relative">
+            <DialogContent className="max-w-4xl lg:max-w-5xl p-0 overflow-hidden bg-background border border-border/70 shadow-2xl rounded-xl sm:rounded-2xl">
+                <div className="flex flex-col max-h-[92vh] sm:max-h-[88vh] relative">
                     {orgLogoUrl && (
-                        <div className="absolute inset-0 z-0 pointer-events-none flex items-center justify-center opacity-[0.03]">
-                            <img src={orgLogoUrl} alt="Clinic Watermark" className="w-[300px] grayscale" />
+                        <div className="absolute inset-0 z-0 pointer-events-none flex items-center justify-center opacity-[0.025]">
+                            <img src={orgLogoUrl} alt="Clinic Watermark" className="w-[260px] grayscale" />
                         </div>
                     )}
-                    <div className="p-6 pb-4 border-b border-border bg-muted/5 z-10">
-                        <DialogTitle className="text-2xl sm:text-3xl font-display font-bold tracking-tight text-foreground">New Appointment</DialogTitle>
-                        <DialogDescription className="text-sm sm:text-base text-muted-foreground mt-1">Schedule a manual session or join the active waitlist.</DialogDescription>
+                    <div className="px-6 py-3.5 border-b border-border/60 bg-muted/20 z-10 flex items-center justify-between">
+                        <div>
+                            <DialogTitle className="text-lg sm:text-xl font-display font-bold tracking-tight text-foreground">New Appointment</DialogTitle>
+                            <DialogDescription className="text-xs text-muted-foreground mt-0.5">Schedule a manual session or join the active waitlist.</DialogDescription>
+                        </div>
                     </div>
 
-                    <ScrollArea className="flex-1 p-6 z-10">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12">
-                            <div className="space-y-8">
-                                <div className="space-y-3">
+                    <ScrollArea className="flex-1 p-5 sm:p-6 z-10 overflow-y-auto">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 lg:gap-7 items-start">
+                            {/* Left Column: Client & Service & Specialist */}
+                            <div className="space-y-4">
+                                {/* Client Information */}
+                                <div className="space-y-1.5">
                                     <div className="flex items-center justify-between">
-                                        <Label className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Client Information</Label>
-                                        <div className="flex items-center gap-2 bg-muted/30 px-2 py-1 rounded-md border border-border/40">
-                                            <Label className="text-[10px] font-bold uppercase cursor-pointer" htmlFor="guest-mode">
-                                                {isGuest ? "Guest Mode" : "Existing Client"}
-                                            </Label>
+                                        <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Client Information</Label>
+                                        <div className="flex items-center gap-1.5 bg-muted/40 px-2 py-0.5 rounded-full border border-border/50 text-[10px] font-bold">
+                                            <span 
+                                                className={cn("cursor-pointer transition-colors", !isGuest ? "text-primary font-extrabold" : "text-muted-foreground")} 
+                                                onClick={() => setIsGuest(false)}
+                                            >
+                                                Existing
+                                            </span>
                                             <Switch 
                                                 id="guest-mode" 
-                                                className="scale-75"
+                                                className="scale-[0.7] data-[state=checked]:bg-primary"
                                                 checked={isGuest} 
                                                 onCheckedChange={setIsGuest} 
                                             />
+                                            <span 
+                                                className={cn("cursor-pointer transition-colors", isGuest ? "text-primary font-extrabold" : "text-muted-foreground")} 
+                                                onClick={() => setIsGuest(true)}
+                                            >
+                                                Guest
+                                            </span>
                                         </div>
                                     </div>
 
                                     {!isGuest ? (
-                                        <div className="space-y-4">
+                                        <div className="space-y-2">
                                             <Popover open={openPatientPopover} onOpenChange={setOpenPatientPopover}>
                                                 <PopoverTrigger asChild>
-                                                    <Button variant="outline" className={cn("w-full justify-between h-12", !clientId && "text-muted-foreground")}>
+                                                    <Button variant="outline" className={cn("w-full justify-between h-9 px-3 text-xs bg-background/50 hover:bg-muted/30 border-border/70 rounded-lg shadow-none", !clientId && "text-muted-foreground")}>
                                                         {clientId ? (() => {
                                                             const c = clients.find(x => x.id === clientId);
                                                             return c ? <VIPName name={`${c.first_name} ${c.last_name}`} isVIP={c.is_vip} /> : "Selected";
                                                         })() : "Search patients..."}
-                                                        <ChevronsUpDown className="ml-2 h-4 w-4 opacity-50" />
+                                                        <ChevronsUpDown className="ml-2 h-3.5 w-3.5 opacity-50" />
                                                     </Button>
                                                 </PopoverTrigger>
                                                 <PopoverContent 
@@ -877,9 +918,9 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess, initialDa
                                                     onTouchMove={(e) => e.stopPropagation()}
                                                 >
                                                     <Command className="max-h-[300px]">
-                                                        <CommandInput placeholder="Type name..." />
+                                                        <CommandInput placeholder="Type name..." className="h-9 text-xs" />
                                                         <CommandList 
-                                                            className="max-h-[230px] overflow-y-auto custom-scrollbar pointer-events-auto"
+                                                            className="max-h-[220px] overflow-y-auto custom-scrollbar pointer-events-auto"
                                                             onWheel={(e) => e.stopPropagation()}
                                                             onTouchMove={(e) => e.stopPropagation()}
                                                         >
@@ -889,8 +930,8 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess, initialDa
                                                                     <CommandItem key={c.id} value={`${c.first_name} ${c.last_name}`} onSelect={() => {
                                                                         setClientId(c.id);
                                                                         setOpenPatientPopover(false);
-                                                                    }}>
-                                                                        <Check className={cn("mr-2 h-4 w-4", clientId === c.id ? "opacity-100" : "opacity-0")} />
+                                                                    }} className="text-xs py-2">
+                                                                        <Check className={cn("mr-2 h-3.5 w-3.5", clientId === c.id ? "opacity-100" : "opacity-0")} />
                                                                         <VIPName name={`${c.first_name} ${c.last_name}`} isVIP={c.is_vip} />
                                                                     </CommandItem>
                                                                 ))}
@@ -901,117 +942,94 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess, initialDa
                                             </Popover>
 
                                             {clientId && !isGuest && clientPackageEntitlements.length > 0 && (
-                                                <div className="mt-2 space-y-1.5 p-3 rounded-xl border border-border bg-muted/20">
+                                                <div className="mt-1.5 p-2 rounded-lg border border-border/70 bg-muted/20 text-xs">
                                                     <div className="flex items-center justify-between text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">
                                                         <span>Active Packages & Entitlements</span>
                                                         <a 
                                                             href={`/admin/clients/${clientId}?tab=entitlements`} 
-                                                            className="text-xs text-primary font-bold hover:underline normal-case"
+                                                            className="text-[10px] text-primary font-bold hover:underline normal-case"
                                                         >
                                                             View All
                                                         </a>
                                                     </div>
-                                                    <div className="space-y-2 max-h-[120px] overflow-y-auto pr-1">
+                                                    <div className="space-y-1 max-h-[85px] overflow-y-auto pr-1 custom-scrollbar">
                                                         {Object.entries(groupedPackageEntitlements).slice(0, 2).map(([pkgName, items]: any) => (
-                                                            <div key={pkgName} className="space-y-1">
-                                                                <div className="text-[11px] font-bold text-foreground truncate">{pkgName}</div>
-                                                                <div className="space-y-1 pl-2">
-                                                                    {items.slice(0, 2).map((item: any, idx: number) => (
-                                                                        <div key={idx} className="flex justify-between items-center text-xs text-muted-foreground">
-                                                                            <span>{item.service_name}</span>
-                                                                            <span className={cn(
-                                                                                "font-semibold text-[10px] px-1.5 py-0.5 rounded-full",
-                                                                                item.sessions_remaining > 0 ? "bg-emerald-50 text-emerald-600 border border-emerald-200" : "bg-red-50 text-red-600 border border-red-200"
-                                                                            )}>
-                                                                                {item.sessions_remaining} left
-                                                                            </span>
-                                                                        </div>
+                                                            <div key={pkgName} className="space-y-0.5">
+                                                                <div className="text-[11px] font-semibold text-foreground truncate">{pkgName}</div>
+                                                                <div className="flex flex-wrap gap-1 pl-1">
+                                                                    {items.slice(0, 3).map((item: any, idx: number) => (
+                                                                        <span key={idx} className={cn(
+                                                                            "inline-flex items-center gap-1 font-semibold text-[10px] px-1.5 py-0.5 rounded border",
+                                                                            item.sessions_remaining > 0 ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" : "bg-destructive/10 text-destructive border-destructive/20"
+                                                                        )}>
+                                                                            <span className="truncate max-w-[120px]">{item.service_name}</span>
+                                                                            <span className="font-mono">({item.sessions_remaining})</span>
+                                                                        </span>
                                                                     ))}
-                                                                    {items.length > 2 && (
-                                                                        <div className="text-[10px] text-muted-foreground italic pl-1">
-                                                                            + {items.length - 2} more services
-                                                                        </div>
+                                                                    {items.length > 3 && (
+                                                                        <span className="text-[10px] text-muted-foreground italic self-center">
+                                                                            +{items.length - 3} more
+                                                                        </span>
                                                                     )}
                                                                 </div>
                                                             </div>
                                                         ))}
-                                                        {Object.keys(groupedPackageEntitlements).length > 2 && (
-                                                            <div className="text-[10px] text-muted-foreground italic text-center pt-1 border-t border-border">
-                                                                + {Object.keys(groupedPackageEntitlements).length - 2} more packages
-                                                            </div>
-                                                        )}
                                                     </div>
                                                 </div>
                                             )}
 
                                             {clientId && !isGuest && clientPackageEntitlements.length === 0 && (
-                                                <div className="mt-2 p-3 rounded-xl border border-destructive/20 bg-destructive/5 text-destructive flex items-start gap-2.5 animate-in fade-in slide-in-from-top-2 duration-300">
-                                                    <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                                                    <div className="space-y-0.5">
-                                                        <p className="text-xs font-bold uppercase tracking-wider">No Entitlements</p>
-                                                        <p className="text-[11px] leading-relaxed opacity-90">This client has no active packages or remaining entitlements.</p>
+                                                <div className="mt-1.5 p-2 rounded-lg border border-destructive/20 bg-destructive/5 text-destructive flex items-center gap-2 animate-in fade-in slide-in-from-top-1 text-xs">
+                                                    <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                                                    <div className="space-y-0.2">
+                                                        <p className="text-[10px] font-bold uppercase tracking-wider">No Entitlements</p>
+                                                        <p className="text-[11px] leading-tight opacity-90">Client has no active packages or remaining entitlements.</p>
                                                     </div>
                                                 </div>
                                             )}
 
                                             {clientId && !isGuest && serviceType && !selectedServiceEntitlementStatus.hasEntitlement && (
-                                                <div className="mt-2 p-3 rounded-xl border border-amber-200 bg-amber-50 text-amber-800 flex items-start gap-2.5 animate-in fade-in slide-in-from-top-2 duration-300">
-                                                    <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                                                    <div className="space-y-0.5">
-                                                        <p className="text-xs font-bold uppercase tracking-wider text-amber-900">Entitlement Warning</p>
-                                                        <p className="text-[11px] leading-relaxed text-amber-700">
-                                                            This client has no {serviceType.toLowerCase()} sessions left in their active packages.
-                                                        </p>
-                                                    </div>
+                                                <div className="mt-1.5 p-2 rounded-lg border border-amber-200 bg-amber-50/80 text-amber-800 flex items-center gap-2 animate-in fade-in slide-in-from-top-1 text-xs">
+                                                    <AlertCircle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                                                    <p className="text-[11px] leading-tight text-amber-800">
+                                                        No <span className="font-semibold">{serviceType.toLowerCase()}</span> sessions left in active packages.
+                                                    </p>
                                                 </div>
                                             )}
 
-
                                             {clientId && (outstandingBalance > 0 || adminRemarks) && (
                                                 <div className={cn(
-                                                    "rounded-lg overflow-hidden border animate-in fade-in slide-in-from-top-2 duration-300",
-                                                    clientData?.is_vip ? "border-yellow-500 shadow-sm" : "border-amber-200"
+                                                    "rounded-lg overflow-hidden border animate-in fade-in slide-in-from-top-1 text-xs mt-1.5",
+                                                    clientData?.is_vip ? "border-yellow-500 shadow-xs" : "border-amber-200"
                                                 )}>
-                                                    <div className="bg-amber-50/80 backdrop-blur-sm p-4 flex flex-col gap-4">
-                                                        <div className="flex flex-col md:flex-row divide-y md:divide-y-0 md:divide-x divide-amber-200/50">
+                                                    <div className="bg-amber-50/80 dark:bg-amber-950/20 p-2.5 flex flex-col gap-2">
+                                                        <div className="flex flex-col sm:flex-row gap-2 sm:items-center sm:justify-between">
                                                             {outstandingBalance > 0 && (
-                                                                <div className="flex-1 pb-3 md:pb-0 md:pr-4 flex items-start gap-3">
-                                                                    <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                                                                <div className="flex items-center gap-2">
+                                                                    <AlertCircle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
                                                                     <div>
-                                                                        <p className="text-[10px] uppercase font-bold text-amber-800 tracking-wider">Financial Alert</p>
-                                                                        <p className="text-sm font-semibold text-red-600 mt-0.5">
-                                                                            Outstanding Balance: ₹{outstandingBalance.toLocaleString()}
-                                                                        </p>
+                                                                        <span className="text-[9px] uppercase font-bold text-amber-800 tracking-wider mr-1.5">Balance:</span>
+                                                                        <span className="text-xs font-bold text-red-600">₹{outstandingBalance.toLocaleString()}</span>
                                                                     </div>
                                                                 </div>
                                                             )}
-                                                            
                                                             {(roles.includes('admin') || roles.includes('super_admin') || roles.includes('clinic_admin')) && adminRemarks && (
-                                                                <div className={cn(
-                                                                    "flex-1 flex items-start gap-3",
-                                                                    outstandingBalance > 0 ? "pt-3 md:pt-0 md:pl-4" : ""
-                                                                )}>
-                                                                    <Bookmark className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
-                                                                    <div>
-                                                                        <p className="text-[10px] uppercase font-bold text-amber-800 tracking-wider">Strategic Note</p>
-                                                                        <p className="text-[0.75rem] leading-relaxed text-amber-900 mt-1 font-medium italic">
-                                                                            {adminRemarks}
-                                                                        </p>
-                                                                    </div>
+                                                                <div className="flex items-center gap-1.5 text-[10px] text-amber-900 font-medium italic truncate">
+                                                                    <Bookmark className="w-3 h-3 text-amber-600 shrink-0" />
+                                                                    <span className="truncate">{adminRemarks}</span>
                                                                 </div>
                                                             )}
                                                         </div>
                                                     </div>
-                                                    
                                                     {outstandingBalance > 0 && (
-                                                        <div className="bg-amber-100/50 px-4 py-2 border-t border-amber-200/50 flex items-center gap-3">
+                                                        <div className="bg-amber-100/50 dark:bg-amber-900/20 px-2.5 py-1.5 border-t border-amber-200/50 flex items-center gap-2">
                                                             <Checkbox 
                                                                 id="acknowledge" 
                                                                 checked={isAcknowledged} 
                                                                 onCheckedChange={(checked) => setIsAcknowledged(checked as boolean)}
-                                                                className="h-4 w-4 border-amber-400 data-[state=checked]:bg-amber-600 data-[state=checked]:border-amber-600"
+                                                                className="h-3.5 w-3.5 border-amber-400 data-[state=checked]:bg-amber-600 data-[state=checked]:border-amber-600"
                                                             />
-                                                            <Label htmlFor="acknowledge" className="text-[11px] font-semibold text-amber-900 cursor-pointer">
+                                                            <Label htmlFor="acknowledge" className="text-[10px] font-semibold text-amber-900 dark:text-amber-200 cursor-pointer">
                                                                 I acknowledge the outstanding balance and administrative remarks.
                                                             </Label>
                                                         </div>
@@ -1020,53 +1038,56 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess, initialDa
                                             )}
                                         </div>
                                     ) : (
-                                        <div className="grid grid-cols-1 gap-4 animate-in fade-in slide-in-from-top-2">
-                                            <div className="space-y-1.5 focus-within:ring-1 focus-within:ring-primary rounded-md p-1 transition-all">
-                                                <Label className="text-[9px] font-bold uppercase text-primary ml-1">Guest Full Name</Label>
+                                        <div className="grid grid-cols-2 gap-2 mt-1 animate-in fade-in slide-in-from-top-1">
+                                            <div className="space-y-1">
+                                                <Label className="text-[9px] font-bold uppercase text-muted-foreground ml-0.5">Guest Full Name</Label>
                                                 <Input 
                                                     value={guestName} 
                                                     onChange={e => setGuestName(e.target.value)} 
                                                     placeholder="Enter name..." 
-                                                    className="h-10 bg-slate-50 border-slate-200"
+                                                    className="h-9 text-xs bg-background/50 border-border/70"
                                                 />
                                             </div>
-                                            <div className="space-y-1.5 focus-within:ring-1 focus-within:ring-primary rounded-md p-1 transition-all">
-                                                <Label className="text-[9px] font-bold uppercase text-primary ml-1">Contact Number</Label>
+                                            <div className="space-y-1">
+                                                <Label className="text-[9px] font-bold uppercase text-muted-foreground ml-0.5">Contact Number</Label>
                                                 <Input 
                                                     value={guestContact} 
                                                     onChange={e => setGuestContact(e.target.value)} 
                                                     placeholder="Enter phone..." 
-                                                    className="h-10 bg-slate-50 border-slate-200"
+                                                    className="h-9 text-xs bg-background/50 border-border/70"
                                                 />
                                             </div>
                                         </div>
                                     )}
                                 </div>
 
-                                <div className="space-y-3">
-                                    <Label className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">1. Service Selection</Label>
+                                {/* 1. Service Selection */}
+                                <div className="space-y-1.5">
+                                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">1. Service Selection</Label>
                                     <Select value={serviceId} onValueChange={(val) => { setServiceId(val); setConsultantId(""); }}>
-                                        <SelectTrigger className="h-12 bg-primary/5 border-primary/20 focus:ring-primary"><SelectValue placeholder="What service is required?" /></SelectTrigger>
+                                        <SelectTrigger className="h-9 text-xs bg-background/50 border-border/70 hover:border-primary/50 transition-colors rounded-lg shadow-none">
+                                            <SelectValue placeholder="What service is required?" />
+                                        </SelectTrigger>
                                         <SelectContent>
-                                            {filteredServices.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                                            {filteredServices.map(s => <SelectItem key={s.id} value={s.id} className="text-xs">{s.name}</SelectItem>)}
                                         </SelectContent>
                                     </Select>
                                 </div>
 
                                 {clientCases.length > 0 && (
-                                    <div className="space-y-1.5 animate-in fade-in slide-in-from-top-1">
-                                        <Label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-                                            <FileText className="w-3.5 h-3.5 text-primary" />
+                                    <div className="space-y-1 animate-in fade-in slide-in-from-top-1">
+                                        <Label className="text-[10px] font-semibold text-muted-foreground flex items-center gap-1">
+                                            <FileText className="w-3 h-3 text-primary" />
                                             Link to Case Sheet (Optional)
                                         </Label>
                                         <Select value={selectedCaseId} onValueChange={setSelectedCaseId}>
-                                            <SelectTrigger className="h-10 bg-primary/5 border-primary/20 text-xs">
+                                            <SelectTrigger className="h-8 text-xs bg-background/40 border-border/60 rounded-lg">
                                                 <SelectValue placeholder="Select an open clinical case..." />
                                             </SelectTrigger>
                                             <SelectContent>
-                                                <SelectItem value="none">-- Do Not Link --</SelectItem>
+                                                <SelectItem value="none" className="text-xs">-- Do Not Link --</SelectItem>
                                                 {clientCases.map((c: any) => (
-                                                    <SelectItem key={c.id} value={c.id}>
+                                                    <SelectItem key={c.id} value={c.id} className="text-xs">
                                                         {c.case_number ? `${c.case_number}: ` : ""}{c.final_diagnosis || c.provisional_diagnosis || c.chief_complaint || "Consultation Case"}
                                                     </SelectItem>
                                                 ))}
@@ -1075,30 +1096,43 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess, initialDa
                                     </div>
                                 )}
 
-                                <div className="space-y-3">
+                                {/* 2. Assign Qualified Specialist */}
+                                <div className="space-y-1.5">
                                     <div className="flex items-center justify-between">
-                                        <Label className={cn("text-sm font-semibold uppercase tracking-wider text-muted-foreground transition-opacity", !serviceId && "opacity-50")}>2. Assign Qualified Specialist</Label>
+                                        <Label className={cn("text-xs font-bold uppercase tracking-wider text-muted-foreground transition-opacity", !serviceId && "opacity-50")}>
+                                            2. Assign Qualified Specialist
+                                        </Label>
                                         {serviceId && (
-                                            <div className="flex items-center gap-2 bg-muted/30 px-2 py-1 rounded-md border border-border/40">
-                                                <Label className="text-[10px] font-bold uppercase cursor-pointer" htmlFor="pref-mode">
-                                                    {preferenceType === "Strict" ? "Strict" : "Flexible"}
-                                                </Label>
+                                            <div className="flex items-center gap-1.5 bg-muted/40 px-2 py-0.5 rounded-full border border-border/50 text-[10px] font-bold">
+                                                <span 
+                                                    className={cn("cursor-pointer transition-colors", preferenceType !== "Strict" ? "text-primary font-extrabold" : "text-muted-foreground")}
+                                                    onClick={() => setPreferenceType("Flexible")}
+                                                >
+                                                    Flexible
+                                                </span>
                                                 <Switch 
                                                     id="pref-mode" 
-                                                    className="scale-75"
+                                                    className="scale-[0.7] data-[state=checked]:bg-primary"
                                                     checked={preferenceType === "Flexible"} 
                                                     onCheckedChange={(checked) => setPreferenceType(checked ? "Flexible" : "Strict")} 
                                                 />
+                                                <span 
+                                                    className={cn("cursor-pointer transition-colors", preferenceType === "Strict" ? "text-primary font-extrabold" : "text-muted-foreground")}
+                                                    onClick={() => setPreferenceType("Strict")}
+                                                >
+                                                    Strict
+                                                </span>
                                             </div>
                                         )}
                                     </div>
+
                                     {!serviceId ? (
-                                        <div className="p-8 border border-dashed rounded-xl flex flex-col items-center justify-center text-center space-y-2 bg-muted/20">
-                                            <Bookmark className="w-8 h-8 text-muted-foreground/30" />
-                                            <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest leading-tight">Pick a service first<br />to see specialists</p>
+                                        <div className="py-3 px-3.5 border border-dashed rounded-lg flex items-center justify-center gap-2 text-xs text-muted-foreground bg-muted/15">
+                                            <Bookmark className="w-3.5 h-3.5 opacity-60" />
+                                            <span className="text-[11px] font-medium">Pick a service first to see available specialists</span>
                                         </div>
                                     ) : (
-                                        <div className="grid grid-cols-1 gap-2 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar animate-in fade-in slide-in-from-top-2 duration-300">
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 max-h-[145px] overflow-y-auto pr-1 custom-scrollbar animate-in fade-in slide-in-from-top-1">
                                             {filteredConsultants.map(c => {
                                                 const cLeave = hrLeaves.find((l: any) => {
                                                     if (l.employee_id !== c.id) return false;
@@ -1109,27 +1143,38 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess, initialDa
                                                 });
 
                                                 return (
-                                                    <div key={c.id} onClick={() => setConsultantId(c.id)} className={cn("flex items-center gap-3 p-3 rounded-lg border cursor-pointer hover:bg-muted/50 transition-all", consultantId === c.id ? "border-primary bg-primary/5 ring-1 ring-primary shadow-sm" : "border-border/50")}>
-                                                        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs">{c.name?.[0]}</div>
+                                                    <div 
+                                                        key={c.id} 
+                                                        onClick={() => setConsultantId(c.id)} 
+                                                        className={cn(
+                                                            "flex items-center gap-2 p-2 rounded-lg border cursor-pointer hover:bg-muted/40 transition-all text-xs", 
+                                                            consultantId === c.id 
+                                                                ? "border-primary bg-primary/10 ring-1 ring-primary/40 shadow-xs" 
+                                                                : "border-border/60 bg-background/50"
+                                                        )}
+                                                    >
+                                                        <div className="w-6 h-6 rounded-full bg-primary/15 flex items-center justify-center text-primary font-bold text-[10px] shrink-0">
+                                                            {c.name?.[0]}
+                                                        </div>
                                                         <div className="flex-1 min-w-0">
-                                                            <div className="text-sm font-semibold uppercase truncate flex items-center gap-1.5">
+                                                            <div className="text-xs font-semibold uppercase truncate flex items-center gap-1">
                                                                 <span className="truncate">{c.name}</span>
                                                                 {cLeave && (
-                                                                    <span className="px-1.5 py-0.5 rounded bg-rose-100 dark:bg-rose-950/80 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800 text-[8px] font-bold shrink-0 uppercase tracking-tighter">
+                                                                    <span className="px-1 py-0.2 rounded bg-rose-100 dark:bg-rose-950/80 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800 text-[8px] font-bold shrink-0 uppercase tracking-tighter">
                                                                         On Leave
                                                                     </span>
                                                                 )}
                                                             </div>
                                                             <div className="text-[10px] text-muted-foreground truncate">{c.profession}</div>
                                                         </div>
-                                                        {consultantId === c.id && <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />}
+                                                        {consultantId === c.id && <CheckCircle2 className="w-3.5 h-3.5 text-primary shrink-0" />}
                                                     </div>
                                                 );
                                             })}
                                             {filteredConsultants.length === 0 && (
-                                                <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg flex gap-3 text-orange-800">
-                                                    <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                                                    <p className="text-[10px] font-medium leading-tight">No specialists found for this service category. Please check assignments.</p>
+                                                <div className="col-span-2 p-2.5 bg-orange-50 border border-orange-200 rounded-lg flex items-center gap-2 text-orange-800 text-xs">
+                                                    <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                                                    <p className="text-[11px] font-medium leading-tight">No specialists found for this service category.</p>
                                                 </div>
                                             )}
                                         </div>
@@ -1137,65 +1182,115 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess, initialDa
                                 </div>
                             </div>
 
-                            <div className="space-y-6">
-                                <div className="space-y-4">
-                                    <div className="flex items-center justify-between p-3 bg-primary/5 rounded-lg border border-primary/10">
-                                        <div className="flex items-center gap-2">
-                                            <Repeat className="w-4 h-4 text-primary" />
-                                            <Label className="text-xs font-bold uppercase cursor-pointer" htmlFor="recurring-mode">Recurring Series</Label>
+                            {/* Right Column: Date, Recurring & Time Selection */}
+                            <div className="space-y-4">
+                                <div className="space-y-1.5">
+                                    <div className="flex items-center justify-between">
+                                        <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Session Date</Label>
+                                        <div className="flex items-center gap-1.5 bg-muted/40 px-2 py-0.5 rounded-full border border-border/50 text-[10px] font-bold">
+                                            <Repeat className="w-3 h-3 text-primary" />
+                                            <Label className="text-[10px] font-bold uppercase cursor-pointer" htmlFor="recurring-mode">Recurring</Label>
+                                            <Switch 
+                                                id="recurring-mode" 
+                                                className="scale-[0.7] data-[state=checked]:bg-primary"
+                                                checked={isRecurring} 
+                                                onCheckedChange={setIsRecurring} 
+                                            />
                                         </div>
-                                        <Switch id="recurring-mode" checked={isRecurring} onCheckedChange={setIsRecurring} />
                                     </div>
 
-                                    <div className="space-y-3">
-                                        <Label className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Session Date</Label>
-                                        <Popover>
-                                            <PopoverTrigger asChild>
-                                                <Button variant="outline" className={cn("w-full justify-start text-left font-normal h-11", !sessionDate && "text-muted-foreground")}>
-                                                    <CalendarIcon className="mr-2 h-4 w-4 text-primary" />
-                                                    {sessionDate ? format(safeParseDate(sessionDate), "PPP") : <span>Pick a date</span>}
-                                                </Button>
-                                            </PopoverTrigger>
-                                            <PopoverContent className="w-auto p-0" align="start">
-                                                <Calendar
-                                                    mode="single"
-                                                    selected={safeParseDate(sessionDate)}
-                                                    onSelect={(date) => date && setSessionDate(format(date, "yyyy-MM-dd"))}
-                                                    initialFocus
-                                                />
-                                            </PopoverContent>
-                                        </Popover>
-                                    </div>
+                                    <Popover>
+                                        <PopoverTrigger asChild>
+                                            <Button variant="outline" className={cn("w-full justify-start text-left font-normal h-9 px-3 text-xs bg-background/50 hover:bg-muted/30 border-border/70 rounded-lg shadow-none", !sessionDate && "text-muted-foreground")}>
+                                                <CalendarIcon className="mr-2 h-3.5 w-3.5 text-primary" />
+                                                {sessionDate ? format(safeParseDate(sessionDate), "PPP") : <span>Pick a date</span>}
+                                            </Button>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-auto p-0" align="start">
+                                            <Calendar
+                                                mode="single"
+                                                selected={safeParseDate(sessionDate)}
+                                                onSelect={(date) => date && setSessionDate(format(date, "yyyy-MM-dd"))}
+                                                initialFocus
+                                            />
+                                        </PopoverContent>
+                                    </Popover>
+                                </div>
 
-                                    {selectedConsultantLeave && (
-                                        <div className="p-3.5 rounded-xl border border-rose-200 bg-rose-50/90 dark:bg-rose-950/40 text-rose-800 dark:text-rose-200 flex items-start gap-2.5 animate-in fade-in slide-in-from-top-2 duration-300 shadow-sm">
-                                            <AlertCircle className="w-4.5 h-4.5 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
-                                            <div className="space-y-1">
-                                                <p className="text-xs font-bold uppercase tracking-wider text-rose-900 dark:text-rose-200 flex items-center gap-1.5">
-                                                    <span>Specialist On Leave</span>
-                                                    <span className="px-1.5 py-0.2 rounded bg-rose-200/80 text-rose-800 dark:bg-rose-900 dark:text-rose-200 text-[9px] font-extrabold capitalize">
-                                                        {selectedConsultantLeave.leave_type ? selectedConsultantLeave.leave_type.replace(/_/g, ' ') : 'Leave'}
-                                                    </span>
-                                                </p>
-                                                <p className="text-[11px] leading-relaxed text-rose-700 dark:text-rose-300 font-medium">
-                                                    {filteredConsultants.find(c => c.id === consultantId)?.name || 'Selected specialist'} is on approved leave on {format(safeParseDate(sessionDate), "MMMM d, yyyy")}. All time slots are blocked and unavailable for booking.
-                                                </p>
-                                            </div>
+                                {selectedConsultantLeave && (
+                                    <div className="p-2.5 rounded-lg border border-rose-200 bg-rose-50/90 dark:bg-rose-950/40 text-rose-800 dark:text-rose-200 flex items-start gap-2 animate-in fade-in slide-in-from-top-1 text-xs shadow-xs">
+                                        <AlertCircle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
+                                        <div className="space-y-0.5 flex-1 min-w-0">
+                                            <p className="text-xs font-bold uppercase tracking-wider text-rose-900 dark:text-rose-200 flex items-center gap-1.5">
+                                                <span>Specialist On Leave</span>
+                                                <span className="px-1.5 py-0.2 rounded bg-rose-200/80 text-rose-800 dark:bg-rose-900 dark:text-rose-200 text-[9px] font-extrabold capitalize">
+                                                    {selectedConsultantLeave.leave_type ? selectedConsultantLeave.leave_type.replace(/_/g, ' ') : 'Leave'}
+                                                </span>
+                                            </p>
+                                            <p className="text-[11px] leading-snug text-rose-700 dark:text-rose-300">
+                                                {filteredConsultants.find(c => c.id === consultantId)?.name || 'Selected specialist'} is on approved leave on {format(safeParseDate(sessionDate), "MMMM d, yyyy")}. All time slots are blocked and unavailable for booking.
+                                            </p>
                                         </div>
-                                    )}
+                                    </div>
+                                )}
 
-                                    {!isRecurring ? (
-                                        <div className="space-y-4 animate-in fade-in slide-in-from-right-2 duration-300">
-                                            <div className="space-y-3">
-                                                <Label className="text-sm font-semibold uppercase tracking-wider text-muted-foreground flex items-center justify-between mt-4">
+                                {!isRecurring ? (
+                                    <div className="space-y-2 animate-in fade-in slide-in-from-right-1 duration-200">
+                                        <div className="space-y-1.5">
+                                            <div className="flex items-center justify-between">
+                                                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
                                                     Time Selection
-                                                    {isConflict && <Badge variant="destructive" className="animate-pulse flex items-center gap-1"><AlertCircle className="w-3 h-3" /> CONFLICT</Badge>}
                                                 </Label>
+                                                <div className="flex items-center gap-1.5">
+                                                    {isConflict && (
+                                                        <Badge variant="destructive" className="h-5 px-1.5 text-[9px] font-bold animate-pulse flex items-center gap-1">
+                                                            <AlertCircle className="w-2.5 h-2.5" /> CONFLICT
+                                                        </Badge>
+                                                    )}
+                                                    <div className="flex items-center gap-1.5 bg-muted/40 px-2 py-0.5 rounded-full border border-border/50 text-[10px] font-bold">
+                                                        <span 
+                                                            className={cn("cursor-pointer transition-colors", !isCustomTime ? "text-primary font-extrabold" : "text-muted-foreground")} 
+                                                            onClick={() => setIsCustomTime(false)}
+                                                        >
+                                                            Slots
+                                                        </span>
+                                                        <Switch 
+                                                            id="custom-time-mode" 
+                                                            className="scale-[0.7] data-[state=checked]:bg-primary"
+                                                            checked={isCustomTime} 
+                                                            onCheckedChange={setIsCustomTime} 
+                                                        />
+                                                        <span 
+                                                            className={cn("cursor-pointer transition-colors", isCustomTime ? "text-primary font-extrabold" : "text-muted-foreground")} 
+                                                            onClick={() => setIsCustomTime(true)}
+                                                        >
+                                                            Custom
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
 
-                                                {availableSlots.length > 0 ? (
-                                                    <div className="space-y-3">
-                                                        <Label className="text-[10px] font-bold uppercase text-primary mb-2 block tracking-widest">Available Slots (Quick-Pick)</Label>
-                                                        <div className="flex flex-wrap gap-2 max-h-[200px] overflow-y-auto pr-1 custom-scrollbar">
+                                            {!isCustomTime ? (
+                                                availableSlots.length > 0 ? (
+                                                    <div className="space-y-1.5">
+                                                        <div className="flex items-center justify-between text-[10px]">
+                                                            <span className="font-bold uppercase tracking-wider text-primary text-[10px]">Available Slots (Quick-Pick)</span>
+                                                            <div className="flex items-center gap-2.5 text-[10px] text-muted-foreground">
+                                                                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" /> Free</span>
+                                                                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-blue-500 inline-block" /> Flex</span>
+                                                                {(() => {
+                                                                    const selectedConsultant = filteredConsultants.find(c => c.id === consultantId) || consultants.find(c => c.id === consultantId);
+                                                                    const selectedProf = selectedConsultant?.profession?.toLowerCase();
+                                                                    const selectedRole = selectedConsultant?.role?.toLowerCase();
+                                                                    const isScientist = selectedProf === 'sports scientist' || selectedRole === 'sports_scientist';
+                                                                    return !isScientist ? (
+                                                                        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-orange-500 inline-block" /> Waitlist</span>
+                                                                    ) : null;
+                                                                })()}
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="flex flex-wrap gap-1.5 max-h-[110px] overflow-y-auto pr-1 custom-scrollbar">
                                                             {availableSlots
                                                                 .slice()
                                                                 .sort((a, b) => a.start.localeCompare(b.start))
@@ -1205,13 +1300,13 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess, initialDa
                                                                         variant={startTime === slot.start ? "default" : "outline"} 
                                                                         size="sm"
                                                                         className={cn(
-                                                                            "text-[10px] h-9 px-3 font-bold transition-all",
+                                                                            "text-[11px] h-7 px-2.5 font-semibold transition-all rounded-md shadow-none",
                                                                             slot.status === 'waitlist'
                                                                                 ? startTime === slot.start
-                                                                                    ? "ring-2 ring-orange-500 ring-offset-1 bg-orange-600 text-white border-orange-600"
+                                                                                    ? "ring-1 ring-orange-500 ring-offset-1 bg-orange-600 text-white border-orange-600"
                                                                                     : "bg-orange-500/10 text-orange-600 border-orange-400/40 hover:bg-orange-500/20 hover:border-orange-500/40"
                                                                                 : startTime === slot.start 
-                                                                                    ? "ring-2 ring-primary ring-offset-1" 
+                                                                                    ? "ring-1 ring-primary ring-offset-1" 
                                                                                     : slot.status === 'available' 
                                                                                         ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20 hover:bg-emerald-500/20" 
                                                                                         : "bg-blue-500/10 text-blue-600 border-blue-500/20 hover:bg-blue-500/20"
@@ -1227,176 +1322,264 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess, initialDa
                                                                     </Button>
                                                                 ))}
                                                         </div>
-                                                        <p className="text-[9px] text-muted-foreground italic mt-1">
-                                                            * Select a slot to confirm your time. Orange slots are full — selecting one joins the waitlist.
-                                                        </p>
-                                                        
-                                                        <div className="mt-4 p-3 bg-muted/30 rounded-lg border border-border/50 space-y-2">
-                                                            <div className="flex items-start gap-2">
-                                                                <div className="w-2 h-2 rounded-full bg-emerald-500 mt-1" />
-                                                                <p className="text-[10px] leading-tight text-muted-foreground"><span className="font-bold text-emerald-700">AVAILABLE:</span> Your selected specialist is free and ready for booking.</p>
-                                                            </div>
-                                                            <div className="flex items-start gap-2">
-                                                                <div className="w-2 h-2 rounded-full bg-blue-500 mt-1" />
-                                                                <p className="text-[10px] leading-tight text-muted-foreground"><span className="font-bold text-blue-700">(FLEX):</span> Selected specialist is busy, but another qualified professional is available.</p>
-                                                            </div>
-                                                            {(() => {
-                                                                 const selectedConsultant = filteredConsultants.find(c => c.id === consultantId) || consultants.find(c => c.id === consultantId);
-                                                                 const selectedProf = selectedConsultant?.profession?.toLowerCase();
-                                                                 const selectedRole = selectedConsultant?.role?.toLowerCase();
-                                                                 const isScientist = selectedProf === 'sports scientist' || selectedRole === 'sports_scientist';
-                                                                 return !isScientist ? (
-                                                                     <div className="flex items-start gap-2">
-                                                                         <div className="w-2 h-2 rounded-full bg-orange-500 mt-1" />
-                                                                         <p className="text-[10px] leading-tight text-muted-foreground"><span className="font-bold text-orange-700">(FULL):</span> Slot is at capacity. Selecting it will join the Active Waitlist.</p>
-                                                                     </div>
-                                                                 ) : null;
-                                                             })()}
-                                                        </div>
                                                     </div>
                                                 ) : (
-                                                    <div className="p-4 border border-dashed rounded-lg text-center bg-muted/10">
-                                                        <Clock className="w-5 h-5 text-muted-foreground/40 mx-auto mb-1" />
-                                                        <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">No slots available</p>
+                                                    <div className="py-2.5 px-3 border border-dashed rounded-lg flex items-center justify-between gap-2 bg-muted/10 text-muted-foreground">
+                                                        <div className="flex items-center gap-1.5">
+                                                            <Clock className="w-3.5 h-3.5 opacity-60" />
+                                                            <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">No slots available</span>
+                                                        </div>
+                                                        <Button 
+                                                            type="button" 
+                                                            variant="outline" 
+                                                            size="sm" 
+                                                            onClick={() => setIsCustomTime(true)}
+                                                            className="h-6 text-[10px] px-2 font-bold text-primary border-primary/30 hover:bg-primary/5"
+                                                        >
+                                                            Enter Specific Time
+                                                        </Button>
                                                     </div>
-                                                )}
+                                                )
+                                            ) : (
+                                                <div className="p-2.5 bg-muted/20 rounded-lg border border-border/70 space-y-2 animate-in fade-in slide-in-from-top-1">
+                                                    <div className="flex items-center justify-between">
+                                                        <span className="text-[10px] font-bold uppercase tracking-wider text-primary">Custom Specific Time</span>
+                                                        {customDurationMinutes > 0 && !isInvalidCustomRange ? (
+                                                            <Badge variant="outline" className="text-[10px] font-mono font-semibold h-5 px-1.5 border-primary/30 text-primary bg-primary/5">
+                                                                {customDurationMinutes >= 60 
+                                                                    ? `${Math.floor(customDurationMinutes / 60)}h ${customDurationMinutes % 60 ? `${customDurationMinutes % 60}m` : ''}`.trim() 
+                                                                    : `${customDurationMinutes} min`}
+                                                            </Badge>
+                                                        ) : null}
+                                                    </div>
 
-                                                {/* Hidden inputs to keep state logic intact but focus on slots */}
-                                                <div className="sr-only">
-                                                    <Input type="time" value={startTime} onChange={e => setStartTime(e.target.value)} />
-                                                    <Input type="time" value={endTime} onChange={e => setEndTime(e.target.value)} />
+                                                    <div className="grid grid-cols-2 gap-2">
+                                                        <div className="space-y-1">
+                                                            <Label className="text-[10px] font-medium text-muted-foreground flex items-center gap-1">
+                                                                <Clock className="w-3 h-3 text-primary" /> Start Time
+                                                            </Label>
+                                                            <Input 
+                                                                type="time" 
+                                                                value={startTime} 
+                                                                onChange={e => {
+                                                                    const val = e.target.value;
+                                                                    setStartTime(val);
+                                                                    if (val && endTime) {
+                                                                        const [sH, sM] = val.split(':').map(Number);
+                                                                        const [eH, eM] = endTime.split(':').map(Number);
+                                                                        const diff = (eH * 60 + eM) - (sH * 60 + sM);
+                                                                        if (diff > 0) {
+                                                                            setSessionDuration(diff);
+                                                                            setIsDurationManuallySet(true);
+                                                                        }
+                                                                    }
+                                                                }} 
+                                                                className="h-8.5 text-xs bg-background/60 border-border/70 font-mono font-semibold"
+                                                            />
+                                                        </div>
+                                                        <div className="space-y-1">
+                                                            <Label className="text-[10px] font-medium text-muted-foreground flex items-center gap-1">
+                                                                <Clock className="w-3 h-3 text-primary" /> End Time
+                                                            </Label>
+                                                            <Input 
+                                                                type="time" 
+                                                                value={endTime} 
+                                                                onChange={e => {
+                                                                    const val = e.target.value;
+                                                                    setEndTime(val);
+                                                                    if (startTime && val) {
+                                                                        const [sH, sM] = startTime.split(':').map(Number);
+                                                                        const [eH, eM] = val.split(':').map(Number);
+                                                                        const diff = (eH * 60 + eM) - (sH * 60 + sM);
+                                                                        if (diff > 0) {
+                                                                            setSessionDuration(diff);
+                                                                            setIsDurationManuallySet(true);
+                                                                        }
+                                                                    }
+                                                                }} 
+                                                                className="h-8.5 text-xs bg-background/60 border-border/70 font-mono font-semibold"
+                                                            />
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Quick duration presets */}
+                                                    <div className="flex items-center gap-1.5 pt-0.5">
+                                                        <span className="text-[9px] uppercase font-bold text-muted-foreground mr-0.5">Presets:</span>
+                                                        {[30, 45, 60, 75, 90].map((dur) => (
+                                                            <button
+                                                                key={dur}
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    if (startTime) {
+                                                                        const [h, m] = startTime.split(':').map(Number);
+                                                                        const totalM = h * 60 + m + dur;
+                                                                        const endH = Math.floor(totalM / 60) % 24;
+                                                                        const endM = totalM % 60;
+                                                                        const formatted = `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`;
+                                                                        setEndTime(formatted);
+                                                                        setSessionDuration(dur);
+                                                                        setIsDurationManuallySet(true);
+                                                                    }
+                                                                }}
+                                                                className={cn(
+                                                                    "text-[10px] px-1.5 py-0.5 rounded border font-semibold transition-all",
+                                                                    customDurationMinutes === dur && !isInvalidCustomRange
+                                                                        ? "bg-primary text-primary-foreground border-primary"
+                                                                        : "bg-background/80 hover:bg-muted text-muted-foreground border-border/60"
+                                                                )}
+                                                            >
+                                                                {dur}m
+                                                            </button>
+                                                        ))}
+                                                    </div>
+
+                                                    {isInvalidCustomRange && (
+                                                        <p className="text-[10px] text-destructive font-medium flex items-center gap-1 pt-0.5">
+                                                            <AlertCircle className="w-3 h-3 shrink-0" /> End time must be later than start time.
+                                                        </p>
+                                                    )}
                                                 </div>
-                                            </div>
-                                            
-                                            {(() => {
-                                                const selectedConsultant = filteredConsultants.find(c => c.id === consultantId) || consultants.find(c => c.id === consultantId);
-                                                const selectedProf = selectedConsultant?.profession?.toLowerCase();
-                                                const isPhysioOrPhysician = selectedProf === 'physiotherapist' || selectedProf === 'physiotherapy' || selectedProf === 'sports physician' || selectedProf === 'physician' || selectedProf === 'sports_physician';
+                                            )}
+                                        </div>
+                                        
+                                        {(() => {
+                                            const selectedConsultant = filteredConsultants.find(c => c.id === consultantId) || consultants.find(c => c.id === consultantId);
+                                            const selectedProf = selectedConsultant?.profession?.toLowerCase();
+                                            const isPhysioOrPhysician = selectedProf === 'physiotherapist' || selectedProf === 'physiotherapy' || selectedProf === 'sports physician' || selectedProf === 'physician' || selectedProf === 'sports_physician';
 
-                                                return (
-                                                    <div className={cn("border rounded-xl p-4 flex items-center justify-between transition-all", 
-                                                        isAvailable === true ? (isPhysioOrPhysician && currentSlotBookedCount === 1 ? "bg-amber-500/5 border-amber-500/20" : "bg-emerald-500/5 border-emerald-500/20") : 
-                                                        isAvailable === false ? "bg-orange-500/5 border-orange-500/20" : "bg-muted/10 border-border/50"
-                                                    )}>
-                                                        <div className="flex items-center gap-3">
-                                                            {checkingAvailability ? (
-                                                                <Loader2 className="w-5 h-5 animate-spin text-primary" />
-                                                            ) : isAvailable === true ? (
-                                                                isPhysioOrPhysician && currentSlotBookedCount === 1 ? (
-                                                                    <AlertCircle className="w-5 h-5 text-amber-500" />
-                                                                ) : (
-                                                                    <CheckCircle2 className="w-5 h-5 text-emerald-500" />
-                                                                )
-                                                            ) : isAvailable === false ? (
-                                                                <AlertCircle className="w-5 h-5 text-orange-500" />
+                                            return (
+                                                <div className={cn("border rounded-lg p-2.5 px-3 flex items-center justify-between transition-all mt-1.5", 
+                                                    isAvailable === true ? (isPhysioOrPhysician && currentSlotBookedCount === 1 ? "bg-amber-500/10 border-amber-500/25" : "bg-emerald-500/10 border-emerald-500/25") : 
+                                                    isAvailable === false ? "bg-orange-500/10 border-orange-500/25" : "bg-muted/15 border-border/60"
+                                                )}>
+                                                    <div className="flex items-center gap-2 min-w-0">
+                                                        {checkingAvailability ? (
+                                                            <Loader2 className="w-4 h-4 animate-spin text-primary shrink-0" />
+                                                        ) : isInvalidCustomRange ? (
+                                                            <AlertCircle className="w-4 h-4 text-destructive shrink-0" />
+                                                        ) : isAvailable === true ? (
+                                                            isPhysioOrPhysician && currentSlotBookedCount === 1 ? (
+                                                                <AlertCircle className="w-4 h-4 text-amber-500 shrink-0" />
                                                             ) : (
-                                                                <Clock className="w-5 h-5 text-muted-foreground" />
-                                                            )}
-                                                            <div className="flex flex-col">
-                                                                <span className="text-xs font-bold uppercase">
-                                                                    {checkingAvailability 
-                                                                        ? "Checking Availability..." 
+                                                                <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                                                            )
+                                                        ) : isAvailable === false ? (
+                                                            <AlertCircle className="w-4 h-4 text-orange-500 shrink-0" />
+                                                        ) : (
+                                                            <Clock className="w-4 h-4 text-muted-foreground shrink-0" />
+                                                        )}
+                                                        <div className="flex flex-col min-w-0">
+                                                            <span className="text-[11px] font-bold uppercase truncate">
+                                                                {checkingAvailability 
+                                                                    ? "Checking Availability..." 
+                                                                    : isInvalidCustomRange
+                                                                        ? "Invalid Time Range"
                                                                         : isAvailable === true 
                                                                             ? (isPhysioOrPhysician 
                                                                                 ? (currentSlotBookedCount === 1 ? "1/2 Booked (1 Slot Available)" : "Available Slot (0/2 Booked)") 
-                                                                                : "Available Slot") 
+                                                                                : `Available Slot (${startTime} - ${endTime})`) 
                                                                             : (isPhysioOrPhysician 
-                                                                                ? "Slot Fully Occupied (2/2 Booked) → Routing to Waitlist" 
+                                                                                ? "Slot Fully Occupied → Waitlist" 
                                                                                 : "Slot Full / Off Shift")}
-                                                                </span>
-                                                                <span className="text-[10px] text-muted-foreground">
-                                                                    {isAvailable === false 
+                                                            </span>
+                                                            <span className="text-[10px] text-muted-foreground truncate">
+                                                                {isInvalidCustomRange
+                                                                    ? "Please set end time after start time."
+                                                                    : isAvailable === false 
                                                                         ? (isPhysioOrPhysician 
-                                                                            ? "2/2 clients are already booked in this slot. The 3rd client will join the Active Waitlist." 
-                                                                            : "Selected specialist is unavailable at this time.") 
+                                                                            ? "2 clients booked. 3rd joins waitlist." 
+                                                                            : "Specialist unavailable at this time.") 
                                                                         : isPhysioOrPhysician 
                                                                             ? (currentSlotBookedCount === 1 
-                                                                                ? "1 client is already scheduled. 1 slot remaining for your specialist." 
-                                                                                : "Physiotherapy & Sports Physician slots accommodate up to 2 concurrent clients.") 
-                                                                            : "Real-time cross-check complete."}
-                                                                </span>
-                                                            </div>
+                                                                                ? "1 client scheduled. 1 slot remaining." 
+                                                                                : "Up to 2 concurrent clients accommodated.") 
+                                                                            : isCustomTime
+                                                                                ? `${customDurationMinutes} min custom session verified.`
+                                                                                : "Time verified."}
+                                                            </span>
                                                         </div>
-                                                        {isAvailable !== null && !checkingAvailability && (
-                                                            <Badge 
-                                                                variant={isAvailable ? (isPhysioOrPhysician && currentSlotBookedCount === 1 ? "outline" : "secondary") : "destructive"} 
-                                                                className={cn(
-                                                                    "text-[9px] font-bold uppercase", 
-                                                                    isPhysioOrPhysician && currentSlotBookedCount === 1 && "border-amber-500 text-amber-700 bg-amber-50"
-                                                                )}
-                                                            >
-                                                                {isAvailable 
-                                                                    ? (isPhysioOrPhysician ? `${currentSlotBookedCount}/2 BOOKED` : "READY") 
-                                                                    : (isPhysioOrPhysician ? "2/2 FULL (WAITLIST)" : "BUSY")}
-                                                            </Badge>
-                                                        )}
                                                     </div>
-                                                );
-                                            })()}
-                                        </div>
-                                    ) : (
-                                        <div className="space-y-6 animate-in fade-in slide-in-from-left-2 duration-300">
-                                            <div className="space-y-3">
-                                                <Label className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Total Sessions in Series</Label>
-                                                <Input type="number" value={totalSessions} onChange={e => setTotalSessions(parseInt(e.target.value))} className="h-11" min={1} max={100} />
-                                            </div>
-
-                                            <div className="space-y-3">
-                                                <Label className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Series Schedule</Label>
-                                                <div className="space-y-3">
-                                                    {seriesSchedule.map((rule, idx) => (
-                                                        <div key={idx} className="flex items-end gap-2 p-3 bg-muted/30 rounded-lg border border-border/50 group">
-                                                            <div className="flex-1 space-y-1.5">
-                                                                <Label className="text-[9px] font-bold uppercase text-muted-foreground">Day</Label>
-                                                                <Select value={rule.dayOfWeek.toString()} onValueChange={(val) => {
-                                                                    const newSchedule = [...seriesSchedule];
-                                                                    newSchedule[idx].dayOfWeek = parseInt(val);
-                                                                    setSeriesSchedule(newSchedule);
-                                                                }}>
-                                                                    <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
-                                                                    <SelectContent>
-                                                                        {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day, i) => (
-                                                                            <SelectItem key={i} value={i.toString()}>{day}</SelectItem>
-                                                                        ))}
-                                                                    </SelectContent>
-                                                                </Select>
-                                                            </div>
-                                                            <div className="w-24 space-y-1.5">
-                                                                <Label className="text-[9px] font-bold uppercase text-muted-foreground">Start</Label>
-                                                                <Input type="time" value={rule.startTime} onChange={(e) => {
-                                                                    const newSchedule = [...seriesSchedule];
-                                                                    newSchedule[idx].startTime = e.target.value;
-                                                                    setSeriesSchedule(newSchedule);
-                                                                }} className="h-9 text-xs" />
-                                                            </div>
-                                                            <div className="w-24 space-y-1.5">
-                                                                <Label className="text-[9px] font-bold uppercase text-muted-foreground">End</Label>
-                                                                <Input type="time" value={rule.endTime} onChange={(e) => {
-                                                                    const newSchedule = [...seriesSchedule];
-                                                                    newSchedule[idx].endTime = e.target.value;
-                                                                    setSeriesSchedule(newSchedule);
-                                                                }} className="h-9 text-xs" />
-                                                            </div>
-                                                            <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-destructive" onClick={() => setSeriesSchedule(prev => prev.filter((_, i) => i !== idx))} disabled={seriesSchedule.length <= 1}>
-                                                                <Trash2 className="w-4 h-4" />
-                                                            </Button>
-                                                        </div>
-                                                    ))}
-                                                    <Button variant="outline" size="sm" className="w-full h-9 border-dashed text-xs text-primary" onClick={() => setSeriesSchedule(prev => [...prev, { dayOfWeek: 1, startTime: "09:00", endTime: "10:00" }])}>
-                                                        <Plus className="w-3 h-3 mr-2" /> Add Weekly Day
-                                                    </Button>
+                                                    {isAvailable !== null && !checkingAvailability && !isInvalidCustomRange && (
+                                                        <Badge 
+                                                            variant={isAvailable ? (isPhysioOrPhysician && currentSlotBookedCount === 1 ? "outline" : "secondary") : "destructive"} 
+                                                            className={cn(
+                                                                "text-[9px] font-bold uppercase shrink-0 ml-2 h-5 px-1.5", 
+                                                                isPhysioOrPhysician && currentSlotBookedCount === 1 && "border-amber-500 text-amber-700 bg-amber-50 dark:bg-amber-950/40"
+                                                            )}
+                                                        >
+                                                            {isAvailable 
+                                                                ? (isPhysioOrPhysician ? `${currentSlotBookedCount}/2 BOOKED` : "READY") 
+                                                                : (isPhysioOrPhysician ? "WAITLIST" : "BUSY")}
+                                                        </Badge>
+                                                    )}
                                                 </div>
+                                            );
+                                        })()}
+                                    </div>
+                                ) : (
+                                    <div className="space-y-3 animate-in fade-in slide-in-from-left-1 duration-200">
+                                        <div className="space-y-1">
+                                            <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Total Sessions</Label>
+                                            <Input type="number" value={totalSessions} onChange={e => setTotalSessions(parseInt(e.target.value))} className="h-8.5 text-xs" min={1} max={100} />
+                                        </div>
+
+                                        <div className="space-y-1.5">
+                                            <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Series Schedule</Label>
+                                            <div className="space-y-1.5 max-h-[140px] overflow-y-auto pr-1 custom-scrollbar">
+                                                {seriesSchedule.map((rule, idx) => (
+                                                    <div key={idx} className="flex items-center gap-1.5 p-1.5 bg-muted/30 rounded-lg border border-border/50 group text-xs">
+                                                        <div className="flex-1">
+                                                            <Select value={rule.dayOfWeek.toString()} onValueChange={(val) => {
+                                                                const newSchedule = [...seriesSchedule];
+                                                                newSchedule[idx].dayOfWeek = parseInt(val);
+                                                                setSeriesSchedule(newSchedule);
+                                                            }}>
+                                                                <SelectTrigger className="h-7 text-[11px]"><SelectValue /></SelectTrigger>
+                                                                <SelectContent>
+                                                                    {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day, i) => (
+                                                                        <SelectItem key={i} value={i.toString()} className="text-xs">{day}</SelectItem>
+                                                                    ))}
+                                                                </SelectContent>
+                                                            </Select>
+                                                        </div>
+                                                        <div className="w-20">
+                                                            <Input type="time" value={rule.startTime} onChange={(e) => {
+                                                                const newSchedule = [...seriesSchedule];
+                                                                newSchedule[idx].startTime = e.target.value;
+                                                                setSeriesSchedule(newSchedule);
+                                                            }} className="h-7 text-[11px] px-1.5" />
+                                                        </div>
+                                                        <div className="w-20">
+                                                            <Input type="time" value={rule.endTime} onChange={(e) => {
+                                                                const newSchedule = [...seriesSchedule];
+                                                                newSchedule[idx].endTime = e.target.value;
+                                                                setSeriesSchedule(newSchedule);
+                                                            }} className="h-7 text-[11px] px-1.5" />
+                                                        </div>
+                                                        <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive shrink-0" onClick={() => setSeriesSchedule(prev => prev.filter((_, i) => i !== idx))} disabled={seriesSchedule.length <= 1}>
+                                                            <Trash2 className="w-3.5 h-3.5" />
+                                                        </Button>
+                                                    </div>
+                                                ))}
+                                                <Button variant="outline" size="sm" className="w-full h-7 border-dashed text-[11px] text-primary" onClick={() => setSeriesSchedule(prev => [...prev, { dayOfWeek: 1, startTime: "09:00", endTime: "10:00" }])}>
+                                                    <Plus className="w-3 h-3 mr-1" /> Add Day
+                                                </Button>
                                             </div>
                                         </div>
-                                    )}
-                                </div>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </ScrollArea>
 
-                    <Separator />
-                    <div className="p-6 flex gap-4">
-                        <Button variant="ghost" onClick={() => onOpenChange(false)} className="flex-1 h-12 uppercase text-xs font-bold">Cancel</Button>
+                    <div className="px-6 py-3 border-t border-border/70 bg-muted/20 flex items-center justify-end gap-2.5 z-10">
+                        <Button 
+                            variant="ghost" 
+                            onClick={() => onOpenChange(false)} 
+                            className="h-9 px-4 text-xs font-semibold rounded-lg hover:bg-muted/60"
+                        >
+                            Cancel
+                        </Button>
                         <Button 
                             onClick={() => {
                                 const selectedConsultant = filteredConsultants.find(c => c.id === consultantId) || consultants.find(c => c.id === consultantId);
@@ -1417,6 +1600,7 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess, initialDa
                                 (isGuest && (!guestName || !guestContact)) ||
                                 !consultantId || 
                                 isAvailable === null ||
+                                isInvalidCustomRange ||
                                 (outstandingBalance > 0 && !isAcknowledged) ||
                                 (() => {
                                     const selectedConsultant = filteredConsultants.find(c => c.id === consultantId) || consultants.find(c => c.id === consultantId);
@@ -1426,22 +1610,29 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess, initialDa
                                     return isScientist && isAvailable === false;
                                 })()
                             } 
-                            className={cn("flex-1 h-12 uppercase text-xs font-bold", (() => {
+                            className={cn("h-9 px-5 text-xs font-semibold rounded-lg shadow-sm transition-all text-white", (() => {
                                 const selectedConsultant = filteredConsultants.find(c => c.id === consultantId) || consultants.find(c => c.id === consultantId);
                                 const selectedProf = selectedConsultant?.profession?.toLowerCase();
                                 const selectedRole = selectedConsultant?.role?.toLowerCase();
                                 const isScientist = selectedProf === 'sports scientist' || selectedRole === 'sports_scientist';
+                                if (isInvalidCustomRange) {
+                                    return "bg-slate-400 cursor-not-allowed";
+                                }
                                 if (isAvailable === false) {
                                     return isScientist ? "bg-slate-400 cursor-not-allowed" : "bg-orange-600 hover:bg-orange-700";
                                 }
-                                return "bg-primary";
+                                return "bg-primary hover:bg-primary/90";
                             })())}
                         >
-                            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : (() => {
+                            {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> : null}
+                            {(() => {
                                 const selectedConsultant = filteredConsultants.find(c => c.id === consultantId) || consultants.find(c => c.id === consultantId);
                                 const selectedProf = selectedConsultant?.profession?.toLowerCase();
                                 const selectedRole = selectedConsultant?.role?.toLowerCase();
                                 const isScientist = selectedProf === 'sports scientist' || selectedRole === 'sports_scientist';
+                                if (isInvalidCustomRange) {
+                                    return "Invalid Time";
+                                }
                                 if (isAvailable === false) {
                                     return isScientist ? "Slot Full" : "Join Waitlist";
                                 }

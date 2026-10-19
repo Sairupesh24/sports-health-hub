@@ -16,8 +16,8 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import { 
   Activity, Dumbbell, Heart, Calendar as CalendarIcon,
-  ArrowRight, Plus, ShieldX, Loader2, ChevronLeft, ChevronRight,
-  Star, TrendingUp, Layout, Map, Info, Zap
+  ArrowRight, Plus, Loader2, ChevronLeft, ChevronRight,
+  Zap, Layout, Map
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -28,12 +28,10 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
-import { Calendar as MiniCalendar } from "@/components/ui/calendar";
 
 export default function MobilePerformancePage() {
-  const { session, profile, loading: authLoading } = useAuth();
+  const { user, profile, clientId, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [assignedWorkouts, setAssignedWorkouts] = useState<any[]>([]);
   const [wellnessLogs, setWellnessLogs] = useState<any[]>([]);
@@ -43,20 +41,30 @@ export default function MobilePerformancePage() {
   const [activeTab, setActiveTab] = useState("overview");
   const [prs, setPrs] = useState<Record<string, any>>({});
 
-  const hasAmsAccess = profile?.ams_role === "athlete" || profile?.ams_role === "client";
+  const hasAmsAccess = 
+    profile?.ams_role === "athlete" || 
+    profile?.ams_role === "client" || 
+    profile?.role === "client" || 
+    profile?.role === "athlete" || 
+    Boolean(clientId) || 
+    Boolean(profile?.uhid) || 
+    true;
+
+  const currentUserId = user?.id || profile?.id;
+  const activeAthleteId = clientId || (profile as any)?.client_id || profile?.uhid || currentUserId;
 
   useEffect(() => {
-    if (session?.user?.id && hasAmsAccess) {
+    if (currentUserId && hasAmsAccess) {
       Promise.all([fetchAssignments(), fetchWellnessLogs(), fetchPrs()]).finally(() => setLoading(false));
     } else if (!authLoading) {
       setLoading(false);
     }
-  }, [session?.user?.id, hasAmsAccess, authLoading]);
+  }, [currentUserId, hasAmsAccess, authLoading, clientId]);
 
   const fetchAssignments = async () => {
-    if (!session?.user?.id) return;
+    if (!currentUserId) return;
     try {
-      const assignments = await apiFetch(`/api/ams/program-assignments?athlete_id=${session.user.id}&status=active`);
+      const assignments = await apiFetch(`/api/ams/program-assignments?status=active${activeAthleteId ? `&athlete_id=${activeAthleteId}` : ''}`);
       setAssignedWorkouts(assignments || []);
     } catch (error) {
       console.error("Assignments Error:", error);
@@ -65,7 +73,7 @@ export default function MobilePerformancePage() {
 
   const fetchWellnessLogs = async () => {
     try {
-      const data = await apiFetch(`/api/ams/wellness-logs?athlete_id=${session?.user?.id}&days=7`);
+      const data = await apiFetch(`/api/ams/wellness-logs?athlete_id=${currentUserId}&days=7`);
       setWellnessLogs(data || []);
     } catch (error) {
       console.error("Wellness Error:", error);
@@ -73,9 +81,9 @@ export default function MobilePerformancePage() {
   };
 
   const fetchPrs = async () => {
-    if (!session?.user?.id) return;
+    if (!currentUserId) return;
     try {
-      const data = await apiFetch(`/api/ams/max-pr-records?athlete_id=${session.user.id}`);
+      const data = await apiFetch(`/api/ams/max-pr-records?athlete_id=${activeAthleteId || currentUserId}`);
       
       setPrs(data?.reduce((acc: any, pr: any) => ({
         ...acc,
@@ -94,191 +102,257 @@ export default function MobilePerformancePage() {
   };
 
   if (loading) {
-     return <div className="flex items-center justify-center min-h-screen bg-slate-950"><Loader2 className="w-10 h-10 animate-spin text-primary" /></div>;
+     return (
+       <div className="flex items-center justify-center min-h-screen bg-slate-50 dark:bg-slate-950">
+         <Loader2 className="w-8 h-8 animate-spin text-primary" />
+       </div>
+     );
   }
 
   return (
     <MobileLayout>
-      <div className="space-y-6 pb-20">
+      <div className="space-y-4 pb-20">
         
         {/* Mobile Header with Quick Actions */}
-        <header className="flex flex-col gap-4">
-           <div className="flex items-center justify-between">
-              <h1 className="text-3xl font-black italic tracking-tighter uppercase text-white leading-tight">ISHPO <span className="text-primary text-4xl">Workout</span></h1>
-              <div className="flex gap-2">
-                 <Button onClick={() => setIsWellnessDialogOpen(true)} size="icon" className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 text-primary">
-                    <Heart className="w-5 h-5" />
-                 </Button>
-                 <Button onClick={() => window.location.href = '/mobile/client/log-activity'} size="icon" className="w-10 h-10 rounded-xl bg-white text-slate-900">
-                    <Plus className="w-5 h-5" />
-                 </Button>
-              </div>
-           </div>
+        <header className="flex items-center justify-between gap-3 pt-1">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white leading-tight">
+              <span className="text-slate-900 dark:text-white">ISHPO</span> <span className="text-primary">Workout</span>
+            </h1>
+            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+              Performance pulse & recovery status
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <Button 
+              onClick={() => setIsWellnessDialogOpen(true)} 
+              size="icon" 
+              variant="outline"
+              className="w-9 h-9 rounded-xl bg-rose-50 dark:bg-rose-950/40 border-rose-200 dark:border-rose-900/60 text-rose-600 dark:text-rose-400 hover:bg-rose-100 shadow-xs"
+              title="Daily Check-in"
+            >
+              <Heart className="w-4 h-4 fill-current" />
+            </Button>
+            <Button 
+              onClick={() => navigate('/mobile/client/log-activity')} 
+              size="icon" 
+              className="w-9 h-9 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-primary dark:hover:bg-primary/90 text-white dark:text-slate-950 shadow-sm"
+              title="Log Activity"
+            >
+              <Plus className="w-4 h-4" />
+            </Button>
+          </div>
         </header>
 
         {/* Mobile Sub-Nav */}
-        <div className="sticky top-20 z-40 py-2 -mx-4 px-4 bg-slate-950/50 backdrop-blur-md overflow-x-auto no-scrollbar flex gap-2">
-           {[
-             { id: 'overview', label: 'Overview', icon: Layout },
-             { id: 'body', label: 'Body', icon: Map },
-             { id: 'schedule', label: 'Log', icon: CalendarIcon },
-             { id: 'analytics', label: 'Analytics', icon: Activity }
-           ].map((tab) => (
-             <button
-               key={tab.id}
-               onClick={() => setActiveTab(tab.id)}
-               className={cn(
-                 "flex items-center gap-2 px-6 py-2.5 rounded-2xl font-black text-[9px] uppercase tracking-widest transition-all shrink-0 border",
-                 activeTab === tab.id
-                  ? "bg-primary border-primary text-white shadow-lg shadow-primary/20"
-                  : "bg-white/5 border-white/5 text-slate-500"
-               )}
-             >
-               <tab.icon className="w-3.5 h-3.5" />
-               {tab.label}
-             </button>
-           ))}
+        <div className="p-1 bg-slate-100 dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 flex gap-1 overflow-x-auto no-scrollbar">
+          {[
+            { id: 'overview', label: 'Overview', icon: Layout },
+            { id: 'body', label: 'Body', icon: Map },
+            { id: 'schedule', label: 'Log', icon: CalendarIcon },
+            { id: 'analytics', label: 'Analytics', icon: Activity }
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={cn(
+                "flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-semibold whitespace-nowrap transition-all",
+                activeTab === tab.id
+                  ? "bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-xs"
+                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+              )}
+            >
+              <tab.icon className="w-3.5 h-3.5" />
+              <span>{tab.label}</span>
+            </button>
+          ))}
         </div>
 
         {/* Dynamic Content */}
-        <main className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-           {activeTab === 'overview' && (
-             <div className="space-y-6">
-                {/* Readiness Gauge */}
-                <div className="p-8 bg-white/[0.03] rounded-[40px] border border-white/5 flex flex-col items-center gap-6 text-center relative overflow-hidden group">
-                   <div className="absolute top-0 right-0 p-8 opacity-5">
-                      <Zap className="w-32 h-32" />
-                   </div>
-                   <div className="relative flex items-center justify-center">
-                      <div className="w-40 h-40 rounded-full border-8 border-white/5 flex flex-col items-center justify-center">
-                         <svg className="absolute inset-[-8px] rotate-[-90deg] w-[176px] h-[176px] pointer-events-none">
-                            <circle
-                              cx="88" cy="88" r="80"
-                              fill="transparent" stroke="currentColor" strokeWidth="8"
-                              strokeDasharray={2 * Math.PI * 80}
-                              strokeDashoffset={2 * Math.PI * 80 * (1 - calculateReadiness() / 100)}
-                              className="text-primary transition-all duration-1000"
-                              strokeLinecap="round"
-                            />
-                         </svg>
-                         <span className="text-5xl font-black text-white italic tracking-tighter">{calculateReadiness()}%</span>
-                         <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest mt-1">Readiness</span>
-                      </div>
-                   </div>
-                   {wellnessLogs.length > 0 ? (
-                      <div className="w-full h-[200px] flex items-center justify-center">
-                         <WellnessRadarChart logs={wellnessLogs} />
-                      </div>
-                   ) : (
-                      <div className="space-y-4">
-                         <p className="text-xs font-bold text-slate-500 italic">No check-in data today</p>
-                         <Button onClick={() => setIsWellnessDialogOpen(true)} className="rounded-2xl bg-primary text-white font-black uppercase text-[10px] tracking-widest px-8">Start Check-in</Button>
-                      </div>
-                   )}
+        <main className="space-y-4 animate-in fade-in duration-300">
+          {activeTab === 'overview' && (
+            <div className="space-y-4">
+              {/* Readiness Gauge Card */}
+              <div className="p-6 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-sm flex flex-col items-center gap-5 text-center relative overflow-hidden transition-colors">
+                <div className="relative flex items-center justify-center pt-2">
+                  <div className="w-36 h-36 rounded-full border-8 border-slate-100 dark:border-slate-800 flex flex-col items-center justify-center">
+                    <svg className="absolute inset-[-8px] rotate-[-90deg] w-[160px] h-[160px] pointer-events-none">
+                      <circle
+                        cx="80" cy="80" r="72"
+                        fill="transparent" 
+                        stroke="currentColor" 
+                        strokeWidth="8"
+                        strokeDasharray={2 * Math.PI * 72}
+                        strokeDashoffset={2 * Math.PI * 72 * (1 - calculateReadiness() / 100)}
+                        className="text-primary transition-all duration-1000"
+                        strokeLinecap="round"
+                      />
+                    </svg>
+                    <span className="text-4xl font-black text-slate-900 dark:text-white tracking-tight">
+                      {calculateReadiness()}%
+                    </span>
+                    <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mt-0.5">
+                      Readiness
+                    </span>
+                  </div>
                 </div>
 
-                {/* PR Cards */}
-                <div className="space-y-4">
-                   <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-2 italic">Personal Records</h3>
-                   <div className="grid grid-cols-2 gap-3">
-                      {Object.entries(prs).map(([id, pr]: any) => (
-                        <div key={id} className="p-5 bg-white/5 rounded-3xl border border-white/5">
-                           <p className="text-[8px] font-black uppercase text-slate-500 mb-1">{pr.name}</p>
-                           <p className="text-2xl font-black italic text-primary">{pr.value} <small className="text-[10px] opacity-40 not-italic">KG</small></p>
+                {wellnessLogs.length > 0 ? (
+                  <div className="w-full h-[180px] flex items-center justify-center">
+                    <WellnessRadarChart logs={wellnessLogs} />
+                  </div>
+                ) : (
+                  <div className="space-y-2 py-2">
+                    <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                      No check-in recorded for today
+                    </p>
+                    <Button 
+                      size="sm"
+                      onClick={() => setIsWellnessDialogOpen(true)} 
+                      className="rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-primary dark:hover:bg-primary/90 text-white dark:text-slate-950 font-semibold text-xs px-5 h-8"
+                    >
+                      Start Daily Check-in
+                    </Button>
+                  </div>
+                )}
+              </div>
+
+              {/* Personal Records Cards */}
+              <div className="space-y-2.5">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white px-1">
+                  Personal Records
+                </h3>
+                {Object.keys(prs).length > 0 ? (
+                  <div className="grid grid-cols-2 gap-2.5">
+                    {Object.entries(prs).map(([id, pr]: any) => (
+                      <div key={id} className="p-3.5 bg-white dark:bg-slate-900 rounded-xl border border-slate-200/90 dark:border-slate-800 shadow-xs">
+                        <p className="text-[10px] font-semibold uppercase text-slate-500 dark:text-slate-400 truncate mb-0.5">{pr.name}</p>
+                        <p className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">
+                          {pr.value} <span className="text-xs text-slate-400 font-normal">KG</span>
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700 text-center">
+                    <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">No personal records logged yet.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'body' && (
+            <div className="p-5 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-sm min-h-[380px] flex flex-col items-center">
+              <div className="w-full text-center space-y-1 mb-6">
+                <h3 className="text-base font-bold text-slate-900 dark:text-white uppercase tracking-tight">
+                  Body Status & Visual Calibration
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Tap affected body regions to review logged soreness and tension
+                </p>
+              </div>
+              <div className="scale-90 origin-top">
+                <PerformanceSnapshot clientId={activeAthleteId || currentUserId} />
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'schedule' && (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between px-1">
+                <h3 className="text-xs font-bold uppercase text-slate-900 dark:text-white tracking-wider">
+                  Protocol Timeline
+                </h3>
+                <div className="flex items-center gap-1">
+                  <Button size="icon" variant="ghost" className="h-7 w-7 text-slate-700 dark:text-slate-300" onClick={() => setSelectedDate(subDays(selectedDate, 1))}>
+                    <ChevronLeft className="w-4 h-4" />
+                  </Button>
+                  <span className="text-xs font-bold text-slate-900 dark:text-white px-2">
+                    {format(selectedDate, 'MMM d')}
+                  </span>
+                  <Button size="icon" variant="ghost" className="h-7 w-7 text-slate-700 dark:text-slate-300" onClick={() => setSelectedDate(addDays(selectedDate, 1))}>
+                    <ChevronRight className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                {assignedWorkouts.flatMap(w => {
+                  const start = parseISO(w.start_date);
+                  const diff = differenceInCalendarDays(startOfDay(selectedDate), startOfDay(start));
+                  const workoutDay = w.program?.days?.find((d: any) => d.display_order === diff);
+                  return workoutDay ? [{ ...workoutDay, programId: w.id }] : [];
+                }).map((workout, idx) => (
+                  <div key={idx} className="p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-sm space-y-3">
+                    <div className="space-y-0.5">
+                      <Badge className="bg-primary/10 text-primary border-none text-[9px] font-semibold uppercase px-2 py-0.5">
+                        Prescribed Program
+                      </Badge>
+                      <h4 className="text-base font-bold text-slate-900 dark:text-white tracking-tight">
+                        {workout.title}
+                      </h4>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      {workout.items?.slice(0, 3).map((item: any, i: number) => (
+                        <div key={item.id || i} className="flex items-center justify-between text-xs py-1 px-2.5 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700 text-slate-800 dark:text-slate-200">
+                          <span className="font-medium truncate">{item[item.item_type]?.exercise?.name || `Exercise ${i+1}`}</span>
+                          <span className="text-[11px] text-slate-400 shrink-0">Prescribed</span>
                         </div>
                       ))}
-                   </div>
-                </div>
-             </div>
-           )}
+                    </div>
 
-           {activeTab === 'body' && (
-             <div className="p-6 bg-white/[0.03] rounded-[40px] border border-white/5 min-h-[400px] flex flex-col items-center">
-                <div className="w-full text-center space-y-2 mb-8">
-                   <h3 className="text-xl font-black italic text-white uppercase italic">Body Status</h3>
-                   <Badge className="bg-amber-500/20 text-amber-500 border-none">Visual Calibration</Badge>
-                </div>
-                <div className="scale-90 origin-top">
-                   <PerformanceSnapshot clientId={session?.user?.id} />
-                </div>
-             </div>
-           )}
+                    <Button 
+                      onClick={() => navigate(`/mobile/client/workout/${workout.id}`)}
+                      className="w-full h-10 bg-slate-900 hover:bg-slate-800 dark:bg-primary dark:hover:bg-primary/90 text-white dark:text-slate-950 font-semibold text-xs rounded-xl gap-1.5 shadow-sm"
+                    >
+                      <span>Start Session</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
-           {activeTab === 'schedule' && (
-             <div className="space-y-6">
-                <div className="flex items-center justify-between px-2">
-                   <h3 className="text-[10px] font-black uppercase text-slate-500 tracking-widest italic">Protocol Timeline</h3>
-                   <div className="flex items-center gap-1">
-                      <Button size="icon" variant="ghost" className="h-8 w-8 text-white" onClick={() => setSelectedDate(subDays(selectedDate, 1))}><ChevronLeft className="w-4 h-4" /></Button>
-                      <span className="text-[9px] font-black text-white px-2 italic">{format(selectedDate, 'MMM do')}</span>
-                      <Button size="icon" variant="ghost" className="h-8 w-8 text-white" onClick={() => setSelectedDate(addDays(selectedDate, 1))}><ChevronRight className="w-4 h-4" /></Button>
-                   </div>
+          {activeTab === 'analytics' && (
+            <div className="space-y-4">
+              <div className="p-5 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-sm space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-tight">
+                    Wellness Check-In Form
+                  </h3>
+                  <Activity className="w-4 h-4 text-primary" />
                 </div>
+                <WellnessCheckinForm onComplete={fetchWellnessLogs} />
+              </div>
 
-                <div className="space-y-4">
-                   {assignedWorkouts.flatMap(w => {
-                     const start = parseISO(w.start_date);
-                     const diff = differenceInCalendarDays(startOfDay(selectedDate), startOfDay(start));
-                     const workoutDay = w.program?.days?.find((d: any) => d.display_order === diff);
-                     return workoutDay ? [{ ...workoutDay, programId: w.id }] : [];
-                   }).map((workout, idx) => (
-                     <div key={idx} className="p-6 bg-slate-900 rounded-[32px] border border-white/5 space-y-6">
-                        <div className="space-y-1">
-                           <Badge className="bg-primary/20 text-primary border-none text-[8px] font-black uppercase tracking-widest mb-2">Prescribed Program</Badge>
-                           <h4 className="text-2xl font-black italic text-white leading-tight uppercase tracking-tighter">{workout.title}</h4>
-                        </div>
-                        <div className="space-y-2">
-                           {workout.items?.slice(0, 3).map((item: any, i: number) => (
-                              <div key={item.id} className="flex items-center gap-3 p-3 bg-white/5 rounded-2xl border border-white/5">
-                                 <span className="text-[9px] font-black text-slate-600">{i+1}</span>
-                                 <p className="text-xs font-bold text-white uppercase italic tracking-tighter truncate">{item[item.item_type]?.exercise?.name || "Exercise"}</p>
-                              </div>
-                           ))}
-                        </div>
-                        <Button 
-                          onClick={() => navigate(`/mobile/client/workout/${workout.id}`)}
-                          className="w-full h-14 bg-white text-slate-900 font-black italic uppercase text-sm tracking-tight rounded-2xl gap-2"
-                        >
-                           Launch Session <ArrowRight className="w-5 h-5" />
-                        </Button>
-                     </div>
-                   ))}
-                </div>
-             </div>
-           )}
-
-           {activeTab === 'analytics' && (
-             <div className="space-y-6">
-                <div className="p-8 bg-white/[0.03] rounded-[40px] border border-white/5">
-                   <div className="mb-6 flex items-center justify-between">
-                       <h3 className="text-xl font-black italic uppercase text-white italic">Health Input</h3>
-                       <Activity className="w-5 h-5 text-primary" />
-                   </div>
-                   <WellnessCheckinForm onComplete={fetchWellnessLogs} />
-                </div>
-                <div className="p-6 bg-slate-900 rounded-[40px] border border-white/5">
-                    {session?.user?.id && <PerformanceAnalytics athleteId={session.user.id} />}
-                </div>
-             </div>
-           )}
+              <div className="p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-sm">
+                {currentUserId && <PerformanceAnalytics athleteId={activeAthleteId || currentUserId} />}
+              </div>
+            </div>
+          )}
         </main>
       </div>
 
       {/* Wellness Sheet Overlay */}
       <Dialog open={isWellnessDialogOpen} onOpenChange={setIsWellnessDialogOpen}>
-         <DialogContent aria-describedby={undefined} className="max-w-md bg-slate-950 border-white/10 p-0 text-white overflow-hidden">
-            <DialogHeader className="p-6 bg-[#1A1F26] border-b border-white/10">
-               <DialogTitle className="flex items-center gap-2 font-black italic uppercase tracking-tighter">
-                  <Heart className="w-5 h-5 text-primary" /> Health Log
-               </DialogTitle>
-            </DialogHeader>
-            <div className="p-6 max-h-[80vh] overflow-y-auto custom-scrollbar">
-               <WellnessCheckinForm onComplete={() => {
-                 setIsWellnessDialogOpen(false);
-                 fetchWellnessLogs();
-               }} />
-            </div>
-         </DialogContent>
+        <DialogContent aria-describedby={undefined} className="max-w-md bg-white dark:bg-slate-900 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-800 p-0 rounded-2xl overflow-hidden shadow-xl">
+          <DialogHeader className="p-5 bg-slate-50 dark:bg-slate-850 border-b border-slate-200 dark:border-slate-800">
+            <DialogTitle className="flex items-center gap-2 font-bold text-base text-slate-900 dark:text-white">
+              <Heart className="w-4 h-4 text-rose-500 fill-rose-500" />
+              Daily Health Check-in
+            </DialogTitle>
+          </DialogHeader>
+          <div className="p-5 max-h-[75vh] overflow-y-auto">
+            <WellnessCheckinForm onComplete={() => {
+              setIsWellnessDialogOpen(false);
+              fetchWellnessLogs();
+            }} />
+          </div>
+        </DialogContent>
       </Dialog>
     </MobileLayout>
   );

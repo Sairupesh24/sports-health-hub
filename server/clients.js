@@ -773,16 +773,36 @@ router.post('/register', requireAuth, async (req, res) => {
     }
 });
 
-// GET client by profile_id
+// GET client by profile_id or linked UHID
 router.get('/profile', requireAuth, async (req, res) => {
     try {
         const userId = req.user.id;
-        const result = await db.query('SELECT * FROM clients WHERE profile_id = $1', [userId]);
+        const orgId = req.user.organization_id;
+
+        // Search by profile_id OR by uhid matching profile's uhid OR by user email
+        const result = await db.query(`
+            SELECT c.* 
+            FROM clients c
+            LEFT JOIN profiles p ON p.id = $1
+            WHERE (c.profile_id = $1 
+               OR (p.uhid IS NOT NULL AND c.uhid = p.uhid)
+               OR (c.email IS NOT NULL AND LOWER(c.email) = LOWER($2)))
+              AND (c.organization_id = $3 OR $3 IS NULL)
+              AND c.deleted_at IS NULL
+            ORDER BY (c.profile_id = $1) DESC, (c.uhid = p.uhid) DESC
+            LIMIT 1
+        `, [userId, req.user.email, orgId]);
         
         if (result.rows.length === 0) {
             return res.status(404).json({ error: 'Client not found' });
         }
-        res.json(result.rows[0]);
+        
+        const client = result.rows[0];
+        // Ensure bidirectional linkage is recorded
+        if (!client.profile_id) {
+            await db.query('UPDATE clients SET profile_id = $1 WHERE id = $2', [userId, client.id]).catch(() => {});
+        }
+        res.json(client);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }

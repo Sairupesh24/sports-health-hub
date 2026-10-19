@@ -29,7 +29,7 @@ export default function MobileGuard({ children }: MobileGuardProps) {
 
     const isClientPath = location.pathname.startsWith("/client");
     const isMobileClientPath = location.pathname.startsWith("/mobile/client");
-    const isSpecialistPath = location.pathname.startsWith("/sports-scientist") || location.pathname.startsWith("/ams");
+    const isSpecialistPath = location.pathname.startsWith("/sports-scientist") || location.pathname.startsWith("/ams") || location.pathname.startsWith("/questionnaires");
     const isMobileSpecialistPath = location.pathname.startsWith("/mobile/specialist");
     const isConsultantPath = location.pathname.startsWith("/consultant");
     const isMobileConsultantPath = location.pathname.startsWith("/mobile/consultant");
@@ -79,7 +79,7 @@ export default function MobileGuard({ children }: MobileGuardProps) {
       if (isSpecialistPath && !isMobileSpecialistPath) {
         let mobilePath = location.pathname.replace("/sports-scientist", "/mobile/specialist");
 
-        if (location.pathname === "/ams/questionnaires") {
+        if (location.pathname === "/ams/questionnaires" || location.pathname === "/questionnaires") {
           mobilePath = "/mobile/specialist/forms";
         } else if (location.pathname.startsWith("/ams") && !location.pathname.startsWith("/ams/questionnaires")) {
           mobilePath = "/mobile/specialist";
@@ -135,7 +135,7 @@ export default function MobileGuard({ children }: MobileGuardProps) {
         }
         const desktopPath =
           location.pathname === "/mobile/specialist/forms"
-            ? "/ams/questionnaires"
+            ? (sessionStorage.getItem("active_console") === "coach" || sessionStorage.getItem("active_console") === "ams" ? "/ams/questionnaires" : "/questionnaires")
             : location.pathname.replace("/mobile/specialist", "/sports-scientist");
         if (location.pathname !== desktopPath) {
           navigate(desktopPath + location.search, { replace: true });

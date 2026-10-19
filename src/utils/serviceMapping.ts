@@ -25,6 +25,7 @@ export interface Service {
   category: string | null;
   organization_id: string;
   is_universal?: boolean;
+  service_type?: string;
 }
 
 /**

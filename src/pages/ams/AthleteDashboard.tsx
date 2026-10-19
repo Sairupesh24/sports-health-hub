@@ -21,7 +21,8 @@ import { apiFetch } from "@/utils/api";
 import { ScientificResourcesManager } from "@/components/sports-scientist/resources/ScientificResourcesManager";
 
 export default function AthleteDashboard() {
-  const { session, profile: currentUserProfile, roles, clientId } = useAuth();
+  const { user, profile: currentUserProfile, roles, clientId } = useAuth();
+  const currentUserId = user?.id || currentUserProfile?.id;
   const [assignedProgram, setAssignedProgram] = useState<any>(null);
   const [todayWorkout, setTodayWorkout] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -33,11 +34,11 @@ export default function AthleteDashboard() {
   const isSportsScientist = currentUserProfile?.profession === 'Sports Scientist' || roles.includes('sports_scientist');
 
   useEffect(() => {
-    if (session?.user?.id) {
+    if (currentUserId) {
       fetchAssignment();
       fetchSubscription();
     }
-  }, [session?.user?.id]);
+  }, [currentUserId]);
 
   const fetchAssignment = async () => {
     try {
@@ -270,7 +271,7 @@ export default function AthleteDashboard() {
 
               <TabsContent value="analytics" className="mt-0 animate-in slide-in-from-left-4 duration-500">
                 <div className="glass-card rounded-[32px] p-8 border-none shadow-sm bg-white/40">
-                  {session?.user?.id && <PerformanceAnalytics athleteId={session.user.id} />}
+                  {currentUserId && <PerformanceAnalytics athleteId={currentUserId} />}
                 </div>
               </TabsContent>
 
@@ -330,7 +331,7 @@ export default function AthleteDashboard() {
                 <Award className="w-4 h-4 text-primary" />
               </div>
               <div className="glass-card rounded-[32px] p-6 border shadow-sm hover:shadow-lg transition-all duration-500">
-                 {session?.user?.id && <PerformanceSnapshot clientId={session.user.id} />}
+                 {currentUserId && <PerformanceSnapshot clientId={currentUserId} />}
               </div>
             </section>
 

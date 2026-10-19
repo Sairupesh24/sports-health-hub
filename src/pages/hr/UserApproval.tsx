@@ -61,6 +61,7 @@ export default function UserApproval() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [isRolesExpanded, setIsRolesExpanded] = useState(false);
   const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
+  const [availableClients, setAvailableClients] = useState<any[]>([]);
 
   const filteredUsers = users.filter((u) => {
     // Search query filter
@@ -189,6 +190,7 @@ export default function UserApproval() {
 
   useEffect(() => {
     fetchUsers();
+    apiFetch<any[]>('/clients').then(res => setAvailableClients(res || [])).catch(() => {});
   }, [profile]);
 
   const handleAddUser = async (e: React.FormEvent) => {
@@ -765,14 +767,83 @@ export default function UserApproval() {
                   </DialogHeader>
                   <div className="space-y-4 pt-4">
                     {(pendingAction?.role === "client" || pendingAction?.role === "athlete") && (
-                      <div className="space-y-2 animate-in fade-in zoom-in duration-200">
-                        <Label>Client UHID <span className="text-destructive">*</span></Label>
-                        <Input
-                          value={pendingActionUhid}
-                          onChange={e => setPendingActionUhid(e.target.value)}
-                          required
-                          placeholder="e.g. CSH03260001"
-                        />
+                      <div className="space-y-3 animate-in fade-in zoom-in duration-200 p-3.5 bg-muted/40 rounded-xl border border-border">
+                        <div className="flex items-center justify-between">
+                          <Label className="text-xs font-bold uppercase tracking-wider text-foreground">
+                            Link to Client UHID <span className="text-destructive">*</span>
+                          </Label>
+                          {availableClients.length > 0 && (
+                            <span className="text-[10px] text-muted-foreground font-medium">
+                              {availableClients.length} clients registered
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Searchable registered client picker */}
+                        {availableClients.length > 0 && (
+                          <div className="space-y-1.5">
+                            <Label className="text-[11px] text-muted-foreground">Select from registered clinic clients:</Label>
+                            <Select
+                              value={pendingActionUhid}
+                              onValueChange={(val) => setPendingActionUhid(val)}
+                            >
+                              <SelectTrigger className="w-full bg-background font-mono text-xs">
+                                <SelectValue placeholder="-- Select Client by Name or UHID --" />
+                              </SelectTrigger>
+                              <SelectContent className="max-h-[260px]">
+                                {availableClients.map((c) => (
+                                  <SelectItem key={c.id} value={c.uhid || c.id} className="text-xs">
+                                    <span className="font-semibold">{formatClientName(c)}</span>
+                                    <span className="font-mono text-muted-foreground ml-2">({c.uhid || 'No UHID'})</span>
+                                    {c.sport && <span className="text-[10px] text-primary ml-1.5">[{c.sport}]</span>}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        )}
+
+                        {/* Or manual UHID input */}
+                        <div className="space-y-1">
+                          <Label className="text-[11px] text-muted-foreground">Or enter / confirm UHID:</Label>
+                          <Input
+                            value={pendingActionUhid}
+                            onChange={(e) => setPendingActionUhid(e.target.value.toUpperCase())}
+                            required
+                            placeholder="e.g. CSH07261358"
+                            className="bg-background font-mono uppercase tracking-wider text-xs"
+                          />
+                        </div>
+
+                        {/* Matched client summary card */}
+                        {(() => {
+                          const matched = availableClients.find(
+                            (c) => c.uhid?.toLowerCase() === pendingActionUhid.trim().toLowerCase()
+                          );
+                          if (matched) {
+                            return (
+                              <div className="p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-800 dark:text-emerald-300 text-xs space-y-0.5">
+                                <p className="font-bold flex items-center gap-1.5">
+                                  <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
+                                  Linked to {formatClientName(matched)}
+                                </p>
+                                <p className="text-[11px] text-emerald-700/80 dark:text-emerald-400 font-mono">
+                                  UHID: {matched.uhid} {matched.mobile_no ? `· Mobile: ${matched.mobile_no}` : ''} {matched.sport ? `· Sport: ${matched.sport}` : ''}
+                                </p>
+                              </div>
+                            );
+                          }
+                          if (pendingActionUhid.trim().length >= 3) {
+                            return (
+                              <div className="p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-800 dark:text-amber-300 text-xs">
+                                <p className="font-medium">
+                                  ℹ New profile will be established for UHID: <strong className="font-mono">{pendingActionUhid}</strong>
+                                </p>
+                              </div>
+                            );
+                          }
+                          return null;
+                        })()}
                       </div>
                     )}
                     <div className="space-y-2">
@@ -927,6 +998,27 @@ export default function UserApproval() {
                           >
                             AMS {u.ams_role}
                           </Badge>
+                        )}
+                        {(u.current_role === 'client' || u.current_role === 'athlete') && (
+                          u.uhid ? (
+                            <Badge 
+                              variant="outline" 
+                              onClick={() => handleViewClientDetails(u)}
+                              className="cursor-pointer font-mono text-[10px] h-5 px-1.5 bg-primary/10 text-primary border-primary/30 hover:bg-primary/20"
+                              title="Click to view linked client profile"
+                            >
+                              UHID: {u.uhid}
+                            </Badge>
+                          ) : (
+                            <Badge 
+                              variant="destructive" 
+                              onClick={() => handleViewClientDetails(u)}
+                              className="cursor-pointer text-[10px] h-5 px-1.5 animate-pulse"
+                              title="Click to link Client UHID"
+                            >
+                              Link UHID
+                            </Badge>
+                          )
                         )}
                       </div>
                       <p className="text-xs text-muted-foreground break-all">{u.email}</p>

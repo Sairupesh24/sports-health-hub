@@ -151,7 +151,7 @@ router.post('/login', async (req, res) => {
     }
 
     // Fetch profile for additional token claims
-    const profileRes = await db.query('SELECT organization_id, is_approved, is_active, deleted_at FROM profiles WHERE id = $1', [user.id]);
+    const profileRes = await db.query('SELECT organization_id, is_approved, is_active, deleted_at, uhid FROM profiles WHERE id = $1', [user.id]);
     const profile = profileRes.rows[0] || {};
     if (profile.is_active === false || profile.deleted_at) {
       return res.status(403).json({ error: 'Access to this account has been removed. Please contact your organization administrator.' });
@@ -160,16 +160,39 @@ router.post('/login', async (req, res) => {
     const orgId = profile.organization_id || null;
     const finalApproved = user.role === 'super_admin' ? true : isApproved;
 
+    // Resolve matching Client ID if applicable
+    let clientId = null;
+    let clientUhid = profile.uhid || null;
+    try {
+      const clientRes = await db.query(`
+        SELECT id, uhid, profile_id FROM clients 
+        WHERE (profile_id = $1 OR (uhid IS NOT NULL AND $2 IS NOT NULL AND uhid = $2) OR (email IS NOT NULL AND LOWER(email) = LOWER($3)))
+          AND (organization_id = $4 OR $4 IS NULL)
+          AND deleted_at IS NULL
+        ORDER BY (profile_id = $1) DESC, (uhid = $2) DESC
+        LIMIT 1
+      `, [user.id, profile.uhid, email, orgId]);
+      if (clientRes.rows.length > 0) {
+        clientId = clientRes.rows[0].id;
+        clientUhid = clientRes.rows[0].uhid || profile.uhid;
+        if (!clientRes.rows[0].profile_id) {
+          await db.query('UPDATE clients SET profile_id = $1 WHERE id = $2', [user.id, clientId]).catch(() => {});
+        }
+      }
+    } catch (e) {
+      console.warn('Error resolving client ID on login:', e.message);
+    }
+
     // Generate JWT immediately (Bypassing MFA)
     const token = jwt.sign(
-      { id: user.id, email, role: user.role, is_approved: finalApproved, organization_id: orgId },
+      { id: user.id, email, role: user.role, is_approved: finalApproved, organization_id: orgId, client_id: clientId, uhid: clientUhid },
       process.env.JWT_SECRET || 'fallback_secret_do_not_use_in_prod',
       { expiresIn: process.env.JWT_EXPIRES_IN || '24h' }
     );
 
     res.json({ 
       token, 
-      user: { id: user.id, email, role: user.role, is_approved: finalApproved, organization_id: orgId } 
+      user: { id: user.id, email, role: user.role, is_approved: finalApproved, organization_id: orgId, clientId, uhid: clientUhid } 
     });
   } catch (error) {
     console.error('Error in /login:', error);
@@ -210,7 +233,7 @@ router.post('/verify', async (req, res) => {
 
     await db.query('DELETE FROM authsessions WHERE user_id = $1', [user.id]);
 
-    const profileRes = await db.query('SELECT organization_id, is_approved, is_active, deleted_at FROM profiles WHERE id = $1', [user.id]);
+    const profileRes = await db.query('SELECT organization_id, is_approved, is_active, deleted_at, uhid FROM profiles WHERE id = $1', [user.id]);
     const profile = profileRes.rows[0] || {};
     if (profile.is_active === false || profile.deleted_at) {
       return res.status(403).json({ error: 'Access to this account has been removed. Please contact your organization administrator.' });
@@ -223,13 +246,36 @@ router.post('/verify', async (req, res) => {
     // We automatically approve super_admin
     const finalApproved = user.role === 'super_admin' ? true : isApproved;
 
+    // Resolve matching Client ID if applicable
+    let clientId = null;
+    let clientUhid = profile.uhid || null;
+    try {
+      const clientRes = await db.query(`
+        SELECT id, uhid, profile_id FROM clients 
+        WHERE (profile_id = $1 OR (uhid IS NOT NULL AND $2 IS NOT NULL AND uhid = $2) OR (email IS NOT NULL AND LOWER(email) = LOWER($3)))
+          AND (organization_id = $4 OR $4 IS NULL)
+          AND deleted_at IS NULL
+        ORDER BY (profile_id = $1) DESC, (uhid = $2) DESC
+        LIMIT 1
+      `, [user.id, profile.uhid, email, orgId]);
+      if (clientRes.rows.length > 0) {
+        clientId = clientRes.rows[0].id;
+        clientUhid = clientRes.rows[0].uhid || profile.uhid;
+        if (!clientRes.rows[0].profile_id) {
+          await db.query('UPDATE clients SET profile_id = $1 WHERE id = $2', [user.id, clientId]).catch(() => {});
+        }
+      }
+    } catch (e) {
+      console.warn('Error resolving client ID on OTP verify:', e.message);
+    }
+
     const token = jwt.sign(
-      { id: user.id, email, role: user.role, is_approved: finalApproved, organization_id: orgId },
+      { id: user.id, email, role: user.role, is_approved: finalApproved, organization_id: orgId, client_id: clientId, uhid: clientUhid },
       process.env.JWT_SECRET || 'fallback_secret_do_not_use_in_prod',
       { expiresIn: process.env.JWT_EXPIRES_IN || '24h' }
     );
 
-    res.json({ token, user: { id: user.id, email, role: user.role, is_approved: finalApproved, organization_id: orgId } });
+    res.json({ token, user: { id: user.id, email, role: user.role, is_approved: finalApproved, organization_id: orgId, clientId, uhid: clientUhid } });
   } catch (error) {
     console.error('Error in /verify:', error);
     res.status(500).json({ error: 'Internal server error' });
@@ -348,17 +394,46 @@ router.get('/me', async (req, res) => {
       profile.is_approved = true;
     }
 
+    // Resolve matching Client record by profile_id, uhid, or email
+    let clientId = null;
+    let clientUhid = profile?.uhid || null;
+    try {
+      const clientRes = await db.query(`
+        SELECT id, uhid, profile_id FROM clients 
+        WHERE (profile_id = $1 OR (uhid IS NOT NULL AND $2 IS NOT NULL AND uhid = $2) OR (email IS NOT NULL AND LOWER(email) = LOWER($3)))
+          AND (organization_id = $4 OR $4 IS NULL)
+          AND deleted_at IS NULL
+        ORDER BY (profile_id = $1) DESC, (uhid = $2) DESC
+        LIMIT 1
+      `, [decoded.id, profile?.uhid, decoded.email, profile?.organization_id]);
+      if (clientRes.rows.length > 0) {
+        clientId = clientRes.rows[0].id;
+        clientUhid = clientRes.rows[0].uhid || profile?.uhid;
+        if (!clientRes.rows[0].profile_id) {
+          await db.query('UPDATE clients SET profile_id = $1 WHERE id = $2', [decoded.id, clientId]).catch(() => {});
+        }
+        if (!profile?.uhid && clientRes.rows[0].uhid) {
+          await db.query('UPDATE profiles SET uhid = $1 WHERE id = $2', [clientRes.rows[0].uhid, decoded.id]).catch(() => {});
+        }
+      }
+    } catch (e) {
+      console.warn('Error resolving client ID in /me:', e.message);
+    }
+
     const enrichedProfile = profile ? {
       ...profile,
+      uhid: clientUhid || profile.uhid,
+      client_id: clientId,
       email: profile.email || decoded.email,
       role: profile.role || decoded.role,
       full_name: `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || decoded.email?.split('@')[0]
     } : null;
 
     res.json({
-      user: { id: decoded.id, email: decoded.email },
+      user: { id: decoded.id, email: decoded.email, clientId, uhid: clientUhid },
       roles: [decoded.role],
-      profile: enrichedProfile
+      profile: enrichedProfile,
+      clientId: clientId
     });
   } catch (error) {
     console.error('Error in /me:', error);

@@ -13,6 +13,88 @@ const __dirname = path.dirname(__filename);
 
 const router = express.Router();
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// Helper to resolve all related IDs for an athlete across clients, users, and profiles
+async function resolveCandidateAthleteIds(athleteIdInput, user) {
+    const candidateIds = new Set();
+    const candidateUhids = new Set();
+
+    if (athleteIdInput) {
+        if (UUID_REGEX.test(athleteIdInput)) {
+            candidateIds.add(athleteIdInput);
+        } else {
+            candidateUhids.add(athleteIdInput);
+        }
+    }
+
+    if (user) {
+        if (user.id && UUID_REGEX.test(user.id)) candidateIds.add(user.id);
+        if (user.uhid) candidateUhids.add(user.uhid);
+        if (user.client_id && UUID_REGEX.test(user.client_id)) candidateIds.add(user.client_id);
+    }
+
+    // 1. Look up any clients matching known IDs or UHIDs
+    if (candidateIds.size > 0 || candidateUhids.size > 0) {
+        try {
+            const idList = Array.from(candidateIds);
+            const uhidList = Array.from(candidateUhids);
+
+            const clientRes = await db.query(`
+                SELECT id, uhid, profile_id FROM clients
+                WHERE (id = ANY($1::uuid[]) OR profile_id = ANY($1::uuid[]) OR (uhid IS NOT NULL AND uhid = ANY($2::text[])))
+                  AND deleted_at IS NULL
+            `, [idList, uhidList]);
+
+            for (const row of clientRes.rows) {
+                if (row.id) candidateIds.add(row.id);
+                if (row.profile_id) candidateIds.add(row.profile_id);
+                if (row.uhid) candidateUhids.add(row.uhid);
+            }
+        } catch (e) {
+            console.warn('[AMS] Client lookup in resolveCandidateAthleteIds error:', e.message);
+        }
+
+        // 2. Look up any profiles matching known IDs or UHIDs
+        try {
+            const idList = Array.from(candidateIds);
+            const uhidList = Array.from(candidateUhids);
+
+            const profRes = await db.query(`
+                SELECT id, uhid FROM profiles
+                WHERE (id = ANY($1::uuid[]) OR (uhid IS NOT NULL AND uhid = ANY($2::text[])))
+                  AND deleted_at IS NULL
+            `, [idList, uhidList]);
+
+            for (const row of profRes.rows) {
+                if (row.id) candidateIds.add(row.id);
+                if (row.uhid) candidateUhids.add(row.uhid);
+            }
+        } catch (e) {
+            console.warn('[AMS] Profile lookup in resolveCandidateAthleteIds error:', e.message);
+        }
+
+        // 3. Second pass on clients in case profile UHID was just discovered
+        if (candidateUhids.size > 0) {
+            try {
+                const uhidList = Array.from(candidateUhids);
+                const moreClients = await db.query(`
+                    SELECT id, profile_id FROM clients WHERE uhid = ANY($1::text[]) AND deleted_at IS NULL
+                `, [uhidList]);
+                for (const row of moreClients.rows) {
+                    if (row.id) candidateIds.add(row.id);
+                    if (row.profile_id) candidateIds.add(row.profile_id);
+                }
+            } catch (e) {
+                console.warn('[AMS] Second client lookup in resolveCandidateAthleteIds error:', e.message);
+            }
+        }
+    }
+
+    // Filter strictly for valid UUIDs to prevent invalid cast syntax
+    return Array.from(candidateIds).filter(id => UUID_REGEX.test(id));
+}
+
 // GET training programs
 router.get('/programs', requireAuth, async (req, res) => {
     try {
@@ -437,8 +519,8 @@ router.get('/workout-days/:id', requireAuth, async (req, res) => {
                        FROM (
                            SELECT wi.*, 
                                   li_data.lift,
-                                  saqc_data.saqc,
-                                  circ_data.circuit
+                                  NULL::json as saqc,
+                                  NULL::json as circuit
                            FROM workoutitems wi
                            LEFT JOIN LATERAL (
                                SELECT json_build_object(
@@ -457,22 +539,6 @@ router.get('/workout-days/:id', requireAuth, async (req, res) => {
                                FROM liftitems li 
                                WHERE li.workout_item_id = wi.id
                            ) li_data ON TRUE
-                           LEFT JOIN LATERAL (
-                               SELECT json_build_object(
-                                   'id', si.id,
-                                   'exercise_id', si.exercise_id,
-                                   'sets', si.sets,
-                                   'reps', si.reps,
-                                   'exercise', (SELECT json_build_object('id', e.id, 'name', e.name) FROM exercises e WHERE e.id = si.exercise_id)
-                               ) as saqc
-                               FROM saqcitems si 
-                               WHERE si.workout_item_id = wi.id
-                           ) saqc_data ON TRUE
-                           LEFT JOIN LATERAL (
-                               SELECT json_build_object('id', ci.id, 'title', ci.title) as circuit
-                               FROM circuititems ci 
-                               WHERE ci.workout_item_id = wi.id
-                           ) circ_data ON TRUE
                            WHERE wi.workout_day_id = wd.id
                            ORDER BY wi.display_order ASC
                        ) item_data
@@ -743,15 +809,15 @@ router.get('/performance-assessments', requireAuth, async (req, res) => {
 router.get('/max-pr-records', requireAuth, async (req, res) => {
     try {
         const { athlete_id, exercise_ids } = req.query;
-        const targetAthleteId = athlete_id || req.user.id;
+        const candidateIds = await resolveCandidateAthleteIds(athlete_id || req.user.id, req.user);
         
         let query = `
             SELECT mpr.exercise_id, mpr.value, e.name as exercise_name
             FROM max_pr_records mpr
             JOIN exercises e ON mpr.exercise_id = e.id
-            WHERE mpr.athlete_id = $1 AND mpr.is_current = true
+            WHERE mpr.athlete_id = ANY($1::uuid[]) AND mpr.is_current = true
         `;
-        const params = [targetAthleteId];
+        const params = [candidateIds.length > 0 ? candidateIds : [req.user.id]];
         
         if (exercise_ids) {
             const ids = exercise_ids.split(',');
@@ -1459,16 +1525,17 @@ router.get('/wellness-logs', requireAuth, async (req, res) => {
         const { athlete_id, days } = req.query;
         const orgId = req.user.organization_id;
         
-        let query = 'SELECT * FROM wellness_logs WHERE organization_id = $1';
+        let query = 'SELECT * FROM wellness_logs WHERE (organization_id = $1 OR $1 IS NULL)';
         const params = [orgId];
         
-        if (athlete_id) {
-            query += ' AND athlete_id = $2';
-            params.push(athlete_id);
+        const candidateIds = await resolveCandidateAthleteIds(athlete_id, req.user);
+        if (candidateIds.length > 0) {
+            query += ` AND athlete_id = ANY($${params.length + 1}::uuid[])`;
+            params.push(candidateIds);
         }
         
         if (days) {
-            query += ` AND created_at >= NOW() - INTERVAL '${days} days'`;
+            query += ` AND created_at >= NOW() - INTERVAL '${parseInt(days, 10) || 30} days'`;
         }
         
         query += ' ORDER BY created_at DESC';
@@ -1641,6 +1708,7 @@ router.get('/program-assignments', requireAuth, async (req, res) => {
             SELECT pa.*, 
                    pa.start_date::text as start_date,
                    tp.name as program_name,
+                   tp.description as program_description,
                    (
                        SELECT json_agg(day_data)
                        FROM (
@@ -1665,15 +1733,21 @@ router.get('/program-assignments', requireAuth, async (req, res) => {
                    ) as program_days
             FROM program_assignments pa
             JOIN trainingprograms tp ON pa.program_id = tp.id
-            WHERE pa.organization_id = $1
+            WHERE (pa.organization_id = $1 OR $1 IS NULL)
         `;
-        const params = [orgId];
+        const params = [orgId || null];
         
-        if (athlete_id) {
-            query += ' AND pa.athlete_id = $2';
-            params.push(athlete_id);
+        const candidateAthleteIds = await resolveCandidateAthleteIds(athlete_id, req.user);
+        if (candidateAthleteIds.length > 0) {
+            query += ` AND (
+                pa.athlete_id = ANY($${params.length + 1}::uuid[])
+                OR pa.batch_id IN (
+                    SELECT batch_id FROM batch_members WHERE athlete_id = ANY($${params.length + 1}::uuid[])
+                )
+            )`;
+            params.push(candidateAthleteIds);
         } else if (batch_id) {
-            query += ' AND pa.batch_id = $2';
+            query += ` AND pa.batch_id = $${params.length + 1}`;
             params.push(batch_id);
         }
         
@@ -1689,9 +1763,10 @@ router.get('/program-assignments', requireAuth, async (req, res) => {
             ...row,
             program: {
                 name: row.program_name,
-                days: row.program_days.map(day => ({
+                description: row.program_description,
+                days: (row.program_days || []).map(day => ({
                     ...day,
-                    items: day.items.map(item => ({
+                    items: (day.items || []).map(item => ({
                         ...item,
                         lift_items: {
                             id: item.id, // This is wi.id actually, but frontend uses lift_items.exercise
@@ -1713,6 +1788,137 @@ router.get('/program-assignments', requireAuth, async (req, res) => {
         
         res.json(mapped);
     } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// GET /ams/athlete/dashboard-stats
+// Returns the active program assignment, today's prescribed workout, and membership subscription status
+router.get('/athlete/dashboard-stats', requireAuth, async (req, res) => {
+    try {
+        const orgId = req.user.organization_id;
+        const candidateAthleteIds = await resolveCandidateAthleteIds(req.query.athlete_id, req.user);
+
+        let assignment = null;
+        let todayWorkout = null;
+        let subscription = null;
+
+        if (candidateAthleteIds.length > 0) {
+            const assignRes = await db.query(`
+                SELECT pa.*, 
+                       pa.start_date::text as start_date,
+                       tp.name as program_name,
+                       tp.description as program_description,
+                       (
+                           SELECT json_agg(day_data)
+                           FROM (
+                               SELECT wd.*, 
+                                      (
+                                          SELECT json_agg(item_data)
+                                          FROM (
+                                              SELECT wi.*, 
+                                                     li.sets, li.reps, li.load_value, li.tempo, li.rest_time_secs, li.workout_grouping, li.each_side, li.additional_info, li.exercise_id,
+                                                     e.name as exercise_name
+                                              FROM workoutitems wi
+                                              LEFT JOIN liftitems li ON wi.id = li.workout_item_id
+                                              LEFT JOIN exercises e ON li.exercise_id = e.id
+                                              WHERE wi.workout_day_id = wd.id
+                                              ORDER BY wi.display_order ASC
+                                          ) item_data
+                                      ) as items
+                               FROM workoutdays wd
+                               WHERE wd.program_id = tp.id
+                               ORDER BY wd.display_order ASC
+                           ) day_data
+                       ) as program_days
+                FROM program_assignments pa
+                JOIN trainingprograms tp ON pa.program_id = tp.id
+                WHERE (pa.organization_id = $1 OR $1 IS NULL)
+                  AND pa.status = 'active'
+                  AND (
+                      pa.athlete_id = ANY($2::uuid[])
+                      OR pa.batch_id IN (
+                          SELECT batch_id FROM batch_members WHERE athlete_id = ANY($2::uuid[])
+                      )
+                  )
+                ORDER BY pa.created_at DESC
+                LIMIT 1
+            `, [orgId, candidateAthleteIds]);
+
+            if (assignRes.rows.length > 0) {
+                const row = assignRes.rows[0];
+                const days = (row.program_days || []).map(day => ({
+                    ...day,
+                    items: (day.items || []).map(item => ({
+                        ...item,
+                        lift_items: {
+                            id: item.id,
+                            exercise_id: item.exercise_id,
+                            sets: item.sets,
+                            reps: item.reps,
+                            load_value: item.load_value,
+                            tempo: item.tempo,
+                            rest_time_secs: item.rest_time_secs,
+                            workout_grouping: item.workout_grouping,
+                            each_side: item.each_side,
+                            additional_info: item.additional_info,
+                            exercise: { name: item.exercise_name }
+                        }
+                    }))
+                }));
+
+                assignment = {
+                    ...row,
+                    program: {
+                        id: row.program_id,
+                        name: row.program_name,
+                        description: row.program_description,
+                        days
+                    }
+                };
+
+                // Compute today's workout
+                if (days.length > 0) {
+                    const startDateStr = row.start_date.split('T')[0];
+                    const startDate = new Date(startDateStr + 'T00:00:00');
+                    const now = new Date();
+                    const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                    const diffDays = Math.round((todayDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+
+                    if (diffDays >= 0) {
+                        const exactMatch = days.find(d => d.display_order === diffDays);
+                        if (exactMatch) {
+                            todayWorkout = { ...exactMatch, programName: row.program_name };
+                        } else {
+                            const cycleMatch = days.find(d => d.display_order === (diffDays % days.length));
+                            todayWorkout = cycleMatch ? { ...cycleMatch, programName: row.program_name } : { ...days[0], programName: row.program_name };
+                        }
+                    } else {
+                        todayWorkout = { ...days[0], programName: row.program_name };
+                    }
+                }
+            }
+
+            try {
+                const subRes = await db.query(`
+                    SELECT * FROM subscriptions 
+                    WHERE (client_id = ANY($1::uuid[]) OR organization_id = $2)
+                      AND status = 'Active'
+                    ORDER BY created_at DESC LIMIT 1
+                `, [candidateAthleteIds, orgId]);
+                if (subRes.rows.length > 0) {
+                    subscription = subRes.rows[0];
+                }
+            } catch (e) {}
+        }
+
+        res.json({
+            assignment,
+            todayWorkout,
+            subscription: subscription || { status: 'Active' }
+        });
+    } catch (error) {
+        console.error('Error fetching athlete dashboard stats:', error);
         res.status(500).json({ error: error.message });
     }
 });

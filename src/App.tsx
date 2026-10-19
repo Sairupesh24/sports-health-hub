@@ -5,6 +5,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { ThemeProvider } from "next-themes";
 import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import { useAuth } from "@/contexts/AuthContext";
@@ -143,8 +144,9 @@ const AdminDashboardRedirect = () => {
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <ErrorBoundary>
-      <AuthProvider>
+    <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
+      <ErrorBoundary>
+        <AuthProvider>
         <MessengerProvider>
           <TooltipProvider>
             <Toaster />
@@ -250,6 +252,12 @@ const App = () => (
               <Route path="/ams/questionnaires" element={<MobileGuard><ProtectedRoute requiredRole={["coach", "sports_scientist", "admin", "sports_physician", "physiotherapist", "nutritionist", "foe"]}><QuestionnaireLibrary /></ProtectedRoute></MobileGuard>} />
               <Route path="/ams/performance-testing" element={<MobileGuard><ProtectedRoute requiredRole={["coach", "sports_scientist", "admin", "sports_physician", "physiotherapist", "nutritionist", "foe"]}><PerformanceTestingHub /></ProtectedRoute></MobileGuard>} />
               <Route path="/ams/performance-testing/:subview" element={<MobileGuard><ProtectedRoute requiredRole={["coach", "sports_scientist", "admin", "sports_physician", "physiotherapist", "nutritionist", "foe"]}><PerformanceTestingHub /></ProtectedRoute></MobileGuard>} />
+
+              {/* Standalone Forms & Assessments Console Routes */}
+              <Route path="/questionnaires" element={<MobileGuard><ProtectedRoute requiredRole={["coach", "sports_scientist", "admin", "super_admin", "sports_physician", "physiotherapist", "consultant", "nutritionist", "foe"]}><QuestionnaireLibrary /></ProtectedRoute></MobileGuard>} />
+              <Route path="/questionnaires/performance-testing" element={<MobileGuard><ProtectedRoute requiredRole={["coach", "sports_scientist", "admin", "super_admin", "sports_physician", "physiotherapist", "consultant", "nutritionist", "foe"]}><PerformanceTestingHub /></ProtectedRoute></MobileGuard>} />
+              <Route path="/questionnaires/performance-testing/:subview" element={<MobileGuard><ProtectedRoute requiredRole={["coach", "sports_scientist", "admin", "super_admin", "sports_physician", "physiotherapist", "consultant", "nutritionist", "foe"]}><PerformanceTestingHub /></ProtectedRoute></MobileGuard>} />
+              <Route path="/forms-assessments" element={<Navigate to="/questionnaires" replace />} />
               <Route path="/ams/athlete/calendar" element={<ProtectedRoute requiredRole={["client", "athlete"]}><AthleteDashboard /></ProtectedRoute>} />
               <Route path="/ams/athlete/workout/:id" element={<ProtectedRoute requiredRole={["client", "athlete"]}><WorkoutLogging /></ProtectedRoute>} />
               <Route path="/ams/batch-tests" element={<Navigate to="/ams/performance-testing/grid" replace />} />
@@ -322,6 +330,7 @@ const App = () => (
       </MessengerProvider>
     </AuthProvider>
   </ErrorBoundary>
+</ThemeProvider>
 </QueryClientProvider>
 );
 

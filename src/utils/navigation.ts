@@ -11,6 +11,35 @@ export function getDashboardPath(
   if (roles?.includes("super_admin") || profile?.role === "super_admin") {
     return "/super-admin";
   }
+
+  const isClient =
+    roles?.includes("client") ||
+    roles?.includes("athlete") ||
+    profile?.role === "client" ||
+    profile?.role === "athlete";
+
+  const isStaff = roles?.some(
+    (r) =>
+      !["client", "athlete"].includes(r) &&
+      [
+        "admin",
+        "super_admin",
+        "sports_scientist",
+        "sports_physician",
+        "physiotherapist",
+        "nutritionist",
+        "massage_therapist",
+        "consultant",
+        "foe",
+        "hr_manager",
+      ].includes(r)
+  );
+
+  // If user is registered/assigned as client, route directly to the main client console
+  if (isClient && !isStaff) {
+    return "/client";
+  }
+
   // All other users land on the unified App Gallery after login
   return "/app-gallery";
 }

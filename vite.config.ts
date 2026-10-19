@@ -72,6 +72,36 @@ export default defineConfig(({ mode }) => ({
   },
   build: {
     minify: 'esbuild',
+    chunkSizeWarningLimit: 3500,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (id.includes('jspdf') || id.includes('jspdf-autotable') || id.includes('html2canvas') || id.includes('pdfjs-dist')) {
+              return 'vendor-pdf';
+            }
+            if (id.includes('xlsx') || id.includes('mammoth') || id.includes('docxtemplater') || id.includes('pizzip')) {
+              return 'vendor-docs';
+            }
+            if (id.includes('recharts') || id.includes('chart.js')) {
+              return 'vendor-charts';
+            }
+            if (id.includes('leaflet') || id.includes('react-leaflet')) {
+              return 'vendor-maps';
+            }
+            if (id.includes('@tiptap')) {
+              return 'vendor-editor';
+            }
+            if (id.includes('lucide-react')) {
+              return 'vendor-lucide';
+            }
+            if (id.includes('@radix-ui')) {
+              return 'vendor-radix';
+            }
+          }
+        },
+      },
+    },
   },
   esbuild: {
     drop: mode === 'production' ? ['console', 'debugger'] : [],

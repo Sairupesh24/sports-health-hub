@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -130,6 +130,34 @@ export default function AppGallery() {
   const { profile, roles, signOut } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState<string>("all");
+
+  useEffect(() => {
+    const isClient =
+      roles?.includes("client") ||
+      roles?.includes("athlete") ||
+      profile?.role === "client" ||
+      profile?.role === "athlete";
+    const isStaff = roles?.some(
+      (r) =>
+        !["client", "athlete"].includes(r) &&
+        [
+          "admin",
+          "super_admin",
+          "sports_scientist",
+          "sports_physician",
+          "physiotherapist",
+          "nutritionist",
+          "massage_therapist",
+          "consultant",
+          "foe",
+          "hr_manager",
+        ].includes(r)
+    );
+
+    if (isClient && !isStaff) {
+      navigate("/client", { replace: true });
+    }
+  }, [roles, profile, navigate]);
 
   const availableModules = useMemo(() => {
     const userRoles = [...(roles || []), profile?.role].filter(Boolean) as string[];

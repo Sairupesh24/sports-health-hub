@@ -89,52 +89,52 @@ export default function PerformanceTestingHub() {
     setActiveView(determineView());
   }, [location.pathname]);
 
+  const isAmsMode = location.pathname.startsWith('/ams');
+  const basePath = isAmsMode ? '/ams/performance-testing' : '/questionnaires/performance-testing';
+
   const switchView = (view: HubView) => {
     setActiveView(view);
-    if (view === 'grid') navigate('/ams/performance-testing/grid');
-    else if (view === 'analytics') navigate('/ams/performance-testing/analytics');
-    else if (view === 'protocols') navigate('/ams/performance-testing/protocols');
-    else navigate('/ams/performance-testing');
+    if (view === 'grid') navigate(`${basePath}/grid`);
+    else if (view === 'analytics') navigate(`${basePath}/analytics`);
+    else if (view === 'protocols') navigate(`${basePath}/protocols`);
+    else navigate(basePath);
   };
 
   const handleEditAssessment = (assessmentId: string) => {
     setEditingAssessmentId(assessmentId);
     setActiveView('individual');
-    navigate('/ams/performance-testing');
+    navigate(basePath);
   };
 
-  return (
-    <DashboardLayout role={profile?.role || 'sports_scientist'}>
-      <div className="min-h-screen bg-[#F8FAFC] flex flex-col font-sans">
-        <AmsStaffNav />
-        <main className="flex-1 p-6 md:p-10 space-y-8 max-w-[1720px] mx-auto w-full">
-          {/* Top Module Header */}
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-            <div>
-              <div className="flex items-center gap-3 mb-1.5">
-                <div className="w-10 h-10 rounded-2xl bg-primary flex items-center justify-center text-white shadow-lg shadow-primary/20 shrink-0">
-                  <Activity className="w-5 h-5" />
-                </div>
-                <h1 className="text-2xl sm:text-3xl font-black uppercase tracking-tight text-slate-900 font-display">
-                  Performance Testing <span className="text-primary">& Diagnostics</span>
-                </h1>
-              </div>
-              <p className="text-slate-500 font-bold uppercase text-[10px] sm:text-[11px] tracking-widest ml-1">
-                Integrated Sports Health & Physio Operating System • Forms & Assessments
-              </p>
+  const mainContent = (
+    <>
+      {/* Top Module Header */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <div className="flex items-center gap-3 mb-1.5">
+            <div className="w-10 h-10 rounded-2xl bg-primary flex items-center justify-center text-white shadow-lg shadow-primary/20 shrink-0">
+              <Activity className="w-5 h-5" />
             </div>
+            <h1 className="text-2xl sm:text-3xl font-black uppercase tracking-tight text-slate-900 font-display">
+              Performance Testing <span className="text-primary">& Diagnostics</span>
+            </h1>
+          </div>
+          <p className="text-slate-500 font-bold uppercase text-[10px] sm:text-[11px] tracking-widest ml-1">
+            Integrated Sports Health & Physio Operating System • Forms & Assessments
+          </p>
+        </div>
 
-            {/* Quick Switch to Clinical Questionnaires & Intake */}
-            <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full md:w-auto justify-start md:justify-end">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => navigate('/ams/questionnaires')}
-                className="bg-white hover:bg-slate-50 font-bold text-xs gap-1.5 border-slate-300 whitespace-nowrap"
-              >
-                <ClipboardList className="w-4 h-4 text-slate-500" />
-                Clinical Questionnaires & Intake
-              </Button>
+        {/* Quick Switch to Clinical Questionnaires & Intake */}
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full md:w-auto justify-start md:justify-end">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigate(isAmsMode ? '/ams/questionnaires' : '/questionnaires')}
+            className="bg-white hover:bg-slate-50 font-bold text-xs gap-1.5 border-slate-300 whitespace-nowrap"
+          >
+            <ClipboardList className="w-4 h-4 text-slate-500" />
+            Clinical Questionnaires & Intake
+          </Button>
               {activeView !== 'individual' && (
                 <Button
                   size="sm"
@@ -254,8 +254,23 @@ export default function PerformanceTestingHub() {
               <ProtocolConfigView />
             )}
           </div>
-        </main>
-      </div>
+    </>
+  );
+
+  return (
+    <DashboardLayout role={isAmsMode ? (profile?.role || 'sports_scientist') : 'questionnaires'}>
+      {isAmsMode ? (
+        <div className="min-h-screen bg-[#F8FAFC] flex flex-col font-sans">
+          <AmsStaffNav />
+          <main className="flex-1 p-6 md:p-10 space-y-8 max-w-[1720px] mx-auto w-full">
+            {mainContent}
+          </main>
+        </div>
+      ) : (
+        <div className="space-y-8 animate-in fade-in duration-300">
+          {mainContent}
+        </div>
+      )}
     </DashboardLayout>
   );
 }

@@ -144,11 +144,11 @@ const nutritionistNav: NavItem[] = [
 ];
 
 const questionnairesNav: NavItem[] = [
-  { label: "Clinical Questionnaires & Intake", icon: ClipboardList, href: "/ams/questionnaires" },
-  { label: "Performance Testing Hub", icon: Activity, href: "/ams/performance-testing" },
-  { label: "Station / Combine Testing Grid", icon: Target, href: "/ams/performance-testing/grid" },
-  { label: "Historical Assessment Analytics", icon: BarChart3, href: "/ams/performance-testing/analytics" },
-  { label: "Protocol Configurations", icon: Settings, href: "/ams/performance-testing/protocols" },
+  { label: "Clinical Questionnaires & Intake", icon: ClipboardList, href: "/questionnaires" },
+  { label: "Performance Testing Hub", icon: Activity, href: "/questionnaires/performance-testing" },
+  { label: "Station / Combine Testing Grid", icon: Target, href: "/questionnaires/performance-testing/grid" },
+  { label: "Historical Assessment Analytics", icon: BarChart3, href: "/questionnaires/performance-testing/analytics" },
+  { label: "Protocol Configurations", icon: Settings, href: "/questionnaires/performance-testing/protocols" },
 ];
 
 const coachNav: NavItem[] = [
@@ -352,9 +352,12 @@ export default function AppSidebar({ role, isMobile, className, onNavigate }: Ap
     } else if (path.startsWith('/nutritionist')) {
       resolved = 'nutritionist';
       try { sessionStorage.setItem('active_console', 'nutritionist'); } catch {}
-    } else if (path.startsWith('/ams/questionnaires') || path.startsWith('/ams/performance-testing')) {
+    } else if (path.startsWith('/questionnaires')) {
       resolved = 'questionnaires';
       try { sessionStorage.setItem('active_console', 'questionnaires'); } catch {}
+    } else if (path.startsWith('/ams/questionnaires') || path.startsWith('/ams/performance-testing')) {
+      resolved = storedConsole === 'sports_scientist' ? 'sports_scientist' : 'coach';
+      try { sessionStorage.setItem('active_console', resolved); } catch {}
     } else if (path.startsWith('/ams/coach-dashboard') || path.startsWith('/ams/programs') || path.startsWith('/ams/feed') || path.startsWith('/ams/calendar') || path.startsWith('/ams/exercises') || path.startsWith('/ams/batch-tests')) {
       if (storedConsole !== 'sports_scientist') {
         resolved = 'coach';
@@ -590,7 +593,7 @@ export default function AppSidebar({ role, isMobile, className, onNavigate }: Ap
               ISHPO
             </span>
             <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground truncate mt-0.5">
-              {effectiveConsole === 'sports_scientist' ? 'Sports Science Console'
+              {effectiveConsole === 'sports_scientist' ? 'Athlete Management'
                 : effectiveConsole === 'consultant' ? 'Clinical Management'
                 : effectiveConsole === 'nutritionist' ? 'Nutritionist'
                 : effectiveConsole === 'hr' || effectiveConsole === 'hr_manager' ? 'HR Console'
@@ -658,7 +661,8 @@ export default function AppSidebar({ role, isMobile, className, onNavigate }: Ap
                 "/ams/athlete-portal",
                 "/ams/coach-dashboard",
                 "/sports-scientist",
-                "/client"
+                "/client",
+                "/questionnaires"
               ].includes(item.href);
               const isActive = item.href === "/admin/foe"
                 ? (location.pathname === "/admin/foe" || location.pathname.startsWith("/admin/foe/"))

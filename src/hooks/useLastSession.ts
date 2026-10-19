@@ -3,11 +3,12 @@ import { apiFetch } from "@/utils/api";
 import { useAuth } from "@/contexts/AuthContext";
 
 export function useLastSession(exerciseId: string | null) {
-  const { session } = useAuth();
+  const { user, profile } = useAuth();
+  const userId = user?.id || profile?.id;
 
   return useQuery({
-    queryKey: ["exercise-history", exerciseId, session?.user?.id],
-    enabled: !!exerciseId && !!session?.user?.id,
+    queryKey: ["exercise-history", exerciseId, userId],
+    enabled: !!exerciseId && !!userId,
     queryFn: async () => {
       const data = await apiFetch(`/api/ams/exercise-history/${exerciseId}`);
       if (!data) return { last: null, best: null };

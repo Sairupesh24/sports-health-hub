@@ -26,10 +26,10 @@ export default function ClientBottomNav({ isMobileLayout }: ClientBottomNavProps
 
   return (
     <nav className={cn(
-      "z-50 transition-all duration-500",
+      "z-50 transition-all duration-300",
       isMobileLayout 
-        ? "w-full max-w-sm bg-slate-900/40 backdrop-blur-2xl border border-white/10 rounded-[32px] px-6 py-4 shadow-2xl" 
-        : "md:hidden fixed bottom-10 left-1/2 -translate-x-1/2 w-[90%] max-w-md bg-white/70 backdrop-blur-lg border border-slate-200 rounded-3xl px-2 py-3 shadow-xl"
+        ? "w-full max-w-sm bg-white/90 dark:bg-slate-900/90 backdrop-blur-2xl border border-slate-200/80 dark:border-white/10 rounded-3xl px-6 py-3.5 shadow-xl" 
+        : "md:hidden fixed bottom-8 left-1/2 -translate-x-1/2 w-[90%] max-w-md bg-white/90 dark:bg-slate-900/90 backdrop-blur-lg border border-slate-200/80 dark:border-white/10 rounded-2xl px-2 py-2.5 shadow-xl"
     )}>
       <div className="flex justify-around items-center">
         {navItems.map((item) => {
@@ -41,15 +41,15 @@ export default function ClientBottomNav({ isMobileLayout }: ClientBottomNavProps
               key={item.href}
               to={href}
               className={cn(
-                "flex flex-col items-center gap-1.5 transition-all duration-500 relative group",
-                isActive ? "text-primary" : "text-slate-400"
+                "flex flex-col items-center gap-1.5 transition-all duration-300 relative group",
+                isActive ? "text-primary font-semibold" : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
               )}
             >
               <div className={cn(
-                "p-2.5 rounded-2xl transition-all duration-500",
+                "p-2.5 rounded-2xl transition-all duration-300",
                 isActive 
-                  ? "bg-primary/20 scale-110 shadow-lg shadow-primary/20" 
-                  : "group-hover:bg-white/5 active:scale-90"
+                  ? "bg-primary/15 dark:bg-primary/20 scale-105 shadow-sm" 
+                  : "group-hover:bg-slate-100 dark:group-hover:bg-white/5 active:scale-95"
               )}>
                 <item.icon className={cn(
                   "w-5 h-5 transition-transform duration-500", 

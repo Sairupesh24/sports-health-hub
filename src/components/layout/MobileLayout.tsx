@@ -6,6 +6,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { apiFetch } from "@/utils/api";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
+import ThemeToggle from "@/components/shared/ThemeToggle";
 
 interface MobileLayoutProps {
   children: React.ReactNode;
@@ -75,64 +76,67 @@ export default function MobileLayout({ children, showBack }: MobileLayoutProps) 
   }, [activePopup]);
 
   return (
-    <div className="flex flex-col h-screen overflow-y-auto bg-slate-950 text-white selection:bg-primary/30 antialiased overflow-x-hidden">
+    <div className="flex flex-col h-screen overflow-y-auto bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white selection:bg-primary/30 antialiased overflow-x-hidden transition-colors duration-300">
       {/* Premium Glass Header */}
-      <header className="fixed top-0 left-0 right-0 z-40 px-3 sm:px-6 py-4 flex items-center justify-between bg-slate-950/80 backdrop-blur-xl border-b border-white/5">
+      <header className="fixed top-0 left-0 right-0 z-40 px-3 sm:px-6 py-3.5 flex items-center justify-between bg-white/90 dark:bg-slate-950/85 backdrop-blur-xl border-b border-slate-200/80 dark:border-white/5 transition-colors duration-300">
         <div className="flex items-center gap-3">
           {showBack ? (
             <button 
               onClick={() => navigate(-1)}
-              className="w-10 h-10 rounded-xl bg-white/5 border border-white/5 flex items-center justify-center active:scale-90 transition-transform"
+              className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/5 flex items-center justify-center active:scale-90 transition-transform text-slate-700 dark:text-white"
             >
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 text-white">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
                 <path d="m15 18-6-6 6-6"/>
               </svg>
             </button>
           ) : (
-            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl gradient-primary flex items-center justify-center shadow-lg shadow-primary/20" onClick={() => navigate('/mobile/client')}>
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl gradient-primary flex items-center justify-center shadow-lg shadow-primary/20 cursor-pointer" onClick={() => navigate('/mobile/client')}>
               <Activity className="w-5 h-5 text-white" />
             </div>
           )}
-          <div onClick={() => !showBack && navigate('/mobile/client')}>
-            <h1 className="text-base sm:text-lg font-black italic tracking-tighter uppercase leading-none">ISHPO</h1>
+          <div onClick={() => !showBack && navigate('/mobile/client')} className="cursor-pointer">
+            <h1 className="text-base sm:text-lg font-black italic tracking-tighter uppercase leading-none text-slate-900 dark:text-white">ISHPO</h1>
             <p className="text-[8px] font-bold text-primary uppercase tracking-[0.2em] mt-0.5 sm:mt-1">Activity Monitoring System</p>
           </div>
         </div>
  
-        <div className="flex items-center gap-2 sm:gap-4">
+        <div className="flex items-center gap-2 sm:gap-3">
+          {/* Light / Dark Mode Switcher */}
+          <ThemeToggle />
+
           <div className="relative">
             <button 
               onClick={() => navigate('/mobile/client/notifications')}
-              className="relative p-2 rounded-xl bg-white/5 border border-white/5 active:scale-90 transition-transform"
+              className="relative p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 border border-slate-200 dark:border-white/5 active:scale-90 transition-transform text-slate-700 dark:text-white"
             >
-              <Bell className={cn("w-5 h-5", unreadCount > 0 ? "text-primary" : "text-slate-400")} />
+              <Bell className={cn("w-5 h-5", unreadCount > 0 ? "text-primary" : "text-slate-500 dark:text-slate-400")} />
               {unreadCount > 0 && (
-                <span className="absolute top-1.5 right-1.5 min-w-[16px] h-4 px-1 flex items-center justify-center bg-primary text-[8px] font-black text-white rounded-full border-2 border-slate-950 animate-in zoom-in duration-300 touchscreen-badge">
+                <span className="absolute top-1.5 right-1.5 min-w-[16px] h-4 px-1 flex items-center justify-center bg-primary text-[8px] font-black text-white rounded-full border-2 border-white dark:border-slate-950 animate-in zoom-in duration-300 touchscreen-badge">
                   {unreadCount > 9 ? '9+' : unreadCount}
                 </span>
               )}
             </button>
             {activePopup && (
-              <div className="absolute top-12 right-0 w-64 bg-slate-900/95 text-white border border-primary/30 p-3 rounded-2xl shadow-xl z-50 animate-in slide-in-from-top-2 duration-300 font-sans pointer-events-auto">
+              <div className="absolute top-12 right-0 w-64 bg-white dark:bg-slate-900 text-slate-900 dark:text-white border border-slate-200 dark:border-primary/30 p-3 rounded-2xl shadow-xl z-50 animate-in slide-in-from-top-2 duration-300 font-sans pointer-events-auto">
                 <div className="flex justify-between items-center mb-1">
                   <span className="text-[8px] font-black uppercase tracking-widest text-primary">New Alert</span>
-                  <button onClick={(e) => { e.stopPropagation(); setActivePopup(null); }} className="text-slate-400 hover:text-white">
+                  <button onClick={(e) => { e.stopPropagation(); setActivePopup(null); }} className="text-slate-400 hover:text-slate-600 dark:hover:text-white">
                     <X className="w-3.5 h-3.5" />
                   </button>
                 </div>
-                <h5 className="text-[10px] font-black uppercase tracking-tight text-white line-clamp-1">{activePopup.title}</h5>
-                <p className="text-[9px] text-slate-300 leading-snug line-clamp-2 mt-0.5 italic">"{activePopup.content}"</p>
+                <h5 className="text-[10px] font-black uppercase tracking-tight text-slate-900 dark:text-white line-clamp-1">{activePopup.title}</h5>
+                <p className="text-[9px] text-slate-600 dark:text-slate-300 leading-snug line-clamp-2 mt-0.5 italic">"{activePopup.content}"</p>
               </div>
             )}
           </div>
           <button 
             onClick={() => navigate('/profile')}
-            className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-slate-800 border-2 border-primary/20 overflow-hidden active:scale-95 transition-transform"
+            className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-slate-100 dark:bg-slate-800 border-2 border-primary/20 overflow-hidden active:scale-95 transition-transform"
           >
             {profile?.avatar_url ? (
               <img src={profile.avatar_url} alt="Profile" className="w-full h-full object-cover" />
             ) : (
-              <div className="w-full h-full flex items-center justify-center bg-slate-800">
+              <div className="w-full h-full flex items-center justify-center bg-slate-100 dark:bg-slate-800">
                 <User className="w-5 h-5 text-slate-500" />
               </div>
             )}

@@ -377,7 +377,10 @@ model Client {
   sessions                                    Session[]
   subscriptions                               Subscription[]
   waitlist                                    Waitlist[]
+  programAssignments                          ProgramAssignment[]
 
+  @@index([profileId], map: "idx_clients_profile_id")
+  @@index([athleteType], map: "idx_clients_athlete_type")
   @@map("clients")
 }
 
@@ -1064,7 +1067,7 @@ model ProgramAssignment {
   organization_id  String?         @db.Uuid
   createdAt        DateTime?       @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt        DateTime?       @default(now()) @map("updated_at") @db.Timestamptz(6)
-  users            User?           @relation(fields: [athleteId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  clients          Client?         @relation(fields: [athleteId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   organizations    Organization?   @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   trainingprograms TrainingProgram @relation(fields: [programId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   batches          Batch?          @relation(fields: [batchId], references: [id], onDelete: Cascade, onUpdate: NoAction)
@@ -1382,7 +1385,6 @@ model User {
   nutritionAssessments                      NutritionAssessment[]
   performanceAssessmentsAssessor            PerformanceAssessment[]    @relation("performanceAssessments_assessorId")
   profiles                                  Profile?
-  programAssignments                        ProgramAssignment[]
   questionnaires                            Questionnaire[]
   reportTemplates                           ReportTemplate[]
   scientificResources                       ScientificResource[]

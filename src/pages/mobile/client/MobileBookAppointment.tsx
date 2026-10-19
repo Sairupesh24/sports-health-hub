@@ -170,48 +170,51 @@ export default function MobileBookAppointment() {
 
     return (
         <MobileLayout>
-            <div className="space-y-8">
+            <div className="space-y-6 pb-20">
                 {/* Mobile Wizard Header */}
-                <header className="space-y-2">
+                <header className="space-y-1.5 pt-1">
                     <div className="flex items-center justify-between">
                          <div className="flex items-center gap-2">
-                            <span className="text-[9px] font-black uppercase tracking-[0.3em] text-primary">Step {step}/3</span>
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-primary">Step {step} of 3</span>
                          </div>
                          {step > 1 && step < 3 && (
-                             <button onClick={() => setStep(step - 1)} className="text-[10px] font-black uppercase text-slate-500 flex items-center gap-1">
-                                 <ArrowLeft className="w-3 h-3" /> Back
+                             <button onClick={() => setStep(step - 1)} className="text-xs font-semibold text-slate-500 hover:text-slate-900 dark:hover:text-white flex items-center gap-1 transition-colors">
+                                 <ArrowLeft className="w-3.5 h-3.5" /> Back
                              </button>
                          )}
                     </div>
-                    <h1 className="text-3xl font-black italic tracking-tighter uppercase leading-tight">
-                        {step === 1 ? "Choose Service" : step === 2 ? "Select Time" : "Confirmed"}
+                    <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white leading-tight">
+                        {step === 1 ? "Choose Service" : step === 2 ? "Select Date & Time" : "Booking Confirmed"}
                     </h1>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                        {step === 1 ? "Select a clinical or performance specialty" : step === 2 ? "Pick an open slot on the specialist schedule" : "Your session has been recorded"}
+                    </p>
                 </header>
 
                 {/* Step 1: Service & Consultant */}
                 {step === 1 && (
-                    <div className="space-y-8 animate-in slide-in-from-right-8 duration-500">
+                    <div className="space-y-6 animate-in fade-in duration-300">
                         {/* Service List */}
-                        <div className="space-y-4">
-                            <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Elite Services</h3>
-                            <div className="grid grid-cols-1 gap-3">
+                        <div className="space-y-2.5">
+                            <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 px-1">Available Services</h3>
+                            <div className="grid grid-cols-1 gap-2.5">
                                 {services.map(service => (
                                     <button
                                         key={service.id}
                                         onClick={() => setSelectedServiceId(service.id)}
                                         className={cn(
-                                            "w-full p-5 rounded-3xl border-2 text-left transition-all duration-300 relative overflow-hidden",
+                                            "w-full p-4 rounded-2xl border text-left transition-all shadow-xs",
                                             selectedServiceId === service.id
-                                                ? 'border-primary bg-primary/5 shadow-lg shadow-primary/10'
-                                                : 'border-white/5 bg-white/5'
+                                                ? 'border-primary bg-primary/10 text-primary'
+                                                : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-white hover:border-slate-300 dark:hover:border-slate-700'
                                         )}
                                     >
-                                        <div className="relative z-10 flex items-center justify-between">
+                                        <div className="flex items-center justify-between">
                                             <div>
-                                                <h4 className={cn("font-black tracking-tight", selectedServiceId === service.id ? "text-primary" : "text-white")}>{service.name}</h4>
-                                                <p className="text-[9px] font-bold text-slate-500 uppercase mt-1 tracking-widest">{service.category || "General Elite"}</p>
+                                                <h4 className="font-bold text-sm tracking-tight leading-snug">{service.name}</h4>
+                                                <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium mt-0.5">{service.category || "Clinical & Performance"}</p>
                                             </div>
-                                            {selectedServiceId === service.id && <CheckCircle2 className="w-5 h-5 text-primary" />}
+                                            {selectedServiceId === service.id && <CheckCircle2 className="w-5 h-5 text-primary shrink-0" />}
                                         </div>
                                     </button>
                                 ))}
@@ -220,30 +223,33 @@ export default function MobileBookAppointment() {
 
                         {/* Specialist selection */}
                         {selectedServiceId && (
-                            <div className="space-y-4 pt-4 animate-in fade-in slide-in-from-bottom-4">
-                                <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Available Specialists</h3>
-                                <div className="grid grid-cols-1 gap-3">
+                            <div className="space-y-2.5 pt-2 animate-in fade-in duration-200">
+                                <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 px-1">Choose Specialist</h3>
+                                <div className="grid grid-cols-1 gap-2.5">
                                     {filteredConsultants.map(consultant => (
                                         <button
                                             key={consultant.id}
                                             onClick={() => setSelectedConsultant(consultant.id)}
                                             className={cn(
-                                                "w-full p-4 rounded-3xl border-2 flex items-center gap-4 transition-all duration-300",
+                                                "w-full p-3.5 rounded-2xl border flex items-center gap-3 transition-all shadow-xs",
                                                 selectedConsultant === consultant.id
-                                                    ? 'border-primary bg-primary/5'
-                                                    : 'border-white/5 bg-white/5'
+                                                    ? 'border-primary bg-primary/10 text-primary'
+                                                    : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-white hover:border-slate-300 dark:hover:border-slate-700'
                                             )}
                                         >
                                             <div className={cn(
-                                                "w-12 h-12 rounded-2xl flex items-center justify-center border-2 transition-transform",
-                                                selectedConsultant === consultant.id ? 'bg-primary border-primary text-white scale-105' : 'bg-slate-800 border-white/5 text-slate-600'
+                                                "w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-transform",
+                                                selectedConsultant === consultant.id 
+                                                    ? 'bg-primary text-white' 
+                                                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
                                             )}>
-                                                <User className="w-6 h-6" />
+                                                <User className="w-5 h-5" />
                                             </div>
-                                            <div className="text-left">
-                                                <p className="font-black text-white leading-tight">Dr. {consultant.last_name}</p>
-                                                <p className="text-[9px] font-black uppercase text-slate-500 tracking-widest leading-none mt-1">{consultant.profession || "Consultant"}</p>
+                                            <div className="text-left flex-1 min-w-0">
+                                                <p className="font-bold text-sm text-slate-900 dark:text-white leading-tight truncate">Dr. {consultant.last_name}</p>
+                                                <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium truncate mt-0.5">{consultant.profession || "Consultant"}</p>
                                             </div>
+                                            {selectedConsultant === consultant.id && <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />}
                                         </button>
                                     ))}
                                 </div>
@@ -253,17 +259,18 @@ export default function MobileBookAppointment() {
                         <Button
                             onClick={() => setStep(2)}
                             disabled={!selectedServiceId || !selectedConsultant}
-                            className="w-full h-16 rounded-3xl bg-white text-slate-900 font-black text-lg gap-3 uppercase italic tracking-tight active:scale-95 transition-transform mt-8"
+                            className="w-full h-11 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-primary dark:hover:bg-primary/90 text-white dark:text-slate-950 font-semibold text-xs gap-2 shadow-sm mt-4"
                         >
-                            Select Date <ArrowRight className="w-5 h-5" />
+                            <span>Select Date & Time</span>
+                            <ArrowRight className="w-4 h-4" />
                         </Button>
                     </div>
                 )}
 
                 {/* Step 2: Date & Time */}
                 {step === 2 && (
-                    <div className="space-y-8 animate-in slide-in-from-right-8 duration-500">
-                        <div className="p-4 bg-white/5 rounded-[32px] border border-white/5">
+                    <div className="space-y-5 animate-in fade-in duration-300">
+                        <div className="p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
                             <Calendar
                                 mode="single"
                                 selected={selectedDate}
@@ -274,15 +281,15 @@ export default function MobileBookAppointment() {
                         </div>
 
                         {/* Preference Toggle */}
-                        <div className="p-5 bg-primary/5 rounded-3xl border border-primary/10 space-y-4">
+                        <div className="p-4 bg-slate-50 dark:bg-slate-850 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2">
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-xl bg-slate-900 flex items-center justify-center text-primary border border-white/5">
-                                        <Repeat className="w-5 h-5" />
+                                    <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                                        <Repeat className="w-4 h-4" />
                                     </div>
                                     <div>
-                                        <p className="text-[8px] font-black uppercase tracking-widest text-primary">Routing</p>
-                                        <p className="text-sm font-black italic text-white uppercase">{preferenceType}</p>
+                                        <p className="text-[10px] font-bold uppercase tracking-wider text-primary">Routing Mode</p>
+                                        <p className="text-xs font-bold text-slate-900 dark:text-white">{preferenceType} Assignment</p>
                                     </div>
                                 </div>
                                 <Switch 
@@ -290,46 +297,49 @@ export default function MobileBookAppointment() {
                                     onCheckedChange={(checked) => setPreferenceType(checked ? "Flexible" : "Strict")} 
                                 />
                             </div>
-                            <p className="text-[10px] font-bold text-slate-500 italic leading-relaxed">
+                            <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium leading-relaxed">
                                 {preferenceType === "Flexible" ? "Get care sooner by allowing other experts to help if your primary choice is unavailable." : "Consult only with your selected specialist."}
                             </p>
                         </div>
 
                         {loading ? (
-                            <div className="flex flex-col items-center justify-center py-10 space-y-3">
-                                <Loader2 className="animate-spin w-8 h-8 text-primary" />
-                                <p className="text-[8px] font-black uppercase tracking-widest text-slate-500">Fetching Slots</p>
+                            <div className="flex flex-col items-center justify-center py-8 space-y-2">
+                                <Loader2 className="animate-spin w-6 h-6 text-primary" />
+                                <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">Loading open slots...</p>
                             </div>
                         ) : availableSlots.length > 0 ? (
-                            <div className="grid grid-cols-3 gap-3">
-                                {availableSlots.map((slot, idx) => {
-                                    const isSelected = selectedSlot?.slot_start === slot.slot_start;
-                                    return (
-                                        <button
-                                            key={idx}
-                                            onClick={() => setSelectedSlot(slot)}
-                                            className={cn(
-                                                "py-4 rounded-2xl border-2 font-black italic transition-all active:scale-95",
-                                                isSelected
-                                                    ? 'bg-primary text-white border-primary shadow-lg shadow-primary/20'
-                                                    : 'bg-white/5 text-slate-400 border-transparent'
-                                            )}
-                                        >
-                                            {slot.slot_start?.substring(0, 5) ?? ""}
-                                        </button>
-                                    );
-                                })}
+                            <div className="space-y-2">
+                                <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 px-1">Available Timeslots</p>
+                                <div className="grid grid-cols-3 gap-2">
+                                    {availableSlots.map((slot, idx) => {
+                                        const isSelected = selectedSlot?.slot_start === slot.slot_start;
+                                        return (
+                                            <button
+                                                key={idx}
+                                                onClick={() => setSelectedSlot(slot)}
+                                                className={cn(
+                                                    "py-2.5 px-3 rounded-xl border text-xs font-semibold transition-all shadow-xs",
+                                                    isSelected
+                                                        ? 'bg-primary text-white border-primary shadow-xs font-bold'
+                                                        : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:border-slate-300'
+                                                )}
+                                            >
+                                                {slot.slot_start?.substring(0, 5) ?? ""}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
                             </div>
                         ) : (
-                            <div className="flex flex-col items-center justify-center p-8 bg-white/5 rounded-3xl border border-dashed border-white/10 text-center">
-                                <AlertCircle className="w-8 h-8 text-amber-500 mb-3" />
-                                <p className="text-white font-black italic text-sm mb-4">No Slots Available</p>
-                                {/* Sports scientists have no capacity limit and do not use a waitlist */}
+                            <div className="flex flex-col items-center justify-center p-6 bg-white dark:bg-slate-900 rounded-2xl border border-dashed border-slate-300 dark:border-slate-700 text-center space-y-2">
+                                <AlertCircle className="w-6 h-6 text-amber-500" />
+                                <p className="text-slate-900 dark:text-white font-bold text-sm">No Slots Available</p>
+                                <p className="text-xs text-slate-500 dark:text-slate-400">Try selecting another date or join the priority waitlist.</p>
                                 {selectedConsultantObj?.profession?.toLowerCase() !== 'sports scientist' && selectedConsultantObj?.ams_role !== 'sports_scientist' && (
                                     <Button 
                                         variant="outline" 
                                         onClick={handleJoinWaitlist}
-                                        className="rounded-2xl border-primary text-primary font-black uppercase text-[10px] tracking-widest px-6"
+                                        className="rounded-xl border-primary text-primary hover:bg-primary/10 font-semibold text-xs px-4 h-9 mt-2"
                                     >
                                         Join Waitlist
                                     </Button>
@@ -337,45 +347,45 @@ export default function MobileBookAppointment() {
                             </div>
                         )}
 
-                        <div className="fixed bottom-32 left-0 right-0 px-6 z-50 pointer-events-none">
-                            <div className="max-w-md mx-auto pointer-events-auto">
-                                <Button
-                                    onClick={handleBook}
-                                    disabled={!selectedSlot || booking}
-                                    className="w-full h-16 rounded-3xl bg-primary text-white font-black text-lg gap-3 uppercase italic tracking-tight shadow-xl shadow-primary/20"
-                                >
-                                    {booking ? "Wait..." : "Confirm Booking"} <CheckCircle2 className="w-5 h-5" />
-                                </Button>
-                            </div>
-                        </div>
+                        <Button
+                            onClick={handleBook}
+                            disabled={!selectedSlot || booking}
+                            className="w-full h-11 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-primary dark:hover:bg-primary/90 text-white dark:text-slate-950 font-semibold text-xs gap-2 shadow-sm mt-3"
+                        >
+                            {booking ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+                            <span>{booking ? "Confirming..." : "Confirm Booking"}</span>
+                        </Button>
                     </div>
                 )}
 
                 {/* Step 3: Success */}
                 {step === 3 && (
-                    <div className="animate-in zoom-in duration-500 py-10 text-center space-y-8">
-                        <div className="w-20 h-20 mx-auto rounded-3xl bg-emerald-500 flex items-center justify-center shadow-2xl shadow-emerald-500/20 rotate-6">
-                            <CheckCircle2 className="w-10 h-10 text-white" />
+                    <div className="animate-in zoom-in duration-300 py-6 text-center space-y-5">
+                        <div className="w-16 h-16 mx-auto rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center justify-center shadow-sm">
+                            <CheckCircle2 className="w-8 h-8" />
                         </div>
-                        <div className="space-y-3 px-4">
-                            <h2 className="text-4xl font-black italic tracking-tighter uppercase">Success!</h2>
-                            <p className="text-slate-400 font-medium text-sm">
-                                Protocol confirmed with <span className="text-white font-black underline decoration-primary underline-offset-4 decoration-2">Dr. {selectedConsultantObj?.last_name}</span>.
+                        <div className="space-y-1.5 px-4">
+                            <h2 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">Booking Confirmed!</h2>
+                            <p className="text-slate-600 dark:text-slate-400 font-medium text-xs">
+                                Consultation scheduled with <span className="text-slate-900 dark:text-white font-bold">Dr. {selectedConsultantObj?.last_name}</span>.
                             </p>
                         </div>
-                        <div className="bg-white/5 p-6 rounded-[32px] border border-white/5 flex justify-center gap-8">
+                        <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex justify-center gap-6 max-w-xs mx-auto">
                             <div className="text-center">
-                                <p className="text-[8px] font-black uppercase text-slate-500 mb-1">Date</p>
-                                <p className="font-black text-white">{selectedDate ? format(selectedDate, "MMM d") : "N/A"}</p>
+                                <p className="text-[10px] font-bold uppercase text-slate-500 dark:text-slate-400 mb-0.5">Date</p>
+                                <p className="font-bold text-sm text-slate-900 dark:text-white">{selectedDate ? format(selectedDate, "MMM d, yyyy") : "N/A"}</p>
                             </div>
-                            <div className="w-px h-8 bg-white/5" />
+                            <div className="w-px h-8 bg-slate-200 dark:bg-slate-800 self-center" />
                             <div className="text-center">
-                                <p className="text-[8px] font-black uppercase text-slate-500 mb-1">Time</p>
-                                <p className="font-black text-white">{selectedSlot?.slot_start?.substring(0, 5) ?? "N/A"}</p>
+                                <p className="text-[10px] font-bold uppercase text-slate-500 dark:text-slate-400 mb-0.5">Time</p>
+                                <p className="font-bold text-sm text-slate-900 dark:text-white">{selectedSlot?.slot_start?.substring(0, 5) ?? "N/A"}</p>
                             </div>
                         </div>
-                        <Button onClick={() => window.location.href = '/mobile/client'} className="w-full h-16 rounded-3xl bg-white text-slate-900 font-black text-lg uppercase italic tracking-tight">
-                            Back Dashboard
+                        <Button 
+                            onClick={() => window.location.href = '/mobile/client'} 
+                            className="w-full max-w-xs h-11 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-primary dark:hover:bg-primary/90 text-white dark:text-slate-950 font-semibold text-xs shadow-sm"
+                        >
+                            Return to Dashboard
                         </Button>
                     </div>
                 )}

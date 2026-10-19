@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 
@@ -21,6 +21,8 @@ import AmsStaffNav from "@/components/ams/AmsStaffNav";
 
 export default function QuestionnaireLibrary() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const isAmsMode = location.pathname.startsWith('/ams');
   const { profile, roles } = useAuth();
   const isClinical = roles.some(r => ["coach", "sports_scientist", "sports_physician", "physiotherapist", "nutritionist"].includes(r));
   const isAdminOrFoe = roles.some(r => ["admin", "foe"].includes(r));
@@ -110,43 +112,44 @@ export default function QuestionnaireLibrary() {
   };
 
   return (
-    <DashboardLayout role={profile?.role || "coach"}>
-      <div className="min-h-screen bg-[#F8FAFC] flex flex-col font-sans">
-        <AmsStaffNav />
-        <main className="flex-1 p-6 md:p-10 space-y-10 max-w-[1600px] mx-auto w-full">
-          {/* Hero Header */}
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-            <div>
-              <div className="flex items-center gap-3 mb-2">
-                <div className="w-10 h-10 rounded-2xl bg-primary flex items-center justify-center text-white shadow-lg shadow-primary/20">
-                  <ClipboardList className="w-5 h-5" />
+    <DashboardLayout role={isAmsMode ? (profile?.role || "coach") : "questionnaires"}>
+      {isAmsMode ? (
+        <div className="min-h-screen bg-[#F8FAFC] flex flex-col font-sans">
+          <AmsStaffNav />
+          <main className="flex-1 p-6 md:p-10 space-y-10 max-w-[1600px] mx-auto w-full">
+            {/* Hero Header */}
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+              <div>
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-10 h-10 rounded-2xl bg-primary flex items-center justify-center text-white shadow-lg shadow-primary/20">
+                    <ClipboardList className="w-5 h-5" />
+                  </div>
+                  <h1 className="text-4xl font-black uppercase tracking-tight text-slate-900 italic">
+                    Questionnaire <span className="text-primary">Library</span>
+                  </h1>
                 </div>
-                <h1 className="text-4xl font-black uppercase tracking-tight text-slate-900 italic">
-                  Questionnaire <span className="text-primary">Library</span>
-                </h1>
+                <p className="text-slate-600 font-black uppercase text-[11px] tracking-[0.2em] ml-1">
+                  Manage Squad-Wide Assessments & Clinical interpretation
+                </p>
               </div>
-              <p className="text-slate-600 font-black uppercase text-[11px] tracking-[0.2em] ml-1">
-                Manage Squad-Wide Assessments & Clinical interpretation
-              </p>
-            </div>
-            
-            <div className="flex items-center gap-3">
-              <Button
-                onClick={() => navigate('/ams/performance-testing')}
-                className="h-14 px-6 rounded-2xl bg-primary hover:bg-primary/90 text-white font-black uppercase tracking-wider text-[11px] gap-2.5 shadow-xl shadow-primary/20 transition-all hover:scale-105"
-              >
-                <Sparkles className="w-4 h-4" /> Performance Testing Hub
-              </Button>
-              {(isClinical || isAdminOrFoe) && (
-                <Button 
-                  onClick={handleCreateNew}
-                  className="h-14 px-8 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-black uppercase tracking-widest text-[11px] gap-3 shadow-xl transition-all hover:scale-105"
+              
+              <div className="flex items-center gap-3">
+                <Button
+                  onClick={() => navigate(isAmsMode ? '/ams/performance-testing' : '/questionnaires/performance-testing')}
+                  className="h-14 px-6 rounded-2xl bg-primary hover:bg-primary/90 text-white font-black uppercase tracking-wider text-[11px] gap-2.5 shadow-xl shadow-primary/20 transition-all hover:scale-105"
                 >
-                  <Plus className="w-4 h-4" /> Create New Form
+                  <Sparkles className="w-4 h-4" /> Performance Testing Hub
                 </Button>
-              )}
+                {(isClinical || isAdminOrFoe) && (
+                  <Button 
+                    onClick={handleCreateNew}
+                    className="h-14 px-8 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-black uppercase tracking-widest text-[11px] gap-3 shadow-xl transition-all hover:scale-105"
+                  >
+                    <Plus className="w-4 h-4" /> Create New Form
+                  </Button>
+                )}
+              </div>
             </div>
-          </div>
 
           {/* Quick Gateway Card to Performance Testing Hub */}
           <div className="p-6 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 rounded-[2rem] text-white shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
@@ -166,14 +169,14 @@ export default function QuestionnaireLibrary() {
             </div>
             <div className="flex flex-wrap items-center gap-3 shrink-0">
               <Button
-                onClick={() => navigate('/ams/performance-testing')}
+                onClick={() => navigate(isAmsMode ? '/ams/performance-testing' : '/questionnaires/performance-testing')}
                 className="bg-white hover:bg-slate-100 text-slate-900 font-black uppercase tracking-wider text-xs px-5 h-11 rounded-xl shadow-md gap-2 border border-slate-200 transition-all hover:scale-[1.02]"
               >
                 <Activity className="w-4 h-4 text-emerald-600" />
                 Launch Individual Form
               </Button>
               <Button
-                onClick={() => navigate('/ams/performance-testing/grid')}
+                onClick={() => navigate(isAmsMode ? '/ams/performance-testing/grid' : '/questionnaires/performance-testing/grid')}
                 className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black uppercase tracking-wider text-xs px-5 h-11 rounded-xl shadow-lg shadow-emerald-500/25 gap-2 transition-all hover:scale-[1.02]"
               >
                 <Grid className="w-4 h-4 text-slate-950" />
@@ -469,41 +472,309 @@ export default function QuestionnaireLibrary() {
               </div>
             </TabsContent>
           </Tabs>
-        </main>
+          </main>
+        </div>
+      ) : (
+        <div className="space-y-8 animate-in fade-in duration-300">
+          {/* Hero Header */}
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+            <div>
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-10 h-10 rounded-2xl bg-primary flex items-center justify-center text-white shadow-lg shadow-primary/20">
+                  <ClipboardList className="w-5 h-5" />
+                </div>
+                <h1 className="text-3xl sm:text-4xl font-black uppercase tracking-tight text-slate-900 italic">
+                  Questionnaire <span className="text-primary">Library</span>
+                </h1>
+              </div>
+              <p className="text-slate-600 font-black uppercase text-[11px] tracking-[0.2em] ml-1">
+                Manage Squad-Wide Assessments & Clinical interpretation
+              </p>
+            </div>
+            
+            <div className="flex items-center gap-3">
+              <Button
+                onClick={() => navigate('/questionnaires/performance-testing')}
+                className="h-12 sm:h-14 px-5 sm:px-6 rounded-2xl bg-primary hover:bg-primary/90 text-white font-black uppercase tracking-wider text-[11px] gap-2.5 shadow-xl shadow-primary/20 transition-all hover:scale-105"
+              >
+                <Sparkles className="w-4 h-4" /> Performance Testing Hub
+              </Button>
+              {(isClinical || isAdminOrFoe) && (
+                <Button 
+                  onClick={handleCreateNew}
+                  className="h-12 sm:h-14 px-6 sm:px-8 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-black uppercase tracking-widest text-[11px] gap-3 shadow-xl transition-all hover:scale-105"
+                >
+                  <Plus className="w-4 h-4" /> Create New Form
+                </Button>
+              )}
+            </div>
+          </div>
 
-        {selectedForm && (
-          <BulkAssignmentModal 
-            isOpen={assignmentModalOpen}
-            onClose={() => setAssignmentModalOpen(false)}
-            onSuccess={() => {
-              setAssignmentModalOpen(false);
-              // Refresh query
-            }}
-            form={selectedForm}
-          />
-        )}
+          {/* Quick Gateway Card to Performance Testing Hub */}
+          <div className="p-6 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 rounded-[2rem] text-white shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <Badge className="bg-primary text-white border-0 font-black uppercase text-[9px] tracking-widest">
+                  Performance Testing Sub-System
+                </Badge>
+                <span className="text-xs text-slate-400 font-bold">• 8 Supported Sport Batteries</span>
+              </div>
+              <h2 className="text-xl font-black uppercase tracking-tight font-display">
+                Multi-Sport Performance Testing & Athlete Assessment Hub
+              </h2>
+              <p className="text-xs text-slate-300 max-w-2xl">
+                Diagnostic Individual Assessments with automated FMS, YBT composite, Sayers power, and Yo-Yo VO2 max calculations, plus high-density keyboard Station Testing Spreadsheet Grid.
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-3 shrink-0">
+              <Button
+                onClick={() => navigate('/questionnaires/performance-testing')}
+                className="bg-white hover:bg-slate-100 text-slate-900 font-black uppercase tracking-wider text-xs px-5 h-11 rounded-xl shadow-md gap-2 border border-slate-200 transition-all hover:scale-[1.02]"
+              >
+                <Activity className="w-4 h-4 text-emerald-600" />
+                Launch Individual Form
+              </Button>
+              <Button
+                onClick={() => navigate('/questionnaires/performance-testing/grid')}
+                className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black uppercase tracking-wider text-xs px-5 h-11 rounded-xl shadow-lg shadow-emerald-500/25 gap-2 transition-all hover:scale-[1.02]"
+              >
+                <Grid className="w-4 h-4 text-slate-950" />
+                Combine Station Grid
+              </Button>
+            </div>
+          </div>
 
-        {singleAssignForm && (
-          <SingleClientAssignModal
-            isOpen={singleAssignModalOpen}
-            onClose={() => {
-              setSingleAssignModalOpen(false);
-              setSingleAssignForm(null);
-            }}
-            form={singleAssignForm}
-          />
-        )}
+          {/* Shared Tabs Section for Standalone View */}
+          <Tabs defaultValue="library" className="w-full">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b pb-4">
+              <TabsList className="bg-slate-100 p-1 rounded-2xl h-12">
+                <TabsTrigger value="library" className="rounded-xl px-5 font-black uppercase text-xs tracking-wider gap-2">
+                  <LayoutGrid className="w-4 h-4" /> Library
+                </TabsTrigger>
+                <TabsTrigger value="active" className="rounded-xl px-5 font-black uppercase text-xs tracking-wider gap-2">
+                  <TrendingUp className="w-4 h-4" /> Active Status
+                </TabsTrigger>
+                <TabsTrigger value="recurring" className="rounded-xl px-5 font-black uppercase text-xs tracking-wider gap-2">
+                  <Clock className="w-4 h-4" /> Recurring Schedules
+                </TabsTrigger>
+              </TabsList>
+            </div>
 
-        <FormBuilder 
-          isOpen={builderOpen}
-          onClose={() => setBuilderOpen(false)}
+            <TabsContent value="library" className="mt-8 space-y-6">
+              <div className="flex flex-col md:flex-row items-center justify-between gap-4 bg-white p-4 rounded-3xl border border-slate-100 shadow-sm">
+                <div className="flex items-center gap-2 w-full md:w-auto overflow-x-auto pb-2 md:pb-0">
+                  <Button 
+                    variant={filter === 'all' ? 'default' : 'ghost'} 
+                    onClick={() => setFilter('all')}
+                    className="rounded-xl text-xs font-bold uppercase tracking-wider"
+                  >
+                    All
+                  </Button>
+                  <Button 
+                    variant={filter === 'performance' ? 'default' : 'ghost'} 
+                    onClick={() => setFilter('performance')}
+                    className="rounded-xl text-xs font-bold uppercase tracking-wider"
+                  >
+                    Performance
+                  </Button>
+                  <Button 
+                    variant={filter === 'clinical' ? 'default' : 'ghost'} 
+                    onClick={() => setFilter('clinical')}
+                    className="rounded-xl text-xs font-bold uppercase tracking-wider"
+                  >
+                    Clinical
+                  </Button>
+                </div>
+
+                <div className="relative w-full md:w-80">
+                  <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <Input 
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search forms..." 
+                    className="pl-9 bg-slate-50 border-0 rounded-2xl focus-visible:ring-primary h-11"
+                  />
+                </div>
+              </div>
+
+              {/* Grid of Forms */}
+              {formsLoading ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {[1,2,3].map(i => (
+                    <div key={i} className="h-64 rounded-3xl bg-slate-100 animate-pulse" />
+                  ))}
+                </div>
+              ) : filteredForms?.length === 0 ? (
+                <div className="text-center py-20 bg-white rounded-3xl border border-dashed border-slate-200">
+                  <Inbox className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+                  <h3 className="text-lg font-bold text-slate-700">No questionnaires found</h3>
+                  <p className="text-sm text-slate-400 mt-1">Try adjusting your filters or search query</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {filteredForms?.map((form: any) => (
+                    <Card key={form.id} className="rounded-3xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow duration-200 flex flex-col justify-between overflow-hidden bg-white group">
+                      <CardContent className="p-6">
+                        <div className="flex items-start justify-between gap-3 mb-4">
+                          <Badge variant="outline" className={cn(
+                            "rounded-lg px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider",
+                            form.classification === 'performance' ? "bg-amber-50 text-amber-600 border-amber-200" : "bg-emerald-50 text-emerald-600 border-emerald-200"
+                          )}>
+                            {form.classification || 'General'}
+                          </Badge>
+                          <span className="text-[11px] font-bold text-slate-400">
+                            {form.fields?.length || 0} fields
+                          </span>
+                        </div>
+
+                        <h3 className="text-lg font-black text-slate-900 group-hover:text-primary transition-colors">
+                          {form.name}
+                        </h3>
+                        <p className="text-xs text-slate-500 font-medium mt-1 line-clamp-2">
+                          {form.description || "No description provided."}
+                        </p>
+                      </CardContent>
+
+                      <div className="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between gap-2">
+                        {(isClinical || isAdminOrFoe) && (
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            onClick={() => handleEditTemplate(form)}
+                            className="text-xs font-bold text-slate-600 hover:text-slate-900 rounded-xl"
+                          >
+                            Edit
+                          </Button>
+                        )}
+                        <div className="flex items-center gap-1.5 ml-auto">
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => handleAssignToClient(form)}
+                            className="bg-white hover:bg-slate-100 text-slate-800 text-xs font-bold rounded-xl border-slate-200 gap-1.5"
+                          >
+                            <User className="w-3.5 h-3.5 text-primary" /> Assign Client
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            onClick={() => handleAssign(form)}
+                            className="bg-primary hover:bg-primary/90 text-white text-xs font-bold rounded-xl gap-1.5"
+                          >
+                            <Users className="w-3.5 h-3.5" /> Bulk Assign
+                          </Button>
+                        </div>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="active" className="mt-8 space-y-6">
+              <BulkStatusDashboard />
+            </TabsContent>
+
+            <TabsContent value="recurring" className="mt-8 space-y-6">
+              <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <h3 className="text-lg font-black text-slate-900">Recurring Questionnaire Schedules</h3>
+                    <p className="text-xs text-slate-500 font-medium">Automated periodic delivery rules for teams and groups</p>
+                  </div>
+                </div>
+
+                {!recurringSchedules || recurringSchedules.length === 0 ? (
+                  <div className="text-center py-16 text-slate-400">
+                    <Clock className="w-10 h-10 mx-auto mb-2 opacity-50" />
+                    <p className="font-bold text-sm">No recurring schedules configured</p>
+                    <p className="text-xs text-slate-400 mt-0.5">Use Bulk Assign with recurrence options to set up automated deliveries.</p>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-slate-100">
+                    {recurringSchedules.map((rq: any) => (
+                      <div key={rq.id} className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h4 className="font-bold text-sm text-slate-900">
+                              {rq.questionnaire_name || "Assessment Questionnaire"}
+                            </h4>
+                            <Badge variant="outline" className={cn(
+                              "text-[10px] font-bold uppercase",
+                              rq.status === 'active' ? "bg-emerald-50 text-emerald-600 border-emerald-200" : "bg-slate-50 text-slate-500 border-slate-200"
+                            )}>
+                              {rq.status}
+                            </Badge>
+                          </div>
+                          <p className="text-xs text-slate-500 mt-0.5 flex items-center gap-2">
+                            <span>Every {rq.frequency_days} day(s) at {rq.delivery_time || "08:00"}</span>
+                            <span>•</span>
+                            <span>Target: {rq.target_type === 'team' ? `Team (${rq.team_name || rq.target_id})` : 'Athletes'}</span>
+                          </p>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Button 
+                            size="sm" 
+                            variant="outline" 
+                            onClick={() => handleToggleScheduleStatus(rq.id, rq.status)}
+                            className="rounded-xl text-xs font-bold h-9 gap-1.5"
+                          >
+                            {rq.status === 'active' ? (
+                              <><Pause className="w-3.5 h-3.5 text-amber-500" /> Pause</>
+                            ) : (
+                              <><Play className="w-3.5 h-3.5 text-emerald-500" /> Resume</>
+                            )}
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            variant="ghost" 
+                            onClick={() => handleDeleteSchedule(rq.id)}
+                            className="rounded-xl text-xs font-bold h-9 text-rose-500 hover:text-rose-600 hover:bg-rose-50"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </TabsContent>
+          </Tabs>
+        </div>
+      )}
+
+      {selectedForm && (
+        <BulkAssignmentModal 
+          isOpen={assignmentModalOpen}
+          onClose={() => setAssignmentModalOpen(false)}
           onSuccess={() => {
-            setBuilderOpen(false);
-            refetchForms();
+            setAssignmentModalOpen(false);
           }}
-          initialData={editingForm}
+          form={selectedForm}
         />
-      </div>
+      )}
+
+      {singleAssignForm && (
+        <SingleClientAssignModal
+          isOpen={singleAssignModalOpen}
+          onClose={() => {
+            setSingleAssignModalOpen(false);
+            setSingleAssignForm(null);
+          }}
+          form={singleAssignForm}
+        />
+      )}
+
+      <FormBuilder 
+        isOpen={builderOpen}
+        onClose={() => setBuilderOpen(false)}
+        onSuccess={() => {
+          setBuilderOpen(false);
+          refetchForms();
+        }}
+        initialData={editingForm}
+      />
     </DashboardLayout>
   );
 }

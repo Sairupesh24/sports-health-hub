@@ -47,7 +47,7 @@ const ALL_TENANT_MODULES = [
   { id: "admin", name: "Admin Console", description: "Clients, billing & payments, calendar scheduling, waitlist, roster, and leads.", icon: LayoutDashboard },
   { id: "settings", name: "Settings & Permissions", description: "System settings, organization details, role access control, field configuration, and service mappings.", icon: ShieldCheck },
   { id: "clinical", name: "Clinical Management", description: "Physio Console: dashboard, client medical profiles, treatment schedule, clinical reports, and injury repo.", icon: Stethoscope },
-  { id: "sports_scientist", name: "Sports Science Console", description: "Sports Scientist Console: dashboard, schedule, athlete directory, reports, and membership management.", icon: Dumbbell },
+  { id: "sports_scientist", name: "Athlete Management", description: "Athlete Management Console: dashboard, schedule, athlete directory, reports, and membership management.", icon: Dumbbell },
   { id: "ams", name: "Activity Monitoring System", description: "Activity Monitoring System: coach daily brief, team readiness & compliance, workout programs, and batch testing.", icon: Activity },
   { id: "nutritionist", name: "Nutritionist Console", description: "Dietary assessments, meal planning, macro tracking, and client nutrition profiles.", icon: Apple },
   { id: "hr", name: "HR & Workforce (HRMS)", description: "HR Module: dashboard, activity tracking, staff attendance logs, day planner, leave approvals, and user onboarding.", icon: Building2 },

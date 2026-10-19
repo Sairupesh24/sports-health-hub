@@ -18,6 +18,8 @@ import {
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn, formatClientName } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 interface RosterScheduleViewProps {
     initialDate?: Date;
@@ -213,11 +215,6 @@ export function RosterScheduleView({ initialDate = new Date(), onClose }: Roster
         }
         setIsExporting(true);
         try {
-            const [{ jsPDF }, { default: autoTable }] = await Promise.all([
-                import("jspdf"),
-                import("jspdf-autotable"),
-            ]);
-
             // A4 landscape: 297 × 210 mm
             const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
             const pageW = doc.internal.pageSize.getWidth();   // 297
