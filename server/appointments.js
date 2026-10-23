@@ -37,7 +37,13 @@ router.get('/', requireAuth, async (req, res) => {
                            ), 0)
                        )
                    ELSE NULL END as client,
-                   json_build_object('first_name', p.first_name, 'last_name', p.last_name) as therapist,
+                   json_build_object(
+                       'id', p.id,
+                       'first_name', p.first_name, 
+                       'last_name', p.last_name,
+                       'profession', p.profession,
+                       'ams_role', p.ams_role
+                   ) as therapist,
                    (SELECT json_agg(psd.*) FROM physiosessiondetails psd WHERE psd.session_id = s.id) as physio_session_details,
                    json_build_object('name', st.name) as session_type
             FROM Sessions s

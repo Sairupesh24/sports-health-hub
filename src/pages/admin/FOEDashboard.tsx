@@ -31,6 +31,10 @@ import { Badge } from "@/components/ui/badge";
 import { 
     startOfDay, 
     endOfDay, 
+    startOfWeek,
+    endOfWeek,
+    startOfMonth,
+    endOfMonth,
     format, 
     parseISO, 
     isSameDay,
@@ -154,16 +158,53 @@ export default function FOEDashboard() {
   const organizationId = profile?.organization_id;
   const [selectedDate, setSelectedDate] = useState(format(new Date(), "yyyy-MM-dd"));
   const [isLogModalOpen, setIsLogModalOpen] = useState(false);
-  
-  const today = new Date();
-  const todayStart = startOfDay(today);
-  const todayEnd = endOfDay(today);
 
-  // 1. Today's Sessions & Appointments Query
-  const { data: todaysSessions, isLoading: sessionsLoading } = useQuery<any[]>({
-    queryKey: ['foe-todays-sessions', organizationId],
+  // Filters for FOE Console Cards & Visits
+  const [roleFilter, setRoleFilter] = useState<'all' | 'sports_scientist' | 'physiotherapist'>('all');
+  const [timeFilter, setTimeFilter] = useState<'today' | 'this_week' | 'this_month' | 'custom'>('today');
+  const [customStartDate, setCustomStartDate] = useState(format(new Date(), "yyyy-MM-dd"));
+  const [customEndDate, setCustomEndDate] = useState(format(new Date(), "yyyy-MM-dd"));
+
+  // Calculate active start and end timestamps based on selected time filter
+  const activeDateRange = useMemo(() => {
+    const now = new Date();
+    if (timeFilter === 'today') {
+      return {
+        start: startOfDay(now),
+        end: endOfDay(now),
+        label: 'Today',
+      };
+    }
+    if (timeFilter === 'this_week') {
+      return {
+        start: startOfWeek(now, { weekStartsOn: 1 }),
+        end: endOfWeek(now, { weekStartsOn: 1 }),
+        label: 'This Week',
+      };
+    }
+    if (timeFilter === 'this_month') {
+      return {
+        start: startOfMonth(now),
+        end: endOfMonth(now),
+        label: 'This Month',
+      };
+    }
+    // custom
+    const s = customStartDate ? startOfDay(parseISO(customStartDate)) : startOfDay(now);
+    const rawEnd = customEndDate ? endOfDay(parseISO(customEndDate)) : endOfDay(now);
+    const e = rawEnd < s ? endOfDay(s) : rawEnd;
+    return {
+      start: s,
+      end: e,
+      label: `${format(s, "dd MMM yyyy")} - ${format(e, "dd MMM yyyy")}`,
+    };
+  }, [timeFilter, customStartDate, customEndDate]);
+
+  // 1. Sessions & Appointments Query for the selected date range
+  const { data: allSessions, isLoading: sessionsLoading } = useQuery<any[]>({
+    queryKey: ['foe-sessions', organizationId, activeDateRange.start.toISOString(), activeDateRange.end.toISOString()],
     queryFn: async () => {
-      const data = await apiFetch<any[]>(`/api/appointments?start=${todayStart.toISOString()}&end=${todayEnd.toISOString()}`);
+      const data = await apiFetch<any[]>(`/api/appointments?start=${activeDateRange.start.toISOString()}&end=${activeDateRange.end.toISOString()}`);
       return data || [];
     },
     enabled: !!organizationId
@@ -210,6 +251,64 @@ export default function FOEDashboard() {
     enabled: !!organizationId
   });
 
+  // Consultant lookup map
+  const consultantsMap = useMemo(() => {
+    const map = new Map<string, any>();
+    (consultants || []).forEach((c: any) => {
+      map.set(c.id, c);
+    });
+    return map;
+  }, [consultants]);
+
+  // Helper to match session against practitioner role
+  const matchesRoleFilter = (session: any, role: 'all' | 'sports_scientist' | 'physiotherapist') => {
+    if (role === 'all') return true;
+
+    const specialistId = session.therapist_id || session.scientist_id;
+    const consultant = specialistId ? consultantsMap.get(specialistId) : null;
+
+    const prof = (consultant?.profession || session.therapist?.profession || '').toLowerCase();
+    const r = (consultant?.role || consultant?.ams_role || session.therapist?.ams_role || '').toLowerCase();
+    const service = (session.service_type || session.session_type?.name || '').toLowerCase();
+
+    const isSportsScientist = 
+      Boolean(session.scientist_id && !session.therapist_id) ||
+      prof.includes('sports scientist') || 
+      prof.includes('scientist') || 
+      r.includes('sports_scientist') ||
+      service.includes('s&c') ||
+      service.includes('strength') ||
+      service.includes('conditioning') ||
+      service.includes('sports science') ||
+      service.includes('testing') ||
+      service.includes('performance');
+
+    const isPhysio = 
+      prof.includes('physio') || 
+      r.includes('physio') ||
+      service.includes('physio') ||
+      service.includes('rehab') ||
+      service.includes('therapy') ||
+      service.includes('injury') ||
+      service.includes('assessment');
+
+    if (role === 'sports_scientist') return isSportsScientist;
+    if (role === 'physiotherapist') return isPhysio;
+    return true;
+  };
+
+  // Filtered Sessions according to active Role filter
+  const filteredSessions = useMemo(() => {
+    if (!allSessions) return [];
+    return allSessions.filter((s: any) => matchesRoleFilter(s, roleFilter));
+  }, [allSessions, roleFilter, consultantsMap]);
+
+  // Filtered Unentitled Sessions for right column
+  const filteredUnentitledSessions = useMemo(() => {
+    if (!unentitledSessions) return [];
+    return unentitledSessions.filter((s: any) => matchesRoleFilter(s, roleFilter));
+  }, [unentitledSessions, roleFilter, consultantsMap]);
+
   // Derived Values
   const availableToday = useMemo(() => {
     const dayOfToday = getDay(new Date());
@@ -242,11 +341,47 @@ export default function FOEDashboard() {
     });
   }
 
+  // 4 Cards metrics calculations
+  const totalAppointments = filteredSessions.length;
+  const sessionsCompleted = filteredSessions.filter((s: any) => s.status === 'Completed').length;
+  const sessionsPending = filteredSessions.filter((s: any) => s.status !== 'Completed' && s.status !== 'Cancelled').length;
+  const unentitledCount = filteredSessions.filter((s: any) => s.is_unentitled === true).length;
+
+  const completionRate = totalAppointments > 0 ? Math.round((sessionsCompleted / totalAppointments) * 100) : 0;
+
+  const roleLabel = roleFilter === 'all' 
+    ? 'All Specialists' 
+    : (roleFilter === 'sports_scientist' ? 'Sports Scientists' : 'Physiotherapists');
+
   const stats: { title: string; value: string | number; icon: any; change: string; changeType: "neutral" | "negative" | "positive" }[] = [
-    { title: "Today's Appts", value: todaysSessions?.length || 0, icon: Calendar, change: "Planned Sessions", changeType: "neutral" },
-    { title: "Waitlist Queue", value: waitlistItems?.length || 0, icon: Bell, change: "Patients Waiting", changeType: (waitlistItems?.length || 0) > 5 ? "negative" : "neutral" },
-    { title: "Unentitled", value: unentitledSessions?.length || 0, icon: AlertCircle, change: "Requires Billing", changeType: "negative" },
-    { title: "Staff On-Duty", value: availableToday.length, icon: Users, change: "Consultants Today", changeType: "positive" },
+    { 
+      title: "Total Appointments", 
+      value: totalAppointments, 
+      icon: Calendar, 
+      change: `${roleLabel} • ${activeDateRange.label}`, 
+      changeType: "neutral" 
+    },
+    { 
+      title: "Sessions Completed", 
+      value: sessionsCompleted, 
+      icon: CheckCircle2, 
+      change: `${completionRate}% Completion Rate`, 
+      changeType: "positive" 
+    },
+    { 
+      title: "Sessions Pending", 
+      value: sessionsPending, 
+      icon: Clock, 
+      change: `${sessionsPending} Awaiting Completion`, 
+      changeType: sessionsPending > 0 ? "neutral" : "positive" 
+    },
+    { 
+      title: "Unentitled Sessions", 
+      value: unentitledCount, 
+      icon: AlertCircle, 
+      change: unentitledCount > 0 ? "Requires Billing Resolution" : "No Unbilled Sessions", 
+      changeType: unentitledCount > 0 ? "negative" : "positive" 
+    },
   ];
 
   const getGreeting = () => {
@@ -326,6 +461,147 @@ export default function FOEDashboard() {
           </Button>
         </div>
 
+        {/* Controls & Filters Bar */}
+        <div className="bg-card/75 backdrop-blur-md border border-border/80 rounded-2xl p-3.5 sm:p-4 shadow-xs space-y-3">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3.5">
+            {/* Role Filter */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-[11px] font-black uppercase tracking-wider text-muted-foreground flex items-center gap-1.5 mr-1">
+                <Users className="w-3.5 h-3.5 text-primary" />
+                Staff Role:
+              </span>
+              <div className="inline-flex p-1 bg-muted/60 rounded-xl border border-border/50 text-xs font-bold gap-1">
+                <button
+                  type="button"
+                  onClick={() => setRoleFilter('all')}
+                  className={cn(
+                    "px-3 py-1.5 rounded-lg transition-all",
+                    roleFilter === 'all'
+                      ? "bg-primary text-white shadow-xs font-black"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  All Specialists
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRoleFilter('sports_scientist')}
+                  className={cn(
+                    "px-3 py-1.5 rounded-lg transition-all",
+                    roleFilter === 'sports_scientist'
+                      ? "bg-primary text-white shadow-xs font-black"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  Sports Scientists
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRoleFilter('physiotherapist')}
+                  className={cn(
+                    "px-3 py-1.5 rounded-lg transition-all",
+                    roleFilter === 'physiotherapist'
+                      ? "bg-primary text-white shadow-xs font-black"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  Physiotherapists
+                </button>
+              </div>
+            </div>
+
+            {/* Time Range Filter */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-[11px] font-black uppercase tracking-wider text-muted-foreground flex items-center gap-1.5 mr-1">
+                <Clock className="w-3.5 h-3.5 text-primary" />
+                Time Period:
+              </span>
+              <div className="inline-flex p-1 bg-muted/60 rounded-xl border border-border/50 text-xs font-bold gap-1">
+                <button
+                  type="button"
+                  onClick={() => setTimeFilter('today')}
+                  className={cn(
+                    "px-3 py-1.5 rounded-lg transition-all",
+                    timeFilter === 'today'
+                      ? "bg-primary text-white shadow-xs font-black"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  Today
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTimeFilter('this_week')}
+                  className={cn(
+                    "px-3 py-1.5 rounded-lg transition-all",
+                    timeFilter === 'this_week'
+                      ? "bg-primary text-white shadow-xs font-black"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  This Week
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTimeFilter('this_month')}
+                  className={cn(
+                    "px-3 py-1.5 rounded-lg transition-all",
+                    timeFilter === 'this_month'
+                      ? "bg-primary text-white shadow-xs font-black"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  This Month
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTimeFilter('custom')}
+                  className={cn(
+                    "px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5",
+                    timeFilter === 'custom'
+                      ? "bg-primary text-white shadow-xs font-black"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  <Calendar className="w-3.5 h-3.5" />
+                  Custom Dates
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Date Picker row when Custom Dates is active */}
+          {timeFilter === 'custom' && (
+            <div className="pt-2.5 border-t border-border/60 flex flex-wrap items-center gap-3 animate-in fade-in slide-in-from-top-1 duration-200">
+              <div className="flex items-center gap-2">
+                <label className="text-[11px] font-black uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+                  <Calendar className="w-3 h-3 text-primary" /> From:
+                </label>
+                <Input 
+                  type="date" 
+                  value={customStartDate} 
+                  onChange={(e) => setCustomStartDate(e.target.value)} 
+                  className="h-8 text-xs font-semibold w-36 bg-background rounded-lg border-border" 
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <label className="text-[11px] font-black uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+                  <Calendar className="w-3 h-3 text-primary" /> To:
+                </label>
+                <Input 
+                  type="date" 
+                  value={customEndDate} 
+                  onChange={(e) => setCustomEndDate(e.target.value)} 
+                  className="h-8 text-xs font-semibold w-36 bg-background rounded-lg border-border" 
+                />
+              </div>
+              <div className="text-[11px] font-bold text-muted-foreground ml-auto bg-muted/50 px-2.5 py-1 rounded-md border border-border/50">
+                Range: <span className="text-foreground">{activeDateRange.label}</span>
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* Stats */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {stats.map((stat, i) => (
@@ -338,15 +614,17 @@ export default function FOEDashboard() {
           {/* Main Column: Schedule & Waitlist */}
           <div className="lg:col-span-8 space-y-6">
             
-            {/* Today's Schedule Card */}
+            {/* Schedule & Visits Log Card */}
             <Card className="border-none shadow-premium overflow-hidden">
               <CardHeader className="bg-muted/10 border-b pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
                   <CardTitle className="text-lg flex items-center gap-2">
                     <Calendar className="w-5 h-5 text-primary" />
-                    Today's Visits Log
+                    {timeFilter === 'today' ? "Today's Visits Log" : `Visits Log (${activeDateRange.label})`}
                   </CardTitle>
-                  <CardDescription>Real-time view of all scheduled clinical activities & visits</CardDescription>
+                  <CardDescription>
+                    Real-time view of scheduled clinical activities • {roleLabel} ({filteredSessions.length})
+                  </CardDescription>
                 </div>
                 <Button
                   variant="outline"
@@ -367,11 +645,13 @@ export default function FOEDashboard() {
                 <ScrollArea className="h-[450px]">
                   {sessionsLoading ? (
                     <div className="p-12 flex justify-center"><Activity className="animate-spin text-primary" /></div>
-                  ) : !todaysSessions || todaysSessions.length === 0 ? (
-                    <div className="p-12 text-center text-muted-foreground italic">No appointments scheduled for today.</div>
+                  ) : !filteredSessions || filteredSessions.length === 0 ? (
+                    <div className="p-12 text-center text-muted-foreground italic">
+                      No appointments scheduled for {timeFilter === 'today' ? 'today' : activeDateRange.label} under {roleLabel}.
+                    </div>
                   ) : (
                     <div className="divide-y divide-border">
-                      {todaysSessions.map((session: any) => {
+                      {filteredSessions.map((session: any) => {
                         const isGroup = session.session_mode?.toLowerCase() === 'group' || Boolean(session.group_name);
                         const groupTitle = session.group_name?.trim() || (isGroup ? "Group Session" : "");
                         const clientTitle = formatClientName(session.client);
@@ -543,11 +823,11 @@ export default function FOEDashboard() {
                  <ScrollArea className="h-[300px] px-2">
                     {unentitledLoading ? (
                         <div className="py-10 flex justify-center"><Activity className="animate-spin text-rose-500" /></div>
-                    ) : !unentitledSessions || unentitledSessions.length === 0 ? (
+                    ) : !filteredUnentitledSessions || filteredUnentitledSessions.length === 0 ? (
                         <div className="py-10 text-center text-xs text-rose-900/40 italic">No unentitled sessions requiring attention.</div>
                     ) : (
                         <div className="space-y-2">
-                            {unentitledSessions.map((session: any) => (
+                            {filteredUnentitledSessions.map((session: any) => (
                                 <div key={session.id} className="p-3 bg-white/60 border border-rose-100 rounded-xl flex flex-col gap-2 group hover:border-rose-300 transition-all">
                                     <div className="flex items-center justify-between">
                                         <span className="text-sm font-bold text-rose-950">{formatClientName(session.client)}</span>
