@@ -906,19 +906,30 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess, initialDa
                                                     <Button variant="outline" className={cn("w-full justify-between h-9 px-3 text-xs bg-background/50 hover:bg-muted/30 border-border/70 rounded-lg shadow-none", !clientId && "text-muted-foreground")}>
                                                         {clientId ? (() => {
                                                             const c = clients.find(x => x.id === clientId);
-                                                            return c ? <VIPName name={`${c.first_name} ${c.last_name}`} isVIP={c.is_vip} /> : "Selected";
+                                                            if (!c) return "Selected";
+                                                            const fullName = [c.first_name, c.middle_name, c.last_name].filter(Boolean).map(s => String(s).trim()).filter(Boolean).join(" ") || c.name || "Selected";
+                                                            return (
+                                                                <span className="flex items-center gap-2 truncate">
+                                                                    <VIPName name={fullName} isVIP={c.is_vip} />
+                                                                    {c.uhid && (
+                                                                        <span className="font-mono text-[10px] text-muted-foreground font-normal">
+                                                                            ({c.uhid})
+                                                                        </span>
+                                                                    )}
+                                                                </span>
+                                                            );
                                                         })() : "Search patients..."}
                                                         <ChevronsUpDown className="ml-2 h-3.5 w-3.5 opacity-50" />
                                                     </Button>
                                                 </PopoverTrigger>
                                                 <PopoverContent 
-                                                    className="w-[320px] p-0 z-[100] max-h-[300px] overflow-hidden pointer-events-auto" 
+                                                    className="w-[340px] sm:w-[380px] p-0 z-[100] max-h-[300px] overflow-hidden pointer-events-auto" 
                                                     align="start"
                                                     onWheel={(e) => e.stopPropagation()}
                                                     onTouchMove={(e) => e.stopPropagation()}
                                                 >
                                                     <Command className="max-h-[300px]">
-                                                        <CommandInput placeholder="Type name..." className="h-9 text-xs" />
+                                                        <CommandInput placeholder="Type name or UHID..." className="h-9 text-xs" />
                                                         <CommandList 
                                                             className="max-h-[220px] overflow-y-auto custom-scrollbar pointer-events-auto"
                                                             onWheel={(e) => e.stopPropagation()}
@@ -926,15 +937,32 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess, initialDa
                                                         >
                                                             <CommandEmpty>No patient found.</CommandEmpty>
                                                             <CommandGroup>
-                                                                {clients.map((c) => (
-                                                                    <CommandItem key={c.id} value={`${c.first_name} ${c.last_name}`} onSelect={() => {
-                                                                        setClientId(c.id);
-                                                                        setOpenPatientPopover(false);
-                                                                    }} className="text-xs py-2">
-                                                                        <Check className={cn("mr-2 h-3.5 w-3.5", clientId === c.id ? "opacity-100" : "opacity-0")} />
-                                                                        <VIPName name={`${c.first_name} ${c.last_name}`} isVIP={c.is_vip} />
-                                                                    </CommandItem>
-                                                                ))}
+                                                                {clients.map((c) => {
+                                                                    const fullName = [c.first_name, c.middle_name, c.last_name].filter(Boolean).map(s => String(s).trim()).filter(Boolean).join(" ") || c.name || "Client";
+                                                                    return (
+                                                                        <CommandItem 
+                                                                            key={c.id} 
+                                                                            value={`${fullName} ${c.uhid || ""}`} 
+                                                                            onSelect={() => {
+                                                                                setClientId(c.id);
+                                                                                setOpenPatientPopover(false);
+                                                                            }} 
+                                                                            className="text-xs py-2 flex items-center justify-between gap-2 cursor-pointer"
+                                                                        >
+                                                                            <div className="flex items-center gap-2 min-w-0 flex-1">
+                                                                                <Check className={cn("h-3.5 w-3.5 shrink-0", clientId === c.id ? "opacity-100" : "opacity-0")} />
+                                                                                <span className="truncate font-medium">
+                                                                                    <VIPName name={fullName} isVIP={c.is_vip} />
+                                                                                </span>
+                                                                            </div>
+                                                                            {c.uhid && (
+                                                                                <span className="font-mono text-[10px] font-semibold text-muted-foreground bg-muted/60 px-1.5 py-0.5 rounded border border-border/40 shrink-0 uppercase tracking-wider ml-auto">
+                                                                                    {c.uhid}
+                                                                                </span>
+                                                                            )}
+                                                                        </CommandItem>
+                                                                    );
+                                                                })}
                                                             </CommandGroup>
                                                         </CommandList>
                                                     </Command>

@@ -162,11 +162,14 @@ export default function LogInjuryModal({ clientId, organizationId, onSuccess, tr
                                     <SelectValue placeholder="Select an athlete..." />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {clients.map(c => (
-                                        <SelectItem key={c.id} value={c.id}>
-                                            {formatClientName(c)}
-                                        </SelectItem>
-                                    ))}
+                                    {clients.map(c => {
+                                        const fullName = [c.first_name, c.middle_name, c.last_name].filter(Boolean).map(s => String(s).trim()).filter(Boolean).join(" ") || formatClientName(c);
+                                        return (
+                                            <SelectItem key={c.id} value={c.id}>
+                                                {fullName}{c.uhid ? ` (${c.uhid})` : ''}
+                                            </SelectItem>
+                                        );
+                                    })}
                                 </SelectContent>
                             </Select>
                         </div>
