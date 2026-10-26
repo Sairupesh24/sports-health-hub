@@ -1294,11 +1294,11 @@ router.patch('/users/:id/role', requireAuth, async (req, res) => {
     const client = await db.connect();
     try {
         const { id } = req.params;
-        const { role, profession, ams_role, uhid, has_calendar_access, has_analytics_access, has_assign_work_access, allowed_consoles } = req.body;
+        const { role, profession, ams_role, uhid, has_calendar_access, has_analytics_access, has_assign_work_access, has_kb_edit_access, allowed_consoles } = req.body;
         const orgId = req.user.organization_id;
 
-        // Security check for calendar access, analytics access, or assign work access change
-        if ((has_calendar_access !== undefined || has_analytics_access !== undefined || has_assign_work_access !== undefined || allowed_consoles !== undefined) && req.user.role !== 'admin') {
+        // Security check for calendar access, analytics access, assign work access, or KB edit access change
+        if ((has_calendar_access !== undefined || has_analytics_access !== undefined || has_assign_work_access !== undefined || has_kb_edit_access !== undefined || allowed_consoles !== undefined) && req.user.role !== 'admin') {
             return res.status(403).json({ error: 'Forbidden: Only administrators can modify access permissions' });
         }
 
@@ -1308,7 +1308,7 @@ router.patch('/users/:id/role', requireAuth, async (req, res) => {
         const targetRes = await client.query(`
             SELECT u.id, u.email, u.role, 
                    p.first_name, p.last_name, p.profession, p.ams_role, p.uhid,
-                   p.has_calendar_access, p.has_analytics_access, p.has_assign_work_access,
+                   p.has_calendar_access, p.has_analytics_access, p.has_assign_work_access, p.has_kb_edit_access,
                    p.allowed_consoles
             FROM users u
             LEFT JOIN profiles p ON p.id = u.id
@@ -1406,6 +1406,16 @@ router.patch('/users/:id/role', requireAuth, async (req, res) => {
             });
         }
 
+        if (has_kb_edit_access !== undefined && Boolean(has_kb_edit_access) !== Boolean(targetUser.has_kb_edit_access)) {
+            changes.push({
+                field: 'has_kb_edit_access',
+                label: 'Knowledge Base Editor Access',
+                old_val: Boolean(targetUser.has_kb_edit_access),
+                new_val: Boolean(has_kb_edit_access),
+                display: `Knowledge Base Editor privileges ${has_kb_edit_access ? 'Enabled' : 'Disabled'}`
+            });
+        }
+
         if (allowed_consoles !== undefined) {
             const oldConsoles = normalizeConsolesArray(targetUser.allowed_consoles);
             const newConsoles = normalizeConsolesArray(allowed_consoles);
@@ -1461,6 +1471,10 @@ router.patch('/users/:id/role', requireAuth, async (req, res) => {
         if (has_assign_work_access !== undefined) {
             updates.push(`has_assign_work_access = $${params.length + 1}`);
             params.push(has_assign_work_access);
+        }
+        if (has_kb_edit_access !== undefined) {
+            updates.push(`has_kb_edit_access = $${params.length + 1}`);
+            params.push(has_kb_edit_access);
         }
         if (allowed_consoles !== undefined) {
             updates.push(`allowed_consoles = $${params.length + 1}`);
@@ -1550,6 +1564,7 @@ router.patch('/users/:id/role', requireAuth, async (req, res) => {
         if (has_calendar_access !== undefined) changeDetails.push(`Calendar Access: ${has_calendar_access ? 'Enabled' : 'Disabled'}`);
         if (has_analytics_access !== undefined) changeDetails.push(`Analytics Access: ${has_analytics_access ? 'Enabled' : 'Disabled'}`);
         if (has_assign_work_access !== undefined) changeDetails.push(`Work Assignment: ${has_assign_work_access ? 'Enabled' : 'Disabled'}`);
+        if (has_kb_edit_access !== undefined) changeDetails.push(`Knowledge Base Editor: ${has_kb_edit_access ? 'Enabled' : 'Disabled'}`);
         if (allowed_consoles !== undefined) changeDetails.push(`Console Access Permissions Updated`);
 
         if (changeDetails.length > 0) {

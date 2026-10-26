@@ -78,6 +78,7 @@ import MyProfile from "./pages/shared/MyProfile";
 import MobileProfilePage from "./pages/mobile/MobileProfilePage";
 import ReportsPage from "./pages/shared/ReportsPage";
 import AppGallery from "./pages/AppGallery";
+import KnowledgeBasePage from "./pages/knowledge-base/KnowledgeBasePage";
 import PublicQuestionnaireForm from "./pages/public/PublicQuestionnaireForm";
 import PerformanceTestingHub from "./pages/ams/PerformanceTestingHub";
 
@@ -305,6 +306,11 @@ const App = () => (
 
               {/* App Gallery */}
               <Route path="/app-gallery" element={<ProtectedRoute><AppGallery /></ProtectedRoute>} />
+
+              {/* ISHPO Knowledge Base & User Manual */}
+              <Route path="/knowledge-base" element={<ProtectedRoute><KnowledgeBasePage /></ProtectedRoute>} />
+              <Route path="/knowledge-base/:category" element={<ProtectedRoute><KnowledgeBasePage /></ProtectedRoute>} />
+              <Route path="/docs" element={<Navigate to="/knowledge-base" replace />} />
 
               {/* TeamComms Messenger */}
               <Route path="/messenger" element={<ProtectedRoute><MessengerPage /></ProtectedRoute>} />

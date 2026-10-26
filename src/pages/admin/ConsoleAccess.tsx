@@ -28,7 +28,8 @@ import {
     SlidersHorizontal,
     Clock,
     History,
-    FileText
+    FileText,
+    BookOpen
 } from "lucide-react";
 import { apiFetch } from "@/utils/api";
 import { toast } from "@/hooks/use-toast";
@@ -52,6 +53,7 @@ interface UserProfile {
     has_calendar_access: boolean;
     has_analytics_access: boolean;
     has_assign_work_access: boolean;
+    has_kb_edit_access: boolean;
 }
 
 interface ConsoleAccessProps {
@@ -141,6 +143,7 @@ export default function ConsoleAccess({ defaultTab }: ConsoleAccessProps) {
                     has_calendar_access: !!u.has_calendar_access,
                     has_analytics_access: !!u.has_analytics_access,
                     has_assign_work_access: !!u.has_assign_work_access,
+                    has_kb_edit_access: !!u.has_kb_edit_access,
                     allowed_consoles: parsedConsoles
                 };
             });
@@ -249,7 +252,7 @@ export default function ConsoleAccess({ defaultTab }: ConsoleAccessProps) {
         }
     };
 
-    const handleToggleFeatureAccess = async (userId: string, featureKey: "has_calendar_access" | "has_analytics_access" | "has_assign_work_access", currentVal: boolean) => {
+    const handleToggleFeatureAccess = async (userId: string, featureKey: "has_calendar_access" | "has_analytics_access" | "has_assign_work_access" | "has_kb_edit_access", currentVal: boolean) => {
         const targetUser = users.find(u => u.id === userId);
         if (!targetUser) return;
 
@@ -273,7 +276,8 @@ export default function ConsoleAccess({ defaultTab }: ConsoleAccessProps) {
             const featureNames = {
                 has_calendar_access: "Admin Calendar",
                 has_analytics_access: "Staff Analytics",
-                has_assign_work_access: "Work Assignment Privileges"
+                has_assign_work_access: "Work Assignment Privileges",
+                has_kb_edit_access: "Knowledge Base Editor"
             };
 
             toast({
@@ -643,7 +647,7 @@ export default function ConsoleAccess({ defaultTab }: ConsoleAccessProps) {
                                             <span className="text-[11px] text-slate-400">Granular rights</span>
                                         </div>
 
-                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
                                             {/* Admin Calendar */}
                                             <div className="p-3.5 bg-slate-50/80 rounded-2xl border border-slate-100 flex items-center justify-between">
                                                 <div>
@@ -691,6 +695,23 @@ export default function ConsoleAccess({ defaultTab }: ConsoleAccessProps) {
                                                     checked={selectedUser.current_role === "admin" || selectedUser.has_assign_work_access}
                                                     disabled={selectedUser.current_role === "admin" || togglingModuleId === "has_assign_work_access"}
                                                     onCheckedChange={() => handleToggleFeatureAccess(selectedUser.id, "has_assign_work_access", selectedUser.has_assign_work_access)}
+                                                    className="data-[state=checked]:bg-primary scale-75"
+                                                />
+                                            </div>
+
+                                            {/* Knowledge Base Editor */}
+                                            <div className="p-3.5 bg-slate-50/80 rounded-2xl border border-slate-100 flex items-center justify-between">
+                                                <div>
+                                                    <div className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                                                        <BookOpen className="w-3.5 h-3.5 text-primary" />
+                                                        KB Editor
+                                                    </div>
+                                                    <div className="text-[10px] text-slate-400 mt-0.5">Author & edit guides</div>
+                                                </div>
+                                                <Switch
+                                                    checked={selectedUser.current_role === "admin" || selectedUser.has_kb_edit_access}
+                                                    disabled={selectedUser.current_role === "admin" || togglingModuleId === "has_kb_edit_access"}
+                                                    onCheckedChange={() => handleToggleFeatureAccess(selectedUser.id, "has_kb_edit_access", selectedUser.has_kb_edit_access)}
                                                     className="data-[state=checked]:bg-primary scale-75"
                                                 />
                                             </div>

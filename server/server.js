@@ -18,6 +18,7 @@ import analyticsRoutes from './analytics.js';
 import plannerRoutes from './planner.js';
 import messengerRoutes from './messenger.js';
 import performanceRoutes from './performance.js';
+import knowledgeBaseRoutes from './knowledgeBase.js';
 import { startNotificationBridge } from './notification_bridge.js';
 import { startScheduler } from './scheduler.js';
 import { requireAuth } from './middleware.js';
@@ -549,6 +550,7 @@ app.use('/api/v1/analytics', analyticsRoutes);
 app.use('/api/planner', plannerRoutes);
 app.use('/api/messenger', messengerRoutes);
 app.use('/api/performance', performanceRoutes);
+app.use('/api/knowledge-base', knowledgeBaseRoutes);
 
 // --- Public Routes ---
 app.get('/api/public/orgs/:slug', async (req, res) => {

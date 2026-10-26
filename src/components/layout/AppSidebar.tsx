@@ -30,6 +30,7 @@ import {
   Microscope,
   FolderKanban,
   BarChart3,
+  BookOpen,
 } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 import { cn } from "@/lib/utils";
@@ -749,6 +750,27 @@ export default function AppSidebar({ role, isMobile, className, onNavigate }: Ap
               </span>
             </button>
           )}
+
+          <Link
+            to="/knowledge-base"
+            onClick={onNavigate}
+            className={cn(
+              "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors h-10",
+              location.pathname.startsWith("/knowledge-base")
+                ? "bg-sidebar-accent text-sidebar-primary shadow-glow font-bold"
+                : "text-sidebar-foreground hover:bg-sidebar-accent"
+            )}
+          >
+            <BookOpen className="w-5 h-5 shrink-0 text-teal-600" />
+            <span
+              className={cn(
+                "whitespace-nowrap transition-all duration-300 ease-in-out overflow-hidden text-left",
+                isExpanded ? "opacity-100 max-w-[150px]" : "opacity-0 max-w-0 pointer-events-none"
+              )}
+            >
+              Knowledge Base
+            </span>
+          </Link>
 
           <Link
             to="/profile"

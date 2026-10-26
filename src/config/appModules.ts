@@ -14,6 +14,7 @@ import {
   Stethoscope,
   TrendingUp,
   MessageSquare,
+  BookOpen,
 } from "lucide-react";
 
 export interface AppModuleDefinition {
@@ -187,6 +188,21 @@ export const APP_MODULES: AppModuleDefinition[] = [
                    "sports_scientist", "nutritionist", "foe", "hr_manager", "client", "athlete"],
     badge: "New",
   },
+  {
+    id: "knowledge_base",
+    name: "Knowledge Base",
+    description: "Official ISHPO manual: standard operating procedures, clinical case sheet guides, testing protocols, and workflows.",
+    icon: BookOpen,
+    href: "/knowledge-base",
+    color: "text-teal-700 bg-teal-100 border-teal-300",
+    gradient: "from-teal-500/20 via-emerald-600/10 to-teal-700/10",
+    badgeStyle: "bg-teal-100 text-teal-900 border-teal-300 font-bold",
+    defaultRoles: [
+      "admin", "super_admin", "sports_physician", "physiotherapist", "consultant",
+      "sports_scientist", "nutritionist", "foe", "hr_manager", "manager", "coach", "client", "athlete"
+    ],
+    badge: "Docs",
+  },
 ];
 
 /**
@@ -259,6 +275,7 @@ export const isModuleGrantedForUser = (
 
   // If admin has customized allowedConsoles list for this non-admin user
   if (parsedAllowed && Array.isArray(parsedAllowed)) {
+    if (moduleObj.id === "knowledge_base") return true;
     if (parsedAllowed.includes(moduleObj.id)) return true;
     if (moduleObj.id === "sports_scientist" && (parsedAllowed.includes("sports_scientist") || parsedAllowed.includes("ams"))) {
       return true;

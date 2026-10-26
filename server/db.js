@@ -3,6 +3,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs/promises';
 import * as XLSX from 'xlsx';
+import { seedKnowledgeBase } from './knowledgeBaseSeed.js';
 
 const { Pool } = pg;
 
@@ -322,6 +323,9 @@ async function runMigrations() {
     } catch (e) {}
     try {
       await pool.query(`ALTER TABLE profiles ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ DEFAULT NULL;`);
+    } catch (e) {}
+    try {
+      await pool.query(`ALTER TABLE profiles ADD COLUMN IF NOT EXISTS has_kb_edit_access BOOLEAN DEFAULT FALSE;`);
     } catch (e) {}
 
 
@@ -2202,12 +2206,59 @@ async function runMigrations() {
       );
     `);
 
+    // Knowledge Base Articles & Revisions Tables
+    try {
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS knowledge_base_articles (
+          id TEXT PRIMARY KEY,
+          organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
+          category TEXT NOT NULL,
+          title TEXT NOT NULL,
+          slug TEXT,
+          description TEXT,
+          content TEXT NOT NULL,
+          module_href TEXT,
+          tags JSONB DEFAULT '[]'::jsonb,
+          sort_order INTEGER DEFAULT 0,
+          is_published BOOLEAN DEFAULT FALSE,
+          created_by UUID REFERENCES users(id) ON DELETE SET NULL,
+          updated_by UUID REFERENCES users(id) ON DELETE SET NULL,
+          created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+        );
+
+        CREATE TABLE IF NOT EXISTS knowledge_base_revisions (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          article_id TEXT REFERENCES knowledge_base_articles(id) ON DELETE CASCADE,
+          organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
+          edited_by UUID REFERENCES users(id) ON DELETE SET NULL,
+          editor_name TEXT,
+          editor_role TEXT,
+          previous_content TEXT,
+          new_content TEXT,
+          change_summary TEXT,
+          is_published_state BOOLEAN,
+          created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_kb_articles_cat ON knowledge_base_articles (category, sort_order);
+        CREATE INDEX IF NOT EXISTS idx_kb_revisions_art ON knowledge_base_revisions (article_id, created_at DESC);
+
+        ALTER TABLE knowledge_base_articles ADD COLUMN IF NOT EXISTS section_number TEXT;
+        ALTER TABLE knowledge_base_articles ADD COLUMN IF NOT EXISTS parent_id TEXT;
+      `);
+    } catch (kbErr) {
+      console.error('[DB] Knowledge Base tables migration error:', kbErr);
+    }
+
     // Seed super admin
     await seedSuperAdmin();
     // Seed default organization
     await seedOrganization();
     // Seed default services for all organizations
     await seedAllOrganizationServices();
+    // Seed default knowledge base user guides
+    await seedKnowledgeBase(pool);
     console.log('[DB] Run migrations completed.');
   } catch (err) {
     console.error('[DB] Migration error:', err);

@@ -20,6 +20,7 @@ import {
   Lock,
   CheckCircle2,
   Compass,
+  BookOpen,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -122,6 +123,12 @@ const MODULE_HOVER_GLOWS: Record<string, { hoverBorder: string; hoverRing: strin
     hoverRing: "hover:ring-4 hover:ring-cyan-500/10",
     hoverShadow: "hover:shadow-xl hover:shadow-cyan-500/10",
     textHover: "group-hover:text-cyan-600",
+  },
+  knowledge_base: {
+    hoverBorder: "hover:border-teal-400",
+    hoverRing: "hover:ring-4 hover:ring-teal-500/10",
+    hoverShadow: "hover:shadow-xl hover:shadow-teal-500/10",
+    textHover: "group-hover:text-teal-700",
   },
 };
 
@@ -245,6 +252,14 @@ export default function AppGallery() {
             <ShieldCheck className="w-3.5 h-3.5 text-purple-600" />
             {formatRoleLabel(roles?.[0] || profile?.role)}
           </div>
+          <Button
+            variant="outline"
+            onClick={() => navigate("/knowledge-base")}
+            className="flex items-center gap-2 h-10 px-3.5 rounded-2xl border-teal-200 bg-teal-50/70 hover:bg-teal-100/70 text-teal-800 text-xs font-bold transition-all shadow-xs"
+          >
+            <BookOpen className="w-4 h-4 text-teal-600" />
+            <span className="hidden sm:inline">Knowledge Base</span>
+          </Button>
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -261,6 +276,10 @@ export default function AppGallery() {
                 <p className="text-xs font-bold text-slate-900">{fullName}</p>
                 <p className="text-[11px] text-slate-400 truncate">{profile?.email}</p>
               </div>
+              <DropdownMenuItem onClick={() => navigate("/knowledge-base")} className="rounded-xl cursor-pointer hover:bg-slate-100 text-xs font-semibold py-2 my-0.5">
+                <BookOpen className="w-4 h-4 mr-2.5 text-teal-600" />
+                Knowledge Base & Manual
+              </DropdownMenuItem>
               <DropdownMenuItem onClick={() => navigate("/profile")} className="rounded-xl cursor-pointer hover:bg-slate-100 text-xs font-semibold py-2 my-0.5">
                 <Users className="w-4 h-4 mr-2.5 text-teal-600" />
                 My Profile
