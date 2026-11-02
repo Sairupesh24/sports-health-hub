@@ -31,6 +31,7 @@ import {
   FolderKanban,
   BarChart3,
   BookOpen,
+  FileSpreadsheet,
 } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 import { cn } from "@/lib/utils";
@@ -46,10 +47,13 @@ interface NavItem {
   isUnderDevelopment?: boolean;
 }
 
+const analyticsNav: NavItem[] = [
+  { label: "Dashboards", icon: BarChart3, href: "/admin/analytics" },
+  { label: "Reporting Engine", icon: FileSpreadsheet, href: "/admin/reports" },
+];
+
 const adminNav: NavItem[] = [
   { label: "Dashboard", icon: LayoutDashboard, href: "/admin" },
-  { label: "Analytics & Reports", icon: BarChart3, href: "/admin/analytics" },
-  { label: "Staff Efficiency", icon: TrendingUp, href: "/admin/analytics?tab=staff" },
   { label: "Clients", icon: Users, href: "/admin/clients" },
   { label: "Billing", icon: CreditCard, href: "/admin/billing" },
   { label: "Calendar", icon: CalendarDays, href: "/admin/calendar" },
@@ -95,11 +99,8 @@ const sportsScientistNav: NavItem[] = [
 
 const managerNav: NavItem[] = [
   { label: "Dashboard", icon: LayoutDashboard, href: "/admin" },
-  { label: "Analytics & Reports", icon: BarChart3, href: "/admin/analytics" },
-  { label: "Staff Efficiency", icon: TrendingUp, href: "/admin/analytics?tab=staff" },
   { label: "Clients", icon: Users, href: "/admin/clients" },
   { label: "Calendar", icon: CalendarDays, href: "/admin/calendar" },
-  { label: "Reports", icon: ClipboardList, href: "/admin/reports" },
 ];
 
 const hrNav: NavItem[] = [
@@ -333,6 +334,21 @@ export default function AppSidebar({ role, isMobile, className, onNavigate }: Ap
     if (consoleOverride === 'foe' || path === '/admin/foe' || path.startsWith('/admin/foe') || (isPureFoeUser && !path.startsWith('/ams') && !path.startsWith('/client'))) {
       resolved = 'foe';
       try { sessionStorage.setItem('active_console', 'foe'); } catch {}
+    } else if (
+      consoleOverride === 'analytics' ||
+      role === 'analytics' ||
+      resolvedRole === 'analytics' ||
+      path === '/admin/analytics' ||
+      path.startsWith('/admin/analytics') ||
+      path === '/admin/dashboards' ||
+      path.startsWith('/admin/dashboards') ||
+      path === '/admin/reports' ||
+      path.startsWith('/admin/reports') ||
+      path === '/admin/reporting-engine' ||
+      path.startsWith('/admin/reporting-engine')
+    ) {
+      resolved = 'analytics';
+      try { sessionStorage.setItem('active_console', 'analytics'); } catch {}
     } else if (path.startsWith('/admin/settings') || path.startsWith('/admin/permissions')) {
       resolved = 'settings';
       try { sessionStorage.setItem('active_console', 'settings'); } catch {}
@@ -376,7 +392,16 @@ export default function AppSidebar({ role, isMobile, className, onNavigate }: Ap
     } else if (path === '/admin/foe' || path.startsWith('/admin/foe') || isPureFoeUser) {
       resolved = 'foe';
       try { sessionStorage.setItem('active_console', 'foe'); } catch {}
-    } else if (path === '/admin' || (path.startsWith('/admin') && !path.startsWith('/admin/calendar') && !path.startsWith('/admin/analytics') && !path.startsWith('/admin/clients') && !path.startsWith('/admin/billing') && !path.startsWith('/admin/leads') && storedConsole === 'admin')) {
+    } else if (
+      path === '/admin' ||
+      path.startsWith('/admin/clients') ||
+      path.startsWith('/admin/billing') ||
+      path.startsWith('/admin/calendar') ||
+      path.startsWith('/admin/leads') ||
+      path.startsWith('/admin/users') ||
+      path.startsWith('/admin/availability') ||
+      path.startsWith('/admin/appointments')
+    ) {
       resolved = 'admin';
       try { sessionStorage.setItem('active_console', 'admin'); } catch {}
     }
@@ -403,14 +428,9 @@ export default function AppSidebar({ role, isMobile, className, onNavigate }: Ap
     const buildConsultantNav = (): NavItem[] => {
       const nav: NavItem[] = [
         { label: "Dashboard", icon: LayoutDashboard, href: "/consultant" },
-      ];
-      if (hasAnalyticsAccess) {
-        nav.push({ label: "Staff Efficiency", icon: TrendingUp, href: "/admin/analytics/managerial" });
-      }
-      nav.push(
         { label: "Clients", icon: Users, href: "/consultant/clients" },
-        { label: "Schedule", icon: Calendar, href: "/consultant/schedule" }
-      );
+        { label: "Schedule", icon: Calendar, href: "/consultant/schedule" },
+      ];
       if (hasCalendarAccess) {
         nav.push({ label: "Admin Calendar", icon: CalendarDays, href: "/admin/calendar" });
       }
@@ -425,13 +445,8 @@ export default function AppSidebar({ role, isMobile, className, onNavigate }: Ap
     const buildSportsScientistNav = (): NavItem[] => {
       const nav: NavItem[] = [
         { label: "Dashboard", icon: LayoutDashboard, href: "/sports-scientist" },
+        { label: "Schedule", icon: Calendar, href: "/sports-scientist/schedule" },
       ];
-      if (hasAnalyticsAccess) {
-        nav.push({ label: "Staff Efficiency", icon: TrendingUp, href: "/admin/analytics/managerial" });
-      }
-      nav.push(
-        { label: "Schedule", icon: Calendar, href: "/sports-scientist/schedule" }
-      );
       if (hasCalendarAccess) {
         nav.push({ label: "Admin Calendar", icon: CalendarDays, href: "/admin/calendar" });
       }
@@ -448,16 +463,11 @@ export default function AppSidebar({ role, isMobile, className, onNavigate }: Ap
     const buildNutritionistNav = (): NavItem[] => {
       const nav: NavItem[] = [
         { label: "Dashboard", icon: LayoutDashboard, href: "/nutritionist" },
-      ];
-      if (hasAnalyticsAccess) {
-        nav.push({ label: "Staff Efficiency", icon: TrendingUp, href: "/admin/analytics/managerial" });
-      }
-      nav.push(
         { label: "Nutrition Clients", icon: Users, href: "/nutritionist/clients" },
         { label: "Assessments", icon: ClipboardList, href: "/nutritionist/assessments" },
         { label: "Meal Plans", icon: Flame, href: "/nutritionist/meal-plans" },
-        { label: "Schedule", icon: Calendar, href: "/nutritionist/schedule" }
-      );
+        { label: "Schedule", icon: Calendar, href: "/nutritionist/schedule" },
+      ];
       if (hasCalendarAccess) {
         nav.push({ label: "Admin Calendar", icon: CalendarDays, href: "/admin/calendar" });
       }
@@ -470,14 +480,9 @@ export default function AppSidebar({ role, isMobile, className, onNavigate }: Ap
     const buildAdminNav = (): NavItem[] => {
       const nav: NavItem[] = [
         { label: "Dashboard", icon: LayoutDashboard, href: "/admin" },
-      ];
-      if (hasAnalyticsAccess) {
-        nav.push({ label: "Staff Efficiency", icon: TrendingUp, href: "/admin/analytics/managerial" });
-      }
-      nav.push(
         { label: "Clients", icon: Users, href: "/admin/clients" },
-        { label: "Billing", icon: CreditCard, href: "/admin/billing" }
-      );
+        { label: "Billing", icon: CreditCard, href: "/admin/billing" },
+      ];
       if (hasCalendarAccess) {
         nav.push({ label: "Calendar", icon: CalendarDays, href: "/admin/calendar" });
       }
@@ -492,14 +497,9 @@ export default function AppSidebar({ role, isMobile, className, onNavigate }: Ap
       const nav: NavItem[] = [
         { label: "HR Dashboard", icon: LayoutDashboard, href: "/hr" },
         { label: "Activity Tracker", icon: Activity, href: "/hr/activity-tracker" },
-      ];
-      if (hasAnalyticsAccess) {
-        nav.push({ label: "Staff Efficiency", icon: TrendingUp, href: "/admin/analytics/managerial" });
-      }
-      nav.push(
         { label: "My Attendance", icon: Clock, href: "/my-attendance" },
-        { label: "Day Planner", icon: CalendarDays, href: "/hr/day-planner" }
-      );
+        { label: "Day Planner", icon: CalendarDays, href: "/hr/day-planner" },
+      ];
       if (hasCalendarAccess) {
         nav.push({ label: "Admin Calendar", icon: CalendarDays, href: "/admin/calendar" });
       }
@@ -519,6 +519,9 @@ export default function AppSidebar({ role, isMobile, className, onNavigate }: Ap
     let activeConsoleItems: NavItem[] = buildAdminNav();
 
     switch (effectiveConsole) {
+      case 'analytics':
+        activeConsoleItems = analyticsNav;
+        break;
       case 'settings':
         activeConsoleItems = settingsNav;
         break;
@@ -606,6 +609,7 @@ export default function AppSidebar({ role, isMobile, className, onNavigate }: Ap
                 : effectiveConsole === 'client' ? 'Client Portal'
                 : effectiveConsole === 'settings' ? 'Settings'
                 : effectiveConsole === 'questionnaires' ? 'Forms & Assessments'
+                : effectiveConsole === 'analytics' ? 'Analytics & Reports'
                 : 'Console'}
             </span>
           </div>
@@ -665,10 +669,29 @@ export default function AppSidebar({ role, isMobile, className, onNavigate }: Ap
                 "/client",
                 "/questionnaires"
               ].includes(item.href);
+              const isReportsEngine = item.label === "Reporting Engine";
+              const isDashboards = item.label === "Dashboards";
               const isActive = item.href === "/admin/foe"
                 ? (location.pathname === "/admin/foe" || location.pathname.startsWith("/admin/foe/"))
                 : isDashboardRoot
                 ? location.pathname === item.href
+                : isReportsEngine
+                ? (
+                    location.pathname === item.href ||
+                    location.pathname.startsWith(item.href + '/') ||
+                    location.pathname === "/admin/reporting-engine" ||
+                    location.pathname.startsWith("/admin/reporting-engine/") ||
+                    location.pathname === "/admin/reports" ||
+                    location.pathname.startsWith("/admin/reports/")
+                  )
+                : isDashboards
+                ? (
+                    location.pathname === item.href ||
+                    location.pathname.startsWith(item.href + '/') ||
+                    location.pathname === "/admin/dashboards" ||
+                    location.pathname.startsWith("/admin/dashboards/") ||
+                    location.pathname.startsWith("/admin/analytics")
+                  )
                 : (
                     location.pathname === item.href ||
                     location.pathname.startsWith(item.href + '/') ||

@@ -20,7 +20,8 @@ import {
   Filter,
   ArrowLeft,
   Clock,
-  Sparkles
+  Sparkles,
+  FileSpreadsheet
 } from "lucide-react";
 import {
   format,
@@ -33,6 +34,7 @@ import {
 } from "date-fns";
 
 // Views
+import ReportsHubView from "./ReportsHubView";
 import PatientTrackingView from "./PatientTrackingView";
 import CrossSellView from "./CrossSellView";
 import OrganizationsView from "./OrganizationsView";
@@ -44,15 +46,25 @@ export default function AnalyticsConsole() {
   const [searchParams, setSearchParams] = useSearchParams();
 
   // Tab State (synced with URL ?tab=...)
-  const initialTab = searchParams.get("tab") || "patients";
+  const tabFromUrl = searchParams.get("tab");
+  const initialTab =
+    tabFromUrl && tabFromUrl !== "reports"
+      ? tabFromUrl
+      : location.pathname.includes("managerial")
+      ? "staff"
+      : "patients";
   const [activeTab, setActiveTab] = useState<string>(initialTab);
 
   useEffect(() => {
-    const tabFromUrl = searchParams.get("tab");
-    if (tabFromUrl && tabFromUrl !== activeTab) {
-      setActiveTab(tabFromUrl);
+    const tabParam = searchParams.get("tab");
+    if (tabParam === "reports") {
+      navigate("/admin/reports", { replace: true });
+      return;
     }
-  }, [searchParams]);
+    if (tabParam && tabParam !== activeTab) {
+      setActiveTab(tabParam);
+    }
+  }, [searchParams, activeTab, navigate]);
 
   const handleTabChange = (val: string) => {
     setActiveTab(val);
@@ -165,7 +177,7 @@ export default function AnalyticsConsole() {
   }
 
   return (
-    <DashboardLayout role={roles?.[0] || "admin"}>
+    <DashboardLayout role="analytics">
       <div className="space-y-6 pb-16 animate-in fade-in slide-in-from-bottom-3 duration-500">
         {/* Top Header & Title */}
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-800 pb-5">
@@ -176,19 +188,19 @@ export default function AnalyticsConsole() {
               </div>
               <div>
                 <h1 className="text-2xl font-display font-extrabold text-foreground flex items-center gap-2">
-                  Analytics & Reports Console
+                  Dashboards
                   <Badge variant="outline" className="text-xs bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20 font-bold">
                     Executive Suite
                   </Badge>
                 </h1>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  Real-time patient acquisition tracking, inter-disciplinary service cross-selling, and institutional intelligence.
+                  Real-time patient acquisition tracking, inter-disciplinary service cross-selling, partner organizations, and staff efficiency intelligence.
                 </p>
               </div>
             </div>
           </div>
 
-          {/* Date Range & Preset Filter Bar */}
+          {/* Date Range & Preset Filter Bar (for overview analytics) */}
           <div className="flex flex-wrap items-center gap-1.5 bg-white dark:bg-slate-900 p-1.5 border border-slate-100 dark:border-slate-800 rounded-2xl shadow-sm self-start lg:self-auto">
             <Button
               variant={preset === "this-month" ? "default" : "ghost"}

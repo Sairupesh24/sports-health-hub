@@ -72,31 +72,38 @@ export default defineConfig(({ mode }) => ({
   },
   build: {
     minify: 'esbuild',
-    chunkSizeWarningLimit: 3500,
+    chunkSizeWarningLimit: 1200,
     rollupOptions: {
       output: {
         manualChunks(id) {
           if (id.includes('node_modules')) {
-            if (id.includes('jspdf') || id.includes('jspdf-autotable') || id.includes('html2canvas') || id.includes('pdfjs-dist')) {
+            // PDF and export heavy libs (including core-js / canvg / dompurify)
+            if (id.includes('jspdf') || id.includes('jspdf-autotable') || id.includes('html2canvas') || id.includes('pdfjs-dist') || id.includes('canvg') || id.includes('core-js') || id.includes('dompurify')) {
               return 'vendor-pdf';
             }
+            // Office docs & spreadsheet libs
             if (id.includes('xlsx') || id.includes('mammoth') || id.includes('docxtemplater') || id.includes('pizzip')) {
               return 'vendor-docs';
             }
-            if (id.includes('recharts') || id.includes('chart.js')) {
+            // Charts & Data visualization
+            if (id.includes('recharts') || id.includes('chart.js') || id.includes('/d3-')) {
               return 'vendor-charts';
             }
+            // Maps
             if (id.includes('leaflet') || id.includes('react-leaflet')) {
               return 'vendor-maps';
             }
-            if (id.includes('@tiptap')) {
+            // Rich text editor
+            if (id.includes('@tiptap') || id.includes('prosemirror')) {
               return 'vendor-editor';
             }
+            // Lucide icons
             if (id.includes('lucide-react')) {
               return 'vendor-lucide';
             }
-            if (id.includes('@radix-ui')) {
-              return 'vendor-radix';
+            // Core react runtime & Radix UI (bundled together to avoid circular chunk dependencies)
+            if (id.includes('/react/') || id.includes('/react-dom/') || id.includes('react-router') || id.includes('@remix-run/router') || id.includes('@radix-ui')) {
+              return 'vendor-framework';
             }
           }
         },

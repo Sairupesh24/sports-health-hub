@@ -1,6 +1,20 @@
+import { lazy, Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
-import PublicEnquiry from "./pages/PublicEnquiry";
-import LeadsDashboard from "./pages/admin/LeadsDashboard";
+
+// Resilient dynamic import helper to recover from transient Vite HMR/network drops
+const lazyWithRetry = (componentImport: () => Promise<any>) =>
+  lazy(async () => {
+    try {
+      return await componentImport();
+    } catch (error: any) {
+      console.warn("Failed to dynamically import module. Retrying once...", error);
+      await new Promise((r) => setTimeout(r, 250));
+      return await componentImport();
+    }
+  });
+
+const PublicEnquiry = lazy(() => import("./pages/PublicEnquiry"));
+const LeadsDashboard = lazy(() => import("./pages/admin/LeadsDashboard"));
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -9,128 +23,128 @@ import { ThemeProvider } from "next-themes";
 import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import { useAuth } from "@/contexts/AuthContext";
-import Index from "./pages/Index";
-import NotFound from "./pages/NotFound";
-import LoginPage from "./pages/LoginPage";
-import SignupPage from "./pages/auth/SignupPage";
-import ForgotPasswordPage from "./pages/auth/ForgotPasswordPage";
-import ResetPasswordPage from "./pages/auth/ResetPasswordPage";
-import PendingApprovalPage from "./pages/auth/PendingApprovalPage";
-import SetupPage from "./pages/auth/SetupPage";
-import AthleteDashboard from "./pages/ams/AthleteDashboard";
-import BatchTestEntry from "./pages/ams/BatchTestEntry";
-import CoachDashboard from "./pages/ams/CoachDashboard";
-import ProgramsPage from "./pages/ams/ProgramsPage";
-import WorkoutBuilder from "./pages/ams/WorkoutBuilder";
-import WorkoutLogging from "./pages/ams/WorkoutLogging";
-import AmsFeed from "./pages/ams/AmsFeed";
-import AmsCalendar from "./pages/ams/AmsCalendar";
-import ExerciseLibrary from "./pages/ams/ExerciseLibrary";
-import QuestionnaireLibrary from "./pages/ams/QuestionnaireLibrary";
-import AdminDashboard from "./pages/admin/AdminDashboard";
-import FOEDashboard from "./pages/admin/FOEDashboard";
-import ClientList from "./pages/admin/ClientList";
-import ClientRegistration from "./pages/admin/ClientRegistration";
-import FieldConfig from "./pages/admin/FieldConfig";
-import ServiceMapping from "./pages/admin/ServiceMapping";
-import AdminSettings from "./pages/admin/AdminSettings";
-import AdminInjuries from "./pages/admin/AdminInjuries";
-import AdminPermissions from "./pages/admin/AdminPermissions";
-import ConsoleAccess from "./pages/admin/ConsoleAccess";
-import ManagerialAnalytics from "./pages/admin/ManagerialAnalytics";
-import AnalyticsConsole from "./pages/admin/analytics/AnalyticsConsole";
-import ResourceScheduleManager from "./pages/admin/ResourceScheduleManager";
-import NotificationSettings from "./pages/admin/NotificationSettings";
-import ConsultantDashboard from "./pages/consultant/ConsultantDashboard";
-import NutritionistDashboard from "./pages/nutritionist/NutritionistDashboard";
-import NutritionistClients from "./pages/nutritionist/NutritionistClients";
-import NutritionistClientProfile from "./pages/nutritionist/NutritionistClientProfile";
-import NutritionistAssessmentsPage from "./pages/nutritionist/NutritionistAssessmentsPage";
-import NutritionistMealPlansPage from "./pages/nutritionist/NutritionistMealPlansPage";
-import NutritionistSchedule from "./pages/nutritionist/NutritionistSchedule";
-import HrDashboard from "./pages/hr/HrDashboard";
-import HrDayPlanner from "./pages/hr/HrDayPlanner";
-import ActivityTracker from "./pages/hr/ActivityTracker";
-import UserApproval from "./pages/hr/UserApproval";
-import StaffProfile from "./pages/hr/StaffProfile";
-import DailyLogs from "./pages/hr/DailyLogs";
-import LeaveApprovals from "./pages/hr/LeaveApprovals";
-import UserProfile from "./pages/UserProfile";
-import MyAttendancePage from "./pages/shared/MyAttendancePage";
+const Index = lazy(() => import("./pages/Index"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+const LoginPage = lazy(() => import("./pages/LoginPage"));
+const SignupPage = lazy(() => import("./pages/auth/SignupPage"));
+const ForgotPasswordPage = lazy(() => import("./pages/auth/ForgotPasswordPage"));
+const ResetPasswordPage = lazy(() => import("./pages/auth/ResetPasswordPage"));
+const PendingApprovalPage = lazy(() => import("./pages/auth/PendingApprovalPage"));
+const SetupPage = lazy(() => import("./pages/auth/SetupPage"));
+const AthleteDashboard = lazy(() => import("./pages/ams/AthleteDashboard"));
+const BatchTestEntry = lazy(() => import("./pages/ams/BatchTestEntry"));
+const CoachDashboard = lazy(() => import("./pages/ams/CoachDashboard"));
+const ProgramsPage = lazy(() => import("./pages/ams/ProgramsPage"));
+const WorkoutBuilder = lazy(() => import("./pages/ams/WorkoutBuilder"));
+const WorkoutLogging = lazy(() => import("./pages/ams/WorkoutLogging"));
+const AmsFeed = lazy(() => import("./pages/ams/AmsFeed"));
+const AmsCalendar = lazy(() => import("./pages/ams/AmsCalendar"));
+const ExerciseLibrary = lazy(() => import("./pages/ams/ExerciseLibrary"));
+const QuestionnaireLibrary = lazy(() => import("./pages/ams/QuestionnaireLibrary"));
+const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
+const FOEDashboard = lazy(() => import("./pages/admin/FOEDashboard"));
+const ClientList = lazy(() => import("./pages/admin/ClientList"));
+const ClientRegistration = lazy(() => import("./pages/admin/ClientRegistration"));
+const FieldConfig = lazy(() => import("./pages/admin/FieldConfig"));
+const ServiceMapping = lazy(() => import("./pages/admin/ServiceMapping"));
+const AdminSettings = lazy(() => import("./pages/admin/AdminSettings"));
+const AdminInjuries = lazy(() => import("./pages/admin/AdminInjuries"));
+const AdminPermissions = lazy(() => import("./pages/admin/AdminPermissions"));
+const ConsoleAccess = lazy(() => import("./pages/admin/ConsoleAccess"));
+const ManagerialAnalytics = lazy(() => import("./pages/admin/ManagerialAnalytics"));
+const AnalyticsConsole = lazyWithRetry(() => import("./pages/admin/analytics/AnalyticsConsole"));
+const ResourceScheduleManager = lazy(() => import("./pages/admin/ResourceScheduleManager"));
+const NotificationSettings = lazy(() => import("./pages/admin/NotificationSettings"));
+const ConsultantDashboard = lazy(() => import("./pages/consultant/ConsultantDashboard"));
+const NutritionistDashboard = lazy(() => import("./pages/nutritionist/NutritionistDashboard"));
+const NutritionistClients = lazy(() => import("./pages/nutritionist/NutritionistClients"));
+const NutritionistClientProfile = lazy(() => import("./pages/nutritionist/NutritionistClientProfile"));
+const NutritionistAssessmentsPage = lazy(() => import("./pages/nutritionist/NutritionistAssessmentsPage"));
+const NutritionistMealPlansPage = lazy(() => import("./pages/nutritionist/NutritionistMealPlansPage"));
+const NutritionistSchedule = lazy(() => import("./pages/nutritionist/NutritionistSchedule"));
+const HrDashboard = lazy(() => import("./pages/hr/HrDashboard"));
+const HrDayPlanner = lazy(() => import("./pages/hr/HrDayPlanner"));
+const ActivityTracker = lazy(() => import("./pages/hr/ActivityTracker"));
+const UserApproval = lazy(() => import("./pages/hr/UserApproval"));
+const StaffProfile = lazy(() => import("./pages/hr/StaffProfile"));
+const DailyLogs = lazy(() => import("./pages/hr/DailyLogs"));
+const LeaveApprovals = lazy(() => import("./pages/hr/LeaveApprovals"));
+const UserProfile = lazy(() => import("./pages/UserProfile"));
+const MyAttendancePage = lazy(() => import("./pages/shared/MyAttendancePage"));
 
-import BillingPage from "./pages/admin/Billing";
-import ClientProfile from "./pages/admin/ClientProfile";
-import ConsultantAvailability from "./pages/consultant/ConsultantAvailability";
-import MyClients from "./pages/consultant/MyClients";
-import ConsultantClientProfile from "./pages/consultant/ClientProfile";
-import ConsultantSchedule from "./pages/consultant/ConsultantSchedule";
-import CaseRepoPage from "./pages/consultant/CaseRepoPage";
-import ClientDashboard from "./pages/client/ClientDashboard";
-import BookAppointment from "./pages/client/BookAppointment";
-import ClientPerformancePage from "./pages/client/ClientPerformancePage";
-import AdminCalendar from "./pages/admin/AdminCalendar";
-import AdminAvailability from "./pages/admin/AdminAvailability";
-import AppointmentList from "./pages/shared/AppointmentList";
-import SuperAdminDashboard from "./pages/super-admin/Dashboard";
-import OrganizationDetails from "./pages/super-admin/OrganizationDetails";
-import OnboardOrganization from "./pages/super-admin/OnboardOrganization";
-import MyProfile from "./pages/shared/MyProfile";
-import MobileProfilePage from "./pages/mobile/MobileProfilePage";
-import ReportsPage from "./pages/shared/ReportsPage";
-import AppGallery from "./pages/AppGallery";
-import KnowledgeBasePage from "./pages/knowledge-base/KnowledgeBasePage";
-import PublicQuestionnaireForm from "./pages/public/PublicQuestionnaireForm";
-import PerformanceTestingHub from "./pages/ams/PerformanceTestingHub";
+const BillingPage = lazy(() => import("./pages/admin/Billing"));
+const ClientProfile = lazy(() => import("./pages/admin/ClientProfile"));
+const ConsultantAvailability = lazy(() => import("./pages/consultant/ConsultantAvailability"));
+const MyClients = lazy(() => import("./pages/consultant/MyClients"));
+const ConsultantClientProfile = lazy(() => import("./pages/consultant/ClientProfile"));
+const ConsultantSchedule = lazy(() => import("./pages/consultant/ConsultantSchedule"));
+const CaseRepoPage = lazy(() => import("./pages/consultant/CaseRepoPage"));
+const ClientDashboard = lazy(() => import("./pages/client/ClientDashboard"));
+const BookAppointment = lazy(() => import("./pages/client/BookAppointment"));
+const ClientPerformancePage = lazy(() => import("./pages/client/ClientPerformancePage"));
+const AdminCalendar = lazy(() => import("./pages/admin/AdminCalendar"));
+const AdminAvailability = lazy(() => import("./pages/admin/AdminAvailability"));
+const AppointmentList = lazy(() => import("./pages/shared/AppointmentList"));
+const SuperAdminDashboard = lazy(() => import("./pages/super-admin/Dashboard"));
+const OrganizationDetails = lazy(() => import("./pages/super-admin/OrganizationDetails"));
+const OnboardOrganization = lazy(() => import("./pages/super-admin/OnboardOrganization"));
+const MyProfile = lazy(() => import("./pages/shared/MyProfile"));
+const MobileProfilePage = lazy(() => import("./pages/mobile/MobileProfilePage"));
+const ReportsPage = lazyWithRetry(() => import("./pages/shared/ReportsPage"));
+const AppGallery = lazy(() => import("./pages/AppGallery"));
+const KnowledgeBasePage = lazy(() => import("./pages/knowledge-base/KnowledgeBasePage"));
+const PublicQuestionnaireForm = lazy(() => import("./pages/public/PublicQuestionnaireForm"));
+const PerformanceTestingHub = lazy(() => import("./pages/ams/PerformanceTestingHub"));
 
 // TeamComms Messenger
-import MessengerPage from "./pages/messenger/MessengerPage";
+const MessengerPage = lazy(() => import("./pages/messenger/MessengerPage"));
 import TeamCommsGlobalNotifier from "./components/messenger/TeamCommsGlobalNotifier";
 import { MessengerProvider } from "./contexts/MessengerContext";
 
 // OrbitFlow Planner
-import TeamsPage from "./pages/planner/TeamsPage";
-import PlannerSettings from "./pages/planner/PlannerSettings";
+const TeamsPage = lazy(() => import("./pages/planner/TeamsPage"));
+const PlannerSettings = lazy(() => import("./pages/planner/PlannerSettings"));
 import TaskReminderNotifier from "./components/planner/TaskReminderNotifier";
 
 // Sports Scientist Console
-import SportsScientistDashboard from "./pages/sports-scientist/SportsScientistDashboard";
-import SportsScientistSchedule from "./pages/sports-scientist/SportsScientistSchedule";
-import SportsScientistClients from "./pages/sports-scientist/SportsScientistClients";
+const SportsScientistDashboard = lazy(() => import("./pages/sports-scientist/SportsScientistDashboard"));
+const SportsScientistSchedule = lazy(() => import("./pages/sports-scientist/SportsScientistSchedule"));
+const SportsScientistClients = lazy(() => import("./pages/sports-scientist/SportsScientistClients"));
 
-import SportsScientistTemplates from "./pages/sports-scientist/SportsScientistTemplates";
-import WorkoutTemplatesPage from "./pages/ams/WorkoutTemplatesPage";
-import SportsScientistAnalytics from "./pages/sports-scientist/SportsScientistAnalytics";
-import SportsScientistResources from "./pages/sports-scientist/SportsScientistResources";
-import SportsScientistBilling from "./pages/sports-scientist/SportsScientistBilling";
+const SportsScientistTemplates = lazy(() => import("./pages/sports-scientist/SportsScientistTemplates"));
+const WorkoutTemplatesPage = lazy(() => import("./pages/ams/WorkoutTemplatesPage"));
+const SportsScientistAnalytics = lazy(() => import("./pages/sports-scientist/SportsScientistAnalytics"));
+const SportsScientistResources = lazy(() => import("./pages/sports-scientist/SportsScientistResources"));
+const SportsScientistBilling = lazy(() => import("./pages/sports-scientist/SportsScientistBilling"));
 
 // Mobile Client Pages
 import MobileGuard from "./components/auth/MobileGuard";
 import ErrorBoundary from "./components/ErrorBoundary";
-import MobileClientDashboard from "./pages/mobile/client/MobileClientDashboard";
-import MobilePerformancePage from "./pages/mobile/client/MobilePerformancePage";
-import MobileLogActivity from "./pages/mobile/client/MobileLogActivity";
-import MobileWorkoutLogging from "./pages/mobile/client/MobileWorkoutLogging";
-import MobileUnifiedSchedule from "./pages/mobile/client/MobileUnifiedSchedule";
-import MobileNotifications from "./pages/mobile/client/MobileNotifications";
+const MobileClientDashboard = lazy(() => import("./pages/mobile/client/MobileClientDashboard"));
+const MobilePerformancePage = lazy(() => import("./pages/mobile/client/MobilePerformancePage"));
+const MobileLogActivity = lazy(() => import("./pages/mobile/client/MobileLogActivity"));
+const MobileWorkoutLogging = lazy(() => import("./pages/mobile/client/MobileWorkoutLogging"));
+const MobileUnifiedSchedule = lazy(() => import("./pages/mobile/client/MobileUnifiedSchedule"));
+const MobileNotifications = lazy(() => import("./pages/mobile/client/MobileNotifications"));
 
 // Mobile Specialist Pages
-import MobileSpecialistDashboard from "./pages/mobile/specialist/MobileSpecialistDashboard";
-import MobileTestingAssessments from "./pages/mobile/specialist/MobileTestingAssessments";
-import MobileBulkAssignment from "./pages/mobile/specialist/MobileBulkAssignment";
-import MobileAttendance from "./pages/mobile/specialist/MobileAttendance";
-import MobileSessionManager from "./pages/mobile/specialist/MobileSessionManager";
-import MobileMemberships from "./pages/mobile/specialist/MobileMemberships";
-import MobileQuestionnaires from "./pages/mobile/specialist/MobileQuestionnaires";
-import MobileClients from "./pages/mobile/specialist/MobileClients";
+const MobileSpecialistDashboard = lazy(() => import("./pages/mobile/specialist/MobileSpecialistDashboard"));
+const MobileTestingAssessments = lazy(() => import("./pages/mobile/specialist/MobileTestingAssessments"));
+const MobileBulkAssignment = lazy(() => import("./pages/mobile/specialist/MobileBulkAssignment"));
+const MobileAttendance = lazy(() => import("./pages/mobile/specialist/MobileAttendance"));
+const MobileSessionManager = lazy(() => import("./pages/mobile/specialist/MobileSessionManager"));
+const MobileMemberships = lazy(() => import("./pages/mobile/specialist/MobileMemberships"));
+const MobileQuestionnaires = lazy(() => import("./pages/mobile/specialist/MobileQuestionnaires"));
+const MobileClients = lazy(() => import("./pages/mobile/specialist/MobileClients"));
 
 // Mobile Consultant Pages
-import MobileConsultantDashboard from "./pages/mobile/consultant/MobileConsultantDashboard";
-import MobilePhysicianView from "./pages/mobile/consultant/MobilePhysicianView";
-import MobilePhysioView from "./pages/mobile/consultant/MobilePhysioView";
-import MobileConsultantSchedule from "./pages/mobile/consultant/MobileConsultantSchedule";
+const MobileConsultantDashboard = lazy(() => import("./pages/mobile/consultant/MobileConsultantDashboard"));
+const MobilePhysicianView = lazy(() => import("./pages/mobile/consultant/MobilePhysicianView"));
+const MobilePhysioView = lazy(() => import("./pages/mobile/consultant/MobilePhysioView"));
+const MobileConsultantSchedule = lazy(() => import("./pages/mobile/consultant/MobileConsultantSchedule"));
 
 // Mobile Planner Page
-import MobilePlannerDashboard from "./pages/mobile/planner/MobilePlannerDashboard";
+const MobilePlannerDashboard = lazy(() => import("./pages/mobile/planner/MobilePlannerDashboard"));
 
 const queryClient = new QueryClient();
 
@@ -143,6 +157,13 @@ const AdminDashboardRedirect = () => {
   return <AdminDashboard />;
 };
 
+
+const PageLoader = () => (
+  <div className="h-screen overflow-y-auto flex items-center justify-center bg-background">
+    <div className="animate-pulse text-muted-foreground">Loading...</div>
+  </div>
+);
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
@@ -153,7 +174,7 @@ const App = () => (
             <Toaster />
             <Sonner />
             <BrowserRouter>
-            <Routes>
+            <Suspense fallback={<PageLoader />}><Routes>
               <Route path="/" element={<Index />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/signup" element={<SignupPage />} />
@@ -188,6 +209,7 @@ const App = () => (
               <Route path="/admin/settings/permissions" element={<ProtectedRoute requiredRole="admin"><ConsoleAccess /></ProtectedRoute>} />
               <Route path="/admin/permissions" element={<ProtectedRoute requiredRole="admin"><ConsoleAccess /></ProtectedRoute>} />
               <Route path="/admin/analytics" element={<ProtectedRoute><AnalyticsConsole /></ProtectedRoute>} />
+              <Route path="/admin/dashboards" element={<ProtectedRoute><AnalyticsConsole /></ProtectedRoute>} />
               <Route path="/admin/analytics/patients" element={<ProtectedRoute><AnalyticsConsole /></ProtectedRoute>} />
               <Route path="/admin/analytics/managerial" element={<ProtectedRoute><AnalyticsConsole /></ProtectedRoute>} />
               <Route path="/admin/settings/notifications" element={<ProtectedRoute requiredRole="admin"><NotificationSettings /></ProtectedRoute>} />
@@ -217,6 +239,7 @@ const App = () => (
               <Route path="/admin/calendar" element={<ProtectedRoute checkCalendarAccess><AdminCalendar /></ProtectedRoute>} />
               <Route path="/admin/availability" element={<ProtectedRoute requiredRole="admin"><AdminAvailability /></ProtectedRoute>} />
               <Route path="/admin/reports" element={<ProtectedRoute requiredRole={["admin", "foe", "manager"]}><ReportsPage role="admin" /></ProtectedRoute>} />
+              <Route path="/admin/reporting-engine" element={<ProtectedRoute requiredRole={["admin", "foe", "manager"]}><ReportsPage role="admin" /></ProtectedRoute>} />
               <Route path="/admin/appointments" element={<ProtectedRoute requiredRole={["admin", "foe"]}><AppointmentList role="admin" /></ProtectedRoute>} />
               <Route path="/consultant" element={<MobileGuard><ProtectedRoute requiredRole={["consultant", "sports_physician", "physiotherapist", "nutritionist", "massage_therapist", "admin", "super_admin"]}><ConsultantDashboard /></ProtectedRoute></MobileGuard>} />
               {/* Nutritionist Console Routes */}
@@ -328,7 +351,7 @@ const App = () => (
               {/* Universal Authenticated Routes */}
               <Route path="/profile" element={<ProtectedRoute><MyProfile /></ProtectedRoute>} />
               <Route path="*" element={<NotFound />} />
-            </Routes>
+            </Routes></Suspense>
             <TaskReminderNotifier />
             <TeamCommsGlobalNotifier />
           </BrowserRouter>

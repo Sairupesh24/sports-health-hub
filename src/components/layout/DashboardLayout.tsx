@@ -38,6 +38,13 @@ export default function DashboardLayout({ role, children }: DashboardLayoutProps
     effectiveRole = "foe";
   } else if (location.pathname.startsWith('/questionnaires')) {
     effectiveRole = "questionnaires";
+  } else if (
+    location.pathname.startsWith('/admin/analytics') ||
+    location.pathname.startsWith('/admin/dashboards') ||
+    location.pathname.startsWith('/admin/reports') ||
+    location.pathname.startsWith('/admin/reporting-engine')
+  ) {
+    effectiveRole = "analytics";
   } else if (!effectiveRole || effectiveRole === "user") {
     const activeConsole = typeof window !== 'undefined' ? sessionStorage.getItem("active_console") : null;
     if (activeConsole === "foe") {
