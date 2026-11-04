@@ -5,8 +5,7 @@ export interface ExcelColumn<T> {
   formatter?: (val: any, row: T) => string | number;
 }
 
-export interface ExportReportOptions<T> {
-  filename: string;
+export interface ExcelSheetConfig<T = any> {
   sheetName?: string;
   title: string;
   metadata?: Array<{ label: string; value: string | number }>;
@@ -14,23 +13,24 @@ export interface ExportReportOptions<T> {
   data: T[];
 }
 
-/**
- * Exports data to a formatted Excel (.xlsx) spreadsheet with headers, metadata and auto-adjusted column widths.
- * Dynamically loads the SheetJS library on demand to optimize initial page bundle performance.
- */
-export async function exportToExcel<T>({
-  filename,
-  sheetName = "Report",
-  title,
-  metadata = [],
-  columns,
-  data,
-}: ExportReportOptions<T>): Promise<void> {
-  // Dynamically load SheetJS on demand
-  const XLSXModule = await import("xlsx");
-  const XLSX = (XLSXModule as any).default || XLSXModule;
+export interface ExportReportOptions<T> extends ExcelSheetConfig<T> {
+  filename: string;
+}
 
-  // Build a 2D array of rows for SheetJS
+export interface MultiSheetReportOptions {
+  filename: string;
+  sheets: ExcelSheetConfig[];
+}
+
+function createWorksheet<T>(
+  XLSX: any,
+  {
+    title,
+    metadata = [],
+    columns,
+    data,
+  }: ExcelSheetConfig<T>
+) {
   const rows: any[][] = [];
 
   // Organization & Report Title banner
@@ -83,13 +83,53 @@ export async function exportToExcel<T>({
 
   // Assign column widths
   ws["!cols"] = colWidths;
+  return ws;
+}
 
-  // Create workbook
+/**
+ * Exports data to a formatted Excel (.xlsx) spreadsheet with headers, metadata and auto-adjusted column widths.
+ * Dynamically loads the SheetJS library on demand to optimize initial page bundle performance.
+ */
+export async function exportToExcel<T>({
+  filename,
+  sheetName = "Report",
+  title,
+  metadata = [],
+  columns,
+  data,
+}: ExportReportOptions<T>): Promise<void> {
+  // Dynamically load SheetJS on demand
+  const XLSXModule = await import("xlsx");
+  const XLSX = (XLSXModule as any).default || XLSXModule;
+
+  const ws = createWorksheet(XLSX, { sheetName, title, metadata, columns, data });
   const wb = XLSX.utils.book_new();
   const safeSheetName = (sheetName || "Report").replace(/[:\\/?*[\]]/g, "").slice(0, 31);
   XLSX.utils.book_append_sheet(wb, ws, safeSheetName);
 
   // Write and download
+  const cleanFilename = filename.endsWith(".xlsx") ? filename : `${filename}.xlsx`;
+  XLSX.writeFile(wb, cleanFilename);
+}
+
+/**
+ * Exports multiple datasets into separate sheets within a single formatted Excel (.xlsx) workbook.
+ */
+export async function exportToExcelMultiSheet({
+  filename,
+  sheets,
+}: MultiSheetReportOptions): Promise<void> {
+  const XLSXModule = await import("xlsx");
+  const XLSX = (XLSXModule as any).default || XLSXModule;
+
+  const wb = XLSX.utils.book_new();
+
+  for (const sheet of sheets) {
+    const ws = createWorksheet(XLSX, sheet);
+    const safeSheetName = (sheet.sheetName || "Sheet").replace(/[:\\/?*[\]]/g, "").slice(0, 31);
+    XLSX.utils.book_append_sheet(wb, ws, safeSheetName);
+  }
+
   const cleanFilename = filename.endsWith(".xlsx") ? filename : `${filename}.xlsx`;
   XLSX.writeFile(wb, cleanFilename);
 }

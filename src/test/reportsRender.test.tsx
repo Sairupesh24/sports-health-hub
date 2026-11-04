@@ -4,6 +4,7 @@ import { render } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter } from 'react-router-dom';
 import ReportsPage from '../pages/shared/ReportsPage';
+import ReportsHubView from '../pages/admin/analytics/ReportsHubView';
 
 // Mock Lucide React icons
 vi.mock('lucide-react', async (importOriginal) => {
@@ -34,7 +35,37 @@ vi.mock('@/utils/api', () => ({
         billingStaff: [{ id: '3', name: 'Admin Staff', role: 'admin' }],
         services: [{ id: '4', name: 'Physio Session', category: 'Physiotherapy', price: 1500 }],
         paymentMethods: ['Cash', 'UPI'],
-        sessionTypes: { physiotherapy: ['Consultation'], sportsScience: ['S&C'] }
+        sessionTypes: { physiotherapy: ['Consultation'], sportsScience: ['S&C'] },
+        groups: ['Senior Badminton Squad', 'CHAMP S&C (Morning)']
+      };
+    }
+    if (endpoint.includes('/analytics/reports/sessions') && endpoint.includes('module=group')) {
+      return {
+        data: [
+          {
+            session_id: 'grp-sess-1',
+            group_name: 'Senior Badminton Squad',
+            scheduled_start: '2026-11-04T10:00:00.000Z',
+            duration_formatted: '1h',
+            duration_minutes: 60,
+            instructor_name: 'Dr. Coach',
+            service_type: 'Strength & Conditioning',
+            status: 'Completed',
+          }
+        ],
+        summary: { totalSessions: 1, completedSessions: 1, cancelledSessions: 0, totalDurationHours: 1, uniqueGroupsCount: 1 },
+        groupBreakdown: [
+          {
+            groupId: 'Senior Badminton Squad',
+            groupName: 'Senior Badminton Squad',
+            category: 'Strength & Conditioning',
+            totalSessions: 1,
+            completedSessions: 1,
+            cancelledSessions: 0,
+            totalDurationHours: 1,
+            instructorsList: 'Dr. Coach'
+          }
+        ]
       };
     }
     return { data: [], summary: {} };
@@ -122,5 +153,32 @@ describe('ReportsPage Render Tests', () => {
     // Clinician with analytics access gets both tabs
     expect(container.innerHTML).toContain('Individual Clinical Assessment');
     expect(container.innerHTML).toContain('Operational &amp; Excel Export Reports');
+  });
+
+  it('should render Group Sessions module and group sessions summary properly', async () => {
+    mockAuth = {
+      profile: { id: 'admin-prof', organization_id: 'd735732c-5951-45e6-bb16-7668b8a95925', first_name: 'Admin', last_name: 'User', profession: 'Admin', has_analytics_access: true },
+      user: { id: 'admin-user' },
+      roles: ['admin']
+    };
+
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+
+    const { container, findByText, findAllByText } = render(
+      <QueryClientProvider client={queryClient}>
+        <BrowserRouter>
+          <ReportsHubView initialModule="Group Sessions" initialReport="all-groups" role="admin" />
+        </BrowserRouter>
+      </QueryClientProvider>
+    );
+
+    // Group Sessions module elements should be rendered
+    expect(container.innerHTML).toContain('Group Sessions');
+    expect(container.innerHTML).toContain('Reports history');
+    expect(await findByText('Group Sessions & Hours Summary')).toBeInTheDocument();
+    const groupElements = await findAllByText('Senior Badminton Squad');
+    expect(groupElements.length).toBeGreaterThanOrEqual(1);
   });
 });

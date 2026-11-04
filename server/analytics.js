@@ -906,7 +906,25 @@ router.get('/reports/options', requireAuth, async (req, res) => {
       LIMIT 1000
     `, [orgId]);
 
+    // 6. Distinct Groups list for Group Sessions module dropdown
+    let groupsList = [];
+    try {
+      const groupsRes = await db.query(`
+        SELECT DISTINCT TRIM(name) as name FROM (
+          SELECT name FROM client_groups WHERE organization_id = $1 AND name IS NOT NULL
+          UNION
+          SELECT group_name as name FROM sessions WHERE organization_id = $1 AND group_name IS NOT NULL AND TRIM(group_name) != ''
+        ) g
+        WHERE TRIM(name) != ''
+        ORDER BY name ASC
+      `, [orgId]);
+      groupsList = groupsRes.rows.map(g => g.name);
+    } catch (gErr) {
+      console.warn('Error querying groups in reports options:', gErr.message);
+    }
+
     res.json({
+      groups: groupsList,
       clients: clientsRes.rows.map(c => ({
         id: c.id,
         uhid: c.uhid || '',
@@ -1355,6 +1373,7 @@ router.get('/reports/sessions', requireAuth, async (req, res) => {
         s.actual_end,
         s.service_type,
         COALESCE(s.session_mode, 'Individual') as session_mode,
+        COALESCE(NULLIF(TRIM(s.group_name), ''), 'General Group') as group_name,
         s.status,
         s.cancellation_reason,
         s.session_notes,
@@ -1389,7 +1408,20 @@ router.get('/reports/sessions', requireAuth, async (req, res) => {
     const params = [orgId, startDate, endDate];
 
     // Module categorization
-    if (module === 'physiotherapy') {
+    if (module === 'client') {
+      // Exclude group sessions rows from client reports
+      query += ` AND (s.session_mode IS NULL OR s.session_mode != 'Group') 
+                 AND (s.group_name IS NULL OR TRIM(s.group_name) = '') 
+                 AND s.client_id IS NOT NULL`;
+    } else if (module === 'group' || module === 'group_sessions') {
+      // Group sessions module only
+      query += ` AND (s.session_mode = 'Group' OR (s.group_name IS NOT NULL AND TRIM(s.group_name) != ''))`;
+      const targetGroup = req.query.group_name || (req.query.report_type && req.query.report_type !== 'all-groups' ? req.query.report_type : null);
+      if (targetGroup && targetGroup !== 'all' && targetGroup !== 'all-groups') {
+        params.push(`%${targetGroup.trim()}%`);
+        query += ` AND s.group_name ILIKE $${params.length}`;
+      }
+    } else if (module === 'physiotherapy') {
       query += ` AND (
         s.therapist_id IS NOT NULL OR 
         p.profession ILIKE '%physio%' OR 
@@ -1488,13 +1520,15 @@ router.get('/reports/sessions', requireAuth, async (req, res) => {
         duration_formatted: durationFormatted,
         instructor_name: r.staff_name,
         instructor_role: r.staff_profession || r.staff_role || 'Instructor',
-        service_type: r.service_name || r.service_type || (module === 'physiotherapy' ? 'Physiotherapy Consultation' : (module === 'sports_science' ? 'Strength & Conditioning' : 'Clinical Session'))
+        service_type: r.service_name || r.service_type || (module === 'physiotherapy' ? 'Physiotherapy Consultation' : (module === 'sports_science' ? 'Strength & Conditioning' : (module === 'group' || module === 'group_sessions' ? 'Group Session' : 'Clinical Session'))),
+        group_name: r.group_name || (r.session_mode === 'Group' ? 'General Group' : null)
       };
     });
 
-    // Compute Staff Breakdown (Sessions done by therapist or sports scientist in selected timeframe)
+    // Compute Staff Breakdown, Client Breakdown, and Group Breakdown
     const staffBreakdownMap = new Map();
     const clientBreakdownMap = new Map();
+    const groupBreakdownMap = new Map();
 
     rows.forEach(r => {
       // Staff breakdown
@@ -1519,36 +1553,72 @@ router.get('/reports/sessions', requireAuth, async (req, res) => {
         sStat.uniqueClients.add(r.client_id);
       }
 
-      // Client breakdown (Sessions done for each client)
-      const clientKey = r.client_id || 'guest';
-      if (!clientBreakdownMap.has(clientKey)) {
-        clientBreakdownMap.set(clientKey, {
-          clientId: clientKey,
-          clientUhid: r.client_uhid || '-',
-          clientName: r.client_name,
-          clientSport: r.client_sport || 'General',
-          totalSessions: 0,
-          completedSessions: 0,
-          cancelledSessions: 0,
-          totalDurationMinutes: 0,
-          totalDurationHours: 0,
-          instructors: new Set()
-        });
+      // Client breakdown (Sessions done for each client - only for client sessions)
+      if (r.client_id) {
+        const clientKey = r.client_id;
+        if (!clientBreakdownMap.has(clientKey)) {
+          clientBreakdownMap.set(clientKey, {
+            clientId: clientKey,
+            clientUhid: r.client_uhid || '-',
+            clientName: r.client_name || 'Client',
+            clientSport: r.client_sport || 'General',
+            totalSessions: 0,
+            completedSessions: 0,
+            cancelledSessions: 0,
+            totalDurationMinutes: 0,
+            totalDurationHours: 0,
+            instructors: new Set()
+          });
+        }
+        const cStat = clientBreakdownMap.get(clientKey);
+        cStat.totalSessions++;
+        cStat.totalDurationMinutes += r.duration_minutes;
+        if (r.staff_name && r.staff_name !== 'Unassigned Staff') {
+          cStat.instructors.add(r.staff_name);
+        }
+        const stLower = (r.status || '').toLowerCase();
+        if (stLower === 'completed') {
+          cStat.completedSessions++;
+        } else if (stLower.includes('cancel')) {
+          cStat.cancelledSessions++;
+        }
       }
-      const cStat = clientBreakdownMap.get(clientKey);
-      cStat.totalSessions++;
-      cStat.totalDurationMinutes += r.duration_minutes;
-      if (r.staff_name && r.staff_name !== 'Unassigned Staff') {
-        cStat.instructors.add(r.staff_name);
+
+      // Group breakdown (Sessions done for each group)
+      if (r.session_mode === 'Group' || (r.group_name && r.group_name !== 'General Group')) {
+        const groupKey = (r.group_name || 'General Group').trim();
+        if (!groupBreakdownMap.has(groupKey)) {
+          groupBreakdownMap.set(groupKey, {
+            groupId: groupKey,
+            groupName: groupKey,
+            category: r.service_name || r.service_type || 'Group Session',
+            totalSessions: 0,
+            completedSessions: 0,
+            cancelledSessions: 0,
+            totalDurationMinutes: 0,
+            totalDurationHours: 0,
+            instructors: new Set()
+          });
+        }
+        const gStat = groupBreakdownMap.get(groupKey);
+        gStat.totalSessions++;
+        gStat.totalDurationMinutes += r.duration_minutes;
+        if (r.staff_name && r.staff_name !== 'Unassigned Staff') {
+          gStat.instructors.add(r.staff_name);
+        }
+        const stLower = (r.status || '').toLowerCase();
+        if (stLower === 'completed') {
+          gStat.completedSessions++;
+        } else if (stLower.includes('cancel')) {
+          gStat.cancelledSessions++;
+        }
       }
 
       const stLower = (r.status || '').toLowerCase();
       if (stLower === 'completed') {
         sStat.completedSessions++;
-        cStat.completedSessions++;
       } else if (stLower.includes('cancel')) {
         sStat.cancelledSessions++;
-        cStat.cancelledSessions++;
       }
     });
 
@@ -1577,6 +1647,18 @@ router.get('/reports/sessions', requireAuth, async (req, res) => {
       instructorsList: Array.from(c.instructors).join(', ') || 'General Instructor'
     })).sort((a, b) => b.totalSessions - a.totalSessions);
 
+    const groupBreakdown = Array.from(groupBreakdownMap.values()).map(g => ({
+      groupId: g.groupId,
+      groupName: g.groupName,
+      category: g.category,
+      totalSessions: g.totalSessions,
+      completedSessions: g.completedSessions,
+      cancelledSessions: g.cancelledSessions,
+      totalDurationMinutes: g.totalDurationMinutes,
+      totalDurationHours: parseFloat((g.totalDurationMinutes / 60).toFixed(1)),
+      instructorsList: Array.from(g.instructors).join(', ') || 'General Instructor'
+    })).sort((a, b) => b.totalSessions - a.totalSessions);
+
     // Compute overall summary
     const totalSessions = rows.length;
     const completedSessions = rows.filter(r => (r.status || '').toLowerCase() === 'completed').length;
@@ -1589,6 +1671,7 @@ router.get('/reports/sessions', requireAuth, async (req, res) => {
     let reportTitle = 'Client Sessions Report';
     if (module === 'physiotherapy') reportTitle = 'Physiotherapy Sessions Report';
     else if (module === 'sports_science') reportTitle = 'Sports Science Sessions Report';
+    else if (module === 'group' || module === 'group_sessions') reportTitle = 'Group Sessions Report';
 
     return res.json({
       module,
@@ -1602,10 +1685,12 @@ router.get('/reports/sessions', requireAuth, async (req, res) => {
         totalDurationHours,
         avgDurationMinutes,
         uniqueClientsCount,
+        uniqueGroupsCount: groupBreakdown.length,
         activePractitionersCount: staffBreakdown.length
       },
       staffBreakdown,
       clientBreakdown,
+      groupBreakdown,
       data: rows
     });
   } catch (error) {

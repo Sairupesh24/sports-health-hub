@@ -20,6 +20,14 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
   FileSpreadsheet,
   Download,
   Search,
@@ -32,8 +40,13 @@ import {
   RefreshCw,
   FileText,
   ChevronDown,
+  ChevronUp,
   Check,
-  Lock
+  CheckCircle2,
+  Lock,
+  Layers,
+  ListOrdered,
+  ArrowUpDown,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -47,7 +60,7 @@ import {
   startOfWeek,
   endOfWeek
 } from "date-fns";
-import { exportToExcel, exportToCSV, ExcelColumn } from "@/utils/excelExport";
+import { exportToExcel, exportToExcelMultiSheet, exportToCSV, ExcelColumn } from "@/utils/excelExport";
 import { toast } from "sonner";
 
 interface ReportsHubViewProps {
@@ -58,6 +71,7 @@ interface ReportsHubViewProps {
 
 interface FilterOptions {
   clients: Array<{ id: string; uhid: string; name: string; sport: string }>;
+  groups?: string[];
   therapists: Array<{ id: string; name: string; profession: string; role: string }>;
   sportsScientists: Array<{ id: string; name: string; profession: string; role: string }>;
   billingStaff: Array<{ id: string; name: string; role: string }>;
@@ -218,6 +232,8 @@ export default function ReportsHubView({ initialModule = "Billing", initialRepor
 
     if (newModule === "Client") {
       setSelectedReport("client-sessions");
+    } else if (newModule === "Group Sessions") {
+      setSelectedReport("all-groups");
     } else if (newModule === "Billing") {
       setSelectedReport("service-wise");
     } else if (newModule === "Physiotherapy") {
@@ -244,6 +260,7 @@ export default function ReportsHubView({ initialModule = "Billing", initialRepor
 
   // Fetch report data reactively
   const isClientModule = selectedModule === "Client";
+  const isGroupModule = selectedModule === "Group Sessions";
   const isBillingModule = selectedModule === "Billing";
   const isPhysioModule = selectedModule === "Physiotherapy";
   const isSportsScienceModule = selectedModule === "Sports Science";
@@ -297,6 +314,19 @@ export default function ReportsHubView({ initialModule = "Billing", initialRepor
         return apiFetch(`/analytics/reports/sessions?${params.toString()}`);
       }
 
+      if (isGroupModule) {
+        params.append("module", "group");
+        params.append("report_type", selectedReport);
+        if (selectedReport && selectedReport !== "all-groups") {
+          params.append("group_name", selectedReport);
+        }
+        if (selectedStaff !== "all") params.append("staff_id", selectedStaff);
+        if (selectedSessionType !== "all") params.append("session_type", selectedSessionType);
+        if (selectedStatus !== "all") params.append("status", selectedStatus);
+
+        return apiFetch(`/analytics/reports/sessions?${params.toString()}`);
+      }
+
       if (isPhysioModule || isSportsScienceModule) {
         params.append("module", isPhysioModule ? "physiotherapy" : "sports_science");
         params.append("report_type", selectedReport);
@@ -330,6 +360,132 @@ export default function ReportsHubView({ initialModule = "Billing", initialRepor
   const [availableClients, setAvailableClients] = useState<
     Array<{ id: string; uhid: string; name: string; sport?: string; count?: number }>
   >([]);
+
+  // Client Summary Table state (search, sort, and pagination)
+  const [summaryPage, setSummaryPage] = useState<number>(1);
+  const [summaryPageSize, setSummaryPageSize] = useState<number>(25);
+  const [summarySearch, setSummarySearch] = useState<string>("");
+  const [summarySortField, setSummarySortField] = useState<string>("totalSessions");
+  const [summarySortAsc, setSummarySortAsc] = useState<boolean>(false);
+  const [showFullIndividualLogs, setShowFullIndividualLogs] = useState<boolean>(false);
+
+  // Export Options Modal state
+  const [exportModalOpen, setExportModalOpen] = useState<boolean>(false);
+  const [exportFormat, setExportFormat] = useState<"excel" | "csv">("excel");
+  const [exportGrouping, setExportGrouping] = useState<"consolidated" | "individual" | "both">("consolidated");
+  const [isExporting, setIsExporting] = useState<boolean>(false);
+
+  // Reset summary page when module, timeframe, or search term changes
+  useEffect(() => {
+    setSummaryPage(1);
+  }, [selectedModule, startDate, endDate, searchTerm, summarySearch]);
+
+  // Filtered and sorted client breakdown for the consolidated table
+  const filteredClientSummary = useMemo(() => {
+    if (!reportData?.clientBreakdown || !Array.isArray(reportData.clientBreakdown)) return [];
+    let list = [...reportData.clientBreakdown];
+
+    const search = (summarySearch || searchTerm || "").trim().toLowerCase();
+    if (search) {
+      list = list.filter((c: any) => {
+        const name = (c.clientName || "").toLowerCase();
+        const uhid = (c.clientUhid || "").toLowerCase();
+        const sport = (c.clientSport || "").toLowerCase();
+        const instructors = (c.instructorsList || "").toLowerCase();
+        return name.includes(search) || uhid.includes(search) || sport.includes(search) || instructors.includes(search);
+      });
+    }
+
+    list.sort((a: any, b: any) => {
+      let valA = a[summarySortField];
+      let valB = b[summarySortField];
+      if (typeof valA === "string") valA = valA.toLowerCase();
+      if (typeof valB === "string") valB = valB.toLowerCase();
+      if (valA === undefined || valA === null) return 1;
+      if (valB === undefined || valB === null) return -1;
+      if (valA < valB) return summarySortAsc ? -1 : 1;
+      if (valA > valB) return summarySortAsc ? 1 : -1;
+      return 0;
+    });
+
+    return list;
+  }, [reportData?.clientBreakdown, summarySearch, searchTerm, summarySortField, summarySortAsc]);
+
+  const summaryTotalPages = Math.ceil(filteredClientSummary.length / summaryPageSize) || 1;
+  const paginatedClientSummary = useMemo(() => {
+    const start = (summaryPage - 1) * summaryPageSize;
+    return filteredClientSummary.slice(start, start + summaryPageSize);
+  }, [filteredClientSummary, summaryPage, summaryPageSize]);
+
+  // Dynamically populated group names extracted from backend options, groupBreakdown, and sessions
+  const availableGroupNames = useMemo(() => {
+    const set = new Set<string>();
+    if (options?.groups && Array.isArray(options.groups)) {
+      options.groups.forEach((g) => {
+        if (g && typeof g === "string" && g.trim()) set.add(g.trim());
+      });
+    }
+    if (reportData?.groupBreakdown && Array.isArray(reportData.groupBreakdown)) {
+      reportData.groupBreakdown.forEach((g: any) => {
+        if (g.groupName && typeof g.groupName === "string" && g.groupName.trim() && g.groupName !== "General Group") {
+          set.add(g.groupName.trim());
+        }
+      });
+    }
+    if (reportData?.data && Array.isArray(reportData.data)) {
+      reportData.data.forEach((r: any) => {
+        if (r.group_name && typeof r.group_name === "string" && r.group_name.trim() && r.group_name !== "General Group") {
+          set.add(r.group_name.trim());
+        }
+      });
+    }
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [options?.groups, reportData]);
+
+  // Filtered and sorted group breakdown for the consolidated table
+  const filteredGroupSummary = useMemo(() => {
+    if (!reportData?.groupBreakdown || !Array.isArray(reportData.groupBreakdown)) return [];
+    let list = [...reportData.groupBreakdown];
+
+    const search = (summarySearch || searchTerm || "").trim().toLowerCase();
+    if (search) {
+      list = list.filter((g: any) => {
+        const name = (g.groupName || "").toLowerCase();
+        const cat = (g.category || "").toLowerCase();
+        const instructors = (g.instructorsList || "").toLowerCase();
+        return name.includes(search) || cat.includes(search) || instructors.includes(search);
+      });
+    }
+
+    list.sort((a: any, b: any) => {
+      let valA = a[summarySortField];
+      let valB = b[summarySortField];
+      if (typeof valA === "string") valA = valA.toLowerCase();
+      if (typeof valB === "string") valB = valB.toLowerCase();
+      if (valA === undefined || valA === null) return 1;
+      if (valB === undefined || valB === null) return -1;
+      if (valA < valB) return summarySortAsc ? -1 : 1;
+      if (valA > valB) return summarySortAsc ? 1 : -1;
+      return 0;
+    });
+
+    return list;
+  }, [reportData?.groupBreakdown, summarySearch, searchTerm, summarySortField, summarySortAsc]);
+
+  const groupSummaryTotalPages = Math.ceil(filteredGroupSummary.length / summaryPageSize) || 1;
+  const paginatedGroupSummary = useMemo(() => {
+    const start = (summaryPage - 1) * summaryPageSize;
+    return filteredGroupSummary.slice(start, start + summaryPageSize);
+  }, [filteredGroupSummary, summaryPage, summaryPageSize]);
+
+  const handleToggleSummarySort = (field: string) => {
+    if (summarySortField === field) {
+      setSummarySortAsc(!summarySortAsc);
+    } else {
+      setSummarySortField(field);
+      setSummarySortAsc(false); // Default descending for counts/hours
+    }
+  };
 
   // Keep availableClients updated whenever reportData loads with all clients
   useEffect(() => {
@@ -473,10 +629,13 @@ export default function ReportsHubView({ initialModule = "Billing", initialRepor
     }
   }, [reportData, selectedStaff, isPhysioModule, isSportsScienceModule, isBillingModule, options, isLoading]);
 
-  // Export to Excel handler (Applies all active filters)
-  const handleExportExcel = async () => {
+  // Export Open Handler: opens modal if report has grouping choices, or exports directly
+  const handleOpenExport = (
+    formatType: "excel" | "csv",
+    defaultGrouping: "consolidated" | "individual" | "both" = "consolidated"
+  ) => {
     if (!hasAnalyticsAccess) {
-      toast.error("Access Denied: Excel exports require Analytics & Reports Engine access.");
+      toast.error(`Access Denied: ${formatType.toUpperCase()} exports require Analytics & Reports Engine access.`);
       return;
     }
 
@@ -485,14 +644,45 @@ export default function ReportsHubView({ initialModule = "Billing", initialRepor
       return;
     }
 
+    // Check if current report offers consolidated grouping options
+    const hasConsolidatedOption =
+      isClientModule ||
+      isGroupModule ||
+      isPhysioModule ||
+      isSportsScienceModule ||
+      (isBillingModule && (selectedReport === "user-wise" || selectedReport === "payment-mode-wise"));
+
+    if (hasConsolidatedOption) {
+      setExportFormat(formatType);
+      setExportGrouping(defaultGrouping);
+      setExportModalOpen(true);
+    } else {
+      executeExport(formatType, "individual");
+    }
+  };
+
+  // Perform the actual export based on chosen format and grouping
+  const executeExport = async (
+    formatType: "excel" | "csv",
+    groupingType: "consolidated" | "individual" | "both"
+  ) => {
     try {
+      setIsExporting(true);
       const timestamp = format(new Date(), "yyyy-MM-dd");
       const metaInfo = [
         { label: "Report Module", value: selectedModule },
         { label: "Report Name", value: reportData?.title || reportData?.reportTitle || selectedReport },
+        {
+          label: "Grouping Mode",
+          value:
+            groupingType === "consolidated"
+              ? "Consolidated Summary"
+              : groupingType === "individual"
+              ? "Detailed Individual Records"
+              : "Consolidated Summary + Detailed Records",
+        },
         { label: "Timeframe", value: `${startDate} to ${endDate}` },
         { label: "Generated On", value: format(new Date(), "dd MMM yyyy, hh:mm a") },
-        { label: "Total Filtered Records", value: dataList.length },
       ];
 
       if (selectedClient !== "all") {
@@ -520,10 +710,30 @@ export default function ReportsHubView({ initialModule = "Billing", initialRepor
         metaInfo.push({ label: "Session Type", value: selectedSessionType });
       }
 
+      // -------------------------------------------------------------
+      // 1. CLIENT MODULE EXPORT (Consolidated vs Individual vs Both)
+      // -------------------------------------------------------------
       if (isClientModule) {
-        const columns: ExcelColumn<any>[] = [
+        const summaryColumns: ExcelColumn<any>[] = [
+          { header: "Client UHID", key: "clientUhid", width: 16 },
+          { header: "Client Name", key: "clientName", width: 24, formatter: (v) => v || "Guest / Walk-in Patient" },
+          { header: "Sport / Category", key: "clientSport", width: 18, formatter: (v) => v || "General" },
+          { header: "Total Sessions", key: "totalSessions", width: 14 },
+          { header: "Completed Sessions", key: "completedSessions", width: 16 },
+          { header: "Cancelled Sessions", key: "cancelledSessions", width: 16 },
+          {
+            header: "Total Duration (Hours)",
+            key: "totalDurationHours",
+            width: 18,
+            formatter: (v) => `${v} hrs`,
+          },
+          { header: "Total Duration (Minutes)", key: "totalDurationMinutes", width: 18 },
+          { header: "Primary Instructors", key: "instructorsList", width: 32 },
+        ];
+
+        const detailedColumns: ExcelColumn<any>[] = [
           { header: "Client UHID", key: "client_uhid", width: 14 },
-          { header: "Client Name", key: "client_name", width: 22 },
+          { header: "Client Name", key: "client_name", width: 22, formatter: (v) => v || "Guest / Walk-in Patient" },
           {
             header: "Session Date",
             key: "scheduled_start",
@@ -547,15 +757,345 @@ export default function ReportsHubView({ initialModule = "Billing", initialRepor
           { header: "Session Notes", key: "session_notes", width: 30 },
         ];
 
-        await exportToExcel({
-          filename: `CSSH_Client_Sessions_${timestamp}`,
-          sheetName: "Client Sessions",
-          title: "Client Sessions History & Details Report",
-          metadata: metaInfo,
-          columns,
-          data: dataList,
-        });
-      } else if (isBillingModule) {
+        const summaryData = reportData?.clientBreakdown || [];
+
+        if (formatType === "excel") {
+          if (groupingType === "consolidated") {
+            await exportToExcel({
+              filename: `CSSH_Client_Sessions_Summary_${timestamp}`,
+              sheetName: "Client Sessions Summary",
+              title: "Client Sessions & Hours Consolidated Summary Report",
+              metadata: [...metaInfo, { label: "Total Unique Clients", value: summaryData.length }],
+              columns: summaryColumns,
+              data: summaryData,
+            });
+          } else if (groupingType === "individual") {
+            await exportToExcel({
+              filename: `CSSH_Client_Sessions_Detailed_${timestamp}`,
+              sheetName: "Individual Sessions",
+              title: "Client Individual Sessions Log & Details Report",
+              metadata: [...metaInfo, { label: "Total Sessions", value: dataList.length }],
+              columns: detailedColumns,
+              data: dataList,
+            });
+          } else {
+            // Both sheets in one Excel workbook
+            await exportToExcelMultiSheet({
+              filename: `CSSH_Client_Sessions_Consolidated_${timestamp}`,
+              sheets: [
+                {
+                  sheetName: "Client Summary",
+                  title: "Client Sessions & Hours Consolidated Summary",
+                  metadata: [...metaInfo, { label: "Total Unique Clients", value: summaryData.length }],
+                  columns: summaryColumns,
+                  data: summaryData,
+                },
+                {
+                  sheetName: "Individual Sessions Log",
+                  title: "Client Individual Sessions Log & Details",
+                  metadata: [...metaInfo, { label: "Total Sessions", value: dataList.length }],
+                  columns: detailedColumns,
+                  data: dataList,
+                },
+              ],
+            });
+          }
+        } else {
+          // CSV format
+          if (groupingType === "consolidated") {
+            const summaryCsvColumns: ExcelColumn<any>[] = [
+              { header: "Client UHID", key: "clientUhid" },
+              { header: "Client Name", key: "clientName", formatter: (v) => v || "Guest / Walk-in Patient" },
+              { header: "Sport / Category", key: "clientSport", formatter: (v) => v || "General" },
+              { header: "Total Sessions", key: "totalSessions" },
+              { header: "Completed Sessions", key: "completedSessions" },
+              { header: "Cancelled Sessions", key: "cancelledSessions" },
+              { header: "Total Hours", key: "totalDurationHours", formatter: (v) => `${v} hrs` },
+              { header: "Primary Instructors", key: "instructorsList" },
+            ];
+            exportToCSV<any>({
+              filename: `CSSH_Client_Sessions_Summary_${timestamp}.csv`,
+              columns: summaryCsvColumns,
+              data: summaryData,
+            });
+          } else {
+            const detailedCsvColumns: ExcelColumn<any>[] = [
+              { header: "Client UHID", key: "client_uhid" },
+              { header: "Client Name", key: "client_name", formatter: (v) => v || "Guest / Walk-in Patient" },
+              { header: "Session Date", key: "scheduled_start", formatter: (v, row: any) => (v ? format(new Date(v), "dd/MM/yyyy") : row?.session_date || "-") },
+              { header: "Session Time", key: "scheduled_start", formatter: (v, row: any) => (v ? format(new Date(v), "hh:mm a") : row?.session_time || "-") },
+              { header: "Duration", key: "duration_formatted" },
+              { header: "Instructor", key: "instructor_name" },
+              { header: "Status", key: "status" },
+              { header: "Session Type", key: "service_type" },
+              { header: "Session Notes", key: "session_notes" },
+            ];
+            exportToCSV<any>({
+              filename: `CSSH_Client_Sessions_Detailed_${timestamp}.csv`,
+              columns: detailedCsvColumns,
+              data: dataList,
+            });
+          }
+        }
+      }
+
+      // -------------------------------------------------------------------------
+      // 1b. GROUP SESSIONS MODULE EXPORT (Consolidated vs Individual vs Both)
+      // -------------------------------------------------------------------------
+      else if (isGroupModule) {
+        const summaryColumns: ExcelColumn<any>[] = [
+          { header: "Group Name", key: "groupName", width: 28 },
+          { header: "Category / Modality", key: "category", width: 22 },
+          { header: "Total Sessions", key: "totalSessions", width: 14 },
+          { header: "Completed Sessions", key: "completedSessions", width: 16 },
+          { header: "Cancelled Sessions", key: "cancelledSessions", width: 16 },
+          {
+            header: "Total Duration",
+            key: "totalDurationHours",
+            width: 16,
+            formatter: (v) => `${v} hrs`,
+          },
+          { header: "Total Duration (Minutes)", key: "totalDurationMinutes", width: 18 },
+          { header: "Primary Instructors", key: "instructorsList", width: 32 },
+        ];
+
+        const detailedColumns: ExcelColumn<any>[] = [
+          { header: "Group Name", key: "group_name", width: 26 },
+          {
+            header: "Session Date",
+            key: "scheduled_start",
+            width: 14,
+            formatter: (v, row: any) => (v ? format(new Date(v), "dd/MM/yyyy") : row?.session_date || "-"),
+          },
+          {
+            header: "Session Time",
+            key: "scheduled_start",
+            width: 12,
+            formatter: (v, row: any) => (v ? format(new Date(v), "hh:mm a") : row?.session_time || "-"),
+          },
+          { header: "Duration", key: "duration_formatted", width: 14 },
+          { header: "Duration (Mins)", key: "duration_minutes", width: 14 },
+          { header: "Instructor", key: "instructor_name", width: 22 },
+          { header: "Instructor Role", key: "instructor_role", width: 18 },
+          { header: "Session Type / Modality", key: "service_type", width: 28 },
+          { header: "Location", key: "session_location", width: 18 },
+          { header: "Status", key: "status", width: 14 },
+          { header: "Cancellation Reason", key: "cancellation_reason", width: 24 },
+          { header: "Session Notes", key: "session_notes", width: 30 },
+        ];
+
+        const summaryData = reportData?.groupBreakdown || [];
+
+        if (formatType === "excel") {
+          if (groupingType === "consolidated") {
+            await exportToExcel({
+              filename: `CSSH_Group_Sessions_Summary_${timestamp}`,
+              sheetName: "Group Sessions Summary",
+              title: "Group Sessions & Hours Consolidated Summary Report",
+              metadata: [...metaInfo, { label: "Total Groups", value: summaryData.length }],
+              columns: summaryColumns,
+              data: summaryData,
+            });
+          } else if (groupingType === "individual") {
+            await exportToExcel({
+              filename: `CSSH_Group_Sessions_Detailed_${timestamp}`,
+              sheetName: "Group Sessions Log",
+              title: "Group Individual Sessions Log & Details Report",
+              metadata: [...metaInfo, { label: "Total Sessions", value: dataList.length }],
+              columns: detailedColumns,
+              data: dataList,
+            });
+          } else {
+            // Both sheets in one Excel workbook
+            await exportToExcelMultiSheet({
+              filename: `CSSH_Group_Sessions_Consolidated_${timestamp}`,
+              sheets: [
+                {
+                  sheetName: "Group Summary",
+                  title: "Group Sessions & Hours Consolidated Summary",
+                  metadata: [...metaInfo, { label: "Total Groups", value: summaryData.length }],
+                  columns: summaryColumns,
+                  data: summaryData,
+                },
+                {
+                  sheetName: "Group Sessions Log",
+                  title: "Group Individual Sessions Log & Details",
+                  metadata: [...metaInfo, { label: "Total Sessions", value: dataList.length }],
+                  columns: detailedColumns,
+                  data: dataList,
+                },
+              ],
+            });
+          }
+        } else {
+          // CSV format
+          if (groupingType === "consolidated") {
+            const summaryCsvColumns: ExcelColumn<any>[] = [
+              { header: "Group Name", key: "groupName" },
+              { header: "Category / Modality", key: "category" },
+              { header: "Total Sessions", key: "totalSessions" },
+              { header: "Completed Sessions", key: "completedSessions" },
+              { header: "Cancelled Sessions", key: "cancelledSessions" },
+              { header: "Total Hours", key: "totalDurationHours", formatter: (v) => `${v} hrs` },
+              { header: "Primary Instructors", key: "instructorsList" },
+            ];
+            exportToCSV<any>({
+              filename: `CSSH_Group_Sessions_Summary_${timestamp}.csv`,
+              columns: summaryCsvColumns,
+              data: summaryData,
+            });
+          } else {
+            const detailedCsvColumns: ExcelColumn<any>[] = [
+              { header: "Group Name", key: "group_name" },
+              { header: "Session Date", key: "scheduled_start", formatter: (v, row: any) => (v ? format(new Date(v), "dd/MM/yyyy") : row?.session_date || "-") },
+              { header: "Session Time", key: "scheduled_start", formatter: (v, row: any) => (v ? format(new Date(v), "hh:mm a") : row?.session_time || "-") },
+              { header: "Duration", key: "duration_formatted" },
+              { header: "Instructor", key: "instructor_name" },
+              { header: "Session Type", key: "service_type" },
+              { header: "Location", key: "session_location" },
+              { header: "Status", key: "status" },
+              { header: "Session Notes", key: "session_notes" },
+            ];
+            exportToCSV<any>({
+              filename: `CSSH_Group_Sessions_Detailed_${timestamp}.csv`,
+              columns: detailedCsvColumns,
+              data: dataList,
+            });
+          }
+        }
+      }
+
+      // -------------------------------------------------------------------------
+      // 2. PHYSIOTHERAPY & SPORTS SCIENCE MODULE EXPORT
+      // -------------------------------------------------------------------------
+      else if (isPhysioModule || isSportsScienceModule) {
+        const prefix = isPhysioModule ? "Physiotherapy" : "Sports_Science";
+        const practitionerCol = isPhysioModule ? "Therapist" : "Sports Scientist";
+
+        const staffColumns: ExcelColumn<any>[] = [
+          { header: practitionerCol, key: "staffName", width: 22 },
+          { header: "Designation", key: "profession", width: 20 },
+          { header: "Total Sessions", key: "totalSessions", width: 14 },
+          { header: "Completed Sessions", key: "completedSessions", width: 16 },
+          { header: "Cancelled Sessions", key: "cancelledSessions", width: 16 },
+          {
+            header: "Total Duration (Hours)",
+            key: "totalDurationHours",
+            width: 18,
+            formatter: (v) => `${v} hrs`,
+          },
+          { header: "Unique Clients", key: "uniqueClientsCount", width: 16 },
+        ];
+
+        const detailedColumns: ExcelColumn<any>[] = [
+          {
+            header: "Session Date",
+            key: "scheduled_start",
+            width: 14,
+            formatter: (v) => (v ? format(new Date(v), "dd/MM/yyyy") : "-"),
+          },
+          {
+            header: "Session Time",
+            key: "scheduled_start",
+            width: 12,
+            formatter: (v) => (v ? format(new Date(v), "hh:mm a") : "-"),
+          },
+          { header: practitionerCol, key: "staff_name", width: 22 },
+          { header: "Client UHID", key: "client_uhid", width: 14 },
+          { header: "Client Name", key: "client_name", width: 22 },
+          { header: "Sport / Category", key: "client_sport", width: 16 },
+          { header: "Session Type / Modality", key: "service_type", width: 28 },
+          { header: "Mode", key: "session_mode", width: 14 },
+          { header: "Duration", key: "duration_formatted", width: 14 },
+          { header: "Duration (Mins)", key: "duration_minutes", width: 14 },
+          { header: "Status", key: "status", width: 14 },
+          { header: "Cancellation Reason", key: "cancellation_reason", width: 24 },
+          { header: "Session Notes", key: "session_notes", width: 30 },
+        ];
+
+        const staffData = reportData?.staffBreakdown || [];
+
+        if (formatType === "excel") {
+          if (groupingType === "consolidated") {
+            await exportToExcel({
+              filename: `CSSH_${prefix}_Practitioner_Summary_${timestamp}`,
+              sheetName: `${prefix} Summary`,
+              title: `${prefix.replace(/_/g, " ")} Practitioner Performance Summary`,
+              metadata: [...metaInfo, { label: "Active Practitioners", value: staffData.length }],
+              columns: staffColumns,
+              data: staffData,
+            });
+          } else if (groupingType === "individual") {
+            await exportToExcel({
+              filename: `CSSH_${prefix}_Sessions_Detailed_${timestamp}`,
+              sheetName: `${prefix} Sessions`,
+              title: isPhysioModule ? "Physiotherapy Sessions Report" : "Sports Science Sessions Report",
+              metadata: [...metaInfo, { label: "Total Sessions", value: dataList.length }],
+              columns: detailedColumns,
+              data: dataList,
+            });
+          } else {
+            await exportToExcelMultiSheet({
+              filename: `CSSH_${prefix}_Sessions_Consolidated_${timestamp}`,
+              sheets: [
+                {
+                  sheetName: "Practitioner Summary",
+                  title: `${prefix.replace(/_/g, " ")} Practitioner Summary`,
+                  metadata: [...metaInfo, { label: "Active Practitioners", value: staffData.length }],
+                  columns: staffColumns,
+                  data: staffData,
+                },
+                {
+                  sheetName: "Session Records",
+                  title: `${prefix.replace(/_/g, " ")} Detailed Sessions Log`,
+                  metadata: [...metaInfo, { label: "Total Sessions", value: dataList.length }],
+                  columns: detailedColumns,
+                  data: dataList,
+                },
+              ],
+            });
+          }
+        } else {
+          // CSV format
+          if (groupingType === "consolidated") {
+            const staffCsvColumns: ExcelColumn<any>[] = [
+              { header: practitionerCol, key: "staffName" },
+              { header: "Designation", key: "profession" },
+              { header: "Total Sessions", key: "totalSessions" },
+              { header: "Completed", key: "completedSessions" },
+              { header: "Cancelled", key: "cancelledSessions" },
+              { header: "Total Hours", key: "totalDurationHours", formatter: (v) => `${v} hrs` },
+              { header: "Unique Clients", key: "uniqueClientsCount" },
+            ];
+            exportToCSV<any>({
+              filename: `CSSH_${prefix}_Practitioner_Summary_${timestamp}.csv`,
+              columns: staffCsvColumns,
+              data: staffData,
+            });
+          } else {
+            const detailedCsvColumns: ExcelColumn<any>[] = [
+              { header: "Date", key: "scheduled_start", formatter: (v) => (v ? format(new Date(v), "dd/MM/yyyy") : "-") },
+              { header: practitionerCol, key: "staff_name" },
+              { header: "UHID", key: "client_uhid" },
+              { header: "Client Name", key: "client_name" },
+              { header: "Session Type", key: "service_type" },
+              { header: "Duration", key: "duration_formatted" },
+              { header: "Status", key: "status" },
+              { header: "Notes", key: "session_notes" },
+            ];
+            exportToCSV<any>({
+              filename: `CSSH_${prefix}_Sessions_Detailed_${timestamp}.csv`,
+              columns: detailedCsvColumns,
+              data: dataList,
+            });
+          }
+        }
+      }
+
+      // -------------------------------------------------------------
+      // 3. BILLING MODULE EXPORT
+      // -------------------------------------------------------------
+      else if (isBillingModule) {
         if (selectedReport === "cancelled-invoices") {
           const columns: ExcelColumn<any>[] = [
             { header: "Invoice #", key: "invoice_no", width: 16 },
@@ -568,16 +1108,34 @@ export default function ReportsHubView({ initialModule = "Billing", initialRepor
             { header: "Cancellation Reason", key: "cancellation_reason", width: 30 },
             { header: "Billed By", key: "billed_by_name", width: 18 },
           ];
-          await exportToExcel({
-            filename: `CSSH_Cancelled_Invoices_${timestamp}`,
-            sheetName: "Cancelled Invoices",
-            title: "Cancelled Invoices List Report",
-            metadata: metaInfo,
-            columns,
-            data: dataList,
-          });
+
+          if (formatType === "excel") {
+            await exportToExcel({
+              filename: `CSSH_Cancelled_Invoices_${timestamp}`,
+              sheetName: "Cancelled Invoices",
+              title: "Cancelled Invoices List Report",
+              metadata: metaInfo,
+              columns,
+              data: dataList,
+            });
+          } else {
+            exportToCSV({
+              filename: `CSSH_Cancelled_Invoices_${timestamp}.csv`,
+              columns,
+              data: dataList,
+            });
+          }
         } else if (selectedReport === "user-wise") {
-          const columns: ExcelColumn<any>[] = [
+          const summaryColumns: ExcelColumn<any>[] = [
+            { header: "Staff / Cashier Name", key: "userName", width: 22 },
+            { header: "Invoices Issued", key: "totalInvoices", width: 16 },
+            { header: "Paid Invoices", key: "paidInvoices", width: 16 },
+            { header: "Cancelled Invoices", key: "cancelledInvoices", width: 16 },
+            { header: "Total Invoiced (₹)", key: "totalBilled", width: 18, formatter: (v) => Number(v || 0).toFixed(2) },
+            { header: "Total Collected (₹)", key: "totalCollected", width: 18, formatter: (v) => Number(v || 0).toFixed(2) },
+          ];
+
+          const detailedColumns: ExcelColumn<any>[] = [
             { header: "Invoice #", key: "invoice_no", width: 16 },
             { header: "Invoice Date", key: "invoice_date", width: 14 },
             { header: "Client UHID", key: "client_uhid", width: 14 },
@@ -589,171 +1147,182 @@ export default function ReportsHubView({ initialModule = "Billing", initialRepor
             { header: "Status", key: "invoice_status", width: 14 },
             { header: "Billed By Staff", key: "billed_by_name", width: 20 },
           ];
-          await exportToExcel({
-            filename: `CSSH_User_Wise_Invoices_${timestamp}`,
-            sheetName: "User Invoices",
-            title: "User-Wise Invoices List & Collections",
-            metadata: metaInfo,
-            columns,
-            data: dataList,
-          });
+
+          const userData = reportData?.userBreakdown || [];
+
+          if (formatType === "excel") {
+            if (groupingType === "consolidated") {
+              await exportToExcel({
+                filename: `CSSH_User_Collections_Summary_${timestamp}`,
+                sheetName: "Staff Summary",
+                title: "Billing Staff Collections Summary",
+                metadata: metaInfo,
+                columns: summaryColumns,
+                data: userData,
+              });
+            } else if (groupingType === "individual") {
+              await exportToExcel({
+                filename: `CSSH_User_Wise_Invoices_${timestamp}`,
+                sheetName: "Invoices List",
+                title: "User-Wise Invoices List & Collections",
+                metadata: metaInfo,
+                columns: detailedColumns,
+                data: dataList,
+              });
+            } else {
+              await exportToExcelMultiSheet({
+                filename: `CSSH_User_Wise_Invoices_Consolidated_${timestamp}`,
+                sheets: [
+                  {
+                    sheetName: "Staff Summary",
+                    title: "Billing Staff Collections Summary",
+                    metadata: metaInfo,
+                    columns: summaryColumns,
+                    data: userData,
+                  },
+                  {
+                    sheetName: "Invoices List",
+                    title: "User-Wise Invoices List & Collections",
+                    metadata: metaInfo,
+                    columns: detailedColumns,
+                    data: dataList,
+                  },
+                ],
+              });
+            }
+          } else {
+            if (groupingType === "consolidated") {
+              exportToCSV({
+                filename: `CSSH_User_Collections_Summary_${timestamp}.csv`,
+                columns: summaryColumns,
+                data: userData,
+              });
+            } else {
+              exportToCSV({
+                filename: `CSSH_User_Wise_Invoices_${timestamp}.csv`,
+                columns: detailedColumns,
+                data: dataList,
+              });
+            }
+          }
         } else if (selectedReport === "payment-mode-wise") {
-          const columns: ExcelColumn<any>[] = [
-            { header: "Payment Date", key: "payment_date", width: 14 },
-            { header: "Invoice #", key: "invoice_no", width: 16 },
-            { header: "Client UHID", key: "client_uhid", width: 14 },
-            { header: "Client Name", key: "client_name", width: 22 },
-            { header: "Payment Mode", key: "payment_mode", width: 16 },
-            { header: "Transaction ID", key: "transaction_id", width: 20 },
-            { header: "Amount Paid (₹)", key: "amount_paid", width: 16, formatter: (v) => Number(v || 0).toFixed(2) },
-            { header: "Invoice Total (₹)", key: "invoice_total", width: 16, formatter: (v) => Number(v || 0).toFixed(2) },
-            { header: "Recorded By", key: "collected_by", width: 18 },
+          const summaryColumns: ExcelColumn<any>[] = [
+            { header: "Payment Mode", key: "mode", width: 20 },
+            { header: "Total Transactions", key: "transactionCount", width: 18 },
+            { header: "Total Collected (₹)", key: "totalCollected", width: 20, formatter: (v) => Number(v || 0).toFixed(2) },
+            { header: "Percentage (%)", key: "percentage", width: 16, formatter: (v) => `${v}%` },
           ];
-          await exportToExcel({
-            filename: `CSSH_Payment_Mode_Collections_${timestamp}`,
-            sheetName: "Payment Modes",
-            title: "Payment Mode-Wise Collection Details",
-            metadata: metaInfo,
-            columns,
-            data: dataList,
-          });
-        } else {
-          // service-wise
-          const columns: ExcelColumn<any>[] = [
+
+          const detailedColumns: ExcelColumn<any>[] = [
             { header: "Invoice #", key: "invoice_no", width: 16 },
-            { header: "Date", key: "invoice_date", width: 14 },
+            { header: "Invoice Date", key: "invoice_date", width: 14 },
             { header: "Client UHID", key: "client_uhid", width: 14 },
             { header: "Client Name", key: "client_name", width: 22 },
-            { header: "Service / Package Name", key: "service_name", width: 26 },
-            { header: "Category", key: "service_category", width: 18 },
-            { header: "Unit Price (₹)", key: "unit_price", width: 14, formatter: (v) => Number(v || 0).toFixed(2) },
-            { header: "Discount (₹)", key: "discount_amount", width: 14, formatter: (v) => Number(v || 0).toFixed(2) },
-            { header: "Tax (₹)", key: "tax_amount", width: 12, formatter: (v) => Number(v || 0).toFixed(2) },
-            { header: "Total Amount (₹)", key: "total_amount", width: 16, formatter: (v) => Number(v || 0).toFixed(2) },
             { header: "Payment Mode", key: "payment_mode", width: 16 },
+            { header: "Amount Paid (₹)", key: "total_amount", width: 16, formatter: (v) => Number(v || 0).toFixed(2) },
+            { header: "Status", key: "invoice_status", width: 14 },
+            { header: "Cashier / Billed By", key: "billed_by_name", width: 20 },
+          ];
+
+          const modeData = reportData?.modeBreakdown || [];
+
+          if (formatType === "excel") {
+            if (groupingType === "consolidated") {
+              await exportToExcel({
+                filename: `CSSH_Payment_Modes_Summary_${timestamp}`,
+                sheetName: "Payment Modes Summary",
+                title: "Payment Mode Collections Summary Report",
+                metadata: metaInfo,
+                columns: summaryColumns,
+                data: modeData,
+              });
+            } else if (groupingType === "individual") {
+              await exportToExcel({
+                filename: `CSSH_Payment_Mode_Invoices_${timestamp}`,
+                sheetName: "Invoices List",
+                title: "Payment-Mode Wise Invoices Report",
+                metadata: metaInfo,
+                columns: detailedColumns,
+                data: dataList,
+              });
+            } else {
+              await exportToExcelMultiSheet({
+                filename: `CSSH_Payment_Mode_Consolidated_${timestamp}`,
+                sheets: [
+                  {
+                    sheetName: "Mode Summary",
+                    title: "Payment Mode Collections Summary",
+                    metadata: metaInfo,
+                    columns: summaryColumns,
+                    data: modeData,
+                  },
+                  {
+                    sheetName: "Invoices List",
+                    title: "Payment-Mode Wise Invoices",
+                    metadata: metaInfo,
+                    columns: detailedColumns,
+                    data: dataList,
+                  },
+                ],
+              });
+            }
+          } else {
+            if (groupingType === "consolidated") {
+              exportToCSV({
+                filename: `CSSH_Payment_Modes_Summary_${timestamp}.csv`,
+                columns: summaryColumns,
+                data: modeData,
+              });
+            } else {
+              exportToCSV({
+                filename: `CSSH_Payment_Mode_Invoices_${timestamp}.csv`,
+                columns: detailedColumns,
+                data: dataList,
+              });
+            }
+          }
+        } else {
+          // Standard Billing report (Service-wise, Advance, etc.)
+          const columns: ExcelColumn<any>[] = [
+            { header: "Invoice #", key: "invoice_no", width: 16 },
+            { header: "Invoice Date", key: "invoice_date", width: 14 },
+            { header: "Client UHID", key: "client_uhid", width: 14 },
+            { header: "Client Name", key: "client_name", width: 22 },
+            { header: "Service / Package", key: "service_name", width: 26 },
+            { header: "Category", key: "service_category", width: 18 },
+            { header: "Payment Mode", key: "payment_mode", width: 16 },
+            { header: "Total Amount (₹)", key: "total_amount", width: 16, formatter: (v) => Number(v || 0).toFixed(2) },
             { header: "Status", key: "invoice_status", width: 14 },
             { header: "Billed By", key: "billed_by_name", width: 18 },
           ];
-          await exportToExcel({
-            filename: `CSSH_Service_Wise_Invoices_${timestamp}`,
-            sheetName: "Service Wise Invoices",
-            title: "Service-Wise Invoice Details Report",
-            metadata: metaInfo,
-            columns,
-            data: dataList,
-          });
+
+          if (formatType === "excel") {
+            await exportToExcel({
+              filename: `CSSH_Service_Wise_Billing_${timestamp}`,
+              sheetName: "Billing Invoices",
+              title: "Service-Wise Billing & Invoices Report",
+              metadata: metaInfo,
+              columns,
+              data: dataList,
+            });
+          } else {
+            exportToCSV({
+              filename: `CSSH_Service_Wise_Billing_${timestamp}.csv`,
+              columns,
+              data: dataList,
+            });
+          }
         }
-      } else if (isPhysioModule || isSportsScienceModule) {
-        const practitionerCol = isPhysioModule ? "Therapist" : "Sports Scientist";
-        const clientCol = isPhysioModule ? "Patient Name" : "Athlete Name";
-
-        const columns: ExcelColumn<any>[] = [
-          {
-            header: "Date",
-            key: "scheduled_start",
-            width: 14,
-            formatter: (v) => (v ? format(new Date(v), "dd/MM/yyyy") : "-"),
-          },
-          {
-            header: "Time",
-            key: "scheduled_start",
-            width: 12,
-            formatter: (v) => (v ? format(new Date(v), "hh:mm a") : "-"),
-          },
-          { header: practitionerCol, key: "staff_name", width: 22 },
-          { header: "Client UHID", key: "client_uhid", width: 14 },
-          { header: clientCol, key: "client_name", width: 22 },
-          { header: "Sport / Category", key: "client_sport", width: 16 },
-          { header: "Session Type / Modality", key: "service_type", width: 28 },
-          { header: "Mode", key: "session_mode", width: 14 },
-          { header: "Duration", key: "duration_formatted", width: 14 },
-          { header: "Duration (Mins)", key: "duration_minutes", width: 14 },
-          { header: "Status", key: "status", width: 14 },
-          { header: "Cancellation Reason", key: "cancellation_reason", width: 24 },
-          { header: "Session Notes", key: "session_notes", width: 30 },
-        ];
-
-        const prefix = isPhysioModule ? "Physiotherapy" : "Sports_Science";
-        await exportToExcel({
-          filename: `CSSH_${prefix}_Sessions_${timestamp}`,
-          sheetName: `${prefix} Sessions`,
-          title: isPhysioModule ? "Physiotherapy Sessions Report" : "Sports Science Sessions Report",
-          metadata: metaInfo,
-          columns,
-          data: dataList,
-        });
       }
 
-      toast.success("Excel report exported successfully with all applied filters!");
+      setExportModalOpen(false);
+      toast.success(`${formatType.toUpperCase()} report exported successfully!`);
     } catch (err: any) {
       console.error("Export error:", err);
-      toast.error("Failed to export Excel report. Please try again.");
+      toast.error(`Failed to export ${formatType.toUpperCase()} report. Please try again.`);
+    } finally {
+      setIsExporting(false);
     }
-  };
-
-  // Export to CSV handler
-  const handleExportCSV = () => {
-    if (!hasAnalyticsAccess) {
-      toast.error("Access Denied: CSV exports require Analytics & Reports Engine access.");
-      return;
-    }
-
-    if (!dataList || dataList.length === 0) {
-      toast.error("No data available to export.");
-      return;
-    }
-    const timestamp = format(new Date(), "yyyy-MM-dd");
-
-    if (isClientModule) {
-      const columns: ExcelColumn<any>[] = [
-        { header: "Client UHID", key: "client_uhid" },
-        { header: "Client Name", key: "client_name" },
-        { header: "Session Date", key: "scheduled_start", formatter: (v) => (v ? format(new Date(v), "dd/MM/yyyy") : "-") },
-        { header: "Session Time", key: "scheduled_start", formatter: (v) => (v ? format(new Date(v), "hh:mm a") : "-") },
-        { header: "Duration", key: "duration_formatted" },
-        { header: "Instructor", key: "instructor_name" },
-        { header: "Status", key: "status" },
-        { header: "Session Type", key: "service_type" },
-      ];
-      exportToCSV({
-        filename: `CSSH_Client_Sessions_Report_${timestamp}.csv`,
-        columns,
-        data: dataList,
-      });
-    } else if (isBillingModule) {
-      const columns: ExcelColumn<any>[] = [
-        { header: "Invoice #", key: "invoice_no" },
-        { header: "Date", key: "invoice_date" },
-        { header: "UHID", key: "client_uhid" },
-        { header: "Client Name", key: "client_name" },
-        { header: "Service Name", key: "service_name" },
-        { header: "Total Amount", key: "total_amount" },
-        { header: "Payment Mode", key: "payment_mode" },
-        { header: "Status", key: "invoice_status" },
-        { header: "Billed By", key: "billed_by_name" },
-      ];
-      exportToCSV({
-        filename: `CSSH_Billing_Report_${timestamp}.csv`,
-        columns,
-        data: dataList,
-      });
-    } else {
-      const columns: ExcelColumn<any>[] = [
-        { header: "Date", key: "scheduled_start", formatter: (v) => (v ? format(new Date(v), "dd/MM/yyyy") : "-") },
-        { header: "Practitioner", key: "staff_name" },
-        { header: "UHID", key: "client_uhid" },
-        { header: "Client Name", key: "client_name" },
-        { header: "Session Type", key: "service_type" },
-        { header: "Duration (Mins)", key: "duration_minutes" },
-        { header: "Status", key: "status" },
-      ];
-      exportToCSV({
-        filename: `CSSH_${selectedModule.replace(/\s+/g, "_")}_Report_${timestamp}.csv`,
-        columns,
-        data: dataList,
-      });
-    }
-    toast.success("CSV file downloaded successfully!");
   };
 
   return (
@@ -777,7 +1346,7 @@ export default function ReportsHubView({ initialModule = "Billing", initialRepor
               {hasAnalyticsAccess ? (
                 <>
                   <Button
-                    onClick={handleExportExcel}
+                    onClick={() => handleOpenExport("excel")}
                     className="h-8 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs gap-1.5 shadow-sm"
                   >
                     <FileSpreadsheet className="w-3.5 h-3.5" />
@@ -785,7 +1354,7 @@ export default function ReportsHubView({ initialModule = "Billing", initialRepor
                   </Button>
 
                   <Button
-                    onClick={handleExportCSV}
+                    onClick={() => handleOpenExport("csv")}
                     variant="outline"
                     className="h-8 rounded-xl font-semibold text-xs gap-1.5 border-slate-200 dark:border-slate-700"
                   >
@@ -829,6 +1398,9 @@ export default function ReportsHubView({ initialModule = "Billing", initialRepor
                   <SelectItem value="Client" className="text-xs font-semibold cursor-pointer">
                     Client
                   </SelectItem>
+                  <SelectItem value="Group Sessions" className="text-xs font-semibold cursor-pointer">
+                    Group Sessions
+                  </SelectItem>
                   <SelectItem value="Billing" className="text-xs font-medium cursor-pointer">
                     Billing
                   </SelectItem>
@@ -858,6 +1430,31 @@ export default function ReportsHubView({ initialModule = "Billing", initialRepor
                   <SelectValue placeholder="Select report" />
                 </SelectTrigger>
                 <SelectContent className="rounded-xl max-h-72">
+                  {selectedModule === "Group Sessions" && (
+                    <>
+                      <SelectGroup>
+                        <SelectLabel className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider px-2 py-1">
+                          Overview
+                        </SelectLabel>
+                        <SelectItem value="all-groups" className="text-xs font-semibold cursor-pointer">
+                          All Group Sessions (Summary & Details)
+                        </SelectItem>
+                      </SelectGroup>
+                      {availableGroupNames.length > 0 && (
+                        <SelectGroup>
+                          <SelectLabel className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider px-2 py-1 pt-2 border-t border-slate-100 dark:border-slate-800">
+                            Individual Groups ({availableGroupNames.length})
+                          </SelectLabel>
+                          {availableGroupNames.map((grpName) => (
+                            <SelectItem key={grpName} value={grpName} className="text-xs font-medium cursor-pointer">
+                              {grpName}
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
+                      )}
+                    </>
+                  )}
+
                   {selectedModule === "Client" && (
                     <>
                       <SelectGroup>
@@ -1169,19 +1766,19 @@ export default function ReportsHubView({ initialModule = "Billing", initialRepor
               </div>
             )}
 
-            {/* Filter 1b: Practitioner Selector (For Physio / Sports Science modules - dynamically populated from table below) */}
-            {(isPhysioModule || isSportsScienceModule) && (
+            {/* Filter 1b: Practitioner Selector (For Physio / Sports Science / Group modules - dynamically populated from table below) */}
+            {(isPhysioModule || isSportsScienceModule || isGroupModule) && (
               <div>
                 <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block mb-1">
-                  {isPhysioModule ? "Therapist" : "Sports Scientist"}
+                  {isPhysioModule ? "Therapist" : isSportsScienceModule ? "Sports Scientist" : "Instructor / Specialist"}
                 </label>
                 <Select value={selectedStaff} onValueChange={(val) => { setSelectedStaff(val); setCurrentPage(1); }}>
                   <SelectTrigger className="h-8 text-xs bg-white dark:bg-slate-900 rounded-lg">
-                    <SelectValue placeholder={`All ${isPhysioModule ? "Therapists" : "Sports Scientists"}`} />
+                    <SelectValue placeholder={`All ${isPhysioModule ? "Therapists" : isSportsScienceModule ? "Sports Scientists" : "Instructors"}`} />
                   </SelectTrigger>
                   <SelectContent className="rounded-xl max-h-72">
                     <SelectItem value="all" className="text-xs font-semibold">
-                      All {isPhysioModule ? "Therapists" : "Sports Scientists"} {availableStaff.length > 0 ? `(${availableStaff.length})` : ""}
+                      All {isPhysioModule ? "Therapists" : isSportsScienceModule ? "Sports Scientists" : "Instructors"} {availableStaff.length > 0 ? `(${availableStaff.length})` : ""}
                     </SelectItem>
                     {availableStaff.map((s) => (
                       <SelectItem key={s.id} value={s.id} className="text-xs cursor-pointer">
@@ -1241,8 +1838,8 @@ export default function ReportsHubView({ initialModule = "Billing", initialRepor
               </div>
             )}
 
-            {/* Filter 2b: Session Type (For Physio / Sports Science modules) */}
-            {(isPhysioModule || isSportsScienceModule) && (
+            {/* Filter 2b: Session Type (For Physio / Sports Science / Group modules) */}
+            {(isPhysioModule || isSportsScienceModule || isGroupModule) && (
               <div>
                 <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block mb-1">
                   Session Type
@@ -1257,7 +1854,12 @@ export default function ReportsHubView({ initialModule = "Billing", initialRepor
                     </SelectItem>
                     {(isPhysioModule
                       ? options?.sessionTypes.physiotherapy
-                      : options?.sessionTypes.sportsScience
+                      : options?.sessionTypes.sportsScience || [
+                          "Strength & Conditioning",
+                          "Speed & Agility Session",
+                          "Biomechanical Movement Assessment",
+                          "Recovery & Regeneration Session",
+                        ]
                     )?.map((st) => (
                       <SelectItem key={st} value={st} className="text-xs">
                         {st}
@@ -1453,10 +2055,10 @@ export default function ReportsHubView({ initialModule = "Billing", initialRepor
 
                   <div className="bg-purple-500/10 dark:bg-purple-500/15 p-3.5 rounded-2xl border border-purple-500/20">
                     <div className="text-[11px] font-bold text-purple-700 dark:text-purple-400 uppercase tracking-wider">
-                      {isClientModule ? "Unique Clients" : (isPhysioModule ? "Unique Patients" : "Unique Athletes")}
+                      {isGroupModule ? "Unique Groups" : (isClientModule ? "Unique Clients" : (isPhysioModule ? "Unique Patients" : "Unique Athletes"))}
                     </div>
                     <div className="text-xl font-extrabold text-purple-700 dark:text-purple-400 mt-1">
-                      {reportData.summary.uniqueClientsCount ?? 0}
+                      {isGroupModule ? (reportData.summary.uniqueGroupsCount ?? reportData.groupBreakdown?.length ?? 0) : (reportData.summary.uniqueClientsCount ?? 0)}
                     </div>
                   </div>
 
@@ -1484,58 +2086,400 @@ export default function ReportsHubView({ initialModule = "Billing", initialRepor
 
           {/* Client Breakdown Summary Table (When Client Module is Selected) */}
           {isClientModule && reportData?.clientBreakdown && reportData.clientBreakdown.length > 0 && selectedClient === "all" && (
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                  <User className="w-4 h-4 text-primary" />
-                  Client Sessions & Hours Summary
-                </h3>
-                <span className="text-xs text-muted-foreground">
-                  Timeframe: {startDate} to {endDate}
-                </span>
+            <div className="space-y-3">
+              {/* Consolidated Header with Search and Summary Metrics */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50/80 dark:bg-slate-800/50 p-3.5 rounded-2xl border border-slate-200/80 dark:border-slate-800">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold">
+                    <User className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                      Client Sessions & Hours Summary
+                      <Badge variant="outline" className="text-xs bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 font-bold">
+                        {filteredClientSummary.length} Unique Clients
+                      </Badge>
+                    </h3>
+                    <p className="text-[11px] text-muted-foreground">
+                      Consolidated per-client session counts, total completed/cancelled hours, and primary assigned instructors.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 self-start sm:self-auto">
+                  <div className="relative">
+                    <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      placeholder="Filter summary by client, UHID..."
+                      value={summarySearch}
+                      onChange={(e) => setSummarySearch(e.target.value)}
+                      className="h-8 pl-8 text-xs w-48 sm:w-56 rounded-xl bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700"
+                    />
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleOpenExport("excel", "consolidated")}
+                    className="h-8 text-xs font-bold text-emerald-600 dark:text-emerald-400 border-emerald-500/30 gap-1.5"
+                    title="Export this consolidated summary to Excel"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline">Export Summary</span>
+                  </Button>
+                </div>
               </div>
 
+              {/* Consolidated Table */}
               <div className="rounded-xl border border-slate-200/80 dark:border-slate-800 overflow-hidden bg-white dark:bg-slate-900 shadow-sm">
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-xs">
                     <thead className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200/80 dark:border-slate-800">
                       <tr>
-                        <th className="p-3 font-bold text-slate-700 dark:text-slate-300">Client UHID</th>
-                        <th className="p-3 font-bold text-slate-700 dark:text-slate-300">Client Name</th>
-                        <th className="p-3 font-bold text-slate-700 dark:text-slate-300">Sport / Category</th>
-                        <th className="p-3 font-bold text-slate-700 dark:text-slate-300 text-center">Total Sessions</th>
-                        <th className="p-3 font-bold text-emerald-700 dark:text-emerald-400 text-center">Completed</th>
-                        <th className="p-3 font-bold text-rose-700 dark:text-rose-400 text-center">Cancelled</th>
-                        <th className="p-3 font-bold text-slate-700 dark:text-slate-300 text-center">Total Hours</th>
+                        <th
+                          onClick={() => handleToggleSummarySort("clientUhid")}
+                          className="p-3 font-bold text-slate-700 dark:text-slate-300 cursor-pointer select-none hover:text-primary transition-colors"
+                        >
+                          <div className="flex items-center gap-1.5">
+                            <span>Client UHID</span>
+                            <ArrowUpDown className="w-3 h-3 text-muted-foreground" />
+                          </div>
+                        </th>
+                        <th
+                          onClick={() => handleToggleSummarySort("clientName")}
+                          className="p-3 font-bold text-slate-700 dark:text-slate-300 cursor-pointer select-none hover:text-primary transition-colors"
+                        >
+                          <div className="flex items-center gap-1.5">
+                            <span>Client Name</span>
+                            <ArrowUpDown className="w-3 h-3 text-muted-foreground" />
+                          </div>
+                        </th>
+                        <th
+                          onClick={() => handleToggleSummarySort("clientSport")}
+                          className="p-3 font-bold text-slate-700 dark:text-slate-300 cursor-pointer select-none hover:text-primary transition-colors"
+                        >
+                          <div className="flex items-center gap-1.5">
+                            <span>Sport / Category</span>
+                            <ArrowUpDown className="w-3 h-3 text-muted-foreground" />
+                          </div>
+                        </th>
+                        <th
+                          onClick={() => handleToggleSummarySort("totalSessions")}
+                          className="p-3 font-bold text-slate-700 dark:text-slate-300 text-center cursor-pointer select-none hover:text-primary transition-colors"
+                        >
+                          <div className="flex items-center justify-center gap-1.5">
+                            <span>Total Sessions</span>
+                            <ArrowUpDown className="w-3 h-3 text-muted-foreground" />
+                          </div>
+                        </th>
+                        <th
+                          onClick={() => handleToggleSummarySort("completedSessions")}
+                          className="p-3 font-bold text-emerald-700 dark:text-emerald-400 text-center cursor-pointer select-none hover:text-emerald-600 transition-colors"
+                        >
+                          <div className="flex items-center justify-center gap-1.5">
+                            <span>Completed</span>
+                            <ArrowUpDown className="w-3 h-3 text-muted-foreground" />
+                          </div>
+                        </th>
+                        <th
+                          onClick={() => handleToggleSummarySort("cancelledSessions")}
+                          className="p-3 font-bold text-rose-700 dark:text-rose-400 text-center cursor-pointer select-none hover:text-rose-600 transition-colors"
+                        >
+                          <div className="flex items-center justify-center gap-1.5">
+                            <span>Cancelled</span>
+                            <ArrowUpDown className="w-3 h-3 text-muted-foreground" />
+                          </div>
+                        </th>
+                        <th
+                          onClick={() => handleToggleSummarySort("totalDurationHours")}
+                          className="p-3 font-bold text-slate-700 dark:text-slate-300 text-center cursor-pointer select-none hover:text-primary transition-colors"
+                        >
+                          <div className="flex items-center justify-center gap-1.5">
+                            <span>Total Hours</span>
+                            <ArrowUpDown className="w-3 h-3 text-muted-foreground" />
+                          </div>
+                        </th>
                         <th className="p-3 font-bold text-slate-700 dark:text-slate-300">Primary Instructors</th>
+                        <th className="p-3 font-bold text-slate-700 dark:text-slate-300 text-center">Action</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 font-medium">
-                      {reportData.clientBreakdown.map((cl: any) => (
-                        <tr key={cl.clientId} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
-                          <td className="p-3 font-mono font-bold text-primary">{cl.clientUhid}</td>
-                          <td className="p-3 font-bold text-slate-900 dark:text-white">{cl.clientName}</td>
-                          <td className="p-3 text-muted-foreground">{cl.clientSport}</td>
-                          <td className="p-3 text-center font-bold">{cl.totalSessions}</td>
-                          <td className="p-3 text-center text-emerald-600 dark:text-emerald-400 font-bold">
-                            {cl.completedSessions}
-                          </td>
-                          <td className="p-3 text-center text-rose-600 dark:text-rose-400 font-bold">
-                            {cl.cancelledSessions}
-                          </td>
-                          <td className="p-3 text-center">
-                            <Badge variant="outline" className="font-semibold bg-slate-50 dark:bg-slate-800">
-                              {cl.totalDurationHours} hrs
-                            </Badge>
-                          </td>
-                          <td className="p-3 text-muted-foreground max-w-xs truncate" title={cl.instructorsList}>
-                            {cl.instructorsList}
+                      {paginatedClientSummary.length === 0 ? (
+                        <tr>
+                          <td colSpan={9} className="p-8 text-center text-muted-foreground text-xs">
+                            No clients match the summary search filter.
                           </td>
                         </tr>
-                      ))}
+                      ) : (
+                        paginatedClientSummary.map((cl: any) => (
+                          <tr key={cl.clientId} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
+                            <td className="p-3 font-mono font-bold text-primary">{cl.clientUhid && cl.clientUhid !== "-" ? cl.clientUhid : "-"}</td>
+                            <td className="p-3 font-bold text-slate-900 dark:text-white">
+                              {cl.clientName || (cl.clientUhid && cl.clientUhid !== "-" ? `Client (${cl.clientUhid})` : "Guest / Walk-in Patient")}
+                            </td>
+                            <td className="p-3 text-muted-foreground">{cl.clientSport || "General"}</td>
+                            <td className="p-3 text-center font-bold text-slate-900 dark:text-white">{cl.totalSessions}</td>
+                            <td className="p-3 text-center text-emerald-600 dark:text-emerald-400 font-bold">
+                              {cl.completedSessions}
+                            </td>
+                            <td className="p-3 text-center text-rose-600 dark:text-rose-400 font-bold">
+                              {cl.cancelledSessions}
+                            </td>
+                            <td className="p-3 text-center">
+                              <Badge variant="outline" className="font-semibold bg-slate-50 dark:bg-slate-800">
+                                {cl.totalDurationHours} hrs
+                              </Badge>
+                            </td>
+                            <td className="p-3 text-muted-foreground max-w-xs truncate" title={cl.instructorsList}>
+                              {cl.instructorsList}
+                            </td>
+                            <td className="p-3 text-center">
+                              {cl.clientId && cl.clientId !== "guest" && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => setSelectedClient(cl.clientId)}
+                                  className="h-6 px-2 text-[11px] font-semibold text-primary hover:bg-primary/10"
+                                >
+                                  Drill Down
+                                </Button>
+                              )}
+                            </td>
+                          </tr>
+                        ))
+                      )}
                     </tbody>
                   </table>
                 </div>
+
+                {/* Summary Table Pagination */}
+                {summaryTotalPages > 1 && (
+                  <div className="flex items-center justify-between p-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
+                    <span className="text-xs text-muted-foreground">
+                      Showing {(summaryPage - 1) * summaryPageSize + 1} to{" "}
+                      {Math.min(summaryPage * summaryPageSize, filteredClientSummary.length)} of {filteredClientSummary.length} clients
+                    </span>
+
+                    <div className="flex items-center gap-1.5">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={summaryPage === 1}
+                        onClick={() => setSummaryPage((p) => Math.max(1, p - 1))}
+                        className="h-7 text-xs rounded-lg"
+                      >
+                        Previous
+                      </Button>
+                      <span className="text-xs font-bold px-2">
+                        {summaryPage} / {summaryTotalPages}
+                      </span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={summaryPage >= summaryTotalPages}
+                        onClick={() => setSummaryPage((p) => Math.min(summaryTotalPages, p + 1))}
+                        className="h-7 text-xs rounded-lg"
+                      >
+                        Next
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Consolidated Group Sessions & Hours Summary Table */}
+          {isGroupModule && reportData?.groupBreakdown && reportData.groupBreakdown.length > 0 && selectedReport === "all-groups" && (
+            <div className="space-y-3">
+              {/* Consolidated Header with Search and Summary Metrics */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50/80 dark:bg-slate-800/50 p-3.5 rounded-2xl border border-slate-200/80 dark:border-slate-800">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold">
+                    <Users className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                      Group Sessions & Hours Summary
+                      <Badge variant="outline" className="text-xs bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 font-bold">
+                        {filteredGroupSummary.length} Unique Groups
+                      </Badge>
+                    </h3>
+                    <p className="text-[11px] text-muted-foreground">
+                      Consolidated per-group session counts, total completed/cancelled hours, and primary assigned instructors.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 self-start sm:self-auto">
+                  <div className="relative">
+                    <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      placeholder="Filter summary by group, category..."
+                      value={summarySearch}
+                      onChange={(e) => setSummarySearch(e.target.value)}
+                      className="h-8 pl-8 text-xs w-48 sm:w-56 rounded-xl bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700"
+                    />
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleOpenExport("excel", "consolidated")}
+                    className="h-8 text-xs font-bold text-emerald-600 dark:text-emerald-400 border-emerald-500/30 gap-1.5"
+                    title="Export this consolidated summary to Excel"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline">Export Summary</span>
+                  </Button>
+                </div>
+              </div>
+
+              {/* Consolidated Table */}
+              <div className="rounded-xl border border-slate-200/80 dark:border-slate-800 overflow-hidden bg-white dark:bg-slate-900 shadow-sm">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200/80 dark:border-slate-800">
+                      <tr>
+                        <th
+                          onClick={() => handleToggleSummarySort("groupName")}
+                          className="p-3 font-bold text-slate-700 dark:text-slate-300 cursor-pointer select-none hover:text-primary transition-colors"
+                        >
+                          <div className="flex items-center gap-1.5">
+                            <span>Group Name</span>
+                            <ArrowUpDown className="w-3 h-3 text-muted-foreground" />
+                          </div>
+                        </th>
+                        <th
+                          onClick={() => handleToggleSummarySort("category")}
+                          className="p-3 font-bold text-slate-700 dark:text-slate-300 cursor-pointer select-none hover:text-primary transition-colors"
+                        >
+                          <div className="flex items-center gap-1.5">
+                            <span>Category / Modality</span>
+                            <ArrowUpDown className="w-3 h-3 text-muted-foreground" />
+                          </div>
+                        </th>
+                        <th
+                          onClick={() => handleToggleSummarySort("totalSessions")}
+                          className="p-3 font-bold text-slate-700 dark:text-slate-300 text-center cursor-pointer select-none hover:text-primary transition-colors"
+                        >
+                          <div className="flex items-center justify-center gap-1.5">
+                            <span>Total Sessions</span>
+                            <ArrowUpDown className="w-3 h-3 text-muted-foreground" />
+                          </div>
+                        </th>
+                        <th
+                          onClick={() => handleToggleSummarySort("completedSessions")}
+                          className="p-3 font-bold text-emerald-700 dark:text-emerald-400 text-center cursor-pointer select-none hover:text-emerald-600 transition-colors"
+                        >
+                          <div className="flex items-center justify-center gap-1.5">
+                            <span>Completed</span>
+                            <ArrowUpDown className="w-3 h-3 text-muted-foreground" />
+                          </div>
+                        </th>
+                        <th
+                          onClick={() => handleToggleSummarySort("cancelledSessions")}
+                          className="p-3 font-bold text-rose-700 dark:text-rose-400 text-center cursor-pointer select-none hover:text-rose-600 transition-colors"
+                        >
+                          <div className="flex items-center justify-center gap-1.5">
+                            <span>Cancelled</span>
+                            <ArrowUpDown className="w-3 h-3 text-muted-foreground" />
+                          </div>
+                        </th>
+                        <th
+                          onClick={() => handleToggleSummarySort("totalDurationHours")}
+                          className="p-3 font-bold text-slate-700 dark:text-slate-300 text-center cursor-pointer select-none hover:text-primary transition-colors"
+                        >
+                          <div className="flex items-center justify-center gap-1.5">
+                            <span>Total Hours</span>
+                            <ArrowUpDown className="w-3 h-3 text-muted-foreground" />
+                          </div>
+                        </th>
+                        <th className="p-3 font-bold text-slate-700 dark:text-slate-300">Primary Instructors</th>
+                        <th className="p-3 font-bold text-slate-700 dark:text-slate-300 text-center">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 font-medium">
+                      {paginatedGroupSummary.length === 0 ? (
+                        <tr>
+                          <td colSpan={8} className="p-8 text-center text-muted-foreground text-xs">
+                            No groups match the summary search filter.
+                          </td>
+                        </tr>
+                      ) : (
+                        paginatedGroupSummary.map((grp: any) => (
+                          <tr key={grp.groupId} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
+                            <td className="p-3 font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                              <Users className="w-3.5 h-3.5 text-primary shrink-0" />
+                              <span>{grp.groupName}</span>
+                            </td>
+                            <td className="p-3 text-muted-foreground">
+                              <Badge variant="outline" className="text-[11px] bg-slate-50 dark:bg-slate-800 font-semibold">
+                                {grp.category || "Group Training"}
+                              </Badge>
+                            </td>
+                            <td className="p-3 text-center font-bold text-slate-900 dark:text-white">{grp.totalSessions}</td>
+                            <td className="p-3 text-center text-emerald-600 dark:text-emerald-400 font-bold">
+                              {grp.completedSessions}
+                            </td>
+                            <td className="p-3 text-center text-rose-600 dark:text-rose-400 font-bold">
+                              {grp.cancelledSessions}
+                            </td>
+                            <td className="p-3 text-center">
+                              <Badge variant="outline" className="font-semibold bg-slate-50 dark:bg-slate-800">
+                                {grp.totalDurationHours} hrs
+                              </Badge>
+                            </td>
+                            <td className="p-3 text-muted-foreground max-w-xs truncate" title={grp.instructorsList}>
+                              {grp.instructorsList}
+                            </td>
+                            <td className="p-3 text-center">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setSelectedReport(grp.groupName)}
+                                className="h-6 px-2 text-[11px] font-semibold text-primary hover:bg-primary/10"
+                              >
+                                View Group
+                              </Button>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+
+                {groupSummaryTotalPages > 1 && (
+                  <div className="flex items-center justify-between p-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
+                    <span className="text-xs text-muted-foreground">
+                      Showing {(summaryPage - 1) * summaryPageSize + 1} to{" "}
+                      {Math.min(summaryPage * summaryPageSize, filteredGroupSummary.length)} of {filteredGroupSummary.length} groups
+                    </span>
+
+                    <div className="flex items-center gap-1.5">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={summaryPage === 1}
+                        onClick={() => setSummaryPage((p) => Math.max(1, p - 1))}
+                        className="h-7 text-xs rounded-lg"
+                      >
+                        Previous
+                      </Button>
+                      <span className="text-xs font-bold px-2">
+                        {summaryPage} / {groupSummaryTotalPages}
+                      </span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={summaryPage >= groupSummaryTotalPages}
+                        onClick={() => setSummaryPage((p) => Math.min(groupSummaryTotalPages, p + 1))}
+                        className="h-7 text-xs rounded-lg"
+                      >
+                        Next
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -1661,271 +2605,721 @@ export default function ReportsHubView({ initialModule = "Billing", initialRepor
             </div>
           )}
 
-          {/* Detailed Data Table */}
+          {/* Detailed Data Table / Review Preview */}
           <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                <FileText className="w-4 h-4 text-primary" />
-                {reportData?.title || reportData?.reportTitle || "Report Records"}
-                <Badge variant="outline" className="text-xs bg-slate-100 dark:bg-slate-800 font-bold">
-                  {dataList.length} records
-                </Badge>
-              </h3>
+            {/* When Client Module or Group Sessions Module is in Overview mode: show clean review preview (first 5 rows) */}
+            {(isClientModule && selectedClient === "all") || (isGroupModule && selectedReport === "all-groups") ? (
+              <div className="space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50/70 dark:bg-slate-800/40 p-3.5 rounded-2xl border border-slate-200/70 dark:border-slate-800">
+                  <div className="flex items-center gap-2.5">
+                    <FileText className="w-4 h-4 text-primary" />
+                    <div>
+                      <div className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                        <span>{isGroupModule ? "Group Sessions Log Preview" : "Individual Session Logs Preview"}</span>
+                        <Badge variant="outline" className="text-[10px] bg-white dark:bg-slate-900 font-bold">
+                          {showFullIndividualLogs ? `Showing ${dataList.length} records` : `Showing 5 of ${dataList.length} records for review`}
+                        </Badge>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                        {isGroupModule
+                          ? `Detailed group appointment logs with notes & timestamps. Full raw log of all ${dataList.length} sessions is available via Excel or CSV export.`
+                          : `Individual appointment logs with notes & timestamps. Full raw log of all ${dataList.length} sessions is available via Excel or CSV export.`}
+                      </p>
+                    </div>
+                  </div>
 
-              <div className="text-xs text-muted-foreground">
-                Showing page {currentPage} of {totalPages}
-              </div>
-            </div>
-
-            <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 overflow-hidden bg-white dark:bg-slate-900 shadow-sm">
-              {isLoading ? (
-                <div className="py-16 text-center text-muted-foreground text-xs space-y-2">
-                  <RefreshCw className="w-6 h-6 animate-spin mx-auto text-primary" />
-                  <p>Loading report records...</p>
-                </div>
-              ) : paginatedData.length === 0 ? (
-                <div className="py-16 text-center text-muted-foreground text-xs space-y-2">
-                  <AlertCircle className="w-8 h-8 mx-auto text-muted-foreground/60" />
-                  <p className="font-semibold text-slate-700 dark:text-slate-300">No records found</p>
-                  <p>No transactions or sessions match the selected filters and timeframe.</p>
-                </div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs">
-                    <thead className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200/80 dark:border-slate-800">
-                      {isClientModule ? (
-                        <tr>
-                          <th className="p-3 font-bold text-slate-700 dark:text-slate-300">Client UHID</th>
-                          <th className="p-3 font-bold text-slate-700 dark:text-slate-300">Client Name</th>
-                          <th className="p-3 font-bold text-slate-700 dark:text-slate-300">Session Date</th>
-                          <th className="p-3 font-bold text-slate-700 dark:text-slate-300">Time</th>
-                          <th className="p-3 font-bold text-slate-700 dark:text-slate-300 text-center">Duration</th>
-                          <th className="p-3 font-bold text-slate-700 dark:text-slate-300">Instructor</th>
-                          <th className="p-3 font-bold text-slate-700 dark:text-slate-300">Session Type</th>
-                          <th className="p-3 font-bold text-slate-700 dark:text-slate-300 text-center">Status</th>
-                          <th className="p-3 font-bold text-slate-700 dark:text-slate-300">Session Notes</th>
-                        </tr>
-                      ) : isBillingModule ? (
-                        <tr>
-                          <th className="p-3 font-bold text-slate-700 dark:text-slate-300">Invoice #</th>
-                          <th className="p-3 font-bold text-slate-700 dark:text-slate-300">Date</th>
-                          <th className="p-3 font-bold text-slate-700 dark:text-slate-300">Client UHID</th>
-                          <th className="p-3 font-bold text-slate-700 dark:text-slate-300">Client Name</th>
-                          {selectedReport === "service-wise" && (
-                            <th className="p-3 font-bold text-slate-700 dark:text-slate-300">Service / Package</th>
-                          )}
-                          {selectedReport === "cancelled-invoices" && (
-                            <th className="p-3 font-bold text-slate-700 dark:text-slate-300">Cancellation Reason</th>
-                          )}
-                          <th className="p-3 font-bold text-slate-700 dark:text-slate-300">Payment Mode</th>
-                          <th className="p-3 font-bold text-slate-700 dark:text-slate-300 text-right">
-                            {selectedReport === "cancelled-invoices" ? "Cancelled Amount (₹)" : "Total (₹)"}
-                          </th>
-                          <th className="p-3 font-bold text-slate-700 dark:text-slate-300 text-center">Status</th>
-                          <th className="p-3 font-bold text-slate-700 dark:text-slate-300">Billed By</th>
-                        </tr>
+                  <div className="flex items-center gap-2 self-start sm:self-auto">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleOpenExport("excel", "individual")}
+                      className="h-8 text-xs font-semibold text-emerald-600 dark:text-emerald-400 border-emerald-500/30 gap-1.5"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      <span>Export All {dataList.length} Logs</span>
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setShowFullIndividualLogs(!showFullIndividualLogs)}
+                      className="h-8 text-xs font-semibold gap-1"
+                    >
+                      {showFullIndividualLogs ? (
+                        <>
+                          <ChevronUp className="w-3.5 h-3.5" />
+                          <span>Collapse Preview</span>
+                        </>
                       ) : (
-                        <tr>
-                          <th className="p-3 font-bold text-slate-700 dark:text-slate-300">Date & Time</th>
-                          <th className="p-3 font-bold text-slate-700 dark:text-slate-300">
-                            {isPhysioModule ? "Therapist" : "Sports Scientist"}
-                          </th>
-                          <th className="p-3 font-bold text-slate-700 dark:text-slate-300">UHID</th>
-                          <th className="p-3 font-bold text-slate-700 dark:text-slate-300">
-                            {isPhysioModule ? "Patient Name" : "Athlete Name"}
-                          </th>
-                          <th className="p-3 font-bold text-slate-700 dark:text-slate-300">Sport / Category</th>
-                          <th className="p-3 font-bold text-slate-700 dark:text-slate-300">Session Type</th>
-                          <th className="p-3 font-bold text-slate-700 dark:text-slate-300 text-center">Mode</th>
-                          <th className="p-3 font-bold text-slate-700 dark:text-slate-300 text-center">Duration</th>
-                          <th className="p-3 font-bold text-slate-700 dark:text-slate-300 text-center">Status</th>
-                          <th className="p-3 font-bold text-slate-700 dark:text-slate-300">Session Notes</th>
-                        </tr>
+                        <>
+                          <ChevronDown className="w-3.5 h-3.5" />
+                          <span>Browse All ({totalPages} Pages)</span>
+                        </>
                       )}
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 font-medium">
-                      {isClientModule
-                        ? paginatedData.map((row: any) => (
-                            <tr key={row.session_id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
-                              <td className="p-3 font-mono font-bold text-primary">{row.client_uhid || "-"}</td>
-                              <td className="p-3 font-bold text-slate-900 dark:text-white">
-                                {row.client_name}
-                                {row.client_sport && row.client_sport !== "General" && (
-                                  <span className="text-[10px] text-muted-foreground block font-normal">{row.client_sport}</span>
-                                )}
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-slate-200/80 dark:border-slate-800 overflow-hidden bg-white dark:bg-slate-900 shadow-sm">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs">
+                      <thead className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200/80 dark:border-slate-800">
+                        {isGroupModule ? (
+                          <tr>
+                            <th className="p-3 font-bold text-slate-700 dark:text-slate-300">Group Name</th>
+                            <th className="p-3 font-bold text-slate-700 dark:text-slate-300">Session Date</th>
+                            <th className="p-3 font-bold text-slate-700 dark:text-slate-300">Time</th>
+                            <th className="p-3 font-bold text-slate-700 dark:text-slate-300 text-center">Duration</th>
+                            <th className="p-3 font-bold text-slate-700 dark:text-slate-300">Instructor / Specialist</th>
+                            <th className="p-3 font-bold text-slate-700 dark:text-slate-300">Session Type / Modality</th>
+                            <th className="p-3 font-bold text-slate-700 dark:text-slate-300">Location</th>
+                            <th className="p-3 font-bold text-slate-700 dark:text-slate-300 text-center">Status</th>
+                            <th className="p-3 font-bold text-slate-700 dark:text-slate-300">Session Notes</th>
+                          </tr>
+                        ) : (
+                          <tr>
+                            <th className="p-3 font-bold text-slate-700 dark:text-slate-300">Client UHID</th>
+                            <th className="p-3 font-bold text-slate-700 dark:text-slate-300">Client Name</th>
+                            <th className="p-3 font-bold text-slate-700 dark:text-slate-300">Session Date</th>
+                            <th className="p-3 font-bold text-slate-700 dark:text-slate-300">Time</th>
+                            <th className="p-3 font-bold text-slate-700 dark:text-slate-300 text-center">Duration</th>
+                            <th className="p-3 font-bold text-slate-700 dark:text-slate-300">Instructor</th>
+                            <th className="p-3 font-bold text-slate-700 dark:text-slate-300">Session Type</th>
+                            <th className="p-3 font-bold text-slate-700 dark:text-slate-300 text-center">Status</th>
+                            <th className="p-3 font-bold text-slate-700 dark:text-slate-300">Session Notes</th>
+                          </tr>
+                        )}
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 font-medium">
+                        {(showFullIndividualLogs ? paginatedData : dataList.slice(0, 5)).map((row: any) => (
+                          <tr key={row.session_id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
+                            {isGroupModule ? (
+                              <td className="p-3 font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                <Users className="w-3.5 h-3.5 text-primary shrink-0" />
+                                <span>{row.group_name || "General Group"}</span>
                               </td>
-                              <td className="p-3 whitespace-nowrap text-foreground font-semibold">
-                                {row.scheduled_start ? format(new Date(row.scheduled_start), "dd/MM/yyyy") : (row.session_date || "-")}
-                              </td>
-                              <td className="p-3 whitespace-nowrap text-muted-foreground flex items-center gap-1">
-                                <Clock className="w-3 h-3" />
-                                {row.scheduled_start ? format(new Date(row.scheduled_start), "hh:mm a") : (row.session_time || "-")}
-                              </td>
-                              <td className="p-3 text-center font-bold text-primary">
-                                {row.duration_formatted}
-                              </td>
-                              <td className="p-3 font-medium text-slate-900 dark:text-white">
-                                <div className="font-semibold flex items-center gap-1.5">
-                                  <div className="w-5 h-5 rounded-full bg-primary/10 text-primary flex items-center justify-center text-[10px] font-bold">
-                                    {row.instructor_name?.[0] || "I"}
-                                  </div>
-                                  <span>{row.instructor_name}</span>
-                                </div>
-                                <div className="text-[10px] text-muted-foreground ml-6.5">{row.instructor_role}</div>
-                              </td>
-                              <td className="p-3 font-medium text-foreground">{row.service_type}</td>
-                              <td className="p-3 text-center">
-                                <Badge
-                                  className={`text-[10px] font-bold ${
-                                    row.status?.toLowerCase() === "completed"
-                                      ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
-                                      : row.status?.toLowerCase().includes("cancel")
-                                      ? "bg-rose-500/10 text-rose-600 border-rose-500/20"
-                                      : "bg-blue-500/10 text-blue-600 border-blue-500/20"
-                                  }`}
-                                >
-                                  {row.status || "Planned"}
-                                </Badge>
-                              </td>
-                              <td className="p-3 text-muted-foreground max-w-xs truncate" title={row.session_notes || row.cancellation_reason}>
-                                {row.cancellation_reason ? `Cancelled: ${row.cancellation_reason}` : (row.session_notes || "-")}
-                              </td>
-                            </tr>
-                          ))
-                        : isBillingModule
-                        ? paginatedData.map((row: any) => (
-                            <tr key={row.invoice_id + (row.service_name || "")} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
-                              <td className="p-3 font-mono font-bold text-primary">{row.invoice_no}</td>
-                              <td className="p-3 text-muted-foreground whitespace-nowrap">
-                                {row.invoice_date || (row.created_at ? format(new Date(row.created_at), "dd/MM/yyyy") : "-")}
-                              </td>
-                              <td className="p-3 font-mono font-medium">{row.client_uhid || "-"}</td>
-                              <td className="p-3 font-bold text-slate-900 dark:text-white">{row.client_name}</td>
-                              {selectedReport === "service-wise" && (
-                                <td className="p-3">
-                                  <div className="font-semibold">{row.service_name}</div>
-                                  <div className="text-[11px] text-muted-foreground">{row.service_category}</div>
+                            ) : (
+                              <>
+                                <td className="p-3 font-mono font-bold text-primary">{row.client_uhid || "-"}</td>
+                                <td className="p-3 font-bold text-slate-900 dark:text-white">
+                                  {row.client_name || "Guest / Walk-in Patient"}
+                                  {row.client_sport && row.client_sport !== "General" && (
+                                    <span className="text-[10px] text-muted-foreground block font-normal">{row.client_sport}</span>
+                                  )}
                                 </td>
+                              </>
+                            )}
+                            <td className="p-3 whitespace-nowrap text-foreground font-semibold">
+                              {row.scheduled_start ? format(new Date(row.scheduled_start), "dd/MM/yyyy") : (row.session_date || "-")}
+                            </td>
+                            <td className="p-3 whitespace-nowrap text-muted-foreground flex items-center gap-1">
+                              <Clock className="w-3 h-3" />
+                              {row.scheduled_start ? format(new Date(row.scheduled_start), "hh:mm a") : (row.session_time || "-")}
+                            </td>
+                            <td className="p-3 text-center font-bold text-primary">
+                              {row.duration_formatted}
+                            </td>
+                            <td className="p-3 font-medium text-slate-900 dark:text-white">
+                              <div className="font-semibold flex items-center gap-1.5">
+                                <div className="w-5 h-5 rounded-full bg-primary/10 text-primary flex items-center justify-center text-[10px] font-bold">
+                                  {row.instructor_name?.[0] || "I"}
+                                </div>
+                                <span>{row.instructor_name}</span>
+                              </div>
+                              <div className="text-[10px] text-muted-foreground ml-6.5">{row.instructor_role}</div>
+                            </td>
+                            <td className="p-3 font-medium text-foreground">
+                              {isGroupModule ? (
+                                <Badge variant="outline" className="text-[11px] bg-slate-50 dark:bg-slate-800">
+                                  {row.service_type}
+                                </Badge>
+                              ) : (
+                                row.service_type
+                              )}
+                            </td>
+                            {isGroupModule && (
+                              <td className="p-3 text-slate-700 dark:text-slate-300">
+                                {row.session_location || "CSSH Facility"}
+                              </td>
+                            )}
+                            <td className="p-3 text-center">
+                              <Badge
+                                className={`text-[10px] font-bold ${
+                                  row.status?.toLowerCase() === "completed"
+                                    ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
+                                    : row.status?.toLowerCase().includes("cancel")
+                                    ? "bg-rose-500/10 text-rose-600 border-rose-500/20"
+                                    : "bg-blue-500/10 text-blue-600 border-blue-500/20"
+                                }`}
+                              >
+                                {row.status || "Planned"}
+                              </Badge>
+                            </td>
+                            <td className="p-3 text-muted-foreground max-w-xs truncate" title={row.session_notes || row.cancellation_reason}>
+                              {row.cancellation_reason ? `Cancelled: ${row.cancellation_reason}` : (row.session_notes || "-")}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {!showFullIndividualLogs && dataList.length > 5 && (
+                    <div className="p-3 text-center text-xs text-muted-foreground bg-slate-50/50 dark:bg-slate-900/50 border-t border-slate-100 dark:border-slate-800">
+                      Showing 5 of {dataList.length} session records for review. To inspect or export all records, use the Export options above.
+                    </div>
+                  )}
+
+                  {showFullIndividualLogs && totalPages > 1 && (
+                    <div className="flex items-center justify-between p-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
+                      <span className="text-xs text-muted-foreground">
+                        Showing {(currentPage - 1) * pageSize + 1} to{" "}
+                        {Math.min(currentPage * pageSize, dataList.length)} of {dataList.length} items
+                      </span>
+
+                      <div className="flex items-center gap-1.5">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={currentPage === 1}
+                          onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                          className="h-7 text-xs rounded-lg"
+                        >
+                          Previous
+                        </Button>
+                        <span className="text-xs font-bold px-2">{currentPage} / {totalPages}</span>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={currentPage >= totalPages}
+                          onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                          className="h-7 text-xs rounded-lg"
+                        >
+                          Next
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              /* For specific selected client or Billing / Physio / Sports Science modules: standard data table */
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <FileText className="w-4 h-4 text-primary" />
+                    {reportData?.title || reportData?.reportTitle || "Report Records"}
+                    <Badge variant="outline" className="text-xs bg-slate-100 dark:bg-slate-800 font-bold">
+                      {dataList.length} records
+                    </Badge>
+                  </h3>
+
+                  <div className="text-xs text-muted-foreground">
+                    Showing page {currentPage} of {totalPages}
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 overflow-hidden bg-white dark:bg-slate-900 shadow-sm">
+                  {isLoading ? (
+                    <div className="py-16 text-center text-muted-foreground text-xs space-y-2">
+                      <RefreshCw className="w-6 h-6 animate-spin mx-auto text-primary" />
+                      <p>Loading report records...</p>
+                    </div>
+                  ) : paginatedData.length === 0 ? (
+                    <div className="py-16 text-center text-muted-foreground text-xs space-y-2">
+                      <AlertCircle className="w-8 h-8 mx-auto text-muted-foreground/60" />
+                      <p className="font-semibold text-slate-700 dark:text-slate-300">No records found</p>
+                      <p>No transactions or sessions match the selected filters and timeframe.</p>
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-xs">
+                        <thead className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200/80 dark:border-slate-800">
+                          {isGroupModule ? (
+                            <tr>
+                              <th className="p-3 font-bold text-slate-700 dark:text-slate-300">Group Name</th>
+                              <th className="p-3 font-bold text-slate-700 dark:text-slate-300">Session Date</th>
+                              <th className="p-3 font-bold text-slate-700 dark:text-slate-300">Time</th>
+                              <th className="p-3 font-bold text-slate-700 dark:text-slate-300 text-center">Duration</th>
+                              <th className="p-3 font-bold text-slate-700 dark:text-slate-300">Instructor / Specialist</th>
+                              <th className="p-3 font-bold text-slate-700 dark:text-slate-300">Session Type / Modality</th>
+                              <th className="p-3 font-bold text-slate-700 dark:text-slate-300">Location</th>
+                              <th className="p-3 font-bold text-slate-700 dark:text-slate-300 text-center">Status</th>
+                              <th className="p-3 font-bold text-slate-700 dark:text-slate-300">Session Notes</th>
+                            </tr>
+                          ) : isClientModule ? (
+                            <tr>
+                              <th className="p-3 font-bold text-slate-700 dark:text-slate-300">Client UHID</th>
+                              <th className="p-3 font-bold text-slate-700 dark:text-slate-300">Client Name</th>
+                              <th className="p-3 font-bold text-slate-700 dark:text-slate-300">Session Date</th>
+                              <th className="p-3 font-bold text-slate-700 dark:text-slate-300">Time</th>
+                              <th className="p-3 font-bold text-slate-700 dark:text-slate-300 text-center">Duration</th>
+                              <th className="p-3 font-bold text-slate-700 dark:text-slate-300">Instructor</th>
+                              <th className="p-3 font-bold text-slate-700 dark:text-slate-300">Session Type</th>
+                              <th className="p-3 font-bold text-slate-700 dark:text-slate-300 text-center">Status</th>
+                              <th className="p-3 font-bold text-slate-700 dark:text-slate-300">Session Notes</th>
+                            </tr>
+                          ) : isBillingModule ? (
+                            <tr>
+                              <th className="p-3 font-bold text-slate-700 dark:text-slate-300">Invoice #</th>
+                              <th className="p-3 font-bold text-slate-700 dark:text-slate-300">Date</th>
+                              <th className="p-3 font-bold text-slate-700 dark:text-slate-300">Client UHID</th>
+                              <th className="p-3 font-bold text-slate-700 dark:text-slate-300">Client Name</th>
+                              {selectedReport === "service-wise" && (
+                                <th className="p-3 font-bold text-slate-700 dark:text-slate-300">Service / Package</th>
                               )}
                               {selectedReport === "cancelled-invoices" && (
-                                <td className="p-3 text-rose-600 font-medium max-w-xs truncate" title={row.cancellation_reason}>
-                                  {row.cancellation_reason}
-                                </td>
+                                <th className="p-3 font-bold text-slate-700 dark:text-slate-300">Cancellation Reason</th>
                               )}
-                              <td className="p-3">
-                                <Badge variant="outline" className="font-semibold bg-slate-50 dark:bg-slate-800">
-                                  {row.payment_mode || "Cash"}
-                                </Badge>
-                              </td>
-                              <td className="p-3 text-right font-extrabold text-foreground">
-                                ₹{Number(row.total_amount || row.amount_paid || 0).toLocaleString("en-IN")}
-                              </td>
-                              <td className="p-3 text-center">
-                                <Badge
-                                  className={`text-[10px] font-bold ${
-                                    row.invoice_status?.toLowerCase() === "paid"
-                                      ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
-                                      : row.invoice_status?.toLowerCase().includes("cancel")
-                                      ? "bg-rose-500/10 text-rose-600 border-rose-500/20"
-                                      : "bg-amber-500/10 text-amber-600 border-amber-500/20"
-                                  }`}
-                                >
-                                  {row.invoice_status || "Completed"}
-                                </Badge>
-                              </td>
-                              <td className="p-3 text-muted-foreground">{row.billed_by_name || "Front Desk"}</td>
+                              <th className="p-3 font-bold text-slate-700 dark:text-slate-300">Payment Mode</th>
+                              <th className="p-3 font-bold text-slate-700 dark:text-slate-300 text-right">
+                                {selectedReport === "cancelled-invoices" ? "Cancelled Amount (₹)" : "Total (₹)"}
+                              </th>
+                              <th className="p-3 font-bold text-slate-700 dark:text-slate-300 text-center">Status</th>
+                              <th className="p-3 font-bold text-slate-700 dark:text-slate-300">Billed By</th>
                             </tr>
-                          ))
-                        : paginatedData.map((row: any) => (
-                            <tr key={row.session_id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
-                              <td className="p-3 whitespace-nowrap">
-                                <div className="font-bold text-slate-900 dark:text-white">
-                                  {row.scheduled_start ? format(new Date(row.scheduled_start), "dd MMM yyyy") : "-"}
-                                </div>
-                                <div className="text-[11px] text-muted-foreground flex items-center gap-1">
-                                  <Clock className="w-3 h-3" />
-                                  {row.scheduled_start ? format(new Date(row.scheduled_start), "hh:mm a") : "-"}
-                                </div>
-                              </td>
-                              <td className="p-3 font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                                <div className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-[10px] font-bold">
-                                  {row.staff_name?.[0] || "S"}
-                                </div>
-                                <div>
-                                  <div>{row.staff_name}</div>
-                                  <div className="text-[10px] text-muted-foreground font-normal">{row.staff_profession}</div>
-                                </div>
-                              </td>
-                              <td className="p-3 font-mono font-medium">{row.client_uhid || "-"}</td>
-                              <td className="p-3 font-bold text-slate-900 dark:text-white">{row.client_name}</td>
-                              <td className="p-3 text-muted-foreground">{row.client_sport || "General"}</td>
-                              <td className="p-3 font-semibold text-foreground">{row.service_type}</td>
-                              <td className="p-3 text-center">
-                                <Badge variant="outline" className="text-[10px]">
-                                  {row.session_mode || "Individual"}
-                                </Badge>
-                              </td>
-                              <td className="p-3 text-center font-bold text-primary">
-                                {row.duration_formatted}
-                              </td>
-                              <td className="p-3 text-center">
-                                <Badge
-                                  className={`text-[10px] font-bold ${
-                                    row.status?.toLowerCase() === "completed"
-                                      ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
-                                      : row.status?.toLowerCase().includes("cancel")
-                                      ? "bg-rose-500/10 text-rose-600 border-rose-500/20"
-                                      : "bg-blue-500/10 text-blue-600 border-blue-500/20"
-                                  }`}
-                                >
-                                  {row.status || "Planned"}
-                                </Badge>
-                              </td>
-                              <td className="p-3 text-muted-foreground max-w-xs truncate" title={row.session_notes || row.cancellation_reason}>
-                                {row.cancellation_reason ? `Cancelled: ${row.cancellation_reason}` : (row.session_notes || "-")}
-                              </td>
+                          ) : (
+                            <tr>
+                              <th className="p-3 font-bold text-slate-700 dark:text-slate-300">Date & Time</th>
+                              <th className="p-3 font-bold text-slate-700 dark:text-slate-300">
+                                {isPhysioModule ? "Therapist" : "Sports Scientist"}
+                              </th>
+                              <th className="p-3 font-bold text-slate-700 dark:text-slate-300">UHID</th>
+                              <th className="p-3 font-bold text-slate-700 dark:text-slate-300">
+                                {isPhysioModule ? "Patient Name" : "Athlete Name"}
+                              </th>
+                              <th className="p-3 font-bold text-slate-700 dark:text-slate-300">Sport / Category</th>
+                              <th className="p-3 font-bold text-slate-700 dark:text-slate-300">Session Type</th>
+                              <th className="p-3 font-bold text-slate-700 dark:text-slate-300 text-center">Mode</th>
+                              <th className="p-3 font-bold text-slate-700 dark:text-slate-300 text-center">Duration</th>
+                              <th className="p-3 font-bold text-slate-700 dark:text-slate-300 text-center">Status</th>
+                              <th className="p-3 font-bold text-slate-700 dark:text-slate-300">Session Notes</th>
                             </tr>
-                          ))}
-                    </tbody>
-                  </table>
+                          )}
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 font-medium">
+                          {isGroupModule
+                            ? paginatedData.map((row: any) => (
+                                <tr key={row.session_id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
+                                  <td className="p-3 font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                    <Users className="w-3.5 h-3.5 text-primary shrink-0" />
+                                    <span>{row.group_name || "General Group"}</span>
+                                  </td>
+                                  <td className="p-3 whitespace-nowrap text-foreground font-semibold">
+                                    {row.scheduled_start ? format(new Date(row.scheduled_start), "dd/MM/yyyy") : (row.session_date || "-")}
+                                  </td>
+                                  <td className="p-3 whitespace-nowrap text-muted-foreground flex items-center gap-1">
+                                    <Clock className="w-3 h-3" />
+                                    {row.scheduled_start ? format(new Date(row.scheduled_start), "hh:mm a") : (row.session_time || "-")}
+                                  </td>
+                                  <td className="p-3 text-center font-bold text-primary">
+                                    {row.duration_formatted}
+                                  </td>
+                                  <td className="p-3 font-medium text-slate-900 dark:text-white">
+                                    <div className="font-semibold flex items-center gap-1.5">
+                                      <div className="w-5 h-5 rounded-full bg-primary/10 text-primary flex items-center justify-center text-[10px] font-bold">
+                                        {row.instructor_name?.[0] || "I"}
+                                      </div>
+                                      <span>{row.instructor_name}</span>
+                                    </div>
+                                    <div className="text-[10px] text-muted-foreground ml-6.5">{row.instructor_role}</div>
+                                  </td>
+                                  <td className="p-3 font-medium text-foreground">
+                                    <Badge variant="outline" className="text-[11px] bg-slate-50 dark:bg-slate-800">
+                                      {row.service_type}
+                                    </Badge>
+                                  </td>
+                                  <td className="p-3 text-slate-700 dark:text-slate-300">{row.session_location || "CSSH Facility"}</td>
+                                  <td className="p-3 text-center">
+                                    <Badge
+                                      className={`text-[10px] font-bold ${
+                                        row.status?.toLowerCase() === "completed"
+                                          ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
+                                          : row.status?.toLowerCase().includes("cancel")
+                                          ? "bg-rose-500/10 text-rose-600 border-rose-500/20"
+                                          : "bg-blue-500/10 text-blue-600 border-blue-500/20"
+                                      }`}
+                                    >
+                                      {row.status || "Planned"}
+                                    </Badge>
+                                  </td>
+                                  <td className="p-3 text-muted-foreground max-w-xs truncate" title={row.session_notes || row.cancellation_reason}>
+                                    {row.cancellation_reason ? `Cancelled: ${row.cancellation_reason}` : (row.session_notes || "-")}
+                                  </td>
+                                </tr>
+                              ))
+                            : isClientModule
+                            ? paginatedData.map((row: any) => (
+                                <tr key={row.session_id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
+                                  <td className="p-3 font-mono font-bold text-primary">{row.client_uhid || "-"}</td>
+                                  <td className="p-3 font-bold text-slate-900 dark:text-white">
+                                    {row.client_name}
+                                    {row.client_sport && row.client_sport !== "General" && (
+                                      <span className="text-[10px] text-muted-foreground block font-normal">{row.client_sport}</span>
+                                    )}
+                                  </td>
+                                  <td className="p-3 whitespace-nowrap text-foreground font-semibold">
+                                    {row.scheduled_start ? format(new Date(row.scheduled_start), "dd/MM/yyyy") : (row.session_date || "-")}
+                                  </td>
+                                  <td className="p-3 whitespace-nowrap text-muted-foreground flex items-center gap-1">
+                                    <Clock className="w-3 h-3" />
+                                    {row.scheduled_start ? format(new Date(row.scheduled_start), "hh:mm a") : (row.session_time || "-")}
+                                  </td>
+                                  <td className="p-3 text-center font-bold text-primary">
+                                    {row.duration_formatted}
+                                  </td>
+                                  <td className="p-3 font-medium text-slate-900 dark:text-white">
+                                    <div className="font-semibold flex items-center gap-1.5">
+                                      <div className="w-5 h-5 rounded-full bg-primary/10 text-primary flex items-center justify-center text-[10px] font-bold">
+                                        {row.instructor_name?.[0] || "I"}
+                                      </div>
+                                      <span>{row.instructor_name}</span>
+                                    </div>
+                                    <div className="text-[10px] text-muted-foreground ml-6.5">{row.instructor_role}</div>
+                                  </td>
+                                  <td className="p-3 font-medium text-foreground">{row.service_type}</td>
+                                  <td className="p-3 text-center">
+                                    <Badge
+                                      className={`text-[10px] font-bold ${
+                                        row.status?.toLowerCase() === "completed"
+                                          ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
+                                          : row.status?.toLowerCase().includes("cancel")
+                                          ? "bg-rose-500/10 text-rose-600 border-rose-500/20"
+                                          : "bg-blue-500/10 text-blue-600 border-blue-500/20"
+                                      }`}
+                                    >
+                                      {row.status || "Planned"}
+                                    </Badge>
+                                  </td>
+                                  <td className="p-3 text-muted-foreground max-w-xs truncate" title={row.session_notes || row.cancellation_reason}>
+                                    {row.cancellation_reason ? `Cancelled: ${row.cancellation_reason}` : (row.session_notes || "-")}
+                                  </td>
+                                </tr>
+                              ))
+                            : isBillingModule
+                            ? paginatedData.map((row: any) => (
+                                <tr key={row.invoice_id + (row.service_name || "")} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
+                                  <td className="p-3 font-mono font-bold text-primary">{row.invoice_no}</td>
+                                  <td className="p-3 text-muted-foreground whitespace-nowrap">
+                                    {row.invoice_date || (row.created_at ? format(new Date(row.created_at), "dd/MM/yyyy") : "-")}
+                                  </td>
+                                  <td className="p-3 font-mono font-medium">{row.client_uhid || "-"}</td>
+                                  <td className="p-3 font-bold text-slate-900 dark:text-white">{row.client_name}</td>
+                                  {selectedReport === "service-wise" && (
+                                    <td className="p-3">
+                                      <div className="font-semibold">{row.service_name}</div>
+                                      <div className="text-[11px] text-muted-foreground">{row.service_category}</div>
+                                    </td>
+                                  )}
+                                  {selectedReport === "cancelled-invoices" && (
+                                    <td className="p-3 text-rose-600 font-medium max-w-xs truncate" title={row.cancellation_reason}>
+                                      {row.cancellation_reason}
+                                    </td>
+                                  )}
+                                  <td className="p-3">
+                                    <Badge variant="outline" className="font-semibold bg-slate-50 dark:bg-slate-800">
+                                      {row.payment_mode || "Cash"}
+                                    </Badge>
+                                  </td>
+                                  <td className="p-3 text-right font-extrabold text-foreground">
+                                    ₹{Number(row.total_amount || row.amount_paid || 0).toLocaleString("en-IN")}
+                                  </td>
+                                  <td className="p-3 text-center">
+                                    <Badge
+                                      className={`text-[10px] font-bold ${
+                                        row.invoice_status?.toLowerCase() === "paid"
+                                          ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
+                                          : row.invoice_status?.toLowerCase().includes("cancel")
+                                          ? "bg-rose-500/10 text-rose-600 border-rose-500/20"
+                                          : "bg-amber-500/10 text-amber-600 border-amber-500/20"
+                                      }`}
+                                    >
+                                      {row.invoice_status || "Completed"}
+                                    </Badge>
+                                  </td>
+                                  <td className="p-3 text-muted-foreground">{row.billed_by_name || "Front Desk"}</td>
+                                </tr>
+                              ))
+                            : paginatedData.map((row: any) => (
+                                <tr key={row.session_id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
+                                  <td className="p-3 whitespace-nowrap">
+                                    <div className="font-bold text-slate-900 dark:text-white">
+                                      {row.scheduled_start ? format(new Date(row.scheduled_start), "dd MMM yyyy") : "-"}
+                                    </div>
+                                    <div className="text-[11px] text-muted-foreground flex items-center gap-1">
+                                      <Clock className="w-3 h-3" />
+                                      {row.scheduled_start ? format(new Date(row.scheduled_start), "hh:mm a") : "-"}
+                                    </div>
+                                  </td>
+                                  <td className="p-3 font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                    <div className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-[10px] font-bold">
+                                      {row.staff_name?.[0] || "S"}
+                                    </div>
+                                    <div>
+                                      <span>{row.staff_name}</span>
+                                      <span className="text-[10px] text-muted-foreground block font-normal">
+                                        {row.staff_profession || (isPhysioModule ? "Physiotherapist" : "Sports Scientist")}
+                                      </span>
+                                    </div>
+                                  </td>
+                                  <td className="p-3 font-mono font-medium">{row.client_uhid || "-"}</td>
+                                  <td className="p-3 font-bold text-slate-900 dark:text-white">{row.client_name}</td>
+                                  <td className="p-3 text-muted-foreground">{row.client_sport || "General"}</td>
+                                  <td className="p-3 font-medium text-foreground">{row.service_type}</td>
+                                  <td className="p-3 text-center">
+                                    <Badge variant="outline" className="text-[10px] uppercase font-bold">
+                                      {row.session_mode || "1-on-1"}
+                                    </Badge>
+                                  </td>
+                                  <td className="p-3 text-center font-bold text-primary">
+                                    {row.duration_formatted}
+                                  </td>
+                                  <td className="p-3 text-center">
+                                    <Badge
+                                      className={`text-[10px] font-bold ${
+                                        row.status?.toLowerCase() === "completed"
+                                          ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
+                                          : row.status?.toLowerCase().includes("cancel")
+                                          ? "bg-rose-500/10 text-rose-600 border-rose-500/20"
+                                          : "bg-blue-500/10 text-blue-600 border-blue-500/20"
+                                      }`}
+                                    >
+                                      {row.status || "Planned"}
+                                    </Badge>
+                                  </td>
+                                  <td className="p-3 text-muted-foreground max-w-xs truncate" title={row.session_notes || row.cancellation_reason}>
+                                    {row.cancellation_reason ? `Cancelled: ${row.cancellation_reason}` : (row.session_notes || "-")}
+                                  </td>
+                                </tr>
+                              ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+
+                  {/* Pagination Footer */}
+                  {totalPages > 1 && (
+                    <div className="flex items-center justify-between p-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
+                      <span className="text-xs text-muted-foreground">
+                        Showing {(currentPage - 1) * pageSize + 1} to{" "}
+                        {Math.min(currentPage * pageSize, dataList.length)} of {dataList.length} items
+                      </span>
+
+                      <div className="flex items-center gap-1.5">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={currentPage === 1}
+                          onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                          className="h-7 text-xs rounded-lg"
+                        >
+                          Previous
+                        </Button>
+                        <span className="text-xs font-bold px-2">{currentPage} / {totalPages}</span>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={currentPage >= totalPages}
+                          onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                          className="h-7 text-xs rounded-lg"
+                        >
+                          Next
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </div>
-              )}
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
-              {/* Pagination Footer */}
-              {totalPages > 1 && (
-                <div className="flex items-center justify-between p-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
-                  <span className="text-xs text-muted-foreground">
-                    Showing {(currentPage - 1) * pageSize + 1} to{" "}
-                    {Math.min(currentPage * pageSize, dataList.length)} of {dataList.length} items
-                  </span>
+      {/* Export Options Modal Dialog */}
+      <Dialog open={exportModalOpen} onOpenChange={setExportModalOpen}>
+        <DialogContent className="max-w-lg rounded-2xl p-6 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-xl">
+          <DialogHeader className="space-y-1.5">
+            <DialogTitle className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <FileSpreadsheet className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+              <span>Export {selectedModule} Data ({exportFormat === "excel" ? "Excel .xlsx" : "CSV"})</span>
+            </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">
+              Choose how you would like the exported session records to be grouped and structured.
+            </DialogDescription>
+          </DialogHeader>
 
-                  <div className="flex items-center gap-1.5">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={currentPage === 1}
-                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                      className="h-7 text-xs rounded-lg"
-                    >
-                      Previous
-                    </Button>
-                    <span className="text-xs font-bold px-2">{currentPage} / {totalPages}</span>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={currentPage >= totalPages}
-                      onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                      className="h-7 text-xs rounded-lg"
-                    >
-                      Next
-                    </Button>
+          <div className="space-y-3 py-2">
+            {/* Context Info Pill */}
+            <div className="bg-slate-50 dark:bg-slate-800/60 p-3 rounded-xl border border-slate-200/70 dark:border-slate-800 flex items-center justify-between text-xs">
+              <div>
+                <span className="text-muted-foreground">Timeframe: </span>
+                <span className="font-semibold text-foreground">{startDate} to {endDate}</span>
+              </div>
+              <Badge variant="outline" className="text-[11px] font-bold bg-white dark:bg-slate-900">
+                {isGroupModule
+                  ? `${reportData?.groupBreakdown?.length || 0} Groups • ${dataList.length} Sessions`
+                  : isClientModule
+                  ? `${reportData?.clientBreakdown?.length || 0} Clients • ${dataList.length} Sessions`
+                  : `${dataList.length} Records`}
+              </Badge>
+            </div>
+
+            {/* Selection Cards */}
+            <div className="space-y-2.5">
+              {/* Option 1: Consolidated Summary (Group by Client ID / Group Name / Practitioner) */}
+              <div
+                onClick={() => setExportGrouping("consolidated")}
+                className={`p-3.5 rounded-xl border-2 transition-all cursor-pointer flex items-start gap-3 ${
+                  exportGrouping === "consolidated"
+                    ? "border-emerald-600 bg-emerald-500/5 dark:bg-emerald-500/10 shadow-sm"
+                    : "border-slate-200/80 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 bg-white dark:bg-slate-900/60"
+                }`}
+              >
+                <div
+                  className={`mt-0.5 p-2 rounded-lg ${
+                    exportGrouping === "consolidated"
+                      ? "bg-emerald-600 text-white"
+                      : "bg-slate-100 dark:bg-slate-800 text-muted-foreground"
+                  }`}
+                >
+                  <Users className="w-4 h-4" />
+                </div>
+                <div className="flex-1 space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-900 dark:text-white">
+                      {isGroupModule
+                        ? "Group by Group Name (Consolidated Summary)"
+                        : isClientModule
+                        ? "Group by Client ID (Consolidated Summary)"
+                        : isPhysioModule || isSportsScienceModule
+                        ? "Group by Practitioner (Staff Summary)"
+                        : "Consolidated Summary Breakdown"}
+                    </span>
+                    <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20 text-[10px] font-bold">
+                      Recommended
+                    </Badge>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground leading-relaxed">
+                    {isGroupModule
+                      ? "1 consolidated row per group with total sessions, completed, cancelled, total hours, and primary instructors."
+                      : isClientModule
+                      ? "1 consolidated row per client with total sessions, completed, cancelled, total hours, and primary instructors."
+                      : "Aggregated performance rows with session counts, completion rates, and total hours."}
+                  </p>
+                  <div className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
+                    {isGroupModule
+                      ? `${reportData?.groupBreakdown?.length || 0} unique group rows`
+                      : isClientModule
+                      ? `${reportData?.clientBreakdown?.length || 0} unique client rows`
+                      : "Summary breakdown rows"}
+                  </div>
+                </div>
+              </div>
+
+              {/* Option 2: Detailed Individual Sessions */}
+              <div
+                onClick={() => setExportGrouping("individual")}
+                className={`p-3.5 rounded-xl border-2 transition-all cursor-pointer flex items-start gap-3 ${
+                  exportGrouping === "individual"
+                    ? "border-emerald-600 bg-emerald-500/5 dark:bg-emerald-500/10 shadow-sm"
+                    : "border-slate-200/80 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 bg-white dark:bg-slate-900/60"
+                }`}
+              >
+                <div
+                  className={`mt-0.5 p-2 rounded-lg ${
+                    exportGrouping === "individual"
+                      ? "bg-emerald-600 text-white"
+                      : "bg-slate-100 dark:bg-slate-800 text-muted-foreground"
+                  }`}
+                >
+                  <ListOrdered className="w-4 h-4" />
+                </div>
+                <div className="flex-1 space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-900 dark:text-white">
+                      Detailed Individual Sessions (Raw Log)
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground leading-relaxed">
+                    Every individual appointment record with session date, time, duration, instructor, session type, status, and notes.
+                  </p>
+                  <div className="text-[10px] font-semibold text-slate-600 dark:text-slate-400">
+                    {dataList.length} individual record rows
+                  </div>
+                </div>
+              </div>
+
+              {/* Option 3: Both (Multi-Sheet Excel only) */}
+              {exportFormat === "excel" && (
+                <div
+                  onClick={() => setExportGrouping("both")}
+                  className={`p-3.5 rounded-xl border-2 transition-all cursor-pointer flex items-start gap-3 ${
+                    exportGrouping === "both"
+                      ? "border-emerald-600 bg-emerald-500/5 dark:bg-emerald-500/10 shadow-sm"
+                      : "border-slate-200/80 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 bg-white dark:bg-slate-900/60"
+                  }`}
+                >
+                  <div
+                    className={`mt-0.5 p-2 rounded-lg ${
+                      exportGrouping === "both"
+                        ? "bg-emerald-600 text-white"
+                        : "bg-slate-100 dark:bg-slate-800 text-muted-foreground"
+                    }`}
+                  >
+                    <Layers className="w-4 h-4" />
+                  </div>
+                  <div className="flex-1 space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-slate-900 dark:text-white">
+                        Both (Multi-Sheet Excel Workbook)
+                      </span>
+                      <Badge variant="outline" className="text-[10px] font-bold">
+                        2 Sheets
+                      </Badge>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground leading-relaxed">
+                      {isGroupModule
+                        ? "Sheet 1: Consolidated Group Summary + Sheet 2: Detailed Group Sessions Log in one .xlsx file."
+                        : "Sheet 1: Consolidated Client/Staff Summary + Sheet 2: Detailed Individual Session Records in one .xlsx file."}
+                    </p>
                   </div>
                 </div>
               )}
             </div>
           </div>
-        </CardContent>
-      </Card>
+
+          <DialogFooter className="gap-2 sm:gap-0 pt-2 border-t border-slate-100 dark:border-slate-800">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setExportModalOpen(false)}
+              disabled={isExporting}
+              className="h-8 text-xs rounded-xl"
+            >
+              Cancel
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => executeExport(exportFormat, exportGrouping)}
+              disabled={isExporting}
+              className="h-8 text-xs rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold gap-1.5 shadow-sm"
+            >
+              {isExporting ? (
+                <>
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                  <span>Generating Export...</span>
+                </>
+              ) : (
+                <>
+                  <Download className="w-3.5 h-3.5" />
+                  <span>
+                    Download {exportFormat === "excel" ? "Excel (.xlsx)" : "CSV"}
+                  </span>
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
