@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { apiFetch } from "@/utils/api";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { SearchableSelect, type SearchableSelectOption } from "@/components/ui/searchable-select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -118,7 +119,6 @@ export default function ReportsHubView({ initialModule = "Billing", initialRepor
   const [selectedPaymentMode, setSelectedPaymentMode] = useState<string>("all");
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
   const [selectedMode, setSelectedMode] = useState<string>("all"); // Individual vs Group
-  const [searchTerm, setSearchTerm] = useState<string>("");
 
   // Pagination
   const [currentPage, setCurrentPage] = useState<number>(1);
@@ -283,7 +283,6 @@ export default function ReportsHubView({ initialModule = "Billing", initialRepor
       selectedPaymentMode,
       selectedStatus,
       selectedMode,
-      searchTerm,
     ],
     queryFn: async () => {
       const params = new URLSearchParams({
@@ -291,7 +290,6 @@ export default function ReportsHubView({ initialModule = "Billing", initialRepor
         end_date: endDate,
       });
 
-      if (searchTerm) params.append("search", searchTerm);
 
       if (isBillingModule) {
         params.append("report_type", selectedReport);
@@ -361,6 +359,7 @@ export default function ReportsHubView({ initialModule = "Billing", initialRepor
     Array<{ id: string; uhid: string; name: string; sport?: string; count?: number }>
   >([]);
 
+  
   // Client Summary Table state (search, sort, and pagination)
   const [summaryPage, setSummaryPage] = useState<number>(1);
   const [summaryPageSize, setSummaryPageSize] = useState<number>(25);
@@ -378,14 +377,14 @@ export default function ReportsHubView({ initialModule = "Billing", initialRepor
   // Reset summary page when module, timeframe, or search term changes
   useEffect(() => {
     setSummaryPage(1);
-  }, [selectedModule, startDate, endDate, searchTerm, summarySearch]);
+  }, [selectedModule, startDate, endDate, summarySearch]);
 
   // Filtered and sorted client breakdown for the consolidated table
   const filteredClientSummary = useMemo(() => {
     if (!reportData?.clientBreakdown || !Array.isArray(reportData.clientBreakdown)) return [];
     let list = [...reportData.clientBreakdown];
 
-    const search = (summarySearch || searchTerm || "").trim().toLowerCase();
+    const search = (summarySearch || "").trim().toLowerCase();
     if (search) {
       list = list.filter((c: any) => {
         const name = (c.clientName || "").toLowerCase();
@@ -409,7 +408,7 @@ export default function ReportsHubView({ initialModule = "Billing", initialRepor
     });
 
     return list;
-  }, [reportData?.clientBreakdown, summarySearch, searchTerm, summarySortField, summarySortAsc]);
+  }, [reportData?.clientBreakdown, summarySearch, summarySortField, summarySortAsc]);
 
   const summaryTotalPages = Math.ceil(filteredClientSummary.length / summaryPageSize) || 1;
   const paginatedClientSummary = useMemo(() => {
@@ -447,7 +446,7 @@ export default function ReportsHubView({ initialModule = "Billing", initialRepor
     if (!reportData?.groupBreakdown || !Array.isArray(reportData.groupBreakdown)) return [];
     let list = [...reportData.groupBreakdown];
 
-    const search = (summarySearch || searchTerm || "").trim().toLowerCase();
+    const search = (summarySearch || "").trim().toLowerCase();
     if (search) {
       list = list.filter((g: any) => {
         const name = (g.groupName || "").toLowerCase();
@@ -470,7 +469,7 @@ export default function ReportsHubView({ initialModule = "Billing", initialRepor
     });
 
     return list;
-  }, [reportData?.groupBreakdown, summarySearch, searchTerm, summarySortField, summarySortAsc]);
+  }, [reportData?.groupBreakdown, summarySearch, summarySortField, summarySortAsc]);
 
   const groupSummaryTotalPages = Math.ceil(filteredGroupSummary.length / summaryPageSize) || 1;
   const paginatedGroupSummary = useMemo(() => {
@@ -628,6 +627,115 @@ export default function ReportsHubView({ initialModule = "Billing", initialRepor
       }
     }
   }, [reportData, selectedStaff, isPhysioModule, isSportsScienceModule, isBillingModule, options, isLoading]);
+
+  // Memoized options for SearchableSelect dropdowns
+  const reportOptions = useMemo<SearchableSelectOption[]>(() => {
+    if (selectedModule === "Group Sessions") {
+      return [
+        { value: "all-groups", label: "All Group Sessions (Summary & Details)", group: "Overview" },
+        ...availableGroupNames.map((grpName) => ({
+          value: grpName,
+          label: grpName,
+          group: "Individual Groups (" + availableGroupNames.length + ")",
+        })),
+      ];
+    }
+    if (selectedModule === "Client") {
+      return [
+        { value: "client-sessions", label: "Client Sessions Log & Details", group: "Most used reports" },
+        { value: "client-attendance", label: "Client Completed Sessions Log", group: "Most used reports" },
+        { value: "client-cancelled", label: "Client Cancelled & Missed Sessions", group: "Most used reports" },
+        { value: "client-summary", label: "Client Hours & Volume Summary", group: "Selected module reports" },
+        { value: "client-modality", label: "Modality & Service wise Breakdown", group: "Selected module reports" },
+      ];
+    }
+    if (selectedModule === "Billing") {
+      return [
+        { value: "service-wise", label: "Service wise Invoice Details", group: "Most used reports" },
+        { value: "cancelled-invoices", label: "Cancelled Invoice Details", group: "Most used reports" },
+        { value: "payment-mode-wise", label: "Payment Mode wise Invoice Details", group: "Most used reports" },
+        { value: "user-wise", label: "User wise Invoices List", group: "Selected module reports" },
+        { value: "advance-collection", label: "Advance Collection Report", group: "Selected module reports" },
+      ];
+    }
+    if (selectedModule === "Physiotherapy") {
+      return [
+        { value: "therapist-sessions", label: "Therapist Sessions Summary & Details", group: "Most used reports" },
+        { value: "service-modality-sessions", label: "Service & Modality wise Physio Sessions", group: "Most used reports" },
+        { value: "cancelled-physio-sessions", label: "Cancelled / Missed Physio Sessions", group: "Most used reports" },
+        { value: "therapist-utilization", label: "Therapist Treatment Hours & Utilization", group: "Selected module reports" },
+        { value: "patient-history", label: "Patient Follow-up Frequency Report", group: "Selected module reports" },
+      ];
+    }
+    if (selectedModule === "Sports Science") {
+      return [
+        { value: "scientist-sessions", label: "Sports Scientist Sessions Summary & Details", group: "Most used reports" },
+        { value: "discipline-sessions", label: "Training & Testing Discipline Breakdown", group: "Most used reports" },
+        { value: "cancelled-sports-sessions", label: "Cancelled & Rescheduled Sports Science Sessions", group: "Most used reports" },
+        { value: "athlete-volume", label: "Athlete Training Hours & Volume", group: "Selected module reports" },
+        { value: "mode-breakdown", label: "Group vs Individual Sessions Breakdown", group: "Selected module reports" },
+      ];
+    }
+    if (selectedModule === "Registration") {
+      return [
+        { value: "new-registrations", label: "New Patient Registrations Summary", group: "Registration reports" },
+        { value: "demographics-summary", label: "Demographics & Sports Distribution", group: "Registration reports" },
+      ];
+    }
+    if (selectedModule === "Admin") {
+      return [
+        { value: "operations-summary", label: "Operations Executive Overview", group: "Administrative reports" },
+        { value: "revenue-by-center", label: "Multi-Center Revenue Distribution", group: "Administrative reports" },
+      ];
+    }
+    return [
+      { value: "client-sessions", label: "Client Sessions Log & Details", group: "Reports" },
+    ];
+  }, [selectedModule, availableGroupNames]);
+
+  const clientSelectOptions = useMemo<SearchableSelectOption[]>(() => {
+    return [
+      {
+        value: "all",
+        label: "All Clients " + (availableClients.length > 0 ? "(" + availableClients.length + ")" : ""),
+      },
+      ...availableClients.map((c) => ({
+        value: c.id,
+        label: c.name,
+        sublabel: c.uhid ? "(" + c.uhid + ")" : undefined,
+      })),
+    ];
+  }, [availableClients]);
+
+  const staffSelectOptions = useMemo<SearchableSelectOption[]>(() => {
+    const defaultLabel = isPhysioModule
+      ? "Therapists"
+      : isSportsScienceModule
+      ? "Sports Scientists"
+      : "Instructors";
+    return [
+      {
+        value: "all",
+        label: "All " + defaultLabel + " " + (availableStaff.length > 0 ? "(" + availableStaff.length + ")" : ""),
+      },
+      ...availableStaff.map((s) => ({
+        value: s.id,
+        label: s.name,
+        sublabel: s.profession ? "(" + s.profession + ")" : undefined,
+      })),
+    ];
+  }, [availableStaff, isPhysioModule, isSportsScienceModule]);
+
+  const billingStaffOptions = useMemo<SearchableSelectOption[]>(() => {
+    return [
+      { value: "all", label: "All Billing Users" },
+      ...(options?.billingStaff || []).map((st) => ({
+        value: st.id,
+        label: st.name,
+      })),
+    ];
+  }, [options?.billingStaff]);
+
 
   // Export Open Handler: opens modal if report has grouping choices, or exports directly
   const handleOpenExport = (
@@ -1425,185 +1533,14 @@ export default function ReportsHubView({ initialModule = "Billing", initialRepor
               <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
                 Report
               </label>
-              <Select value={selectedReport} onValueChange={(val) => { setSelectedReport(val); setCurrentPage(1); }}>
-                <SelectTrigger className="w-full h-10 bg-white dark:bg-slate-900 rounded-xl border-slate-200 dark:border-slate-700 text-xs font-semibold shadow-sm">
-                  <SelectValue placeholder="Select report" />
-                </SelectTrigger>
-                <SelectContent className="rounded-xl max-h-72">
-                  {selectedModule === "Group Sessions" && (
-                    <>
-                      <SelectGroup>
-                        <SelectLabel className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider px-2 py-1">
-                          Overview
-                        </SelectLabel>
-                        <SelectItem value="all-groups" className="text-xs font-semibold cursor-pointer">
-                          All Group Sessions (Summary & Details)
-                        </SelectItem>
-                      </SelectGroup>
-                      {availableGroupNames.length > 0 && (
-                        <SelectGroup>
-                          <SelectLabel className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider px-2 py-1 pt-2 border-t border-slate-100 dark:border-slate-800">
-                            Individual Groups ({availableGroupNames.length})
-                          </SelectLabel>
-                          {availableGroupNames.map((grpName) => (
-                            <SelectItem key={grpName} value={grpName} className="text-xs font-medium cursor-pointer">
-                              {grpName}
-                            </SelectItem>
-                          ))}
-                        </SelectGroup>
-                      )}
-                    </>
-                  )}
-
-                  {selectedModule === "Client" && (
-                    <>
-                      <SelectGroup>
-                        <SelectLabel className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider px-2 py-1">
-                          Most used reports
-                        </SelectLabel>
-                        <SelectItem value="client-sessions" className="text-xs font-medium cursor-pointer">
-                          Client Sessions Log & Details
-                        </SelectItem>
-                        <SelectItem value="client-attendance" className="text-xs font-medium cursor-pointer">
-                          Client Completed Sessions Log
-                        </SelectItem>
-                        <SelectItem value="client-cancelled" className="text-xs font-medium cursor-pointer">
-                          Client Cancelled & Missed Sessions
-                        </SelectItem>
-                      </SelectGroup>
-                      <SelectGroup>
-                        <SelectLabel className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider px-2 py-1 pt-2 border-t border-slate-100 dark:border-slate-800">
-                          Selected module reports
-                        </SelectLabel>
-                        <SelectItem value="client-summary" className="text-xs font-medium cursor-pointer">
-                          Client Hours & Volume Summary
-                        </SelectItem>
-                        <SelectItem value="client-modality" className="text-xs font-medium cursor-pointer">
-                          Modality & Service wise Breakdown
-                        </SelectItem>
-                      </SelectGroup>
-                    </>
-                  )}
-
-                  {selectedModule === "Billing" && (
-                    <>
-                      <SelectGroup>
-                        <SelectLabel className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider px-2 py-1">
-                          Most used reports
-                        </SelectLabel>
-                        <SelectItem value="service-wise" className="text-xs font-medium cursor-pointer">
-                          Service wise Invoice Details
-                        </SelectItem>
-                        <SelectItem value="cancelled-invoices" className="text-xs font-medium cursor-pointer">
-                          Cancelled Invoice Details
-                        </SelectItem>
-                        <SelectItem value="payment-mode-wise" className="text-xs font-medium cursor-pointer">
-                          Payment Mode wise Invoice Details
-                        </SelectItem>
-                      </SelectGroup>
-                      <SelectGroup>
-                        <SelectLabel className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider px-2 py-1 pt-2 border-t border-slate-100 dark:border-slate-800">
-                          Selected module reports
-                        </SelectLabel>
-                        <SelectItem value="user-wise" className="text-xs font-medium cursor-pointer">
-                          User wise Invoices List
-                        </SelectItem>
-                        <SelectItem value="advance-collection" className="text-xs font-medium cursor-pointer">
-                          Advance Collection Report
-                        </SelectItem>
-                      </SelectGroup>
-                    </>
-                  )}
-
-                  {selectedModule === "Physiotherapy" && (
-                    <>
-                      <SelectGroup>
-                        <SelectLabel className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider px-2 py-1">
-                          Most used reports
-                        </SelectLabel>
-                        <SelectItem value="therapist-sessions" className="text-xs font-medium cursor-pointer">
-                          Therapist Sessions Summary & Details
-                        </SelectItem>
-                        <SelectItem value="service-modality-sessions" className="text-xs font-medium cursor-pointer">
-                          Service & Modality wise Physio Sessions
-                        </SelectItem>
-                        <SelectItem value="cancelled-physio-sessions" className="text-xs font-medium cursor-pointer">
-                          Cancelled / Missed Physio Sessions
-                        </SelectItem>
-                      </SelectGroup>
-                      <SelectGroup>
-                        <SelectLabel className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider px-2 py-1 pt-2 border-t border-slate-100 dark:border-slate-800">
-                          Selected module reports
-                        </SelectLabel>
-                        <SelectItem value="therapist-utilization" className="text-xs font-medium cursor-pointer">
-                          Therapist Treatment Hours & Utilization
-                        </SelectItem>
-                        <SelectItem value="patient-history" className="text-xs font-medium cursor-pointer">
-                          Patient Follow-up Frequency Report
-                        </SelectItem>
-                      </SelectGroup>
-                    </>
-                  )}
-
-                  {selectedModule === "Sports Science" && (
-                    <>
-                      <SelectGroup>
-                        <SelectLabel className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider px-2 py-1">
-                          Most used reports
-                        </SelectLabel>
-                        <SelectItem value="scientist-sessions" className="text-xs font-medium cursor-pointer">
-                          Sports Scientist Sessions Summary & Details
-                        </SelectItem>
-                        <SelectItem value="discipline-sessions" className="text-xs font-medium cursor-pointer">
-                          Training & Testing Discipline Breakdown (S&C, Biomechanics)
-                        </SelectItem>
-                        <SelectItem value="cancelled-sports-sessions" className="text-xs font-medium cursor-pointer">
-                          Cancelled & Rescheduled Sports Science Sessions
-                        </SelectItem>
-                      </SelectGroup>
-                      <SelectGroup>
-                        <SelectLabel className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider px-2 py-1 pt-2 border-t border-slate-100 dark:border-slate-800">
-                          Selected module reports
-                        </SelectLabel>
-                        <SelectItem value="athlete-volume" className="text-xs font-medium cursor-pointer">
-                          Athlete Training Hours & Volume
-                        </SelectItem>
-                        <SelectItem value="mode-breakdown" className="text-xs font-medium cursor-pointer">
-                          Group vs Individual Sessions Breakdown
-                        </SelectItem>
-                      </SelectGroup>
-                    </>
-                  )}
-
-                  {selectedModule === "Registration" && (
-                    <SelectGroup>
-                      <SelectLabel className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider px-2 py-1">
-                        Registration reports
-                      </SelectLabel>
-                      <SelectItem value="new-registrations" className="text-xs font-medium cursor-pointer">
-                        New Patient Registrations Summary
-                      </SelectItem>
-                      <SelectItem value="demographics-summary" className="text-xs font-medium cursor-pointer">
-                        Demographics & Sports Distribution
-                      </SelectItem>
-                    </SelectGroup>
-                  )}
-
-                  {selectedModule === "Admin" && (
-                    <SelectGroup>
-                      <SelectLabel className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider px-2 py-1">
-                        Administrative reports
-                      </SelectLabel>
-                      <SelectItem value="operations-summary" className="text-xs font-medium cursor-pointer">
-                        Center Operations & Revenue Summary
-                      </SelectItem>
-                      <SelectItem value="service-wise" className="text-xs font-medium cursor-pointer">
-                        Service Wise Invoicing Details
-                      </SelectItem>
-                    </SelectGroup>
-                  )}
-                </SelectContent>
-              </Select>
+              <SearchableSelect
+                value={selectedReport}
+                onValueChange={(val) => { setSelectedReport(val); setCurrentPage(1); }}
+                placeholder="Select report"
+                searchPlaceholder="Search report or group..."
+                options={reportOptions}
+                triggerClassName="w-full h-10 bg-white dark:bg-slate-900 rounded-xl border-slate-200 dark:border-slate-700 text-xs font-semibold shadow-sm"
+              />
             </div>
 
             {/* Box 3: Timeframe Dropdown (Options + Date Selection all inside dropdown) */}
@@ -1740,101 +1677,69 @@ export default function ReportsHubView({ initialModule = "Billing", initialRepor
             </div>
           </div>
 
-          {/* Secondary Contextual Filters Row (Client / Practitioner / Payment Mode / Status / Search) */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 bg-slate-50/60 dark:bg-slate-800/30 p-3 rounded-2xl border border-slate-200/60 dark:border-slate-800">
-            {/* Filter 1: Client Selector (For Client module - dynamically populated from table below) */}
+          {/* Secondary Contextual Filters Row (Client / Practitioner / Payment Mode / Status) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 bg-slate-50/60 dark:bg-slate-800/30 p-3 rounded-2xl border border-slate-200/60 dark:border-slate-800">
+            {/* Filter 1: Client Selector (For Client module - searchable by name or UHID) */}
             {isClientModule && (
               <div>
                 <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block mb-1">
                   Select Client
                 </label>
-                <Select value={selectedClient} onValueChange={(val) => { setSelectedClient(val); setCurrentPage(1); }}>
-                  <SelectTrigger className="h-8 text-xs bg-white dark:bg-slate-900 rounded-lg">
-                    <SelectValue placeholder="All Clients" />
-                  </SelectTrigger>
-                  <SelectContent className="rounded-xl max-h-72">
-                    <SelectItem value="all" className="text-xs font-semibold">
-                      All Clients {availableClients.length > 0 ? `(${availableClients.length})` : ""}
-                    </SelectItem>
-                    {availableClients.map((c) => (
-                      <SelectItem key={c.id} value={c.id} className="text-xs cursor-pointer">
-                        {c.name} {c.uhid ? `(${c.uhid})` : ""}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <SearchableSelect
+                  value={selectedClient}
+                  onValueChange={(val) => { setSelectedClient(val); setCurrentPage(1); }}
+                  placeholder="All Clients"
+                  searchPlaceholder="Search client by name or UHID..."
+                  options={clientSelectOptions}
+                />
               </div>
             )}
 
-            {/* Filter 1b: Practitioner Selector (For Physio / Sports Science / Group modules - dynamically populated from table below) */}
+            {/* Filter 1b: Practitioner Selector (For Physio / Sports Science / Group modules - searchable by name) */}
             {(isPhysioModule || isSportsScienceModule || isGroupModule) && (
               <div>
                 <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block mb-1">
                   {isPhysioModule ? "Therapist" : isSportsScienceModule ? "Sports Scientist" : "Instructor / Specialist"}
                 </label>
-                <Select value={selectedStaff} onValueChange={(val) => { setSelectedStaff(val); setCurrentPage(1); }}>
-                  <SelectTrigger className="h-8 text-xs bg-white dark:bg-slate-900 rounded-lg">
-                    <SelectValue placeholder={`All ${isPhysioModule ? "Therapists" : isSportsScienceModule ? "Sports Scientists" : "Instructors"}`} />
-                  </SelectTrigger>
-                  <SelectContent className="rounded-xl max-h-72">
-                    <SelectItem value="all" className="text-xs font-semibold">
-                      All {isPhysioModule ? "Therapists" : isSportsScienceModule ? "Sports Scientists" : "Instructors"} {availableStaff.length > 0 ? `(${availableStaff.length})` : ""}
-                    </SelectItem>
-                    {availableStaff.map((s) => (
-                      <SelectItem key={s.id} value={s.id} className="text-xs cursor-pointer">
-                        {s.name} {s.profession ? `(${s.profession})` : ""}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <SearchableSelect
+                  value={selectedStaff}
+                  onValueChange={(val) => { setSelectedStaff(val); setCurrentPage(1); }}
+                  placeholder={"All " + (isPhysioModule ? "Therapists" : isSportsScienceModule ? "Sports Scientists" : "Instructors")}
+                  searchPlaceholder={"Search " + (isPhysioModule ? "therapist" : isSportsScienceModule ? "sports scientist" : "instructor") + "..."}
+                  options={staffSelectOptions}
+                />
               </div>
             )}
 
-            {/* Filter 1c: Cashier Selector (For Billing module) */}
+            {/* Filter 1c: Cashier Selector (For Billing module - searchable by staff name) */}
             {isBillingModule && (
               <div>
                 <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block mb-1">
                   Billing User / Cashier
                 </label>
-                <Select value={selectedStaff} onValueChange={(val) => { setSelectedStaff(val); setCurrentPage(1); }}>
-                  <SelectTrigger className="h-8 text-xs bg-white dark:bg-slate-900 rounded-lg">
-                    <SelectValue placeholder="All Staff" />
-                  </SelectTrigger>
-                  <SelectContent className="rounded-xl">
-                    <SelectItem value="all" className="text-xs font-semibold">
-                      All Billing Users
-                    </SelectItem>
-                    {options?.billingStaff?.map((st) => (
-                      <SelectItem key={st.id} value={st.id} className="text-xs">
-                        {st.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <SearchableSelect
+                  value={selectedStaff}
+                  onValueChange={(val) => { setSelectedStaff(val); setCurrentPage(1); }}
+                  placeholder="All Staff"
+                  searchPlaceholder="Search cashier / staff..."
+                  options={billingStaffOptions}
+                />
               </div>
             )}
 
-            {/* Filter 2: Instructor (For Client module - dynamically populated from table below) */}
+            {/* Filter 2: Instructor (For Client module - searchable by instructor name) */}
             {isClientModule && (
               <div>
                 <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block mb-1">
                   Instructor / Specialist
                 </label>
-                <Select value={selectedStaff} onValueChange={(val) => { setSelectedStaff(val); setCurrentPage(1); }}>
-                  <SelectTrigger className="h-8 text-xs bg-white dark:bg-slate-900 rounded-lg">
-                    <SelectValue placeholder="All Instructors" />
-                  </SelectTrigger>
-                  <SelectContent className="rounded-xl max-h-72">
-                    <SelectItem value="all" className="text-xs font-semibold">
-                      All Instructors {availableStaff.length > 0 ? `(${availableStaff.length})` : ""}
-                    </SelectItem>
-                    {availableStaff.map((s) => (
-                      <SelectItem key={s.id} value={s.id} className="text-xs cursor-pointer">
-                        {s.name} {s.profession ? `(${s.profession})` : ""}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <SearchableSelect
+                  value={selectedStaff}
+                  onValueChange={(val) => { setSelectedStaff(val); setCurrentPage(1); }}
+                  placeholder="All Instructors"
+                  searchPlaceholder="Search instructor name..."
+                  options={staffSelectOptions}
+                />
               </div>
             )}
 
@@ -1940,22 +1845,6 @@ export default function ReportsHubView({ initialModule = "Billing", initialRepor
                   )}
                 </SelectContent>
               </Select>
-            </div>
-
-            {/* Filter 4: Search input */}
-            <div>
-              <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block mb-1">
-                Search Keyword
-              </label>
-              <div className="relative">
-                <Search className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-muted-foreground" />
-                <Input
-                  placeholder="Search client, UHID, instructor..."
-                  value={searchTerm}
-                  onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
-                  className="h-8 text-xs pl-8 bg-white dark:bg-slate-900 rounded-lg"
-                />
-              </div>
             </div>
           </div>
 
