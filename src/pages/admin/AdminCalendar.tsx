@@ -783,6 +783,8 @@ export default function AdminCalendar() {
 
         if (session.status === 'Completed') {
             state = 'completed';
+        } else if (session.status === 'IN_PROGRESS' || session.status === 'In Progress' || (session.actual_start && !session.actual_end)) {
+            state = 'in_progress';
         } else if (session.status === 'Planned' || session.status === 'Checked In') {
             if (now >= start && now <= end) {
                 state = 'in_progress';
@@ -916,6 +918,8 @@ export default function AdminCalendar() {
         }
         switch (event.status) {
             case 'Planned': return 'bg-blue-100 text-blue-800 border-blue-200';
+            case 'IN_PROGRESS':
+            case 'In Progress': return 'bg-emerald-100 text-emerald-800 border-emerald-300';
             case 'Completed': return 'bg-gray-100 text-gray-800 border-gray-200';
             case 'Missed': return 'bg-red-100 text-red-800 border-red-200';
             case 'Rescheduled': return 'bg-orange-100 text-orange-800 border-orange-200';

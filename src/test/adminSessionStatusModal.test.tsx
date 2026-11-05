@@ -274,5 +274,150 @@ describe('AdminSessionStatusModal - Mandatory Session Timings on Completion', ()
       );
     });
   });
+
+  it('gives Start Session and Mark as Missed buttons for a Planned session scheduled for today before end time', async () => {
+    const today = new Date();
+    const scheduledStart = new Date(today.getTime() + 60 * 60 * 1000).toISOString();
+    const scheduledEnd = new Date(today.getTime() + 120 * 60 * 1000).toISOString();
+
+    const todaySession = {
+      ...dummyPlannedSession,
+      scheduled_start: scheduledStart,
+      scheduled_end: scheduledEnd,
+    };
+
+    const onSuccess = vi.fn();
+
+    render(
+      <AdminSessionStatusModal
+        open={true}
+        onOpenChange={vi.fn()}
+        session={todaySession}
+        onSuccess={onSuccess}
+      />
+    );
+
+    expect(screen.getByText(/Today's Quick Actions/i)).toBeInTheDocument();
+    const startButton = screen.getByRole('button', { name: /Start Session/i });
+    expect(startButton).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Mark as Missed/i })).toBeInTheDocument();
+
+    fireEvent.click(startButton);
+
+    await waitFor(() => {
+      expect(mockApiFetch).toHaveBeenCalledWith(
+        `/appointments/${todaySession.id}`,
+        expect.objectContaining({
+          method: 'PATCH',
+          data: expect.objectContaining({
+            status: 'IN_PROGRESS',
+            actual_start: expect.any(String),
+          }),
+        })
+      );
+      expect(onSuccess).toHaveBeenCalled();
+    });
+  });
+
+  it('gives Stop Session button when a session is In Progress today before end time', async () => {
+    const today = new Date();
+    const scheduledStart = new Date(today.getTime() - 10 * 60 * 1000).toISOString();
+    const scheduledEnd = new Date(today.getTime() + 50 * 60 * 1000).toISOString();
+
+    const inProgressSession = {
+      ...dummyPlannedSession,
+      scheduled_start: scheduledStart,
+      scheduled_end: scheduledEnd,
+      status: 'IN_PROGRESS',
+      actual_start: scheduledStart,
+    };
+
+    const onSuccess = vi.fn();
+    const onOpenChange = vi.fn();
+
+    render(
+      <AdminSessionStatusModal
+        open={true}
+        onOpenChange={onOpenChange}
+        session={inProgressSession}
+        onSuccess={onSuccess}
+      />
+    );
+
+    expect(screen.getByText(/Session In Progress/i)).toBeInTheDocument();
+    const stopButton = screen.getByRole('button', { name: /Stop Session/i });
+    expect(stopButton).toBeInTheDocument();
+
+    fireEvent.click(stopButton);
+
+    await waitFor(() => {
+      expect(mockApiFetch).toHaveBeenCalledWith(
+        `/appointments/${inProgressSession.id}/complete`,
+        expect.objectContaining({
+          method: 'POST',
+          data: expect.objectContaining({
+            actual_start: inProgressSession.actual_start,
+            actual_end: expect.any(String),
+          }),
+        })
+      );
+      expect(onSuccess).toHaveBeenCalled();
+      expect(onOpenChange).toHaveBeenCalledWith(false);
+    });
+  });
+
+  it('gives Record Actual Timings time entry fields after session scheduled end has passed today', async () => {
+    const today = new Date();
+    const scheduledStart = new Date(today.getTime() - 120 * 60 * 1000).toISOString();
+    const scheduledEnd = new Date(today.getTime() - 60 * 60 * 1000).toISOString();
+
+    const elapsedSession = {
+      ...dummyPlannedSession,
+      scheduled_start: scheduledStart,
+      scheduled_end: scheduledEnd,
+      status: 'Planned',
+    };
+
+    const onSuccess = vi.fn();
+    const onOpenChange = vi.fn();
+
+    render(
+      <AdminSessionStatusModal
+        open={true}
+        onOpenChange={onOpenChange}
+        session={elapsedSession}
+        onSuccess={onSuccess}
+      />
+    );
+
+    expect(screen.getByText(/Record Actual Timings/i)).toBeInTheDocument();
+    expect(screen.getByText(/Scheduled End Passed/i)).toBeInTheDocument();
+
+    const startInput = screen.getByLabelText(/Actual Start \*/i);
+    const endInput = screen.getByLabelText(/Actual End \*/i);
+    expect(startInput).toBeInTheDocument();
+    expect(endInput).toBeInTheDocument();
+
+    fireEvent.change(startInput, { target: { value: '08:00' } });
+    fireEvent.change(endInput, { target: { value: '09:00' } });
+
+    const completeBtn = screen.getByRole('button', { name: /Complete Session/i });
+    fireEvent.click(completeBtn);
+
+    await waitFor(() => {
+      expect(mockApiFetch).toHaveBeenCalledWith(
+        `/appointments/${elapsedSession.id}/complete`,
+        expect.objectContaining({
+          method: 'POST',
+          data: expect.objectContaining({
+            actual_start: expect.any(String),
+            actual_end: expect.any(String),
+          }),
+        })
+      );
+      expect(onSuccess).toHaveBeenCalled();
+      expect(onOpenChange).toHaveBeenCalledWith(false);
+    });
+  });
 });
 

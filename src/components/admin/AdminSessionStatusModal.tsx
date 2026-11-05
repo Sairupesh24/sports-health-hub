@@ -309,11 +309,16 @@ export function AdminSessionStatusModal({ open, onOpenChange, session, onSuccess
     const sessionDay = sessionDate ? startOfDay(sessionDate) : todayStart;
     const daysFromToday = differenceInCalendarDays(sessionDay, todayStart);
 
-    // Future session: scheduled for later or in the future
+    // Future session: scheduled for future day
     const isFutureScheduled = sessionDate ? sessionDate > now : false;
-    const isFutureSession = daysFromToday > 0 || isFutureScheduled;
-    const isTodaySession = daysFromToday === 0;
+    const isFutureSession = daysFromToday > 0;
+    const isTodaySession = sessionDate ? daysFromToday === 0 : false;
     const isPastSession = daysFromToday < 0;
+
+    const scheduledEnd = session?.scheduled_end 
+        ? new Date(session.scheduled_end) 
+        : (session?.scheduled_start ? new Date(new Date(session.scheduled_start).getTime() + 60 * 60 * 1000) : new Date());
+    const isPastScheduledEnd = !isNaN(scheduledEnd.getTime()) && scheduledEnd < now;
 
     const isLocked = (session?.status === "Completed" && session?.actual_end && (now.getTime() - new Date(session.actual_end).getTime()) > 24 * 60 * 60 * 1000) || 
                      session?.status === "Cancelled" || 
@@ -325,12 +330,126 @@ export function AdminSessionStatusModal({ open, onOpenChange, session, onSuccess
                       now > new Date(session.scheduled_end);
 
 
+    const handleQuickAction = async (action: "Start" | "End" | "Missed") => {
+        if (!session?.id) return;
+
+        if ((action === "Start" || action === "End") && !isTodaySession) {
+            toast({
+                title: "Action Not Allowed",
+                description: `Sessions can only be started or ended on their scheduled day. This session is scheduled for ${format(new Date(session.scheduled_start), "MMM d, yyyy")}.`,
+                variant: "destructive"
+            });
+            return;
+        }
+
+        setLoading(true);
+        try {
+            if (action === "Start") {
+                const nowIso = new Date().toISOString();
+                
+                await apiFetch(`/appointments/${session.id}`, {
+                    method: 'PATCH',
+                    data: {
+                        status: "IN_PROGRESS",
+                        actual_start: nowIso
+                    }
+                });
+                
+                setStatus("IN_PROGRESS");
+                setActualStart(format(new Date(), "HH:mm"));
+                if (session) {
+                    session.actual_start = nowIso;
+                    session.status = "IN_PROGRESS";
+                }
+                toast({ title: "Session Started", description: "Session transitioned to IN_PROGRESS." });
+                onSuccess();
+            } else if (action === "End") {
+                const nowTime = format(new Date(), "HH:mm");
+                const dateStr = format(new Date(session.scheduled_start), "yyyy-MM-dd");
+                const actualEndIso = new Date(`${dateStr}T${nowTime}:00`).toISOString();
+                const actualStartIso = session.actual_start || new Date(`${dateStr}T${actualStart || nowTime}:00`).toISOString();
+                
+                await apiFetch(`/appointments/${session.id}/complete`, {
+                    method: 'POST',
+                    data: {
+                        actual_start: actualStartIso,
+                        actual_end: actualEndIso,
+                        session_location: sessionLocation.trim() || session.session_location || null
+                    }
+                });
+                
+                toast({ title: "Session Ended", description: "Session completed successfully." });
+                onSuccess();
+                onOpenChange(false);
+            } else if (action === "Missed") {
+                setStatus("Cancelled");
+                setCancellationReason("Client missed the session");
+            }
+        } catch (error: any) {
+            toast({ title: "Error", description: error.message || "Failed to update session", variant: "destructive" });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleCompleteWithFreeTime = async () => {
+        if (!session?.id) return;
+        if (!actualStart?.trim() || !actualEnd?.trim()) {
+            toast({
+                title: "Required",
+                description: "Please enter both actual start time and actual end time.",
+                variant: "destructive"
+            });
+            return;
+        }
+        if (actualEnd.trim() <= actualStart.trim()) {
+            toast({
+                title: "Invalid Timings",
+                description: "Actual end time must be after the start time.",
+                variant: "destructive"
+            });
+            return;
+        }
+
+        setLoading(true);
+        try {
+            const dateStr = format(new Date(session.scheduled_start), "yyyy-MM-dd");
+            const cleanStart = actualStart.trim().length === 5 ? `${actualStart.trim()}:00` : actualStart.trim();
+            const cleanEnd = actualEnd.trim().length === 5 ? `${actualEnd.trim()}:00` : actualEnd.trim();
+
+            const startDateObj = new Date(`${dateStr}T${cleanStart}`);
+            const endDateObj = new Date(`${dateStr}T${cleanEnd}`);
+
+            if (isNaN(startDateObj.getTime()) || isNaN(endDateObj.getTime())) {
+                throw new Error("Invalid start or end time format.");
+            }
+
+            await apiFetch(`/appointments/${session.id}/complete`, {
+                method: 'POST',
+                data: {
+                    actual_start: startDateObj.toISOString(),
+                    actual_end: endDateObj.toISOString(),
+                    session_location: sessionLocation.trim() || null
+                }
+            });
+
+            toast({ title: "Session Completed", description: "Actual timings recorded and session completed." });
+            onSuccess();
+            onOpenChange(false);
+        } catch (error: any) {
+            toast({ title: "Error", description: error.message || "Failed to record completed session", variant: "destructive" });
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const handleSave = async () => {
         if (!session?.id) return;
 
         if (status === "Completed") {
             const nowTime = new Date();
-            if (isFutureSession || (session?.scheduled_start && new Date(session.scheduled_start) > nowTime)) {
+            const hasStarted = Boolean(session?.actual_start || actualStart?.trim());
+            if (daysFromToday > 0 || (!hasStarted && session?.scheduled_start && new Date(session.scheduled_start) > nowTime)) {
                 toast({ title: "Not Allowed", description: `This session is scheduled for ${format(new Date(session.scheduled_start), "MMM d, yyyy h:mm a")}. You cannot mark a future session as Completed.`, variant: "destructive" });
                 return;
             }
@@ -468,11 +587,19 @@ export function AdminSessionStatusModal({ open, onOpenChange, session, onSuccess
 
                 <div className="grid gap-4 py-4 animate-in fade-in-50">
 
-                    {/* Future session warning */}
-                    {isFutureSession && (
+                    {/* Future session warning (future days only) */}
+                    {daysFromToday > 0 && (
                         <div className="flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-800">
                             <span className="text-base">⚠️</span>
                             <span>This session is scheduled for <strong>{format(new Date(session.scheduled_start), "MMM d, yyyy h:mm a")}</strong>. You cannot mark it as Completed before it occurs.</span>
+                        </div>
+                    )}
+
+                    {/* Today session notice */}
+                    {isTodaySession && !isLocked && (
+                        <div className="flex items-start gap-2 rounded-md border border-blue-200 bg-blue-50/70 p-2.5 text-xs text-blue-800 font-medium">
+                            <Clock className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+                            <span>Today's session — scheduled for <strong>{format(new Date(session.scheduled_start), "h:mm a")} – {format(scheduledEnd, "h:mm a")}</strong>.</span>
                         </div>
                     )}
 
@@ -698,6 +825,137 @@ export function AdminSessionStatusModal({ open, onOpenChange, session, onSuccess
                         </>
                     )}
 
+                    {/* Quick Actions / Actual Timings Section */}
+                    {!isLocked && isTodaySession && (status === "Planned" || status === "Checked In" || status === "IN_PROGRESS" || status === "In Progress" || session?.actual_start) && (
+                        <div className="grid gap-2.5 pt-1">
+                            {isPastScheduledEnd ? (
+                                /* When scheduled end time has crossed, show empty time fields for exact time entry instead of start/stop buttons */
+                                <div className="p-3.5 bg-slate-50 dark:bg-slate-900/60 rounded-xl border border-slate-200 dark:border-slate-800 space-y-2.5">
+                                    <div className="flex items-center justify-between">
+                                        <Label className="font-bold text-foreground text-xs uppercase tracking-wider flex items-center gap-1.5">
+                                            <Clock className="w-4 h-4 text-emerald-600 shrink-0" />
+                                            Record Actual Timings
+                                        </Label>
+                                        <span className="bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-300 text-[10px] font-bold uppercase px-2 py-0.5 rounded">
+                                            Scheduled End Passed
+                                        </span>
+                                    </div>
+                                    <p className="text-xs text-muted-foreground leading-tight">
+                                        The scheduled end time has passed. Specify exact actual start and end times:
+                                    </p>
+                                    {session.scheduled_start && session.scheduled_end && (
+                                        <div className="flex items-center justify-between bg-white dark:bg-slate-900 px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 text-xs">
+                                            <span className="text-muted-foreground text-[11px]">
+                                                Scheduled: <strong className="text-foreground">{format(new Date(session.scheduled_start), "h:mm a")} – {format(new Date(session.scheduled_end), "h:mm a")}</strong>
+                                            </span>
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="sm"
+                                                className="h-6 text-[10px] text-emerald-700 hover:text-emerald-800 hover:bg-emerald-100 dark:text-emerald-400 font-bold px-2 py-0"
+                                                onClick={() => {
+                                                    setActualStart(format(new Date(session.scheduled_start), "HH:mm"));
+                                                    setActualEnd(format(new Date(session.scheduled_end), "HH:mm"));
+                                                }}
+                                            >
+                                                Prefill Scheduled
+                                            </Button>
+                                        </div>
+                                    )}
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <Label htmlFor="actual-start-time" className="text-xs font-semibold mb-1 block">Actual Start *</Label>
+                                            <Input
+                                                id="actual-start-time"
+                                                type="time"
+                                                value={actualStart}
+                                                onChange={(e) => setActualStart(e.target.value)}
+                                                className="bg-white dark:bg-slate-900 text-xs font-medium h-9 border-slate-200 dark:border-slate-800"
+                                            />
+                                        </div>
+                                        <div>
+                                            <Label htmlFor="actual-end-time" className="text-xs font-semibold mb-1 block">Actual End *</Label>
+                                            <Input
+                                                id="actual-end-time"
+                                                type="time"
+                                                value={actualEnd}
+                                                onChange={(e) => setActualEnd(e.target.value)}
+                                                className="bg-white dark:bg-slate-900 text-xs font-medium h-9 border-slate-200 dark:border-slate-800"
+                                            />
+                                        </div>
+                                    </div>
+                                    {actualStart && actualEnd && actualEnd <= actualStart && (
+                                        <p className="text-[11px] text-rose-600 font-semibold flex items-center gap-1">
+                                            <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                                            Actual end time must be after start time.
+                                        </p>
+                                    )}
+                                    <div className="flex gap-2 pt-1">
+                                        <Button
+                                            className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold h-9 text-xs rounded-xl"
+                                            onClick={handleCompleteWithFreeTime}
+                                            disabled={loading || !actualStart || !actualEnd || actualEnd <= actualStart}
+                                        >
+                                            {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1" /> : <CheckCircle className="w-3.5 h-3.5 mr-1" />}
+                                            Complete Session
+                                        </Button>
+                                        <Button
+                                            variant="outline"
+                                            className="border-rose-200 text-rose-700 hover:bg-rose-50 font-bold h-9 text-xs rounded-xl"
+                                            onClick={() => handleQuickAction("Missed")}
+                                            disabled={loading}
+                                        >
+                                            Mark as Missed
+                                        </Button>
+                                    </div>
+                                </div>
+                            ) : (
+                                /* Till scheduled end time: standard Start / Stop buttons */
+                                <>
+                                    {(status === "Planned" && !session?.actual_start && status !== "IN_PROGRESS" && status !== "In Progress") && (
+                                        <div className="flex flex-col gap-2 w-full">
+                                            <Label className="font-semibold text-muted-foreground text-xs uppercase tracking-wider">Today's Quick Actions</Label>
+                                            <div className="flex gap-2">
+                                                <Button
+                                                    className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold h-10 text-xs rounded-xl shadow-sm"
+                                                    onClick={() => handleQuickAction("Start")}
+                                                    disabled={loading}
+                                                >
+                                                    {loading ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}
+                                                    Start Session
+                                                </Button>
+                                                <Button
+                                                    variant="outline"
+                                                    className="flex-1 border-rose-200 text-rose-700 hover:bg-rose-50 font-bold h-10 text-xs rounded-xl"
+                                                    onClick={() => handleQuickAction("Missed")}
+                                                    disabled={loading}
+                                                >
+                                                    Mark as Missed
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    )}
+                                    {(status === "Checked In" || status === "IN_PROGRESS" || status === "In Progress" || (session?.actual_start && status !== "Completed")) && (
+                                        <div className="flex flex-col gap-2 w-full">
+                                            <div className="flex items-center justify-center gap-2 text-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 py-2 rounded-xl font-bold border border-emerald-200 dark:border-emerald-800 text-xs">
+                                                <Loader2 className="w-4 h-4 animate-spin text-emerald-600" />
+                                                Session In Progress
+                                            </div>
+                                            <Button
+                                                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold h-10 text-xs rounded-xl shadow-sm"
+                                                onClick={() => handleQuickAction("End")}
+                                                disabled={loading}
+                                            >
+                                                {loading ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}
+                                                Stop Session
+                                            </Button>
+                                        </div>
+                                    )}
+                                </>
+                            )}
+                        </div>
+                    )}
+
                     {/* Status Selector */}
                     {!isLocked && (
                         <>
@@ -710,7 +968,8 @@ export function AdminSessionStatusModal({ open, onOpenChange, session, onSuccess
                                     <SelectContent>
                                         <SelectItem value="Planned">Planned</SelectItem>
                                         <SelectItem value="Checked In">Checked In</SelectItem>
-                                        <SelectItem value="Completed" disabled={isFutureSession}>Completed</SelectItem>
+                                        <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
+                                        <SelectItem value="Completed" disabled={daysFromToday > 0}>Completed</SelectItem>
                                         <SelectItem value="Rescheduled" disabled={session.status === "Cancelled" || session.status === "Completed" || session.status === "Rescheduled"}>
                                             Rescheduled
                                         </SelectItem>
@@ -738,7 +997,7 @@ export function AdminSessionStatusModal({ open, onOpenChange, session, onSuccess
                                 />
                             </div>
 
-                            {status === "Completed" && (
+                            {status === "Completed" && !(isTodaySession && isPastScheduledEnd) && (
                                 <div className="grid gap-3 animate-in slide-in-from-top-2 p-3.5 bg-emerald-50/70 dark:bg-emerald-950/30 rounded-xl border border-emerald-200 dark:border-emerald-800">
                                     <div className="flex items-center justify-between">
                                         <Label className="font-semibold text-emerald-900 dark:text-emerald-200 flex items-center gap-1.5 text-xs">

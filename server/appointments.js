@@ -230,6 +230,7 @@ router.post('/', requireAuth, async (req, res) => {
                 )
             `, [providerId, scheduled_start, scheduled_end]);
 
+            activeCount = activeRes.rows.length;
             if (activeRes.rows.length >= capacityLimit) {
                 appointmentStatus = 'Waitlisted';
             }
@@ -465,7 +466,8 @@ router.post('/:id/complete', requireAuth, async (req, res) => {
 
         // Verify session is not in the future
         const scheduledStart = new Date(session.scheduled_start);
-        if (scheduledStart > new Date()) {
+        const hasStarted = Boolean(session.actual_start || actual_start);
+        if (scheduledStart > new Date() && !hasStarted) {
             throw new Error(`Future sessions cannot be completed.`);
         }
 
@@ -628,9 +630,10 @@ router.post('/:id/reschedule', requireAuth, async (req, res) => {
         // Check permission: Admin, assigned specialist, or specialist role
         const isAdmin = await checkIsAdmin(req.user.id, req.user.role);
         const isAssigned = old.scientist_id === req.user.id || old.therapist_id === req.user.id;
-        const isSpecialistRole = ['sports_scientist', 'consultant'].includes((req.user.ams_role || req.user.role || '').toLowerCase());
+        const isSpecialistRole = ['sports_scientist', 'consultant', 'physiotherapist', 'nutritionist'].includes((req.user.ams_role || req.user.role || '').toLowerCase());
+        const isSelfClient = old.client_id && (old.client_id === req.user.id || req.user.client_id === old.client_id);
 
-        if (!isAdmin && !isAssigned && !isSpecialistRole) {
+        if (!isAdmin && !isAssigned && !isSpecialistRole && !isSelfClient) {
             await client.query('ROLLBACK');
             return res.status(403).json({ error: 'Only authorized specialists or administrators can reschedule booked slots.' });
         }
@@ -651,6 +654,7 @@ router.post('/:id/reschedule', requireAuth, async (req, res) => {
         });
 
         let newStatus = 'Planned';
+        let activeCount = 0;
         if (capacityLimit !== Infinity) {
             const activeRes = await client.query(`
                 SELECT id FROM sessions 
@@ -665,6 +669,7 @@ router.post('/:id/reschedule', requireAuth, async (req, res) => {
                 )
             `, [providerId, new_start, new_end, id]);
 
+            activeCount = activeRes.rows.length;
             if (activeRes.rows.length >= capacityLimit) {
                 newStatus = 'Waitlisted';
             }
@@ -696,7 +701,7 @@ router.post('/:id/reschedule', requireAuth, async (req, res) => {
                 new_end,
                 status: newStatus,
                 capacity_limit: capacityLimit,
-                active_count: activeRes.rows.length
+                active_count: activeCount
             })
         ]);
 
@@ -838,7 +843,8 @@ router.post('/:id/reschedule-future', requireAuth, async (req, res) => {
                     )
                 `, [providerId, futNewStart, futNewEnd, fut.id]);
 
-                if (activeRes.rows.length >= capacityLimit) {
+                activeCount = activeRes.rows.length;
+            if (activeRes.rows.length >= capacityLimit) {
                     newStatus = 'Waitlisted';
                     waitlistedCount++;
                 } else {

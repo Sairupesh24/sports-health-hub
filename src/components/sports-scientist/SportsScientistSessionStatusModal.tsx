@@ -310,6 +310,7 @@ export function SportsScientistSessionStatusModal({ open, onOpenChange, session,
         setLoading(true);
         try {
             let timingsUpdated = false;
+            let effectiveRescheduledStatus: string | null = null;
 
             // Handle timing updates / rescheduling for any unlocked session
             if (!editInfo.isLocked && rescheduledDate && rescheduledTime) {
@@ -333,20 +334,23 @@ export function SportsScientistSessionStatusModal({ open, onOpenChange, session,
                             })
                         });
                     } else {
-                        await apiFetch(`/api/appointments/${session.id}/reschedule`, {
+                        const res = await apiFetch<any>(`/api/appointments/${session.id}/reschedule`, {
                             method: 'POST',
                             body: JSON.stringify({
                                 new_start: newStart.toISOString(),
                                 new_end: newEnd.toISOString()
                             })
                         });
+                        if (res?.status) {
+                            effectiveRescheduledStatus = res.status;
+                        }
                     }
                     timingsUpdated = true;
                 }
             }
 
             const updateData: any = {
-                status,
+                status: effectiveRescheduledStatus || status,
                 session_notes: sessionNotes,
                 cancellation_reason: (status === "Missed" || status === "Cancelled") ? cancellationReason : null,
                 session_location: sessionLocation.trim() || null,

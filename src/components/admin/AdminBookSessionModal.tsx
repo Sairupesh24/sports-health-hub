@@ -105,6 +105,7 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess, initialDa
     // Guest Mode State
     const [waitlistId, setWaitlistId] = useState("");
     const [openPatientPopover, setOpenPatientPopover] = useState(false);
+    const [openDatePicker, setOpenDatePicker] = useState(false);
     const [isGuest, setIsGuest] = useState(false);
     const [guestName, setGuestName] = useState("");
     const [guestContact, setGuestContact] = useState("");
@@ -179,6 +180,7 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess, initialDa
     useEffect(() => {
         if (open && profile?.organization_id) {
             setIsDurationManuallySet(false);
+        setOpenDatePicker(false);
             fetchClients();
             fetchConsultants();
             fetchServices();
@@ -1227,18 +1229,24 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess, initialDa
                                         </div>
                                     </div>
 
-                                    <Popover>
+                                    <Popover open={openDatePicker} onOpenChange={setOpenDatePicker}>
                                         <PopoverTrigger asChild>
                                             <Button variant="outline" className={cn("w-full justify-start text-left font-normal h-9 px-3 text-xs bg-background/50 hover:bg-muted/30 border-border/70 rounded-lg shadow-none", !sessionDate && "text-muted-foreground")}>
                                                 <CalendarIcon className="mr-2 h-3.5 w-3.5 text-primary" />
                                                 {sessionDate ? format(safeParseDate(sessionDate), "PPP") : <span>Pick a date</span>}
                                             </Button>
                                         </PopoverTrigger>
-                                        <PopoverContent className="w-auto p-0" align="start">
+                                        <PopoverContent disablePortal={true} className="w-auto p-0 z-[100] pointer-events-auto" align="start">
                                             <Calendar
                                                 mode="single"
                                                 selected={safeParseDate(sessionDate)}
-                                                onSelect={(date) => date && setSessionDate(format(date, "yyyy-MM-dd"))}
+                                                onSelect={(date, selectedDay) => {
+                                                    const targetDate = date || selectedDay;
+                                                    if (targetDate) {
+                                                        setSessionDate(format(targetDate, "yyyy-MM-dd"));
+                                                        setOpenDatePicker(false);
+                                                    }
+                                                }}
                                                 initialFocus
                                             />
                                         </PopoverContent>
