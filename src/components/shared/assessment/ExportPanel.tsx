@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { ParsedAssessmentData } from "./XlsParser";
-import BodySvg from "@/components/consultant/BodySvg";
+import BodySvg, { FRONT_REGIONS, BACK_REGIONS } from "@/components/consultant/BodySvg";
 import { MapData } from "@/components/consultant/PainMap";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -154,11 +154,7 @@ export default function ExportPanel({
       num: idx + 1,
     }));
 
-  // Marked regions that actually have clinician notes written
-  const markedRegionsWithNotes = markedRegionsList.filter(
-    (reg) => reg.notes && reg.notes.trim().length > 0 && reg.notes !== "Marked on body map"
-  );
-  const hasPage2 = markedRegionsWithNotes.length > 0;
+  const hasPage2 = markedRegionsList.length > 0;
 
   const numberedBadges: Record<string, number> = {};
   markedRegionsList.forEach((reg) => {
@@ -167,17 +163,8 @@ export default function ExportPanel({
 
   const gender = data.client.gender?.toLowerCase() === "female" ? "female" : "male";
 
-  const frontRegionIds = [
-    "head", "neck", "neck_left", "neck_right", "trapezius_left", "trapezius_right",
-    "pectoral_left", "pectoral_right", "deltoid_left", "deltoid_right",
-    "biceps_left", "biceps_right", "triceps_front_left", "triceps_front_right",
-    "abdominal_left", "abdominal_right", "abdominal_upper", "abdominal_lower",
-    "obliques_left", "obliques_right", "adductors_left", "adductors_right",
-    "quadriceps_left", "quadriceps_right", "knee_left", "knee_right",
-    "tibialis_left", "tibialis_right", "calves_front_left", "calves_front_right",
-    "forearm_left", "forearm_right", "left_hand", "right_hand",
-    "ankle_left", "ankle_right", "left_foot", "right_foot"
-  ];
+  const frontMarked = markedRegionsList.filter((reg) => FRONT_REGIONS.has(reg.id));
+  const backMarked = markedRegionsList.filter((reg) => BACK_REGIONS.has(reg.id) || !FRONT_REGIONS.has(reg.id));
 
   // Dynamic typography and height calculations for the right-side clinical boxes
   const clinicalTexts = {
@@ -592,6 +579,49 @@ export default function ExportPanel({
                       />
                     </div>
                   </div>
+
+                  {/* Numbered Region Badges Legend for Anterior View */}
+                  {frontMarked.length > 0 && (
+                    <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "4px", width: "100%", marginTop: "3px" }}>
+                      {frontMarked.map((reg) => (
+                        <div
+                          key={reg.id}
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "3.5px",
+                            backgroundColor: "#ffffff",
+                            border: "1px solid #fecaca",
+                            borderRadius: "12px",
+                            padding: "1.5px 6px",
+                            boxShadow: "0 1px 2px rgba(0,0,0,0.03)"
+                          }}
+                        >
+                          <span
+                            style={{
+                              width: "12px",
+                              height: "12px",
+                              borderRadius: "50%",
+                              backgroundColor: "#dc2626",
+                              color: "#ffffff",
+                              fontSize: "7px",
+                              fontWeight: 900,
+                              display: "inline-flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              lineHeight: 1,
+                              flexShrink: 0
+                            }}
+                          >
+                            {reg.num}
+                          </span>
+                          <span style={{ fontSize: "7px", fontWeight: 800, color: "#1e293b", textTransform: "uppercase", letterSpacing: "0.02em" }}>
+                            {reg.label}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 {/* 2. Posterior View Container */}
@@ -615,6 +645,49 @@ export default function ExportPanel({
                       />
                     </div>
                   </div>
+
+                  {/* Numbered Region Badges Legend for Posterior View */}
+                  {backMarked.length > 0 && (
+                    <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "4px", width: "100%", marginTop: "3px" }}>
+                      {backMarked.map((reg) => (
+                        <div
+                          key={reg.id}
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "3.5px",
+                            backgroundColor: "#ffffff",
+                            border: "1px solid #fecaca",
+                            borderRadius: "12px",
+                            padding: "1.5px 6px",
+                            boxShadow: "0 1px 2px rgba(0,0,0,0.03)"
+                          }}
+                        >
+                          <span
+                            style={{
+                              width: "12px",
+                              height: "12px",
+                              borderRadius: "50%",
+                              backgroundColor: "#dc2626",
+                              color: "#ffffff",
+                              fontSize: "7px",
+                              fontWeight: 900,
+                              display: "inline-flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              lineHeight: 1,
+                              flexShrink: 0
+                            }}
+                          >
+                            {reg.num}
+                          </span>
+                          <span style={{ fontSize: "7px", fontWeight: 800, color: "#1e293b", textTransform: "uppercase", letterSpacing: "0.02em" }}>
+                            {reg.label}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
               </div>
@@ -838,10 +911,10 @@ export default function ExportPanel({
                 </div>
                 <div style={{ padding: "2px 0", overflow: "visible" }}>
                   <div style={{ fontSize: "7.5px", color: "#64748b", fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.05em", lineHeight: 1.4 }}>
-                    Remarks Count
+                    Marked Regions
                   </div>
                   <div style={{ fontSize: "10px", fontWeight: 900, color: "#0f172a", lineHeight: 1.4, paddingTop: "2px" }}>
-                    {markedRegionsWithNotes.length} Regions Noted
+                    {markedRegionsList.length} {markedRegionsList.length === 1 ? "Region Marked" : "Regions Marked"}
                   </div>
                 </div>
               </div>
@@ -850,17 +923,17 @@ export default function ExportPanel({
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid #e2e8f0", paddingBottom: "4px", marginBottom: "12px", textAlign: "left" }}>
                 <div style={{ fontSize: "8.5px", fontWeight: 900, letterSpacing: "0.08em", color: "#1e293b", textTransform: "uppercase", display: "flex", alignItems: "center", gap: "6px" }}>
                   <span style={{ width: "4px", height: "11px", backgroundColor: "#dc2626", borderRadius: "2px", display: "inline-block" }} />
-                  <span>Marked Anatomical Region Remarks & Tissue Notes (Max 200 Chars)</span>
+                  <span>Marked Anatomical Region Remarks & Tissue Notes</span>
                 </div>
                 <span style={{ fontSize: "7.5px", fontWeight: 800, color: "#dc2626", backgroundColor: "#fee2e2", padding: "2px 6px", borderRadius: "4px" }}>
-                  {markedRegionsWithNotes.length} {markedRegionsWithNotes.length === 1 ? "Region" : "Regions"} with Notes
+                  {markedRegionsList.length} {markedRegionsList.length === 1 ? "Region" : "Regions"} Marked
                 </span>
               </div>
 
               {/* Cards Grid for Marked Region Notes */}
               <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "10px", textAlign: "left", marginBottom: "16px" }}>
-                {markedRegionsWithNotes.map((reg) => {
-                  const isFront = frontRegionIds.includes(reg.id);
+                {markedRegionsList.map((reg) => {
+                  const isFront = FRONT_REGIONS.has(reg.id);
                   return (
                     <div
                       key={reg.id}
@@ -890,7 +963,7 @@ export default function ExportPanel({
                       </div>
 
                       <div style={{ padding: "8px 10px", backgroundColor: "#ffffff", borderRadius: "6px", border: "1px solid #f1f5f9", fontSize: "8px", lineHeight: 1.5, color: "#334155", fontWeight: 500 }}>
-                        {reg.notes}
+                        {reg.notes || "Marked on anatomical assessment map for clinical observation."}
                       </div>
                     </div>
                   );

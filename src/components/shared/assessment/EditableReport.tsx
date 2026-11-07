@@ -69,7 +69,25 @@ export default function EditableReport({
     const strengthSummaries: string[] = [];
     Object.entries(data.strengthSummary).forEach(([key, summary]: [string, any]) => {
       const avg = summary.testAverages[testIndex];
-      if (avg === null || avg === undefined) return;
+      if (avg === null || avg === undefined) {
+        // If not tested in current test session, check if tested in a prior session
+        const priorAvg = summary.latestAverage;
+        if (priorAvg !== null && priorAvg !== undefined && data.client.tests.length > 1) {
+          const priorTestIdx = summary.testAverages.findIndex((a: any) => a !== null);
+          if (priorTestIdx >= 0) {
+            const priorDate = data.client.tests[priorTestIdx]?.date || `Test ${priorTestIdx + 1}`;
+            strengthSummaries.push(
+              `${summary.label}: Not assessed in Test ${activeTestIndex} (prior baseline in Test ${priorTestIdx + 1} on ${priorDate} averaged ${priorAvg > 0 ? "+" : ""}${priorAvg.toFixed(1)}% vs ref).`
+            );
+          }
+        } else if (summary.metrics?.length > 0) {
+          const rawCount = summary.metrics.length;
+          strengthSummaries.push(
+            `${summary.label}: ${rawCount} isometric measurements recorded (force progression tracked across sessions).`
+          );
+        }
+        return;
+      }
 
       let gradeLabel = "Moderate Strength";
       if (avg >= 10) gradeLabel = "Good Strength";

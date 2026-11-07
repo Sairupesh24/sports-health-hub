@@ -166,7 +166,14 @@ export default function AssessmentPathologyMap({
               return (
                 <div
                   key={regId}
-                  className="group flex items-start justify-between gap-3 p-3 bg-white dark:bg-slate-900/80 border border-slate-200/80 dark:border-slate-800 rounded-2xl shadow-xs hover:border-indigo-300 dark:hover:border-indigo-700 transition-all"
+                  onMouseEnter={() => setHoveredRegion(regId)}
+                  onMouseLeave={() => setHoveredRegion(null)}
+                  className={cn(
+                    "group flex items-start justify-between gap-3 p-3 bg-white dark:bg-slate-900/80 border rounded-2xl shadow-xs transition-all",
+                    hoveredRegion === regId
+                      ? "border-red-400 dark:border-red-600 bg-red-50/20 dark:bg-red-950/20 ring-1 ring-red-400"
+                      : "border-slate-200/80 dark:border-slate-800 hover:border-indigo-300 dark:hover:border-indigo-700"
+                  )}
                 >
                   <div className="flex items-start gap-2.5 min-w-0">
                     <span className="w-5 h-5 rounded-full bg-red-600 text-white text-[10px] font-black flex items-center justify-center shrink-0 mt-0.5 shadow-xs">

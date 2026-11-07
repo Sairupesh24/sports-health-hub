@@ -5,9 +5,18 @@ import { bodyBack } from "./bodyBack";
 import { bodyFemaleFront } from "./bodyFemaleFront";
 import { bodyFemaleBack } from "./bodyFemaleBack";
 
+export interface BodyRegionData {
+  painLevel?: number;
+  notes?: string;
+  qualities?: string[];
+  marked?: boolean;
+  name?: string;
+  [key: string]: any;
+}
+
 interface BodySvgProps {
   gender?: "male" | "female";
-  painData: Record<string, { painLevel: number; notes: string; qualities: string[] }>;
+  painData: Record<string, BodyRegionData>;
   onRegionClick: (regionId: string, regionName: string) => void;
   hoveredRegion: string | null;
   setHoveredRegion: (regionId: string | null) => void;
@@ -207,6 +216,39 @@ const OUTLINES = {
   }
 };
 
+// Region classification sets for Anterior (Front) and Posterior (Back) views
+export const FRONT_REGIONS = new Set([
+  "head", "neck", "neck_left", "neck_right",
+  "trapezius_left", "trapezius_right",
+  "pectoral_left", "pectoral_right", 
+  "deltoid_left", "deltoid_right", "biceps_left", "biceps_right", 
+  "triceps_front_left", "triceps_front_right",
+  "abdominal_left", "abdominal_right", "abdominal_upper", "abdominal_lower", 
+  "obliques_left", "obliques_right",
+  "quadriceps_left", "quadriceps_right", "knee_left", "knee_right",
+  "adductors_left", "adductors_right",
+  "tibialis_left", "tibialis_right", "calves_front_left", "calves_front_right",
+  "forearm_left", "forearm_right",
+  "left_hand", "right_hand", "ankle_left", "ankle_right", "left_foot", "right_foot"
+]);
+
+export const BACK_REGIONS = new Set([
+  "head_back", "neck_back", "neck_left_back", "neck_right_back",
+  "trapezius", "trapezius_left_back", "trapezius_right_back",
+  "shoulder_left_back", "shoulder_right_back",
+  "latissimus_dorsi_left", "latissimus_dorsi_right", 
+  "arm_left_back", "arm_right_back",
+  "forearm_left_back", "forearm_right_back",
+  "lumbar_spine", "lumbar_left", "lumbar_right",
+  "gluteus_left", "gluteus_right", 
+  "adductors_left_back", "adductors_right_back",
+  "hamstrings_left", "hamstrings_right", 
+  "calves_left", "calves_right",
+  "hand_left_back", "hand_right_back",
+  "ankle_left_back", "ankle_right_back",
+  "foot_left_back", "foot_right_back"
+]);
+
 const REGION_CENTERS: Record<"male" | "female", Record<string, { x: number; y: number }>> = {
   male: {
     head: { x: 392, y: 182 },
@@ -223,8 +265,8 @@ const REGION_CENTERS: Record<"male" | "female", Record<string, { x: number; y: n
     biceps_right: { x: 526, y: 447 },
     triceps_front_left: { x: 190, y: 470 },
     triceps_front_right: { x: 540, y: 470 },
-    abdominal_left: { x: 340, y: 530 },
-    abdominal_right: { x: 390, y: 530 },
+    abdominal_left: { x: 335, y: 530 },
+    abdominal_right: { x: 395, y: 530 },
     abdominal_upper: { x: 362, y: 499 },
     abdominal_lower: { x: 356, y: 577 },
     obliques_left: { x: 290, y: 530 },
@@ -283,8 +325,8 @@ const REGION_CENTERS: Record<"male" | "female", Record<string, { x: number; y: n
   female: {
     head: { x: 335, y: 100 },
     neck: { x: 320, y: 290 },
-    neck_left: { x: 295, y: 290 },
-    neck_right: { x: 345, y: 290 },
+    neck_left: { x: 290, y: 290 },
+    neck_right: { x: 350, y: 290 },
     trapezius_left: { x: 260, y: 290 },
     trapezius_right: { x: 380, y: 290 },
     deltoid_left: { x: 200, y: 327 },
@@ -297,8 +339,8 @@ const REGION_CENTERS: Record<"male" | "female", Record<string, { x: number; y: n
     triceps_front_right: { x: 465, y: 460 },
     obliques_left: { x: 245, y: 530 },
     obliques_right: { x: 395, y: 530 },
-    abdominal_left: { x: 295, y: 500 },
-    abdominal_right: { x: 345, y: 500 },
+    abdominal_left: { x: 285, y: 500 },
+    abdominal_right: { x: 355, y: 500 },
     abdominal_upper: { x: 320, y: 486 },
     abdominal_lower: { x: 320, y: 528 },
     forearm_left: { x: 130, y: 574 },
@@ -495,37 +537,39 @@ export default function BodySvg({
             {numberedBadges && Object.entries(numberedBadges).map(([regId, num]) => {
               const center = REGION_CENTERS[gender]?.[regId];
               if (!center) return null;
-              const isFront = [
-                "head", "neck", "trapezius_left", "trapezius_right",
-                "pectoral_left", "pectoral_right", 
-                "deltoid_left", "deltoid_right", "biceps_left", "biceps_right", 
-                "triceps_front_left", "triceps_front_right",
-                "abdominal_upper", "abdominal_lower", "obliques_left", "obliques_right",
-                "quadriceps_left", "quadriceps_right", "knee_left", "knee_right",
-                "adductors_left", "adductors_right",
-                "tibialis_left", "tibialis_right", "calves_front_left", "calves_front_right",
-                "left_hand", "right_hand", "ankle_left", "ankle_right", "left_foot", "right_foot"
-              ].includes(regId);
+              const isFront = FRONT_REGIONS.has(regId) || center.x < 750;
               if (!isFront) return null;
 
               return (
                 <g key={`badge-front-${regId}`} className="pointer-events-none">
+                  {/* Outer subtle shadow/contrast ring */}
                   <circle
                     cx={center.x}
                     cy={center.y}
                     r="32"
-                    fill="#ef4444"
-                    stroke="#ffffff"
-                    strokeWidth="3.5"
+                    fill="#0f172a"
+                    opacity="0.35"
                   />
+                  {/* Solid vibrant red badge with crisp white border */}
+                  <circle
+                    cx={center.x}
+                    cy={center.y}
+                    r="28"
+                    fill="#dc2626"
+                    stroke="#ffffff"
+                    strokeWidth="4"
+                  />
+                  {/* Crisp white sequence number */}
                   <text
                     x={center.x}
-                    y={center.y + 10}
+                    y={center.y + (String(num).length > 1 ? 8 : 9.5)}
                     textAnchor="middle"
+                    dominantBaseline="central"
+                    alignmentBaseline="central"
                     fill="#ffffff"
                     fontWeight="900"
-                    fontSize="30"
-                    fontFamily="sans-serif"
+                    fontSize={String(num).length > 1 ? "24" : "28"}
+                    fontFamily="system-ui, -apple-system, sans-serif"
                   >
                     {num}
                   </text>
@@ -609,32 +653,39 @@ export default function BodySvg({
             {numberedBadges && Object.entries(numberedBadges).map(([regId, num]) => {
               const center = REGION_CENTERS[gender]?.[regId];
               if (!center) return null;
-              const isBack = [
-                "head_back", "neck_back", "trapezius", "shoulder_left_back", "shoulder_right_back",
-                "latissimus_dorsi_left", "latissimus_dorsi_right", "arm_left_back", "arm_right_back",
-                "lumbar_spine", "gluteus_left", "gluteus_right", "adductors_left_back", "adductors_right_back",
-                "hamstrings_left", "hamstrings_right", "calves_left", "calves_right"
-              ].includes(regId);
+              const isBack = BACK_REGIONS.has(regId) || center.x >= 750;
               if (!isBack) return null;
 
               return (
                 <g key={`badge-back-${regId}`} className="pointer-events-none">
+                  {/* Outer subtle shadow/contrast ring */}
                   <circle
                     cx={center.x}
                     cy={center.y}
                     r="32"
-                    fill="#ef4444"
-                    stroke="#ffffff"
-                    strokeWidth="3.5"
+                    fill="#0f172a"
+                    opacity="0.35"
                   />
+                  {/* Solid vibrant red badge with crisp white border */}
+                  <circle
+                    cx={center.x}
+                    cy={center.y}
+                    r="28"
+                    fill="#dc2626"
+                    stroke="#ffffff"
+                    strokeWidth="4"
+                  />
+                  {/* Crisp white sequence number */}
                   <text
                     x={center.x}
-                    y={center.y + 10}
+                    y={center.y + (String(num).length > 1 ? 8 : 9.5)}
                     textAnchor="middle"
+                    dominantBaseline="central"
+                    alignmentBaseline="central"
                     fill="#ffffff"
                     fontWeight="900"
-                    fontSize="30"
-                    fontFamily="sans-serif"
+                    fontSize={String(num).length > 1 ? "24" : "28"}
+                    fontFamily="system-ui, -apple-system, sans-serif"
                   >
                     {num}
                   </text>
