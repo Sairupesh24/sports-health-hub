@@ -3,15 +3,21 @@
  * Automatically attaches the JWT to the Authorization header.
  */
 
-const API_BASE_URL = '/api';
+const getApiBaseUrl = (): string => {
+  const envUrl = (import.meta.env.VITE_API_URL || '').trim().replace(/\/+$/, '');
+  if (!envUrl) return '/api';
+  return envUrl.endsWith('/api') ? envUrl : `${envUrl}/api`;
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 interface FetchOptions extends Omit<RequestInit, 'body'> {
-  data?: any;
-  body?: any;
-  params?: Record<string, any>;
+  data?: unknown;
+  body?: unknown;
+  params?: Record<string, unknown>;
 }
 
-export async function apiFetch<T = any>(endpoint: string, options: FetchOptions = {}): Promise<T> {
+export async function apiFetch<T = unknown>(endpoint: string, options: FetchOptions = {}): Promise<T> {
   const { data, headers: customHeaders, ...customConfig } = options;
 
   const payload = data || customConfig.body;
@@ -62,11 +68,11 @@ export async function apiFetch<T = any>(endpoint: string, options: FetchOptions 
     const response = await fetch(url, config);
     const text = await response.text();
     
-    let responseData: any = {};
+    let responseData: Record<string, unknown> = {};
     if (text) {
       try {
         responseData = JSON.parse(text);
-      } catch (e) {
+      } catch {
         if (!response.ok) {
           throw new Error(`Server returned a non-JSON error (${response.status}). Is the backend running?`);
         }
@@ -79,12 +85,13 @@ export async function apiFetch<T = any>(endpoint: string, options: FetchOptions 
         // localStorage.removeItem('ishpo_jwt');
         // window.location.href = '/login';
       }
-      throw new Error(responseData?.error || responseData?.message || `API request failed with status ${response.status}`);
+      throw new Error((responseData?.error as string) || (responseData?.message as string) || `API request failed with status ${response.status}`);
     }
 
     return responseData as T;
-  } catch (error: any) {
-    console.error(`API Error [${config.method} ${url}]:`, error.message);
+  } catch (error: unknown) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    console.error(`API Error [${config.method} ${url}]:`, errorMsg);
     throw error;
   }
 }

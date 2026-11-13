@@ -5,6 +5,16 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter } from 'react-router-dom';
 import ReportsHubView from '../pages/admin/analytics/ReportsHubView';
 import * as excelExportModule from '../utils/excelExport';
+import type { MultiSheetReportOptions, ExportReportOptions, ExcelSheetConfig } from '../utils/excelExport';
+
+interface ExportRowRecord {
+  clientName?: string;
+  staffName?: string;
+  hoursSpent?: number;
+  completedSessions?: number;
+  avgTimeSpent?: string;
+  [key: string]: unknown;
+}
 
 // Mock excel export functions
 vi.mock('../utils/excelExport', async (importOriginal) => {
@@ -228,17 +238,18 @@ describe('Reporting Engine - Practitioner Grouping Export & Views', () => {
       expect(excelExportModule.exportToExcelMultiSheet).toHaveBeenCalled();
     });
 
-    const callArgs = (excelExportModule.exportToExcelMultiSheet as any).mock.calls[0][0];
+    const mockedMultiSheet = vi.mocked(excelExportModule.exportToExcelMultiSheet);
+    const callArgs = mockedMultiSheet.mock.calls[0][0] as MultiSheetReportOptions;
     expect(callArgs.filename).toContain('Sports_Science_By_Scientist');
     expect(callArgs.sheets).toHaveLength(2);
 
     // Sheet 1: Aditi Mazumdar
-    const sheet1 = callArgs.sheets.find((s: any) => s.sheetName === 'Aditi Mazumdar');
+    const sheet1 = callArgs.sheets.find((s: ExcelSheetConfig) => s.sheetName === 'Aditi Mazumdar');
     expect(sheet1).toBeDefined();
-    expect(sheet1.title).toContain('Aditi Mazumdar');
+    expect(sheet1?.title).toContain('Aditi Mazumdar');
 
     // Verify columns inside Sheet 1
-    const columnHeaders = sheet1.columns.map((c: any) => c.header);
+    const columnHeaders = (sheet1?.columns || []).map((c: { header: string }) => c.header);
     expect(columnHeaders).toContain('Sports Scientist Name');
     expect(columnHeaders).toContain('Client UHID');
     expect(columnHeaders).toContain('Client Name');
@@ -247,20 +258,20 @@ describe('Reporting Engine - Practitioner Grouping Export & Views', () => {
     expect(columnHeaders).toContain('Average Time Spent on Client (sessions/hours spent)');
 
     // Verify data rows inside Sheet 1 (Rahul Lokesh & Toshith Makki)
-    expect(sheet1.data).toHaveLength(2);
-    const rahulRow = sheet1.data.find((d: any) => d.clientName === 'Rahul Lokesh');
+    expect(sheet1?.data).toHaveLength(2);
+    const rahulRow = (sheet1?.data as ExportRowRecord[]).find((d: ExportRowRecord) => d.clientName === 'Rahul Lokesh');
     expect(rahulRow).toBeDefined();
-    expect(rahulRow.staffName).toBe('Aditi Mazumdar');
-    expect(rahulRow.hoursSpent).toBe(2.0); // 120 mins = 2.0 hrs
-    expect(rahulRow.completedSessions).toBe(2);
+    expect(rahulRow?.staffName).toBe('Aditi Mazumdar');
+    expect(rahulRow?.hoursSpent).toBe(2.0); // 120 mins = 2.0 hrs
+    expect(rahulRow?.completedSessions).toBe(2);
     // avgTimeSpent: 2.0 hrs / 2 sessions = 1.0 hr (60 mins)
-    expect(rahulRow.avgTimeSpent).toContain('1 hrs (60 mins)');
+    expect(rahulRow?.avgTimeSpent).toContain('1 hrs (60 mins)');
 
     // Sheet 2: Vikram Singh
-    const sheet2 = callArgs.sheets.find((s: any) => s.sheetName === 'Vikram Singh');
+    const sheet2 = callArgs.sheets.find((s: ExcelSheetConfig) => s.sheetName === 'Vikram Singh');
     expect(sheet2).toBeDefined();
-    expect(sheet2.data).toHaveLength(1);
-    const ananyaRow = sheet2.data[0];
+    expect(sheet2?.data).toHaveLength(1);
+    const ananyaRow = (sheet2?.data as ExportRowRecord[])[0];
     expect(ananyaRow.clientName).toBe('Ananya Sharma');
     expect(ananyaRow.hoursSpent).toBe(1.5); // 90 mins = 1.5 hrs
     expect(ananyaRow.completedSessions).toBe(1);
@@ -299,13 +310,14 @@ describe('Reporting Engine - Practitioner Grouping Export & Views', () => {
       expect(excelExportModule.exportToExcelMultiSheet).toHaveBeenCalled();
     });
 
-    const callArgs = (excelExportModule.exportToExcelMultiSheet as any).mock.calls[0][0];
+    const mockedMultiSheet = vi.mocked(excelExportModule.exportToExcelMultiSheet);
+    const callArgs = mockedMultiSheet.mock.calls[0][0] as MultiSheetReportOptions;
     expect(callArgs.filename).toContain('Physiotherapy_By_Therapist');
     expect(callArgs.sheets).toHaveLength(1);
 
     const sheet1 = callArgs.sheets[0];
     expect(sheet1.sheetName).toBe('Dr. Sandeep S');
-    const columnHeaders = sheet1.columns.map((c: any) => c.header);
+    const columnHeaders = (sheet1.columns || []).map((c: { header: string }) => c.header);
     expect(columnHeaders).toContain('Physiotherapist Name');
     expect(columnHeaders).toContain('Client Name');
     expect(columnHeaders).toContain('Hours Spent on Client');
@@ -345,7 +357,8 @@ describe('Reporting Engine - Practitioner Grouping Export & Views', () => {
       expect(excelExportModule.exportToExcel).toHaveBeenCalled();
     });
 
-    const callArgs = (excelExportModule.exportToExcel as any).mock.calls[0][0];
+    const mockedExportToExcel = vi.mocked(excelExportModule.exportToExcel);
+    const callArgs = mockedExportToExcel.mock.calls[0][0] as ExportReportOptions<unknown>;
     expect(callArgs.filename).toContain('Client_Sessions_Summary');
     expect(callArgs.sheetName).toBe('Client Sessions Summary');
   });

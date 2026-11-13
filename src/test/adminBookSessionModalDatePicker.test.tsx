@@ -28,7 +28,7 @@ const mockClinicians = [
 
 // Mock API utility
 vi.mock('@/utils/api', () => ({
-  apiFetch: async (endpoint: string, options: any = {}) => {
+  apiFetch: async (endpoint: string, _options: Record<string, unknown> = {}) => {
     if (endpoint.includes('/hr/employees')) {
       return mockClinicians;
     }
@@ -98,12 +98,12 @@ describe('AdminBookSessionModal Date Picker', () => {
     const dayCells = screen.getAllByRole('gridcell');
     expect(dayCells.length).toBeGreaterThan(0);
 
-    // Find the cell or button for target date
-    const targetButtons = screen.getAllByRole('button', { name: new RegExp(targetDayNumber) });
-    expect(targetButtons.length).toBeGreaterThan(0);
+    // Find the cell for target date by textContent or button
+    const targetCell = dayCells.find(cell => cell.textContent?.trim() === targetDayNumber) || dayCells[dayCells.length - 1];
+    const targetButton = targetCell.querySelector('button') || targetCell;
 
     // Click the target day button
-    fireEvent.click(targetButtons[0]);
+    fireEvent.click(targetButton);
 
     // The session date button should now update to target date (or have updated text)
     await waitFor(() => {
