@@ -52,6 +52,12 @@ const MODULE_HOVER_GLOWS: Record<string, { hoverBorder: string; hoverRing: strin
     hoverShadow: "hover:shadow-xl hover:shadow-purple-500/10",
     textHover: "group-hover:text-purple-600",
   },
+  crm: {
+    hoverBorder: "hover:border-emerald-500",
+    hoverRing: "hover:ring-4 hover:ring-emerald-500/10",
+    hoverShadow: "hover:shadow-xl hover:shadow-emerald-500/10",
+    textHover: "group-hover:text-emerald-700",
+  },
   settings: {
     hoverBorder: "hover:border-violet-400",
     hoverRing: "hover:ring-4 hover:ring-violet-500/10",
@@ -191,7 +197,7 @@ export default function AppGallery() {
         return ["clinical", "questionnaires", "nutritionist"].includes(mod.id);
       }
       if (activeCategory === "management") {
-        return ["super_admin", "admin", "settings", "hr", "foe", "manager", "analytics"].includes(mod.id);
+        return ["super_admin", "admin", "crm", "settings", "hr", "foe", "manager", "analytics"].includes(mod.id);
       }
       if (activeCategory === "portal") {
         return ["client", "ams", "sports_scientist", "planner"].includes(mod.id);
@@ -404,6 +410,8 @@ export default function AppGallery() {
                     }
                     if (mod.id === "foe") {
                       sessionStorage.setItem("active_console", "foe");
+                    } else if (mod.id === "crm") {
+                      sessionStorage.setItem("active_console", "crm");
                     } else if (mod.id === "admin") {
                       sessionStorage.setItem("active_console", "admin");
                     } else if (mod.id === "settings") {

@@ -20,6 +20,9 @@ interface Profile {
   has_calendar_access?: boolean;
   has_analytics_access?: boolean;
   has_assign_work_access?: boolean;
+  has_kb_edit_access?: boolean;
+  has_leads_access?: boolean;
+  organization_slug?: string | null;
   allowed_consoles?: string[] | string | null;
   organization_enabled_modules?: string[] | string | null;
 }

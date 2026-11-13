@@ -1,12 +1,12 @@
-import { lazy, Suspense } from "react";
+import { ComponentType, lazy, Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 
 // Resilient dynamic import helper to recover from transient Vite HMR/network drops
-const lazyWithRetry = (componentImport: () => Promise<any>) =>
+const lazyWithRetry = <T extends ComponentType<unknown>>(componentImport: () => Promise<{ default: T }>) =>
   lazy(async () => {
     try {
       return await componentImport();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.warn("Failed to dynamically import module. Retrying once...", error);
       await new Promise((r) => setTimeout(r, 250));
       return await componentImport();
@@ -15,6 +15,7 @@ const lazyWithRetry = (componentImport: () => Promise<any>) =>
 
 const PublicEnquiry = lazy(() => import("./pages/PublicEnquiry"));
 const LeadsDashboard = lazy(() => import("./pages/admin/LeadsDashboard"));
+const EnquiryFormPage = lazy(() => import("./pages/crm/EnquiryFormPage"));
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -194,7 +195,10 @@ const App = () => (
               <Route path="/admin/foe" element={<ProtectedRoute requiredRole={["admin", "foe", "super_admin"]}><FOEDashboard /></ProtectedRoute>} />
               <Route path="/admin/foe/session-report" element={<ProtectedRoute requiredRole={["admin", "foe", "super_admin"]}><ActivityTracker role="foe" defaultTab="report" /></ProtectedRoute>} />
               <Route path="/admin/foe/activity-tracker" element={<ProtectedRoute requiredRole={["admin", "foe", "super_admin"]}><ActivityTracker role="foe" defaultTab="report" /></ProtectedRoute>} />
-              <Route path="/admin/leads" element={<ProtectedRoute requiredRole={["admin", "foe"]}><LeadsDashboard /></ProtectedRoute>} />
+              <Route path="/crm" element={<ProtectedRoute requiredRole={["admin", "foe", "crm"]} checkLeadsAccess><LeadsDashboard /></ProtectedRoute>} />
+              <Route path="/crm/enquiry-form" element={<ProtectedRoute requiredRole={["admin", "foe", "crm"]} checkLeadsAccess><EnquiryFormPage /></ProtectedRoute>} />
+              <Route path="/crm/form-builder" element={<Navigate to="/crm/enquiry-form" replace />} />
+              <Route path="/admin/leads" element={<Navigate to="/crm" replace />} />
               <Route path="/admin/clients" element={<ProtectedRoute requiredRole={["admin", "foe"]}><ClientList /></ProtectedRoute>} />
               <Route path="/admin/clients/register" element={<ProtectedRoute requiredRole={["admin", "foe"]}><ClientRegistration /></ProtectedRoute>} />
               <Route path="/admin/clients/:id" element={<ProtectedRoute requiredRole={["admin", "foe"]}><ClientProfile /></ProtectedRoute>} />

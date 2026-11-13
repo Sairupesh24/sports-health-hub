@@ -206,8 +206,10 @@ describe('FOE Console - Today Visits Log & Time Frame Session Report Navigation'
     expect(screen.getByText('Clients')).toBeInTheDocument();
     expect(screen.getByText('Calendar')).toBeInTheDocument();
     expect(screen.getByText('Billing')).toBeInTheDocument();
-    expect(screen.getByText('Leads')).toBeInTheDocument();
     expect(screen.getByText('Attendance')).toBeInTheDocument();
+
+    // Verify Leads/CRM tab is separated from FOE sidebar
+    expect(screen.queryByText('Leads')).not.toBeInTheDocument();
 
     // Verify HR console tabs are NOT present (no console mix-up)
     expect(screen.queryByText('HR Dashboard')).not.toBeInTheDocument();

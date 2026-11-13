@@ -48,6 +48,7 @@ import {
   Layers,
   ListOrdered,
   ArrowUpDown,
+  UserCheck,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -84,6 +85,13 @@ interface FilterOptions {
   };
 }
 
+export type ExportGroupingType =
+  | "consolidated"
+  | "individual"
+  | "both"
+  | "sports_scientist"
+  | "physiotherapist";
+
 export default function ReportsHubView({ initialModule = "Billing", initialReport = "service-wise", role = "admin" }: ReportsHubViewProps) {
   const { roles, profile } = useAuth();
 
@@ -98,7 +106,15 @@ export default function ReportsHubView({ initialModule = "Billing", initialRepor
 
   // Selected Module & Report Dropdowns
   const [selectedModule, setSelectedModule] = useState<string>(initialModule);
-  const [selectedReport, setSelectedReport] = useState<string>(initialReport);
+  const defaultInitialReport = useMemo(() => {
+    if (initialReport && initialReport !== "service-wise") return initialReport;
+    if (initialModule === "Sports Science") return "group-by-sports-scientist";
+    if (initialModule === "Physiotherapy") return "group-by-physiotherapist";
+    if (initialModule === "Client") return "group-by-client-id";
+    return initialReport || "service-wise";
+  }, [initialModule, initialReport]);
+
+  const [selectedReport, setSelectedReport] = useState<string>(defaultInitialReport);
 
   // Timeframe Presets State
   const [datePreset, setDatePreset] = useState<
@@ -231,21 +247,21 @@ export default function ReportsHubView({ initialModule = "Billing", initialRepor
     setCurrentPage(1);
 
     if (newModule === "Client") {
-      setSelectedReport("client-sessions");
+      setSelectedReport("group-by-client-id");
     } else if (newModule === "Group Sessions") {
       setSelectedReport("all-groups");
     } else if (newModule === "Billing") {
       setSelectedReport("service-wise");
     } else if (newModule === "Physiotherapy") {
-      setSelectedReport("therapist-sessions");
+      setSelectedReport("group-by-physiotherapist");
     } else if (newModule === "Sports Science") {
-      setSelectedReport("scientist-sessions");
+      setSelectedReport("group-by-sports-scientist");
     } else if (newModule === "Registration") {
       setSelectedReport("new-registrations");
     } else if (newModule === "Admin") {
       setSelectedReport("operations-summary");
     } else {
-      setSelectedReport("client-sessions");
+      setSelectedReport("group-by-client-id");
     }
   };
 
@@ -368,21 +384,121 @@ export default function ReportsHubView({ initialModule = "Billing", initialRepor
   const [summarySortAsc, setSummarySortAsc] = useState<boolean>(false);
   const [showFullIndividualLogs, setShowFullIndividualLogs] = useState<boolean>(false);
 
-  // Export Options Modal state
-  const [exportModalOpen, setExportModalOpen] = useState<boolean>(false);
-  const [exportFormat, setExportFormat] = useState<"excel" | "csv">("excel");
-  const [exportGrouping, setExportGrouping] = useState<"consolidated" | "individual" | "both">("consolidated");
   const [isExporting, setIsExporting] = useState<boolean>(false);
+
+  // Count unique sports scientists and physiotherapists in current session records
+  const uniqueSportsScientistsCount = useMemo(() => {
+    const set = new Set<string>();
+    for (const r of dataList) {
+      const prof = (r.staff_profession || r.instructor_role || "").toLowerCase();
+      const role = (r.staff_role || "").toLowerCase();
+      const name = r.staff_name || r.instructor_name;
+      const inOptions = (options?.sportsScientists || []).some(
+        (s) => s.id === r.staff_id || s.name.toLowerCase() === (name || "").toLowerCase()
+      );
+      const matchesKeywords =
+        prof.includes("scientist") ||
+        prof.includes("coach") ||
+        prof.includes("strength") ||
+        prof.includes("conditioning") ||
+        prof.includes("speed") ||
+        prof.includes("agility") ||
+        role.includes("scientist") ||
+        role.includes("coach");
+      const isExplicitPhysio =
+        prof.includes("physio") ||
+        prof.includes("doctor") ||
+        prof.includes("physician") ||
+        role.includes("physio");
+
+      const isSci = inOptions || matchesKeywords || (isSportsScienceModule && !isExplicitPhysio);
+      if (isSci && name && name !== "Unassigned Staff") {
+        set.add(name);
+      }
+    }
+    return set.size;
+  }, [dataList, isSportsScienceModule, options?.sportsScientists]);
+
+  const uniquePhysiosCount = useMemo(() => {
+    const set = new Set<string>();
+    for (const r of dataList) {
+      const prof = (r.staff_profession || r.instructor_role || "").toLowerCase();
+      const role = (r.staff_role || "").toLowerCase();
+      const name = r.staff_name || r.instructor_name;
+      const inOptions = (options?.therapists || []).some(
+        (t) => t.id === r.staff_id || t.name.toLowerCase() === (name || "").toLowerCase()
+      );
+      const matchesKeywords =
+        prof.includes("physio") ||
+        prof.includes("therapist") ||
+        prof.includes("consultant") ||
+        prof.includes("doctor") ||
+        prof.includes("physician") ||
+        role.includes("physio") ||
+        role.includes("therapist");
+      const isExplicitScientist =
+        prof.includes("scientist") ||
+        role.includes("scientist") ||
+        prof.includes("coach") ||
+        prof.includes("strength");
+
+      const isPhys = inOptions || matchesKeywords || (isPhysioModule && !isExplicitScientist);
+      if (isPhys && name && name !== "Unassigned Staff") {
+        set.add(name);
+      }
+    }
+    return set.size;
+  }, [dataList, isPhysioModule, options?.therapists]);
 
   // Reset summary page when module, timeframe, or search term changes
   useEffect(() => {
     setSummaryPage(1);
   }, [selectedModule, startDate, endDate, summarySearch]);
 
+  const rawClientBreakdown = useMemo(() => {
+    if (reportData?.clientBreakdown && Array.isArray(reportData.clientBreakdown) && reportData.clientBreakdown.length > 0) {
+      return reportData.clientBreakdown;
+    }
+    if (!dataList || dataList.length === 0) return [];
+    const clientMap = new Map<string, any>();
+    dataList.forEach((r: any) => {
+      const cId = r.client_id || r.client_uhid || r.client_name || "guest";
+      if (!clientMap.has(cId)) {
+        clientMap.set(cId, {
+          clientId: cId,
+          clientUhid: r.client_uhid || "-",
+          clientName: r.client_name || "Guest / Walk-in Patient",
+          clientSport: r.client_sport || "General",
+          totalSessions: 0,
+          completedSessions: 0,
+          cancelledSessions: 0,
+          totalDurationMinutes: 0,
+          totalDurationHours: 0,
+          instructors: new Set(),
+        });
+      }
+      const c = clientMap.get(cId);
+      c.totalSessions++;
+      c.totalDurationMinutes += Number(r.duration_minutes) || 0;
+      if (r.staff_name && r.staff_name !== "Unassigned Staff") {
+        c.instructors.add(r.staff_name);
+      }
+      const st = (r.status || "").toLowerCase();
+      if (st === "completed") c.completedSessions++;
+      else if (st.includes("cancel")) c.cancelledSessions++;
+    });
+
+    return Array.from(clientMap.values()).map((c) => ({
+      ...c,
+      totalDurationHours: parseFloat((c.totalDurationMinutes / 60).toFixed(1)),
+      instructorsList: Array.from(c.instructors).join(", ") || "General Specialist",
+    }));
+  }, [reportData?.clientBreakdown, dataList]);
+
   // Filtered and sorted client breakdown for the consolidated table
   const filteredClientSummary = useMemo(() => {
-    if (!reportData?.clientBreakdown || !Array.isArray(reportData.clientBreakdown)) return [];
-    let list = [...reportData.clientBreakdown];
+    if (!rawClientBreakdown || !Array.isArray(rawClientBreakdown)) return [];
+    let list = [...rawClientBreakdown];
 
     const search = (summarySearch || "").trim().toLowerCase();
     if (search) {
@@ -408,13 +524,215 @@ export default function ReportsHubView({ initialModule = "Billing", initialRepor
     });
 
     return list;
-  }, [reportData?.clientBreakdown, summarySearch, summarySortField, summarySortAsc]);
+  }, [rawClientBreakdown, summarySearch, summarySortField, summarySortAsc]);
 
   const summaryTotalPages = Math.ceil(filteredClientSummary.length / summaryPageSize) || 1;
   const paginatedClientSummary = useMemo(() => {
     const start = (summaryPage - 1) * summaryPageSize;
     return filteredClientSummary.slice(start, start + summaryPageSize);
   }, [filteredClientSummary, summaryPage, summaryPageSize]);
+
+  // Practitioner Client Breakdown (Group by Sports Scientist or Group by Physiotherapist)
+  const [practitionerSearch, setPractitionerSearch] = useState<string>("");
+  const [practitionerPage, setPractitionerPage] = useState<number>(1);
+  const practitionerPageSize = 25;
+  const [practitionerSortField, setPractitionerSortField] = useState<string>("hoursSpent");
+  const [practitionerSortAsc, setPractitionerSortAsc] = useState<boolean>(false);
+
+  const practitionerClientBreakdown = useMemo(() => {
+    if (!dataList || dataList.length === 0) return [];
+    const isTargetScientist =
+      selectedReport === "group-by-sports-scientist" ||
+      (isSportsScienceModule && selectedReport !== "group-by-physiotherapist");
+
+    const staffMap = new Map<string, {
+      staffId: string;
+      staffName: string;
+      profession: string;
+      role: string;
+      sessions: any[];
+    }>();
+
+    for (const row of dataList) {
+      const staffId = row.staff_id || row.instructor_id || "unassigned";
+      const staffName = row.staff_name || row.instructor_name || "Unassigned Staff";
+      const profession = row.staff_profession || row.instructor_role || "";
+      const role = row.staff_role || "";
+      const profLower = profession.toLowerCase();
+      const roleLower = role.toLowerCase();
+      const nameLower = staffName.toLowerCase();
+
+      let isMatch = false;
+      if (isTargetScientist) {
+        const inOptions = (options?.sportsScientists || []).some(
+          (s) => s.id === staffId || s.name.toLowerCase() === nameLower
+        );
+        const matchesKeywords =
+          profLower.includes("scientist") ||
+          profLower.includes("coach") ||
+          profLower.includes("strength") ||
+          profLower.includes("conditioning") ||
+          profLower.includes("speed") ||
+          profLower.includes("agility") ||
+          roleLower.includes("scientist") ||
+          roleLower.includes("coach");
+        const isExplicitPhysio =
+          profLower.includes("physio") ||
+          profLower.includes("doctor") ||
+          profLower.includes("physician") ||
+          roleLower.includes("physio");
+
+        isMatch = (inOptions || matchesKeywords || (isSportsScienceModule && !isExplicitPhysio)) && !isExplicitPhysio;
+      } else {
+        const inOptions = (options?.therapists || []).some(
+          (t) => t.id === staffId || t.name.toLowerCase() === nameLower
+        );
+        const matchesKeywords =
+          profLower.includes("physio") ||
+          profLower.includes("therapist") ||
+          profLower.includes("consultant") ||
+          profLower.includes("doctor") ||
+          profLower.includes("physician") ||
+          roleLower.includes("physio") ||
+          roleLower.includes("therapist");
+        const isExplicitScientist =
+          profLower.includes("scientist") ||
+          roleLower.includes("scientist") ||
+          profLower.includes("coach") ||
+          profLower.includes("strength");
+
+        isMatch = (inOptions || matchesKeywords || (isPhysioModule && !isExplicitScientist)) && !isExplicitScientist;
+      }
+
+      if (selectedStaff !== "all") {
+        const matchesStaff =
+          staffId === selectedStaff ||
+          staffName === selectedStaff ||
+          nameLower === selectedStaff.toLowerCase();
+        if (!matchesStaff) {
+          isMatch = false;
+        }
+      }
+
+      if (isMatch) {
+        const key = staffId !== "unassigned" ? staffId : staffName;
+        if (!staffMap.has(key)) {
+          staffMap.set(key, {
+            staffId,
+            staffName,
+            profession: profession || (isTargetScientist ? "Sports Scientist" : "Physiotherapist"),
+            role,
+            sessions: [],
+          });
+        }
+        staffMap.get(key)!.sessions.push(row);
+      }
+    }
+
+    const result: any[] = [];
+
+    staffMap.forEach((staffMember) => {
+      const clientMap = new Map<string, {
+        clientId: string;
+        clientUhid: string;
+        clientName: string;
+        clientSport: string;
+        sessions: any[];
+      }>();
+
+      for (const s of staffMember.sessions) {
+        const cId = s.client_id || s.client_uhid || s.client_name || "guest";
+        if (!clientMap.has(cId)) {
+          clientMap.set(cId, {
+            clientId: cId,
+            clientUhid: s.client_uhid || "-",
+            clientName: s.client_name || "Guest / Walk-in Patient",
+            clientSport: s.client_sport || "General",
+            sessions: [],
+          });
+        }
+        clientMap.get(cId)!.sessions.push(s);
+      }
+
+      clientMap.forEach((cEntry) => {
+        const totalSess = cEntry.sessions.length;
+        const compSess = cEntry.sessions.filter(
+          (cs: any) => (cs.status || "").toLowerCase() === "completed"
+        ).length;
+        const totalMins = cEntry.sessions.reduce(
+          (acc: number, cs: any) => acc + (Number(cs.duration_minutes) || 0),
+          0
+        );
+        const hrsSpent = parseFloat((totalMins / 60).toFixed(1));
+        const divisor = compSess > 0 ? compSess : (totalSess > 0 ? totalSess : 1);
+        const avgHrs = parseFloat((totalMins / 60 / divisor).toFixed(2));
+        const avgMins = Math.round(totalMins / divisor);
+
+        result.push({
+          staffId: staffMember.staffId,
+          staffName: staffMember.staffName,
+          profession: staffMember.profession,
+          clientId: cEntry.clientId,
+          clientUhid: cEntry.clientUhid,
+          clientName: cEntry.clientName,
+          clientSport: cEntry.clientSport,
+          hoursSpent: hrsSpent,
+          completedSessions: compSess,
+          totalSessions: totalSess,
+          avgTimeSpent: `${avgHrs} hrs (${avgMins} mins)`,
+          avgHours: avgHrs,
+          avgMinutes: avgMins,
+        });
+      });
+    });
+
+    return result.sort((a, b) => b.hoursSpent - a.hoursSpent);
+  }, [dataList, selectedReport, isSportsScienceModule, isPhysioModule, selectedStaff, options?.sportsScientists, options?.therapists]);
+
+  const filteredPractitionerBreakdown = useMemo(() => {
+    let list = [...practitionerClientBreakdown];
+    const q = (practitionerSearch || "").trim().toLowerCase();
+    if (q) {
+      list = list.filter(
+        (r) =>
+          (r.staffName || "").toLowerCase().includes(q) ||
+          (r.clientName || "").toLowerCase().includes(q) ||
+          (r.clientUhid || "").toLowerCase().includes(q) ||
+          (r.clientSport || "").toLowerCase().includes(q)
+      );
+    }
+    list.sort((a: any, b: any) => {
+      let valA = a[practitionerSortField];
+      let valB = b[practitionerSortField];
+      if (typeof valA === "string") valA = valA.toLowerCase();
+      if (typeof valB === "string") valB = valB.toLowerCase();
+      if (valA === undefined || valA === null) return 1;
+      if (valB === undefined || valB === null) return -1;
+      if (valA < valB) return practitionerSortAsc ? -1 : 1;
+      if (valA > valB) return practitionerSortAsc ? 1 : -1;
+      return 0;
+    });
+    return list;
+  }, [practitionerClientBreakdown, practitionerSearch, practitionerSortField, practitionerSortAsc]);
+
+  const practitionerTotalPages = Math.ceil(filteredPractitionerBreakdown.length / practitionerPageSize) || 1;
+  const paginatedPractitionerBreakdown = useMemo(() => {
+    const start = (practitionerPage - 1) * practitionerPageSize;
+    return filteredPractitionerBreakdown.slice(start, start + practitionerPageSize);
+  }, [filteredPractitionerBreakdown, practitionerPage, practitionerPageSize]);
+
+  useEffect(() => {
+    setPractitionerPage(1);
+  }, [selectedReport, selectedModule, startDate, endDate, practitionerSearch]);
+
+  const handleTogglePractitionerSort = (field: string) => {
+    if (practitionerSortField === field) {
+      setPractitionerSortAsc(!practitionerSortAsc);
+    } else {
+      setPractitionerSortField(field);
+      setPractitionerSortAsc(false);
+    }
+  };
 
   // Dynamically populated group names extracted from backend options, groupBreakdown, and sessions
   const availableGroupNames = useMemo(() => {
@@ -642,9 +960,12 @@ export default function ReportsHubView({ initialModule = "Billing", initialRepor
     }
     if (selectedModule === "Client") {
       return [
+        { value: "group-by-client-id", label: "Group by Client ID", group: "Most used reports" },
         { value: "client-sessions", label: "Client Sessions Log & Details", group: "Most used reports" },
-        { value: "client-attendance", label: "Client Completed Sessions Log", group: "Most used reports" },
-        { value: "client-cancelled", label: "Client Cancelled & Missed Sessions", group: "Most used reports" },
+        { value: "group-by-sports-scientist", label: "Group by Sports Scientist", group: "Selected module reports" },
+        { value: "group-by-physiotherapist", label: "Group by Physiotherapist", group: "Selected module reports" },
+        { value: "client-attendance", label: "Client Completed Sessions Log", group: "Selected module reports" },
+        { value: "client-cancelled", label: "Client Cancelled & Missed Sessions", group: "Selected module reports" },
         { value: "client-summary", label: "Client Hours & Volume Summary", group: "Selected module reports" },
         { value: "client-modality", label: "Modality & Service wise Breakdown", group: "Selected module reports" },
       ];
@@ -660,6 +981,7 @@ export default function ReportsHubView({ initialModule = "Billing", initialRepor
     }
     if (selectedModule === "Physiotherapy") {
       return [
+        { value: "group-by-physiotherapist", label: "Group by Physiotherapist", group: "Most used reports" },
         { value: "therapist-sessions", label: "Therapist Sessions Summary & Details", group: "Most used reports" },
         { value: "service-modality-sessions", label: "Service & Modality wise Physio Sessions", group: "Most used reports" },
         { value: "cancelled-physio-sessions", label: "Cancelled / Missed Physio Sessions", group: "Most used reports" },
@@ -669,6 +991,7 @@ export default function ReportsHubView({ initialModule = "Billing", initialRepor
     }
     if (selectedModule === "Sports Science") {
       return [
+        { value: "group-by-sports-scientist", label: "Group by Sports Scientist", group: "Most used reports" },
         { value: "scientist-sessions", label: "Sports Scientist Sessions Summary & Details", group: "Most used reports" },
         { value: "discipline-sessions", label: "Training & Testing Discipline Breakdown", group: "Most used reports" },
         { value: "cancelled-sports-sessions", label: "Cancelled & Rescheduled Sports Science Sessions", group: "Most used reports" },
@@ -737,10 +1060,10 @@ export default function ReportsHubView({ initialModule = "Billing", initialRepor
   }, [options?.billingStaff]);
 
 
-  // Export Open Handler: opens modal if report has grouping choices, or exports directly
-  const handleOpenExport = (
+  // Direct Export Handler: directly exports based on selected report without a pop-up modal
+  const handleExport = async (
     formatType: "excel" | "csv",
-    defaultGrouping: "consolidated" | "individual" | "both" = "consolidated"
+    overrideGrouping?: ExportGroupingType
   ) => {
     if (!hasAnalyticsAccess) {
       toast.error(`Access Denied: ${formatType.toUpperCase()} exports require Analytics & Reports Engine access.`);
@@ -752,27 +1075,38 @@ export default function ReportsHubView({ initialModule = "Billing", initialRepor
       return;
     }
 
-    // Check if current report offers consolidated grouping options
-    const hasConsolidatedOption =
-      isClientModule ||
-      isGroupModule ||
-      isPhysioModule ||
-      isSportsScienceModule ||
-      (isBillingModule && (selectedReport === "user-wise" || selectedReport === "payment-mode-wise"));
+    let groupingType: ExportGroupingType = overrideGrouping || "individual";
 
-    if (hasConsolidatedOption) {
-      setExportFormat(formatType);
-      setExportGrouping(defaultGrouping);
-      setExportModalOpen(true);
-    } else {
-      executeExport(formatType, "individual");
+    if (!overrideGrouping) {
+      if (selectedReport === "group-by-sports-scientist") {
+        groupingType = "sports_scientist";
+      } else if (selectedReport === "group-by-physiotherapist") {
+        groupingType = "physiotherapist";
+      } else if (selectedReport === "group-by-client-id" || selectedReport === "client-summary") {
+        groupingType = "consolidated";
+      } else if (isGroupModule && selectedReport === "all-groups") {
+        groupingType = "consolidated";
+      } else if (isBillingModule && (selectedReport === "user-wise" || selectedReport === "payment-mode-wise")) {
+        groupingType = "consolidated";
+      } else {
+        groupingType = "individual";
+      }
     }
+
+    await executeExport(formatType, groupingType);
+  };
+
+  const handleOpenExport = (
+    formatType: "excel" | "csv",
+    defaultGrouping?: ExportGroupingType
+  ) => {
+    handleExport(formatType, defaultGrouping);
   };
 
   // Perform the actual export based on chosen format and grouping
   const executeExport = async (
     formatType: "excel" | "csv",
-    groupingType: "consolidated" | "individual" | "both"
+    groupingType: ExportGroupingType
   ) => {
     try {
       setIsExporting(true);
@@ -783,7 +1117,11 @@ export default function ReportsHubView({ initialModule = "Billing", initialRepor
         {
           label: "Grouping Mode",
           value:
-            groupingType === "consolidated"
+            groupingType === "sports_scientist"
+              ? "Group by Sports Scientist (Multi-Sheet)"
+              : groupingType === "physiotherapist"
+              ? "Group by Physiotherapist (Multi-Sheet)"
+              : groupingType === "consolidated"
               ? "Consolidated Summary"
               : groupingType === "individual"
               ? "Detailed Individual Records"
@@ -819,9 +1157,265 @@ export default function ReportsHubView({ initialModule = "Billing", initialRepor
       }
 
       // -------------------------------------------------------------
+      // 0. PRACTITIONER GROUPING (Sports Scientist or Physiotherapist)
+      // -------------------------------------------------------------
+      if (groupingType === "sports_scientist" || groupingType === "physiotherapist") {
+        const isTargetSportsScientist = groupingType === "sports_scientist";
+        const roleTitle = isTargetSportsScientist ? "Sports Scientist" : "Physiotherapist";
+        const rolePlural = isTargetSportsScientist ? "Sports Scientists" : "Physiotherapists";
+        const filenamePrefix = isTargetSportsScientist ? "Sports_Science_By_Scientist" : "Physiotherapy_By_Therapist";
+
+        // Group dataList by practitioner
+        const staffMap = new Map<string, {
+          staffId: string;
+          staffName: string;
+          profession: string;
+          role: string;
+          sessions: any[];
+        }>();
+
+        for (const row of dataList) {
+          const staffId = row.staff_id || row.instructor_id || "unassigned";
+          const staffName = row.staff_name || row.instructor_name || "Unassigned Staff";
+          const profession = row.staff_profession || row.instructor_role || "";
+          const role = row.staff_role || "";
+
+          let isMatch = false;
+          const profLower = profession.toLowerCase();
+          const roleLower = role.toLowerCase();
+          const nameLower = staffName.toLowerCase();
+
+          if (isTargetSportsScientist) {
+            const inOptions = (options?.sportsScientists || []).some(
+              (s) => s.id === staffId || s.name.toLowerCase() === nameLower
+            );
+            const matchesKeywords =
+              profLower.includes("scientist") ||
+              profLower.includes("coach") ||
+              profLower.includes("strength") ||
+              profLower.includes("conditioning") ||
+              profLower.includes("speed") ||
+              profLower.includes("agility") ||
+              roleLower.includes("scientist") ||
+              roleLower.includes("coach");
+            const isExplicitPhysio =
+              profLower.includes("physio") ||
+              profLower.includes("doctor") ||
+              profLower.includes("physician") ||
+              roleLower.includes("physio");
+
+            isMatch = (inOptions || matchesKeywords || (isSportsScienceModule && !isExplicitPhysio)) && !isExplicitPhysio;
+          } else {
+            const inOptions = (options?.therapists || []).some(
+              (t) => t.id === staffId || t.name.toLowerCase() === nameLower
+            );
+            const matchesKeywords =
+              profLower.includes("physio") ||
+              profLower.includes("therapist") ||
+              profLower.includes("consultant") ||
+              profLower.includes("doctor") ||
+              profLower.includes("physician") ||
+              roleLower.includes("physio") ||
+              roleLower.includes("therapist");
+            const isExplicitScientist =
+              profLower.includes("scientist") ||
+              roleLower.includes("scientist") ||
+              profLower.includes("coach") ||
+              profLower.includes("strength");
+
+            isMatch = (inOptions || matchesKeywords || (isPhysioModule && !isExplicitScientist)) && !isExplicitScientist;
+          }
+
+          if (selectedStaff !== "all") {
+            const matchesStaff =
+              staffId === selectedStaff ||
+              staffName === selectedStaff ||
+              nameLower === selectedStaff.toLowerCase();
+            if (!matchesStaff) {
+              isMatch = false;
+            }
+          }
+
+          if (isMatch) {
+            const key = staffId !== "unassigned" ? staffId : staffName;
+            if (!staffMap.has(key)) {
+              staffMap.set(key, {
+                staffId,
+                staffName,
+                profession: profession || roleTitle,
+                role,
+                sessions: [],
+              });
+            }
+            staffMap.get(key)!.sessions.push(row);
+          }
+        }
+
+        if (staffMap.size === 0) {
+          toast.error(`No ${rolePlural.toLowerCase()} records found in the current selection.`);
+          setIsExporting(false);
+          return;
+        }
+
+        const practitionerColumns: ExcelColumn<any>[] = [
+          {
+            header: isTargetSportsScientist ? "Sports Scientist Name" : "Physiotherapist Name",
+            key: "staffName",
+            width: 24,
+          },
+          {
+            header: "Client UHID",
+            key: "clientUhid",
+            width: 16,
+          },
+          {
+            header: "Client Name",
+            key: "clientName",
+            width: 26,
+            formatter: (v) => v || "Guest / Walk-in Patient",
+          },
+          {
+            header: "Sport / Category",
+            key: "clientSport",
+            width: 18,
+            formatter: (v) => v || "General",
+          },
+          {
+            header: "Hours Spent on Client",
+            key: "hoursSpent",
+            width: 22,
+            formatter: (v) => `${v} hrs`,
+          },
+          {
+            header: "Sessions Completed for Client",
+            key: "completedSessions",
+            width: 24,
+          },
+          {
+            header: "Total Sessions",
+            key: "totalSessions",
+            width: 16,
+          },
+          {
+            header: "Average Time Spent on Client (sessions/hours spent)",
+            key: "avgTimeSpent",
+            width: 38,
+          },
+        ];
+
+        const sheets: ExcelSheetConfig[] = [];
+        const allAggregatedRows: any[] = [];
+
+        staffMap.forEach((staffMember) => {
+          const clientMap = new Map<string, {
+            clientId: string;
+            clientUhid: string;
+            clientName: string;
+            clientSport: string;
+            sessions: any[];
+          }>();
+
+          for (const s of staffMember.sessions) {
+            const cId = s.client_id || s.client_uhid || s.client_name || "guest";
+            if (!clientMap.has(cId)) {
+              clientMap.set(cId, {
+                clientId: cId,
+                clientUhid: s.client_uhid || "-",
+                clientName: s.client_name || "Guest / Walk-in Patient",
+                clientSport: s.client_sport || "General",
+                sessions: [],
+              });
+            }
+            clientMap.get(cId)!.sessions.push(s);
+          }
+
+          const clientRows: any[] = [];
+          clientMap.forEach((cEntry) => {
+            const totalSess = cEntry.sessions.length;
+            const compSess = cEntry.sessions.filter(
+              (cs: any) => (cs.status || "").toLowerCase() === "completed"
+            ).length;
+            const totalMins = cEntry.sessions.reduce(
+              (acc: number, cs: any) => acc + (Number(cs.duration_minutes) || 0),
+              0
+            );
+            const hrsSpent = parseFloat((totalMins / 60).toFixed(1));
+            const divisor = compSess > 0 ? compSess : (totalSess > 0 ? totalSess : 1);
+            const avgHrs = parseFloat((totalMins / 60 / divisor).toFixed(2));
+            const avgMins = Math.round(totalMins / divisor);
+
+            const row = {
+              staffName: staffMember.staffName,
+              clientUhid: cEntry.clientUhid,
+              clientName: cEntry.clientName,
+              clientSport: cEntry.clientSport,
+              hoursSpent: hrsSpent,
+              completedSessions: compSess,
+              totalSessions: totalSess,
+              avgTimeSpent: `${avgHrs} hrs (${avgMins} mins)`,
+              avgHours: avgHrs,
+              avgMinutes: avgMins,
+            };
+            clientRows.push(row);
+            allAggregatedRows.push(row);
+          });
+
+          clientRows.sort((a, b) => (b.hoursSpent || 0) - (a.hoursSpent || 0));
+
+          const sheetTotalHours = parseFloat(
+            clientRows.reduce((acc, r) => acc + (r.hoursSpent || 0), 0).toFixed(1)
+          );
+          const sheetTotalCompleted = clientRows.reduce(
+            (acc, r) => acc + (r.completedSessions || 0),
+            0
+          );
+          const sheetTotalSessions = clientRows.reduce(
+            (acc, r) => acc + (r.totalSessions || 0),
+            0
+          );
+          const sheetDivisor = sheetTotalCompleted > 0 ? sheetTotalCompleted : (sheetTotalSessions > 0 ? sheetTotalSessions : 1);
+          const sheetAvgHours = parseFloat((sheetTotalHours / sheetDivisor).toFixed(2));
+          const sheetAvgMins = Math.round((sheetTotalHours * 60) / sheetDivisor);
+
+          sheets.push({
+            sheetName: staffMember.staffName,
+            title: `${staffMember.staffName} - ${roleTitle} Client Sessions Breakdown`,
+            metadata: [
+              ...metaInfo,
+              { label: roleTitle, value: `${staffMember.staffName} (${staffMember.profession || roleTitle})` },
+              { label: "Total Clients", value: clientRows.length },
+              { label: "Total Hours Spent", value: `${sheetTotalHours} hrs` },
+              { label: "Total Completed Sessions", value: sheetTotalCompleted },
+              { label: "Total Sessions", value: sheetTotalSessions },
+              { label: "Average Time Spent per Session", value: `${sheetAvgHours} hrs (${sheetAvgMins} mins)` },
+            ],
+            columns: practitionerColumns,
+            data: clientRows,
+          });
+        });
+
+        if (formatType === "excel") {
+          await exportToExcelMultiSheet({
+            filename: `CSSH_${filenamePrefix}_${timestamp}`,
+            sheets,
+          });
+          toast.success(`Exported ${sheets.length} ${roleTitle} sheet${sheets.length > 1 ? "s" : ""} to Excel.`);
+        } else {
+          exportToCSV({
+            filename: `CSSH_${filenamePrefix}_${timestamp}.csv`,
+            columns: practitionerColumns,
+            data: allAggregatedRows,
+          });
+          toast.success(`Exported ${allAggregatedRows.length} ${roleTitle} client records to CSV.`);
+        }
+        setIsExporting(false);
+        return;
+      }
+
+      // -------------------------------------------------------------
       // 1. CLIENT MODULE EXPORT (Consolidated vs Individual vs Both)
       // -------------------------------------------------------------
-      if (isClientModule) {
+      if (isClientModule || selectedReport === "group-by-client-id" || selectedReport === "client-summary") {
         const summaryColumns: ExcelColumn<any>[] = [
           { header: "Client UHID", key: "clientUhid", width: 16 },
           { header: "Client Name", key: "clientName", width: 24, formatter: (v) => v || "Guest / Walk-in Patient" },
@@ -865,7 +1459,7 @@ export default function ReportsHubView({ initialModule = "Billing", initialRepor
           { header: "Session Notes", key: "session_notes", width: 30 },
         ];
 
-        const summaryData = reportData?.clientBreakdown || [];
+        const summaryData = rawClientBreakdown.length > 0 ? rawClientBreakdown : (reportData?.clientBreakdown || []);
 
         if (formatType === "excel") {
           if (groupingType === "consolidated") {
@@ -1423,7 +2017,6 @@ export default function ReportsHubView({ initialModule = "Billing", initialRepor
         }
       }
 
-      setExportModalOpen(false);
       toast.success(`${formatType.toUpperCase()} report exported successfully!`);
     } catch (err: any) {
       console.error("Export error:", err);
@@ -1454,15 +2047,17 @@ export default function ReportsHubView({ initialModule = "Billing", initialRepor
               {hasAnalyticsAccess ? (
                 <>
                   <Button
-                    onClick={() => handleOpenExport("excel")}
+                    onClick={() => handleExport("excel")}
+                    disabled={isExporting}
                     className="h-8 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs gap-1.5 shadow-sm"
                   >
-                    <FileSpreadsheet className="w-3.5 h-3.5" />
-                    <span>Export Excel (.xlsx)</span>
+                    {isExporting ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <FileSpreadsheet className="w-3.5 h-3.5" />}
+                    <span>{isExporting ? "Exporting..." : "Export Excel (.xlsx)"}</span>
                   </Button>
 
                   <Button
-                    onClick={() => handleOpenExport("csv")}
+                    onClick={() => handleExport("csv")}
+                    disabled={isExporting}
                     variant="outline"
                     className="h-8 rounded-xl font-semibold text-xs gap-1.5 border-slate-200 dark:border-slate-700"
                   >
@@ -1973,8 +2568,225 @@ export default function ReportsHubView({ initialModule = "Billing", initialRepor
             </div>
           )}
 
-          {/* Client Breakdown Summary Table (When Client Module is Selected) */}
-          {isClientModule && reportData?.clientBreakdown && reportData.clientBreakdown.length > 0 && selectedClient === "all" && (
+          {/* Practitioner Client Breakdown Table (Group by Sports Scientist or Group by Physiotherapist) */}
+          {(selectedReport === "group-by-sports-scientist" || selectedReport === "group-by-physiotherapist") && (
+            <div className="space-y-3">
+              {/* Header with Search and Actions */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50/80 dark:bg-slate-800/50 p-3.5 rounded-2xl border border-slate-200/80 dark:border-slate-800">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold">
+                    <UserCheck className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                      {selectedReport === "group-by-sports-scientist"
+                        ? "Group by Sports Scientist: Client Sessions & Hours"
+                        : "Group by Physiotherapist: Client Sessions & Hours"}
+                      <Badge variant="outline" className="text-xs bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 font-bold">
+                        {filteredPractitionerBreakdown.length} Client Records
+                      </Badge>
+                    </h3>
+                    <p className="text-[11px] text-muted-foreground">
+                      Client-wise breakdown per {selectedReport === "group-by-sports-scientist" ? "sports scientist" : "physiotherapist"}: hours spent, sessions completed, and average time spent.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 self-start sm:self-auto">
+                  <div className="relative">
+                    <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      placeholder="Filter by specialist, client, UHID..."
+                      value={practitionerSearch}
+                      onChange={(e) => setPractitionerSearch(e.target.value)}
+                      className="h-8 pl-8 text-xs w-48 sm:w-64 rounded-xl bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700"
+                    />
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleExport("excel", selectedReport === "group-by-sports-scientist" ? "sports_scientist" : "physiotherapist")}
+                    disabled={isExporting}
+                    className="h-8 text-xs font-bold text-emerald-600 dark:text-emerald-400 border-emerald-500/30 gap-1.5"
+                    title={`Export multi-sheet Excel with 1 sheet per ${selectedReport === "group-by-sports-scientist" ? "Sports Scientist" : "Physiotherapist"}`}
+                  >
+                    {isExporting ? (
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Download className="w-3.5 h-3.5" />
+                    )}
+                    <span className="hidden sm:inline">
+                      Export per {selectedReport === "group-by-sports-scientist" ? "Sports Scientist" : "Physiotherapist"}
+                    </span>
+                  </Button>
+                </div>
+              </div>
+
+              {/* Table */}
+              <div className="rounded-xl border border-slate-200/80 dark:border-slate-800 overflow-hidden bg-white dark:bg-slate-900 shadow-sm">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200/80 dark:border-slate-800">
+                      <tr>
+                        <th
+                          onClick={() => handleTogglePractitionerSort("staffName")}
+                          className="p-3 font-bold text-slate-700 dark:text-slate-300 cursor-pointer select-none hover:text-primary transition-colors"
+                        >
+                          <div className="flex items-center gap-1.5">
+                            <span>{selectedReport === "group-by-sports-scientist" ? "Sports Scientist Name" : "Physiotherapist Name"}</span>
+                            <ArrowUpDown className="w-3 h-3 text-muted-foreground" />
+                          </div>
+                        </th>
+                        <th
+                          onClick={() => handleTogglePractitionerSort("clientUhid")}
+                          className="p-3 font-bold text-slate-700 dark:text-slate-300 cursor-pointer select-none hover:text-primary transition-colors"
+                        >
+                          <div className="flex items-center gap-1.5">
+                            <span>Client UHID</span>
+                            <ArrowUpDown className="w-3 h-3 text-muted-foreground" />
+                          </div>
+                        </th>
+                        <th
+                          onClick={() => handleTogglePractitionerSort("clientName")}
+                          className="p-3 font-bold text-slate-700 dark:text-slate-300 cursor-pointer select-none hover:text-primary transition-colors"
+                        >
+                          <div className="flex items-center gap-1.5">
+                            <span>Client Name</span>
+                            <ArrowUpDown className="w-3 h-3 text-muted-foreground" />
+                          </div>
+                        </th>
+                        <th
+                          onClick={() => handleTogglePractitionerSort("clientSport")}
+                          className="p-3 font-bold text-slate-700 dark:text-slate-300 cursor-pointer select-none hover:text-primary transition-colors"
+                        >
+                          <div className="flex items-center gap-1.5">
+                            <span>Sport / Category</span>
+                            <ArrowUpDown className="w-3 h-3 text-muted-foreground" />
+                          </div>
+                        </th>
+                        <th
+                          onClick={() => handleTogglePractitionerSort("hoursSpent")}
+                          className="p-3 font-bold text-slate-700 dark:text-slate-300 text-center cursor-pointer select-none hover:text-primary transition-colors"
+                        >
+                          <div className="flex items-center justify-center gap-1.5">
+                            <span>Hours Spent on Client</span>
+                            <ArrowUpDown className="w-3 h-3 text-muted-foreground" />
+                          </div>
+                        </th>
+                        <th
+                          onClick={() => handleTogglePractitionerSort("completedSessions")}
+                          className="p-3 font-bold text-emerald-700 dark:text-emerald-400 text-center cursor-pointer select-none hover:text-emerald-600 transition-colors"
+                        >
+                          <div className="flex items-center justify-center gap-1.5">
+                            <span>Sessions Completed for Client</span>
+                            <ArrowUpDown className="w-3 h-3 text-muted-foreground" />
+                          </div>
+                        </th>
+                        <th
+                          onClick={() => handleTogglePractitionerSort("totalSessions")}
+                          className="p-3 font-bold text-slate-700 dark:text-slate-300 text-center cursor-pointer select-none hover:text-primary transition-colors"
+                        >
+                          <div className="flex items-center justify-center gap-1.5">
+                            <span>Total Sessions</span>
+                            <ArrowUpDown className="w-3 h-3 text-muted-foreground" />
+                          </div>
+                        </th>
+                        <th
+                          onClick={() => handleTogglePractitionerSort("avgHours")}
+                          className="p-3 font-bold text-slate-700 dark:text-slate-300 text-center cursor-pointer select-none hover:text-primary transition-colors"
+                        >
+                          <div className="flex items-center justify-center gap-1.5">
+                            <span>Average Time Spent on Client (sessions/hours spent)</span>
+                            <ArrowUpDown className="w-3 h-3 text-muted-foreground" />
+                          </div>
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 font-medium">
+                      {paginatedPractitionerBreakdown.length === 0 ? (
+                        <tr>
+                          <td colSpan={8} className="p-8 text-center text-muted-foreground text-xs">
+                            No practitioner-client records match the selected filters or timeframe.
+                          </td>
+                        </tr>
+                      ) : (
+                        paginatedPractitionerBreakdown.map((row: any, idx: number) => (
+                          <tr key={`${row.staffId}-${row.clientId}-${idx}`} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
+                            <td className="p-3 font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                              <div className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-[10px] font-bold">
+                                {row.staffName?.[0] || "S"}
+                              </div>
+                              <div>
+                                <span>{row.staffName}</span>
+                                <span className="text-[10px] text-muted-foreground block font-normal">{row.profession}</span>
+                              </div>
+                            </td>
+                            <td className="p-3 font-mono font-bold text-primary">{row.clientUhid || "-"}</td>
+                            <td className="p-3 font-bold text-slate-900 dark:text-white">{row.clientName}</td>
+                            <td className="p-3">
+                              <Badge variant="outline" className="text-[11px] bg-slate-50 dark:bg-slate-800 font-semibold">
+                                {row.clientSport || "General"}
+                              </Badge>
+                            </td>
+                            <td className="p-3 text-center">
+                              <Badge variant="outline" className="font-bold bg-slate-50 dark:bg-slate-800">
+                                {row.hoursSpent} hrs
+                              </Badge>
+                            </td>
+                            <td className="p-3 text-center text-emerald-600 dark:text-emerald-400 font-bold">
+                              {row.completedSessions}
+                            </td>
+                            <td className="p-3 text-center font-bold text-slate-900 dark:text-white">
+                              {row.totalSessions}
+                            </td>
+                            <td className="p-3 text-center font-medium text-slate-700 dark:text-slate-300">
+                              {row.avgTimeSpent}
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+
+                {practitionerTotalPages > 1 && (
+                  <div className="flex items-center justify-between p-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
+                    <span className="text-xs text-muted-foreground">
+                      Showing {(practitionerPage - 1) * practitionerPageSize + 1} to{" "}
+                      {Math.min(practitionerPage * practitionerPageSize, filteredPractitionerBreakdown.length)} of {filteredPractitionerBreakdown.length} records
+                    </span>
+
+                    <div className="flex items-center gap-1.5">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={practitionerPage === 1}
+                        onClick={() => setPractitionerPage((p) => Math.max(1, p - 1))}
+                        className="h-7 text-xs rounded-lg"
+                      >
+                        Previous
+                      </Button>
+                      <span className="text-xs font-bold px-2">
+                        {practitionerPage} / {practitionerTotalPages}
+                      </span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={practitionerPage >= practitionerTotalPages}
+                        onClick={() => setPractitionerPage((p) => Math.min(practitionerTotalPages, p + 1))}
+                        className="h-7 text-xs rounded-lg"
+                      >
+                        Next
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Client Breakdown Summary Table (Group by Client ID) */}
+          {(selectedReport === "group-by-client-id" || (isClientModule && selectedReport === "client-summary") || (isClientModule && selectedClient === "all" && selectedReport !== "group-by-sports-scientist" && selectedReport !== "group-by-physiotherapist" && selectedReport !== "client-sessions")) && (
             <div className="space-y-3">
               {/* Consolidated Header with Search and Summary Metrics */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50/80 dark:bg-slate-800/50 p-3.5 rounded-2xl border border-slate-200/80 dark:border-slate-800">
@@ -2008,7 +2820,7 @@ export default function ReportsHubView({ initialModule = "Billing", initialRepor
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => handleOpenExport("excel", "consolidated")}
+                    onClick={() => handleExport("excel", "consolidated")}
                     className="h-8 text-xs font-bold text-emerald-600 dark:text-emerald-400 border-emerald-500/30 gap-1.5"
                     title="Export this consolidated summary to Excel"
                   >
@@ -2212,7 +3024,7 @@ export default function ReportsHubView({ initialModule = "Billing", initialRepor
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => handleOpenExport("excel", "consolidated")}
+                    onClick={() => handleExport("excel", "consolidated")}
                     className="h-8 text-xs font-bold text-emerald-600 dark:text-emerald-400 border-emerald-500/30 gap-1.5"
                     title="Export this consolidated summary to Excel"
                   >
@@ -2374,16 +3186,32 @@ export default function ReportsHubView({ initialModule = "Billing", initialRepor
           )}
 
           {/* Practitioner Performance Breakdown Table (for Physiotherapy & Sports Science) */}
-          {(isPhysioModule || isSportsScienceModule) && reportData?.staffBreakdown && reportData.staffBreakdown.length > 0 && (
+          {(isPhysioModule || isSportsScienceModule) &&
+            selectedReport !== "group-by-sports-scientist" &&
+            selectedReport !== "group-by-physiotherapist" &&
+            reportData?.staffBreakdown &&
+            reportData.staffBreakdown.length > 0 && (
             <div className="space-y-2">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
                   <Users className="w-4 h-4 text-primary" />
                   {isPhysioModule ? "Therapist Session Breakdown" : "Sports Scientist Session Breakdown"}
                 </h3>
-                <span className="text-xs text-muted-foreground">
-                  Timeframe: {startDate} to {endDate}
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground hidden sm:inline">
+                    Timeframe: {startDate} to {endDate}
+                  </span>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleExport("excel", isSportsScienceModule ? "sports_scientist" : "physiotherapist")}
+                    className="h-8 text-xs font-bold text-emerald-600 dark:text-emerald-400 border-emerald-500/30 gap-1.5"
+                    title={`Export multi-sheet workbook with 1 sheet per ${isSportsScienceModule ? "Sports Scientist" : "Physiotherapist"}`}
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    <span>Export per {isSportsScienceModule ? "Sports Scientist" : "Physiotherapist"}</span>
+                  </Button>
+                </div>
               </div>
 
               <div className="rounded-xl border border-slate-200/80 dark:border-slate-800 overflow-hidden bg-white dark:bg-slate-900 shadow-sm">
@@ -2494,8 +3322,11 @@ export default function ReportsHubView({ initialModule = "Billing", initialRepor
             </div>
           )}
 
-          {/* Detailed Data Table / Review Preview */}
-          <div className="space-y-3">
+          {/* Detailed Data Table / Review Preview (shown for detailed/raw log report types) */}
+          {selectedReport !== "group-by-sports-scientist" &&
+            selectedReport !== "group-by-physiotherapist" &&
+            selectedReport !== "group-by-client-id" && (
+            <div className="space-y-3">
             {/* When Client Module or Group Sessions Module is in Overview mode: show clean review preview (first 5 rows) */}
             {(isClientModule && selectedClient === "all") || (isGroupModule && selectedReport === "all-groups") ? (
               <div className="space-y-3">
@@ -3020,195 +3851,12 @@ export default function ReportsHubView({ initialModule = "Billing", initialRepor
               </div>
             )}
           </div>
+        )}
         </CardContent>
       </Card>
 
-      {/* Export Options Modal Dialog */}
-      <Dialog open={exportModalOpen} onOpenChange={setExportModalOpen}>
-        <DialogContent className="max-w-lg rounded-2xl p-6 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-xl">
-          <DialogHeader className="space-y-1.5">
-            <DialogTitle className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <FileSpreadsheet className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
-              <span>Export {selectedModule} Data ({exportFormat === "excel" ? "Excel .xlsx" : "CSV"})</span>
-            </DialogTitle>
-            <DialogDescription className="text-xs text-muted-foreground">
-              Choose how you would like the exported session records to be grouped and structured.
-            </DialogDescription>
-          </DialogHeader>
 
-          <div className="space-y-3 py-2">
-            {/* Context Info Pill */}
-            <div className="bg-slate-50 dark:bg-slate-800/60 p-3 rounded-xl border border-slate-200/70 dark:border-slate-800 flex items-center justify-between text-xs">
-              <div>
-                <span className="text-muted-foreground">Timeframe: </span>
-                <span className="font-semibold text-foreground">{startDate} to {endDate}</span>
-              </div>
-              <Badge variant="outline" className="text-[11px] font-bold bg-white dark:bg-slate-900">
-                {isGroupModule
-                  ? `${reportData?.groupBreakdown?.length || 0} Groups • ${dataList.length} Sessions`
-                  : isClientModule
-                  ? `${reportData?.clientBreakdown?.length || 0} Clients • ${dataList.length} Sessions`
-                  : `${dataList.length} Records`}
-              </Badge>
-            </div>
 
-            {/* Selection Cards */}
-            <div className="space-y-2.5">
-              {/* Option 1: Consolidated Summary (Group by Client ID / Group Name / Practitioner) */}
-              <div
-                onClick={() => setExportGrouping("consolidated")}
-                className={`p-3.5 rounded-xl border-2 transition-all cursor-pointer flex items-start gap-3 ${
-                  exportGrouping === "consolidated"
-                    ? "border-emerald-600 bg-emerald-500/5 dark:bg-emerald-500/10 shadow-sm"
-                    : "border-slate-200/80 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 bg-white dark:bg-slate-900/60"
-                }`}
-              >
-                <div
-                  className={`mt-0.5 p-2 rounded-lg ${
-                    exportGrouping === "consolidated"
-                      ? "bg-emerald-600 text-white"
-                      : "bg-slate-100 dark:bg-slate-800 text-muted-foreground"
-                  }`}
-                >
-                  <Users className="w-4 h-4" />
-                </div>
-                <div className="flex-1 space-y-1">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-slate-900 dark:text-white">
-                      {isGroupModule
-                        ? "Group by Group Name (Consolidated Summary)"
-                        : isClientModule
-                        ? "Group by Client ID (Consolidated Summary)"
-                        : isPhysioModule || isSportsScienceModule
-                        ? "Group by Practitioner (Staff Summary)"
-                        : "Consolidated Summary Breakdown"}
-                    </span>
-                    <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20 text-[10px] font-bold">
-                      Recommended
-                    </Badge>
-                  </div>
-                  <p className="text-[11px] text-muted-foreground leading-relaxed">
-                    {isGroupModule
-                      ? "1 consolidated row per group with total sessions, completed, cancelled, total hours, and primary instructors."
-                      : isClientModule
-                      ? "1 consolidated row per client with total sessions, completed, cancelled, total hours, and primary instructors."
-                      : "Aggregated performance rows with session counts, completion rates, and total hours."}
-                  </p>
-                  <div className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
-                    {isGroupModule
-                      ? `${reportData?.groupBreakdown?.length || 0} unique group rows`
-                      : isClientModule
-                      ? `${reportData?.clientBreakdown?.length || 0} unique client rows`
-                      : "Summary breakdown rows"}
-                  </div>
-                </div>
-              </div>
-
-              {/* Option 2: Detailed Individual Sessions */}
-              <div
-                onClick={() => setExportGrouping("individual")}
-                className={`p-3.5 rounded-xl border-2 transition-all cursor-pointer flex items-start gap-3 ${
-                  exportGrouping === "individual"
-                    ? "border-emerald-600 bg-emerald-500/5 dark:bg-emerald-500/10 shadow-sm"
-                    : "border-slate-200/80 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 bg-white dark:bg-slate-900/60"
-                }`}
-              >
-                <div
-                  className={`mt-0.5 p-2 rounded-lg ${
-                    exportGrouping === "individual"
-                      ? "bg-emerald-600 text-white"
-                      : "bg-slate-100 dark:bg-slate-800 text-muted-foreground"
-                  }`}
-                >
-                  <ListOrdered className="w-4 h-4" />
-                </div>
-                <div className="flex-1 space-y-1">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-slate-900 dark:text-white">
-                      Detailed Individual Sessions (Raw Log)
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-muted-foreground leading-relaxed">
-                    Every individual appointment record with session date, time, duration, instructor, session type, status, and notes.
-                  </p>
-                  <div className="text-[10px] font-semibold text-slate-600 dark:text-slate-400">
-                    {dataList.length} individual record rows
-                  </div>
-                </div>
-              </div>
-
-              {/* Option 3: Both (Multi-Sheet Excel only) */}
-              {exportFormat === "excel" && (
-                <div
-                  onClick={() => setExportGrouping("both")}
-                  className={`p-3.5 rounded-xl border-2 transition-all cursor-pointer flex items-start gap-3 ${
-                    exportGrouping === "both"
-                      ? "border-emerald-600 bg-emerald-500/5 dark:bg-emerald-500/10 shadow-sm"
-                      : "border-slate-200/80 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 bg-white dark:bg-slate-900/60"
-                  }`}
-                >
-                  <div
-                    className={`mt-0.5 p-2 rounded-lg ${
-                      exportGrouping === "both"
-                        ? "bg-emerald-600 text-white"
-                        : "bg-slate-100 dark:bg-slate-800 text-muted-foreground"
-                    }`}
-                  >
-                    <Layers className="w-4 h-4" />
-                  </div>
-                  <div className="flex-1 space-y-1">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-slate-900 dark:text-white">
-                        Both (Multi-Sheet Excel Workbook)
-                      </span>
-                      <Badge variant="outline" className="text-[10px] font-bold">
-                        2 Sheets
-                      </Badge>
-                    </div>
-                    <p className="text-[11px] text-muted-foreground leading-relaxed">
-                      {isGroupModule
-                        ? "Sheet 1: Consolidated Group Summary + Sheet 2: Detailed Group Sessions Log in one .xlsx file."
-                        : "Sheet 1: Consolidated Client/Staff Summary + Sheet 2: Detailed Individual Session Records in one .xlsx file."}
-                    </p>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-
-          <DialogFooter className="gap-2 sm:gap-0 pt-2 border-t border-slate-100 dark:border-slate-800">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setExportModalOpen(false)}
-              disabled={isExporting}
-              className="h-8 text-xs rounded-xl"
-            >
-              Cancel
-            </Button>
-            <Button
-              size="sm"
-              onClick={() => executeExport(exportFormat, exportGrouping)}
-              disabled={isExporting}
-              className="h-8 text-xs rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold gap-1.5 shadow-sm"
-            >
-              {isExporting ? (
-                <>
-                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                  <span>Generating Export...</span>
-                </>
-              ) : (
-                <>
-                  <Download className="w-3.5 h-3.5" />
-                  <span>
-                    Download {exportFormat === "excel" ? "Excel (.xlsx)" : "CSV"}
-                  </span>
-                </>
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

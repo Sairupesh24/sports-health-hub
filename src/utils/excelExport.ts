@@ -123,10 +123,19 @@ export async function exportToExcelMultiSheet({
   const XLSX = (XLSXModule as any).default || XLSXModule;
 
   const wb = XLSX.utils.book_new();
+  const usedNames = new Set<string>();
 
   for (const sheet of sheets) {
     const ws = createWorksheet(XLSX, sheet);
-    const safeSheetName = (sheet.sheetName || "Sheet").replace(/[:\\/?*[\]]/g, "").slice(0, 31);
+    const rawClean = (sheet.sheetName || "Sheet").replace(/[:\\/?*[\]]/g, "").trim() || "Sheet";
+    let safeSheetName = rawClean.slice(0, 31);
+    let counter = 2;
+    while (usedNames.has(safeSheetName.toLowerCase())) {
+      const suffix = ` (${counter})`;
+      safeSheetName = `${rawClean.slice(0, 31 - suffix.length)}${suffix}`;
+      counter++;
+    }
+    usedNames.add(safeSheetName.toLowerCase());
     XLSX.utils.book_append_sheet(wb, ws, safeSheetName);
   }
 

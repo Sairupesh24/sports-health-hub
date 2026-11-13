@@ -28,8 +28,19 @@ import {
     RefreshCw,
     X,
     FolderOpen,
+    FileDown,
+    Printer,
+    Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { toast } from "@/hooks/use-toast";
+import {
+    exportCaseSheetPDF,
+    exportBlankCaseSheetPDF,
+    fetchFullCaseDetails,
+    fetchOrgBranding,
+    OrgBranding,
+} from "@/utils/CaseSheetExport";
 
 interface ClientData {
     id: string;
@@ -96,6 +107,70 @@ export default function CaseRepoPage() {
     // Modals
     const [selectedCase, setSelectedCase] = useState<CaseItem | null>(null);
     const [caseModalOpen, setCaseModalOpen] = useState(false);
+    const [exportingBlank, setExportingBlank] = useState(false);
+    const [exportingCaseId, setExportingCaseId] = useState<string | null>(null);
+
+    const getResolvedOrg = async (): Promise<OrgBranding | null> => {
+        let org: OrgBranding | null = null;
+        if (profile?.organization_id) {
+            org = await fetchOrgBranding(profile.organization_id);
+        }
+        if (!org) {
+            org = {
+                name: profile?.organization_name || profile?.organization?.name || "SPORTS HEALTH HUB",
+                official_name: profile?.organization_name || profile?.organization?.name || "SPORTS HEALTH HUB",
+            };
+        }
+        return org;
+    };
+
+    const handleExportBlankSheet = async () => {
+        try {
+            setExportingBlank(true);
+            const org = await getResolvedOrg();
+            await exportBlankCaseSheetPDF(org);
+            toast({
+                title: "Blank Case Sheet Exported",
+                description: "Empty case sheet exported to PDF with checkboxes for physical paper recording.",
+            });
+        } catch (err) {
+            console.error("Failed to export blank case sheet", err);
+            const message = err instanceof Error ? err.message : "Could not generate blank case sheet PDF.";
+            toast({
+                title: "Export Failed",
+                description: message,
+                variant: "destructive",
+            });
+        } finally {
+            setExportingBlank(false);
+        }
+    };
+
+    const handleExportCasePDF = async (c: CaseItem) => {
+        try {
+            setExportingCaseId(c.id);
+            const [fullCase, org] = await Promise.all([
+                fetchFullCaseDetails(c.id),
+                getResolvedOrg(),
+            ]);
+            const caseToExport = fullCase || c;
+            await exportCaseSheetPDF(caseToExport, c.client, org);
+            toast({
+                title: "Case Sheet Exported",
+                description: `Case sheet ${c.case_number} exported to PDF.`,
+            });
+        } catch (err) {
+            console.error("Failed to export case sheet PDF", err);
+            const message = err instanceof Error ? err.message : "Could not export case sheet to PDF.";
+            toast({
+                title: "Export Failed",
+                description: message,
+                variant: "destructive",
+            });
+        } finally {
+            setExportingCaseId(null);
+        }
+    };
 
     // Client Selector for New Case
     const [clientSelectOpen, setClientSelectOpen] = useState(false);
@@ -298,6 +373,22 @@ export default function CaseRepoPage() {
                     </div>
 
                     <div className="flex items-center gap-2.5 flex-wrap sm:flex-nowrap">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleExportBlankSheet}
+                            disabled={exportingBlank}
+                            className="h-9 px-3.5 gap-2 rounded-xl border-border/80 text-xs font-bold hover:bg-muted/60 text-foreground"
+                            title="Download blank case sheet for printing & physical clipboard documentation"
+                        >
+                            {exportingBlank ? (
+                                <Loader2 className="w-3.5 h-3.5 animate-spin text-teal-600" />
+                            ) : (
+                                <Printer className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" />
+                            )}
+                            Export Blank Sheet (PDF)
+                        </Button>
+
                         <Button
                             variant="outline"
                             size="sm"
@@ -718,17 +809,38 @@ export default function CaseRepoPage() {
 
                                                 {/* Action */}
                                                 <td className="px-5 py-4 whitespace-nowrap text-right">
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            handleOpenCase(c);
-                                                        }}
-                                                        className="h-8 px-2.5 text-xs font-bold rounded-xl gap-1 text-primary hover:bg-primary/10"
-                                                    >
-                                                        Case Sheet <ChevronRight className="w-3.5 h-3.5" />
-                                                    </Button>
+                                                    <div className="flex items-center justify-end gap-1.5">
+                                                        <Button
+                                                            variant="outline"
+                                                            size="sm"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                handleExportCasePDF(c);
+                                                            }}
+                                                            disabled={exportingCaseId === c.id}
+                                                            className="h-8 px-2.5 text-xs font-bold rounded-xl gap-1.5 border-border/70 text-muted-foreground hover:text-foreground hover:bg-muted/60"
+                                                            title="Export Case Sheet to PDF"
+                                                        >
+                                                            {exportingCaseId === c.id ? (
+                                                                <Loader2 className="w-3.5 h-3.5 animate-spin text-teal-600" />
+                                                            ) : (
+                                                                <FileDown className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" />
+                                                            )}
+                                                            <span>Export PDF</span>
+                                                        </Button>
+
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                handleOpenCase(c);
+                                                            }}
+                                                            className="h-8 px-2.5 text-xs font-bold rounded-xl gap-1 text-primary hover:bg-primary/10"
+                                                        >
+                                                            Case Sheet <ChevronRight className="w-3.5 h-3.5" />
+                                                        </Button>
+                                                    </div>
                                                 </td>
                                             </tr>
                                         );

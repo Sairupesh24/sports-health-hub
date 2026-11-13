@@ -11,7 +11,8 @@ export function attachTouchAndWheelScroll(node: HTMLElement | null): () => void 
   // Wheel scroll for desktop mice and trackpads
   const handleWheel = (e: WheelEvent) => {
     e.stopPropagation();
-    node.scrollTop += e.deltaY;
+    const multiplier = e.deltaMode === 1 ? 24 : e.deltaMode === 2 ? window.innerHeight : 1;
+    node.scrollTop += e.deltaY * multiplier;
   };
 
   // Touch scroll with momentum for mobile devices

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { format } from "date-fns";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiFetch } from "@/utils/api";
@@ -26,6 +26,37 @@ import { filterServicesByRole, Service } from "@/utils/serviceMapping";
 import CaseSheetModal from "./CaseSheetModal";
 import PainMap from "./PainMap";
 
+interface AdHocClient {
+    id: string;
+    first_name?: string;
+    last_name?: string;
+    full_name?: string;
+    name?: string;
+    uhid?: string;
+    phone?: string;
+    gender?: string;
+    [key: string]: unknown;
+}
+
+interface AdHocInjury {
+    id: string;
+    injury_name?: string;
+    name?: string;
+    body_part?: string;
+    status?: string;
+    [key: string]: unknown;
+}
+
+interface AdHocCase {
+    id: string;
+    case_number?: string;
+    status?: string;
+    final_diagnosis?: string;
+    provisional_diagnosis?: string;
+    chief_complaint?: string;
+    [key: string]: unknown;
+}
+
 interface AdHocSessionModalProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
@@ -42,12 +73,12 @@ export default function AdHocSessionModal({ open, onOpenChange, onSuccess, prese
     const { toast } = useToast();
 
     const [loading, setLoading] = useState(false);
-    const [clients, setClients] = useState<any[]>([]);
-    const [activeInjuries, setActiveInjuries] = useState<any[]>([]);
+    const [clients, setClients] = useState<AdHocClient[]>([]);
+    const [activeInjuries, setActiveInjuries] = useState<AdHocInjury[]>([]);
     const [services, setServices] = useState<Service[]>([]);
     const [serviceId, setServiceId] = useState<string>("");
     const [servicesLoading, setServicesLoading] = useState(false);
-    const [clientCases, setClientCases] = useState<any[]>([]);
+    const [clientCases, setClientCases] = useState<AdHocCase[]>([]);
     const [selectedCaseId, setSelectedCaseId] = useState<string>("");
     const [caseModalOpen, setCaseModalOpen] = useState(false);
 
@@ -70,7 +101,7 @@ export default function AdHocSessionModal({ open, onOpenChange, onSuccess, prese
 
     // SOAP Note Data
     const [painScore, setPainScore] = useState<number>(0);
-    const [sorenessData, setSorenessData] = useState<Record<string, any>>({});
+    const [sorenessData, setSorenessData] = useState<Record<string, unknown>>({});
     const [selectedModalities, setSelectedModalities] = useState<string[]>([]);
     const [treatmentType, setTreatmentType] = useState("");
     const [manualTherapy, setManualTherapy] = useState("");
@@ -85,6 +116,29 @@ export default function AdHocSessionModal({ open, onOpenChange, onSuccess, prese
     }, [clients, selectedClientId]);
 
     const clientGender = selectedClient?.gender?.toLowerCase() === "female" ? "female" : "male";
+
+    const fetchClients = useCallback(async () => {
+        if (!profile?.organization_id) return;
+        try {
+            const data = await apiFetch<AdHocClient[]>('/clients');
+            setClients(data || []);
+        } catch (err) {
+            console.error("Error fetching clients:", err);
+        }
+    }, [profile?.organization_id]);
+
+    const fetchServices = useCallback(async () => {
+        if (!profile?.organization_id) return;
+        setServicesLoading(true);
+        try {
+            const data = await apiFetch<Service[]>('/appointments/session-types');
+            setServices(data || []);
+        } catch (err) {
+            console.error("Error fetching services:", err);
+        } finally {
+            setServicesLoading(false);
+        }
+    }, [profile?.organization_id]);
 
     useEffect(() => {
         if (open && profile?.organization_id) {
@@ -108,13 +162,13 @@ export default function AdHocSessionModal({ open, onOpenChange, onSuccess, prese
             setEndTime(getDefaultEndTime());
             fetchServices();
         }
-    }, [open, profile?.organization_id, preselectedClientId]);
+    }, [open, profile?.organization_id, preselectedClientId, fetchClients, fetchServices]);
 
-    const fetchClientCases = async (clientId: string) => {
+    const fetchClientCases = async (clientId: string): Promise<AdHocCase[]> => {
         if (!clientId) return [];
         try {
-            const cases = await apiFetch<any[]>(`/clinical/clients/${clientId}/cases`);
-            const openCases = (cases || []).filter((c: any) => c.status === 'open');
+            const cases = await apiFetch<AdHocCase[]>(`/clinical/clients/${clientId}/cases`);
+            const openCases = (cases || []).filter((c: AdHocCase) => c.status === 'open');
             setClientCases(openCases);
             return openCases;
         } catch {
@@ -123,7 +177,7 @@ export default function AdHocSessionModal({ open, onOpenChange, onSuccess, prese
         }
     };
 
-    const handleCaseCreated = async (newCase: any) => {
+    const handleCaseCreated = async (newCase: { id?: string }) => {
         if (selectedClientId) {
             const openCases = await fetchClientCases(selectedClientId);
             if (newCase?.id) {
@@ -152,40 +206,17 @@ export default function AdHocSessionModal({ open, onOpenChange, onSuccess, prese
         }
     }, [selectedClientId]);
 
-    const fetchClients = async () => {
-        if (!profile?.organization_id) return;
-        try {
-            const data = await apiFetch<any[]>('/clients');
-            setClients(data);
-        } catch (err) {
-            console.error("Error fetching clients:", err);
-        }
-    };
-
     const fetchInjuries = async (clientId: string) => {
         try {
-            const data = await apiFetch<any[]>('/clinical/injuries', {
+            const data = await apiFetch<AdHocInjury[]>('/clinical/injuries', {
                 params: { client_id: clientId, status: 'Active' }
             });
-            setActiveInjuries(data);
-            if (data.length > 0) {
+            setActiveInjuries(data || []);
+            if (data && data.length > 0) {
                 setSelectedInjuryId(data[0].id);
             }
         } catch (err) {
             console.error("Error fetching injuries:", err);
-        }
-    };
-
-    const fetchServices = async () => {
-        if (!profile?.organization_id) return;
-        setServicesLoading(true);
-        try {
-            const data = await apiFetch<Service[]>('/appointments/session-types');
-            setServices(data);
-        } catch (err) {
-            console.error("Error fetching services:", err);
-        } finally {
-            setServicesLoading(false);
         }
     };
 
@@ -218,7 +249,7 @@ export default function AdHocSessionModal({ open, onOpenChange, onSuccess, prese
             const selectedService = services.find(s => s.id === serviceId);
 
             // 1. Create the Ad-Hoc Session via dedicated endpoint
-            const sessionData = await apiFetch<any>('/appointments', {
+            const sessionData = await apiFetch<{ id: string }>('/appointments', {
                 method: 'POST',
                 data: {
                     client_id: selectedClientId,
@@ -288,8 +319,9 @@ export default function AdHocSessionModal({ open, onOpenChange, onSuccess, prese
             toast({ title: "Session Saved", description: "Ad-hoc session and SOAP notes logged successfully." });
             onOpenChange(false);
             if (onSuccess) onSuccess();
-        } catch (error: any) {
-            toast({ variant: "destructive", title: "Error", description: error.message || "Failed to save session" });
+        } catch (error: unknown) {
+            const err = error as Error;
+            toast({ variant: "destructive", title: "Error", description: err.message || "Failed to save session" });
         } finally {
             setLoading(false);
         }
@@ -352,7 +384,7 @@ export default function AdHocSessionModal({ open, onOpenChange, onSuccess, prese
                                 {/* Client Combobox */}
                                 <div className="space-y-1.5">
                                     <Label className="text-xs font-bold text-foreground">Select Patient / Client</Label>
-                                    <Popover open={clientDropdownOpen} onOpenChange={setClientDropdownOpen}>
+                                    <Popover modal={true} open={clientDropdownOpen} onOpenChange={setClientDropdownOpen}>
                                         <PopoverTrigger asChild>
                                             <Button
                                                 variant="outline"
@@ -377,14 +409,20 @@ export default function AdHocSessionModal({ open, onOpenChange, onSuccess, prese
                                             </Button>
                                         </PopoverTrigger>
                                         <PopoverContent 
-                                            className="w-[calc(100vw-2.5rem)] sm:w-[420px] max-w-[420px] p-0 z-[70] shadow-2xl rounded-2xl overflow-hidden border border-border" 
+                                            className="w-[calc(100vw-2.5rem)] sm:w-[420px] max-w-[420px] p-0 z-[70] shadow-2xl rounded-2xl overflow-hidden border border-border pointer-events-auto" 
                                             align="start"
                                             sideOffset={4}
                                             collisionPadding={12}
+                                            onWheel={(e) => e.stopPropagation()}
+                                            onTouchMove={(e) => e.stopPropagation()}
                                         >
                                             <Command>
                                                 <CommandInput placeholder="Search client name or UHID..." />
-                                                <CommandList className="max-h-[260px] overflow-y-auto overscroll-contain">
+                                                <CommandList 
+                                                    className="max-h-[260px] overflow-y-auto overscroll-contain pointer-events-auto custom-scrollbar"
+                                                    onWheel={(e) => e.stopPropagation()}
+                                                    onTouchMove={(e) => e.stopPropagation()}
+                                                >
                                                     <CommandEmpty>No client found.</CommandEmpty>
                                                     <CommandGroup>
                                                         {clients.map(c => {
@@ -455,7 +493,7 @@ export default function AdHocSessionModal({ open, onOpenChange, onSuccess, prese
                                         </SelectTrigger>
                                         <SelectContent>
                                             <SelectItem value="none">-- Do Not Link to Case --</SelectItem>
-                                            {clientCases.map((c: any) => (
+                                            {clientCases.map((c: AdHocCase) => (
                                                 <SelectItem key={c.id} value={c.id}>
                                                     {c.case_number ? `${c.case_number}: ` : ""}{c.final_diagnosis || c.provisional_diagnosis || c.chief_complaint || "Consultation Case"}
                                                 </SelectItem>

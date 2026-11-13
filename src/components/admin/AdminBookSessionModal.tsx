@@ -903,7 +903,7 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess, initialDa
 
                                     {!isGuest ? (
                                         <div className="space-y-2">
-                                            <Popover open={openPatientPopover} onOpenChange={setOpenPatientPopover}>
+                                            <Popover modal={true} open={openPatientPopover} onOpenChange={setOpenPatientPopover}>
                                                 <PopoverTrigger asChild>
                                                     <Button variant="outline" className={cn("w-full justify-between h-9 px-3 text-xs bg-background/50 hover:bg-muted/30 border-border/70 rounded-lg shadow-none", !clientId && "text-muted-foreground")}>
                                                         {clientId ? (() => {

@@ -1152,7 +1152,7 @@ router.get('/audit-logs', requireAuth, async (req, res) => {
         // Organization isolation
         if (userRole !== 'super_admin' || orgId) {
             params.push(orgId);
-            conditions.push(`(al.organization_id = $${params.length} OR al.organization_id IS NULL)`);
+            conditions.push(`(al.organization_id::text = $${params.length}::text OR al.organization_id IS NULL)`);
         }
 
         // Entity type filter: role, permissions, and access changes
@@ -1166,13 +1166,13 @@ router.get('/audit-logs', requireAuth, async (req, res) => {
 
         // Category filter
         if (category === 'role') {
-            conditions.push(`al.action IN ('role_changed', 'approved', 'user_approved')`);
+            conditions.push(`al.action IN ('role_changed', 'approved', 'user_approved', 'created_and_approved')`);
         } else if (category === 'console') {
             conditions.push(`al.action = 'console_access_changed'`);
         } else if (category === 'features') {
             conditions.push(`al.action = 'feature_permissions_changed'`);
         } else if (category === 'status') {
-            conditions.push(`al.action IN ('access_revoked', 'access_removed', 'access_restored', 'approved')`);
+            conditions.push(`al.action IN ('access_revoked', 'access_removed', 'access_restored', 'approved', 'created_and_approved')`);
         }
 
         // Search across actor, target, summary, or details
@@ -1207,10 +1207,10 @@ router.get('/audit-logs', requireAuth, async (req, res) => {
         const countQuery = `
             SELECT COUNT(*) AS total
             FROM audit_logs al
-            LEFT JOIN users au ON au.id = al.performed_by
-            LEFT JOIN profiles ap ON ap.id = al.performed_by
-            LEFT JOIN users tu ON tu.id = al.entity_id
-            LEFT JOIN profiles tp ON tp.id = al.entity_id
+            LEFT JOIN users au ON au.id::text = al.performed_by::text
+            LEFT JOIN profiles ap ON ap.id::text = al.performed_by::text
+            LEFT JOIN users tu ON tu.id::text = al.entity_id::text
+            LEFT JOIN profiles tp ON tp.id::text = al.entity_id::text
             ${whereClause}
         `;
         const countRes = await db.query(countQuery, params);
@@ -1220,15 +1220,15 @@ router.get('/audit-logs', requireAuth, async (req, res) => {
         const statsQuery = `
             SELECT 
                 COUNT(*) as total_events,
-                COUNT(*) FILTER (WHERE al.action IN ('role_changed', 'approved', 'user_approved')) as role_events,
+                COUNT(*) FILTER (WHERE al.action IN ('role_changed', 'approved', 'user_approved', 'created_and_approved')) as role_events,
                 COUNT(*) FILTER (WHERE al.action = 'console_access_changed') as console_events,
                 COUNT(*) FILTER (WHERE al.action = 'feature_permissions_changed') as feature_events,
                 COUNT(*) FILTER (WHERE al.action IN ('access_revoked', 'access_removed', 'access_restored')) as status_events
             FROM audit_logs al
-            WHERE (al.organization_id = $1 OR al.organization_id IS NULL)
+            WHERE ($1::text IS NULL OR al.organization_id::text = $1::text OR al.organization_id IS NULL)
               AND al.entity_type IN ('user_access', 'user', 'user_permission', 'user_role')
         `;
-        const statsRes = await db.query(statsQuery, [orgId]);
+        const statsRes = await db.query(statsQuery, [orgId || null]);
         const stats = statsRes.rows[0] || {
             total_events: 0,
             role_events: 0,
@@ -1262,10 +1262,10 @@ router.get('/audit-logs', requireAuth, async (req, res) => {
                 tp.ams_role AS target_ams_role,
                 tp.avatar_url AS target_avatar_url
             FROM audit_logs al
-            LEFT JOIN users au ON au.id = al.performed_by
-            LEFT JOIN profiles ap ON ap.id = al.performed_by
-            LEFT JOIN users tu ON tu.id = al.entity_id
-            LEFT JOIN profiles tp ON tp.id = al.entity_id
+            LEFT JOIN users au ON au.id::text = al.performed_by::text
+            LEFT JOIN profiles ap ON ap.id::text = al.performed_by::text
+            LEFT JOIN users tu ON tu.id::text = al.entity_id::text
+            LEFT JOIN profiles tp ON tp.id::text = al.entity_id::text
             ${whereClause}
             ORDER BY al.created_at DESC
             LIMIT $${params.length + 1} OFFSET $${params.length + 2}
@@ -1294,11 +1294,11 @@ router.patch('/users/:id/role', requireAuth, async (req, res) => {
     const client = await db.connect();
     try {
         const { id } = req.params;
-        const { role, profession, ams_role, uhid, has_calendar_access, has_analytics_access, has_assign_work_access, has_kb_edit_access, allowed_consoles } = req.body;
+        const { role, profession, ams_role, uhid, has_calendar_access, has_analytics_access, has_assign_work_access, has_kb_edit_access, has_leads_access, allowed_consoles } = req.body;
         const orgId = req.user.organization_id;
 
-        // Security check for calendar access, analytics access, assign work access, or KB edit access change
-        if ((has_calendar_access !== undefined || has_analytics_access !== undefined || has_assign_work_access !== undefined || has_kb_edit_access !== undefined || allowed_consoles !== undefined) && req.user.role !== 'admin') {
+        // Security check for calendar access, analytics access, assign work access, KB edit access, or leads access change
+        if ((has_calendar_access !== undefined || has_analytics_access !== undefined || has_assign_work_access !== undefined || has_kb_edit_access !== undefined || has_leads_access !== undefined || allowed_consoles !== undefined) && req.user.role !== 'admin') {
             return res.status(403).json({ error: 'Forbidden: Only administrators can modify access permissions' });
         }
 
@@ -1308,7 +1308,7 @@ router.patch('/users/:id/role', requireAuth, async (req, res) => {
         const targetRes = await client.query(`
             SELECT u.id, u.email, u.role, 
                    p.first_name, p.last_name, p.profession, p.ams_role, p.uhid,
-                   p.has_calendar_access, p.has_analytics_access, p.has_assign_work_access, p.has_kb_edit_access,
+                   p.has_calendar_access, p.has_analytics_access, p.has_assign_work_access, p.has_kb_edit_access, p.has_leads_access,
                    p.allowed_consoles
             FROM users u
             LEFT JOIN profiles p ON p.id = u.id
@@ -1416,6 +1416,16 @@ router.patch('/users/:id/role', requireAuth, async (req, res) => {
             });
         }
 
+        if (has_leads_access !== undefined && Boolean(has_leads_access) !== Boolean(targetUser.has_leads_access)) {
+            changes.push({
+                field: 'has_leads_access',
+                label: 'Leads & CRM Access',
+                old_val: Boolean(targetUser.has_leads_access),
+                new_val: Boolean(has_leads_access),
+                display: `Leads & CRM privileges ${has_leads_access ? 'Enabled' : 'Disabled'}`
+            });
+        }
+
         if (allowed_consoles !== undefined) {
             const oldConsoles = normalizeConsolesArray(targetUser.allowed_consoles);
             const newConsoles = normalizeConsolesArray(allowed_consoles);
@@ -1475,6 +1485,10 @@ router.patch('/users/:id/role', requireAuth, async (req, res) => {
         if (has_kb_edit_access !== undefined) {
             updates.push(`has_kb_edit_access = $${params.length + 1}`);
             params.push(has_kb_edit_access);
+        }
+        if (has_leads_access !== undefined) {
+            updates.push(`has_leads_access = $${params.length + 1}`);
+            params.push(has_leads_access);
         }
         if (allowed_consoles !== undefined) {
             updates.push(`allowed_consoles = $${params.length + 1}`);
@@ -1565,6 +1579,7 @@ router.patch('/users/:id/role', requireAuth, async (req, res) => {
         if (has_analytics_access !== undefined) changeDetails.push(`Analytics Access: ${has_analytics_access ? 'Enabled' : 'Disabled'}`);
         if (has_assign_work_access !== undefined) changeDetails.push(`Work Assignment: ${has_assign_work_access ? 'Enabled' : 'Disabled'}`);
         if (has_kb_edit_access !== undefined) changeDetails.push(`Knowledge Base Editor: ${has_kb_edit_access ? 'Enabled' : 'Disabled'}`);
+        if (has_leads_access !== undefined) changeDetails.push(`Leads & CRM Access: ${has_leads_access ? 'Enabled' : 'Disabled'}`);
         if (allowed_consoles !== undefined) changeDetails.push(`Console Access Permissions Updated`);
 
         if (changeDetails.length > 0) {
@@ -1626,6 +1641,7 @@ router.delete('/users/:id', requireAuth, async (req, res) => {
                 has_calendar_access = false,
                 has_analytics_access = false,
                 has_assign_work_access = false,
+                has_leads_access = false,
                 allowed_consoles = '[]'
             WHERE id = $1
         `, [id]);
@@ -1751,6 +1767,7 @@ router.post('/users/:id/revoke', requireAuth, async (req, res) => {
                 has_calendar_access = false,
                 has_analytics_access = false,
                 has_assign_work_access = false,
+                has_leads_access = false,
                 allowed_consoles = '[]'
             WHERE id = $1
         `, [id]);

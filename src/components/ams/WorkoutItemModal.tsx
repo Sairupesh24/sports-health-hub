@@ -184,7 +184,7 @@ export default function WorkoutItemModal({
             {(activeTab === 'lift' || activeTab === 'saqc') && (
               <div className="space-y-4">
                 <Label className="text-[10px] uppercase font-black tracking-widest opacity-50">Select Exercise</Label>
-                <Popover open={searchOpen} onOpenChange={setSearchOpen}>
+                <Popover modal={true} open={searchOpen} onOpenChange={setSearchOpen}>
                   <PopoverTrigger asChild>
                     <Button variant="outline" className="w-full h-14 justify-between bg-white/5 border-white/10 rounded-2xl px-4 hover:bg-white/10 transition-all font-bold group">
                       <div className="flex items-center gap-3">
@@ -194,10 +194,18 @@ export default function WorkoutItemModal({
                       <ChevronDown className="w-4 h-4 opacity-40" />
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-[calc(100vw-2rem)] md:w-[600px] p-0 border-white/10 bg-[#161920] overflow-hidden rounded-2xl glass">
+                  <PopoverContent 
+                    className="w-[calc(100vw-2rem)] md:w-[600px] p-0 border-white/10 bg-[#161920] overflow-hidden rounded-2xl glass pointer-events-auto"
+                    onWheel={(e) => e.stopPropagation()}
+                    onTouchMove={(e) => e.stopPropagation()}
+                  >
                     <Command className="bg-transparent">
                       <CommandInput placeholder="Type to filter exercises..." className="h-14 font-bold border-none" />
-                      <CommandList className="max-h-[300px]">
+                      <CommandList 
+                        className="max-h-[300px] overflow-y-auto pointer-events-auto custom-scrollbar"
+                        onWheel={(e) => e.stopPropagation()}
+                        onTouchMove={(e) => e.stopPropagation()}
+                      >
                         <CommandEmpty className="p-8 text-center text-sm opacity-40">No exercises found.</CommandEmpty>
                         <CommandGroup>
                           {exercises.map((ex) => (

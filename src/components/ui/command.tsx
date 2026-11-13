@@ -22,7 +22,7 @@ const Command = React.forwardRef<
 ));
 Command.displayName = CommandPrimitive.displayName;
 
-interface CommandDialogProps extends DialogProps {}
+type CommandDialogProps = DialogProps;
 
 const CommandDialog = ({ children, ...props }: CommandDialogProps) => {
   return (
@@ -60,24 +60,38 @@ const CommandList = React.forwardRef<
   React.ElementRef<typeof CommandPrimitive.List>,
   React.ComponentPropsWithoutRef<typeof CommandPrimitive.List>
 >(({ className, ...props }, forwardedRef) => {
-  const localRef = React.useRef<HTMLDivElement | null>(null);
+  const cleanupRef = React.useRef<(() => void) | null>(null);
+
+  const handleRef = React.useCallback(
+    (node: HTMLDivElement | null) => {
+      if (cleanupRef.current) {
+        cleanupRef.current();
+        cleanupRef.current = null;
+      }
+      if (node) {
+        cleanupRef.current = attachTouchAndWheelScroll(node);
+      }
+      if (typeof forwardedRef === "function") {
+        forwardedRef(node);
+      } else if (forwardedRef) {
+        (forwardedRef as React.MutableRefObject<HTMLDivElement | null>).current = node;
+      }
+    },
+    [forwardedRef]
+  );
 
   React.useEffect(() => {
-    if (localRef.current) {
-      return attachTouchAndWheelScroll(localRef.current);
-    }
+    return () => {
+      if (cleanupRef.current) {
+        cleanupRef.current();
+        cleanupRef.current = null;
+      }
+    };
   }, []);
 
   return (
     <CommandPrimitive.List
-      ref={(node) => {
-        localRef.current = node;
-        if (typeof forwardedRef === "function") {
-          forwardedRef(node);
-        } else if (forwardedRef) {
-          (forwardedRef as React.MutableRefObject<HTMLDivElement | null>).current = node;
-        }
-      }}
+      ref={handleRef}
       className={cn(
         "max-h-[300px] overflow-y-auto overflow-x-hidden overscroll-contain touch-pan-y",
         className

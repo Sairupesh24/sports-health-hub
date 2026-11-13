@@ -46,13 +46,24 @@ export const APP_MODULES: AppModuleDefinition[] = [
   {
     id: "admin",
     name: "Admin Console",
-    description: "Clients, billing & payments, calendar scheduling, waitlist, roster, and leads.",
+    description: "Clients, billing & payments, calendar scheduling, waitlist, roster, and operations.",
     icon: LayoutDashboard,
     href: "/admin",
     color: "text-purple-600 bg-purple-100 border-purple-200",
     gradient: "from-purple-500/20 via-purple-600/10 to-indigo-600/10",
     badgeStyle: "bg-purple-100 text-purple-800 border-purple-200",
     defaultRoles: ["admin", "super_admin"],
+  },
+  {
+    id: "crm",
+    name: "Leads & CRM Console",
+    description: "Prospective patient pipeline, enquiry forms, marketing source attribution, WhatsApp outreach, and conversion tracking.",
+    icon: MessageSquare,
+    href: "/crm",
+    color: "text-emerald-700 bg-emerald-100 border-emerald-300",
+    gradient: "from-emerald-500/20 via-teal-500/10 to-emerald-600/10",
+    badgeStyle: "bg-emerald-100 text-emerald-900 border-emerald-200 font-bold",
+    defaultRoles: ["admin", "super_admin", "foe"],
   },
   {
     id: "settings",
@@ -277,6 +288,9 @@ export const isModuleGrantedForUser = (
   if (parsedAllowed && Array.isArray(parsedAllowed)) {
     if (moduleObj.id === "knowledge_base") return true;
     if (parsedAllowed.includes(moduleObj.id)) return true;
+    if (moduleObj.id === "crm" && (parsedAllowed.includes("crm") || parsedAllowed.includes("leads"))) {
+      return true;
+    }
     if (moduleObj.id === "sports_scientist" && (parsedAllowed.includes("sports_scientist") || parsedAllowed.includes("ams"))) {
       return true;
     }
@@ -289,6 +303,7 @@ export const isModuleGrantedForUser = (
   // Fallback to default role permissions matrix for non-admin users
   const isDefaultGranted =
     userRolesArray.some((r) => moduleObj.defaultRoles.includes(r)) ||
+    (moduleObj.id === "crm" && userRolesArray.some((r) => ["foe", "admin", "super_admin"].includes(r))) ||
     (moduleObj.id === "nutritionist" && prof.includes("nutrition")) ||
     (moduleObj.id === "clinical" && userRolesArray.some((r) => ["consultant", "sports_physician", "physiotherapist"].includes(r))) ||
     (moduleObj.id === "sports_scientist" && (userRolesArray.includes("sports_scientist") || prof.includes("scientist"))) ||

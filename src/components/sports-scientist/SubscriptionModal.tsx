@@ -107,7 +107,7 @@ export function SubscriptionModal({ open, onOpenChange, orgId, onSuccess }: Subs
 
                     <div className="grid gap-2">
                         <Label htmlFor="package">Membership Plan</Label>
-                        <Popover open={packageOpen} onOpenChange={setPackageOpen}>
+                        <Popover modal={true} open={packageOpen} onOpenChange={setPackageOpen}>
                             <PopoverTrigger asChild>
                                 <Button
                                     variant="outline"
@@ -124,10 +124,21 @@ export function SubscriptionModal({ open, onOpenChange, orgId, onSuccess }: Subs
                                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                 </Button>
                             </PopoverTrigger>
-                            <PopoverContent className="w-[var(--radix-popover-trigger-width)] min-w-[280px] max-w-[calc(100vw-2rem)] p-0 z-50 shadow-2xl rounded-2xl overflow-hidden border border-border" align="start" sideOffset={4} collisionPadding={12}>
+                            <PopoverContent 
+                                className="w-[var(--radix-popover-trigger-width)] min-w-[280px] max-w-[calc(100vw-2rem)] p-0 z-50 shadow-2xl rounded-2xl overflow-hidden border border-border pointer-events-auto" 
+                                align="start" 
+                                sideOffset={4} 
+                                collisionPadding={12}
+                                onWheel={(e) => e.stopPropagation()}
+                                onTouchMove={(e) => e.stopPropagation()}
+                            >
                                 <Command>
                                     <CommandInput placeholder="Search plan..." />
-                                    <CommandList>
+                                    <CommandList 
+                                        className="max-h-60 overflow-y-auto pointer-events-auto custom-scrollbar"
+                                        onWheel={(e) => e.stopPropagation()}
+                                        onTouchMove={(e) => e.stopPropagation()}
+                                    >
                                         <CommandEmpty>No plan found.</CommandEmpty>
                                         <CommandGroup>
                                             {packages?.map((p: any) => (

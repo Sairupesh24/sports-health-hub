@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { 
     ShieldCheck, 
     Search, 
@@ -43,8 +43,8 @@ import { format, formatDistanceToNow } from "date-fns";
 export interface AuditChangeItem {
     field: string;
     label: string;
-    old_val?: any;
-    new_val?: any;
+    old_val?: unknown;
+    new_val?: unknown;
     display?: string;
     added?: string[];
     removed?: string[];
@@ -75,7 +75,7 @@ export interface AuditLogItem {
         profession?: string;
         ams_role?: string;
         uhid?: string;
-        [key: string]: any;
+        [key: string]: unknown;
     };
     created_at: string;
     actor_name: string;
@@ -116,11 +116,7 @@ export default function AuditLogsViewer() {
     const [selectedLog, setSelectedLog] = useState<AuditLogItem | null>(null);
     const [copiedJson, setCopiedJson] = useState(false);
 
-    useEffect(() => {
-        fetchAuditLogs(page, activeCategory, searchQuery);
-    }, [page, activeCategory]);
-
-    const fetchAuditLogs = async (pageNum = 1, cat = activeCategory, search = searchQuery) => {
+    const fetchAuditLogs = useCallback(async (pageNum = 1, cat = activeCategory, search = searchQuery) => {
         try {
             setLoading(true);
             const params = new URLSearchParams();
@@ -141,17 +137,22 @@ export default function AuditLogsViewer() {
                 setPagination(res.pagination || { total: 0, page: 1, limit: 25, totalPages: 1 });
                 if (res.stats) setStats(res.stats);
             }
-        } catch (err: any) {
+        } catch (err: unknown) {
+            const error = err as Error;
             toast({
                 title: "Failed to load audit logs",
-                description: err.message || "An error occurred while fetching security logs.",
+                description: error.message || "An error occurred while fetching security logs.",
                 variant: "destructive"
             });
         } finally {
             setLoading(false);
             setRefreshing(false);
         }
-    };
+    }, [activeCategory, searchQuery]);
+
+    useEffect(() => {
+        fetchAuditLogs(page, activeCategory, searchQuery);
+    }, [page, activeCategory, searchQuery, fetchAuditLogs]);
 
     const handleSearchSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -206,6 +207,7 @@ export default function AuditLogsViewer() {
                 return <Badge className="bg-sky-100 text-sky-800 border-sky-200 hover:bg-sky-200">Privilege Toggled</Badge>;
             case "approved":
             case "user_approved":
+            case "created_and_approved":
                 return <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 hover:bg-emerald-200">Account Approved</Badge>;
             case "access_revoked":
             case "access_removed":
@@ -344,7 +346,7 @@ export default function AuditLogsViewer() {
                                 <button
                                     key={tab.id}
                                     onClick={() => {
-                                        setActiveCategory(tab.id as any);
+                                        setActiveCategory(tab.id as "all" | "role" | "console" | "features" | "status");
                                         setPage(1);
                                     }}
                                     className={cn(

@@ -394,7 +394,7 @@ export function SportsScientistBookSessionModal({ open, onOpenChange, onSuccess 
                                         </p>
                                     </div>
                                 ) : (
-                                    <Popover open={groupNameOpen} onOpenChange={setGroupNameOpen}>
+                                    <Popover modal={true} open={groupNameOpen} onOpenChange={setGroupNameOpen}>
                                         <PopoverTrigger asChild>
                                             <Button
                                                 variant="outline"
@@ -406,10 +406,12 @@ export function SportsScientistBookSessionModal({ open, onOpenChange, onSuccess 
                                             </Button>
                                         </PopoverTrigger>
                                         <PopoverContent 
-                                            className="w-[calc(100vw-2.5rem)] sm:w-[450px] max-w-[450px] p-0 rounded-2xl overflow-hidden shadow-2xl border border-slate-200 dark:border-slate-800 z-[70]" 
+                                            className="w-[calc(100vw-2.5rem)] sm:w-[450px] max-w-[450px] p-0 rounded-2xl overflow-hidden shadow-2xl border border-slate-200 dark:border-slate-800 z-[70] pointer-events-auto" 
                                             align="start"
                                             sideOffset={4}
                                             collisionPadding={12}
+                                            onWheel={(e) => e.stopPropagation()}
+                                            onTouchMove={(e) => e.stopPropagation()}
                                         >
                                             <Command>
                                                 <CommandInput 
@@ -464,7 +466,7 @@ export function SportsScientistBookSessionModal({ open, onOpenChange, onSuccess 
                                 <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">
                                    {sessionMode === "Individual" ? "Athletes" : "Participating Athletes"}
                                 </Label>
-                                <Popover open={athleteOpen} onOpenChange={setAthleteOpen}>
+                                <Popover modal={true} open={athleteOpen} onOpenChange={setAthleteOpen}>
                                     <PopoverTrigger asChild>
                                         <Button
                                             variant="outline"
@@ -478,7 +480,7 @@ export function SportsScientistBookSessionModal({ open, onOpenChange, onSuccess 
                                                     selectedClientIds.map(id => {
                                                         const c = clients.find(x => x.id === id);
                                                         return (
-                                                            <Badge key={id} variant="secondary" className="bg-primary/10 text-primary border-none py-1 px-2 font-black italic tracking-tighter text-xs">
+                                                             <Badge key={id} variant="secondary" className="bg-primary/10 text-primary border-none py-1 px-2 font-black italic tracking-tighter text-xs">
                                                                 <span className="truncate max-w-[130px] sm:max-w-[200px] inline-block">{c ? formatClientName(c) : id}</span>
                                                                 <X className="w-3 h-3 ml-1.5 cursor-pointer opacity-50 hover:opacity-100 shrink-0" onClick={(e) => { e.stopPropagation(); toggleClient(id); }} />
                                                             </Badge>
@@ -490,14 +492,20 @@ export function SportsScientistBookSessionModal({ open, onOpenChange, onSuccess 
                                         </Button>
                                     </PopoverTrigger>
                                     <PopoverContent 
-                                        className="w-[calc(100vw-2.5rem)] sm:w-[460px] max-w-[460px] p-0 rounded-2xl overflow-hidden shadow-2xl border border-slate-200 dark:border-slate-800 z-[70]" 
+                                        className="w-[calc(100vw-2.5rem)] sm:w-[460px] max-w-[460px] p-0 rounded-2xl overflow-hidden shadow-2xl border border-slate-200 dark:border-slate-800 z-[70] pointer-events-auto" 
                                         align="start"
                                         sideOffset={4}
                                         collisionPadding={12}
+                                        onWheel={(e) => e.stopPropagation()}
+                                        onTouchMove={(e) => e.stopPropagation()}
                                     >
                                         <Command>
                                             <CommandInput placeholder="Search by name or UHID..." />
-                                            <CommandList className="max-h-[280px] overflow-y-auto overscroll-contain">
+                                            <CommandList 
+                                                className="max-h-[280px] overflow-y-auto overscroll-contain pointer-events-auto custom-scrollbar"
+                                                onWheel={(e) => e.stopPropagation()}
+                                                onTouchMove={(e) => e.stopPropagation()}
+                                            >
                                                 <CommandEmpty>No athlete found.</CommandEmpty>
                                                 <CommandGroup>
                                                     {(sessionMode === "Group" || sessionMode === "Individual") && displayedClients.length > 0 && (
@@ -578,7 +586,7 @@ export function SportsScientistBookSessionModal({ open, onOpenChange, onSuccess 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div className="space-y-2">
                                 <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Session Type</Label>
-                                <Popover open={sessionTypeOpen} onOpenChange={setSessionTypeOpen}>
+                                <Popover modal={true} open={sessionTypeOpen} onOpenChange={setSessionTypeOpen}>
                                     <PopoverTrigger asChild>
                                         <Button
                                             variant="outline"
@@ -594,14 +602,20 @@ export function SportsScientistBookSessionModal({ open, onOpenChange, onSuccess 
                                         </Button>
                                     </PopoverTrigger>
                                     <PopoverContent 
-                                        className="w-[calc(100vw-2.5rem)] sm:w-[450px] max-w-[450px] p-0 rounded-2xl overflow-hidden shadow-2xl border border-slate-200 dark:border-slate-800 z-[70]" 
+                                        className="w-[calc(100vw-2.5rem)] sm:w-[450px] max-w-[450px] p-0 rounded-2xl overflow-hidden shadow-2xl border border-slate-200 dark:border-slate-800 z-[70] pointer-events-auto" 
                                         align="start"
                                         sideOffset={4}
                                         collisionPadding={12}
+                                        onWheel={(e) => e.stopPropagation()}
+                                        onTouchMove={(e) => e.stopPropagation()}
                                     >
                                         <Command>
                                             <CommandInput placeholder="Search types..." />
-                                            <CommandList className="max-h-[260px] overflow-y-auto overscroll-contain">
+                                            <CommandList 
+                                                className="max-h-[260px] overflow-y-auto overscroll-contain pointer-events-auto custom-scrollbar"
+                                                onWheel={(e) => e.stopPropagation()}
+                                                onTouchMove={(e) => e.stopPropagation()}
+                                            >
                                                 <CommandEmpty>No session type found.</CommandEmpty>
                                                 <CommandGroup>
                                                     {sessionTypes.map((t) => (

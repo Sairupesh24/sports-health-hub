@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useSearchParams, useLocation } from "react-router-dom";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Card, CardContent } from "@/components/ui/card";
@@ -29,7 +29,8 @@ import {
     Clock,
     History,
     FileText,
-    BookOpen
+    BookOpen,
+    MessageSquare
 } from "lucide-react";
 import { apiFetch } from "@/utils/api";
 import { toast } from "@/hooks/use-toast";
@@ -54,6 +55,7 @@ interface UserProfile {
     has_analytics_access: boolean;
     has_assign_work_access: boolean;
     has_kb_edit_access: boolean;
+    has_leads_access: boolean;
 }
 
 interface ConsoleAccessProps {
@@ -104,46 +106,43 @@ export default function ConsoleAccess({ defaultTab }: ConsoleAccessProps) {
         });
     };
 
-    useEffect(() => {
-        fetchUsers();
-    }, []);
-
-    const fetchUsers = async () => {
+    const fetchUsers = useCallback(async () => {
         try {
             setLoading(true);
-            const response = await apiFetch<{ data: any[] }>("/hr/users");
+            const response = await apiFetch<{ data: Array<Record<string, unknown>> }>("/hr/users");
             const allUsers = response.data || [];
             
-            const formatted: UserProfile[] = allUsers.map((u: any) => {
+            const formatted: UserProfile[] = allUsers.map((u) => {
                 let parsedConsoles: string[] = [];
                 if (u.allowed_consoles) {
                     try {
-                        parsedConsoles = typeof u.allowed_consoles === 'string' ? JSON.parse(u.allowed_consoles) : u.allowed_consoles;
+                        parsedConsoles = typeof u.allowed_consoles === 'string' ? JSON.parse(u.allowed_consoles) : (u.allowed_consoles as string[]);
                     } catch {
                         parsedConsoles = (u.allowed_consoles as string).split(',').map(s => s.trim());
                     }
                 }
                 
                 // Ensure primary role is included in allowed consoles by default
-                const primaryRole = u.current_role || u.role || "user";
+                const primaryRole = (u.current_role as string) || (u.role as string) || "user";
                 if (primaryRole && !parsedConsoles.includes(primaryRole)) {
                     parsedConsoles.push(primaryRole);
                 }
 
                 return {
-                    id: u.id,
-                    first_name: u.first_name || "User",
-                    last_name: u.last_name || "",
-                    email: u.email || "",
+                    id: u.id as string,
+                    first_name: (u.first_name as string) || "User",
+                    last_name: (u.last_name as string) || "",
+                    email: (u.email as string) || "",
                     current_role: primaryRole,
-                    profession: u.profession,
-                    ams_role: u.ams_role,
-                    avatar_url: u.avatar_url,
+                    profession: u.profession as string | undefined,
+                    ams_role: u.ams_role as UserProfile["ams_role"],
+                    avatar_url: u.avatar_url as string | undefined,
                     is_approved: u.is_approved !== undefined ? Boolean(u.is_approved) : true,
                     has_calendar_access: !!u.has_calendar_access,
                     has_analytics_access: !!u.has_analytics_access,
                     has_assign_work_access: !!u.has_assign_work_access,
                     has_kb_edit_access: !!u.has_kb_edit_access,
+                    has_leads_access: !!u.has_leads_access,
                     allowed_consoles: parsedConsoles
                 };
             });
@@ -152,16 +151,20 @@ export default function ConsoleAccess({ defaultTab }: ConsoleAccessProps) {
             if (formatted.length > 0 && !selectedUserId) {
                 setSelectedUserId(formatted[0].id);
             }
-        } catch (error: any) {
+        } catch (error: unknown) {
             toast({
                 title: "Error loading user directory",
-                description: error.message,
+                description: error instanceof Error ? error.message : "Failed to load users",
                 variant: "destructive"
             });
         } finally {
             setLoading(false);
         }
-    };
+    }, [selectedUserId]);
+
+    useEffect(() => {
+        fetchUsers();
+    }, [fetchUsers]);
 
     // Filtered users for left panel
     const filteredUsers = useMemo(() => {
@@ -196,6 +199,7 @@ export default function ConsoleAccess({ defaultTab }: ConsoleAccessProps) {
 
     // Helper to check if a specific console is enabled for selected user
     const isConsoleGranted = (user: UserProfile, moduleObj: AppModuleDefinition) => {
+        if (moduleObj.id === "crm" && user.has_leads_access) return true;
         return isModuleGrantedForUser(user.current_role, user.profession, user.allowed_consoles, moduleObj);
     };
 
@@ -223,14 +227,23 @@ export default function ConsoleAccess({ defaultTab }: ConsoleAccessProps) {
         try {
             setTogglingModuleId(moduleObj.id);
 
+            const patchData: Record<string, unknown> = {
+                allowed_consoles: newAllowed
+            };
+            if (moduleObj.id === "crm") {
+                patchData.has_leads_access = !isCurrentlyGranted;
+            }
+
             await apiFetch(`/hr/users/${userId}/role`, {
                 method: "PATCH",
-                data: {
-                    allowed_consoles: newAllowed
-                }
+                data: patchData
             });
 
-            setUsers(prev => prev.map(u => u.id === userId ? { ...u, allowed_consoles: newAllowed } : u));
+            setUsers(prev => prev.map(u => u.id === userId ? { 
+                ...u, 
+                allowed_consoles: newAllowed,
+                ...(moduleObj.id === "crm" ? { has_leads_access: !isCurrentlyGranted } : {})
+            } : u));
 
             if (userId === currentAuthProfile?.id) {
                 await refreshAuth();
@@ -241,10 +254,10 @@ export default function ConsoleAccess({ defaultTab }: ConsoleAccessProps) {
                 title: isCurrentlyGranted ? "Console Access Revoked" : "Console Access Granted",
                 description: `Successfully ${isCurrentlyGranted ? 'revoked' : 'granted'} access to ${moduleObj.name} for ${targetUser.first_name}.`,
             });
-        } catch (error: any) {
+        } catch (error: unknown) {
             toast({
                 title: "Permission Update Failed",
-                description: error.message,
+                description: error instanceof Error ? error.message : "Failed to update permissions",
                 variant: "destructive"
             });
         } finally {
@@ -252,7 +265,7 @@ export default function ConsoleAccess({ defaultTab }: ConsoleAccessProps) {
         }
     };
 
-    const handleToggleFeatureAccess = async (userId: string, featureKey: "has_calendar_access" | "has_analytics_access" | "has_assign_work_access" | "has_kb_edit_access", currentVal: boolean) => {
+    const handleToggleFeatureAccess = async (userId: string, featureKey: "has_calendar_access" | "has_analytics_access" | "has_assign_work_access" | "has_kb_edit_access" | "has_leads_access", currentVal: boolean) => {
         const targetUser = users.find(u => u.id === userId);
         if (!targetUser) return;
 
@@ -277,17 +290,18 @@ export default function ConsoleAccess({ defaultTab }: ConsoleAccessProps) {
                 has_calendar_access: "Admin Calendar",
                 has_analytics_access: "Staff Analytics",
                 has_assign_work_access: "Work Assignment Privileges",
-                has_kb_edit_access: "Knowledge Base Editor"
+                has_kb_edit_access: "Knowledge Base Editor",
+                has_leads_access: "Leads & CRM Management"
             };
 
             toast({
                 title: "Module Privilege Updated",
                 description: `${featureNames[featureKey]} has been ${targetVal ? 'granted' : 'revoked'}.`
             });
-        } catch (error: any) {
+        } catch (error: unknown) {
             toast({
                 title: "Update Failed",
-                description: error.message,
+                description: error instanceof Error ? error.message : "Failed to update privilege",
                 variant: "destructive"
             });
         } finally {
@@ -712,6 +726,23 @@ export default function ConsoleAccess({ defaultTab }: ConsoleAccessProps) {
                                                     checked={selectedUser.current_role === "admin" || selectedUser.has_kb_edit_access}
                                                     disabled={selectedUser.current_role === "admin" || togglingModuleId === "has_kb_edit_access"}
                                                     onCheckedChange={() => handleToggleFeatureAccess(selectedUser.id, "has_kb_edit_access", selectedUser.has_kb_edit_access)}
+                                                    className="data-[state=checked]:bg-primary scale-75"
+                                                />
+                                            </div>
+
+                                            {/* Leads & CRM Management */}
+                                            <div className="p-3.5 bg-slate-50/80 rounded-2xl border border-slate-100 flex items-center justify-between">
+                                                <div>
+                                                    <div className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                                                        <MessageSquare className="w-3.5 h-3.5 text-primary" />
+                                                        Leads & CRM
+                                                    </div>
+                                                    <div className="text-[10px] text-slate-400 mt-0.5">Track enquiries & prospects</div>
+                                                </div>
+                                                <Switch
+                                                    checked={selectedUser.current_role === "admin" || selectedUser.current_role === "foe" || selectedUser.has_leads_access}
+                                                    disabled={selectedUser.current_role === "admin" || selectedUser.current_role === "foe" || togglingModuleId === "has_leads_access"}
+                                                    onCheckedChange={() => handleToggleFeatureAccess(selectedUser.id, "has_leads_access", selectedUser.has_leads_access)}
                                                     className="data-[state=checked]:bg-primary scale-75"
                                                 />
                                             </div>

@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { useParams, useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import SessionCategoryFilterBar from "@/components/shared/SessionCategoryFilterBar";
@@ -9,10 +9,18 @@ import {
     ArrowLeft, User, Phone, CalendarDays, Activity, ClipboardList, History, X,
     Download, FileText, Trophy, FileStack, CheckSquare, Trash2,
     AlertTriangle, Loader2, Clock, CheckCircle2, Edit3, Calendar, PlusCircle,
-    FolderOpen, FolderClosed, Plus, Stethoscope, FolderPlus
+    FolderOpen, FolderClosed, Plus, Stethoscope, FolderPlus,
+    FileDown, Printer
 } from "lucide-react";
 import { apiFetch } from "@/utils/api";
 import { useToast } from "@/hooks/use-toast";
+import {
+    exportCaseSheetPDF,
+    exportBlankCaseSheetPDF,
+    fetchFullCaseDetails,
+    fetchOrgBranding,
+    CaseData,
+} from "@/utils/CaseSheetExport";
 import AMSTrainingLoadWidget from "@/components/dashboard/AMSTrainingLoadWidget";
 import SOAPNoteModal from "@/components/consultant/SOAPNoteModal";
 import CaseSheetModal from "@/components/consultant/CaseSheetModal";
@@ -41,7 +49,67 @@ import { useAuth } from "@/contexts/AuthContext";
 import { AssessmentReportsList } from "@/components/shared/assessment/AssessmentReportsList";
 import { cn, formatClientName } from "@/lib/utils";
 
-export const SESSION_CATEGORY_CONFIG: Record<string, { label: string; badgeClass: string }> = {
+interface ClientData {
+    id?: string;
+    first_name?: string;
+    last_name?: string;
+    full_name?: string;
+    name?: string;
+    uhid?: string;
+    phone?: string;
+    email?: string;
+    gender?: string;
+    dob?: string;
+    age?: number;
+    sport?: string;
+    athlete_type?: string;
+    status?: string;
+    notes?: string;
+    organization_id?: string;
+    medical_history?: string;
+    profile_picture_url?: string;
+    is_vip?: boolean;
+    [key: string]: unknown;
+}
+
+interface InjuryData {
+    id: string;
+    injury_name?: string;
+    name?: string;
+    body_part?: string;
+    side?: string;
+    status?: string;
+    onset_date?: string;
+    mechanism?: string;
+    severity?: string;
+    resolved_date?: string;
+    notes?: string;
+    [key: string]: unknown;
+}
+
+interface SessionRecord {
+    id: string;
+    scheduled_start: string;
+    scheduled_end?: string;
+    status?: string;
+    session_category?: string;
+    service_type?: string;
+    duration_minutes?: number;
+    objective?: string;
+    subjective?: string;
+    assessment?: string;
+    plan?: string;
+    notes?: string;
+    therapist?: { first_name?: string; last_name?: string; [key: string]: unknown };
+    logged_by?: { first_name?: string; last_name?: string; [key: string]: unknown };
+    physio_session_details?: Array<{ notes?: string; [key: string]: unknown }>;
+    attendance_status?: string;
+    [key: string]: unknown;
+}
+
+const VALID_CLIENT_TABS = ['sessions', 'diagnoses', 'assessments', 'performance', 'cases'];
+
+const SESSION_CATEGORY_CONFIG: Record<string, { label: string; badgeClass: string }> = {
     physiotherapy: {
         label: "Physiotherapy",
         badgeClass: "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/60 dark:text-blue-300 dark:border-blue-800"
@@ -82,7 +150,7 @@ const parseDDMMYYYY = (val: string): string | null => {
 };
 
 // Helper: determine if a session is upcoming / planned
-export const isUpcomingSession = (s: any): boolean => {
+const isUpcomingSession = (s: { status?: string; scheduled_start?: string }): boolean => {
     const st = (s.status || '').toLowerCase();
     if (st === 'completed' || st === 'deleted') return false;
     if (['planned', 'scheduled', 'booked'].includes(st)) return true;
@@ -125,39 +193,39 @@ export default function ConsultantClientProfile() {
     };
 
     // Tab state & synchronization with URL search param
-    const validTabs = ['sessions', 'diagnoses', 'assessments', 'performance', 'cases'];
     const resolveTab = (tab: string | null) => {
-        if (tab && validTabs.includes(tab)) return tab;
+        if (tab && VALID_CLIENT_TABS.includes(tab)) return tab;
         return 'sessions';
     };
 
     const [activeTab, setActiveTab] = useState<string>(() => resolveTab(tabParam));
 
     // Core data
-    const [client, setClient] = useState<any>(null);
-    const [injuries, setInjuries] = useState<any[]>([]);
-    const [sessions, setSessions] = useState<any[]>([]);
+    const [client, setClient] = useState<ClientData | null>(null);
+    const [injuries, setInjuries] = useState<InjuryData[]>([]);
+    const [sessions, setSessions] = useState<SessionRecord[]>([]);
     const [loading, setLoading] = useState(true);
 
     // Active modals
-    const [selectedSession, setSelectedSession] = useState<any>(null);
+    const [selectedSession, setSelectedSession] = useState<SessionRecord | null>(null);
     const [soapModalOpen, setSoapModalOpen] = useState(false);
-    const [selectedInjuryToResolve, setSelectedInjuryToResolve] = useState<any>(null);
+    const [selectedInjuryToResolve, setSelectedInjuryToResolve] = useState<InjuryData | null>(null);
     const [resolveModalOpen, setResolveModalOpen] = useState(false);
     const [adHocModalOpen, setAdHocModalOpen] = useState(false);
     const [isDocumentModalOpen, setIsDocumentModalOpen] = useState(false);
     const [isEnquiryOpen, setIsEnquiryOpen] = useState(false);
 
     // Clinical Cases
-    const [cases, setCases] = useState<any[]>([]);
+    const [cases, setCases] = useState<CaseData[]>([]);
     const [casesLoading, setCasesLoading] = useState(false);
     const [caseSheetOpen, setCaseSheetOpen] = useState(false);
     const [editingCaseId, setEditingCaseId] = useState<string | null>(null);
     const [expandedCaseId, setExpandedCaseId] = useState<string | null>(null);
+    const [exportingCaseId, setExportingCaseId] = useState<string | null>(null);
 
     // Session selection & upcoming plan management state
     const [selectedSessionIds, setSelectedSessionIds] = useState<string[]>([]);
-    const [editingSessionForStatus, setEditingSessionForStatus] = useState<any>(null);
+    const [editingSessionForStatus, setEditingSessionForStatus] = useState<SessionRecord | null>(null);
     const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
     const [isCancelPlanDialogOpen, setIsCancelPlanDialogOpen] = useState(false);
     const [cancelPlanReason, setCancelPlanReason] = useState("");
@@ -195,7 +263,7 @@ export default function ConsultantClientProfile() {
         if (tabParam === 'upcoming') {
             setActiveTab('sessions');
             setStatusScope('upcoming');
-        } else if (tabParam && validTabs.includes(tabParam)) {
+        } else if (tabParam && VALID_CLIENT_TABS.includes(tabParam)) {
             setActiveTab(tabParam);
         }
     }, [tabParam]);
@@ -207,24 +275,19 @@ export default function ConsultantClientProfile() {
         setSearchParams(nextParams, { replace: true });
     };
 
-    useEffect(() => {
-        if (id) {
-            fetchData();
-        }
-    }, [id, startDate, endDate]);
-
-    const fetchData = async () => {
+    const fetchData = useCallback(async () => {
+        if (!id) return;
         try {
             setLoading(true);
-            const clientData = await apiFetch<any>(`/clients/${id}`);
+            const clientData = await apiFetch<ClientData>(`/clients/${id}`);
             setClient(clientData);
 
-            const injuryData = await apiFetch<any[]>(`/clinical/injuries`, {
+            const injuryData = await apiFetch<InjuryData[]>(`/clinical/injuries`, {
                 params: { client_id: id }
             });
             setInjuries(injuryData || []);
 
-            const sessionData = await apiFetch<any[]>(`/clients/${id}/sessions`, {
+            const sessionData = await apiFetch<SessionRecord[]>(`/clients/${id}/sessions`, {
                 params: { startDate, endDate }
             });
             setSessions(sessionData || []);
@@ -235,22 +298,62 @@ export default function ConsultantClientProfile() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [id, startDate, endDate, toast]);
 
-    const fetchCases = async () => {
+    useEffect(() => {
+        if (id) {
+            fetchData();
+        }
+    }, [id, fetchData]);
+
+    const fetchCases = useCallback(async () => {
         if (!id) return;
         setCasesLoading(true);
         try {
-            const data = await apiFetch<any[]>('/clinical/cases', { params: { client_id: id } });
+            const data = await apiFetch<CaseData[]>('/clinical/cases', { params: { client_id: id } });
             setCases(data || []);
-        } catch (err) {
+        } catch {
             // non-fatal
         } finally {
             setCasesLoading(false);
         }
+    }, [id]);
+
+    const handleExportCasePDF = async (c: CaseData) => {
+        if (!c.id) return;
+        try {
+            setExportingCaseId(c.id);
+            const [fullCase, org] = await Promise.all([
+                fetchFullCaseDetails(c.id),
+                fetchOrgBranding(currentUserProfile?.organization_id),
+            ]);
+            const caseToExport = fullCase || c;
+            await exportCaseSheetPDF(caseToExport, client, org || {
+                name: currentUserProfile?.organization_name || "SPORTS HEALTH HUB",
+                official_name: currentUserProfile?.organization_name || "SPORTS HEALTH HUB",
+            });
+            toast({
+                title: "Case Sheet Exported",
+                description: `Case sheet ${c.case_number || ""} exported to PDF.`,
+            });
+        } catch (err) {
+            console.error("Failed to export case sheet PDF", err);
+            const message = err instanceof Error ? err.message : "Could not export case sheet to PDF.";
+            toast({
+                title: "Export Failed",
+                description: message,
+                variant: "destructive",
+            });
+        } finally {
+            setExportingCaseId(null);
+        }
     };
 
-    useEffect(() => { if (activeTab === 'cases' && id) fetchCases(); }, [activeTab, id]);
+    useEffect(() => {
+        if (activeTab === 'cases' && id) {
+            fetchCases();
+        }
+    }, [activeTab, id, fetchCases]);
 
     // Category Counts
     const categoryCounts = useMemo(() => {
@@ -264,7 +367,7 @@ export default function ConsultantClientProfile() {
             active_recovery: 0,
             other: 0,
         };
-        sessions.forEach((s: any) => {
+        sessions.forEach((s: SessionRecord) => {
             if (s.status === 'Completed') counts.completed++;
             const cat = (s.session_category || 'other') as keyof typeof counts;
             if (counts[cat] !== undefined) {
@@ -279,7 +382,7 @@ export default function ConsultantClientProfile() {
     // Category Filtered Sessions
     const categoryFilteredSessions = useMemo(() => {
         if (!sessionTypeFilter || sessionTypeFilter === 'all') return sessions;
-        return sessions.filter((s: any) => {
+        return sessions.filter((s: SessionRecord) => {
             return s.session_category === sessionTypeFilter || 
                    (s.service_type || '').toLowerCase() === sessionTypeFilter.toLowerCase();
         });
@@ -291,7 +394,7 @@ export default function ConsultantClientProfile() {
         let completed = 0;
         let cancelled = 0;
 
-        categoryFilteredSessions.forEach((s: any) => {
+        categoryFilteredSessions.forEach((s: SessionRecord) => {
             if (s.status === 'Completed') completed++;
             else if (isUpcomingSession(s)) upcoming++;
             else if (['cancelled', 'missed'].includes((s.status || '').toLowerCase())) cancelled++;
@@ -332,15 +435,15 @@ export default function ConsultantClientProfile() {
 
     // Non-completed / editable sessions available for checkbox selection
     const editableSessions = useMemo(() => {
-        return displayedSessions.filter((s: any) => s.status?.toLowerCase() !== 'completed' && s.status?.toLowerCase() !== 'deleted');
+        return displayedSessions.filter((s: SessionRecord) => s.status?.toLowerCase() !== 'completed' && s.status?.toLowerCase() !== 'deleted');
     }, [displayedSessions]);
 
-    const isAllSelected = editableSessions.length > 0 && editableSessions.every((s: any) => selectedSessionIds.includes(s.id));
+    const isAllSelected = editableSessions.length > 0 && editableSessions.every((s: SessionRecord) => selectedSessionIds.includes(s.id));
 
     // Selection handlers
     const handleSelectAll = (checked: boolean) => {
         if (checked) {
-            setSelectedSessionIds(editableSessions.map((s: any) => s.id));
+            setSelectedSessionIds(editableSessions.map((s: SessionRecord) => s.id));
         } else {
             setSelectedSessionIds([]);
         }
@@ -359,7 +462,7 @@ export default function ConsultantClientProfile() {
     const resolvedInjuries = useMemo(() => injuries.filter(i => i.status === 'Resolved'), [injuries]);
 
     // Action handlers
-    const handleSingleEditStatus = (session: any) => {
+    const handleSingleEditStatus = (session: SessionRecord) => {
         setEditingSessionForStatus(session);
         setIsStatusModalOpen(true);
     };
@@ -375,8 +478,9 @@ export default function ConsultantClientProfile() {
             toast({ title: "Session Deleted", description: "The session record has been removed." });
             setSelectedSessionIds(prev => prev.filter(item => item !== sessionId));
             fetchData();
-        } catch (error: any) {
-            toast({ title: "Error", description: error.message || "Failed to delete session", variant: "destructive" });
+        } catch (error: unknown) {
+            const err = error as Error;
+            toast({ title: "Error", description: err.message || "Failed to delete session", variant: "destructive" });
         } finally {
             setActionLoading(false);
         }
@@ -400,8 +504,9 @@ export default function ConsultantClientProfile() {
             });
             setSelectedSessionIds([]);
             fetchData();
-        } catch (error: any) {
-            toast({ title: "Error", description: error.message || "Failed to delete selected sessions", variant: "destructive" });
+        } catch (error: unknown) {
+            const err = error as Error;
+            toast({ title: "Error", description: err.message || "Failed to delete selected sessions", variant: "destructive" });
         } finally {
             setActionLoading(false);
         }
@@ -427,8 +532,9 @@ export default function ConsultantClientProfile() {
             setBulkReason("");
             setSelectedSessionIds([]);
             fetchData();
-        } catch (error: any) {
-            toast({ title: "Error", description: error.message || "Failed to update selected sessions", variant: "destructive" });
+        } catch (error: unknown) {
+            const err = error as Error;
+            toast({ title: "Error", description: err.message || "Failed to update selected sessions", variant: "destructive" });
         } finally {
             setActionLoading(false);
         }
@@ -437,7 +543,7 @@ export default function ConsultantClientProfile() {
     const handleDeleteEntirePlan = async () => {
         setActionLoading(true);
         try {
-            const res = await apiFetch<any>(`/api/appointments/client/${id}/cancel-future-plan`, {
+            const res = await apiFetch<{ cancelled_count?: number }>(`/api/appointments/client/${id}/cancel-future-plan`, {
                 method: "POST",
                 body: JSON.stringify({ reason: cancelPlanReason || "Future sessions cancelled by specialist" })
             });
@@ -449,8 +555,9 @@ export default function ConsultantClientProfile() {
             setCancelPlanReason("");
             setSelectedSessionIds([]);
             fetchData();
-        } catch (error: any) {
-            toast({ title: "Error", description: error.message || "Failed to cancel future plan", variant: "destructive" });
+        } catch (error: unknown) {
+            const err = error as Error;
+            toast({ title: "Error", description: err.message || "Failed to cancel future plan", variant: "destructive" });
         } finally {
             setActionLoading(false);
         }
@@ -465,7 +572,7 @@ export default function ConsultantClientProfile() {
         const clientFullName = client ? `${client.first_name || ""} ${client.last_name || ""}`.trim() : "-";
         const clientUHID = client?.uhid || "-";
 
-        const exportData = displayedSessions.map((s: any) => {
+        const exportData = displayedSessions.map((s: SessionRecord) => {
             const psd = s.physio_session_details?.[0] || {};
             const startTime = s.scheduled_start ? new Date(s.scheduled_start) : null;
             const endTime = s.scheduled_end ? new Date(s.scheduled_end) : null;
@@ -1068,7 +1175,7 @@ export default function ConsultantClientProfile() {
                                         {/* Mobile View: Clean Session Cards with Differentiation */}
                                         {mobileViewMode === 'cards' && (
                                             <div className="block md:hidden space-y-2.5 p-3">
-                                            {displayedSessions.map((session: any) => {
+                                            {displayedSessions.map((session: SessionRecord) => {
                                                 const consultantName = session.therapist?.first_name || session.therapist?.last_name ? (
                                                     `${session.therapist.first_name || ""} ${session.therapist.last_name || ""}`.trim()
                                                 ) : "—";
@@ -1255,7 +1362,7 @@ export default function ConsultantClientProfile() {
                                                     </TableRow>
                                                 </TableHeader>
                                                 <TableBody>
-                                                    {displayedSessions.map((session: any) => {
+                                                    {displayedSessions.map((session: SessionRecord) => {
                                                         const catConfig = SESSION_CATEGORY_CONFIG[session.session_category] || SESSION_CATEGORY_CONFIG.other;
                                                         const consultantName = session.therapist?.first_name || session.therapist?.last_name ? (
                                                             `${session.therapist.first_name || ""} ${session.therapist.last_name || ""}`.trim()
@@ -1636,14 +1743,29 @@ export default function ConsultantClientProfile() {
                                             Consultation episodes of care. Each case holds the clinical case sheet and all linked physiotherapy sessions.
                                         </CardDescription>
                                     </div>
-                                    <Button
-                                        size="sm"
-                                        id="new-case-sheet-btn"
-                                        onClick={() => { setEditingCaseId(null); setCaseSheetOpen(true); }}
-                                        className="h-9 px-3.5 gap-2 text-xs font-bold rounded-xl shadow-xs bg-primary text-primary-foreground hover:bg-primary/90 whitespace-nowrap"
-                                    >
-                                        <Plus className="w-4 h-4" /> New Case Sheet
-                                    </Button>
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={() => exportBlankCaseSheetPDF({
+                                                name: profile?.organization_name || profile?.organization?.name || "SPORTS HEALTH HUB",
+                                                official_name: profile?.organization_name || profile?.organization?.name || "SPORTS HEALTH HUB",
+                                            })}
+                                            className="h-9 px-3 gap-1.5 text-xs font-bold rounded-xl border-border/80 text-foreground hover:bg-muted/60 whitespace-nowrap"
+                                            title="Export blank case sheet with checkboxes for physical paper recording"
+                                        >
+                                            <Printer className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" />
+                                            <span>Export Blank Sheet (PDF)</span>
+                                        </Button>
+                                        <Button
+                                            size="sm"
+                                            id="new-case-sheet-btn"
+                                            onClick={() => { setEditingCaseId(null); setCaseSheetOpen(true); }}
+                                            className="h-9 px-3.5 gap-2 text-xs font-bold rounded-xl shadow-xs bg-primary text-primary-foreground hover:bg-primary/90 whitespace-nowrap"
+                                        >
+                                            <Plus className="w-4 h-4" /> New Case Sheet
+                                        </Button>
+                                    </div>
                                 </div>
                             </CardHeader>
                             <CardContent className="p-4 sm:p-6">
@@ -1662,7 +1784,7 @@ export default function ConsultantClientProfile() {
                                     </div>
                                 ) : (
                                     <div className="space-y-3">
-                                        {cases.map((c: any) => {
+                                        {cases.map((c) => {
                                             const isExpanded = expandedCaseId === c.id;
                                             const isCaseClosed = c.status === 'closed';
                                             return (
@@ -1705,6 +1827,24 @@ export default function ConsultantClientProfile() {
                                                             <Button
                                                                 variant="outline"
                                                                 size="sm"
+                                                                className="h-8 px-2.5 text-xs font-bold rounded-xl gap-1.5 border-border/80 text-muted-foreground hover:text-foreground hover:bg-muted/60"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    handleExportCasePDF(c);
+                                                                }}
+                                                                disabled={exportingCaseId === c.id}
+                                                                title="Export Case Sheet to PDF"
+                                                            >
+                                                                {exportingCaseId === c.id ? (
+                                                                    <Loader2 className="w-3.5 h-3.5 animate-spin text-teal-600" />
+                                                                ) : (
+                                                                    <FileDown className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" />
+                                                                )}
+                                                                <span>PDF</span>
+                                                            </Button>
+                                                            <Button
+                                                                variant="outline"
+                                                                size="sm"
                                                                 className="h-8 px-3 text-xs font-bold rounded-xl gap-1.5 border-border/80"
                                                                 onClick={() => { setEditingCaseId(c.id); setCaseSheetOpen(true); }}
                                                             >
@@ -1724,7 +1864,7 @@ export default function ConsultantClientProfile() {
                                                                 <p className="text-xs text-muted-foreground italic">No sessions linked to this case yet. Link sessions from the SOAP Note modal.</p>
                                                             ) : (
                                                                 <div className="space-y-1.5">
-                                                                    {c.sessions?.map((s: any) => (
+                                                                    {c.sessions?.map((s) => (
                                                                         <div key={s.id} className="flex items-center gap-3 px-3 py-2 rounded-xl bg-background border border-border/50 text-xs">
                                                                             <div className="flex items-center gap-1.5 flex-1 min-w-0">
                                                                                 <CalendarDays className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
@@ -1745,7 +1885,7 @@ export default function ConsultantClientProfile() {
                                                                                 className="h-6 px-2 text-[10px] font-bold text-muted-foreground hover:text-foreground shrink-0"
                                                                                 onClick={(e) => {
                                                                                     e.stopPropagation();
-                                                                                    const fullSession = sessions.find((fs: any) => fs.id === s.id) || s;
+                                                                                    const fullSession = sessions.find((fs: { id: string }) => fs.id === s.id) || s;
                                                                                     setSelectedSession(fullSession);
                                                                                     setSoapModalOpen(true);
                                                                                 }}

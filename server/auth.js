@@ -369,7 +369,7 @@ router.get('/me', async (req, res) => {
     }
 
     const profileRes = await db.query(`
-      SELECT p.*, o.name as organization_name, o.logo_url as organization_logo, o.enabled_modules as organization_enabled_modules 
+      SELECT p.*, o.name as organization_name, o.logo_url as organization_logo, o.slug as organization_slug, o.enabled_modules as organization_enabled_modules 
       FROM profiles p 
       LEFT JOIN organizations o ON p.organization_id = o.id 
       WHERE p.id = $1

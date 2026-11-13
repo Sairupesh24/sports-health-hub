@@ -556,8 +556,30 @@ app.use('/api/knowledge-base', knowledgeBaseRoutes);
 app.get('/api/public/orgs/:slug', async (req, res) => {
   try {
     const { slug } = req.params;
-    const result = await db.query('SELECT id, name, logo_url FROM organizations WHERE slug = $1', [slug]);
-    if (result.rows.length === 0) return res.status(404).json({ error: 'Organization not found' });
+    const cleanSlug = (slug || '').trim().toLowerCase();
+
+    let result;
+    if (!cleanSlug || cleanSlug === 'default') {
+      result = await db.query('SELECT id, name, logo_url, slug, enquiry_form_config FROM organizations ORDER BY created_at ASC LIMIT 1');
+    } else {
+      result = await db.query(
+        'SELECT id, name, logo_url, slug, enquiry_form_config FROM organizations WHERE LOWER(slug) = $1 OR LOWER(org_code) = $1',
+        [cleanSlug]
+      );
+
+      if (result.rows.length === 0) {
+        // Try finding by UUID id in case the slug passed was the organization ID
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        if (uuidRegex.test(cleanSlug)) {
+          result = await db.query('SELECT id, name, logo_url, slug, enquiry_form_config FROM organizations WHERE id = $1', [cleanSlug]);
+        }
+      }
+    }
+
+    if (!result || result.rows.length === 0) {
+      return res.status(404).json({ error: 'Organization enquiry form not found. Please verify your clinic link.' });
+    }
+
     res.json(result.rows[0]);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -566,26 +588,93 @@ app.get('/api/public/orgs/:slug', async (req, res) => {
 
 app.post('/api/public/enquiries', async (req, res) => {
   try {
-    const { 
+    let { 
       organization_id, first_name, last_name, mobile_no, email, 
       looking_for, preferred_call_time, referral_source, referral_details, 
       work_place, notes 
     } = req.body;
+
+    if (!organization_id || organization_id === 'default') {
+      return res.status(400).json({ error: 'Valid organization identifier is required to submit an enquiry.' });
+    }
+
+    // Verify organization exists
+    const orgCheck = await db.query('SELECT id FROM organizations WHERE id = $1', [organization_id]);
+    if (orgCheck.rows.length === 0) {
+      return res.status(400).json({ error: 'Organization does not exist.' });
+    }
     
     const result = await db.query(`
       INSERT INTO enquiries (
         organization_id, first_name, last_name, mobile_no, email, 
         looking_for, preferred_call_time, referral_source, referral_details, 
-        work_place, notes
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-      RETURNING id
+        work_place, notes, status
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 'new')
+      RETURNING *
     `, [
       organization_id, first_name, last_name, mobile_no, email, 
       looking_for, preferred_call_time, referral_source, referral_details, 
       work_place, notes
     ]);
+
+    const enquiry = result.rows[0];
+
+    // Log the initial enquiry submission touchpoint
+    try {
+      await db.query(`
+        INSERT INTO enquiryinteractions (enquiry_id, interaction_type, response_text, metadata)
+        VALUES ($1, 'form_submission', $2, $3::jsonb)
+      `, [
+        enquiry.id,
+        `Enquiry submitted via public web form. Source: ${referral_source || 'Website'}. Requirement: ${looking_for || 'General'}`,
+        JSON.stringify({ referral_source, looking_for, preferred_call_time })
+      ]);
+    } catch (intErr) {
+      console.warn("Could not log initial enquiry interaction:", intErr.message);
+    }
     
-    res.status(201).json(result.rows[0]);
+    res.status(201).json(enquiry);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Organization Enquiry Form Configuration Routes
+app.get('/api/organizations/enquiry-config', requireAuth, async (req, res) => {
+  try {
+    const orgId = req.user.organization_id;
+    const result = await db.query('SELECT id, name, slug, logo_url, enquiry_form_config FROM organizations WHERE id = $1', [orgId]);
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Organization not found' });
+    res.json(result.rows[0]);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.patch('/api/organizations/enquiry-config', requireAuth, async (req, res) => {
+  try {
+    const orgId = req.user.organization_id;
+    const { enquiry_form_config, slug } = req.body;
+
+    const updates = [];
+    const params = [orgId];
+
+    if (enquiry_form_config !== undefined) {
+      updates.push(`enquiry_form_config = $${params.length + 1}::jsonb`);
+      params.push(typeof enquiry_form_config === 'string' ? enquiry_form_config : JSON.stringify(enquiry_form_config));
+    }
+
+    if (slug !== undefined && typeof slug === 'string' && slug.trim()) {
+      const cleanSlug = slug.trim().toLowerCase().replace(/[^a-z0-9_-]/g, '-');
+      updates.push(`slug = $${params.length + 1}`);
+      params.push(cleanSlug);
+    }
+
+    if (updates.length === 0) return res.status(400).json({ error: 'No fields to update' });
+
+    const query = `UPDATE organizations SET ${updates.join(', ')} WHERE id = $1 RETURNING id, name, slug, logo_url, enquiry_form_config`;
+    const result = await db.query(query, params);
+    res.json(result.rows[0]);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

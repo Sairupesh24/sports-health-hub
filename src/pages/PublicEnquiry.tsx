@@ -1,8 +1,6 @@
-import { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { useParams, useSearchParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -10,13 +8,72 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
-import { apiFetch } from "@/utils/api";
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
-import { MessageSquare, User, Phone, Clock, Send, CheckCircle2, Share2, Briefcase, Loader2 } from "lucide-react";
+import { MessageSquare, User, Phone, Clock, Send, CheckCircle2, Share2, Briefcase, Loader2, AlertCircle, Lock } from "lucide-react";
+
+interface CustomQuestion {
+  id: string;
+  label: string;
+  type: "text" | "textarea" | "select";
+  placeholder?: string;
+  required?: boolean;
+  options?: string[];
+}
+
+interface PublicEnquiryConfig {
+  tagline?: string;
+  welcome_text?: string;
+  success_message?: string;
+  fields: {
+    work_place: { required: boolean; visible: boolean };
+    looking_for: { required: boolean; visible: boolean; options: string[] };
+    referral_source: { required: boolean; visible: boolean; options?: string[] };
+    preferred_call_time: { required: boolean; visible: boolean };
+    notes: { required: boolean; visible: boolean };
+  };
+  custom_questions?: CustomQuestion[];
+}
+
+interface PublicOrg {
+  id: string;
+  name: string;
+  slug?: string;
+  logo_url?: string;
+  enquiry_form_config?: Record<string, unknown>;
+}
+
+interface PublicEnquiryFormData {
+  name: string;
+  contact: string;
+  looking_for?: string;
+  preferred_call_time?: string;
+  referral_source?: string;
+  referral_details?: string;
+  work_place?: string;
+  notes?: string;
+  [key: string]: string | undefined;
+}
+
+const REFERRAL_SOURCE_OPTIONS = [
+  "WhatsApp",
+  "Instagram",
+  "Facebook",
+  "YouTube",
+  "LinkedIn",
+  "Google Search",
+  "Word of Mouth / Friend",
+  "Doctor Referral",
+  "Professional Referral",
+  "Reception Desk",
+  "News / Article",
+  "Other"
+];
 
 // Default configuration in case it's missing from DB
-const DEFAULT_CONFIG = {
+const DEFAULT_CONFIG: PublicEnquiryConfig = {
   tagline: "How can we help?",
+  welcome_text: "Fill out the form below and start your journey towards peak performance and recovery.",
+  success_message: "Thank you! Our clinic representative will reach out to you within 24 hours.",
   fields: {
     work_place: { required: true, visible: true },
     looking_for: { required: true, visible: true, options: [
@@ -28,24 +85,12 @@ const DEFAULT_CONFIG = {
       "Diet & Nutrition",
       "Other"
     ]},
-    referral_source: { required: true, visible: true },
+    referral_source: { required: true, visible: true, options: REFERRAL_SOURCE_OPTIONS },
     preferred_call_time: { required: false, visible: true },
     notes: { required: false, visible: true }
   },
   custom_questions: []
 };
-
-const REFERRAL_SOURCE_OPTIONS = [
-  "Instagram",
-  "Facebook",
-  "YouTube",
-  "LinkedIn",
-  "Google Search",
-  "Word of Mouth / Friend",
-  "Professional Referral",
-  "News / Article",
-  "Other"
-];
 
 const CALL_TIME_OPTIONS = [
   "Morning (9 AM - 12 PM)",
@@ -56,42 +101,69 @@ const CALL_TIME_OPTIONS = [
 
 export default function PublicEnquiry() {
   const { orgSlug } = useParams();
+  const [searchParams] = useSearchParams();
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [fetchingOrg, setFetchingOrg] = useState(true);
-  const [org, setOrg] = useState<any>(null);
-  const [config, setConfig] = useState<any>(DEFAULT_CONFIG);
+  const [orgError, setOrgError] = useState<string | null>(null);
+  const [org, setOrg] = useState<PublicOrg | null>(null);
+  const [config, setConfig] = useState<PublicEnquiryConfig>(DEFAULT_CONFIG);
 
-  useEffect(() => {
-    fetchOrganization();
-  }, [orgSlug]);
-
-  const fetchOrganization = async () => {
+  const fetchOrganization = useCallback(async () => {
     setFetchingOrg(true);
+    setOrgError(null);
     try {
       const response = await fetch(`${API_URL}/public/orgs/${orgSlug || 'default'}`);
-      if (!response.ok) throw new Error("Org not found");
-      const data = await response.json();
+      if (!response.ok) {
+        const errJson = await response.json().catch(() => ({}));
+        throw new Error(errJson.error || "Clinic enquiry form not found");
+      }
+      const data: PublicOrg = await response.json();
       
       setOrg(data);
       
-      if (data.enquiry_form_config) {
+      if (data.enquiry_form_config && typeof data.enquiry_form_config === 'object') {
+        const remoteCfg = data.enquiry_form_config as Record<string, unknown>;
+        const remoteFields = (remoteCfg.fields || {}) as Record<string, { required?: boolean; visible?: boolean; options?: string[] }>;
         // Merge with defaults to ensure all fields exist
         setConfig({
           ...DEFAULT_CONFIG,
-          ...data.enquiry_form_config,
+          ...remoteCfg,
           fields: {
             ...DEFAULT_CONFIG.fields,
-            ...(data.enquiry_form_config.fields || {})
-          }
+            ...remoteFields,
+            looking_for: {
+              ...DEFAULT_CONFIG.fields.looking_for,
+              ...(remoteFields.looking_for || {})
+            },
+            referral_source: {
+              ...DEFAULT_CONFIG.fields.referral_source,
+              ...(remoteFields.referral_source || {}),
+              options: Array.from(new Set([
+                ...REFERRAL_SOURCE_OPTIONS,
+                ...((remoteFields.referral_source as { options?: string[] })?.options || [])
+              ]))
+            }
+          },
+          custom_questions: Array.isArray(remoteCfg.custom_questions) 
+            ? (remoteCfg.custom_questions as CustomQuestion[]) 
+            : []
         });
       }
-    } catch (err) {
-
+    } catch (err: unknown) {
+      setOrgError(err instanceof Error ? err.message : "Clinic enquiry form not found");
+      setOrg(null);
     } finally {
       setFetchingOrg(false);
     }
-  };
+  }, [orgSlug]);
+
+  useEffect(() => {
+    fetchOrganization();
+  }, [fetchOrganization]);
+
+  const campaignSource = searchParams.get('source')?.trim() || null;
+  const campaignService = searchParams.get('service')?.trim() || null;
 
   const {
     register,
@@ -100,16 +172,33 @@ export default function PublicEnquiry() {
     watch,
     formState: { errors },
     reset,
-  } = useForm<any>({
+  } = useForm<PublicEnquiryFormData>({
     defaultValues: {
       preferred_call_time: "Anytime",
+      referral_source: campaignSource || "",
+      looking_for: campaignService || "",
     }
   });
 
-  const selectedSource = watch("referral_source");
-  const showDetailField = ["Professional Referral", "Word of Mouth / Friend", "Other"].includes(selectedSource);
+  // Pre-fill campaign source & service if present in URL
+  useEffect(() => {
+    if (campaignSource) {
+      setValue("referral_source", campaignSource, { shouldValidate: true });
+    }
+    if (campaignService) {
+      setValue("looking_for", campaignService, { shouldValidate: true });
+    }
+  }, [campaignSource, campaignService, setValue]);
 
-  const onSubmit = async (data: any) => {
+  const selectedSource = campaignSource || watch("referral_source");
+  const showDetailField = !campaignSource && ["Professional Referral", "Word of Mouth / Friend", "Other"].includes(selectedSource || "");
+
+  const availableSourceOptions = useMemo(() => {
+    const configuredOptions = config.fields.referral_source?.options || [];
+    return Array.from(new Set([...REFERRAL_SOURCE_OPTIONS, ...configuredOptions]));
+  }, [config.fields.referral_source?.options]);
+
+  const onSubmit = async (data: PublicEnquiryFormData) => {
     if (!org) return;
     setLoading(true);
     try {
@@ -121,14 +210,14 @@ export default function PublicEnquiry() {
           first_name: data.name.split(' ')[0],
           last_name: data.name.split(' ').slice(1).join(' '),
           mobile_no: data.contact,
-          looking_for: data.looking_for || 'General',
+          looking_for: data.looking_for || campaignService || 'General',
           preferred_call_time: data.preferred_call_time,
-          referral_source: data.referral_source,
+          referral_source: campaignSource || data.referral_source || 'Direct Web',
           referral_details: data.referral_details,
           work_place: data.work_place,
           notes: [
             data.notes,
-            ...(config.custom_questions?.map((q: any) => `${q.label}: ${data[`custom_${q.id}`] || ''}`) || [])
+            ...(config.custom_questions?.map((q: CustomQuestion) => `${q.label}: ${data[`custom_${q.id}`] || ''}`) || [])
           ].filter(Boolean).join('\n\n')
         })
       });
@@ -141,10 +230,10 @@ export default function PublicEnquiry() {
         description: "Thank you! Our representative will contact you shortly.",
       });
       reset();
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Submission Failed",
-        description: error.message || "Something went wrong. Please try again.",
+        description: error instanceof Error ? error.message : "Something went wrong. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -162,7 +251,9 @@ export default function PublicEnquiry() {
             </div>
             <div className="space-y-2">
               <h1 className="text-3xl font-display font-bold text-slate-900">Thank You!</h1>
-              <p className="text-slate-500">Your enquiry has been received. Our team will get back to you within 24 hours.</p>
+              <p className="text-slate-500 max-w-sm leading-relaxed">
+                {config.success_message || "Your enquiry has been received. Our team will get back to you within 24 hours."}
+              </p>
             </div>
             <Button 
               variant="outline" 
@@ -186,6 +277,26 @@ export default function PublicEnquiry() {
     );
   }
 
+  if (orgError || !org) {
+    return (
+      <div className="h-screen overflow-y-auto bg-slate-50 flex items-center justify-center p-4">
+        <Card className="max-w-md w-full shadow-2xl border-none">
+          <CardContent className="pt-12 pb-12 flex flex-col items-center text-center space-y-6">
+            <div className="w-16 h-16 rounded-full bg-rose-100 flex items-center justify-center text-rose-600">
+              <AlertCircle className="w-8 h-8" />
+            </div>
+            <div className="space-y-2">
+              <h1 className="text-2xl font-display font-bold text-slate-900">Enquiry Form Not Found</h1>
+              <p className="text-slate-500 text-sm max-w-sm leading-relaxed">
+                {orgError || `We couldn't find an active clinic enquiry form for "${orgSlug}". Please verify the URL or contact your clinic administrator.`}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="h-screen overflow-y-auto bg-slate-50 flex flex-col items-center p-4 py-12">
       {/* Background decoration */}
@@ -196,19 +307,24 @@ export default function PublicEnquiry() {
 
       <div className="max-w-2xl w-full space-y-8">
         <div className="text-center space-y-4">
+          {org?.logo_url && (
+            <div className="flex justify-center mb-2">
+              <img src={org.logo_url} alt={org?.name || 'Clinic'} className="h-14 max-w-[200px] object-contain drop-shadow" />
+            </div>
+          )}
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-bold uppercase tracking-wider">
             <MessageSquare className="w-3 h-3" /> Get in Touch
           </div>
           <div className="space-y-2">
             <h1 className="text-5xl sm:text-6xl font-display font-extrabold text-slate-900 tracking-tight">
-              {org?.name || ''}
+              {org?.name || 'ISHPO Clinic'}
             </h1>
             <h2 className="text-2xl sm:text-3xl font-display font-bold text-primary tracking-tight">
               {config.tagline || "How can we help?"}
             </h2>
           </div>
           <p className="text-slate-500 text-lg sm:text-xl max-w-lg mx-auto leading-relaxed">
-            Fill out the form below and start your journey towards peak performance and recovery.
+            {config.welcome_text || "Fill out the form below and start your journey towards peak performance and recovery."}
           </p>
         </div>
 
@@ -278,7 +394,7 @@ export default function PublicEnquiry() {
                     <Label htmlFor="looking_for" className="text-slate-700 font-semibold flex items-center gap-2">
                       <CheckCircle2 className="w-4 h-4 text-primary" /> Looking For {config.fields.looking_for.required && <span className="text-destructive">*</span>}
                     </Label>
-                    <Select onValueChange={(val) => setValue("looking_for", val)}>
+                    <Select value={watch("looking_for") || ""} onValueChange={(val) => setValue("looking_for", val, { shouldValidate: true })}>
                       <SelectTrigger className="h-12 bg-slate-50 border-slate-200 shadow-sm focus:ring-primary">
                         <SelectValue placeholder="Select a service" />
                       </SelectTrigger>
@@ -297,7 +413,7 @@ export default function PublicEnquiry() {
                     <Label htmlFor="preferred_call_time" className="text-slate-700 font-semibold flex items-center gap-2">
                       <Clock className="w-4 h-4 text-primary" /> Preferred Call Time
                     </Label>
-                    <Select onValueChange={(val) => setValue("preferred_call_time", val)}>
+                    <Select value={watch("preferred_call_time") || "Anytime"} onValueChange={(val) => setValue("preferred_call_time", val)}>
                       <SelectTrigger className="h-12 bg-slate-50 border-slate-200 shadow-sm focus:ring-primary">
                         <SelectValue placeholder="Anytime" />
                       </SelectTrigger>
@@ -313,20 +429,55 @@ export default function PublicEnquiry() {
 
               {config.fields.referral_source.visible && (
                 <div className="space-y-2">
-                  <Label htmlFor="referral_source" className="text-slate-700 font-semibold flex items-center gap-2">
-                    <Share2 className="w-4 h-4 text-primary" /> How did you hear about us? {config.fields.referral_source.required && <span className="text-destructive">*</span>}
-                  </Label>
-                  <Select onValueChange={(val) => setValue("referral_source", val)}>
-                    <SelectTrigger className="h-12 bg-slate-50 border-slate-200 shadow-sm focus:ring-primary">
-                      <SelectValue placeholder="Select source" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {REFERRAL_SOURCE_OPTIONS.map(opt => (
-                        <SelectItem key={opt} value={opt}>{opt}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {errors.referral_source && <p className="text-xs text-destructive font-medium">Please select a source</p>}
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="referral_source" className="text-slate-700 font-semibold flex items-center gap-2">
+                      <Share2 className="w-4 h-4 text-primary" /> How did you hear about us? {config.fields.referral_source.required && <span className="text-destructive">*</span>}
+                    </Label>
+                    {campaignSource && (
+                      <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200/80 px-2.5 py-0.5 rounded-full shadow-xs">
+                        <Lock className="w-3 h-3 text-emerald-600" /> Auto-Attributed
+                      </span>
+                    )}
+                  </div>
+
+                  {campaignSource ? (
+                    <div className="space-y-1.5">
+                      <div 
+                        data-testid="locked-referral-source"
+                        className="h-12 px-4 rounded-md border border-slate-200 bg-slate-100/90 flex items-center justify-between text-slate-800 font-medium text-sm select-none cursor-not-allowed"
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                          <span className="font-semibold text-slate-900">{campaignSource}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 text-xs text-slate-400 font-normal">
+                          <Lock className="w-3.5 h-3.5" />
+                          <span>Locked</span>
+                        </div>
+                      </div>
+                      <input type="hidden" {...register("referral_source")} value={campaignSource} />
+                      <p className="text-[12px] text-slate-500">
+                        Attribution channel automatically tagged via link and locked from manual modification.
+                      </p>
+                    </div>
+                  ) : (
+                    <Select 
+                      value={watch("referral_source") || ""} 
+                      onValueChange={(val) => setValue("referral_source", val, { shouldValidate: true })}
+                    >
+                      <SelectTrigger className="h-12 bg-slate-50 border-slate-200 shadow-sm focus:ring-primary">
+                        <SelectValue placeholder="Select source" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {availableSourceOptions.map((opt: string) => (
+                          <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                  {errors.referral_source && !campaignSource && (
+                    <p className="text-xs text-destructive font-medium">Please select a source</p>
+                  )}
                 </div>
               )}
 
@@ -347,17 +498,42 @@ export default function PublicEnquiry() {
               )}
 
               {/* Custom Questions */}
-              {config.custom_questions?.map((q: any) => (
+              {config.custom_questions?.map((q: CustomQuestion) => (
                 <div key={q.id} className="space-y-2">
                   <Label htmlFor={`custom_${q.id}`} className="text-slate-700 font-semibold flex items-center gap-2">
                     {q.label} {q.required && <span className="text-destructive">*</span>}
                   </Label>
-                  <Input 
-                    id={`custom_${q.id}`}
-                    {...register(`custom_${q.id}`, { required: q.required ? `${q.label} is required` : false })} 
-                    placeholder="Your answer..." 
-                    className="h-12 bg-slate-50 border-slate-200 focus:border-primary transition-all shadow-sm"
-                  />
+
+                  {q.type === 'textarea' ? (
+                    <Textarea 
+                      id={`custom_${q.id}`}
+                      {...register(`custom_${q.id}`, { required: q.required ? `${q.label} is required` : false })} 
+                      placeholder={q.placeholder || "Provide details here..."} 
+                      className="min-h-[100px] bg-slate-50 border-slate-200 focus:border-primary transition-all shadow-sm"
+                    />
+                  ) : q.type === 'select' && Array.isArray(q.options) && q.options.length > 0 ? (
+                    <Select 
+                      value={watch(`custom_${q.id}`) || ""} 
+                      onValueChange={(val) => setValue(`custom_${q.id}`, val, { shouldValidate: true })}
+                    >
+                      <SelectTrigger className="h-12 bg-slate-50 border-slate-200 shadow-sm focus:ring-primary">
+                        <SelectValue placeholder={q.placeholder || "Select an option"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {q.options.map((opt: string) => (
+                          <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <Input 
+                      id={`custom_${q.id}`}
+                      {...register(`custom_${q.id}`, { required: q.required ? `${q.label} is required` : false })} 
+                      placeholder={q.placeholder || "Your answer..."} 
+                      className="h-12 bg-slate-50 border-slate-200 focus:border-primary transition-all shadow-sm"
+                    />
+                  )}
+
                   {errors[`custom_${q.id}`] && <p className="text-xs text-destructive font-medium">{errors[`custom_${q.id}`]?.message as string}</p>}
                 </div>
               ))}

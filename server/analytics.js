@@ -1543,7 +1543,8 @@ router.get('/reports/sessions', requireAuth, async (req, res) => {
           cancelledSessions: 0,
           totalDurationMinutes: 0,
           totalDurationHours: 0,
-          uniqueClients: new Set()
+          uniqueClients: new Set(),
+          clientMap: new Map()
         });
       }
       const sStat = staffBreakdownMap.get(staffKey);
@@ -1551,6 +1552,30 @@ router.get('/reports/sessions', requireAuth, async (req, res) => {
       sStat.totalDurationMinutes += r.duration_minutes;
       if (r.client_id) {
         sStat.uniqueClients.add(r.client_id);
+
+        const scKey = r.client_id;
+        if (!sStat.clientMap.has(scKey)) {
+          sStat.clientMap.set(scKey, {
+            clientId: scKey,
+            clientUhid: r.client_uhid || '-',
+            clientName: r.client_name || 'Client',
+            clientSport: r.client_sport || 'General',
+            totalSessions: 0,
+            completedSessions: 0,
+            cancelledSessions: 0,
+            totalDurationMinutes: 0,
+            totalDurationHours: 0,
+          });
+        }
+        const scEntry = sStat.clientMap.get(scKey);
+        scEntry.totalSessions++;
+        scEntry.totalDurationMinutes += r.duration_minutes;
+        const stLower = (r.status || '').toLowerCase();
+        if (stLower === 'completed') {
+          scEntry.completedSessions++;
+        } else if (stLower.includes('cancel')) {
+          scEntry.cancelledSessions++;
+        }
       }
 
       // Client breakdown (Sessions done for each client - only for client sessions)
@@ -1622,17 +1647,35 @@ router.get('/reports/sessions', requireAuth, async (req, res) => {
       }
     });
 
-    const staffBreakdown = Array.from(staffBreakdownMap.values()).map(s => ({
-      staffId: s.staffId,
-      staffName: s.staffName,
-      profession: s.profession,
-      totalSessions: s.totalSessions,
-      completedSessions: s.completedSessions,
-      cancelledSessions: s.cancelledSessions,
-      totalDurationMinutes: s.totalDurationMinutes,
-      totalDurationHours: parseFloat((s.totalDurationMinutes / 60).toFixed(1)),
-      uniqueClientsCount: s.uniqueClients.size
-    })).sort((a, b) => b.totalSessions - a.totalSessions);
+    const staffBreakdown = Array.from(staffBreakdownMap.values()).map(s => {
+      const staffClientBreakdown = Array.from(s.clientMap.values()).map(c => {
+        const divisor = c.completedSessions > 0 ? c.completedSessions : (c.totalSessions > 0 ? c.totalSessions : 1);
+        const avgHours = parseFloat((c.totalDurationMinutes / 60 / divisor).toFixed(2));
+        const avgMinutes = Math.round(c.totalDurationMinutes / divisor);
+        const hoursSpent = parseFloat((c.totalDurationMinutes / 60).toFixed(1));
+        return {
+          ...c,
+          totalDurationHours: hoursSpent,
+          hoursSpent,
+          avgHours,
+          avgMinutes,
+          avgTimeSpent: `${avgHours} hrs (${avgMinutes} mins)`
+        };
+      }).sort((a, b) => b.hoursSpent - a.hoursSpent);
+
+      return {
+        staffId: s.staffId,
+        staffName: s.staffName,
+        profession: s.profession,
+        totalSessions: s.totalSessions,
+        completedSessions: s.completedSessions,
+        cancelledSessions: s.cancelledSessions,
+        totalDurationMinutes: s.totalDurationMinutes,
+        totalDurationHours: parseFloat((s.totalDurationMinutes / 60).toFixed(1)),
+        uniqueClientsCount: s.uniqueClients.size,
+        clientBreakdown: staffClientBreakdown
+      };
+    }).sort((a, b) => b.totalSessions - a.totalSessions);
 
     const clientBreakdown = Array.from(clientBreakdownMap.values()).map(c => ({
       clientId: c.clientId,

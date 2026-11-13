@@ -607,7 +607,7 @@ export function SportsScientistAssignWorkModal({ open, onOpenChange, onSuccess }
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div className="space-y-2">
                                 <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Session Type</Label>
-                                <Popover open={sessionTypeOpen} onOpenChange={setSessionTypeOpen}>
+                                <Popover modal={true} open={sessionTypeOpen} onOpenChange={setSessionTypeOpen}>
                                     <PopoverTrigger asChild>
                                         <Button
                                             variant="outline"
@@ -623,14 +623,20 @@ export function SportsScientistAssignWorkModal({ open, onOpenChange, onSuccess }
                                         </Button>
                                     </PopoverTrigger>
                                     <PopoverContent 
-                                        className="w-[calc(100vw-2.5rem)] sm:w-[450px] max-w-[450px] p-0 rounded-2xl overflow-hidden shadow-2xl border border-slate-200 dark:border-slate-800 z-[70]" 
+                                        className="w-[calc(100vw-2.5rem)] sm:w-[450px] max-w-[450px] p-0 rounded-2xl overflow-hidden shadow-2xl border border-slate-200 dark:border-slate-800 z-[70] pointer-events-auto" 
                                         align="start"
                                         sideOffset={4}
                                         collisionPadding={12}
+                                        onWheel={(e) => e.stopPropagation()}
+                                        onTouchMove={(e) => e.stopPropagation()}
                                     >
                                         <Command>
                                             <CommandInput placeholder="Search types..." />
-                                            <CommandList className="max-h-[260px] overflow-y-auto overscroll-contain">
+                                            <CommandList 
+                                                className="max-h-[260px] overflow-y-auto overscroll-contain pointer-events-auto custom-scrollbar"
+                                                onWheel={(e) => e.stopPropagation()}
+                                                onTouchMove={(e) => e.stopPropagation()}
+                                            >
                                                 <CommandEmpty>No session type found.</CommandEmpty>
                                                 <CommandGroup>
                                                     {sessionTypes.map((t) => (

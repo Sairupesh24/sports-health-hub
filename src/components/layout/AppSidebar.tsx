@@ -32,6 +32,7 @@ import {
   BarChart3,
   BookOpen,
   FileSpreadsheet,
+  SlidersHorizontal,
 } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 import { cn } from "@/lib/utils";
@@ -57,7 +58,6 @@ const adminNav: NavItem[] = [
   { label: "Clients", icon: Users, href: "/admin/clients" },
   { label: "Billing", icon: CreditCard, href: "/admin/billing" },
   { label: "Calendar", icon: CalendarDays, href: "/admin/calendar" },
-  { label: "Leads", icon: MessageSquare, href: "/admin/leads" },
   { label: "User Approvals", icon: UserCheck, href: "/admin/users" },
 ];
 
@@ -83,8 +83,12 @@ const foeNav: NavItem[] = [
   { label: "Clients", icon: Users, href: "/admin/clients" },
   { label: "Calendar", icon: CalendarDays, href: "/admin/calendar" },
   { label: "Billing", icon: CreditCard, href: "/admin/billing" },
-  { label: "Leads", icon: MessageSquare, href: "/admin/leads" },
   { label: "Attendance", icon: Clock, href: "/my-attendance" },
+];
+
+const crmNav: NavItem[] = [
+  { label: "Leads", icon: MessageSquare, href: "/crm" },
+  { label: "Enquiry Form", icon: SlidersHorizontal, href: "/crm/enquiry-form" },
 ];
 
 const sportsScientistNav: NavItem[] = [
@@ -178,10 +182,12 @@ const navMap: Record<string, NavItem[]> = {
   coach: coachNav,
   settings: settingsNav,
   questionnaires: questionnairesNav,
+  crm: crmNav,
 };
 
 const getPrimaryConsole = (userRoles: string[] = [], userProfile: any = null, explicitRole?: string): string => {
   if (explicitRole && explicitRole.trim()) {
+    if (explicitRole === "crm") return "crm";
     if (["consultant", "physiotherapist", "sports_physician", "massage_therapist"].includes(explicitRole)) return "consultant";
     if (explicitRole === "sports_scientist") return "sports_scientist";
     if (explicitRole === "nutritionist") return "nutritionist";
@@ -246,6 +252,7 @@ export default function AppSidebar({ role, isMobile, className, onNavigate }: Ap
     }
     if (roles?.includes("super_admin")) return "super_admin";
     if (roles?.includes("admin")) return "admin";
+    if (role === "crm") return "crm";
     if (
       roles?.includes("nutritionist") ||
       (profile?.profession || "").toLowerCase().includes("nutrition") ||
@@ -331,7 +338,18 @@ export default function AppSidebar({ role, isMobile, className, onNavigate }: Ap
     let resolved = storedConsole;
 
     // Detect console from unambiguous routes
-    if (consoleOverride === 'foe' || path === '/admin/foe' || path.startsWith('/admin/foe') || (isPureFoeUser && !path.startsWith('/ams') && !path.startsWith('/client'))) {
+    if (
+      consoleOverride === 'crm' ||
+      role === 'crm' ||
+      resolvedRole === 'crm' ||
+      path === '/crm' ||
+      path.startsWith('/crm') ||
+      path === '/admin/leads' ||
+      path.startsWith('/admin/leads')
+    ) {
+      resolved = 'crm';
+      try { sessionStorage.setItem('active_console', 'crm'); } catch {}
+    } else if (consoleOverride === 'foe' || path === '/admin/foe' || path.startsWith('/admin/foe') || (isPureFoeUser && !path.startsWith('/ams') && !path.startsWith('/client'))) {
       resolved = 'foe';
       try { sessionStorage.setItem('active_console', 'foe'); } catch {}
     } else if (
@@ -397,7 +415,6 @@ export default function AppSidebar({ role, isMobile, className, onNavigate }: Ap
       path.startsWith('/admin/clients') ||
       path.startsWith('/admin/billing') ||
       path.startsWith('/admin/calendar') ||
-      path.startsWith('/admin/leads') ||
       path.startsWith('/admin/users') ||
       path.startsWith('/admin/availability') ||
       path.startsWith('/admin/appointments')
@@ -411,7 +428,7 @@ export default function AppSidebar({ role, isMobile, className, onNavigate }: Ap
     }
 
     return resolved;
-  }, [location.pathname, roles, profile, resolvedRole, role]);
+  }, [location.pathname, location.search, roles, profile, resolvedRole, role]);
 
   const items = useMemo(() => {
     const hasCalendarAccess = Boolean(
@@ -422,6 +439,11 @@ export default function AppSidebar({ role, isMobile, className, onNavigate }: Ap
     const hasAnalyticsAccess = Boolean(
       roles?.some(r => ["admin", "super_admin", "manager", "hr_manager"].includes(r)) ||
       profile?.has_analytics_access === true
+    );
+
+    const hasLeadsAccess = Boolean(
+      roles?.some(r => ["admin", "super_admin", "foe"].includes(r)) ||
+      profile?.has_leads_access === true
     );
 
     // Dynamic builders for primary console menus
@@ -487,7 +509,6 @@ export default function AppSidebar({ role, isMobile, className, onNavigate }: Ap
         nav.push({ label: "Calendar", icon: CalendarDays, href: "/admin/calendar" });
       }
       nav.push(
-        { label: "Leads", icon: MessageSquare, href: "/admin/leads" },
         { label: "User Approvals", icon: UserCheck, href: "/admin/users" }
       );
       return nav;
@@ -516,9 +537,19 @@ export default function AppSidebar({ role, isMobile, className, onNavigate }: Ap
       return foeNav;
     };
 
+    const buildCrmNav = (): NavItem[] => {
+      return [
+        { label: "Leads", icon: MessageSquare, href: "/crm" },
+        { label: "Enquiry Form", icon: SlidersHorizontal, href: "/crm/enquiry-form" },
+      ];
+    };
+
     let activeConsoleItems: NavItem[] = buildAdminNav();
 
     switch (effectiveConsole) {
+      case 'crm':
+        activeConsoleItems = buildCrmNav();
+        break;
       case 'analytics':
         activeConsoleItems = analyticsNav;
         break;
@@ -563,7 +594,7 @@ export default function AppSidebar({ role, isMobile, className, onNavigate }: Ap
     }
 
     return activeConsoleItems;
-  }, [effectiveConsole, profile?.has_calendar_access, profile?.has_analytics_access, roles]);
+  }, [effectiveConsole, profile?.has_calendar_access, profile?.has_analytics_access, profile?.has_leads_access, roles]);
 
   const isLoadingState = loading || items.length === 0;
 
@@ -597,7 +628,8 @@ export default function AppSidebar({ role, isMobile, className, onNavigate }: Ap
               ISHPO
             </span>
             <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground truncate mt-0.5">
-              {effectiveConsole === 'sports_scientist' ? 'Athlete Management'
+              {effectiveConsole === 'crm' ? 'Leads & CRM'
+                : effectiveConsole === 'sports_scientist' ? 'Athlete Management'
                 : effectiveConsole === 'consultant' ? 'Clinical Management'
                 : effectiveConsole === 'nutritionist' ? 'Nutritionist'
                 : effectiveConsole === 'hr' || effectiveConsole === 'hr_manager' ? 'HR Console'
@@ -657,6 +689,7 @@ export default function AppSidebar({ role, isMobile, className, onNavigate }: Ap
           ) : (
             items.map((item) => {
               const isDashboardRoot = [
+                "/crm",
                 "/hr",
                 "/admin",
                 "/admin/foe",

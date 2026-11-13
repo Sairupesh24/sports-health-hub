@@ -59,9 +59,10 @@ interface SessionEvent {
     status: string;
     service_id?: string | null;
     service_type: string;
-    client: { first_name: string; middle_name?: string; last_name: string; honorific?: string; is_vip?: boolean } | null;
+    client: { first_name: string; middle_name?: string; last_name: string; honorific?: string; is_vip?: boolean; uhid?: string } | null;
     therapist: { first_name: string; last_name: string; role?: string };
-    rawSession: any;
+    therapist_id?: string;
+    rawSession: Record<string, unknown>;
     is_unentitled?: boolean;
     is_pre_unentitled?: boolean;
     is_guest?: boolean;
@@ -72,15 +73,49 @@ interface SessionEvent {
     group_name?: string | null;
 }
 
+interface StaffScheduleItem {
+    consultant_id?: string;
+    breaks?: string | Record<string, unknown> | unknown[];
+    available_days?: string[];
+    start_time?: string;
+    end_time?: string;
+    shift_start?: string;
+    shift_end?: string;
+    [key: string]: unknown;
+}
+
+interface HrLeaveItem {
+    id?: string;
+    employee_id?: string;
+    first_name?: string;
+    last_name?: string;
+    status?: string;
+    start_date?: string;
+    end_date?: string;
+    leave_type?: string;
+    [key: string]: unknown;
+}
+
+interface WaitlistItem {
+    id: string;
+    client_id?: string;
+    therapist_id?: string;
+    service_id?: string;
+    preferred_date?: string;
+    preferred_time_slot?: string;
+    preference_type?: string;
+    [key: string]: unknown;
+}
+
 export default function AdminCalendar() {
     const { profile, roles } = useAuth();
     const queryClient = useQueryClient();
     const [activeTab, setActiveTab] = useState("master");
     const [isBookModalOpen, setIsBookModalOpen] = useState(false);
-    const [selectedSession, setSelectedSession] = useState<any>(null);
+    const [selectedSession, setSelectedSession] = useState<CalendarSession | null>(null);
     const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
     const [isEmergencyModalOpen, setIsEmergencyModalOpen] = useState(false);
-    const [waitlistInitialData, setWaitlistInitialData] = useState<any>(null);
+    const [waitlistInitialData, setWaitlistInitialData] = useState<Record<string, unknown> | null>(null);
 
     const handleOpenResourceScheduleManager = () => {
         const settingsModule = APP_MODULES.find((m) => m.id === "settings");
@@ -136,7 +171,7 @@ export default function AdminCalendar() {
         profession?: string | null;
         role?: string | null;
         avatar_url?: string | null;
-        emergency_alerts?: any[];
+        emergency_alerts?: unknown[];
     }
 
     const [consultants, setConsultants] = useState<ConsultantProfile[]>([]);
@@ -145,7 +180,7 @@ export default function AdminCalendar() {
     const [selectedConsultants, setSelectedConsultants] = useState<string[]>([]);
 
 
-    const handleWaitlistBook = (item: any) => {
+    const handleWaitlistBook = (item: WaitlistItem) => {
         let cleanDate = "";
         if (item.preferred_date) {
             const d = new Date(item.preferred_date);
@@ -171,13 +206,20 @@ export default function AdminCalendar() {
             if (!profile?.organization_id) return;
 
             try {
-                const specialists = await apiFetch<any[]>('/hr/employees', {
+                const specialists = await apiFetch<Array<{
+                    id: string;
+                    first_name?: string;
+                    last_name?: string;
+                    profession?: string;
+                    avatar_url?: string;
+                    emergency_alerts?: unknown[];
+                }>>('/hr/employees', {
                     params: { role_type: 'clinical' }
                 });
 
-                setConsultants(specialists.map(p => ({
+                setConsultants((specialists || []).map(p => ({
                     id: p.id,
-                    name: `${p.first_name} ${p.last_name}`,
+                    name: `${p.first_name || ""} ${p.last_name || ""}`.trim(),
                     profession: p.profession,
                     avatar_url: p.avatar_url,
                     emergency_alerts: p.emergency_alerts
@@ -213,7 +255,7 @@ export default function AdminCalendar() {
         queryFn: async () => {
             if (!profile?.organization_id) return [];
             try {
-                const data = await apiFetch<any[]>('/appointments/waitlist', {
+                const data = await apiFetch<WaitlistItem[]>('/appointments/waitlist', {
                     params: {
                         start: dateRange.start.split('T')[0],
                         end: dateRange.end.split('T')[0],
@@ -233,10 +275,10 @@ export default function AdminCalendar() {
         queryKey: ['admin-calendar-emergencies', profile?.organization_id],
         queryFn: async () => {
             try {
-                const res = await apiFetch<any>('/hr/emergencies', {
+                const res = await apiFetch<{ data?: Array<{ employee_id?: string; [key: string]: unknown }> }>('/hr/emergencies', {
                     params: { status: 'unresolved' }
                 });
-                return res.data || [];
+                return res?.data || [];
             } catch (error) {
                 console.error("Emergency alerts error:", error);
                 return [];
@@ -250,7 +292,7 @@ export default function AdminCalendar() {
         queryFn: async () => {
             if (!profile?.organization_id) return [];
             try {
-                const data = await apiFetch<any[]>('/hr/staff-schedules');
+                const data = await apiFetch<StaffScheduleItem[]>('/hr/staff-schedules');
                 return data || [];
             } catch (error) {
                 console.error("Staff schedules fetch error:", error);
@@ -265,7 +307,7 @@ export default function AdminCalendar() {
         queryFn: async () => {
             if (!profile?.organization_id) return [];
             try {
-                const res = await apiFetch<{ data: any[] }>('/hr/leaves');
+                const res = await apiFetch<{ data: HrLeaveItem[] }>('/hr/leaves');
                 return res.data || [];
             } catch (error) {
                 console.error("Leaves fetch error:", error);
@@ -280,7 +322,7 @@ export default function AdminCalendar() {
         queryFn: async () => {
             if (!profile?.organization_id) return null;
             try {
-                return await apiFetch<any>(`/organizations/${profile?.organization_id}/settings`);
+                return await apiFetch<Record<string, unknown>>(`/organizations/${profile?.organization_id}/settings`);
             } catch (error) {
                 console.error("Org settings fetch error:", error);
                 return null;
@@ -294,24 +336,42 @@ export default function AdminCalendar() {
         queryFn: async () => {
             if (!profile?.organization_id) return [];
 
-            const data = await apiFetch<any[]>('/appointments', {
+            const data = await apiFetch<Array<{
+                id: string;
+                scheduled_start: string;
+                scheduled_end: string;
+                status: string;
+                service_id?: string;
+                service_type: string;
+                client_id?: string;
+                therapist_id?: string;
+                scientist_id?: string;
+                client_first_name?: string;
+                client_last_name?: string;
+                is_vip?: boolean;
+                therapist_first_name?: string;
+                therapist_last_name?: string;
+                client?: { first_name?: string; last_name?: string; is_vip?: boolean };
+                therapist?: { first_name?: string; last_name?: string };
+                [key: string]: unknown;
+            }>>('/appointments', {
                 params: {
                     start: dateRange.start,
                     end: dateRange.end
                 }
             });
 
-            return data.map(session => ({ 
+            return (data || []).map(session => ({ 
                 ...session, 
                 therapist_id: session.therapist_id || session.scientist_id,
                 client: { 
-                    first_name: session.client?.first_name || session.client_first_name, 
-                    last_name: session.client?.last_name || session.client_last_name, 
+                    first_name: session.client?.first_name || session.client_first_name || "", 
+                    last_name: session.client?.last_name || session.client_last_name || "", 
                     is_vip: session.client?.is_vip || session.is_vip 
                 },
                 therapist: { 
-                    first_name: session.therapist?.first_name || session.therapist_first_name, 
-                    last_name: session.therapist?.last_name || session.therapist_last_name 
+                    first_name: session.therapist?.first_name || session.therapist_first_name || "", 
+                    last_name: session.therapist?.last_name || session.therapist_last_name || "" 
                 },
                 rawSession: session 
             } as SessionEvent));
@@ -336,9 +396,9 @@ export default function AdminCalendar() {
             const results = await Promise.all(
                 targetIds.map(async (clientId) => {
                     try {
-                        const data = await apiFetch<any>(`/billing/entitlements/balance/${clientId}`);
-                        return { clientId, byServiceName: data.byServiceName || {} };
-                    } catch (error) {
+                        const data = await apiFetch<{ byServiceName?: Record<string, number> }>(`/billing/entitlements/balance/${clientId}`);
+                        return { clientId, byServiceName: data?.byServiceName || {} };
+                    } catch {
                         return { clientId, byServiceName: {} };
                     }
                 })
@@ -616,34 +676,34 @@ export default function AdminCalendar() {
     };
 
     const getClinicianBreaks = (clinicianId: string) => {
-        const schedule = staffSchedules.find((s: any) => s.consultant_id === clinicianId);
+        const schedule = staffSchedules.find((s: StaffScheduleItem) => s.consultant_id === clinicianId);
         if (!schedule) return [];
 
         let loadedBreaks = schedule.breaks || {};
         if (typeof loadedBreaks === 'string') {
             try {
                 loadedBreaks = JSON.parse(loadedBreaks);
-            } catch (e) {
+            } catch {
                 loadedBreaks = {};
             }
         }
 
-        let activeBreaksList: any[] = [];
+        let activeBreaksList: Array<{ start_time: string; end_time: string }> = [];
         if (Array.isArray(loadedBreaks)) {
-            activeBreaksList = loadedBreaks;
-        } else if (loadedBreaks.all) {
-            activeBreaksList = loadedBreaks.all;
-        } else {
+            activeBreaksList = loadedBreaks as Array<{ start_time: string; end_time: string }>;
+        } else if (typeof loadedBreaks === 'object' && loadedBreaks !== null && 'all' in loadedBreaks) {
+            activeBreaksList = (loadedBreaks as { all: Array<{ start_time: string; end_time: string }> }).all;
+        } else if (typeof loadedBreaks === 'object' && loadedBreaks !== null) {
             const dayKey = String(currentDate.getDay());
-            activeBreaksList = loadedBreaks[dayKey] || [];
+            activeBreaksList = (loadedBreaks as Record<string, Array<{ start_time: string; end_time: string }>>)[dayKey] || [];
         }
 
         return activeBreaksList;
     };
 
-    const getSlotStats = (clinicianId: string, clinicianSessions: any[]) => {
+    const getSlotStats = (clinicianId: string, clinicianSessions: CalendarSession[]) => {
         // Check if clinician is currently on approved leave today
-        const clinicianLeave = hrLeaves.find((leave: any) => {
+        const clinicianLeave = hrLeaves.find((leave: HrLeaveItem) => {
             if (leave.employee_id !== clinicianId) return false;
             if (leave.status !== 'Approved') return false;
             const startStr = leave.start_date ? String(leave.start_date).split('T')[0] : '';
@@ -663,7 +723,7 @@ export default function AdminCalendar() {
             };
         }
 
-        const schedule = staffSchedules.find((s: any) => s.consultant_id === clinicianId);
+        const schedule = staffSchedules.find((s: StaffScheduleItem) => s.consultant_id === clinicianId);
         let shiftStartStr = "08:00";
         let shiftEndStr = "17:00";
         if (schedule) {
@@ -697,9 +757,9 @@ export default function AdminCalendar() {
             }
 
             // 2. Must not overlap with break
-            const overlapsBreak = breaksList.some((b: any) => {
-                const bStartMins = timeToMins(b.start_time || b.startTime);
-                const bEndMins = timeToMins(b.end_time || b.endTime);
+            const overlapsBreak = breaksList.some((b: { start_time: string; end_time: string }) => {
+                const bStartMins = timeToMins(b.start_time);
+                const bEndMins = timeToMins(b.end_time);
                 return slotStartMins < bEndMins && slotEndMins > bStartMins;
             });
 
@@ -708,7 +768,7 @@ export default function AdminCalendar() {
             }
 
             // 3. Must not overlap with booked session (modified for capacity check)
-            const overlappingSessionsCount = clinicianSessions.filter((s: any) => {
+            const overlappingSessionsCount = clinicianSessions.filter((s: CalendarSession) => {
                 const sStart = parseISO(s.scheduled_start);
                 const sEnd = parseISO(s.scheduled_end);
 
@@ -724,7 +784,7 @@ export default function AdminCalendar() {
                 return slotStartMins < sEndMins && slotEndMins > sStartMins;
             }).length;
 
-            const clinicianObj = consultants.find((c: any) => c.id === clinicianId);
+            const clinicianObj = consultants.find((c: ConsultantProfile) => c.id === clinicianId);
             const prof = clinicianObj?.profession?.toLowerCase();
             const r = clinicianObj?.role?.toLowerCase();
             const isSportsScientist = prof === 'sports scientist' || r === 'sports_scientist';
@@ -753,7 +813,7 @@ export default function AdminCalendar() {
         };
     };
 
-    const getBookingStyleAndElements = (session: any) => {
+    const getBookingStyleAndElements = (session: CalendarSession) => {
         const start = parseISO(session.scheduled_start);
         const end = parseISO(session.scheduled_end);
         const now = new Date();
@@ -826,7 +886,7 @@ export default function AdminCalendar() {
                     </span>
                 );
                 break;
-            case 'overdue':
+            case 'overdue': {
                 const isUnentitled = session.is_unentitled || session.is_pre_unentitled;
                 if (isUnentitled) {
                     cardClasses = "border-red-500 bg-red-50 text-red-800";
@@ -852,6 +912,7 @@ export default function AdminCalendar() {
                     );
                 }
                 break;
+            }
             case 'planned':
             default:
                 cardClasses = "border-blue-300 bg-blue-50 text-blue-800";
@@ -868,7 +929,7 @@ export default function AdminCalendar() {
 
     const handleCellClick = (consultantId: string, startTime: string) => {
         if (consultantId !== 'unassigned') {
-            const clinicianLeave = hrLeaves.find((leave: any) => {
+            const clinicianLeave = hrLeaves.find((leave: HrLeaveItem) => {
                 if (leave.employee_id !== consultantId) return false;
                 if (leave.status !== 'Approved') return false;
                 const startStr = leave.start_date ? String(leave.start_date).split('T')[0] : '';
@@ -945,9 +1006,9 @@ export default function AdminCalendar() {
                 const cloneDay = day;
                 const formattedDate = format(cloneDay, "d");
                 const dayEvents = sessions.filter(s => isSameDay(parseISO(s.scheduled_start), cloneDay));
-                const hasWaitlist = waitlistSummary.some((w: any) => isSameDay(parseISO(w.preferred_date), cloneDay));
+                const hasWaitlist = waitlistSummary.some((w: WaitlistItem) => isSameDay(parseISO(w.preferred_date || ""), cloneDay));
 
-                const leavesOnDay = hrLeaves.filter((leave: any) => {
+                const leavesOnDay = hrLeaves.filter((leave: HrLeaveItem) => {
                     if (leave.status !== 'Approved') return false;
                     const startStr = leave.start_date ? String(leave.start_date).split('T')[0] : '';
                     const endStr = leave.end_date ? String(leave.end_date).split('T')[0] : '';
@@ -960,7 +1021,7 @@ export default function AdminCalendar() {
                         return emp?.profession === selectedRole;
                     } else {
                         if (selectedConsultants.length === 0) return true;
-                        return selectedConsultants.includes(leave.employee_id);
+                        return selectedConsultants.includes(leave.employee_id || "");
                     }
                 });
 
@@ -993,13 +1054,13 @@ export default function AdminCalendar() {
                                 {formattedDate}
                             </span>
                             {leavesOnDay.length > 0 && isSameMonth(cloneDay, monthStart) && (
-                                <span className="text-[9px] font-bold text-rose-600 dark:text-rose-400 flex items-center gap-0.5 bg-rose-100 dark:bg-rose-950/80 px-1.5 py-0.5 rounded" title={leavesOnDay.map((l: any) => { const emp = consultants.find(c => c.id === l.employee_id); return `${emp?.name || l.first_name || 'Staff'}: ${l.leave_type || 'Leave'}`; }).join(', ')}>
+                                <span className="text-[9px] font-bold text-rose-600 dark:text-rose-400 flex items-center gap-0.5 bg-rose-100 dark:bg-rose-950/80 px-1.5 py-0.5 rounded" title={leavesOnDay.map((l: HrLeaveItem) => { const emp = consultants.find(c => c.id === l.employee_id); return `${emp?.name || l.first_name || 'Staff'}: ${l.leave_type || 'Leave'}`; }).join(', ')}>
                                     🏖️ {leavesOnDay.length} on leave
                                 </span>
                             )}
                         </div>
                         <div className="mt-2 space-y-1 overflow-y-auto max-h-[80px] no-scrollbar">
-                            {leavesOnDay.map((l: any) => {
+                            {leavesOnDay.map((l: HrLeaveItem) => {
                                 const emp = consultants.find(c => c.id === l.employee_id);
                                 const empName = emp ? emp.name : (l.first_name ? `${l.first_name} ${l.last_name}` : "Staff");
                                 const leaveLabel = l.leave_type ? l.leave_type.replace(/_/g, ' ') : "Leave";
@@ -1040,7 +1101,7 @@ export default function AdminCalendar() {
                                             UN
                                         </span>
                                     )}
-                                    {(event as any).is_pre_unentitled && (
+                                    {event.is_pre_unentitled && (
                                         <span className="ml-1 px-1 bg-orange-400 text-white rounded-[2px] text-[8px] font-bold" title="Client has no entitlements for this service">
                                             ⚠
                                         </span>
@@ -1080,7 +1141,7 @@ export default function AdminCalendar() {
                 <div className="flex border-b border-border/50 bg-muted/50">
                     <div className="w-16 border-r border-border/50 shrink-0"></div>
                     {weekDays.map(day => {
-                        const leavesOnWeekDay = hrLeaves.filter((leave: any) => {
+                        const leavesOnWeekDay = hrLeaves.filter((leave: HrLeaveItem) => {
                             if (leave.status !== 'Approved') return false;
                             const startStr = leave.start_date ? String(leave.start_date).split('T')[0] : '';
                             const endStr = leave.end_date ? String(leave.end_date).split('T')[0] : '';
@@ -1093,7 +1154,7 @@ export default function AdminCalendar() {
                                 return emp?.profession === selectedRole;
                             } else {
                                 if (selectedConsultants.length === 0) return true;
-                                return selectedConsultants.includes(leave.employee_id);
+                                return selectedConsultants.includes(leave.employee_id || "");
                             }
                         });
 
@@ -1106,7 +1167,7 @@ export default function AdminCalendar() {
                                 {leavesOnWeekDay.length > 0 && (
                                     <div 
                                         className="mt-1 px-1.5 py-0.5 rounded-full bg-rose-100 dark:bg-rose-950/80 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800 text-[8px] font-bold truncate max-w-[95%] mx-auto"
-                                        title={leavesOnWeekDay.map((l: any) => { const emp = consultants.find(c => c.id === l.employee_id); return `${emp?.name || l.first_name || 'Staff'}: ${l.leave_type || 'Leave'}`; }).join(', ')}
+                                        title={leavesOnWeekDay.map((l: HrLeaveItem) => { const emp = consultants.find(c => c.id === l.employee_id); return `${emp?.name || l.first_name || 'Staff'}: ${l.leave_type || 'Leave'}`; }).join(', ')}
                                     >
                                         🏖️ {leavesOnWeekDay.length} on leave
                                     </div>
@@ -1189,7 +1250,7 @@ export default function AdminCalendar() {
                                                             <Filter className="w-2 h-2" /> UN
                                                         </div>
                                                     )}
-                                                    {(event as any).is_pre_unentitled && (
+                                                    {event.is_pre_unentitled && (
                                                         <div className="absolute top-1 right-1 px-1 py-0 bg-orange-400 text-white text-[7px] font-black rounded flex items-center gap-0.5 z-10">
                                                             ⚠ NO
                                                         </div>
@@ -1330,7 +1391,7 @@ export default function AdminCalendar() {
                             const hasEmergency = clinician.emergency_alerts && clinician.emergency_alerts.length > 0;
 
                             // Leaves Overlay logic
-                            const activeLeave = hrLeaves.find((leave: any) => {
+                            const activeLeave = hrLeaves.find((leave: HrLeaveItem) => {
                                 if (leave.employee_id !== clinician.id) return false;
                                 if (leave.status !== 'Approved') return false;
                                 
@@ -1362,18 +1423,18 @@ export default function AdminCalendar() {
                                 return new Date(a.scheduled_start).getTime() - new Date(b.scheduled_start).getTime();
                             });
 
-                            const getSessionLayout = (session: any) => {
+                            const getSessionLayout = (session: CalendarSession) => {
                                 const start = parseISO(session.scheduled_start).getTime();
                                 const end = parseISO(session.scheduled_end).getTime();
 
-                                const overlapping = sortedSessions.filter((s: any) => {
+                                const overlapping = sortedSessions.filter((s: CalendarSession) => {
                                     const sStart = parseISO(s.scheduled_start).getTime();
                                     const sEnd = parseISO(s.scheduled_end).getTime();
                                     return start < sEnd && end > sStart;
                                 });
 
                                 const stackCount = overlapping.length;
-                                const stackIndex = overlapping.findIndex((s: any) => s.id === session.id);
+                                const stackIndex = overlapping.findIndex((s: CalendarSession) => s.id === session.id);
 
                                 const { top, height } = getTopAndHeight(parseISO(session.scheduled_start), parseISO(session.scheduled_end));
 
@@ -1390,7 +1451,7 @@ export default function AdminCalendar() {
                             };
 
                             // Clinician Shift Schedule calculation
-                            const schedule = staffSchedules.find((s: any) => s.consultant_id === clinician.id);
+                            const schedule = staffSchedules.find((s: StaffScheduleItem) => s.consultant_id === clinician.id);
                             let shiftStartStr = "08:00";
                             let shiftEndStr = "17:00";
                             let isWorkingToday = true;
@@ -1576,7 +1637,7 @@ export default function AdminCalendar() {
                                         )}
 
                                         {/* Breaks Overlays */}
-                                        {!isCurrentlyOnLeave && clinicianBreaks.map((breakBlock: any, idx: number) => {
+                                        {!isCurrentlyOnLeave && clinicianBreaks.map((breakBlock: { start_time: string; end_time: string }, idx: number) => {
                                             const { top, height } = getTopAndHeight(breakBlock.start_time, breakBlock.end_time);
                                             return (
                                                 <div
@@ -1626,7 +1687,7 @@ export default function AdminCalendar() {
                                                                         ) : event.is_guest ? (
                                                                             <span>G: {event.guest_name}</span>
                                                                         ) : (
-                                                                            <span>{formatClientName(event.client)} ({(event.client as any)?.uhid || '-'})</span>
+                                                                            <span>{formatClientName(event.client)} ({event.client?.uhid || '-'})</span>
                                                                         )}
                                                                     </div>
                                                                     <div className="flex items-center gap-1 shrink-0">
@@ -1681,7 +1742,7 @@ export default function AdminCalendar() {
                                                                                 UN
                                                                             </span>
                                                                         )}
-                                                                        {(event as any).is_pre_unentitled && (
+                                                                        {event.is_pre_unentitled && (
                                                                             <span className="px-1 bg-orange-500 text-white text-[7px] font-black rounded" title="Client has no entitlements for this service">
                                                                                 ⚠ NO
                                                                             </span>

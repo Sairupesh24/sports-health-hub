@@ -410,7 +410,7 @@ export function ConsultantBookSlotModal({ open, onOpenChange, defaultDate, onSuc
                     {/* Client Selection */}
                     <div className="space-y-1.5">
                         <Label className="font-medium">Client / Patient *</Label>
-                        <Popover open={clientOpen} onOpenChange={setClientOpen}>
+                        <Popover modal={true} open={clientOpen} onOpenChange={setClientOpen}>
                             <PopoverTrigger asChild>
                                 <Button
                                     variant="outline"
@@ -435,10 +435,19 @@ export function ConsultantBookSlotModal({ open, onOpenChange, defaultDate, onSuc
                                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                 </Button>
                             </PopoverTrigger>
-                            <PopoverContent className="w-[480px] p-0" align="start">
+                            <PopoverContent 
+                                className="w-[480px] p-0 pointer-events-auto" 
+                                align="start"
+                                onWheel={(e) => e.stopPropagation()}
+                                onTouchMove={(e) => e.stopPropagation()}
+                            >
                                 <Command>
                                     <CommandInput placeholder="Search client name, mobile, UHID..." />
-                                    <CommandList className="max-h-60">
+                                    <CommandList 
+                                        className="max-h-60 overflow-y-auto pointer-events-auto custom-scrollbar"
+                                        onWheel={(e) => e.stopPropagation()}
+                                        onTouchMove={(e) => e.stopPropagation()}
+                                    >
                                         <CommandEmpty>No client found.</CommandEmpty>
                                         <CommandGroup>
                                             {clients.map((c) => (

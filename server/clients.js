@@ -630,11 +630,19 @@ router.get('/enquiries/all', requireAuth, async (req, res) => {
 router.get('/enquiries/:id/interactions', requireAuth, async (req, res) => {
     try {
         const { id } = req.params;
+        const orgId = req.user.organization_id;
+
+        // Verify enquiry belongs to user's organization
+        const enqCheck = await db.query('SELECT id FROM enquiries WHERE id = $1 AND organization_id = $2', [id, orgId]);
+        if (enqCheck.rows.length === 0) {
+            return res.status(404).json({ error: 'Enquiry not found' });
+        }
         
         const result = await db.query(`
-            SELECT ei.*, p.first_name, p.last_name
+            SELECT ei.*, p.first_name, p.last_name, p.avatar_url, p.profession, u.role as user_role
             FROM enquiryinteractions ei
             LEFT JOIN profiles p ON ei.created_by = p.id
+            LEFT JOIN users u ON ei.created_by = u.id
             WHERE ei.enquiry_id = $1
             ORDER BY ei.created_at ASC
         `, [id]);
@@ -649,16 +657,207 @@ router.get('/enquiries/:id/interactions', requireAuth, async (req, res) => {
 router.post('/enquiries/:id/interactions', requireAuth, async (req, res) => {
     try {
         const { id } = req.params;
-        const { interaction_type, response_text, follow_up_required, follow_up_at } = req.body;
+        const { 
+            interaction_type, 
+            response_text, 
+            follow_up_required, 
+            follow_up_at, 
+            follow_up_note, 
+            disposition, 
+            sentiment, 
+            metadata 
+        } = req.body;
         const userId = req.user.id;
+        const orgId = req.user.organization_id;
+
+        // Verify enquiry belongs to user's organization
+        const enqCheck = await db.query('SELECT id FROM enquiries WHERE id = $1 AND organization_id = $2', [id, orgId]);
+        if (enqCheck.rows.length === 0) {
+            return res.status(404).json({ error: 'Enquiry not found' });
+        }
+
+        const metaObj = metadata && typeof metadata === 'object' ? metadata : {};
+        if (sentiment) metaObj.sentiment = sentiment;
+        if (disposition) metaObj.disposition = disposition;
+        if (follow_up_note) metaObj.follow_up_note = follow_up_note;
         
         const result = await db.query(`
-            INSERT INTO enquiryinteractions (enquiry_id, interaction_type, response_text, follow_up_required, follow_up_at, created_by)
-            VALUES ($1, $2, $3, $4, $5, $6)
+            INSERT INTO enquiryinteractions (
+                enquiry_id, interaction_type, response_text, follow_up_required, 
+                follow_up_at, follow_up_note, disposition, metadata, created_by
+            )
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9)
             RETURNING *
-        `, [id, interaction_type, response_text, follow_up_required || false, follow_up_at || null, userId]);
+        `, [
+            id, 
+            interaction_type, 
+            response_text, 
+            follow_up_required || false, 
+            follow_up_at || null,
+            follow_up_note || null,
+            disposition || null,
+            JSON.stringify(metaObj),
+            userId
+        ]);
+
+        // Auto-update enquiry with last_interaction_at and follow_up_at
+        const enqUpdates = ['last_interaction_at = NOW()'];
+        const enqParams = [id, orgId];
+
+        if (follow_up_required) {
+            enqUpdates.push(`next_follow_up_at = $${enqParams.length + 1}`);
+            enqParams.push(follow_up_at);
+        } else if (follow_up_required === false && follow_up_at === null) {
+            enqUpdates.push(`next_follow_up_at = NULL`);
+        }
+
+        if (sentiment) {
+            enqUpdates.push(`lead_temperature = $${enqParams.length + 1}`);
+            enqParams.push(sentiment);
+        }
+
+        await db.query(`
+            UPDATE enquiries SET ${enqUpdates.join(', ')}
+            WHERE id = $1 AND organization_id = $2
+        `, enqParams);
         
         res.status(201).json(result.rows[0]);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// POST Convert Enquiry to New Patient Directly
+router.post('/enquiries/:id/convert-to-patient', requireAuth, async (req, res) => {
+    const client = await db.connect();
+    try {
+        const { id } = req.params;
+        const orgId = req.user.organization_id;
+        const userId = req.user.id;
+
+        await client.query('BEGIN');
+
+        // 1. Fetch Enquiry Details
+        const enqRes = await client.query('SELECT * FROM enquiries WHERE id = $1 AND organization_id = $2', [id, orgId]);
+        if (enqRes.rows.length === 0) {
+            await client.query('ROLLBACK');
+            return res.status(404).json({ error: 'Enquiry not found' });
+        }
+        const enq = enqRes.rows[0];
+
+        // 2. Generate UHID
+        const uhidRes = await client.query('SELECT generate_uhid_func($1) as uhid', [orgId]);
+        const uhid = uhidRes.rows[0].uhid;
+
+        // 3. Insert Client Record
+        const {
+            first_name = enq.first_name,
+            last_name = enq.last_name || '',
+            mobile_no = enq.mobile_no,
+            email = enq.email || null,
+            gender = req.body.gender || 'Other',
+            dob = req.body.dob || null,
+            age = req.body.age || null,
+            referral_source = enq.referral_source || 'Direct',
+            referral_source_detail = enq.referral_details || null,
+            sport = req.body.sport || null,
+            athlete_type = req.body.athlete_type || 'General Population',
+            occupation = enq.work_place || req.body.occupation || null
+        } = req.body;
+
+        const insertClientQuery = `
+            INSERT INTO clients (
+                organization_id, uhid, first_name, last_name, mobile_no, email,
+                gender, dob, age, referral_source, referral_source_detail,
+                sport, athlete_type, occupation, created_by, registered_on
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, CURRENT_DATE)
+            RETURNING id, uhid, first_name, last_name, mobile_no
+        `;
+
+        const clientRes = await client.query(insertClientQuery, [
+            orgId, uhid, first_name, last_name, mobile_no, email,
+            gender, dob, age, referral_source, referral_source_detail,
+            sport, athlete_type, occupation, userId
+        ]);
+        const newClient = clientRes.rows[0];
+
+        // 4. Save Enquiry Notes into Client Admin Remarks if present
+        if (enq.notes) {
+            await client.query(
+                'INSERT INTO clientadminnotes (client_id, remarks, updated_by) VALUES ($1, $2, $3)',
+                [newClient.id, `[Enquiry Conversion Note]: ${enq.notes}`, userId]
+            );
+        }
+
+        // 5. Update Enquiry: Mark converted & link
+        await client.query(`
+            UPDATE enquiries SET 
+                status = 'converted', 
+                linked_client_id = $1, 
+                last_interaction_at = NOW() 
+            WHERE id = $2 AND organization_id = $3
+        `, [newClient.id, id, orgId]);
+
+        // 6. Log Interaction in History
+        await client.query(`
+            INSERT INTO enquiryinteractions (
+                enquiry_id, interaction_type, response_text, created_by
+            ) VALUES ($1, 'converted', $2, $3)
+        `, [
+            id, 
+            `Enquiry converted to client profile: ${newClient.first_name} ${newClient.last_name || ''} (UHID: ${newClient.uhid})`,
+            userId
+        ]);
+
+        // 7. Update any guest sessions tied to this enquiry
+        await client.query(`
+            UPDATE sessions SET client_id = $1, is_guest = false
+            WHERE enquiry_id = $2
+        `, [newClient.id, id]);
+
+        await client.query('COMMIT');
+
+        res.status(201).json({
+            success: true,
+            client: newClient
+        });
+    } catch (error) {
+        await client.query('ROLLBACK');
+        res.status(500).json({ error: error.message });
+    } finally {
+        client.release();
+    }
+});
+
+// PATCH Reschedule Callback
+router.patch('/enquiries/:id/callback', requireAuth, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { next_follow_up_at, reason } = req.body;
+        const orgId = req.user.organization_id;
+        const userId = req.user.id;
+
+        await db.query(`
+            UPDATE enquiries SET 
+                next_follow_up_at = $1,
+                last_interaction_at = NOW()
+            WHERE id = $2 AND organization_id = $3
+        `, [next_follow_up_at || null, id, orgId]);
+
+        if (next_follow_up_at) {
+            await db.query(`
+                INSERT INTO enquiryinteractions (
+                    enquiry_id, interaction_type, response_text, follow_up_required, follow_up_at, created_by
+                ) VALUES ($1, 'callback_scheduled', $2, true, $3, $4)
+            `, [
+                id,
+                reason ? `Callback scheduled: ${reason}` : `Next callback scheduled.`,
+                next_follow_up_at,
+                userId
+            ]);
+        }
+
+        res.json({ success: true, next_follow_up_at });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }

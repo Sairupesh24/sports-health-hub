@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import DashboardLayout from "@/components/layout/DashboardLayout";
@@ -41,6 +41,105 @@ import { AssessmentReportsList } from "@/components/shared/assessment/Assessment
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { UpcomingPlanManager } from "@/components/sports-scientist/UpcomingPlanManager";
 import ClientQuestionnairesTab from "@/components/client/ClientQuestionnairesTab";
+
+interface AdminClientData {
+    id?: string;
+    first_name?: string;
+    last_name?: string;
+    full_name?: string;
+    name?: string;
+    uhid?: string;
+    mobile_no?: string;
+    phone?: string;
+    email?: string;
+    gender?: string;
+    dob?: string;
+    age?: number;
+    sport?: string;
+    athlete_type?: string;
+    status?: string;
+    notes?: string;
+    org_name?: string;
+    is_vip?: boolean;
+    admin_remarks?: string;
+    linked_profile?: { ams_role?: string; id?: string };
+    [key: string]: unknown;
+}
+
+interface AdminCaseData {
+    id: string;
+    case_number?: string;
+    status?: string;
+    session_count?: number;
+    chief_complaint?: string;
+    final_diagnosis?: string;
+    provisional_diagnosis?: string;
+    created_at?: string;
+    closed_at?: string;
+    created_by_first?: string;
+    created_by_last?: string;
+    sessions?: Array<{
+        id: string;
+        scheduled_start?: string;
+        service_type?: string;
+        therapist_first?: string;
+        therapist_last?: string;
+        status?: string;
+        pain_score?: number;
+        [key: string]: unknown;
+    }>;
+    [key: string]: unknown;
+}
+
+interface AdminSessionRecord {
+    id: string;
+    scheduled_start: string;
+    scheduled_end?: string;
+    status?: string;
+    session_category?: string;
+    service_type?: string;
+    duration_minutes?: number;
+    objective?: string;
+    subjective?: string;
+    assessment?: string;
+    plan?: string;
+    notes?: string;
+    therapist_id?: string;
+    therapist?: { first_name?: string; last_name?: string; [key: string]: unknown };
+    logged_by?: { first_name?: string; last_name?: string; [key: string]: unknown };
+    physio_session_details?: Array<{ notes?: string; [key: string]: unknown }>;
+    [key: string]: unknown;
+}
+
+interface AdminBillData {
+    id: string;
+    created_at: string;
+    status: string;
+    total: number;
+    payment_method?: string;
+    transaction_id?: string;
+    notes?: string;
+    bill_items?: Array<{
+        total?: number;
+        packages?: {
+            name: string;
+            package_services?: Array<{
+                sessions_included?: number;
+                services?: { name?: string };
+            }>;
+        };
+    }>;
+    [key: string]: unknown;
+}
+
+interface AdminRefundData {
+    id: string;
+    bill_id: string;
+    amount: number;
+    refund_mode?: string;
+    created_at: string;
+    [key: string]: unknown;
+}
 
 const SPORTS = [
     "Cricket", "Football", "Hockey", "Badminton", "Tennis", "Basketball",
@@ -101,7 +200,7 @@ export default function ClientProfile() {
     const handleTabChange = (value: string) => {
         setSearchParams({ tab: value });
     };
-    const [client, setClient] = useState<any>(null);
+    const [client, setClient] = useState<AdminClientData | null>(null);
     const fullName = formatClientName(client, { includeHonorific: true });
     const [loading, setLoading] = useState(true);
     const [paymentBillId, setPaymentBillId] = useState<string>("");
@@ -256,49 +355,50 @@ export default function ClientProfile() {
     }, [editForm.sport]);
 
     // Clinical Cases State
-    const [cases, setCases] = useState<any[]>([]);
+    const [cases, setCases] = useState<AdminCaseData[]>([]);
     const [casesLoading, setCasesLoading] = useState(false);
     const [caseSheetOpen, setCaseSheetOpen] = useState(false);
     const [viewingCaseId, setViewingCaseId] = useState<string | null>(null);
     const [expandedCaseId, setExpandedCaseId] = useState<string | null>(null);
 
-    const fetchCases = async () => {
+    const fetchCases = useCallback(async () => {
         if (!id) return;
         setCasesLoading(true);
         try {
-            const data = await apiFetch<any[]>('/clinical/cases', { params: { client_id: id } });
+            const data = await apiFetch<AdminCaseData[]>('/clinical/cases', { params: { client_id: id } });
             setCases(data || []);
-        } catch (err) {
+        } catch {
             // non-fatal
         } finally {
             setCasesLoading(false);
         }
-    };
+    }, [id]);
 
     useEffect(() => {
         if (activeTab === 'cases' && id) fetchCases();
-    }, [activeTab, id]);
+    }, [activeTab, id, fetchCases]);
 
     useEffect(() => {
         async function fetchClient() {
             if (!id) return;
             try {
-                const data = await apiFetch<any>(`/clients/${id}`);
+                const data = await apiFetch<AdminClientData>(`/clients/${id}`);
                 setClient(data);
                 
                 if (data.linked_profile) {
-                    setAmsRole(data.linked_profile.ams_role);
-                    setProfileId(data.linked_profile.id);
+                    setAmsRole(data.linked_profile.ams_role || null);
+                    setProfileId(data.linked_profile.id || null);
                 }
 
                 if (isAdmin) {
                     setAdminRemarks(data.admin_remarks || "");
                 }
-            } catch (err: any) {
-                console.error("Error fetching client:", err);
+            } catch (err: unknown) {
+                const error = err as Error;
+                console.error("Error fetching client:", error);
                 toast({ 
                     title: "Error", 
-                    description: err.message || "Failed to load client profile", 
+                    description: error.message || "Failed to load client profile", 
                     variant: "destructive" 
                 });
             } finally {
@@ -365,17 +465,18 @@ export default function ClientProfile() {
                 data: payload
             });
 
-            setClient((prev: any) => ({
+            setClient((prev) => (prev ? ({
                 ...prev,
                 ...payload
-            }));
+            }) : null));
 
             queryClient.invalidateQueries({ queryKey: ['client-bills', id] });
             
             setIsEditModalOpen(false);
             toast({ title: "Profile updated successfully" });
-        } catch (err: any) {
-            toast({ title: "Failed to update profile", description: err.message, variant: "destructive" });
+        } catch (err: unknown) {
+            const error = err as Error;
+            toast({ title: "Failed to update profile", description: error.message, variant: "destructive" });
         }
     };
 
@@ -383,7 +484,7 @@ export default function ClientProfile() {
         queryKey: ['client-sessions', id, startDate, endDate],
         queryFn: async () => {
             if (!id) return [];
-            return apiFetch<any[]>(`/clients/${id}/sessions`, {
+            return apiFetch<AdminSessionRecord[]>(`/clients/${id}/sessions`, {
                 params: { startDate, endDate }
             });
         },
@@ -401,7 +502,7 @@ export default function ClientProfile() {
             active_recovery: 0,
             other: 0,
         };
-        rawSessions.forEach((s: any) => {
+        rawSessions.forEach((s: AdminSessionRecord) => {
             if (s.status === 'Completed') counts.completed++;
             const cat = (s.session_category || 'other') as keyof typeof counts;
             if (counts[cat] !== undefined) {
@@ -415,7 +516,7 @@ export default function ClientProfile() {
 
     const filteredSessions = useMemo(() => {
         if (!sessionTypeFilter || sessionTypeFilter === 'all') return rawSessions;
-        return rawSessions.filter((s: any) => {
+        return rawSessions.filter((s: AdminSessionRecord) => {
             return s.session_category === sessionTypeFilter || 
                    (s.service_type || '').toLowerCase() === sessionTypeFilter.toLowerCase();
         });
@@ -425,7 +526,7 @@ export default function ClientProfile() {
         queryKey: ['client-bills', id],
         queryFn: async () => {
             if (!id) return [];
-            return apiFetch<any[]>(`/clients/${id}/bills`);
+            return apiFetch<AdminBillData[]>(`/clients/${id}/bills`);
         },
         enabled: !!id
     });
@@ -434,7 +535,7 @@ export default function ClientProfile() {
         queryKey: ['client-refunds', id],
         queryFn: async () => {
             if (!id) return [];
-            return apiFetch<any[]>(`/clients/${id}/refunds`);
+            return apiFetch<AdminRefundData[]>(`/clients/${id}/refunds`);
         },
         enabled: !!id
     });
@@ -442,19 +543,20 @@ export default function ClientProfile() {
     const toggleAmsAccess = async (checked: boolean) => {
         if (!id) return;
         try {
-            const result = await apiFetch<any>(`/clients/${id}/ams-access`, {
+            const result = await apiFetch<{ ams_role?: string }>(`/clients/${id}/ams-access`, {
                 method: 'POST',
                 data: { enabled: checked }
             });
-            setAmsRole(result.ams_role);
+            setAmsRole(result?.ams_role || null);
             toast({ 
                 title: "AMS Access Updated", 
                 description: `Client has been ${checked ? 'granted' : 'revoked'} access to the Activity Monitoring System.` 
             });
-        } catch (err: any) {
+        } catch (err: unknown) {
+            const error = err as Error;
             toast({ 
                 title: "Failed to update AMS access", 
-                description: err.message || "No login account found for this client.", 
+                description: error.message || "No login account found for this client.", 
                 variant: "destructive" 
             });
         }
@@ -503,12 +605,13 @@ export default function ClientProfile() {
             setIsPaymentModalOpen(false);
             setPaymentRows([{ id: Math.random().toString(), method: "Cash", amount: 0, transactionId: "" }]);
             toast({ title: "Payment Recorded Successfully" });
-        } catch (err: any) {
-            toast({ title: "Failed to record payment", description: err.message, variant: "destructive" });
+        } catch (err: unknown) {
+            const error = err as Error;
+            toast({ title: "Failed to record payment", description: error.message, variant: "destructive" });
         }
     };
 
-    const handleDownloadInvoice = (bill: any) => {
+    const handleDownloadInvoice = (bill: AdminBillData) => {
         if (!client) return;
         const d = new jsPDF();
 
@@ -540,11 +643,11 @@ export default function ClientProfile() {
         if (client.email) d.text(`Email : ${client.email}`, 14, 83);
 
         // Table
-        const tableData = (bill.bill_items as any[])?.map((bi, index) => [
+        const tableData = (bill.bill_items || []).map((bi, index) => [
             (index + 1).toString(),
             bi.packages ? bi.packages.name : "Custom Package",
-            `Rs. ${bi.total}`
-        ]) || [];
+            `Rs. ${bi.total ?? 0}`
+        ]);
 
         autoTable(d, {
             startY: 95,
@@ -561,23 +664,23 @@ export default function ClientProfile() {
         });
 
         // Entitlements breakdown
-        const entitlementsBody: any[] = [];
+        const entitlementsBody: string[][] = [];
         if (bill.bill_items) {
-            bill.bill_items.forEach((bi: any) => {
+            bill.bill_items.forEach((bi) => {
                 const pkg = bi.packages;
                 if (pkg && pkg.package_services) {
-                    pkg.package_services.forEach((ps: any) => {
+                    pkg.package_services.forEach((ps) => {
                         entitlementsBody.push([
                             pkg.name,
                             ps.services?.name || 'Session',
-                            `${ps.sessions_included} Sessions`
+                            `${ps.sessions_included || 0} Sessions`
                         ]);
                     });
                 }
             });
         }
 
-        let finalY = (d as any).lastAutoTable.finalY + 15;
+        let finalY = (d as jsPDF & { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ? (d as jsPDF & { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 15 : 120;
 
         if (entitlementsBody.length > 0) {
             d.setFontSize(11);
@@ -592,7 +695,7 @@ export default function ClientProfile() {
                 headStyles: { fillColor: [241, 245, 249], textColor: [71, 85, 105] },
                 styles: { fontSize: 9, cellPadding: 4, lineColor: [226, 232, 240], lineWidth: 0.1 },
             });
-            finalY = (d as any).lastAutoTable.finalY + 15;
+            finalY = (d as jsPDF & { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ? (d as jsPDF & { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 15 : finalY + 30;
         }
 
         // Calculations
@@ -617,13 +720,13 @@ export default function ClientProfile() {
         d.save(`Invoice_${bill.id.substring(0, 8)}.pdf`);
     };
 
-    const handleRefundSuccess = (refund: any) => {
+    const handleRefundSuccess = (refund: AdminRefundData) => {
         queryClient.invalidateQueries({ queryKey: ['client-bills', id] });
         queryClient.invalidateQueries({ queryKey: ['client-refunds', id] });
         queryClient.invalidateQueries({ queryKey: ['client-entitlements', id] });
         
         // Auto-download refund voucher
-        generateRefundVoucher(client.org_name || "Clinic", fullName, refund);
+        generateRefundVoucher(client?.org_name || "Clinic", fullName, refund);
     };
 
     const copyToClipboard = (text: string) => {
@@ -640,8 +743,9 @@ export default function ClientProfile() {
                 data: { admin_remarks: adminRemarks }
             });
             toast({ title: "Remarks updated successfully" });
-        } catch (err: any) {
-            toast({ title: "Failed to update remarks", description: err.message, variant: "destructive" });
+        } catch (err: unknown) {
+            const error = err as Error;
+            toast({ title: "Failed to update remarks", description: error.message, variant: "destructive" });
         } finally {
             setIsUpdatingRemarks(false);
         }
@@ -654,10 +758,11 @@ export default function ClientProfile() {
                 method: 'PATCH',
                 data: { is_vip: val }
             });
-            setClient({ ...client, is_vip: val });
+            setClient(prev => prev ? ({ ...prev, is_vip: val }) : null);
             toast({ title: val ? "Client marked as VIP" : "VIP status removed" });
-        } catch (err: any) {
-            toast({ title: "Failed to update VIP status", description: err.message, variant: "destructive" });
+        } catch (err: unknown) {
+            const error = err as Error;
+            toast({ title: "Failed to update VIP status", description: error.message, variant: "destructive" });
         }
     };
 
@@ -691,7 +796,7 @@ export default function ClientProfile() {
         const clientFullName = fullName || formatClientName(client, { includeHonorific: true });
         const clientUHID = uhid || client?.uhid || "-";
 
-        const exportData = filteredSessions.map((s: any) => {
+        const exportData = filteredSessions.map((s: AdminSessionRecord) => {
             const psd = s.physio_session_details?.[0] || {};
             const startTime = s.scheduled_start ? new Date(s.scheduled_start) : null;
             const endTime = s.scheduled_end ? new Date(s.scheduled_end) : null;
@@ -1375,7 +1480,7 @@ export default function ClientProfile() {
                                             {/* Mobile Session Cards (Visible on Mobile Viewports when Card View is selected) */}
                                             {mobileViewMode === 'cards' && (
                                                 <div className="block md:hidden space-y-2.5 p-3 sm:p-0">
-                                                    {filteredSessions.map((session: any) => {
+                                                    {filteredSessions.map((session: AdminSessionRecord) => {
                                                         const providerName = session.therapist
                                                             ? formatStaffName({ ...session.therapist, service_type: session.service_type }, { useFirstName: true })
                                                             : (session.therapist_id || "-");
@@ -1479,7 +1584,7 @@ export default function ClientProfile() {
                                                         </tr>
                                                     </thead>
                                                     <tbody>
-                                                        {filteredSessions.map((session: any) => {
+                                                        {filteredSessions.map((session: AdminSessionRecord) => {
                                                             const catConfig = SESSION_CATEGORY_CONFIG[session.session_category] || SESSION_CATEGORY_CONFIG.other;
                                                             const providerName = session.therapist
                                                                 ? formatStaffName({ ...session.therapist, service_type: session.service_type }, { useFirstName: true })
@@ -1602,11 +1707,11 @@ export default function ClientProfile() {
                                                 <tr><td colSpan={6} className="p-4 text-center text-muted-foreground">Loading bills...</td></tr>
                                             ) : !bills || bills.length === 0 ? (
                                                 <tr><td colSpan={6} className="p-4 text-center text-muted-foreground">No billing history found.</td></tr>
-                                            ) : bills.map((bill: any) => (
+                                            ) : bills.map((bill: AdminBillData) => (
                                                 <tr key={bill.id} className="border-b last:border-0 hover:bg-muted/20 transition-colors">
                                                     <td className="p-3 font-medium text-foreground">{bill.id.substring(0, 8)}...</td>
                                                     <td className="p-3 text-muted-foreground">{format(new Date(bill.created_at), "dd MMM yyyy")}</td>
-                                                    <td className="p-3 text-muted-foreground">{bill.bill_items?.map((bi: any) => bi.packages?.name).join(", ") || "Custom"}</td>
+                                                    <td className="p-3 text-muted-foreground">{bill.bill_items?.map((bi) => bi.packages?.name).filter(Boolean).join(", ") || "Custom"}</td>
                                                     <td className="p-3 text-right font-medium">Rs. {bill.total}</td>
                                                     <td className="p-3 text-center">
                                                         {bill.status === "Paid" ? (
@@ -1686,7 +1791,7 @@ export default function ClientProfile() {
                                                     <tr><td colSpan={7} className="p-4 text-center text-muted-foreground text-xs">Loading refunds...</td></tr>
                                                 ) : !refunds || refunds.length === 0 ? (
                                                     <tr><td colSpan={7} className="p-4 text-center text-muted-foreground text-xs italic">No refunds processed for this client.</td></tr>
-                                                ) : refunds.map((ref: any) => (
+                                                ) : refunds.map((ref: AdminRefundData) => (
                                                     <tr key={ref.id} className="border-b last:border-0 hover:bg-muted/10 transition-colors text-xs">
                                                         <td className="p-3 font-medium">{ref.id.substring(0, 8)}</td>
                                                         <td className="p-3 text-muted-foreground">{format(new Date(ref.created_at), "dd MMM yyyy")}</td>
@@ -1788,7 +1893,7 @@ export default function ClientProfile() {
                                     </div>
                                 ) : (
                                     <div className="space-y-3">
-                                        {cases.map((c: any) => {
+                                        {cases.map((c: AdminCaseData) => {
                                             const isExpanded = expandedCaseId === c.id;
                                             const isCaseClosed = c.status === 'closed';
                                             return (
@@ -1847,7 +1952,7 @@ export default function ClientProfile() {
                                                                 <p className="text-xs text-muted-foreground italic">No sessions linked to this case yet.</p>
                                                             ) : (
                                                                 <div className="space-y-1.5">
-                                                                    {c.sessions?.map((s: any) => (
+                                                                    {c.sessions?.map((s) => (
                                                                         <div key={s.id} className="flex items-center gap-3 px-3 py-2 rounded-xl bg-background border border-border/50 text-xs">
                                                                             <div className="flex items-center gap-1.5 flex-1 min-w-0">
                                                                                 <CalendarDays className="w-3.5 h-3.5 text-muted-foreground shrink-0" />

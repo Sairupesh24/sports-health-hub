@@ -88,6 +88,9 @@ async function runMigrations() {
       await pool.query(`ALTER TABLE organizations ADD COLUMN custom_specialist_settings JSONB DEFAULT '{}'::jsonb;`);
     } catch (e) {}
     try {
+      await pool.query(`ALTER TABLE organizations ADD COLUMN IF NOT EXISTS enquiry_form_config JSONB DEFAULT '{}'::jsonb;`);
+    } catch (e) {}
+    try {
       // Default auto clock-out time — staff who forget to check out are auto-checked-out at this time
       await pool.query(`ALTER TABLE organizations ADD COLUMN IF NOT EXISTS default_checkout_time TIME DEFAULT '18:00:00';`);
       await pool.query(`ALTER TABLE organizations ADD COLUMN IF NOT EXISTS default_shift_end_time TIME DEFAULT '18:00:00';`);
@@ -327,6 +330,9 @@ async function runMigrations() {
     try {
       await pool.query(`ALTER TABLE profiles ADD COLUMN IF NOT EXISTS has_kb_edit_access BOOLEAN DEFAULT FALSE;`);
     } catch (e) {}
+    try {
+      await pool.query(`ALTER TABLE profiles ADD COLUMN IF NOT EXISTS has_leads_access BOOLEAN DEFAULT FALSE;`);
+    } catch (e) {}
 
 
     // Create authsessions table for OTP
@@ -441,13 +447,35 @@ async function runMigrations() {
     const enqCols = [
         ['enquiries', 'next_follow_up_at', 'TIMESTAMPTZ'],
         ['enquiries', 'last_interaction_at', 'TIMESTAMPTZ'],
+        ['enquiries', 'lead_temperature', "TEXT DEFAULT 'warm'"],
         ['enquiryinteractions', 'follow_up_required', 'BOOLEAN DEFAULT false'],
-        ['enquiryinteractions', 'follow_up_at', 'TIMESTAMPTZ']
+        ['enquiryinteractions', 'follow_up_at', 'TIMESTAMPTZ'],
+        ['enquiryinteractions', 'follow_up_note', 'TEXT'],
+        ['enquiryinteractions', 'disposition', 'TEXT'],
+        ['enquiryinteractions', 'metadata', "JSONB DEFAULT '{}'::jsonb"]
     ];
     for (const [table, col, type] of enqCols) {
         try {
             await pool.query(`ALTER TABLE ${table} ADD COLUMN ${col} ${type};`);
         } catch (e) {}
+    }
+
+    // Ensure all organizations have slugs assigned and index exists
+    try {
+        await pool.query(`
+            UPDATE organizations 
+            SET slug = 'cssh' 
+            WHERE (slug IS NULL OR slug = '') AND (name ILIKE '%spine%' OR org_code = '449158');
+            UPDATE organizations 
+            SET slug = 'main-clinic' 
+            WHERE (slug IS NULL OR slug = '') AND (name ILIKE '%main%' OR org_code = '123456');
+            UPDATE organizations 
+            SET slug = LOWER(REGEXP_REPLACE(name, '[^a-zA-Z0-9]+', '-', 'g'))
+            WHERE slug IS NULL OR slug = '';
+            CREATE INDEX IF NOT EXISTS idx_organizations_slug ON organizations (slug);
+        `);
+    } catch (e) {
+        console.warn("[DB] Organization slug migration:", e.message);
     }
 
     // Client Admin Notes

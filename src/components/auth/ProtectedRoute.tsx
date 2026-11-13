@@ -6,9 +6,10 @@ interface ProtectedRouteProps {
   children: React.ReactNode;
   requiredRole?: string | string[];
   checkCalendarAccess?: boolean;
+  checkLeadsAccess?: boolean;
 }
 
-export default function ProtectedRoute({ children, requiredRole, checkCalendarAccess }: ProtectedRouteProps) {
+export default function ProtectedRoute({ children, requiredRole, checkCalendarAccess, checkLeadsAccess }: ProtectedRouteProps) {
   const { user, profile, roles, loading } = useAuth();
 
   if (loading) {
@@ -36,6 +37,14 @@ export default function ProtectedRoute({ children, requiredRole, checkCalendarAc
   if (checkCalendarAccess) {
     const isAdminOrFoe = roles.includes("admin") || roles.includes("super_admin") || roles.includes("foe");
     const isGranted = profile?.has_calendar_access === true;
+    if (!isAdminOrFoe && !isGranted) {
+      return <Navigate to={getDashboardPath(roles, profile)} replace />;
+    }
+  }
+
+  if (checkLeadsAccess) {
+    const isAdminOrFoe = roles.includes("admin") || roles.includes("super_admin") || roles.includes("foe");
+    const isGranted = profile?.has_leads_access === true;
     if (!isAdminOrFoe && !isGranted) {
       return <Navigate to={getDashboardPath(roles, profile)} replace />;
     }
@@ -75,6 +84,7 @@ export default function ProtectedRoute({ children, requiredRole, checkCalendarAc
           physiotherapist: "clinical",
           sports_scientist: "ams",
           foe: "foe",
+          crm: "crm",
           client: "client",
           athlete: "client",
         };
@@ -138,9 +148,15 @@ export default function ProtectedRoute({ children, requiredRole, checkCalendarAc
           if (["sports_scientist", "coach"].includes(role) && (allowedConsolesList.includes("sports_scientist") || allowedConsolesList.includes("ams"))) return true;
           if (["hr_manager", "hr"].includes(role) && (allowedConsolesList.includes("hr_manager") || allowedConsolesList.includes("hr"))) return true;
           if (role === "nutritionist" && allowedConsolesList.includes("nutritionist")) return true;
+          if (["crm", "leads"].includes(role) && (allowedConsolesList.includes("crm") || allowedConsolesList.includes("leads") || profile?.has_leads_access)) return true;
           if (["foe", "admin"].includes(role) && (allowedConsolesList.includes("foe") || allowedConsolesList.includes("admin"))) return true;
           return false;
         });
+      }
+
+      // CRM / FOE routes granted if user has explicit leads access privilege
+      if (!hasRole && (rolesArray.includes("foe") || rolesArray.includes("crm")) && profile?.has_leads_access === true) {
+        hasRole = true;
       }
 
       if (!hasRole) {

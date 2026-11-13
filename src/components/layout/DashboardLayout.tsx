@@ -36,6 +36,8 @@ export default function DashboardLayout({ role, children }: DashboardLayoutProps
     effectiveRole = "consultant";
   } else if (location.pathname.startsWith('/admin/foe')) {
     effectiveRole = "foe";
+  } else if (location.pathname.startsWith('/crm') || location.pathname.startsWith('/admin/leads')) {
+    effectiveRole = "crm";
   } else if (location.pathname.startsWith('/questionnaires')) {
     effectiveRole = "questionnaires";
   } else if (
@@ -47,7 +49,9 @@ export default function DashboardLayout({ role, children }: DashboardLayoutProps
     effectiveRole = "analytics";
   } else if (!effectiveRole || effectiveRole === "user") {
     const activeConsole = typeof window !== 'undefined' ? sessionStorage.getItem("active_console") : null;
-    if (activeConsole === "foe") {
+    if (activeConsole === "crm") {
+      effectiveRole = "crm";
+    } else if (activeConsole === "foe") {
       effectiveRole = "foe";
     } else if (activeConsole === "questionnaires") {
       effectiveRole = "questionnaires";

@@ -446,12 +446,15 @@ model Enquiry {
   linkedClientId      String?              @map("linked_client_id") @db.Uuid
   nextFollowUpAt      DateTime?            @map("next_follow_up_at") @db.Timestamptz(6)
   lastInteractionAt   DateTime?            @map("last_interaction_at") @db.Timestamptz(6)
+  leadTemperature     String?              @default("warm") @map("lead_temperature")
   createdAt           DateTime?            @default(now()) @map("created_at") @db.Timestamptz(6)
   clients             Client?              @relation(fields: [linkedClientId], references: [id], onUpdate: NoAction)
   organizations       Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   enquiryinteractions EnquiryInteraction[]
   sessions            Session[]
 
+  @@index([organizationId, status], map: "idx_enquiries_org_status")
+  @@index([organizationId, nextFollowUpAt], map: "idx_enquiries_org_next_follow_up")
   @@map("enquiries")
 }
 
@@ -462,11 +465,15 @@ model EnquiryInteraction {
   responseText     String?   @map("response_text")
   followUpRequired Boolean?  @default(false) @map("follow_up_required")
   followUpAt       DateTime? @map("follow_up_at") @db.Timestamptz(6)
+  followUpNote     String?   @map("follow_up_note")
+  disposition      String?
+  metadata         Json?     @default("{}")
   createdBy        String?   @map("created_by") @db.Uuid
   createdAt        DateTime? @default(now()) @map("created_at") @db.Timestamptz(6)
   users            User?     @relation(fields: [createdBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
   enquiries        Enquiry   @relation(fields: [enquiryId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
+  @@index([enquiryId, createdAt(sort: Asc)], map: "idx_enquiryinteractions_enquiry_created")
   @@map("enquiryinteractions")
 }
 
@@ -785,6 +792,7 @@ model Organization {
   deletedAt                        DateTime?                        @map("deleted_at") @db.Timestamptz(6)
   orgCode                          String?                          @map("org_code")
   slug                             String?
+  enquiryFormConfig                Json?                            @default("{}") @map("enquiry_form_config")
   subscriptionPlan                 String?                          @default("pro") @map("subscription_plan")
   status                           String?                          @default("active")
   uhidPrefix                       String?                          @map("uhid_prefix")
@@ -879,6 +887,7 @@ model Organization {
   wellnessLogs                     WellnessLog[]
   workoutdays                      WorkoutDay[]
 
+  @@index([slug], map: "idx_organizations_slug")
   @@map("organizations")
 }
 
@@ -1009,6 +1018,7 @@ model Profile {
   hasAnalyticsAccess                                             Boolean?                   @default(false) @map("has_analytics_access")
   hasAssignWorkAccess                                            Boolean?                   @default(false) @map("has_assign_work_access")
   hasKbEditAccess                                                Boolean?                   @default(false) @map("has_kb_edit_access")
+  hasLeadsAccess                                                 Boolean?                   @default(false) @map("has_leads_access")
   allowedConsoles                                                String?                    @default("[]") @map("allowed_consoles")
   customSpecialistSettings                                       Json?                      @default("{}") @map("custom_specialist_settings")
   approvedBy                                                     String?                    @map("approved_by") @db.Uuid

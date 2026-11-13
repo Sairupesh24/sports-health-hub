@@ -11,18 +11,19 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
 import { apiFetch } from "@/utils/api";
 import { format } from "date-fns";
-import { Save, Lock, Unlock, Loader2, FileText, Stethoscope, ClipboardList, Activity, FlaskConical, ChevronRight, AlertTriangle, User, X, Check, Clock, Plus, Trash2 } from "lucide-react";
+import { Save, Lock, Unlock, Loader2, FileText, Stethoscope, ClipboardList, Activity, FlaskConical, ChevronRight, AlertTriangle, User, X, Check, Clock, Plus, Trash2, FileDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import PainMap from "./PainMap";
+import { exportCaseSheetPDF, fetchOrgBranding, CaseData } from "@/utils/CaseSheetExport";
 
-export interface TrainingHistoryEntry {
+interface TrainingHistoryEntry {
     training_type: string;
     training_volume: string;
     years_of_training: string;
     training_notes: string;
 }
 
-export const AVAILABLE_TRAINING_TYPES = [
+const AVAILABLE_TRAINING_TYPES = [
     "Strength",
     "Endurance",
     "Skill-based",
@@ -39,9 +40,9 @@ interface CaseSheetModalProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     clientId: string;
-    client: any;
+    client: Record<string, unknown> | null;
     caseId?: string | null;
-    onSuccess?: (caseData: any) => void;
+    onSuccess?: (caseData: Record<string, unknown>) => void;
 }
 
 const BLANK_FORM = {
@@ -70,7 +71,7 @@ const BLANK_FORM = {
     inspection_notes: "", palpation_notes: "", range_of_motion_notes: "",
     special_tests: [] as string[],
     neurovascular_notes: "", dermatome_notes: "", myotome_notes: "", reflexes_notes: "",
-    pain_map: {} as Record<string, any>, pain_score: 0 as number,
+    pain_map: {} as Record<string, unknown>, pain_score: 0 as number,
     body_region: "", injury_type: "", severity: "Moderate",
     side_of_body: "", injury_nature: "", etiology: "",
     diagnosis_notes: "",
@@ -80,7 +81,7 @@ const BLANK_FORM = {
 };
 type FormState = typeof BLANK_FORM;
 
-const SectionHeader = ({ icon: Icon, title, subtitle, color = "text-primary" }: { icon: any; title: string; subtitle?: string; color?: string; }) => (
+const SectionHeader = ({ icon: Icon, title, subtitle, color = "text-primary" }: { icon: React.ComponentType<{ className?: string }>; title: string; subtitle?: string; color?: string; }) => (
     <div className="flex items-start gap-2.5 pb-3 border-b border-border/40 mb-4">
         <div className="p-1.5 rounded-lg bg-primary/10 mt-0.5 shrink-0"><Icon className={cn("w-4 h-4", color)} /></div>
         <div>
@@ -100,7 +101,7 @@ const FieldRow = ({ label, children, required, counter }: { label: string; child
 );
 const CheckboxRow = ({ id, label, checked, onChange, disabled }: { id: string; label: string; checked: boolean; onChange: (v: boolean) => void; disabled?: boolean }) => (
     <div className="flex items-center gap-2">
-        <Checkbox id={id} checked={checked} onCheckedChange={onChange as any} disabled={disabled} className="shrink-0" />
+        <Checkbox id={id} checked={checked} onCheckedChange={(c) => onChange(c === true)} disabled={disabled} className="shrink-0" />
         <Label htmlFor={id} className="text-xs text-foreground cursor-pointer">{label}</Label>
     </div>
 );
@@ -109,8 +110,9 @@ export default function CaseSheetModal({ open, onOpenChange, clientId, client, c
     const [loading, setLoading] = useState(false);
     const [fetchingCase, setFetchingCase] = useState(false);
     const [savingStatus, setSavingStatus] = useState(false);
+    const [exportingPDF, setExportingPDF] = useState(false);
     const [activeTab, setActiveTab] = useState("history");
-    const [caseData, setCaseData] = useState<any>(null);
+    const [caseData, setCaseData] = useState<Record<string, unknown> | null>(null);
     const [form, setForm] = useState<FormState>({ ...BLANK_FORM });
 
     // Master data for cascading injury repository diagnosis dropdowns
@@ -201,14 +203,14 @@ export default function CaseSheetModal({ open, onOpenChange, clientId, client, c
         if (!caseId) return;
         setFetchingCase(true);
         try {
-            const data = await apiFetch<any>(`/clinical/cases/${caseId}`);
+            const data = await apiFetch<CaseData & Record<string, unknown>>(`/clinical/cases/${caseId}`);
             setCaseData(data);
-            const loadedFinalDx = data.final_diagnosis || (data.body_region && data.provisional_diagnosis && !data.final_diagnosis ? data.provisional_diagnosis : "");
-            const loadedProvDx = (data.body_region && data.provisional_diagnosis && !data.final_diagnosis) ? "" : (data.provisional_diagnosis || "");
+            const loadedFinalDx = (data.final_diagnosis as string) || (data.body_region && data.provisional_diagnosis && !data.final_diagnosis ? (data.provisional_diagnosis as string) : "");
+            const loadedProvDx = (data.body_region && data.provisional_diagnosis && !data.final_diagnosis) ? "" : ((data.provisional_diagnosis as string) || "");
 
             let loadedTrainingHistory: TrainingHistoryEntry[] = [];
             if (Array.isArray(data.training_history) && data.training_history.length > 0) {
-                loadedTrainingHistory = data.training_history.map((th: any) => ({
+                loadedTrainingHistory = data.training_history.map((th: TrainingHistoryEntry) => ({
                     training_type: th.training_type || "",
                     training_volume: th.training_volume || "",
                     years_of_training: th.years_of_training != null ? String(th.years_of_training) : "",
@@ -303,10 +305,11 @@ export default function CaseSheetModal({ open, onOpenChange, clientId, client, c
                     fetchDiagnoses(data.body_region, data.injury_type);
                 }
             }
-        } catch (err: any) {
-            toast({ title: "Error", description: err.message, variant: "destructive" });
+        } catch (err) {
+            const message = err instanceof Error ? err.message : "Failed to load case data.";
+            toast({ title: "Error", description: message, variant: "destructive" });
         } finally { setFetchingCase(false); }
-    }, [caseId]);
+    }, [caseId, fetchDiagnoses, fetchTypes]);
 
     useEffect(() => {
         if (open) {
@@ -314,14 +317,14 @@ export default function CaseSheetModal({ open, onOpenChange, clientId, client, c
             if (caseId) { fetchCase(); }
             else { setCaseData(null); setForm({ ...BLANK_FORM }); prefillFromClient(); }
         }
-    }, [open, caseId]);
+    }, [open, caseId, fetchCase, prefillFromClient]);
 
     useEffect(() => {
         const h = parseFloat(form.height); const w = parseFloat(form.weight);
         if (h > 0 && w > 0) { const hm = h / 100; setForm(prev => ({ ...prev, bmi: (w / (hm * hm)).toFixed(1) })); }
     }, [form.height, form.weight]);
 
-    const set = (field: keyof FormState) => (value: any) => setForm(prev => ({ ...prev, [field]: value }));
+    const set = <K extends keyof FormState>(field: K) => (value: FormState[K]) => setForm(prev => ({ ...prev, [field]: value }));
     const setEvt = (field: keyof FormState) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setForm(prev => ({ ...prev, [field]: e.target.value }));
 
     const handleAddTrainingEntry = () => {
@@ -364,7 +367,7 @@ export default function CaseSheetModal({ open, onOpenChange, clientId, client, c
             const cleanTrainingHistory = form.training_history.filter(t => t.training_type.trim() !== "");
             const primaryTraining = cleanTrainingHistory[0];
 
-            const payload: Record<string, any> = {
+            const payload: Record<string, unknown> = {
                 ...form,
                 training_history: cleanTrainingHistory,
                 training_type: primaryTraining?.training_type || form.training_type || "",
@@ -390,18 +393,19 @@ export default function CaseSheetModal({ open, onOpenChange, clientId, client, c
                 injury_nature: form.injury_nature || null,
                 etiology: form.etiology || null,
             };
-            let result: any;
+            let result: Record<string, unknown>;
             if (isEditing && caseId) {
-                result = await apiFetch(`/clinical/cases/${caseId}`, { method: "PUT", data: payload });
+                result = await apiFetch<Record<string, unknown>>(`/clinical/cases/${caseId}`, { method: "PUT", data: payload });
                 toast({ title: "Case Updated", description: "Case sheet saved successfully." });
             } else {
-                result = await apiFetch("/clinical/cases", { method: "POST", data: payload });
-                toast({ title: "Case Created", description: `Case ${result.case_number} opened.` });
+                result = await apiFetch<Record<string, unknown>>("/clinical/cases", { method: "POST", data: payload });
+                toast({ title: "Case Created", description: `Case ${result.case_number as string} opened.` });
             }
             onSuccess?.(result);
             if (!isEditing) onOpenChange(false); else setCaseData(result);
-        } catch (err: any) {
-            toast({ title: "Save Failed", description: err.message, variant: "destructive" });
+        } catch (err) {
+            const message = err instanceof Error ? err.message : "Save failed.";
+            toast({ title: "Save Failed", description: message, variant: "destructive" });
         } finally { setLoading(false); }
     };
 
@@ -410,12 +414,40 @@ export default function CaseSheetModal({ open, onOpenChange, clientId, client, c
         setSavingStatus(true);
         try {
             const action = isClosed ? "reopen" : "close";
-            const result = await apiFetch(`/clinical/cases/${caseId}/${action}`, { method: "POST" });
+            const result = await apiFetch<Record<string, unknown>>(`/clinical/cases/${caseId}/${action}`, { method: "POST" });
             setCaseData(result);
             toast({ title: isClosed ? "Case Reopened" : "Case Closed", description: isClosed ? "The case is now open for editing." : "Case has been closed." });
             onSuccess?.(result);
-        } catch (err: any) { toast({ title: "Error", description: err.message, variant: "destructive" }); }
+        } catch (err) {
+            const message = err instanceof Error ? err.message : "Status update failed.";
+            toast({ title: "Error", description: message, variant: "destructive" });
+        }
         finally { setSavingStatus(false); }
+    };
+
+    const handleExportPDF = async () => {
+        try {
+            setExportingPDF(true);
+            const org = await fetchOrgBranding(caseData?.organization_id);
+            const compiledCase: CaseData = {
+                ...caseData,
+                ...form,
+                case_number: caseData?.case_number || "Draft",
+                status: caseData?.status || "open",
+                created_at: caseData?.created_at || new Date().toISOString(),
+                created_by_first: caseData?.created_by_first || "",
+                created_by_last: caseData?.created_by_last || "",
+                sessions: caseData?.sessions || [],
+            };
+            await exportCaseSheetPDF(compiledCase, client, org);
+            toast({ title: "Case Sheet Exported", description: "PDF downloaded successfully." });
+        } catch (err) {
+            console.error("Failed to export PDF", err);
+            const message = err instanceof Error ? err.message : "Could not export case sheet to PDF.";
+            toast({ title: "Export Failed", description: message, variant: "destructive" });
+        } finally {
+            setExportingPDF(false);
+        }
     };
 
     if (!open) return null;
@@ -437,6 +469,22 @@ export default function CaseSheetModal({ open, onOpenChange, clientId, client, c
                             </DialogDescription>
                         </div>
                         <div className="flex items-center gap-2 shrink-0 flex-wrap">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                className="h-8 px-3 text-xs font-bold rounded-xl gap-1.5 border-border/80 text-foreground hover:bg-muted"
+                                onClick={handleExportPDF}
+                                disabled={exportingPDF || fetchingCase}
+                                title="Export case sheet to PDF"
+                            >
+                                {exportingPDF ? (
+                                    <Loader2 className="w-3.5 h-3.5 animate-spin text-teal-600" />
+                                ) : (
+                                    <FileDown className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" />
+                                )}
+                                Export PDF
+                            </Button>
                             {isEditing && caseData && (
                                 <Button variant="outline" size="sm" className={cn("h-8 px-3 text-xs font-bold rounded-xl gap-1.5", isClosed ? "border-emerald-300 text-emerald-700 hover:bg-emerald-50" : "border-slate-300 text-slate-700 hover:bg-slate-50")} onClick={handleToggleStatus} disabled={savingStatus}>
                                     {savingStatus ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : isClosed ? <Unlock className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5" />}
