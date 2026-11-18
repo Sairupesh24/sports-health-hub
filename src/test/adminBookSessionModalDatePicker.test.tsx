@@ -1,9 +1,22 @@
 import React from 'react';
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeAll } from 'vitest';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import { format, addDays } from 'date-fns';
 import { AdminBookSessionModal } from '../components/admin/AdminBookSessionModal';
+
+beforeAll(() => {
+  if (typeof window.ResizeObserver === 'undefined') {
+    window.ResizeObserver = class ResizeObserver {
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    };
+  }
+  if (!Element.prototype.scrollIntoView) {
+    Element.prototype.scrollIntoView = () => {};
+  }
+});
 
 // Mock AuthContext
 vi.mock('@/contexts/AuthContext', () => ({
@@ -54,7 +67,11 @@ vi.mock('@/utils/api', () => ({
       return [{ id: 'client-1', first_name: 'John', last_name: 'Doe', uhid: 'U12345' }];
     }
     if (endpoint.includes('/services')) {
-      return [{ id: 'svc-1', name: 'Physiotherapy Assessment', category: 'Clinical', duration: 60 }];
+      return [
+        { id: 'svc-1', name: 'Physiotherapy Assessment', category: 'Clinical', duration: 60 },
+        { id: 'svc-2', name: 'Nutrition Consultation', category: 'Nutrition', duration: 45 },
+        { id: 'svc-3', name: 'Active Recovery Training', category: 'Training', duration: 60 }
+      ];
     }
     if (endpoint.includes('/consultant-services')) {
       return [{ consultant_id: 'physio-1', service_id: 'svc-1' }];
@@ -111,6 +128,49 @@ describe('AdminBookSessionModal Date Picker', () => {
       const updatedButtons = screen.getAllByRole('button');
       const hasUpdated = updatedButtons.some(b => b.textContent?.includes(targetDayNumber));
       expect(hasUpdated).toBe(true);
+    });
+  });
+
+  it('shows a search bar inside the Service Selection dropdown and filters services', async () => {
+    render(
+      <BrowserRouter>
+        <AdminBookSessionModal
+          open={true}
+          onOpenChange={() => {}}
+          onSuccess={() => {}}
+        />
+      </BrowserRouter>
+    );
+
+    const serviceTrigger = await screen.findByRole('combobox', { name: /service selection/i });
+    expect(serviceTrigger).toBeInTheDocument();
+    expect(serviceTrigger).toHaveTextContent(/what service is required\?/i);
+
+    // Open the service dropdown
+    fireEvent.click(serviceTrigger);
+
+    // Search input should appear
+    const searchInput = await screen.findByPlaceholderText(/search services\.\.\./i);
+    expect(searchInput).toBeInTheDocument();
+
+    // All services initially visible
+    expect(screen.getByText('Physiotherapy Assessment')).toBeInTheDocument();
+    expect(screen.getByText('Nutrition Consultation')).toBeInTheDocument();
+    expect(screen.getByText('Active Recovery Training')).toBeInTheDocument();
+
+    // Filter by typing into the search bar
+    fireEvent.change(searchInput, { target: { value: 'Nutrition' } });
+
+    await waitFor(() => {
+      expect(screen.getByText('Nutrition Consultation')).toBeInTheDocument();
+      expect(screen.queryByText('Physiotherapy Assessment')).not.toBeInTheDocument();
+    });
+
+    // Select the filtered service
+    fireEvent.click(screen.getByText('Nutrition Consultation'));
+
+    await waitFor(() => {
+      expect(serviceTrigger).toHaveTextContent('Nutrition Consultation');
     });
   });
 });

@@ -948,6 +948,10 @@ router.post('/users/:id/approve', requireAuth, async (req, res) => {
         const { role, profession, ams_role, uhid } = req.body;
         const orgId = req.user.organization_id;
 
+        if (role && String(role).toLowerCase().trim() === 'super_admin') {
+            return res.status(403).json({ error: 'Forbidden: Super Admin is a single platform-level account and cannot be assigned.' });
+        }
+
         await client.query('BEGIN');
 
         let finalUhid = uhid || null;
@@ -1302,6 +1306,11 @@ router.patch('/users/:id/role', requireAuth, async (req, res) => {
             return res.status(403).json({ error: 'Forbidden: Only administrators can modify access permissions' });
         }
 
+        // Prevent assigning super_admin role — Super Admin is strictly a single platform-level account
+        if (role && String(role).toLowerCase().trim() === 'super_admin') {
+            return res.status(403).json({ error: 'Forbidden: Super Admin is a single platform-level account and cannot be assigned.' });
+        }
+
         await client.query('BEGIN');
 
         // Fetch current user & profile state before modifying
@@ -1321,6 +1330,16 @@ router.patch('/users/:id/role', requireAuth, async (req, res) => {
         }
 
         const targetUser = targetRes.rows[0];
+
+        if (targetUser.role === 'super_admin') {
+            await client.query('ROLLBACK');
+            return res.status(403).json({ error: 'Forbidden: Cannot modify the platform Super Admin account.' });
+        }
+
+        // Sanitize allowed_consoles to ensure super_admin console can never be granted to organization users
+        const sanitizedAllowedConsoles = allowed_consoles !== undefined
+            ? normalizeConsolesArray(allowed_consoles).filter(c => c !== 'super_admin')
+            : undefined;
 
         // Fetch actor information
         const actorRes = await client.query(`
@@ -1426,9 +1445,9 @@ router.patch('/users/:id/role', requireAuth, async (req, res) => {
             });
         }
 
-        if (allowed_consoles !== undefined) {
-            const oldConsoles = normalizeConsolesArray(targetUser.allowed_consoles);
-            const newConsoles = normalizeConsolesArray(allowed_consoles);
+        if (sanitizedAllowedConsoles !== undefined) {
+            const oldConsoles = normalizeConsolesArray(targetUser.allowed_consoles).filter(c => c !== 'super_admin');
+            const newConsoles = sanitizedAllowedConsoles;
             const added = newConsoles.filter(c => !oldConsoles.includes(c));
             const removed = oldConsoles.filter(c => !newConsoles.includes(c));
             if (added.length > 0 || removed.length > 0) {
@@ -1490,9 +1509,9 @@ router.patch('/users/:id/role', requireAuth, async (req, res) => {
             updates.push(`has_leads_access = $${params.length + 1}`);
             params.push(has_leads_access);
         }
-        if (allowed_consoles !== undefined) {
+        if (sanitizedAllowedConsoles !== undefined) {
             updates.push(`allowed_consoles = $${params.length + 1}`);
-            params.push(typeof allowed_consoles === 'object' ? JSON.stringify(allowed_consoles) : allowed_consoles);
+            params.push(JSON.stringify(sanitizedAllowedConsoles));
         }
 
         if (updates.length > 0) {
@@ -1868,6 +1887,10 @@ router.post('/users', requireAuth, async (req, res) => {
     try {
         const { email, firstName, lastName, role, profession, uhid, ams_role } = req.body;
         const orgId = req.user.organization_id;
+
+        if (role && String(role).toLowerCase().trim() === 'super_admin') {
+            return res.status(403).json({ error: 'Forbidden: Super Admin is a single platform-level account and cannot be created for an organization.' });
+        }
         
         // Generate random password
         const password = Math.random().toString(36).slice(-8);

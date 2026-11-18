@@ -145,6 +145,13 @@ export default function AppGallery() {
   const [activeCategory, setActiveCategory] = useState<string>("all");
 
   useEffect(() => {
+    const isSuperAdmin =
+      roles?.includes("super_admin") || profile?.role === "super_admin";
+    if (isSuperAdmin) {
+      navigate("/super-admin", { replace: true });
+      return;
+    }
+
     const isClient =
       roles?.includes("client") ||
       roles?.includes("athlete") ||
@@ -155,7 +162,6 @@ export default function AppGallery() {
         !["client", "athlete"].includes(r) &&
         [
           "admin",
-          "super_admin",
           "sports_scientist",
           "sports_physician",
           "physiotherapist",

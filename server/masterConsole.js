@@ -251,6 +251,10 @@ router.post('/bulk-create-users', requireSuperAdmin, async (req, res) => {
 
     for (const user of users) {
         try {
+            if (user.role && String(user.role).toLowerCase().trim() === 'super_admin') {
+                throw new Error('Super Admin role is restricted to the single platform creator account.');
+            }
+
             const userId = crypto.randomUUID();
             const tempPassword = user.password || Math.random().toString(36).slice(-10);
             const passwordHash = await bcrypt.hash(tempPassword, 10);

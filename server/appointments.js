@@ -217,6 +217,7 @@ router.post('/', requireAuth, async (req, res) => {
         });
 
         let appointmentStatus = 'Planned';
+        let activeCount = 0;
         if (capacityLimit !== Infinity) {
             const activeRes = await client.query(`
                 SELECT id FROM sessions 
@@ -231,7 +232,7 @@ router.post('/', requireAuth, async (req, res) => {
             `, [providerId, scheduled_start, scheduled_end]);
 
             activeCount = activeRes.rows.length;
-            if (activeRes.rows.length >= capacityLimit) {
+            if (activeCount >= capacityLimit) {
                 appointmentStatus = 'Waitlisted';
             }
         }
@@ -828,6 +829,7 @@ router.post('/:id/reschedule-future', requireAuth, async (req, res) => {
             const futNewEnd = new Date(futNewStartObj.getTime() + durationMs).toISOString();
 
             let newStatus = 'Planned';
+            let activeCount = 0;
             if (capacityLimit !== Infinity) {
                 // Capacity check for this target slot
                 const activeRes = await client.query(`
@@ -844,7 +846,7 @@ router.post('/:id/reschedule-future', requireAuth, async (req, res) => {
                 `, [providerId, futNewStart, futNewEnd, fut.id]);
 
                 activeCount = activeRes.rows.length;
-            if (activeRes.rows.length >= capacityLimit) {
+                if (activeCount >= capacityLimit) {
                     newStatus = 'Waitlisted';
                     waitlistedCount++;
                 } else {

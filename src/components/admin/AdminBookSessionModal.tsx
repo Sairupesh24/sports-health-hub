@@ -105,6 +105,7 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess, initialDa
     // Guest Mode State
     const [waitlistId, setWaitlistId] = useState("");
     const [openPatientPopover, setOpenPatientPopover] = useState(false);
+    const [openServicePopover, setOpenServicePopover] = useState(false);
     const [openDatePicker, setOpenDatePicker] = useState(false);
     const [isGuest, setIsGuest] = useState(false);
     const [guestName, setGuestName] = useState("");
@@ -180,7 +181,8 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess, initialDa
     useEffect(() => {
         if (open && profile?.organization_id) {
             setIsDurationManuallySet(false);
-        setOpenDatePicker(false);
+            setOpenDatePicker(false);
+            setOpenServicePopover(false);
             fetchClients();
             fetchConsultants();
             fetchServices();
@@ -1093,15 +1095,62 @@ export function AdminBookSessionModal({ open, onOpenChange, onSuccess, initialDa
 
                                 {/* 1. Service Selection */}
                                 <div className="space-y-1.5">
-                                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">1. Service Selection</Label>
-                                    <Select value={serviceId} onValueChange={(val) => { setServiceId(val); setConsultantId(""); }}>
-                                        <SelectTrigger className="h-9 text-xs bg-background/50 border-border/70 hover:border-primary/50 transition-colors rounded-lg shadow-none">
-                                            <SelectValue placeholder="What service is required?" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {filteredServices.map(s => <SelectItem key={s.id} value={s.id} className="text-xs">{s.name}</SelectItem>)}
-                                        </SelectContent>
-                                    </Select>
+                                    <Label htmlFor="service-selection-trigger" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">1. Service Selection</Label>
+                                    <Popover modal={true} open={openServicePopover} onOpenChange={setOpenServicePopover}>
+                                        <PopoverTrigger asChild>
+                                            <Button
+                                                id="service-selection-trigger"
+                                                variant="outline"
+                                                role="combobox"
+                                                aria-expanded={openServicePopover}
+                                                className={cn(
+                                                    "w-full justify-between h-9 px-3 text-xs bg-background/50 hover:bg-muted/30 border-border/70 hover:border-primary/50 transition-colors rounded-lg shadow-none font-normal",
+                                                    !serviceId && "text-muted-foreground"
+                                                )}
+                                            >
+                                                <span className="truncate">
+                                                    {serviceId
+                                                        ? (filteredServices.find(s => s.id === serviceId)?.name || services.find(s => s.id === serviceId)?.name || "What service is required?")
+                                                        : "What service is required?"}
+                                                </span>
+                                                <ChevronsUpDown className="ml-2 h-3.5 w-3.5 shrink-0 opacity-50" />
+                                            </Button>
+                                        </PopoverTrigger>
+                                        <PopoverContent
+                                            className="w-[340px] sm:w-[380px] p-0 z-[100] max-h-[300px] overflow-hidden pointer-events-auto"
+                                            align="start"
+                                            onWheel={(e) => e.stopPropagation()}
+                                            onTouchMove={(e) => e.stopPropagation()}
+                                        >
+                                            <Command className="max-h-[300px]">
+                                                <CommandInput placeholder="Search services..." className="h-9 text-xs" />
+                                                <CommandList
+                                                    className="max-h-[220px] overflow-y-auto custom-scrollbar pointer-events-auto"
+                                                    onWheel={(e) => e.stopPropagation()}
+                                                    onTouchMove={(e) => e.stopPropagation()}
+                                                >
+                                                    <CommandEmpty className="py-4 text-center text-xs text-muted-foreground">No service found.</CommandEmpty>
+                                                    <CommandGroup>
+                                                        {filteredServices.map((s) => (
+                                                            <CommandItem
+                                                                key={s.id}
+                                                                value={s.name}
+                                                                onSelect={() => {
+                                                                    setServiceId(s.id);
+                                                                    setConsultantId("");
+                                                                    setOpenServicePopover(false);
+                                                                }}
+                                                                className="text-xs py-2 flex items-center gap-2 cursor-pointer"
+                                                            >
+                                                                <Check className={cn("h-3.5 w-3.5 shrink-0", serviceId === s.id ? "opacity-100" : "opacity-0")} />
+                                                                <span className="truncate font-medium">{s.name}</span>
+                                                            </CommandItem>
+                                                        ))}
+                                                    </CommandGroup>
+                                                </CommandList>
+                                            </Command>
+                                        </PopoverContent>
+                                    </Popover>
                                 </div>
 
                                 {clientCases.length > 0 && (

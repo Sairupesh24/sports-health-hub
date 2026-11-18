@@ -49,6 +49,11 @@ router.post('/signup', async (req, res) => {
     const passwordHash = await bcrypt.hash(password, 10);
     const userId = crypto.randomUUID();
 
+    // Prevent creating additional super_admin accounts via signup
+    if (role && String(role).toLowerCase().trim() === 'super_admin') {
+      return res.status(403).json({ error: 'Super Admin account cannot be self-registered.' });
+    }
+
     // Insert User
     await db.query(
       'INSERT INTO users (id, email, password_hash, role) VALUES ($1, $2, $3, $4)',
@@ -380,18 +385,24 @@ router.get('/me', async (req, res) => {
       return res.status(401).json({ error: 'Account access has been removed' });
     }
     
-    // If no profile exists (e.g. seeded admin), provide defaults
+    // If no profile exists (e.g. seeded super admin), provide standalone platform defaults
     if (!profile) {
       profile = {
         id: decoded.id,
         first_name: 'Super',
         last_name: 'Admin',
         is_approved: decoded.role === 'super_admin',
+        organization_id: null,
         organization_name: 'ISHPO System',
         organization_logo: null
       };
     } else if (decoded.role === 'super_admin') {
+      // Super Admin is a single standalone platform console unrelated to any organization
       profile.is_approved = true;
+      profile.organization_id = null;
+      profile.organization_name = 'ISHPO System';
+      profile.organization_logo = null;
+      profile.organization_enabled_modules = null;
     }
 
     // Resolve matching Client record by profile_id, uhid, or email

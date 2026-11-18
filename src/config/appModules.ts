@@ -31,18 +31,10 @@ export interface AppModuleDefinition {
   comingSoon?: boolean;
 }
 
+// Organization consoles & app modules.
+// Super Admin Console is intentionally excluded because it is a single standalone
+// platform-level console unrelated to any tenant organization.
 export const APP_MODULES: AppModuleDefinition[] = [
-  {
-    id: "super_admin",
-    name: "Super Admin Console",
-    description: "Platform master console: tenant organization onboarding, identity engine & security permissions control.",
-    icon: Building2,
-    href: "/super-admin",
-    color: "text-purple-700 bg-purple-100 border-purple-300",
-    gradient: "from-purple-600/20 via-indigo-600/10 to-purple-700/10",
-    badgeStyle: "bg-purple-100 text-purple-900 border-purple-300 font-bold",
-    defaultRoles: ["super_admin"],
-  },
   {
     id: "admin",
     name: "Admin Console",

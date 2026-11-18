@@ -40,6 +40,9 @@ import AuditLogsViewer from "@/components/admin/AuditLogsViewer";
 
 import { APP_MODULES, AppModuleDefinition, isModuleGrantedForUser } from "@/config/appModules";
 
+// Organization-level assignable consoles (Super Admin is a single standalone platform console)
+const ASSIGNABLE_MODULES = APP_MODULES.filter((m) => m.id !== "super_admin");
+
 interface UserProfile {
     id: string;
     first_name: string;
@@ -112,7 +115,12 @@ export default function ConsoleAccess({ defaultTab }: ConsoleAccessProps) {
             const response = await apiFetch<{ data: Array<Record<string, unknown>> }>("/hr/users");
             const allUsers = response.data || [];
             
-            const formatted: UserProfile[] = allUsers.map((u) => {
+            const formatted: UserProfile[] = allUsers
+                .filter((u) => {
+                    const r = ((u.current_role as string) || (u.role as string) || "").toLowerCase();
+                    return r !== "super_admin";
+                })
+                .map((u) => {
                 let parsedConsoles: string[] = [];
                 if (u.allowed_consoles) {
                     try {
@@ -121,10 +129,11 @@ export default function ConsoleAccess({ defaultTab }: ConsoleAccessProps) {
                         parsedConsoles = (u.allowed_consoles as string).split(',').map(s => s.trim());
                     }
                 }
+                parsedConsoles = parsedConsoles.filter((c) => c !== "super_admin");
                 
                 // Ensure primary role is included in allowed consoles by default
                 const primaryRole = (u.current_role as string) || (u.role as string) || "user";
-                if (primaryRole && !parsedConsoles.includes(primaryRole)) {
+                if (primaryRole && primaryRole !== "super_admin" && !parsedConsoles.includes(primaryRole)) {
                     parsedConsoles.push(primaryRole);
                 }
 
@@ -204,24 +213,26 @@ export default function ConsoleAccess({ defaultTab }: ConsoleAccessProps) {
     };
 
     const handleToggleConsoleAccess = async (userId: string, moduleObj: AppModuleDefinition) => {
+        if (moduleObj.id === "super_admin") return;
+
         const targetUser = users.find(u => u.id === userId);
         if (!targetUser) return;
 
         // Populate base allowed consoles array if user allowed_consoles was null/undefined
         let currentAllowed: string[];
         if (Array.isArray(targetUser.allowed_consoles)) {
-            currentAllowed = [...targetUser.allowed_consoles];
+            currentAllowed = targetUser.allowed_consoles.filter(c => c !== "super_admin");
         } else {
-            currentAllowed = APP_MODULES.filter(m => isConsoleGranted(targetUser, m)).map(m => m.id);
+            currentAllowed = ASSIGNABLE_MODULES.filter(m => isConsoleGranted(targetUser, m)).map(m => m.id);
         }
 
         const isCurrentlyGranted = isConsoleGranted(targetUser, moduleObj);
 
         let newAllowed: string[];
         if (isCurrentlyGranted) {
-            newAllowed = currentAllowed.filter(c => c !== moduleObj.id);
+            newAllowed = currentAllowed.filter(c => c !== moduleObj.id && c !== "super_admin");
         } else {
-            newAllowed = Array.from(new Set([...currentAllowed, moduleObj.id]));
+            newAllowed = Array.from(new Set([...currentAllowed, moduleObj.id])).filter(c => c !== "super_admin");
         }
 
         try {
@@ -462,7 +473,7 @@ export default function ConsoleAccess({ defaultTab }: ConsoleAccessProps) {
                             ) : (
                                 filteredUsers.map((user) => {
                                     const isSelected = selectedUserId === user.id;
-                                    const grantedCount = APP_MODULES.filter(m => isConsoleGranted(user, m)).length;
+                                    const grantedCount = ASSIGNABLE_MODULES.filter(m => isConsoleGranted(user, m)).length;
 
                                     return (
                                         <button
@@ -559,7 +570,7 @@ export default function ConsoleAccess({ defaultTab }: ConsoleAccessProps) {
                                             <div className="text-right">
                                                 <div className="text-[10px] font-black uppercase text-slate-400">Consoles Granted</div>
                                                 <div className="text-xs font-black text-primary">
-                                                    {APP_MODULES.filter(m => isConsoleGranted(selectedUser, m)).length} of {APP_MODULES.length} Active
+                                                    {ASSIGNABLE_MODULES.filter(m => isConsoleGranted(selectedUser, m)).length} of {ASSIGNABLE_MODULES.length} Active
                                                 </div>
                                             </div>
                                         </div>
@@ -577,7 +588,7 @@ export default function ConsoleAccess({ defaultTab }: ConsoleAccessProps) {
                                     </div>
 
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                        {APP_MODULES.map((moduleObj) => {
+                                        {ASSIGNABLE_MODULES.map((moduleObj) => {
                                             const IconComp = moduleObj.icon;
                                             const granted = isConsoleGranted(selectedUser, moduleObj);
                                             const isPrimary = moduleObj.defaultRoles.includes(selectedUser.current_role);

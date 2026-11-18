@@ -649,29 +649,31 @@ export default function AppSidebar({ role, isMobile, className, onNavigate }: Ap
 
         {/* Nav Items Container */}
         <nav className="flex-1 py-4 px-2 space-y-1 overflow-y-auto">
-          {/* App Gallery return link */}
-          <Link
-            to="/app-gallery"
-            onClick={onNavigate}
-            className={cn(
-              "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 h-10 mb-2 border-b border-sidebar-border/50 pb-3",
-              location.pathname === "/app-gallery"
-                ? "bg-sidebar-accent text-sidebar-primary shadow-glow"
-                : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-            )}
-          >
-            <div className="relative flex items-center justify-center shrink-0">
-              <Boxes className="w-5 h-5 text-primary" />
-            </div>
-            <span
+          {/* App Gallery return link (hidden for standalone Super Admin platform console) */}
+          {effectiveConsole !== "super_admin" && (
+            <Link
+              to="/app-gallery"
+              onClick={onNavigate}
               className={cn(
-                "whitespace-nowrap transition-all duration-300 ease-in-out flex-1 truncate",
-                isExpanded ? "opacity-100 max-w-[200px]" : "opacity-0 max-w-0 pointer-events-none"
+                "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 h-10 mb-2 border-b border-sidebar-border/50 pb-3",
+                location.pathname === "/app-gallery"
+                  ? "bg-sidebar-accent text-sidebar-primary shadow-glow"
+                  : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
               )}
             >
-              App Gallery
-            </span>
-          </Link>
+              <div className="relative flex items-center justify-center shrink-0">
+                <Boxes className="w-5 h-5 text-primary" />
+              </div>
+              <span
+                className={cn(
+                  "whitespace-nowrap transition-all duration-300 ease-in-out flex-1 truncate",
+                  isExpanded ? "opacity-100 max-w-[200px]" : "opacity-0 max-w-0 pointer-events-none"
+                )}
+              >
+                App Gallery
+              </span>
+            </Link>
+          )}
 
           {isLoadingState ? (
             // Neutral Skeleton Placeholders (Zero text flash)
