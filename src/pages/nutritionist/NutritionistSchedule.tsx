@@ -245,10 +245,8 @@ export default function NutritionistSchedule() {
                     {/* Appointments inside cell */}
                     <div className="space-y-1.5 flex-1 overflow-y-auto max-h-[140px]">
                       {dayAppointments.map((apt) => {
-                        const clientObj = apt.client || {};
-                        const clientName = clientObj.first_name
-                          ? formatClientName(clientObj)
-                          : apt.client_name || "Client";
+                        const clientObj = apt.client || apt;
+                        const clientName = formatClientName(clientObj) || apt.client_name || "Client";
                         const clientId = clientObj.id || apt.client_id;
                         const timeStr = apt.scheduled_start ? format(new Date(apt.scheduled_start), "hh:mm a") : "--";
 

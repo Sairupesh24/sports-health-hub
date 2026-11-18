@@ -32,7 +32,9 @@ export default function AppointmentList({ role, hideLayout = false }: { role: 'a
             const mapped = data.map(apt => {
                 const client = apt.client && apt.client.first_name !== undefined ? apt.client : {
                     first_name: apt.client_first_name,
+                    middle_name: apt.client_middle_name,
                     last_name: apt.client_last_name,
+                    honorific: apt.client_honorific,
                     uhid: apt.client_uhid,
                     is_vip: apt.is_vip
                 };

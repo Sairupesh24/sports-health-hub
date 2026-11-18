@@ -45,8 +45,8 @@ function getSessionDisplayName(s: any): string {
     if (isGroup) {
         return s.group_name?.trim() || "Group Session";
     }
-    if (s?.client) {
-        const name = formatClientName(s.client);
+    if (s?.client || s?.client_first_name) {
+        const name = formatClientName(s.client || s);
         if (name) return name;
     }
     if (s?.guest_name) {

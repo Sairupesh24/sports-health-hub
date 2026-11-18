@@ -455,6 +455,7 @@ model Enquiry {
 
   @@index([organizationId, status], map: "idx_enquiries_org_status")
   @@index([organizationId, nextFollowUpAt], map: "idx_enquiries_org_next_follow_up")
+  @@index([lastInteractionAt(sort: Desc)], map: "idx_enquiries_last_interaction")
   @@map("enquiries")
 }
 
@@ -1286,6 +1287,7 @@ model Session {
   @@index([sourceConsole], map: "idx_sessions_source_console")
   @@index([scheduledStart], map: "idx_sessions_scheduled_start")
   @@index([therapistId, scientistId], map: "idx_sessions_therapist_scientist")
+  @@index([sessionLocation], map: "idx_sessions_session_location")
   @@index([organizationId, sessionLocation], map: "idx_sessions_org_session_location")
   @@map("sessions")
 }

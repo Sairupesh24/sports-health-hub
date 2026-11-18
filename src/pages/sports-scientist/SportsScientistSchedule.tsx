@@ -231,7 +231,7 @@ export default function SportsScientistSchedule() {
                                             )}
                                         </div>
                                         <span className="truncate block">
-                                            {event.session_mode === 'Group' ? `👥 ${event.group_name}` : event.session_mode === 'Other' ? `🏢 ${event.session_type?.name}` : formatClientName(event.client)}
+                                            {event.session_mode === 'Group' ? `👥 ${event.group_name}` : event.session_mode === 'Other' ? `🏢 ${event.session_type?.name}` : formatClientName(event.client || event)}
                                         </span>
                                     </div>
                                 ))}
@@ -350,7 +350,7 @@ export default function SportsScientistSchedule() {
                                                     ? event.group_name
                                                     : event.session_mode === 'Other'
                                                         ? event.session_type?.name
-                                                        : formatClientName(event.client);
+                                                        : formatClientName(event.client || event);
 
                                                 const serviceName = event.session_type?.name || event.service_type;
 
@@ -512,7 +512,7 @@ export default function SportsScientistSchedule() {
                                                             ) : event.session_mode === 'Other' ? (
                                                                 <span>🏢 {event.session_type?.name}</span>
                                                             ) : (
-                                                                <span>{formatClientName(event.client)} ({event.client?.uhid || '-'})</span>
+                                                                <span>{formatClientName(event.client || event)} ({event.client?.uhid || event.client_uhid || '-'})</span>
                                                             )}
                                                         </div>
                                                         <div className="flex items-center gap-1 shrink-0">
@@ -553,7 +553,7 @@ export default function SportsScientistSchedule() {
                                                             )}
                                                         </div>
                                                         <h3 className="text-lg font-display font-bold leading-tight mt-1 group-hover:text-primary transition-colors">
-                                                            {event.session_mode === 'Group' ? `👥 ${event.group_name}` : event.session_mode === 'Other' ? `🏢 ${event.session_type?.name}` : formatClientName(event.client)}
+                                                            {event.session_mode === 'Group' ? `👥 ${event.group_name}` : event.session_mode === 'Other' ? `🏢 ${event.session_type?.name}` : formatClientName(event.client || event)}
                                                         </h3>
                                                         <div className="flex items-center gap-4 text-xs font-medium opacity-70">
                                                             <span className="flex items-center gap-1.5 capitalize">
@@ -809,7 +809,7 @@ export default function SportsScientistSchedule() {
                                                                     ? event.group_name 
                                                                     : event.session_mode === 'Other' 
                                                                         ? event.session_type?.name 
-                                                                        : formatClientName(event.client)}
+                                                                        : formatClientName(event.client || event)}
                                                             </span>
                                                             <span className="text-[9px] text-slate-400 dark:text-slate-500 block truncate">
                                                                 Coach: {profile?.first_name} {profile?.last_name}

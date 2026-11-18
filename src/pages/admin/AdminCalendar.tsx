@@ -59,7 +59,7 @@ interface SessionEvent {
     status: string;
     service_id?: string | null;
     service_type: string;
-    client: { first_name: string; middle_name?: string; last_name: string; honorific?: string; is_vip?: boolean; uhid?: string } | null;
+    client: { first_name: string; middle_name?: string; last_name: string; honorific?: string; is_vip?: boolean; uhid?: string; [key: string]: any } | null;
     therapist: { first_name: string; last_name: string; role?: string };
     therapist_id?: string;
     rawSession: Record<string, unknown>;
@@ -72,6 +72,8 @@ interface SessionEvent {
     session_mode?: string;
     group_name?: string | null;
 }
+
+export type CalendarSession = SessionEvent;
 
 interface StaffScheduleItem {
     consultant_id?: string;
@@ -347,11 +349,14 @@ export default function AdminCalendar() {
                 therapist_id?: string;
                 scientist_id?: string;
                 client_first_name?: string;
+                client_middle_name?: string;
                 client_last_name?: string;
+                client_uhid?: string;
+                client_honorific?: string;
                 is_vip?: boolean;
                 therapist_first_name?: string;
                 therapist_last_name?: string;
-                client?: { first_name?: string; last_name?: string; is_vip?: boolean };
+                client?: { first_name?: string; middle_name?: string; last_name?: string; honorific?: string; is_vip?: boolean; uhid?: string; [key: string]: unknown };
                 therapist?: { first_name?: string; last_name?: string };
                 [key: string]: unknown;
             }>>('/appointments', {
@@ -364,11 +369,22 @@ export default function AdminCalendar() {
             return (data || []).map(session => ({ 
                 ...session, 
                 therapist_id: session.therapist_id || session.scientist_id,
-                client: { 
-                    first_name: session.client?.first_name || session.client_first_name || "", 
-                    last_name: session.client?.last_name || session.client_last_name || "", 
-                    is_vip: session.client?.is_vip || session.is_vip 
-                },
+                client: session.client ? { 
+                    ...session.client,
+                    first_name: session.client.first_name || session.client_first_name || "", 
+                    middle_name: session.client.middle_name || session.client_middle_name || "", 
+                    last_name: session.client.last_name || session.client_last_name || "", 
+                    is_vip: session.client.is_vip !== undefined ? session.client.is_vip : session.is_vip,
+                    uhid: session.client.uhid || session.client_uhid || "",
+                    honorific: session.client.honorific || session.client_honorific || ""
+                } : (session.client_first_name ? {
+                    first_name: session.client_first_name,
+                    middle_name: session.client_middle_name || "",
+                    last_name: session.client_last_name || "",
+                    is_vip: session.is_vip,
+                    uhid: session.client_uhid || "",
+                    honorific: session.client_honorific || ""
+                } : null),
                 therapist: { 
                     first_name: session.therapist?.first_name || session.therapist_first_name || "", 
                     last_name: session.therapist?.last_name || session.therapist_last_name || "" 
@@ -1092,7 +1108,7 @@ export default function AdminCalendar() {
                                                 <span className="px-1 bg-orange-100 text-orange-600 rounded-[2px] text-[7px] font-bold uppercase tracking-tighter">Prov</span>
                                             </span>
                                         ) : (
-                                            formatClientName(event.client)
+                                            formatClientName(event.client || event)
                                         )}
                                     </span>
                                     {event.session_mode !== 'Group' && !event.is_guest && <VIPBadge isVIP={event.client?.is_vip} iconOnly size="sm" className="ml-1 inline-flex" />}
@@ -1236,7 +1252,7 @@ export default function AdminCalendar() {
                                                         ) : event.is_guest ? (
                                                             <span className="italic">G: {event.guest_name} <span className="text-[8px] bg-orange-100 text-orange-600 px-1 rounded font-bold uppercase ml-1">PROV</span></span>
                                                         ) : (
-                                                            <>C: {formatClientName(event.client)}</>
+                                                            <>C: {formatClientName(event.client || event)}</>
                                                         )}
                                                         {event.session_mode !== 'Group' && !event.is_guest && <VIPBadge isVIP={event.client?.is_vip} iconOnly size="sm" />}
                                                     </div>
@@ -1687,7 +1703,7 @@ export default function AdminCalendar() {
                                                                         ) : event.is_guest ? (
                                                                             <span>G: {event.guest_name}</span>
                                                                         ) : (
-                                                                            <span>{formatClientName(event.client)} ({event.client?.uhid || '-'})</span>
+                                                                            <span>{formatClientName(event.client || event)} ({event.client?.uhid || event.client_uhid || '-'})</span>
                                                                         )}
                                                                     </div>
                                                                     <div className="flex items-center gap-1 shrink-0">
@@ -1724,7 +1740,7 @@ export default function AdminCalendar() {
                                                                         ) : event.is_guest ? (
                                                                             <span className="italic opacity-85">G: {event.guest_name}</span>
                                                                         ) : (
-                                                                            <span>{formatClientName(event.client)}</span>
+                                                                            <span>{formatClientName(event.client || event)}</span>
                                                                         )}
                                                                         {event.session_mode !== 'Group' && !event.is_guest && <VIPBadge isVIP={event.client?.is_vip} size="sm" iconOnly />}
                                                                     </div>

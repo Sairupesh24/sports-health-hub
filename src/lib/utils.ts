@@ -28,10 +28,14 @@ export function formatClientName(
   if (!client) return options.fallback || "";
   if (typeof client === "string") return client.trim();
 
-  const honorific = options.includeHonorific ? (client.honorific || client.client_honorific) : null;
-  const first = client.first_name ?? client.firstName ?? client.client_first_name;
-  const middle = client.middle_name ?? client.middleName ?? client.client_middle_name;
-  const last = client.last_name ?? client.lastName ?? client.client_last_name;
+  const actualClient = client.client && typeof client.client === "object" ? client.client : client;
+
+  const honorific = options.includeHonorific
+    ? (actualClient.honorific || actualClient.client_honorific || client.honorific || client.client_honorific)
+    : null;
+  const first = actualClient.first_name ?? actualClient.firstName ?? actualClient.client_first_name ?? client.first_name ?? client.firstName ?? client.client_first_name;
+  const middle = actualClient.middle_name ?? actualClient.middleName ?? actualClient.client_middle_name ?? client.middle_name ?? client.middleName ?? client.client_middle_name;
+  const last = actualClient.last_name ?? actualClient.lastName ?? actualClient.client_last_name ?? client.last_name ?? client.lastName ?? client.client_last_name;
 
   const parts = [honorific, first, middle, last]
     .filter(Boolean)
@@ -42,7 +46,16 @@ export function formatClientName(
     return parts.join(" ");
   }
 
-  return client.client_name || client.full_name || client.name || options.fallback || "";
+  return (
+    actualClient.client_name ||
+    actualClient.full_name ||
+    actualClient.name ||
+    client.client_name ||
+    client.full_name ||
+    client.name ||
+    options.fallback ||
+    ""
+  );
 }
 
 /**

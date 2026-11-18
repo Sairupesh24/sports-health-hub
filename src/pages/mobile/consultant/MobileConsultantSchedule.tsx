@@ -284,7 +284,7 @@ export default function MobileConsultantSchedule() {
                                     </div>
                                     <div className="font-display font-black text-sm flex items-center gap-1.5 truncate">
                                         <User className="w-3.5 h-3.5 opacity-70" />
-                                        <VIPName name={formatClientName(event.client)} isVIP={event.client?.is_vip} className="truncate" />
+                                        <VIPName name={formatClientName(event.client || event)} isVIP={event.client?.is_vip} className="truncate" />
                                     </div>
                                     <div className="text-[10px] font-semibold opacity-70 truncate mt-0.5 uppercase tracking-wide">
                                         {event.service_type}

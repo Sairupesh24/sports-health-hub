@@ -315,7 +315,7 @@ export default function ConsultantSchedule() {
                                 >
                                     <span className="font-semibold">{format(parseISO(event.scheduled_start), "HH:mm")}</span>
                                     {" "}
-                                    <VIPName name={formatClientName(event.client)} isVIP={event.client?.is_vip} />
+                                    <VIPName name={formatClientName(event.client || event)} isVIP={event.client?.is_vip} />
                                     {event.client_id && isAdminOrFoe && (
                                         <div className="inline-block ml-1 align-middle">
                                             <PatientAlertSummaryIcon clientId={event.client_id} isVIP={event.client?.is_vip} />
@@ -430,7 +430,7 @@ export default function ConsultantSchedule() {
                                                 >
                                                     <div className="text-xs font-semibold">{format(startD, "HH:mm")} - {format(endD, "HH:mm")}</div>
                                                     <div className="text-xs truncate font-medium flex items-center gap-1">
-                                                        <VIPName name={formatClientName(event.client)} isVIP={event.client?.is_vip} />
+                                                        <VIPName name={formatClientName(event.client || event)} isVIP={event.client?.is_vip} />
                                                         {event.client_id && isAdminOrFoe && <PatientAlertSummaryIcon clientId={event.client_id} isVIP={event.client?.is_vip} />}
                                                         {event.is_unentitled && isAdminOrFoe && (
                                                             <div className="mt-1 px-1 py-0.5 bg-red-600 text-white text-[9px] font-bold rounded flex items-center gap-1 animate-pulse">
@@ -523,7 +523,7 @@ export default function ConsultantSchedule() {
                                          </div>
                                          <div className="font-display font-medium text-sm mt-1 flex items-center gap-2 overflow-hidden">
                                              <User className="w-3 h-3 opacity-70 flex-shrink-0" />
-                                             <VIPName name={formatClientName(event.client)} isVIP={event.client?.is_vip} className="truncate" />
+                                             <VIPName name={formatClientName(event.client || event)} isVIP={event.client?.is_vip} className="truncate" />
                                              {event.client_id && isAdminOrFoe && <PatientAlertSummaryIcon clientId={event.client_id} isVIP={event.client?.is_vip} />}
                                          </div>
                                          <div className="text-xs opacity-80 mt-0.5 truncate">
@@ -586,7 +586,7 @@ export default function ConsultantSchedule() {
                                         <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0" />
                                         <div>
                                             <p className="text-sm font-medium text-amber-900">
-                                                <VIPName name={formatClientName(s.client)} isVIP={s.client?.is_vip} />
+                                                <VIPName name={formatClientName(s.client || s)} isVIP={s.client?.is_vip} />
                                             </p>
                                             <p className="text-xs text-amber-700">
                                                 {format(new Date(s.scheduled_start), "MMM d, yyyy • h:mm a")} · {s.service_type}
